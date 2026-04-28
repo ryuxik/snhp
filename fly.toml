@@ -1,0 +1,50 @@
+# Fly.io app config for api.snhp.dev — the SNHP / game-theory HTTP server.
+# Region: sjc (San Jose) — single instance to start; scale via `fly scale count`.
+#
+# Manual setup (one-time, on your laptop):
+#   fly auth login            # account: ryuxik@gmail.com
+#   fly launch --no-deploy    # accept defaults; this writes / overwrites fly.toml
+#   fly postgres create --name snhp-db --region sjc --vm-size shared-cpu-1x --volume-size 1
+#   fly postgres attach snhp-db --app snhp
+#   # Optional: persist first-strike Ed25519 key across restarts
+#   #   fly secrets set FIRST_STRIKE_PRIVATE_PEM="$(cat path/to/private.pem)" --app snhp
+#   fly deploy
+#
+# After `fly launch` rewrites this file, the snippets below should be
+# preserved or merged back. Fly's launch command auto-detects Dockerfile.
+
+app = "snhp"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  HOST = "0.0.0.0"
+  LOG_LEVEL = "info"
+  # GT_KEYS_DB falls back to ~/.gametheory/keys.db inside the container —
+  # but production uses Postgres via DATABASE_URL set by `fly postgres attach`.
+  # SNHP_LLM_MODEL controls which model draft_message uses; override via
+  # `fly secrets set SNHP_LLM_MODEL=...` if you switch providers.
+  SNHP_LLM_MODEL = "gemini/gemini-3-flash-preview"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"      # spin down when idle
+  auto_start_machines = true       # spin up on first request
+  min_machines_running = 0         # zero-cost when no traffic
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

@@ -1,17 +1,31 @@
 """
-Shared SQLite plumbing for the toolkit. Onboarding (keys) and first-strike
-(commitments) share the same file by default; each owns its own table.
+Database plumbing — SQLite by default, Postgres when DATABASE_URL is set.
 
-Path resolution stays lazy so tests can override `GT_KEYS_DB` at module
-import time. Schema DDL runs once per (path, schema) pair, not per
-connection — `_conn` previously ran CREATE TABLE on every request.
+Onboarding (keys) and first-strike (commitments) share the same backend;
+each owns its own table. Schema DDL runs once per (backend, schema) pair.
+
+Backend selection:
+  - DATABASE_URL=postgres://... or postgresql://... → Postgres (psycopg2)
+  - else → SQLite at GT_KEYS_DB (default ~/.gametheory/keys.db)
+
+The module exposes a single `db_conn(schema_ddl)` context manager whose
+yielded object behaves like a sqlite3.Connection for the small subset of
+calls our handlers use (`.execute(sql, params).fetchone()` and `.commit()`).
+The Postgres path translates `?` placeholders to `%s` on the fly.
 """
 from __future__ import annotations
 
 import os
 import sqlite3
 from contextlib import contextmanager
-from typing import Iterator
+from typing import Any, Iterator
+
+
+def _database_url() -> str | None:
+    url = os.environ.get("DATABASE_URL", "").strip()
+    if url.startswith("postgres://") or url.startswith("postgresql://"):
+        return url
+    return None
 
 
 def resolve_db_path() -> str:
@@ -24,8 +38,11 @@ def resolve_db_path() -> str:
 _INITIALIZED: set[tuple[str, tuple[str, ...]]] = set()
 
 
-def _ensure_schema(db_path: str, schema_ddl: tuple[str, ...]) -> None:
-    cache_key = (db_path, schema_ddl)
+# ─── SQLite path (default) ──────────────────────────────────────────────────
+
+
+def _ensure_sqlite_schema(db_path: str, schema_ddl: tuple[str, ...]) -> None:
+    cache_key = ("sqlite:" + db_path, schema_ddl)
     if cache_key in _INITIALIZED:
         return
     parent = os.path.dirname(db_path)
@@ -42,11 +59,87 @@ def _ensure_schema(db_path: str, schema_ddl: tuple[str, ...]) -> None:
 
 
 @contextmanager
-def db_conn(schema_ddl: tuple[str, ...]) -> Iterator[sqlite3.Connection]:
+def _sqlite_conn(schema_ddl: tuple[str, ...]) -> Iterator[sqlite3.Connection]:
     db_path = resolve_db_path()
-    _ensure_schema(db_path, schema_ddl)
+    _ensure_sqlite_schema(db_path, schema_ddl)
     c = sqlite3.connect(db_path)
     try:
         yield c
     finally:
         c.close()
+
+
+# ─── Postgres path ──────────────────────────────────────────────────────────
+
+
+def _translate_sql(sql: str) -> str:
+    """SQLite uses '?' placeholders; psycopg2 uses '%s'.
+    Our queries don't contain literal '?' chars in any string. INTEGER /
+    TEXT / REAL DDL types are valid Postgres so the schema strings
+    translate as-is.
+    """
+    return sql.replace("?", "%s")
+
+
+class _PgConn:
+    """Thin sqlite3.Connection-shaped wrapper around psycopg2.
+
+    Implements only the surface our handlers actually use:
+      .execute(sql, params=()) → cursor (fetchone/fetchall both work)
+      .commit()
+      .close()
+    """
+
+    def __init__(self, dsn: str):
+        import psycopg2  # imported lazily so SQLite users don't need it
+        self._conn = psycopg2.connect(dsn)
+
+    def execute(self, sql: str, params: tuple[Any, ...] = ()):
+        cur = self._conn.cursor()
+        cur.execute(_translate_sql(sql), params)
+        return cur
+
+    def commit(self) -> None:
+        self._conn.commit()
+
+    def close(self) -> None:
+        self._conn.close()
+
+
+def _ensure_pg_schema(dsn: str, schema_ddl: tuple[str, ...]) -> None:
+    cache_key = ("pg:" + dsn, schema_ddl)
+    if cache_key in _INITIALIZED:
+        return
+    c = _PgConn(dsn)
+    try:
+        for stmt in schema_ddl:
+            c.execute(stmt)
+        c.commit()
+    finally:
+        c.close()
+    _INITIALIZED.add(cache_key)
+
+
+@contextmanager
+def _pg_conn(schema_ddl: tuple[str, ...]) -> Iterator[_PgConn]:
+    dsn = _database_url()
+    assert dsn is not None  # caller checked
+    _ensure_pg_schema(dsn, schema_ddl)
+    c = _PgConn(dsn)
+    try:
+        yield c
+    finally:
+        c.close()
+
+
+# ─── Public API ─────────────────────────────────────────────────────────────
+
+
+@contextmanager
+def db_conn(schema_ddl: tuple[str, ...]) -> Iterator[Any]:
+    if _database_url() is not None:
+        with _pg_conn(schema_ddl) as c:
+            yield c
+    else:
+        with _sqlite_conn(schema_ddl) as c:
+            yield c

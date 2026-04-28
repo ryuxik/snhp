@@ -1,0 +1,33 @@
+.git
+.github
+.gitignore
+.dockerignore
+.env
+.env.*
+venv/
+.venv/
+**/venv/
+**/__pycache__/
+**/*.py[cod]
+**/*.egg-info
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Eval/tuning runtime state
+*.db
+*.sqlite
+
+# Whitepaper / PRDs — not needed in the runtime image
+SNHP_Whitepaper/
+
+# Local IDE / OS noise
+.DS_Store
+.idea/
+.vscode/
+
+# Eval scripts — these run tournaments against negmas which we don't ship
+# in the runtime image. Keep them out so a builder accident doesn't try
+# to import negmas.
+gametheory/evals/
+gametheory/tests/
