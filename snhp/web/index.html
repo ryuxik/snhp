@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SNHP | Mathematical Proof of Value</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="simulator-container">
+        <!-- Input State -->
+        <div class="panel input-panel" id="inputPanel">
+            <h1>SNHP</h1>
+            <p class="subtitle">Enter the counter-offer. Output the optimal concession ladder.</p>
+            <textarea id="emailText" placeholder="Extract text from client email..."></textarea>
+            <textarea id="goalsText" placeholder="What is your ideal target? (e.g. hitting $120k, keeping full IP rights)"></textarea>
+            <button id="computeBtn">COMPUTE OPTIMAL PATH</button>
+        </div>
+
+        <!-- Animation / Processing State -->
+        <div class="panel magic-panel hidden" id="magicPanel">
+            <h2 id="magicText">Analyzing negotiation surface...</h2>
+            <div class="canvas-wrapper">
+                <canvas id="latticeCanvas" width="560" height="240"></canvas>
+            </div>
+        </div>
+
+        <!-- Result State -->
+        <div class="panel result-panel hidden" id="resultPanel">
+            <h2>Optimal Path Discovered</h2>
+            <div class="impact">
+                <span class="impact-label">Expected Value Gain:</span>
+                <span class="impact-value" id="amountSaved">$0</span>
+            </div>
+            <div class="ladder" id="concessionLadder">
+                <!-- Ladder steps injected here -->
+            </div>
+            <button id="resetBtn" class="secondary-btn">NEW SIMULATION</button>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "multi_market": {
+    "symmetric": {
+      "rank": 5,
+      "avg_utility": 0.3937533400419527,
+      "total_players": 17
+    },
+    "buyers_market": {
+      "rank": 5,
+      "avg_utility": 0.39762043008986964,
+      "total_players": 17
+    },
+    "sellers_market": {
+      "rank": 4,
+      "avg_utility": 0.39385950009523996,
+      "total_players": 17
+    }
+  }
+}

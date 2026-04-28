@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "source": "NYC 2026 estimates — BLS, Upwork, Glassdoor aggregates",
+    "last_updated": "2026-04-10",
+    "currency": "USD",
+    "location": "New York City"
+  },
+  "categories": {
+    "photographer": {
+      "label": "Photographer / Videographer",
+      "hourly": { "p25": 65, "median": 95, "p75": 140, "p90": 200 },
+      "day_rate": { "p25": 500, "median": 750, "p75": 1100, "p90": 1600 },
+      "keywords": ["photo", "photographer", "photography", "videographer", "video", "shoot", "campaign shoot", "lookbook", "editorial"]
+    },
+    "graphic_designer": {
+      "label": "Graphic Designer",
+      "hourly": { "p25": 50, "median": 75, "p75": 110, "p90": 160 },
+      "day_rate": { "p25": 400, "median": 600, "p75": 880, "p90": 1280 },
+      "keywords": ["design", "designer", "graphic", "brand", "branding", "logo", "layout", "visual identity", "packaging"]
+    },
+    "web_developer": {
+      "label": "Web Developer / Frontend Engineer",
+      "hourly": { "p25": 75, "median": 110, "p75": 160, "p90": 225 },
+      "day_rate": { "p25": 600, "median": 880, "p75": 1280, "p90": 1800 },
+      "keywords": ["developer", "dev", "frontend", "backend", "fullstack", "web", "website", "app", "react", "nextjs", "software"]
+    },
+    "copywriter": {
+      "label": "Copywriter / Content Writer",
+      "hourly": { "p25": 40, "median": 65, "p75": 100, "p90": 150 },
+      "day_rate": { "p25": 320, "median": 520, "p75": 800, "p90": 1200 },
+      "keywords": ["copy", "copywriter", "writer", "content", "blog", "article", "editorial", "caption", "script"]
+    },
+    "illustrator": {
+      "label": "Illustrator / Digital Artist",
+      "hourly": { "p25": 45, "median": 70, "p75": 105, "p90": 155 },
+      "day_rate": { "p25": 360, "median": 560, "p75": 840, "p90": 1240 },
+      "keywords": ["illustrator", "illustration", "digital art", "concept art", "drawing", "artist"]
+    },
+    "motion_designer": {
+      "label": "Motion Designer / Animator",
+      "hourly": { "p25": 60, "median": 90, "p75": 135, "p90": 190 },
+      "day_rate": { "p25": 480, "median": 720, "p75": 1080, "p90": 1520 },
+      "keywords": ["motion", "animation", "animator", "after effects", "motion graphics", "video editing", "vfx"]
+    },
+    "social_media": {
+      "label": "Social Media Manager / Strategist",
+      "hourly": { "p25": 35, "median": 55, "p75": 85, "p90": 125 },
+      "day_rate": { "p25": 280, "median": 440, "p75": 680, "p90": 1000 },
+      "keywords": ["social media", "instagram", "tiktok", "social", "influencer", "content strategy", "community"]
+    },
+    "ux_designer": {
+      "label": "UX/UI Designer",
+      "hourly": { "p25": 65, "median": 100, "p75": 145, "p90": 200 },
+      "day_rate": { "p25": 520, "median": 800, "p75": 1160, "p90": 1600 },
+      "keywords": ["ux", "ui", "user experience", "user interface", "product design", "wireframe", "prototype", "figma"]
+    },
+    "consultant": {
+      "label": "Strategy / Business Consultant",
+      "hourly": { "p25": 100, "median": 175, "p75": 275, "p90": 400 },
+      "day_rate": { "p25": 800, "median": 1400, "p75": 2200, "p90": 3200 },
+      "keywords": ["consultant", "consulting", "strategy", "advisor", "advisory", "management"]
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "role": "buyer",
+  "margin_weight": 2.0,
+  "best_objective": 0.49063894554004883,
+  "best_snhp_util": 0.5557685715436653,
+  "best_h2h_margin": -0.032564813001808246,
+  "best_deal_rate": 0.7999999999999999,
+  "params": {
+    "buyer_probe_target": 0.5660239989748754,
+    "buyer_aspiration_start": 0.6516713293200578,
+    "buyer_aspiration_floor": 0.5951023228353405,
+    "buyer_time_floor_rate": 1.7610397752796014,
+    "buyer_counter_anchor_cap": 0.8436439409357921,
+    "buyer_accept_early_bar": 0.6997419769307973,
+    "buyer_accept_early_cutoff": 0.3994525921744468,
+    "buyer_accept_mid_offset": 0.046793207066018895,
+    "buyer_accept_late_start": 0.5945513072184958,
+    "buyer_accept_late_bottom": 0.43672623802156935,
+    "buyer_accept_late_curve": 0.4791342131796591,
+    "buyer_emergency_time": 0.8720331840905784,
+    "buyer_emergency_margin": 0.041696625789145375,
+    "buyer_best_seen_time": 0.5710406611985541,
+    "buyer_best_seen_margin": 0.036383728621670754,
+    "buyer_convergence_time": 0.40951840811000695,
+    "buyer_convergence_gap": 0.06452647178804351,
+    "buyer_retract_prob_b2b": 0.04583198415003466,
+    "buyer_concession_cap_b2b": 0.03420325657510431,
+    "buyer_zeuthen_concession_scale": 0.12152924204756493,
+    "buyer_commitment_margin": 0.11062978473603038
+  },
+  "n_trials": 100,
+  "timestamp": "2026-04-28 12:13:30"
+}

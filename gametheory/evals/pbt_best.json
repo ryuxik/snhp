@@ -1,0 +1,87 @@
+{
+  "fitness": 0.6226886083505039,
+  "params": {
+    "seller_aspiration_start": 0.7132843692968948,
+    "buyer_aspiration_start": 0.7132843692968948,
+    "seller_aspiration_floor": 0.62,
+    "buyer_aspiration_floor": 0.62,
+    "seller_time_floor_rate": 1.0751122947887148,
+    "buyer_time_floor_rate": 1.0751122947887148,
+    "seller_counter_anchor_cap": 0.5671736048036736,
+    "buyer_counter_anchor_cap": 0.5671736048036736,
+    "seller_accept_early_bar": 0.4,
+    "buyer_accept_early_bar": 0.4,
+    "seller_accept_early_cutoff": 0.40938177810640736,
+    "buyer_accept_early_cutoff": 0.40938177810640736,
+    "seller_accept_late_start": 0.6549539812513652,
+    "buyer_accept_late_start": 0.6549539812513652,
+    "seller_accept_late_bottom": 0.48652657387054615,
+    "buyer_accept_late_bottom": 0.48652657387054615,
+    "seller_accept_late_curve": 0.9301399196353012,
+    "buyer_accept_late_curve": 0.9301399196353012,
+    "seller_emergency_time": 0.7355813655353115,
+    "buyer_emergency_time": 0.7355813655353115,
+    "seller_emergency_margin": 0.016322645446661982,
+    "buyer_emergency_margin": 0.016322645446661982,
+    "seller_retract_prob_b2b": 0.08509843171109403,
+    "buyer_retract_prob_b2b": 0.08509843171109403,
+    "seller_concession_cap_b2b": 0.05588745888001848,
+    "buyer_concession_cap_b2b": 0.05588745888001848,
+    "seller_zeuthen_concession_scale": 0.010573615320830893,
+    "buyer_zeuthen_concession_scale": 0.010573615320830893,
+    "seller_commitment_margin": 0.011878739955837301,
+    "buyer_commitment_margin": 0.011878739955837301
+  },
+  "history": [
+    {
+      "gen": 1,
+      "best": 0.6360105325853317,
+      "median": 0.6249924953158928,
+      "worst": 0.5813297010481426,
+      "fitness": [
+        0.5813297010481426,
+        0.6299444571817012,
+        0.6274933613085696,
+        0.6136255168525346,
+        0.6224916293232161,
+        0.6360105325853317
+      ]
+    },
+    {
+      "gen": 2,
+      "best": 0.6367949911494983,
+      "median": 0.6246289534819485,
+      "worst": 0.6128270838528481,
+      "fitness": [
+        0.6161118141076487,
+        0.6367949911494983,
+        0.6297166286609712,
+        0.6290251127745432,
+        0.6202327941893537,
+        0.6128270838528481
+      ]
+    },
+    {
+      "gen": 3,
+      "best": 0.6226886083505039,
+      "median": 0.6043453312158791,
+      "worst": 0.5950551905771488,
+      "fitness": [
+        0.6019446203287332,
+        0.6053318932842939,
+        0.6066490818249752,
+        0.6226886083505039,
+        0.5950551905771488,
+        0.6033587691474642
+      ]
+    }
+  ],
+  "config": {
+    "pop_size": 6,
+    "n_gens": 3,
+    "n_rounds": 30,
+    "seed": 42,
+    "elite_fraction": 0.25,
+    "mutation_sigma": 0.1
+  }
+}

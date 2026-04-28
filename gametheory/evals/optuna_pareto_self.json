@@ -1,0 +1,47 @@
+{
+  "trial_number": 24,
+  "values": [
+    0.5306815173051804,
+    0.17391304347826086,
+    1.2536874317514255
+  ],
+  "params": {
+    "seller_aspiration_start": 0.64058714273478,
+    "buyer_aspiration_start": 0.64058714273478,
+    "seller_aspiration_floor": 0.3927207223023017,
+    "buyer_aspiration_floor": 0.3927207223023017,
+    "seller_time_floor_rate": 0.7366806522165278,
+    "buyer_time_floor_rate": 0.7366806522165278,
+    "seller_counter_anchor_cap": 0.5208514796155809,
+    "buyer_counter_anchor_cap": 0.5208514796155809,
+    "seller_accept_early_bar": 0.4333376402571623,
+    "buyer_accept_early_bar": 0.4333376402571623,
+    "seller_accept_early_cutoff": 0.20230273333638477,
+    "buyer_accept_early_cutoff": 0.20230273333638477,
+    "seller_accept_late_start": 0.7829874010925215,
+    "buyer_accept_late_start": 0.7829874010925215,
+    "seller_accept_late_bottom": 0.4908991118135023,
+    "buyer_accept_late_bottom": 0.4908991118135023,
+    "seller_accept_late_curve": 0.3623797251401296,
+    "buyer_accept_late_curve": 0.3623797251401296,
+    "seller_emergency_time": 0.9396774227324631,
+    "buyer_emergency_time": 0.9396774227324631,
+    "seller_emergency_margin": 0.055141755261227415,
+    "buyer_emergency_margin": 0.055141755261227415,
+    "seller_retract_prob_b2b": 0.04707331727687808,
+    "buyer_retract_prob_b2b": 0.04707331727687808,
+    "seller_concession_cap_b2b": 0.05353496774194329,
+    "buyer_concession_cap_b2b": 0.05353496774194329,
+    "seller_zeuthen_concession_scale": 0.03961712397654975,
+    "buyer_zeuthen_concession_scale": 0.03961712397654975,
+    "seller_commitment_margin": 0.18199284657443648,
+    "buyer_commitment_margin": 0.18199284657443648
+  },
+  "user_attrs": {
+    "avg_util": 0.5306815173051804,
+    "h2h_score": 0.17391304347826086,
+    "opp_util": 0.6555367215295004,
+    "self_play_a": 0.6604427565043661,
+    "self_play_b": 0.5932446752470594
+  }
+}

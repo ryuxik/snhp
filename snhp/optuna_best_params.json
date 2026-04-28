@@ -1,0 +1,20 @@
+{
+  "best_value": 0.5818804209693376,
+  "best_params": {
+    "aspiration_start": 0.5800000000000001,
+    "aspiration_floor": 0.49,
+    "probe_target": 0.6,
+    "accept_early_bar": 0.5599999999999999,
+    "accept_early_cutoff": 0.38,
+    "accept_late_bottom": 0.41000000000000003,
+    "accept_late_start": 0.52,
+    "accept_late_curve": 0.48000000000000004,
+    "time_floor_rate": 1.02,
+    "zeuthen_concession_scale": 0.09,
+    "concession_cap_b2b": 0.05600000000000001,
+    "best_seen_time": 0.5,
+    "emergency_time": 0.75
+  },
+  "n_trials": 200,
+  "timestamp": "2026-04-16T16:47:43.808905"
+}

@@ -1,0 +1,57 @@
+{
+  "model": "gemini/gemini-3-flash-preview",
+  "n_emails": 10,
+  "n_seeds": 1,
+  "seeds": [
+    {
+      "core_accuracy": 0.8,
+      "core_ci": [
+        0.6568618383053166,
+        0.9431381616946835
+      ],
+      "secondary_accuracy": 0.6,
+      "secondary_ci": [
+        0.4246922705640165,
+        0.7753077294359835
+      ],
+      "per_field": {
+        "free_hourly_rate": {
+          "accuracy": 0.9,
+          "n": 10
+        },
+        "free_min_total": {
+          "accuracy": 0.6,
+          "n": 10
+        },
+        "free_duration_days": {
+          "accuracy": 0.0,
+          "n": 5
+        },
+        "free_max_hours_per_day": {
+          "accuracy": 0.8,
+          "n": 5
+        },
+        "free_revisions": {
+          "accuracy": 0.5,
+          "n": 10
+        },
+        "client_budget": {
+          "accuracy": 0.8,
+          "n": 5
+        },
+        "client_timeline_days": {
+          "accuracy": 0.8,
+          "n": 5
+        },
+        "free_hourly_batna": {
+          "accuracy": 1.0,
+          "n": 5
+        },
+        "client_rate_offer": {
+          "accuracy": 1.0,
+          "n": 5
+        }
+      }
+    }
+  ]
+}

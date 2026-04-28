@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-04-16T16:34:44",
+  "n50_rank": 4,
+  "n50_avg": 0.5159473225742343,
+  "n50_ci": [
+    0.5159473225742343,
+    0.4591161643978281,
+    0.5688222864543613
+  ],
+  "buyers_market_rank": 2,
+  "sellers_market_rank": 1,
+  "classifier_f1": 0.6833333333333333,
+  "logrolling_uplift": -1.0433608264801204,
+  "gates": {
+    "Rank top-3 (N=50)": false,
+    "CI lower bound <= 2": true,
+    "Multi-market top-5": true,
+    "Classifier F1 > 0.50": true,
+    "Logrolling (inconclusive)": true
+  },
+  "certified": false
+}
