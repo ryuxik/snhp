@@ -111,27 +111,67 @@ curl -X POST https://api.snhp.dev/v1/auction/bidder/optimal_bid \
 # Expect: {"optimal_bid":100.0,"dominant_strategy":true, ...}
 ```
 
-## 7. What's NOT done by these steps
+## 7. Stripe billing (credit packs)
 
-- **Stripe billing**: `upgrade_key` accepts any `pm_*` string. Real
-  `stripe.SetupIntent` flow is Stage 2 in the punchlist.
+The credit-balance flow is wired. To go live with paid endpoints:
+
+```bash
+# 1. Create a Stripe account at stripe.com (use ryuxik@gmail.com).
+#    Skip business activation — test mode works without it.
+
+# 2. From Stripe Dashboard → Developers → API keys, copy the SECRET key.
+#    It starts with sk_test_ (test mode) or sk_live_ (live mode).
+fly secrets set STRIPE_SECRET_KEY="sk_test_..." --app snhp
+
+# 3. From Stripe Dashboard → Developers → Webhooks → Add endpoint:
+#    URL:    https://api.snhp.dev/v1/billing/webhook
+#    Events: checkout.session.completed
+#    Copy the signing secret (starts with whsec_).
+fly secrets set STRIPE_WEBHOOK_SECRET="whsec_..." --app snhp
+
+# 4. Smoke test: create a checkout session and pay with the test card
+#    4242 4242 4242 4242 (any future expiry, any CVC).
+KEY=$(curl -s -X POST https://api.snhp.dev/v1/keys \
+  -H "Content-Type: application/json" \
+  -d '{"agent_id":"stripe-test","contact_email":"e@x.com",
+       "intended_use_summary":"stripe smoke test"}' | jq -r .api_key)
+
+curl -s -X POST https://api.snhp.dev/v1/billing/checkout_session \
+  -H "Content-Type: application/json" \
+  -d "{\"api_key\":\"$KEY\",\"pack\":\"small\",
+       \"success_url\":\"https://snhp.dev/paid\",
+       \"cancel_url\":\"https://snhp.dev/cancel\"}" | jq .
+
+# Open the returned checkout_url in a browser, pay with the test card.
+# Stripe calls our webhook → balance credits 1000 cents.
+
+curl -s https://api.snhp.dev/v1/billing/balance \
+  -H "Authorization: Bearer $KEY" | jq .
+# Expect: {"balance_usd_cents": 1000, ...}
+```
+
+## 9. What's NOT done by these steps
 - **Redis rate limiting**: per-key rate limits are advertised in the
   catalog but not enforced. Single-replica deploy means this matters
   less for now; revisit when scaling out.
-- **Trust-anchor key persistence**: see TODO under §3.
+- **Auto-recharge**: low-balance customers must manually re-purchase via
+  /v1/billing/checkout_session. Modal/Replicate offer auto-recharge
+  ("when balance < $X, top up $Y") — defer until first customer asks.
+- **Free tier on signup**: no $5–$10 starting credits. Defer until
+  conversion friction matters.
 - **Logging / Sentry**: nothing configured. Stage 5.
 - **MCP server hosting**: the stdio MCP runs on the user's machine
   (`pip install gametheory-mcp; gametheory-mcp`); a hosted SSE/HTTP MCP
   is a separate decision once usage demands it.
 
-## 8. Rollback
+## 10. Rollback
 
 ```bash
 fly releases list --app snhp
 fly releases rollback <version> --app snhp
 ```
 
-## 9. Useful operations
+## 11. Useful operations
 
 ```bash
 fly status --app snhp                # current machine state

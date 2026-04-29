@@ -127,8 +127,8 @@ _PARETO_DIR = os.path.join(
 )
 
 
-def _load_pareto_operating_point(tag: str) -> dict | None:
-    path = os.path.join(_PARETO_DIR, f"optuna_pareto_{tag}.json")
+def _load_pareto_operating_point(filename: str) -> dict | None:
+    path = os.path.join(_PARETO_DIR, filename)
     if not os.path.exists(path):
         return None
     try:
@@ -138,8 +138,8 @@ def _load_pareto_operating_point(tag: str) -> dict | None:
         return None
 
 
-def _try_register_pareto_variant(name: str, tag: str) -> Type | None:
-    op = _load_pareto_operating_point(tag)
+def _try_register_pareto_variant(name: str, filename: str) -> Type | None:
+    op = _load_pareto_operating_point(filename)
     if op is None:
         return None
     # Lazy import to avoid a circular: aspiration_detector imports
@@ -155,6 +155,16 @@ def _try_register_pareto_variant(name: str, tag: str) -> Type | None:
     return cls
 
 
-SNHP_PMaxAvg = _try_register_pareto_variant("SNHP_PMaxAvg", "avg")
-SNHP_PMaxH2H = _try_register_pareto_variant("SNHP_PMaxH2H", "h2h")
-SNHP_PMaxSelf = _try_register_pareto_variant("SNHP_PMaxSelf", "self")
+# v1 — 3-objective Optuna run (40 trials, n=100, no detector tuning).
+SNHP_PMaxAvg = _try_register_pareto_variant("SNHP_PMaxAvg", "optuna_pareto_avg.json")
+SNHP_PMaxH2H = _try_register_pareto_variant("SNHP_PMaxH2H", "optuna_pareto_h2h.json")
+SNHP_PMaxSelf = _try_register_pareto_variant("SNHP_PMaxSelf", "optuna_pareto_self.json")
+
+# v2 — 4-objective Optuna run (200 trials, n=100, detector thresholds tunable).
+# Adds an `anti_aspiration` objective explicitly maximizing SNHP_util −
+# Aspiration_util in the direct H2H. The v2_AntiAsp variant is the headline:
+# it dropped the H2H gap from -0.317 (vanilla) to -0.041 in the Optuna eval.
+SNHP_v2_PMaxAvg     = _try_register_pareto_variant("SNHP_v2_PMaxAvg",     "optuna_v2_pareto_avg.json")
+SNHP_v2_PMaxH2H     = _try_register_pareto_variant("SNHP_v2_PMaxH2H",     "optuna_v2_pareto_h2h.json")
+SNHP_v2_PMaxSelf    = _try_register_pareto_variant("SNHP_v2_PMaxSelf",    "optuna_v2_pareto_self.json")
+SNHP_v2_AntiAsp     = _try_register_pareto_variant("SNHP_v2_AntiAsp",     "optuna_v2_pareto_anti_asp.json")

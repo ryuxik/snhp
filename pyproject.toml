@@ -44,6 +44,7 @@ prod = [
     "psycopg2-binary>=2.9",
     "numba>=0.59",
     "python-dotenv>=1.0",
+    "stripe>=8.0",
 ]
 
 [project.scripts]

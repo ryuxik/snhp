@@ -51,7 +51,14 @@ def build_roster() -> dict:
 
     # Each available Pareto operating point. Classes are pre-registered
     # in `snhp_variants` at module import so spawn-mode workers can pickle.
-    for label in ("SNHP_PMaxAvg", "SNHP_PMaxH2H", "SNHP_PMaxSelf"):
+    pareto_labels = (
+        # v1 (3-objective Optuna run)
+        "SNHP_PMaxAvg", "SNHP_PMaxH2H", "SNHP_PMaxSelf",
+        # v2 (4-objective: adds anti_aspiration)
+        "SNHP_v2_PMaxAvg", "SNHP_v2_PMaxH2H", "SNHP_v2_PMaxSelf",
+        "SNHP_v2_AntiAsp",
+    )
+    for label in pareto_labels:
         cls = getattr(snhp_variants, label, None)
         if cls is None:
             print(f"  [warn] {label} not registered — Optuna run hasn't "

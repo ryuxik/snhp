@@ -17,7 +17,7 @@ import os
 import time
 from typing import Callable, Literal, Optional
 
-from fastapi import FastAPI, Header, HTTPException, Response
+from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
@@ -48,36 +48,49 @@ from gametheory.mechanism.posted_price import (
 )
 from gametheory.server.onboarding import (
     issue_key as _issue_key,
-    upgrade_key as _upgrade_key,
     lookup_key as _lookup_key,
+    deduct_balance as _deduct_balance,
 )
+from gametheory.server import billing as _billing
 from gametheory._internal import ensure_snhp_path  # noqa: F401  (side-effect import)
 from llm_extractor import _call_llm  # noqa: E402
 
 
 _COST_FREE = "0"
 
-# Flat per-call cost for draft_message until cost_calculator gets wired with
-# real prompt/completion token counts.
-_DRAFT_MESSAGE_COST_USD = "0.0050"
+# Per-call cost for draft_message in cents (whole cents — billing uses int).
+# Header cost stays in USD ("0.0050") for backwards compatibility.
+_DRAFT_MESSAGE_COST_CENTS = _billing.DRAFT_MESSAGE_COST_CENTS
+_DRAFT_MESSAGE_COST_USD = f"{_DRAFT_MESSAGE_COST_CENTS / 100:.4f}"
 
 
-def _require_metered_key(authorization: Optional[str]) -> None:
-    """Raise 402 if the bearer key is missing, unknown, or free-tier."""
+def _extract_api_key(authorization: Optional[str]) -> str:
+    """Pull the bearer token out of the Authorization header. Raises 401
+    if the header is missing or malformed."""
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(
-            status_code=402,
-            detail="Authorization: Bearer gt_live_* required for paid endpoints",
+            status_code=401,
+            detail="Authorization: Bearer gt_* required",
         )
-    api_key = authorization.split(" ", 1)[1].strip()
+    return authorization.split(" ", 1)[1].strip()
+
+
+def _charge_or_402(api_key: str, cost_cents: int) -> None:
+    """Look up the key, deduct cost_cents from its balance. Raises 402
+    on unknown key or insufficient balance, with a message pointing the
+    caller at the credit-purchase flow.
+    """
     key_info = _lookup_key(api_key)
     if key_info is None:
         raise HTTPException(status_code=402, detail="Unknown api_key")
-    if key_info["tier"] != "metered":
+    if not _deduct_balance(api_key=api_key, cents=cost_cents):
         raise HTTPException(
             status_code=402,
-            detail=("This endpoint requires a metered key. Upgrade via "
-                    "POST /v1/keys/upgrade with a Stripe payment method."),
+            detail=(
+                f"Insufficient credits ({key_info['balance_usd_cents']} cents "
+                f"available, {cost_cents} required). Top up at "
+                f"POST /v1/billing/checkout_session with a credit pack."
+            ),
         )
 
 
@@ -303,19 +316,26 @@ class DraftMessageResponse(BaseModel):
     model: str
 
 
-# Key upgrade
-class UpgradeKeyRequest(BaseModel):
-    api_key: str = Field(description="Existing free-tier key (gt_test_*)")
-    stripe_payment_method_id: str = Field(min_length=4,
-        description="Stripe payment method ID (pm_*)")
+# Billing / credit-pack purchase
+class CheckoutSessionRequest(BaseModel):
+    api_key: str = Field(description="Existing key to credit on success (gt_*)")
+    pack: Literal["small", "medium", "large"] = Field(
+        description="Credit pack: small=$10, medium=$50, large=$200")
+    success_url: str = Field(description="URL Stripe redirects to after payment")
+    cancel_url: str = Field(description="URL Stripe redirects to on cancel")
 
 
-class UpgradeKeyResponse(BaseModel):
+class CheckoutSessionResponse(BaseModel):
+    checkout_url: str
+    session_id: str
+    pack: str
+    price_cents: int
+    credits_cents: int
+
+
+class BalanceResponse(BaseModel):
     api_key: str
-    tier: str
-    rate_limit_per_minute: int
-    created_at: int
-    stripe_payment_method_id: str
+    balance_usd_cents: int
 
 
 # ─── Tier 3: Mechanism Design ───────────────────────────────────────────────
@@ -723,17 +743,22 @@ structurally bad at multi-round, opponent-modeling problems; we are not.
 
 ## Cost model
 - Math endpoints are FREE: NumPy / SciPy, ~50ms p99.
-- LLM endpoints (currently just draft_message) are PAID. Stripe-card-on-file
-  required from call one. Free tier rate limit 60/min; metered 600/min.
+- LLM endpoints (currently just draft_message) cost 1 credit cent / call.
+  Top up credits via Stripe Checkout (see Onboarding below).
+  Rate limit: 600/min for all keys.
 
 ## Onboarding (no human in the loop)
 - POST /v1/keys
     body: {agent_id, contact_email, intended_use_summary}
-    -> {api_key: "gt_test_*", tier: "free_only", rate_limit_per_minute: 60}
-- POST /v1/keys/upgrade
-    Authorization: Bearer gt_test_*
-    body: {api_key, stripe_payment_method_id}
-    -> {api_key: "gt_live_*", tier: "metered", rate_limit_per_minute: 600}
+    -> {api_key: "gt_*", balance_usd_cents: 0, ...}
+- POST /v1/billing/checkout_session
+    body: {api_key, pack: "small"|"medium"|"large", success_url, cancel_url}
+    -> {checkout_url, session_id, ...}
+  Owner clicks the URL, pays via Stripe, balance auto-credits via webhook.
+  Packs: small=$10 (1k cents), medium=$50 (5k cents), large=$200 (20k cents).
+- GET /v1/billing/balance
+    Authorization: Bearer gt_*
+    -> {balance_usd_cents}
 
 ## Composition examples
 1. Buy-side defense → auction:
@@ -781,6 +806,7 @@ class IssueKeyResponse(BaseModel):
     tier: str
     rate_limit_per_minute: int
     created_at: int
+    balance_usd_cents: int = Field(description="Remaining credit balance in cents")
     reused: bool = Field(description="True if an existing key for this agent_id was returned")
 
 
@@ -792,7 +818,7 @@ class IssueKeyResponse(BaseModel):
     description=(
         "Self-serve key issuance for AI agents. No human approval gate. "
         "Idempotent on agent_id within 24h. Free tier only in Sprint 1; "
-        "Stripe upgrade gate (POST /v1/keys/upgrade) ships in Sprint 2 for "
+        "Top up credits via POST /v1/billing/checkout_session for "
         "paid endpoints."
     ),
 )
@@ -905,38 +931,91 @@ def keys_trust_anchor():
     return _trust_anchor_pem()
 
 
-# ─── Paid endpoint (draft_message) + key upgrade ────────────────────────────
+# ─── Billing (Stripe Checkout credit packs) ─────────────────────────────────
 
 
 @app.post(
-    "/v1/keys/upgrade",
+    "/v1/billing/checkout_session",
     tags=["discovery"],
-    response_model=UpgradeKeyResponse,
-    summary="Upgrade a free key to metered (unlocks paid endpoints)",
+    response_model=CheckoutSessionResponse,
+    summary="Create a Stripe Checkout session for a credit pack",
+    description=(
+        "Returns a hosted Stripe Checkout URL. The human owner of the agent "
+        "clicks through to pay; on success Stripe calls our webhook and we "
+        "credit the api_key's balance. Test mode uses Stripe test cards "
+        "(4242 4242 4242 4242); production needs live keys."
+    ),
 )
-def keys_upgrade(req: UpgradeKeyRequest):
+def billing_checkout_session(req: CheckoutSessionRequest):
     try:
-        return _upgrade_key(
-            api_key=req.api_key,
-            stripe_payment_method_id=req.stripe_payment_method_id,
+        return _billing.create_checkout_session(
+            api_key=req.api_key, pack=req.pack,
+            success_url=req.success_url, cancel_url=req.cancel_url,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        # STRIPE_SECRET_KEY not set on the server.
+        raise HTTPException(status_code=503, detail=str(e))
+
+
+@app.post(
+    "/v1/billing/webhook",
+    tags=["discovery"],
+    summary="Stripe webhook receiver (checkout.session.completed)",
+    description=(
+        "Stripe calls this with `checkout.session.completed` events. "
+        "Signature is verified against STRIPE_WEBHOOK_SECRET; duplicates "
+        "are deduped by event.id. On success the api_key's balance is "
+        "credited by the pack's credits_cents. Don't call this endpoint "
+        "yourself — it's a Stripe-only callback."
+    ),
+)
+async def billing_webhook(request: Request):
+    payload = await request.body()
+    signature = request.headers.get("stripe-signature")
+    try:
+        return _billing.handle_webhook(payload=payload, signature=signature)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+
+@app.get(
+    "/v1/billing/balance",
+    tags=["discovery"],
+    response_model=BalanceResponse,
+    summary="Read the current credit balance for an api_key",
+)
+def billing_balance(authorization: Optional[str] = Header(None)):
+    api_key = _extract_api_key(authorization)
+    info = _lookup_key(api_key)
+    if info is None:
+        raise HTTPException(status_code=401, detail="Unknown api_key")
+    return {"api_key": api_key, "balance_usd_cents": info["balance_usd_cents"]}
+
+
+# ─── Paid endpoint (draft_message) ──────────────────────────────────────────
 
 
 @app.post(
     "/v1/negotiation/draft_message",
     tags=["negotiation"],
     response_model=DraftMessageResponse,
-    summary="Draft a natural-language reply email (PAID — requires metered key)",
+    summary="Draft a natural-language reply email (PAID — requires credits)",
     description=(
-        "LLM-cost endpoint. Requires Authorization: Bearer gt_live_*. Refuses "
-        "to draft persuasive text where the proposed offer is below the "
-        "caller's stated reservation (no BATNA-violating drafts)."
+        "LLM-cost endpoint. Requires Authorization: Bearer gt_*. Charges "
+        "1 credit cent per call. Refuses to draft persuasive text where "
+        "the proposed offer is below the caller's stated reservation "
+        "(no BATNA-violating drafts). Top up credits via "
+        "POST /v1/billing/checkout_session."
     ),
     responses={
-        402: {"description": "Payment required (no metered key)"},
+        401: {"description": "Missing or malformed Authorization header"},
+        402: {"description": "Insufficient credits — top up first"},
         400: {"description": "Invalid input or BATNA-violating draft refused"},
+        502: {"description": "Upstream LLM error"},
     },
 )
 def negotiation_draft_message(
@@ -944,9 +1023,13 @@ def negotiation_draft_message(
     response: Response,
     authorization: Optional[str] = Header(None),
 ):
-    _require_metered_key(authorization)
+    api_key = _extract_api_key(authorization)
+    _charge_or_402(api_key, _DRAFT_MESSAGE_COST_CENTS)
 
     # BATNA guard: refuse to draft if the offer would put us below our walk-away.
+    # Note: we already deducted the credit. Refunding on input-validation failure
+    # would be the polite move; for MVP we accept that callers eat the 1 cent
+    # for malformed inputs.
     proposed_offer_utility = float(req.numbers.get("recommended_offer", 1.0))
     if proposed_offer_utility < req.my_reservation:
         raise HTTPException(

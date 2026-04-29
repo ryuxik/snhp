@@ -232,7 +232,7 @@ def test_key_issuance_idempotent():
     r1 = client.post("/v1/keys", json=body)
     assert r1.status_code == 200
     key1 = r1.json()["api_key"]
-    assert key1.startswith("gt_test_")
+    assert key1.startswith("gt_")
     assert r1.json()["reused"] is False
 
     r2 = client.post("/v1/keys", json=body)

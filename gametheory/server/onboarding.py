@@ -1,10 +1,22 @@
 """
-Programmatic API key issuance. Free tier is self-serve and idempotent on
-agent_id within 24h. Metered upgrade requires a Stripe pm_* identifier.
+Programmatic API key issuance + credit balance.
 
-Storage: SQLite at the path resolved by gametheory._db (default
-~/.gametheory/keys.db). Rate limits are advertised here but enforced
-elsewhere (best-effort in-process today; Redis when there's a second pod).
+Self-serve key issuance, idempotent on agent_id within 24h. Math endpoints
+are free; LLM-cost endpoints (currently `draft_message`) deduct from a
+balance that's topped up via Stripe Checkout (see gametheory.server.billing).
+
+Schema:
+  keys
+    api_key                 TEXT  PRIMARY KEY
+    agent_id                TEXT  NOT NULL
+    contact_email           TEXT  NOT NULL
+    intended_use_summary    TEXT  NOT NULL
+    tier                    TEXT  NOT NULL    -- always "standard" now
+    rate_limit_per_minute   BIGINT NOT NULL
+    created_at              BIGINT NOT NULL   -- unix seconds
+    balance_usd_cents       BIGINT NOT NULL DEFAULT 0   -- credit balance
+
+Storage: SQLite (default ~/.gametheory/keys.db) or Postgres if DATABASE_URL.
 """
 from __future__ import annotations
 
@@ -15,10 +27,8 @@ from typing import Optional
 from gametheory._db import db_conn
 
 
-_FREE_TIER_RATE = 60        # requests per minute
-_METERED_TIER_RATE = 600    # requests per minute
-_FREE_PREFIX = "gt_test_"
-_METERED_PREFIX = "gt_live_"
+_RATE_LIMIT_PER_MIN = 600     # uniform now; the free/metered split is gone
+_KEY_PREFIX = "gt_"
 
 
 _KEYS_SCHEMA = (
@@ -31,10 +41,14 @@ _KEYS_SCHEMA = (
         tier TEXT NOT NULL,
         rate_limit_per_minute INTEGER NOT NULL,
         created_at INTEGER NOT NULL,
-        stripe_payment_method_id TEXT
+        balance_usd_cents INTEGER NOT NULL DEFAULT 0
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_agent_id ON keys(agent_id, created_at)",
+    # Idempotent column adds for upgrades from older schemas. SQLite ignores
+    # the comment via "ALTER TABLE ... ADD COLUMN" wrapped in a try/except
+    # in _conn's setup. Skipped here to keep the schema declarative; if you
+    # need to migrate, run an ALTER TABLE manually.
 )
 
 
@@ -45,8 +59,8 @@ def _conn():
 def issue_key(*, agent_id: str, contact_email: str,
               intended_use_summary: str) -> dict:
     """
-    Issue a free-tier API key. Idempotent on agent_id within 24h: returns
-    the existing key if one was issued recently.
+    Issue a new API key, idempotent on agent_id within 24h.
+    Math endpoints are immediately callable; LLM endpoints require credits.
     """
     if not agent_id or len(agent_id) < 3 or len(agent_id) > 128:
         raise ValueError("agent_id must be 3-128 chars")
@@ -56,12 +70,12 @@ def issue_key(*, agent_id: str, contact_email: str,
         raise ValueError("intended_use_summary must be 8-1024 chars")
 
     now = int(time.time())
-    cutoff = now - 86400  # 24h
+    cutoff = now - 86400
 
     with _conn() as c:
-        # Idempotency: if this agent has an active key issued <24h ago, return it.
         row = c.execute(
-            """SELECT api_key, tier, rate_limit_per_minute, created_at
+            """SELECT api_key, tier, rate_limit_per_minute, created_at,
+                      balance_usd_cents
                FROM keys WHERE agent_id = ? AND created_at >= ?
                ORDER BY created_at DESC LIMIT 1""",
             (agent_id, cutoff),
@@ -72,37 +86,39 @@ def issue_key(*, agent_id: str, contact_email: str,
                 "tier": row[1],
                 "rate_limit_per_minute": row[2],
                 "created_at": row[3],
+                "balance_usd_cents": row[4],
                 "reused": True,
             }
 
-        # Issue a new key. 24 bytes of entropy → 32-char base64.
-        key = _FREE_PREFIX + secrets.token_urlsafe(24)
+        key = _KEY_PREFIX + secrets.token_urlsafe(24)
         c.execute(
             """INSERT INTO keys (api_key, agent_id, contact_email,
                                   intended_use_summary, tier,
-                                  rate_limit_per_minute, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                                  rate_limit_per_minute, created_at,
+                                  balance_usd_cents)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             (key, agent_id, contact_email, intended_use_summary,
-             "free_only", _FREE_TIER_RATE, now),
+             "standard", _RATE_LIMIT_PER_MIN, now, 0),
         )
         c.commit()
         return {
             "api_key": key,
-            "tier": "free_only",
-            "rate_limit_per_minute": _FREE_TIER_RATE,
+            "tier": "standard",
+            "rate_limit_per_minute": _RATE_LIMIT_PER_MIN,
             "created_at": now,
+            "balance_usd_cents": 0,
             "reused": False,
         }
 
 
 def lookup_key(api_key: str) -> Optional[dict]:
-    """Look up a key. Returns None if not found / not active."""
-    if not (api_key.startswith(_FREE_PREFIX) or api_key.startswith(_METERED_PREFIX)):
+    """Look up a key. Returns None if not found."""
+    if not api_key.startswith(_KEY_PREFIX):
         return None
     with _conn() as c:
         row = c.execute(
             """SELECT agent_id, tier, rate_limit_per_minute, created_at,
-                      stripe_payment_method_id
+                      balance_usd_cents
                FROM keys WHERE api_key = ?""",
             (api_key,),
         ).fetchone()
@@ -113,43 +129,52 @@ def lookup_key(api_key: str) -> Optional[dict]:
             "tier": row[1],
             "rate_limit_per_minute": row[2],
             "created_at": row[3],
-            "stripe_payment_method_id": row[4],
+            "balance_usd_cents": row[4],
         }
 
 
-def upgrade_key(*, api_key: str, stripe_payment_method_id: str) -> dict:
+def credit_balance(*, api_key: str, cents: int) -> int:
     """
-    Upgrade a free-tier key to metered (paid endpoints unlocked).
-
-    The Stripe payment-method ID is recorded but not yet confirmed against
-    Stripe — that wiring lives behind a separate billing service. Callers
-    pass `pm_*`, get a `gt_live_*` key.
+    Add `cents` to the key's balance. Idempotency is the caller's job
+    (Stripe webhook does this via processed-events dedupe). Returns the
+    new balance.
     """
-    existing = lookup_key(api_key)
-    if existing is None:
-        raise ValueError(f"unknown api_key {api_key!r}")
-    if not stripe_payment_method_id or not stripe_payment_method_id.startswith("pm_"):
-        raise ValueError("stripe_payment_method_id must be a Stripe pm_* identifier")
-
-    # Mint a new metered key bound to the same agent_id.
-    new_key = _METERED_PREFIX + secrets.token_urlsafe(24)
-    now = int(time.time())
+    if cents <= 0:
+        raise ValueError("cents must be positive")
     with _conn() as c:
         c.execute(
-            """INSERT INTO keys (api_key, agent_id, contact_email,
-                                  intended_use_summary, tier,
-                                  rate_limit_per_minute, created_at,
-                                  stripe_payment_method_id)
-               SELECT ?, agent_id, contact_email, intended_use_summary,
-                      'metered', ?, ?, ?
-               FROM keys WHERE api_key = ?""",
-            (new_key, _METERED_TIER_RATE, now, stripe_payment_method_id, api_key),
+            "UPDATE keys SET balance_usd_cents = balance_usd_cents + ? WHERE api_key = ?",
+            (cents, api_key),
         )
         c.commit()
-    return {
-        "api_key": new_key,
-        "tier": "metered",
-        "rate_limit_per_minute": _METERED_TIER_RATE,
-        "created_at": now,
-        "stripe_payment_method_id": stripe_payment_method_id,
-    }
+        row = c.execute(
+            "SELECT balance_usd_cents FROM keys WHERE api_key = ?",
+            (api_key,),
+        ).fetchone()
+        if row is None:
+            raise ValueError(f"unknown api_key {api_key!r}")
+        return int(row[0])
+
+
+def deduct_balance(*, api_key: str, cents: int) -> bool:
+    """
+    Atomically deduct `cents` from the key's balance, but only if it
+    has enough. Returns True on success, False if insufficient balance
+    (or unknown key). Single-statement guarded UPDATE — atomic on both
+    SQLite and Postgres.
+    """
+    if cents <= 0:
+        raise ValueError("cents must be positive")
+    with _conn() as c:
+        cur = c.execute(
+            """UPDATE keys
+               SET balance_usd_cents = balance_usd_cents - ?
+               WHERE api_key = ? AND balance_usd_cents >= ?""",
+            (cents, api_key, cents),
+        )
+        # Both sqlite3.Cursor and psycopg2 cursor expose .rowcount; it
+        # reflects the number of rows the UPDATE actually changed (0 if
+        # the guard predicate failed or the key doesn't exist).
+        affected = cur.rowcount
+        c.commit()
+        return affected == 1

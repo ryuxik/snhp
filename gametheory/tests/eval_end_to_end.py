@@ -196,26 +196,29 @@ def w5_stable_matching() -> None:
 
 
 def w6_onboarding_and_billing() -> None:
-    print("\nW6 — Onboarding + billing gate:")
-    free = client.post("/v1/keys", json={
+    print("\nW6 — Onboarding + credit-balance gate:")
+    key = client.post("/v1/keys", json={
         "agent_id": "eval-agent-001",
         "contact_email": "eval@example.com",
         "intended_use_summary": "End-to-end evaluation harness run.",
     }).json()["api_key"]
-    check("free key has gt_test_ prefix", free.startswith("gt_test_"))
+    check("key has gt_ prefix", key.startswith("gt_"))
 
-    # Free-key call to paid endpoint → 402
+    # Zero-balance key → 402 on paid endpoint
     r = client.post("/v1/negotiation/draft_message", json={
         "numbers": {"recommended_offer": 0.6}, "client_email": "?",
         "constraints_text": "?", "tone": "professional", "my_reservation": 0.4,
-    }, headers={"Authorization": f"Bearer {free}"})
-    check("free key → 402 on paid endpoint", r.status_code == 402)
+    }, headers={"Authorization": f"Bearer {key}"})
+    check("zero-balance key → 402 on paid endpoint", r.status_code == 402)
 
-    # Upgrade
-    metered = client.post("/v1/keys/upgrade", json={
-        "api_key": free, "stripe_payment_method_id": "pm_eval_visa",
-    }).json()["api_key"]
-    check("upgraded key has gt_live_ prefix", metered.startswith("gt_live_"))
+    # Programmatic credit (real flow uses Stripe Checkout webhook).
+    from gametheory.server.onboarding import credit_balance
+    credit_balance(api_key=key, cents=10)
+    bal = client.get(
+        "/v1/billing/balance",
+        headers={"Authorization": f"Bearer {key}"},
+    ).json()["balance_usd_cents"]
+    check("balance reflects 10-cent credit", bal == 10)
 
 
 def w7_discovery_surface() -> None:
