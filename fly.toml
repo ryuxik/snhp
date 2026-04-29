@@ -21,7 +21,11 @@ primary_region = "sjc"
 
 [env]
   HOST = "0.0.0.0"
+  PORT = "8080"
   LOG_LEVEL = "info"
+  # Fly doesn't auto-inject $PORT — we have to set it here so uvicorn binds
+  # to the same port the proxy forwards to (internal_port below). Mismatched
+  # ports = healthcheck timeout = endless boot loop.
   # GT_KEYS_DB falls back to ~/.gametheory/keys.db inside the container —
   # but production uses Postgres via DATABASE_URL set by `fly postgres attach`.
   # SNHP_LLM_MODEL controls which model draft_message uses; override via

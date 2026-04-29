@@ -73,12 +73,16 @@ def _sqlite_conn(schema_ddl: tuple[str, ...]) -> Iterator[sqlite3.Connection]:
 
 
 def _translate_sql(sql: str) -> str:
-    """SQLite uses '?' placeholders; psycopg2 uses '%s'.
-    Our queries don't contain literal '?' chars in any string. INTEGER /
-    TEXT / REAL DDL types are valid Postgres so the schema strings
-    translate as-is.
+    """Translate SQLite SQL to Postgres dialect on the fly.
+
+    `?` → `%s`: parameter placeholder convention.
+    `INTEGER` (DDL only) → `BIGINT`: SQLite's INTEGER is variable-width;
+    Postgres's INTEGER is 32-bit (overflows at year 2038 for unix
+    timestamps). Our schema columns are unix timestamps and ttl-seconds —
+    BIGINT is the safe portable choice. The replace only fires for DDL
+    because runtime queries don't contain the literal "INTEGER" word.
     """
-    return sql.replace("?", "%s")
+    return sql.replace("?", "%s").replace("INTEGER", "BIGINT")
 
 
 class _PgConn:

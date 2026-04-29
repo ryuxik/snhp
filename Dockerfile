@@ -28,7 +28,12 @@ FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH="/venv/bin:$PATH"
+    PATH="/venv/bin:$PATH" \
+    PYTHONPATH="/app"
+# PYTHONPATH=/app is the key thing — the builder did `pip install -e .` which
+# leaves an egg-link pointing to /build/, dead in the runtime stage. Adding
+# /app explicitly makes `gametheory` importable from disk; from there
+# `gametheory._internal.ensure_snhp_path()` adds /app/snhp/ on first import.
 
 # Non-root user
 RUN groupadd -r snhp && useradd -r -g snhp -d /app -s /sbin/nologin snhp
