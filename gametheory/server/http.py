@@ -18,7 +18,8 @@ import time
 from typing import Callable, Literal, Optional
 
 from fastapi import FastAPI, HTTPException, Request, Response
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from gametheory.negotiation.sell import sell_next_offer as _sell_next_offer
@@ -468,6 +469,42 @@ from gametheory.server.middleware import (  # noqa: E402
 app.add_middleware(SecurityHeaders)
 app.add_middleware(RateLimit)
 app.add_middleware(BodySizeLimit)
+
+
+# ─── Static landing page + assets ───────────────────────────────────────────
+
+
+_STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+_INDEX_HTML = os.path.join(_STATIC_DIR, "index.html")
+
+if os.path.isdir(_STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
+
+
+@app.get("/", include_in_schema=False)
+def landing():
+    """Marketing landing page. Anything outside `/v1/*`, `/health`,
+    `/docs`, `/openapi.json`, `/llms.txt` falls through to here.
+
+    The strict default CSP (`default-src 'none'`) blocks the page's inline
+    style + script. Relax CSP to same-origin only for this route — there
+    is no user-input reflection so inline is safe."""
+    if not os.path.isfile(_INDEX_HTML):
+        raise HTTPException(status_code=404, detail="landing page not bundled")
+    return FileResponse(
+        _INDEX_HTML,
+        media_type="text/html",
+        headers={
+            "Content-Security-Policy": (
+                "default-src 'self'; "
+                "style-src 'self' 'unsafe-inline'; "
+                "script-src 'self' 'unsafe-inline'; "
+                "connect-src 'self'; "
+                "img-src 'self' data:; "
+                "frame-ancestors 'none'"
+            ),
+        },
+    )
 
 
 # ─── Tier 1: Negotiation ─────────────────────────────────────────────────────

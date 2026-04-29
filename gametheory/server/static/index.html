@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SNHP — the game-theory layer for AI agents</title>
+<meta name="description" content="Equilibrium-aware primitives for AI agents: negotiation, auctions, mechanism design. Open MCP package + hosted API.">
+<style>
+:root {
+  --bg: #0b0d10;
+  --fg: #e8e8e8;
+  --dim: #8a8d92;
+  --accent: #4ade80;
+  --accent-dim: #16a34a;
+  --warn: #fbbf24;
+  --bad: #f87171;
+  --border: #1f2328;
+  --card: #14161a;
+  --code: #1c1f24;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "SF Pro Text", system-ui, sans-serif;
+  font-size: 16px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre {
+  font-family: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
+  font-size: 14px;
+}
+pre {
+  background: var(--code); padding: 16px 20px; border-radius: 6px;
+  overflow-x: auto; margin: 12px 0;
+}
+code { background: var(--code); padding: 2px 6px; border-radius: 3px; font-size: 13px; }
+pre code { background: none; padding: 0; font-size: 14px; }
+
+.container { max-width: 920px; margin: 0 auto; padding: 0 24px; }
+
+header {
+  border-bottom: 1px solid var(--border);
+  padding: 18px 0;
+}
+header .container { display: flex; justify-content: space-between; align-items: center; }
+header .brand { font-weight: 600; font-size: 17px; letter-spacing: -0.01em; }
+header nav a { margin-left: 22px; color: var(--dim); font-size: 14px; }
+header nav a:hover { color: var(--fg); }
+
+.hero { padding: 80px 0 60px; }
+.hero h1 {
+  font-size: 44px; font-weight: 700; line-height: 1.1; margin: 0 0 18px;
+  letter-spacing: -0.025em;
+}
+.hero h1 .accent { color: var(--accent); }
+.hero p.lede {
+  font-size: 19px; color: var(--dim); margin: 0 0 28px; max-width: 680px;
+}
+.hero .cta { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn {
+  display: inline-block; padding: 11px 20px; border-radius: 6px;
+  font-size: 15px; font-weight: 500; text-decoration: none;
+  border: 1px solid var(--border);
+  transition: all 0.12s ease;
+}
+.btn-primary { background: var(--accent); color: #000; border-color: var(--accent); }
+.btn-primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); text-decoration: none; }
+.btn-secondary { color: var(--fg); }
+.btn-secondary:hover { background: var(--card); text-decoration: none; }
+
+section { padding: 56px 0; border-top: 1px solid var(--border); }
+section h2 {
+  font-size: 26px; font-weight: 600; margin: 0 0 12px;
+  letter-spacing: -0.015em;
+}
+section .subtitle { color: var(--dim); margin: 0 0 32px; font-size: 15px; }
+
+.cards {
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 22px;
+}
+.card .market-name { font-size: 13px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 8px; }
+.card .rank-line { font-size: 14px; color: var(--dim); margin: 8px 0 0; }
+.card .rank-big { font-size: 38px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; }
+.card .rank-big .rank-num { color: var(--accent); }
+.card .rank-context { font-size: 14px; color: var(--dim); margin-top: 6px; }
+.card .ci { font-size: 12px; color: var(--dim); margin-top: 14px; font-family: ui-monospace, monospace; }
+
+.leaderboard-table {
+  width: 100%; border-collapse: collapse; font-size: 14px;
+  margin-top: 24px;
+}
+.leaderboard-table th {
+  text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border);
+  color: var(--dim); font-weight: 500; font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.leaderboard-table td {
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+}
+.leaderboard-table td.num { font-family: ui-monospace, monospace; }
+.leaderboard-table tr.snhp-row td { background: rgba(74, 222, 128, 0.08); }
+.leaderboard-table tr.snhp-row td:first-child { color: var(--accent); font-weight: 600; }
+
+.tabs { display: flex; gap: 4px; margin: 24px 0 16px; border-bottom: 1px solid var(--border); }
+.tab { padding: 10px 16px; cursor: pointer; color: var(--dim); font-size: 14px;
+  border-bottom: 2px solid transparent; transition: all 0.12s; }
+.tab.active { color: var(--fg); border-bottom-color: var(--accent); }
+.tab:hover { color: var(--fg); }
+
+.examples { display: grid; gap: 24px; grid-template-columns: 1fr 1fr; }
+@media (max-width: 700px) { .examples { grid-template-columns: 1fr; } }
+.example-block h3 { font-size: 14px; color: var(--dim); margin: 0 0 8px;
+  text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+
+.key-form {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 28px; margin-top: 24px;
+}
+.key-form .row { margin-bottom: 14px; }
+.key-form label { display: block; font-size: 13px; color: var(--dim); margin-bottom: 6px; }
+.key-form input[type="text"], .key-form input[type="email"], .key-form textarea {
+  width: 100%; padding: 10px 12px; border-radius: 5px;
+  background: var(--bg); border: 1px solid var(--border); color: var(--fg);
+  font-family: inherit; font-size: 14px;
+}
+.key-form input:focus, .key-form textarea:focus {
+  outline: none; border-color: var(--accent);
+}
+.key-form .checkbox-row { display: flex; align-items: flex-start; gap: 10px; }
+.key-form .checkbox-row input { margin-top: 3px; }
+.key-form .checkbox-row label { color: var(--fg); font-size: 13px; line-height: 1.5; }
+.key-form .checkbox-row label small { color: var(--dim); display: block; margin-top: 2px; }
+.key-form button { background: var(--accent); color: #000; border: none;
+  padding: 11px 22px; border-radius: 5px; font-weight: 600; font-size: 14px;
+  cursor: pointer; transition: background 0.12s; }
+.key-form button:hover { background: var(--accent-dim); }
+.key-form button:disabled { background: var(--dim); cursor: wait; }
+.key-result {
+  margin-top: 18px; padding: 14px 18px; border-radius: 6px;
+  font-family: ui-monospace, monospace; font-size: 13px;
+  background: var(--code); border: 1px solid var(--border);
+  display: none;
+}
+.key-result.show { display: block; }
+.key-result.error { border-color: var(--bad); color: var(--bad); }
+.key-result .key-label { color: var(--dim); font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.05em; margin-bottom: 4px; }
+.key-result .key-value { font-size: 15px; word-break: break-all; }
+
+footer {
+  padding: 40px 0; color: var(--dim); font-size: 13px;
+  border-top: 1px solid var(--border); margin-top: 40px;
+}
+footer .container { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+footer a { color: var(--dim); }
+footer a:hover { color: var(--fg); }
+
+.honest-callout {
+  background: rgba(251, 191, 36, 0.08); border-left: 3px solid var(--warn);
+  padding: 14px 18px; margin: 24px 0; border-radius: 4px;
+  font-size: 14px; color: var(--fg);
+}
+.honest-callout strong { color: var(--warn); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="brand">SNHP</div>
+    <nav>
+      <a href="/docs">API docs</a>
+      <a href="/llms.txt">/llms.txt</a>
+      <a href="https://github.com/ryuxik/gametheory-mcp">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero container">
+  <h1>The game-theory layer<br><span class="accent">for AI agents</span>.</h1>
+  <p class="lede">
+    Equilibrium-aware primitives — negotiation, auctions, mechanism design —
+    so LLM agents stop losing to closed-form math they aren't built to solve.
+    Open MCP package, hosted API, opt-in priors corpus.
+  </p>
+  <div class="cta">
+    <a class="btn btn-primary" href="#get-key">Get an API key →</a>
+    <a class="btn btn-secondary" href="https://github.com/ryuxik/gametheory-mcp">pip install gametheory-mcp</a>
+  </div>
+</div>
+
+<section id="leaderboard">
+  <div class="container">
+    <h2>Tournament results vs 20 documented negotiation styles</h2>
+    <p class="subtitle">
+      All-vs-all NegMAS multi-attribute round-robin against B2B archetypes:
+      Anchorer, Nibbler, BATNA Bluffer, Silent Hardliner, Cialdini, Logroller,
+      Deadline Exploiter, Fair Demand, plus cognitive biases (Anchoring,
+      Fairness Norm, Loss Averse, Sunk Cost), plus Aspiration baseline.
+      <a href="/static/leaderboard.json">Raw JSON</a>.
+    </p>
+
+    <div class="cards" id="rank-cards"></div>
+
+    <div class="tabs">
+      <div class="tab active" data-market="symmetric">Symmetric market</div>
+      <div class="tab" data-market="buyers_market">Buyers' market</div>
+      <div class="tab" data-market="sellers_market">Sellers' market</div>
+    </div>
+    <div id="leaderboard-table-container"></div>
+
+    <div class="honest-callout">
+      <strong>Honest caveat.</strong> SNHP wins on <em>average</em> utility, not on
+      every head-to-head. Other strategies (Anchorer, Deadline Exploiter)
+      crush weak opponents but get crushed back by strong ones — high variance,
+      lower mean. SNHP captures consistent value across every opponent style
+      we tested. Lowest variance overall (σ=0.088 in symmetric).
+    </div>
+  </div>
+</section>
+
+<section id="examples">
+  <div class="container">
+    <h2>Use it in 30 seconds</h2>
+    <p class="subtitle">Same primitives, two surfaces — Python library or HTTP API.</p>
+
+    <div class="examples">
+      <div class="example-block">
+        <h3>Python library</h3>
+<pre><code>pip install gametheory-mcp</code></pre>
+<pre><code>from gametheory_mcp.negotiation import sell_next_offer
+
+rec = sell_next_offer(
+    my_reservation=0.40,
+    opponent_offer_history=[0.55, 0.62],
+    my_offer_history=[0.85, 0.78],
+    deadline_rounds=8,
+    pareto_knob=0.5,
+)
+# → {recommended_offer: 0.71,
+#    acceptance_probability: 0.42,
+#    rationale: "...",
+#    posterior: {mu: 0.51, sigma: 0.18}}</code></pre>
+      </div>
+
+      <div class="example-block">
+        <h3>HTTP API</h3>
+<pre><code>curl -X POST https://api.snhp.dev/v1/keys \
+  -H "Content-Type: application/json" \
+  -d '{"agent_id": "myagent",
+       "contact_email": "you@example.com",
+       "intended_use_summary": "negotiation pilot"}'</code></pre>
+<pre><code>curl -X POST https://api.snhp.dev/v1/negotiation/sell/next_offer \
+  -H "Authorization: Bearer gt_..." \
+  -H "Content-Type: application/json" \
+  -d '{"my_reservation": 0.40,
+       "opponent_offer_history": [0.55, 0.62],
+       "my_offer_history": [0.85, 0.78],
+       "deadline_rounds": 8}'</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="get-key">
+  <div class="container">
+    <h2>Get an API key</h2>
+    <p class="subtitle">
+      Self-serve, no human approval, free for math endpoints (600 req/min).
+      First-strike commit-reveal and the priors corpus require this key.
+    </p>
+    <form class="key-form" id="key-form">
+      <div class="row">
+        <label for="agent-id">Agent identifier</label>
+        <input type="text" id="agent-id" required minlength="3" maxlength="128"
+                placeholder="my_agent_v1">
+      </div>
+      <div class="row">
+        <label for="contact-email">Contact email</label>
+        <input type="email" id="contact-email" required
+                placeholder="you@example.com">
+      </div>
+      <div class="row">
+        <label for="intended-use">Intended use (one sentence)</label>
+        <textarea id="intended-use" required rows="2"
+                    minlength="8" maxlength="1024"
+                    placeholder="Pilot negotiation flow for procurement quotes."></textarea>
+      </div>
+      <div class="row checkbox-row">
+        <input type="checkbox" id="telemetry-consent">
+        <label for="telemetry-consent">
+          Share anonymized recommendation→outcome data
+          <small>
+            HMAC-hashed with weekly pepper rotation, 0.02-grid quantized
+            features, GDPR export + delete. Opt-in, off by default.
+            <a href="/llms.txt">Privacy contract</a>.
+          </small>
+        </label>
+      </div>
+      <button type="submit" id="key-btn">Issue key</button>
+      <div class="key-result" id="key-result"></div>
+    </form>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div>SNHP · <a href="https://github.com/ryuxik/gametheory-mcp">gametheory-mcp</a> Apache 2.0 · Hosted API on Fly.io</div>
+    <div>
+      <a href="/docs">Swagger</a> ·
+      <a href="/llms.txt">/llms.txt</a> ·
+      <a href="/openapi.json">OpenAPI</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+const STATIC_LEADERBOARD = "/static/leaderboard.json";
+
+async function loadLeaderboard() {
+  const r = await fetch(STATIC_LEADERBOARD);
+  if (!r.ok) return;
+  const d = await r.json();
+  renderCards(d);
+  renderTable(d, "symmetric");
+
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      renderTable(d, tab.dataset.market);
+    });
+  });
+}
+
+function renderCards(d) {
+  const container = document.getElementById("rank-cards");
+  const markets = [
+    { key: "buyers_market",  label: "Buyers' market",   note: "seller under pressure" },
+    { key: "sellers_market", label: "Sellers' market",  note: "buyer under pressure" },
+    { key: "symmetric",      label: "Symmetric market", note: "balanced pressure" },
+  ];
+  container.innerHTML = markets.map(m => {
+    const market = d.markets[m.key];
+    if (!market) return "";
+    const snhp = market.rankings.find(r => r.name === "SNHP");
+    if (!snhp) return "";
+    const rank = market.rankings.indexOf(snhp) + 1;
+    const total = market.rankings.length;
+    const ci = `[${snhp.ci_lo.toFixed(3)}, ${snhp.ci_hi.toFixed(3)}]`;
+    return `
+      <div class="card">
+        <div class="market-name">${m.label}</div>
+        <div class="rank-big"><span class="rank-num">#${rank}</span> <span style="color: var(--dim); font-size: 18px;">/ ${total}</span></div>
+        <div class="rank-line">avg utility ${snhp.avg.toFixed(4)}</div>
+        <div class="rank-context">${m.note}</div>
+        <div class="ci">95% CI: ${ci}</div>
+      </div>`;
+  }).join("");
+}
+
+function renderTable(d, marketKey) {
+  const market = d.markets[marketKey];
+  if (!market) return;
+  const rows = market.rankings.slice(0, 12).map((r, i) => {
+    const isSnhp = r.name === "SNHP";
+    return `<tr class="${isSnhp ? "snhp-row" : ""}">
+      <td>${i + 1}</td>
+      <td>${r.name}</td>
+      <td class="num">${r.avg.toFixed(4)}</td>
+      <td class="num">${r.med.toFixed(4)}</td>
+      <td class="num">${r.elo ? r.elo.toFixed(0) : "—"}</td>
+      <td class="num">${r.wins}/${r.ties}/${r.losses}</td>
+    </tr>`;
+  }).join("");
+  document.getElementById("leaderboard-table-container").innerHTML = `
+    <table class="leaderboard-table">
+      <thead>
+        <tr><th>Rank</th><th>Agent</th><th>Avg utility</th><th>Median</th><th>Elo</th><th>W/T/L</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+document.getElementById("key-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById("key-btn");
+  const result = document.getElementById("key-result");
+  btn.disabled = true; btn.textContent = "Issuing…";
+  result.classList.remove("show", "error");
+
+  const body = {
+    agent_id: document.getElementById("agent-id").value,
+    contact_email: document.getElementById("contact-email").value,
+    intended_use_summary: document.getElementById("intended-use").value,
+    telemetry_consent: document.getElementById("telemetry-consent").checked,
+  };
+  try {
+    const r = await fetch("/v1/keys", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body),
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      result.innerHTML = `<div>Error: ${d.detail || "issuance failed"}</div>`;
+      result.classList.add("show", "error");
+    } else {
+      result.innerHTML =
+        `<div class="key-label">Your API key</div>` +
+        `<div class="key-value">${d.api_key}</div>` +
+        `<div style="margin-top: 10px; color: var(--dim); font-size: 12px;">` +
+        `Telemetry: ${d.telemetry_consent ? "ON" : "off"} · Reused: ${d.reused ? "yes" : "no"}` +
+        `</div>`;
+      result.classList.add("show");
+    }
+  } catch (err) {
+    result.innerHTML = `<div>Network error: ${err.message}</div>`;
+    result.classList.add("show", "error");
+  } finally {
+    btn.disabled = false; btn.textContent = "Issue key";
+  }
+});
+
+loadLeaderboard();
+</script>
+</body>
+</html>
