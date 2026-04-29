@@ -75,14 +75,29 @@ def _sqlite_conn(schema_ddl: tuple[str, ...]) -> Iterator[sqlite3.Connection]:
 def _translate_sql(sql: str) -> str:
     """Translate SQLite SQL to Postgres dialect on the fly.
 
-    `?` → `%s`: parameter placeholder convention.
-    `INTEGER` (DDL only) → `BIGINT`: SQLite's INTEGER is variable-width;
-    Postgres's INTEGER is 32-bit (overflows at year 2038 for unix
-    timestamps). Our schema columns are unix timestamps and ttl-seconds —
-    BIGINT is the safe portable choice. The replace only fires for DDL
-    because runtime queries don't contain the literal "INTEGER" word.
+    Translations applied:
+      `?` → `%s`           — parameter placeholder convention.
+      `INSERT OR IGNORE`   → `INSERT ... ON CONFLICT DO NOTHING`
+                              (only on INSERT statements; appended at end).
+      `INTEGER` → `BIGINT` (only on CREATE statements; SQLite INTEGER is
+                            variable-width but Postgres INTEGER is 32-bit,
+                            overflowing at year 2038 for unix timestamps).
+
+    The DDL-only narrowing for INTEGER prevents accidental rewrites of
+    runtime queries that happen to contain the word "INTEGER" (e.g.,
+    `CAST(x AS INTEGER)`).
     """
-    return sql.replace("?", "%s").replace("INTEGER", "BIGINT")
+    out = sql.replace("?", "%s")
+    head = out.lstrip().upper()[:20]
+    if head.startswith("CREATE "):
+        out = out.replace("INTEGER", "BIGINT")
+    if head.startswith("INSERT ") and "INSERT OR IGNORE" in out.upper():
+        # SQLite uses INSERT OR IGNORE; Postgres uses ON CONFLICT DO NOTHING.
+        # Strip the modifier and append the conflict clause. Assumes a
+        # PRIMARY KEY constraint provides the conflict target.
+        out = out.replace("INSERT OR IGNORE", "INSERT", 1)
+        out = out.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
+    return out
 
 
 class _PgConn:

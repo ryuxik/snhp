@@ -24,8 +24,11 @@ from fastapi.testclient import TestClient
 
 _tmp_dir = tempfile.mkdtemp()
 os.environ["GT_KEYS_DB"] = os.path.join(_tmp_dir, "test_billing.db")
-os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_fakefakefake")
-os.environ.setdefault("STRIPE_WEBHOOK_SECRET", "whsec_fakefakefake")
+# Force fake values regardless of the dev's shell — `setdefault` would skip
+# this assignment if the dev already had a real `sk_test_*` exported, and
+# any test that forgot to monkeypatch `_stripe()` would then hit live Stripe.
+os.environ["STRIPE_SECRET_KEY"] = "sk_test_fakefakefake"
+os.environ["STRIPE_WEBHOOK_SECRET"] = "whsec_fakefakefake"
 
 from gametheory.server.http import app  # noqa: E402
 from gametheory.server import billing as billing_mod  # noqa: E402

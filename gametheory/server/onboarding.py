@@ -45,11 +45,12 @@ _KEYS_SCHEMA = (
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_agent_id ON keys(agent_id, created_at)",
-    # Idempotent column adds for upgrades from older schemas. SQLite ignores
-    # the comment via "ALTER TABLE ... ADD COLUMN" wrapped in a try/except
-    # in _conn's setup. Skipped here to keep the schema declarative; if you
-    # need to migrate, run an ALTER TABLE manually.
 )
+# NOTE: this schema is `IF NOT EXISTS`-only. Adding a column to an existing
+# DB requires a manual `ALTER TABLE keys ADD COLUMN ... DEFAULT ...` migration
+# (run before deploying the code that reads the column). The Stripe billing
+# rollout added `balance_usd_cents`; production DBs created before that need:
+#   ALTER TABLE keys ADD COLUMN balance_usd_cents BIGINT NOT NULL DEFAULT 0;
 
 
 def _conn():

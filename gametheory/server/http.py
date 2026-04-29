@@ -19,7 +19,7 @@ from typing import Callable, Literal, Optional
 
 from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import PlainTextResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 
 from gametheory.negotiation.sell import sell_next_offer as _sell_next_offer
 from gametheory.negotiation.buy import (
@@ -49,9 +49,13 @@ from gametheory.mechanism.posted_price import (
 from gametheory.server.onboarding import (
     issue_key as _issue_key,
     lookup_key as _lookup_key,
-    deduct_balance as _deduct_balance,
 )
 from gametheory.server import billing as _billing
+from gametheory.server.billing import (
+    PackName as _PackName,
+    UnknownKeyError as _UnknownKeyError,
+    InsufficientCreditsError as _InsufficientCreditsError,
+)
 from gametheory._internal import ensure_snhp_path  # noqa: F401  (side-effect import)
 from llm_extractor import _call_llm  # noqa: E402
 
@@ -76,20 +80,18 @@ def _extract_api_key(authorization: Optional[str]) -> str:
 
 
 def _charge_or_402(api_key: str, cost_cents: int) -> None:
-    """Look up the key, deduct cost_cents from its balance. Raises 402
-    on unknown key or insufficient balance, with a message pointing the
-    caller at the credit-purchase flow.
-    """
-    key_info = _lookup_key(api_key)
-    if key_info is None:
+    """Translate billing errors into HTTP 402 responses. The actual
+    charge logic + atomicity guarantees live in billing.charge_or_raise."""
+    try:
+        _billing.charge_or_raise(api_key, cost_cents)
+    except _UnknownKeyError:
         raise HTTPException(status_code=402, detail="Unknown api_key")
-    if not _deduct_balance(api_key=api_key, cents=cost_cents):
+    except _InsufficientCreditsError as e:
         raise HTTPException(
             status_code=402,
             detail=(
-                f"Insufficient credits ({key_info['balance_usd_cents']} cents "
-                f"available, {cost_cents} required). Top up at "
-                f"POST /v1/billing/checkout_session with a credit pack."
+                f"{e} Top up at POST /v1/billing/checkout_session "
+                f"with a credit pack."
             ),
         )
 
@@ -319,10 +321,10 @@ class DraftMessageResponse(BaseModel):
 # Billing / credit-pack purchase
 class CheckoutSessionRequest(BaseModel):
     api_key: str = Field(description="Existing key to credit on success (gt_*)")
-    pack: Literal["small", "medium", "large"] = Field(
+    pack: _PackName = Field(
         description="Credit pack: small=$10, medium=$50, large=$200")
-    success_url: str = Field(description="URL Stripe redirects to after payment")
-    cancel_url: str = Field(description="URL Stripe redirects to on cancel")
+    success_url: HttpUrl = Field(description="URL Stripe redirects to after payment")
+    cancel_url: HttpUrl = Field(description="URL Stripe redirects to on cancel")
 
 
 class CheckoutSessionResponse(BaseModel):
@@ -950,7 +952,7 @@ def billing_checkout_session(req: CheckoutSessionRequest):
     try:
         return _billing.create_checkout_session(
             api_key=req.api_key, pack=req.pack,
-            success_url=req.success_url, cancel_url=req.cancel_url,
+            success_url=str(req.success_url), cancel_url=str(req.cancel_url),
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
