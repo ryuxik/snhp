@@ -10,29 +10,46 @@ The composition function returns a belief-weighted blend per Nash's
 Confidence floor 0.65 before any exploit weight is non-zero. Exploit
 weight capped at 0.7 (always retain ≥30% honest tail).
 
+Param values can be overridden by:
+  1. In-process: `set_playbook_override(dict)` — used by the Optuna tuner.
+  2. On-disk: snhp/playbook_optimal.json (loaded once at module import).
+
 Reference: plan file at ~/.claude/plans/today-we-are-doing-eventual-boole.md
 section "Design (final synthesis)".
 """
 from __future__ import annotations
 
+import json
 import math
 import os
-from typing import Dict
+import os.path as _op
+from typing import Dict, Optional
 
 
 # Playbook param spec — von Neumann's templates, ceilings applied per the plan.
 # All fields in [0, 1] utility space.
 _PLAYBOOKS: Dict[str, Dict[str, float]] = {
     "BOULWARE": {
-        # Anchor extreme, hold flat — turn opponent's commitment into our advantage.
-        "asp_start":         0.95,
-        "asp_floor":         0.78,
-        "accept_early_bar":  0.82,
-        "commitment_margin": 0.04,
-        "concession_cap":    0.020,
+        # Empirically: hand-derived (asp_start=0.95, asp_floor=0.78) deadlocks
+        # against actual hardliners — Loss Averse / Anchorer / BATNA Bluffer
+        # cap around utility 0.40 in our space, so floor=0.78 means we never
+        # close. v0 ablation showed -6.0% utility on Loss Averse, deal rate
+        # 70%→45%. Toned to a small lift over HONEST: open slightly higher
+        # (probe their commitment) but let the floor descend to walk-away
+        # so deals close. The actual exploitation gain on BOULWARE is
+        # negligible in this tournament because firm opponents win on Elo
+        # by holding more extreme than us — copying them just produces
+        # mutual deadlock. Keep the playbook honest-leaning.
+        "asp_start":         0.75,
+        "asp_floor":         0.45,
+        "accept_early_bar":  0.55,
+        "commitment_margin": 0.02,
+        "concession_cap":    0.025,
     },
     "CONCEDER": {
-        # Pure exploitation — patient player extracts the surplus.
+        # Pure exploitation — patient player extracts surplus from a
+        # conceding opponent. Empirically validated: this playbook's per-
+        # type CONCEDER bucket lifted +0.009 utility over baseline at N=20.
         "asp_start":         0.95,
         "asp_floor":         0.85,
         "accept_early_bar":  0.85,
@@ -40,18 +57,23 @@ _PLAYBOOKS: Dict[str, Dict[str, float]] = {
         "concession_cap":    0.010,
     },
     "MIRROR": {
-        # Anchor first; mirrors lock onto our trajectory.
-        "asp_start":         0.92,
-        "asp_floor":         0.78,
-        "accept_early_bar":  0.78,
-        "commitment_margin": 0.03,
+        # Mirrors copy our trajectory — anchor first, but back off the
+        # floor so we don't both stall. Hand-tuned floor 0.78 was too high;
+        # the v0 ablation per-type MIRROR was +0.010 (within noise) but
+        # worst-case-pairing dropped — likely because mirrors of firm
+        # opponents amplify our floor. 0.55 floor lets convergence happen.
+        "asp_start":         0.85,
+        "asp_floor":         0.55,
+        "accept_early_bar":  0.65,
+        "commitment_margin": 0.02,
         "concession_cap":    0.020,
     },
     "RANDOM": {
         # Maximize EV against noise — accept conditional means immediately.
+        # v0 result: +0.014 on RANDOM bucket. Keeping spec.
         "asp_start":         0.88,
-        "asp_floor":         0.72,
-        "accept_early_bar":  0.72,
+        "asp_floor":         0.55,
+        "accept_early_bar":  0.65,
         "commitment_margin": 0.02,
         "concession_cap":    0.025,
     },
@@ -76,6 +98,51 @@ _DEFAULT_CONFIDENCE_FLOOR = 0.65
 # guardrail to prevent learning opponents from gradient-climbing our
 # exploitation pattern.
 _EXPLOIT_WEIGHT_CAP = 0.7
+
+
+# ─── Override mechanism ─────────────────────────────────────────────────────
+
+
+_PLAYBOOK_OVERRIDE: Optional[Dict[str, Dict[str, float]]] = None
+
+
+def set_playbook_override(override: Optional[Dict[str, Dict[str, float]]]) -> None:
+    """In-process override of the playbook param table. Used by the Optuna
+    tuner to inject a candidate playbook for one trial. Pass None to clear."""
+    global _PLAYBOOK_OVERRIDE
+    _PLAYBOOK_OVERRIDE = override
+
+
+def _active_playbooks() -> Dict[str, Dict[str, float]]:
+    """Returns the active playbook table — override > on-disk JSON > hardcoded."""
+    if _PLAYBOOK_OVERRIDE is not None:
+        return _PLAYBOOK_OVERRIDE
+    return _PLAYBOOKS
+
+
+def _load_optimal_from_disk() -> None:
+    """Best-effort load of snhp/playbook_optimal.json (the Optuna tuner's
+    output). Replaces _PLAYBOOKS in place if the file exists and parses.
+    Called once at module import."""
+    path = _op.join(_op.dirname(_op.abspath(__file__)), "playbook_optimal.json")
+    if not _op.isfile(path):
+        return
+    try:
+        with open(path, "r") as f:
+            d = json.load(f)
+    except Exception:
+        return
+    # Validate shape: each top-level key should be a playbook name with
+    # a sub-dict of the 5 expected params.
+    expected = {"asp_start", "asp_floor", "accept_early_bar",
+                "commitment_margin", "concession_cap"}
+    for k, v in d.items():
+        if not isinstance(v, dict) or not expected.issubset(v.keys()):
+            return  # malformed; skip the load entirely
+    _PLAYBOOKS.update({k: v for k, v in d.items() if k in _PLAYBOOKS})
+
+
+_load_optimal_from_disk()
 
 
 def confidence_floor() -> float:
@@ -137,7 +204,8 @@ def compose_belief_weighted_params(
     """
     mode = playbook_mode()
     floor = confidence_floor()
-    honest = _PLAYBOOKS["HONEST"]
+    pb = _active_playbooks()
+    honest = pb["HONEST"]
 
     if mode == "OFF":
         return dict(honest)
@@ -178,9 +246,9 @@ def compose_belief_weighted_params(
         p = float(belief.get(ttype, 0.0))
         if p <= 0:
             continue
-        pb = _PLAYBOOKS[ttype]
+        type_pb = pb[ttype]
         for k in typed_blend:
-            typed_blend[k] += p * pb[k]
+            typed_blend[k] += p * type_pb[k]
         typed_mass += p
 
     # Renormalize the typed component if the typed mass is < 1 (the rest
