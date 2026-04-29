@@ -17,9 +17,9 @@ import os
 import time
 from typing import Callable, Literal, Optional
 
-from fastapi import FastAPI, Header, HTTPException, Request, Response
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import PlainTextResponse
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field
 
 from gametheory.negotiation.sell import sell_next_offer as _sell_next_offer
 from gametheory.negotiation.buy import (
@@ -50,50 +50,9 @@ from gametheory.server.onboarding import (
     issue_key as _issue_key,
     lookup_key as _lookup_key,
 )
-from gametheory.server import billing as _billing
-from gametheory.server.billing import (
-    PackName as _PackName,
-    UnknownKeyError as _UnknownKeyError,
-    InsufficientCreditsError as _InsufficientCreditsError,
-)
-from gametheory._internal import ensure_snhp_path  # noqa: F401  (side-effect import)
-from llm_extractor import _call_llm  # noqa: E402
 
 
 _COST_FREE = "0"
-
-# Per-call cost for draft_message in cents (whole cents — billing uses int).
-# Header cost stays in USD ("0.0050") for backwards compatibility.
-_DRAFT_MESSAGE_COST_CENTS = _billing.DRAFT_MESSAGE_COST_CENTS
-_DRAFT_MESSAGE_COST_USD = f"{_DRAFT_MESSAGE_COST_CENTS / 100:.4f}"
-
-
-def _extract_api_key(authorization: Optional[str]) -> str:
-    """Pull the bearer token out of the Authorization header. Raises 401
-    if the header is missing or malformed."""
-    if not authorization or not authorization.lower().startswith("bearer "):
-        raise HTTPException(
-            status_code=401,
-            detail="Authorization: Bearer gt_* required",
-        )
-    return authorization.split(" ", 1)[1].strip()
-
-
-def _charge_or_402(api_key: str, cost_cents: int) -> None:
-    """Translate billing errors into HTTP 402 responses. The actual
-    charge logic + atomicity guarantees live in billing.charge_or_raise."""
-    try:
-        _billing.charge_or_raise(api_key, cost_cents)
-    except _UnknownKeyError:
-        raise HTTPException(status_code=402, detail="Unknown api_key")
-    except _InsufficientCreditsError as e:
-        raise HTTPException(
-            status_code=402,
-            detail=(
-                f"{e} Top up at POST /v1/billing/checkout_session "
-                f"with a credit pack."
-            ),
-        )
 
 
 def _math_endpoint(handler: Callable[..., dict]) -> Callable:
@@ -303,43 +262,6 @@ class RevealFirstStrikeResponse(BaseModel):
     reused: bool
 
 
-class DraftMessageRequest(BaseModel):
-    numbers: dict = Field(description="Output of next_offer (price, etc.)")
-    client_email: str = Field(description="The opposing client's email text")
-    constraints_text: str = Field(description="Free-form constraint summary")
-    tone: str = Field(default="professional", description="professional | friendly | firm")
-    my_reservation: float = Field(ge=0.0, le=1.0,
-        description="Refuses to draft persuasive text below your BATNA")
-
-
-class DraftMessageResponse(BaseModel):
-    text: str
-    cost_usd: str
-    model: str
-
-
-# Billing / credit-pack purchase
-class CheckoutSessionRequest(BaseModel):
-    api_key: str = Field(description="Existing key to credit on success (gt_*)")
-    pack: _PackName = Field(
-        description="Credit pack: small=$10, medium=$50, large=$200")
-    success_url: HttpUrl = Field(description="URL Stripe redirects to after payment")
-    cancel_url: HttpUrl = Field(description="URL Stripe redirects to on cancel")
-
-
-class CheckoutSessionResponse(BaseModel):
-    checkout_url: str
-    session_id: str
-    pack: str
-    price_cents: int
-    credits_cents: int
-
-
-class BalanceResponse(BaseModel):
-    api_key: str
-    balance_usd_cents: int
-
-
 # ─── Tier 3: Mechanism Design ───────────────────────────────────────────────
 
 
@@ -413,8 +335,8 @@ app = FastAPI(
         "Equilibrium-aware primitives for AI agents. Tier 1: negotiation "
         "(sell-side + buy-side, with cryptographic first-strike). Tier 2: "
         "auctions (Myerson, Vickrey, English). Tier 3: mechanism design "
-        "(Gale-Shapley, optimal auction, posted-price). Math endpoints are "
-        "free; LLM endpoints require a metered key.\n\n"
+        "(Gale-Shapley, optimal auction, posted-price). All endpoints free "
+        "today; LLM drafting is BYOK (you bring your own LLM key).\n\n"
         "Empirical: SNHP rank #1/21 in NegMAS round-robin tournament; "
         "p<0.014 vs Aspiration / Split-the-Diff / Fair Demand.\n\n"
         "Discovery: GET /v1/catalog for tool list, /llms.txt for LLM-readable "
@@ -638,17 +560,6 @@ def catalog():
                 "description": "Reveal a previous first-strike commitment to obtain the binding offer.",
             },
             {
-                "name": "gt.negotiation.draft_message",
-                "tier": 1,
-                "endpoint": "POST /v1/negotiation/draft_message",
-                "cost_class": "paid",
-                "stability": "beta",
-                "description": (
-                    "LLM-cost endpoint. Drafts a 3-sentence reply email. "
-                    "Requires metered key; refuses BATNA-violating drafts."
-                ),
-            },
-            {
                 "name": "gt.mechanism.gale_shapley",
                 "tier": 3,
                 "endpoint": "POST /v1/mechanism/gale_shapley",
@@ -720,8 +631,6 @@ structurally bad at multi-round, opponent-modeling problems; we are not.
   Reveal the inputs to a previous commitment to obtain the binding offer.
 - GET  /v1/keys/trust_anchor  [free]
   Public key for verifying first-strike attestations.
-- POST /v1/negotiation/draft_message  [PAID — metered key required]
-  LLM-drafted 3-sentence reply email. Refuses BATNA-violating drafts.
 
 ## Tier 2 — Auctions
 - POST /v1/auction/bidder/optimal_bid  [free]
@@ -744,23 +653,30 @@ structurally bad at multi-round, opponent-modeling problems; we are not.
   Gallego-van Ryzin posted price (static p* + dynamic schedule).
 
 ## Cost model
-- Math endpoints are FREE: NumPy / SciPy, ~50ms p99.
-- LLM endpoints (currently just draft_message) cost 1 credit cent / call.
-  Top up credits via Stripe Checkout (see Onboarding below).
-  Rate limit: 600/min for all keys.
+All endpoints are FREE today (math only — NumPy / SciPy, ~50ms p99).
+Rate limit: 600/min per key. We do not host or resell LLM calls; if your
+agent needs natural-language drafting, do that with your own LLM provider
+(see "Drafting messages client-side" below).
 
 ## Onboarding (no human in the loop)
 - POST /v1/keys
     body: {agent_id, contact_email, intended_use_summary}
-    -> {api_key: "gt_*", balance_usd_cents: 0, ...}
-- POST /v1/billing/checkout_session
-    body: {api_key, pack: "small"|"medium"|"large", success_url, cancel_url}
-    -> {checkout_url, session_id, ...}
-  Owner clicks the URL, pays via Stripe, balance auto-credits via webhook.
-  Packs: small=$10 (1k cents), medium=$50 (5k cents), large=$200 (20k cents).
-- GET /v1/billing/balance
-    Authorization: Bearer gt_*
-    -> {balance_usd_cents}
+    -> {api_key: "gt_*", ...}
+
+## Drafting messages client-side (BYOK pattern)
+We deliberately do not call LLMs server-side; you bring your own. The
+recommended drafting prompt for negotiation reply emails:
+
+  "You are a professional negotiator drafting a brief 3-sentence reply
+   email. Tone: <professional|friendly|firm>.
+   Their last message: <their email>
+   Your constraints: <constraints text>
+   You MUST use these exact numbers: <output of next_offer>.
+   Draft the reply email. Return ONLY the email body, no preamble."
+
+Hard rule (BATNA guard): refuse to draft if `numbers.recommended_offer`
+is below your stated reservation. We enforce this server-side in the
+math endpoints; replicate it in your draft-time code.
 
 ## Composition examples
 1. Buy-side defense → auction:
@@ -775,6 +691,7 @@ structurally bad at multi-round, opponent-modeling problems; we are not.
   achievable margin -0.025 even at the Pareto frontier. Use
   declare_first_strike to recover symmetry.
 - Combinatorial / multi-unit auctions, VCG payments: out of scope for v1.
+- LLM calls: BYOK (we don't host them).
 - Auto-execution: never. We return recommendations; your environment
   delivers offers / places bids. No escrow, no settlement.
 
@@ -816,12 +733,11 @@ class IssueKeyResponse(BaseModel):
     "/v1/keys",
     tags=["discovery"],
     response_model=IssueKeyResponse,
-    summary="Programmatic API key issuance (free tier, no human approval)",
+    summary="Programmatic API key issuance (no human approval)",
     description=(
         "Self-serve key issuance for AI agents. No human approval gate. "
-        "Idempotent on agent_id within 24h. Free tier only in Sprint 1; "
-        "Top up credits via POST /v1/billing/checkout_session for "
-        "paid endpoints."
+        "Idempotent on agent_id within 24h. All endpoints currently free; "
+        "rate-limited to 600 requests/minute per key."
     ),
 )
 def issue_key(req: IssueKeyRequest):
@@ -931,139 +847,6 @@ def negotiation_reveal_first_strike(req: RevealFirstStrikeRequest, response: Res
 )
 def keys_trust_anchor():
     return _trust_anchor_pem()
-
-
-# ─── Billing (Stripe Checkout credit packs) ─────────────────────────────────
-
-
-@app.post(
-    "/v1/billing/checkout_session",
-    tags=["discovery"],
-    response_model=CheckoutSessionResponse,
-    summary="Create a Stripe Checkout session for a credit pack",
-    description=(
-        "Returns a hosted Stripe Checkout URL. The human owner of the agent "
-        "clicks through to pay; on success Stripe calls our webhook and we "
-        "credit the api_key's balance. Test mode uses Stripe test cards "
-        "(4242 4242 4242 4242); production needs live keys."
-    ),
-)
-def billing_checkout_session(req: CheckoutSessionRequest):
-    try:
-        return _billing.create_checkout_session(
-            api_key=req.api_key, pack=req.pack,
-            success_url=str(req.success_url), cancel_url=str(req.cancel_url),
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except RuntimeError as e:
-        # STRIPE_SECRET_KEY not set on the server.
-        raise HTTPException(status_code=503, detail=str(e))
-
-
-@app.post(
-    "/v1/billing/webhook",
-    tags=["discovery"],
-    summary="Stripe webhook receiver (checkout.session.completed)",
-    description=(
-        "Stripe calls this with `checkout.session.completed` events. "
-        "Signature is verified against STRIPE_WEBHOOK_SECRET; duplicates "
-        "are deduped by event.id. On success the api_key's balance is "
-        "credited by the pack's credits_cents. Don't call this endpoint "
-        "yourself — it's a Stripe-only callback."
-    ),
-)
-async def billing_webhook(request: Request):
-    payload = await request.body()
-    signature = request.headers.get("stripe-signature")
-    try:
-        return _billing.handle_webhook(payload=payload, signature=signature)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
-
-
-@app.get(
-    "/v1/billing/balance",
-    tags=["discovery"],
-    response_model=BalanceResponse,
-    summary="Read the current credit balance for an api_key",
-)
-def billing_balance(authorization: Optional[str] = Header(None)):
-    api_key = _extract_api_key(authorization)
-    info = _lookup_key(api_key)
-    if info is None:
-        raise HTTPException(status_code=401, detail="Unknown api_key")
-    return {"api_key": api_key, "balance_usd_cents": info["balance_usd_cents"]}
-
-
-# ─── Paid endpoint (draft_message) ──────────────────────────────────────────
-
-
-@app.post(
-    "/v1/negotiation/draft_message",
-    tags=["negotiation"],
-    response_model=DraftMessageResponse,
-    summary="Draft a natural-language reply email (PAID — requires credits)",
-    description=(
-        "LLM-cost endpoint. Requires Authorization: Bearer gt_*. Charges "
-        "1 credit cent per call. Refuses to draft persuasive text where "
-        "the proposed offer is below the caller's stated reservation "
-        "(no BATNA-violating drafts). Top up credits via "
-        "POST /v1/billing/checkout_session."
-    ),
-    responses={
-        401: {"description": "Missing or malformed Authorization header"},
-        402: {"description": "Insufficient credits — top up first"},
-        400: {"description": "Invalid input or BATNA-violating draft refused"},
-        502: {"description": "Upstream LLM error"},
-    },
-)
-def negotiation_draft_message(
-    req: DraftMessageRequest,
-    response: Response,
-    authorization: Optional[str] = Header(None),
-):
-    api_key = _extract_api_key(authorization)
-    _charge_or_402(api_key, _DRAFT_MESSAGE_COST_CENTS)
-
-    # BATNA guard: refuse to draft if the offer would put us below our walk-away.
-    # Note: we already deducted the credit. Refunding on input-validation failure
-    # would be the polite move; for MVP we accept that callers eat the 1 cent
-    # for malformed inputs.
-    proposed_offer_utility = float(req.numbers.get("recommended_offer", 1.0))
-    if proposed_offer_utility < req.my_reservation:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"Refusing to draft: numbers.recommended_offer ({proposed_offer_utility}) "
-                f"is below your stated reservation ({req.my_reservation}). The drafting "
-                f"endpoint will not produce text that misrepresents your BATNA."
-            ),
-        )
-
-    t0 = time.time()
-    prompt = (
-        f"You are a professional negotiator drafting a brief 3-sentence "
-        f"reply email. Tone: {req.tone}.\n\n"
-        f"Their last message:\n<email>\n{req.client_email}\n</email>\n\n"
-        f"Your constraints:\n<constraints>\n{req.constraints_text}\n</constraints>\n\n"
-        f"You MUST use these exact numbers: {req.numbers}.\n\n"
-        f"Draft the reply email. Return ONLY the email body, no preamble."
-    )
-    try:
-        text = _call_llm(prompt, temperature=0.4)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"upstream LLM error: {e}")
-
-    response.headers["X-GT-Cost-USD"] = _DRAFT_MESSAGE_COST_USD
-    response.headers["X-GT-Latency-Ms"] = f"{(time.time() - t0) * 1000:.1f}"
-    return {
-        "text": text,
-        "cost_usd": _DRAFT_MESSAGE_COST_USD,
-        "model": os.environ.get("SNHP_LLM_MODEL", "gemini/gemini-3-flash-preview"),
-    }
 
 
 # ─── Tier 3: Mechanism Design ───────────────────────────────────────────────

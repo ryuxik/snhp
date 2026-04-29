@@ -195,30 +195,24 @@ def w5_stable_matching() -> None:
     check("blocking pairs empty", r.json()["blocking_pairs"] == [])
 
 
-def w6_onboarding_and_billing() -> None:
-    print("\nW6 — Onboarding + credit-balance gate:")
+def w6_onboarding() -> None:
+    print("\nW6 — Onboarding (free tier; LLM calls are BYOK client-side):")
     key = client.post("/v1/keys", json={
         "agent_id": "eval-agent-001",
         "contact_email": "eval@example.com",
         "intended_use_summary": "End-to-end evaluation harness run.",
     }).json()["api_key"]
     check("key has gt_ prefix", key.startswith("gt_"))
-
-    # Zero-balance key → 402 on paid endpoint
-    r = client.post("/v1/negotiation/draft_message", json={
-        "numbers": {"recommended_offer": 0.6}, "client_email": "?",
-        "constraints_text": "?", "tone": "professional", "my_reservation": 0.4,
-    }, headers={"Authorization": f"Bearer {key}"})
-    check("zero-balance key → 402 on paid endpoint", r.status_code == 402)
-
-    # Programmatic credit (real flow uses Stripe Checkout webhook).
-    from gametheory.server.onboarding import credit_balance
-    credit_balance(api_key=key, cents=10)
-    bal = client.get(
-        "/v1/billing/balance",
+    # Confirm a math endpoint accepts the bearer (key is enough; no balance gate).
+    r = client.post(
+        "/v1/auction/bidder/optimal_bid",
+        json={"auction_format": "second_price_vickrey", "my_valuation": 100,
+              "n_competing_bidders": 3,
+              "competitor_value_prior": {"family": "uniform",
+                                          "params": {"low": 0, "high": 100}}},
         headers={"Authorization": f"Bearer {key}"},
-    ).json()["balance_usd_cents"]
-    check("balance reflects 10-cent credit", bal == 10)
+    )
+    check("math endpoint serves keyed request", r.status_code == 200)
 
 
 def w7_discovery_surface() -> None:
@@ -264,7 +258,7 @@ if __name__ == "__main__":
     _safe("W3", w3_auction_known_answers)
     _safe("W4", w4_marketplace_operator)
     _safe("W5", w5_stable_matching)
-    _safe("W6", w6_onboarding_and_billing)
+    _safe("W6", w6_onboarding)
     _safe("W7", w7_discovery_surface)
     print()
     print("=" * 70)

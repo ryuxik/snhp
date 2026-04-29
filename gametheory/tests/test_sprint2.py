@@ -261,135 +261,25 @@ def test_buy_endpoint_requires_market_prior_when_anchor_defense_on():
     assert r.status_code == 400
 
 
-# ─── Credit balance + draft_message gate (LLM stubbed) ──────────────────────
+# ─── Onboarding ─────────────────────────────────────────────────────────────
 
 
 def _issue_key(agent_id: str) -> str:
     r = client.post("/v1/keys", json={
         "agent_id": agent_id,
         "contact_email": "billing@example.com",
-        "intended_use_summary": "Sprint 2 paid endpoint testing",
+        "intended_use_summary": "Sprint 2 onboarding test",
     })
     assert r.status_code == 200
     return r.json()["api_key"]
 
 
-def _credit(api_key: str, cents: int) -> None:
-    """Programmatically credit the key — bypasses Stripe so tests don't
-    need real keys. The real-world equivalent is a checkout.session.completed
-    webhook (covered separately in test_billing.py)."""
-    from gametheory.server.onboarding import credit_balance
-    credit_balance(api_key=api_key, cents=cents)
-
-
 def test_key_uses_unified_prefix():
-    """All keys share the gt_ prefix now (the test/live split is gone)."""
+    """All keys share the gt_ prefix (the gt_test_/gt_live_ split is gone)."""
     key = _issue_key("prefix-agent")
     assert key.startswith("gt_")
     assert not key.startswith("gt_test_")
     assert not key.startswith("gt_live_")
-
-
-def test_balance_endpoint_reports_cents():
-    key = _issue_key("balance-agent")
-    r = client.get(
-        "/v1/billing/balance",
-        headers={"Authorization": f"Bearer {key}"},
-    )
-    assert r.status_code == 200
-    body = r.json()
-    assert body["balance_usd_cents"] == 0   # fresh key starts empty
-    _credit(key, 250)
-    r = client.get(
-        "/v1/billing/balance",
-        headers={"Authorization": f"Bearer {key}"},
-    )
-    assert r.json()["balance_usd_cents"] == 250
-
-
-def test_draft_message_401_without_key():
-    r = client.post("/v1/negotiation/draft_message", json={
-        "numbers": {"recommended_offer": 0.6},
-        "client_email": "Hello",
-        "constraints_text": "Need Q2",
-        "tone": "professional",
-        "my_reservation": 0.40,
-    })
-    assert r.status_code == 401
-
-
-def test_draft_message_402_with_zero_balance():
-    """A valid key with no credits gets 402, not 401."""
-    key = _issue_key("paid-agent-zero")
-    r = client.post(
-        "/v1/negotiation/draft_message",
-        json={
-            "numbers": {"recommended_offer": 0.6},
-            "client_email": "Hi",
-            "constraints_text": "Constraints",
-            "tone": "professional",
-            "my_reservation": 0.40,
-        },
-        headers={"Authorization": f"Bearer {key}"},
-    )
-    assert r.status_code == 402
-    assert "Insufficient credits" in r.json()["detail"]
-
-
-def test_draft_message_400_on_batna_violation(monkeypatch):
-    """Refuse to draft if proposed offer is below the caller's reservation."""
-    key = _issue_key("paid-agent-batna")
-    _credit(key, 100)   # 100 cents, plenty
-    r = client.post(
-        "/v1/negotiation/draft_message",
-        json={
-            "numbers": {"recommended_offer": 0.30},   # below my_reservation
-            "client_email": "Hi",
-            "constraints_text": "Constraints",
-            "tone": "professional",
-            "my_reservation": 0.40,
-        },
-        headers={"Authorization": f"Bearer {key}"},
-    )
-    assert r.status_code == 400
-    detail = r.json()["detail"]
-    assert "BATNA" in detail and "reservation" in detail
-
-
-def test_draft_message_succeeds_and_decrements_balance(monkeypatch):
-    """Stub the LLM helper. Verify the call succeeds AND the balance drops."""
-    key = _issue_key("paid-agent-success")
-    _credit(key, 100)
-
-    from gametheory.server import http as http_module
-    monkeypatch.setattr(
-        http_module, "_call_llm",
-        lambda prompt, temperature=0.4: "Thanks for the note. Our position is unchanged. We can move ahead at the proposed terms.",
-    )
-
-    r = client.post(
-        "/v1/negotiation/draft_message",
-        json={
-            "numbers": {"recommended_offer": 0.65},
-            "client_email": "Hi, what's your offer?",
-            "constraints_text": "Q2 delivery",
-            "tone": "professional",
-            "my_reservation": 0.40,
-        },
-        headers={"Authorization": f"Bearer {key}"},
-    )
-    assert r.status_code == 200, r.text
-    body = r.json()
-    assert "Thanks" in body["text"]
-    assert float(r.headers["X-GT-Cost-USD"]) > 0
-
-    # Balance should have dropped by exactly the per-call cost.
-    from gametheory.server.billing import DRAFT_MESSAGE_COST_CENTS
-    bal = client.get(
-        "/v1/billing/balance",
-        headers={"Authorization": f"Bearer {key}"},
-    ).json()["balance_usd_cents"]
-    assert bal == 100 - DRAFT_MESSAGE_COST_CENTS
 
 
 # ─── Catalog discoverability for Sprint 2 ────────────────────────────────────
@@ -404,11 +294,9 @@ def test_catalog_lists_sprint2_tools():
         "gt.negotiation.detect_anchor_attack",
         "gt.negotiation.declare_first_strike",
         "gt.negotiation.reveal_first_strike",
-        "gt.negotiation.draft_message",
     ]:
         assert required in names, f"missing {required} from catalog"
-    # draft_message must be tagged paid so agents can budget.
-    assert names["gt.negotiation.draft_message"]["cost_class"] == "paid"
-    # The math endpoints must remain free.
-    assert names["gt.negotiation.buy.next_offer"]["cost_class"] == "free"
-    assert names["gt.negotiation.declare_first_strike"]["cost_class"] == "free"
+    # All endpoints are free now (no LLM endpoints left server-side).
+    for t in r.json()["tools"]:
+        assert t["cost_class"] == "free", \
+            f"unexpected paid tool in catalog: {t['name']}"

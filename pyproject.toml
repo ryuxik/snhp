@@ -33,18 +33,18 @@ snhp = [
     "pandas>=2.0",
     "scikit-learn>=1.3",
 ]
-# Runtime deps for the hosted FastAPI server. Includes the LLM stack
-# (litellm + google-genai) for the paid `draft_message` endpoint, numba
-# for the JIT-compiled SNHP math, dotenv for env config, and psycopg2
-# for Postgres when DATABASE_URL is set. Excludes negmas / optuna /
-# pandas / scikit-learn — those are tuning-time only.
+# Runtime deps for the hosted FastAPI server. numba for the JIT-compiled
+# SNHP math, dotenv for env config, psycopg2 for Postgres when
+# DATABASE_URL is set. Excludes negmas / optuna / pandas / scikit-learn
+# — those are tuning-time only. Excludes litellm / google-genai because
+# we don't host LLM calls server-side (BYOK pattern; agents bring their
+# own LLM key client-side). Excludes stripe because the billing routes
+# are deferred — `gametheory.server.billing` stays in the codebase but
+# unused; re-add `stripe>=8.0` when re-wiring paid endpoints.
 prod = [
-    "litellm",
-    "google-genai>=1.0.0",
     "psycopg2-binary>=2.9",
     "numba>=0.59",
     "python-dotenv>=1.0",
-    "stripe>=8.0",
 ]
 
 [project.scripts]
