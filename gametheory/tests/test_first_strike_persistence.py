@@ -55,14 +55,28 @@ def test_env_pem_is_loaded_and_source_reports_env(monkeypatch):
 
 def test_no_env_falls_back_to_ephemeral(monkeypatch):
     monkeypatch.delenv("FIRST_STRIKE_PRIVATE_PEM", raising=False)
+    monkeypatch.delenv("FLY_APP_NAME", raising=False)
+    monkeypatch.delenv("SNHP_REQUIRE_PERSISTENT_KEY", raising=False)
     fs = _reset_module()
     fs.trust_anchor_public_key_pem()
     assert fs.trust_anchor_source() == "ephemeral"
 
 
+def test_prod_gate_refuses_ephemeral(monkeypatch):
+    """In a deployed env (FLY_APP_NAME set) we refuse to silently fall
+    back to ephemeral — that would invalidate every JWT on next restart."""
+    monkeypatch.delenv("FIRST_STRIKE_PRIVATE_PEM", raising=False)
+    monkeypatch.setenv("FLY_APP_NAME", "snhp")
+    fs = _reset_module()
+    with pytest.raises(RuntimeError, match="deployed environment"):
+        fs.trust_anchor_public_key_pem()
+
+
 def test_ephemeral_keys_change_across_restarts(monkeypatch):
     """Sanity check: ephemeral path is genuinely non-persistent."""
     monkeypatch.delenv("FIRST_STRIKE_PRIVATE_PEM", raising=False)
+    monkeypatch.delenv("FLY_APP_NAME", raising=False)
+    monkeypatch.delenv("SNHP_REQUIRE_PERSISTENT_KEY", raising=False)
     fs = _reset_module()
     pub_a = fs.trust_anchor_public_key_pem()
     fs._TRUST_ANCHOR_KEY = None

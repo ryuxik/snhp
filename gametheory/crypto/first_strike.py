@@ -34,10 +34,15 @@ import base64
 import hashlib
 import json
 import os
+import re
 import secrets
 import time
 from datetime import datetime, timezone, timedelta
 from typing import Optional
+
+
+# Producer always emits 43-char base64url SHA-256 without padding.
+_RESERVATION_HASH_RE = re.compile(r"[A-Za-z0-9_-]{43}")
 
 import jwt
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
@@ -103,7 +108,12 @@ _TRUST_ANCHOR_SOURCE: Optional[str] = None  # "env" or "ephemeral"
 
 
 def _load_or_generate_trust_anchor_key() -> tuple[Ed25519PrivateKey, str]:
-    """Load from FIRST_STRIKE_PRIVATE_PEM if set; else generate ephemerally."""
+    """Load from FIRST_STRIKE_PRIVATE_PEM if set; else generate ephemerally.
+
+    In production (Fly sets FLY_APP_NAME automatically), refuse the
+    ephemeral fallback — silently using a fresh per-restart key would
+    invalidate every prior JWT and the operator might not notice.
+    """
     pem_str = os.environ.get(_TRUST_ANCHOR_ENV_VAR, "").strip()
     if pem_str:
         try:
@@ -121,6 +131,15 @@ def _load_or_generate_trust_anchor_key() -> tuple[Ed25519PrivateKey, str]:
                 f"expected Ed25519PrivateKey. Re-generate with PKCS8 + Ed25519."
             )
         return key, "env"
+    if os.environ.get("FLY_APP_NAME") or os.environ.get("SNHP_REQUIRE_PERSISTENT_KEY"):
+        raise RuntimeError(
+            f"{_TRUST_ANCHOR_ENV_VAR} is unset but the process appears to be "
+            f"running in a deployed environment (FLY_APP_NAME or "
+            f"SNHP_REQUIRE_PERSISTENT_KEY set). Refusing to fall back to an "
+            f"ephemeral key — every JWT issued before the next restart would "
+            f"become unverifiable. Set FIRST_STRIKE_PRIVATE_PEM via "
+            f"`fly secrets set`."
+        )
     return Ed25519PrivateKey.generate(), "ephemeral"
 
 
@@ -151,15 +170,37 @@ def trust_anchor_public_key_pem() -> str:
     return _TRUST_ANCHOR_PUB_PEM  # type: ignore[return-value]
 
 
+# JWT issuer + audience + expected `kind`. Issuer pinned per-deployment;
+# audience reserved for future cross-app federation. The decoder enforces
+# both, so a token issued for one purpose can't be used for another even
+# if a future code path adds a second JWT type signed with the same key.
+_JWT_ISSUER = "gametheory.dev/first_strike"
+_JWT_AUDIENCE = "gametheory.dev/first_strike/v1"
+_JWT_KIND = "first_strike_commitment"
+
+
 def _sign_jwt(payload: dict) -> str:
     _ensure_trust_anchor()
     return jwt.encode(payload, _TRUST_ANCHOR_PRIV_PEM, algorithm="EdDSA")
 
 
 def verify_attestation(token: str) -> dict:
-    """Verify an attestation JWT against the server's public trust anchor."""
+    """Verify an attestation JWT against the server's public trust anchor.
+    Enforces algorithm (EdDSA), expiry (default), audience, issuer, AND
+    that `kind` matches the first-strike commitment type."""
     _ensure_trust_anchor()
-    return jwt.decode(token, _TRUST_ANCHOR_PUB_PEM.encode(), algorithms=["EdDSA"])  # type: ignore[union-attr]
+    decoded = jwt.decode(
+        token, _TRUST_ANCHOR_PUB_PEM.encode(),  # type: ignore[union-attr]
+        algorithms=["EdDSA"],
+        audience=_JWT_AUDIENCE,
+        issuer=_JWT_ISSUER,
+    )
+    if decoded.get("kind") != _JWT_KIND:
+        raise jwt.InvalidTokenError(
+            f"unexpected JWT kind: {decoded.get('kind')!r}; "
+            f"expected {_JWT_KIND!r}"
+        )
+    return decoded
 
 
 # ─── Hash commitment ─────────────────────────────────────────────────────────
@@ -209,15 +250,27 @@ def declare_first_strike(
     """
     if not buyer_id or not seller_id:
         raise ValueError("buyer_id and seller_id are required")
-    if not 16 <= len(reservation_hash) <= 64:
-        raise ValueError("reservation_hash looks malformed")
+    # SHA-256 base64url-encoded without padding is exactly 43 chars; producer
+    # always emits this. Tight check rejects malformed/truncated/encoded values.
+    if len(reservation_hash) != 43 or not _RESERVATION_HASH_RE.fullmatch(reservation_hash):
+        raise ValueError(
+            "reservation_hash must be 43-char base64url-encoded SHA-256 "
+            "(charset [A-Za-z0-9_-], no padding)"
+        )
     if binding_ttl_seconds < 60 or binding_ttl_seconds > _MAX_TTL_SECONDS:
         raise ValueError(
             f"binding_ttl_seconds must be in [60, {_MAX_TTL_SECONDS}]"
         )
+    if len(deadline_iso) > 64:
+        raise ValueError("deadline_iso must be at most 64 chars (ISO 8601 datetime)")
 
+    # Only translate trailing 'Z' (UTC suffix). The previous .replace("Z", "+00:00")
+    # corrupted any literal 'Z' mid-string (e.g., the parse-error message itself
+    # would change semantics). datetime.fromisoformat accepts 'Z' natively in
+    # Python 3.11+ but we defensively normalize for cross-version reproducibility.
+    iso = deadline_iso[:-1] + "+00:00" if deadline_iso.endswith("Z") else deadline_iso
     try:
-        deadline_dt = datetime.fromisoformat(deadline_iso.replace("Z", "+00:00"))
+        deadline_dt = datetime.fromisoformat(iso)
     except ValueError:
         raise ValueError(
             f"deadline_iso must be ISO 8601 (e.g. 2026-04-29T14:00:00Z), "
@@ -258,8 +311,9 @@ def declare_first_strike(
         "reservation_hash": reservation_hash,
         "iat": now_unix,
         "exp": effective_expiry_unix,
-        "iss": "gametheory.dev/first_strike",
-        "kind": "first_strike_commitment",
+        "iss": _JWT_ISSUER,
+        "aud": _JWT_AUDIENCE,
+        "kind": _JWT_KIND,
     }
     attestation_jwt = _sign_jwt(attestation_payload)
 

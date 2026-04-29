@@ -98,9 +98,9 @@ class WTPPrior(BaseModel):
 class SellNextOfferRequest(BaseModel):
     my_reservation: float = Field(ge=0.0, le=1.0,
         description="Our walk-away utility, normalized to [0, 1]")
-    opponent_offer_history: list[float] = Field(default_factory=list,
+    opponent_offer_history: list[float] = Field(default_factory=list, max_length=128,
         description="Opponent's offers evaluated in our utility space, in [0, 1]")
-    my_offer_history: list[float] = Field(default_factory=list)
+    my_offer_history: list[float] = Field(default_factory=list, max_length=128)
     deadline_rounds: int = Field(ge=1, le=64,
         description="Total rounds before the negotiation times out")
     pareto_knob: float = Field(default=0.5, ge=0.0, le=1.0,
@@ -192,9 +192,9 @@ class MarketPrior(BaseModel):
 
 class BuyNextOfferRequest(BaseModel):
     my_reservation: float = Field(ge=0.0, le=1.0)
-    seller_offer_history: list[float] = Field(default_factory=list,
+    seller_offer_history: list[float] = Field(default_factory=list, max_length=128,
         description="Seller's offers evaluated in our (buyer's) utility space, in [0, 1]")
-    my_offer_history: list[float] = Field(default_factory=list)
+    my_offer_history: list[float] = Field(default_factory=list, max_length=128)
     deadline_rounds: int = Field(ge=1, le=64)
     pareto_knob: float = Field(default=0.5, ge=0.0, le=1.0,
         description="Buyer-side Pareto knob (0=max deal rate, 1=max margin)")
@@ -217,7 +217,7 @@ class BuyNextOfferResponse(BaseModel):
 
 
 class DetectAnchorAttackRequest(BaseModel):
-    opponent_offer_history: list[float] = Field(min_length=0)
+    opponent_offer_history: list[float] = Field(min_length=0, max_length=128)
     market_prior: MarketPrior
 
 
@@ -232,9 +232,13 @@ class DetectAnchorAttackResponse(BaseModel):
 class DeclareFirstStrikeRequest(BaseModel):
     buyer_id: str = Field(min_length=1, max_length=128)
     seller_id: str = Field(min_length=1, max_length=128)
-    reservation_hash: str = Field(min_length=16, max_length=64,
+    # Strict shape: 43-char base64url SHA-256 (no padding). Producer always
+    # emits this length; tighter check rejects truncated/encoded variants.
+    reservation_hash: str = Field(min_length=43, max_length=43,
+        pattern=r"^[A-Za-z0-9_\-]{43}$",
         description="SHA-256 base64url of (reservation || nonce || salt || ids)")
-    deadline_iso: str = Field(description="ISO 8601 deadline, e.g. 2026-04-29T14:00:00Z")
+    deadline_iso: str = Field(min_length=15, max_length=64,
+        description="ISO 8601 deadline, e.g. 2026-04-29T14:00:00Z")
     binding_ttl_seconds: int = Field(ge=60, le=86400)
 
 
@@ -267,20 +271,20 @@ class RevealFirstStrikeResponse(BaseModel):
 
 class Proposer(BaseModel):
     id: str = Field(min_length=1, max_length=128)
-    preferences: list[str] = Field(default_factory=list,
+    preferences: list[str] = Field(default_factory=list, max_length=1024,
         description="Receiver ids ranked most-preferred first")
 
 
 class Receiver(BaseModel):
     id: str = Field(min_length=1, max_length=128)
-    preferences: list[str] = Field(default_factory=list,
+    preferences: list[str] = Field(default_factory=list, max_length=1024,
         description="Proposer ids ranked most-preferred first")
     capacity: int = Field(default=1, ge=1, le=1024)
 
 
 class GaleShapleyRequest(BaseModel):
-    proposers: list[Proposer] = Field(min_length=1)
-    receivers: list[Receiver] = Field(min_length=1)
+    proposers: list[Proposer] = Field(min_length=1, max_length=1024)
+    receivers: list[Receiver] = Field(min_length=1, max_length=1024)
 
 
 class GaleShapleyResponse(BaseModel):
@@ -308,10 +312,16 @@ class OptimalAuctionDesignResponse(BaseModel):
 
 
 class PostedPriceRequest(BaseModel):
+    # Tightened from {arrival_rate ≤ 1000, inventory ≤ 100k, horizon ≤ 30d}
+    # because the DP allocates O(C × n_bins × |P|) where n_bins scales with
+    # arrival_rate × horizon. Worst-case under the old bounds was 13 billion
+    # iterations + GBs of float64 churn → guaranteed OOM on the 512MB box.
+    # The runtime budget guard below catches problematic combinations even
+    # within the per-field caps.
     buyer_arrival_prior: PriorParams
-    arrival_rate_per_second: float = Field(gt=0.0, le=1000.0)
-    inventory: int = Field(ge=1, le=100_000)
-    horizon_seconds: float = Field(gt=0.0, le=30 * 86400)
+    arrival_rate_per_second: float = Field(gt=0.0, le=100.0)
+    inventory: int = Field(ge=1, le=10_000)
+    horizon_seconds: float = Field(gt=0.0, le=7 * 86400)
     n_simulations: int = Field(default=2_000, ge=100, le=20_000)
     seed: int = Field(default=42)
 
@@ -350,6 +360,18 @@ app = FastAPI(
         {"name": "discovery",   "description": "Catalog + agent onboarding"},
     ],
 )
+
+
+# Middleware order matters: outermost wraps innermost. We want the
+# body-size guard FIRST (cheapest reject), then rate limit (also cheap),
+# then security headers (must run on the way out so they apply to
+# rate-limit responses too).
+from gametheory.server.middleware import (  # noqa: E402
+    BodySizeLimit, RateLimit, SecurityHeaders,
+)
+app.add_middleware(SecurityHeaders)
+app.add_middleware(RateLimit)
+app.add_middleware(BodySizeLimit)
 
 
 # ─── Tier 1: Negotiation ─────────────────────────────────────────────────────
@@ -909,6 +931,20 @@ def mechanism_optimal_auction_design(req: OptimalAuctionDesignRequest):
 )
 @_math_endpoint
 def mechanism_posted_price_optimal(req: PostedPriceRequest):
+    # DP allocates O(C × n_bins × |P|) where n_bins ≈ arrival_rate × T / 0.2.
+    # |P| is fixed at 50; reject inputs that would exceed ~50M cells (~400 MB
+    # of float64 churn) before the DP starts allocating.
+    n_bins_estimate = max(60, req.arrival_rate_per_second * req.horizon_seconds / 0.2)
+    cells = req.inventory * n_bins_estimate * 50
+    if cells > 50_000_000:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Compute budget exceeded: estimated {int(cells):,} DP cells "
+                f"(inventory × bins × prices), max 50M. Reduce inventory, "
+                f"horizon_seconds, or arrival_rate_per_second."
+            ),
+        )
     return _posted_price_optimal(
         buyer_arrival_prior=req.buyer_arrival_prior.model_dump(),
         arrival_rate_per_second=req.arrival_rate_per_second,
