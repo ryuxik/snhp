@@ -1,0 +1,415 @@
+{
+  "transcripts": [
+    {
+      "seller": "random",
+      "buyer": "fair-demand",
+      "seller_reservation": 0.392,
+      "buyer_reservation": 0.208,
+      "transcript": [
+        {
+          "round": 0,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.6253
+        },
+        {
+          "round": 1,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.45
+        },
+        {
+          "round": 2,
+          "actor": "seller",
+          "action": "accept",
+          "price_seller_space": 0.44999999999999996
+        }
+      ],
+      "outcome": {
+        "deal_closed": true,
+        "seller_utility": 0.45,
+        "buyer_utility": 0.55
+      }
+    },
+    {
+      "seller": "random",
+      "buyer": "fair-demand",
+      "seller_reservation": 0.442,
+      "buyer_reservation": 0.409,
+      "transcript": [
+        {
+          "round": 0,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.6899
+        },
+        {
+          "round": 1,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.45
+        },
+        {
+          "round": 2,
+          "actor": "seller",
+          "action": "accept",
+          "price_seller_space": 0.44999999999999996
+        }
+      ],
+      "outcome": {
+        "deal_closed": true,
+        "seller_utility": 0.45,
+        "buyer_utility": 0.55
+      }
+    },
+    {
+      "seller": "random",
+      "buyer": "fair-demand",
+      "seller_reservation": 0.411,
+      "buyer_reservation": 0.214,
+      "transcript": [
+        {
+          "round": 0,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.9127
+        },
+        {
+          "round": 1,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.45
+        },
+        {
+          "round": 2,
+          "actor": "seller",
+          "action": "accept",
+          "price_seller_space": 0.44999999999999996
+        }
+      ],
+      "outcome": {
+        "deal_closed": true,
+        "seller_utility": 0.45,
+        "buyer_utility": 0.55
+      }
+    },
+    {
+      "seller": "random",
+      "buyer": "fair-demand",
+      "seller_reservation": 0.497,
+      "buyer_reservation": 0.392,
+      "transcript": [
+        {
+          "round": 0,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.8446
+        },
+        {
+          "round": 1,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.45
+        },
+        {
+          "round": 2,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.5468
+        },
+        {
+          "round": 3,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.45
+        },
+        {
+          "round": 4,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.925
+        },
+        {
+          "round": 5,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.45
+        },
+        {
+          "round": 6,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.5561
+        },
+        {
+          "round": 7,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.45
+        },
+        {
+          "round": 8,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.7628
+        },
+        {
+          "round": 9,
+          "actor": "buyer",
+          "action": "walk"
+        }
+      ],
+      "outcome": {
+        "deal_closed": false,
+        "seller_utility": 0.0,
+        "buyer_utility": 0.0
+      }
+    },
+    {
+      "seller": "random",
+      "buyer": "fair-demand",
+      "seller_reservation": 0.368,
+      "buyer_reservation": 0.279,
+      "transcript": [
+        {
+          "round": 0,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.5085
+        },
+        {
+          "round": 1,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.45
+        },
+        {
+          "round": 2,
+          "actor": "seller",
+          "action": "accept",
+          "price_seller_space": 0.44999999999999996
+        }
+      ],
+      "outcome": {
+        "deal_closed": true,
+        "seller_utility": 0.45,
+        "buyer_utility": 0.55
+      }
+    },
+    {
+      "seller": "random",
+      "buyer": "split-the-diff",
+      "seller_reservation": 0.203,
+      "buyer_reservation": 0.416,
+      "transcript": [
+        {
+          "round": 0,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.9533
+        },
+        {
+          "round": 1,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.15
+        },
+        {
+          "round": 2,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.8338
+        },
+        {
+          "round": 3,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.5838
+        },
+        {
+          "round": 4,
+          "actor": "seller",
+          "action": "accept",
+          "price_seller_space": 0.5837834541919416
+        }
+      ],
+      "outcome": {
+        "deal_closed": true,
+        "seller_utility": 0.584,
+        "buyer_utility": 0.416
+      }
+    },
+    {
+      "seller": "random",
+      "buyer": "split-the-diff",
+      "seller_reservation": 0.429,
+      "buyer_reservation": 0.362,
+      "transcript": [
+        {
+          "round": 0,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.7243
+        },
+        {
+          "round": 1,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.15
+        },
+        {
+          "round": 2,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.5328
+        },
+        {
+          "round": 3,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.6382
+        },
+        {
+          "round": 4,
+          "actor": "seller",
+          "action": "accept",
+          "price_seller_space": 0.6381862909641123
+        }
+      ],
+      "outcome": {
+        "deal_closed": true,
+        "seller_utility": 0.638,
+        "buyer_utility": 0.362
+      }
+    },
+    {
+      "seller": "random",
+      "buyer": "split-the-diff",
+      "seller_reservation": 0.343,
+      "buyer_reservation": 0.365,
+      "transcript": [
+        {
+          "round": 0,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.95
+        },
+        {
+          "round": 1,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.15
+        },
+        {
+          "round": 2,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.6152
+        },
+        {
+          "round": 3,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.6351
+        },
+        {
+          "round": 4,
+          "actor": "seller",
+          "action": "accept",
+          "price_seller_space": 0.6350589219515168
+        }
+      ],
+      "outcome": {
+        "deal_closed": true,
+        "seller_utility": 0.635,
+        "buyer_utility": 0.365
+      }
+    },
+    {
+      "seller": "random",
+      "buyer": "split-the-diff",
+      "seller_reservation": 0.221,
+      "buyer_reservation": 0.389,
+      "transcript": [
+        {
+          "round": 0,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.5076
+        },
+        {
+          "round": 1,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.15
+        },
+        {
+          "round": 2,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.5684
+        },
+        {
+          "round": 3,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.6107
+        },
+        {
+          "round": 4,
+          "actor": "seller",
+          "action": "accept",
+          "price_seller_space": 0.6106691128189703
+        }
+      ],
+      "outcome": {
+        "deal_closed": true,
+        "seller_utility": 0.611,
+        "buyer_utility": 0.389
+      }
+    },
+    {
+      "seller": "random",
+      "buyer": "split-the-diff",
+      "seller_reservation": 0.419,
+      "buyer_reservation": 0.402,
+      "transcript": [
+        {
+          "round": 0,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.5468
+        },
+        {
+          "round": 1,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.15
+        },
+        {
+          "round": 2,
+          "actor": "seller",
+          "action": "offer",
+          "price_seller_space": 0.6476
+        },
+        {
+          "round": 3,
+          "actor": "buyer",
+          "action": "offer",
+          "price_seller_space": 0.598
+        },
+        {
+          "round": 4,
+          "actor": "seller",
+          "action": "accept",
+          "price_seller_space": 0.5979906358120095
+        }
+      ],
+      "outcome": {
+        "deal_closed": true,
+        "seller_utility": 0.598,
+        "buyer_utility": 0.402
+      }
+    }
+  ]
+}

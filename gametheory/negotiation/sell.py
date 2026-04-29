@@ -81,17 +81,25 @@ def sell_next_offer(
 
     # ── Aspiration curve from the Pareto knob ──────────────────────────
     asp_start = _lerp(_ASP_START_DEAL_RATE_MAX, _ASP_START_MARGIN_MAX, pareto_knob)
-    # Schelling commitment margin: never aim below my BATNA + small buffer.
-    schelling_floor = max(my_reservation + 0.05, 0.40)
-    asp_floor = max(asp_start * 0.6, schelling_floor)
+    # Schelling commitment: never recommend below my reservation + a small
+    # buffer for negotiating room. The aspiration curve floor IS reservation
+    # — at deadline we're willing to take any deal above walk-away. (Earlier
+    # versions floored at 0.40 absolute / 0.6×asp_start; that was tuned for
+    # multi-attribute B2B with logrolling and starves single-axis games of
+    # the deals the math should land.)
+    schelling_floor = my_reservation + min(0.05, 0.5 * (1.0 - my_reservation))
+    asp_floor = my_reservation
 
-    rounds_used = max(len(my_offer_history), len(opponent_offer_history))
+    # Total alternating-offer rounds elapsed = sum of both histories. Earlier
+    # `max(len(mine), len(theirs))` underestimated by ~2× — a 10-round game
+    # with both sides at 5 offers reads as t=0.5, not t≈1.0, leaving SNHP's
+    # aspiration almost undecayed at the deadline.
+    rounds_used = len(my_offer_history) + len(opponent_offer_history)
     time_fraction = min(1.0, rounds_used / max(deadline_rounds, 1))
 
-    # Power-law concession matches the SNHP empirical curve (see
-    # negmas_agent.py:propose). base_exp 3 is the SNHP default for B2B
-    # short games; tuned per-role values live in optimal_params.json but
-    # the v1 handler keeps it simple.
+    # Power-law concession (see negmas_agent.py:propose). base_exp=3 means
+    # most of the concession happens late — preserves margin against a
+    # firm-but-time-aware opponent, but still concedes against deadlines.
     base_exp = 3.0
     aspiration = asp_start - (asp_start - asp_floor) * (time_fraction ** base_exp)
 
@@ -139,7 +147,19 @@ def sell_next_offer(
     rubinstein_floor = my_reservation + surplus * rub["freelancer_share"]
 
     # ── Recommendation ─────────────────────────────────────────────────
-    recommended = max(aspiration, rubinstein_floor)
+    # Rubinstein gives the SPE share assuming the opponent is also playing
+    # equilibrium. Many real opponents (aspiration, anchor-and-retreat,
+    # vanilla LLMs) instead concede over time. If we've observed concession
+    # — opp's last offer is meaningfully better than their first — we trust
+    # the aspiration curve to land deals; otherwise we hold at Rubinstein.
+    if len(opponent_offer_history) >= 2:
+        opp_concession = opponent_offer_history[-1] - opponent_offer_history[0]
+    else:
+        opp_concession = 0.0
+    if opp_concession > 0.05:
+        recommended = max(aspiration, schelling_floor)
+    else:
+        recommended = max(aspiration, rubinstein_floor)
     recommended = min(recommended, 0.99)
 
     # ── Acceptance probability ─────────────────────────────────────────

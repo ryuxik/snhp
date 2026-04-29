@@ -182,9 +182,14 @@ def buy_next_offer(
 
     # ── Aspiration curve from buyer-side Pareto knob ────────────────────
     asp_start = _lerp(_BUY_ASP_START_DEAL_RATE_MAX, _BUY_ASP_START_MARGIN_MAX, pareto_knob)
-    asp_floor = max(my_reservation + 0.05, 0.40)  # Schelling commitment
+    # Schelling commitment is just-above reservation; floor of the aspiration
+    # curve IS reservation so we'll close at deadline if there's any deal in
+    # the zone of agreement.
+    schelling_floor = my_reservation + min(0.05, 0.5 * (1.0 - my_reservation))
+    asp_floor = my_reservation
 
-    rounds_used = max(len(my_offer_history), len(seller_offer_history))
+    # Total alternating-offer rounds elapsed — sum, not max (see sell.py).
+    rounds_used = len(my_offer_history) + len(seller_offer_history)
     time_fraction = min(1.0, rounds_used / max(deadline_rounds, 1))
     base_exp = 3.0
     aspiration = asp_start - (asp_start - asp_floor) * (time_fraction ** base_exp)
@@ -211,7 +216,17 @@ def buy_next_offer(
     rubinstein_floor = my_reservation + surplus * my_share
 
     # ── Recommendation ──────────────────────────────────────────────────
-    recommended = max(aspiration, rubinstein_floor)
+    # Same logic as sell.py: only enforce the SPE floor when the opponent
+    # is also playing a firm/equilibrium strategy. Against a conceding
+    # opponent, trust the aspiration curve to land deals.
+    if len(seller_offer_history) >= 2:
+        opp_concession = seller_offer_history[-1] - seller_offer_history[0]
+    else:
+        opp_concession = 0.0
+    if opp_concession > 0.05:
+        recommended = max(aspiration, schelling_floor)
+    else:
+        recommended = max(aspiration, rubinstein_floor)
     recommended = min(recommended, 0.99)
 
     seller_util_from_offer = 1.0 - recommended

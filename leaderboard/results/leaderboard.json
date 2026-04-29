@@ -1,0 +1,385 @@
+{
+  "generated_at": "2026-04-29T17:10:10+00:00",
+  "config": {
+    "n_reps_per_pairing": 50,
+    "deadline_rounds": 10,
+    "reservation_low": 0.2,
+    "reservation_high": 0.5,
+    "seed": 42
+  },
+  "rankings": [
+    {
+      "name": "aspiration",
+      "label": "Aspiration (NegMAS classic)",
+      "avg_utility": 0.4441,
+      "median_utility": 0.4735,
+      "deal_rate": 0.875,
+      "n_games": 600,
+      "ci95_low": 0.4296,
+      "ci95_high": 0.4595,
+      "rank": 1
+    },
+    {
+      "name": "snhp-vanilla",
+      "label": "SNHP (out-of-the-box, pareto_knob=0.5)",
+      "avg_utility": 0.4162,
+      "median_utility": 0.4939,
+      "deal_rate": 0.7817,
+      "n_games": 600,
+      "ci95_low": 0.3966,
+      "ci95_high": 0.4356,
+      "rank": 2
+    },
+    {
+      "name": "split-the-diff",
+      "label": "Split-the-Difference",
+      "avg_utility": 0.3949,
+      "median_utility": 0.4141,
+      "deal_rate": 0.9567,
+      "n_games": 600,
+      "ci95_low": 0.3848,
+      "ci95_high": 0.4051,
+      "rank": 3
+    },
+    {
+      "name": "snhp-tuned",
+      "label": "SNHP (api.snhp.dev-tuned, pareto_knob=0.85)",
+      "avg_utility": 0.3804,
+      "median_utility": 0.45,
+      "deal_rate": 0.7017,
+      "n_games": 600,
+      "ci95_low": 0.3597,
+      "ci95_high": 0.4019,
+      "rank": 4
+    },
+    {
+      "name": "fair-demand",
+      "label": "Fair Demand (50/50 only)",
+      "avg_utility": 0.3676,
+      "median_utility": 0.5433,
+      "deal_rate": 0.665,
+      "n_games": 600,
+      "ci95_low": 0.3461,
+      "ci95_high": 0.3889,
+      "rank": 5
+    },
+    {
+      "name": "random",
+      "label": "Random baseline",
+      "avg_utility": 0.3441,
+      "median_utility": 0.3814,
+      "deal_rate": 0.83,
+      "n_games": 600,
+      "ci95_low": 0.3296,
+      "ci95_high": 0.3597,
+      "rank": 6
+    },
+    {
+      "name": "anchorer",
+      "label": "Anchorer (extreme open, slow retreat)",
+      "avg_utility": 0.3326,
+      "median_utility": 0.4912,
+      "deal_rate": 0.55,
+      "n_games": 600,
+      "ci95_low": 0.3063,
+      "ci95_high": 0.3581,
+      "rank": 7
+    }
+  ],
+  "pairwise": [
+    {
+      "seller": "random",
+      "buyer": "fair-demand",
+      "a_util_mean": 0.37929573835394764,
+      "b_util_mean": 0.5007042616460523,
+      "deal_rate": 0.88
+    },
+    {
+      "seller": "random",
+      "buyer": "split-the-diff",
+      "a_util_mean": 0.5553501769553156,
+      "b_util_mean": 0.4446498230446843,
+      "deal_rate": 1.0
+    },
+    {
+      "seller": "random",
+      "buyer": "anchorer",
+      "a_util_mean": 0.21212023405039798,
+      "b_util_mean": 0.407879765949602,
+      "deal_rate": 0.62
+    },
+    {
+      "seller": "random",
+      "buyer": "aspiration",
+      "a_util_mean": 0.38187752043024814,
+      "b_util_mean": 0.5381224795697518,
+      "deal_rate": 0.92
+    },
+    {
+      "seller": "random",
+      "buyer": "snhp-vanilla",
+      "a_util_mean": 0.3162947578150271,
+      "b_util_mean": 0.5237052421849729,
+      "deal_rate": 0.84
+    },
+    {
+      "seller": "random",
+      "buyer": "snhp-tuned",
+      "a_util_mean": 0.2411440449176662,
+      "b_util_mean": 0.4188559550823338,
+      "deal_rate": 0.66
+    },
+    {
+      "seller": "fair-demand",
+      "buyer": "random",
+      "a_util_mean": 0.5262236743896098,
+      "b_util_mean": 0.43377632561039015,
+      "deal_rate": 0.96
+    },
+    {
+      "seller": "fair-demand",
+      "buyer": "split-the-diff",
+      "a_util_mean": 0.6230951570733161,
+      "b_util_mean": 0.37690484292668397,
+      "deal_rate": 1.0
+    },
+    {
+      "seller": "fair-demand",
+      "buyer": "anchorer",
+      "a_util_mean": 0.0,
+      "b_util_mean": 0.0,
+      "deal_rate": 0.0
+    },
+    {
+      "seller": "fair-demand",
+      "buyer": "aspiration",
+      "a_util_mean": 0.3913554841443074,
+      "b_util_mean": 0.3286445158556926,
+      "deal_rate": 0.72
+    },
+    {
+      "seller": "fair-demand",
+      "buyer": "snhp-vanilla",
+      "a_util_mean": 0.44000000000000006,
+      "b_util_mean": 0.36,
+      "deal_rate": 0.8
+    },
+    {
+      "seller": "fair-demand",
+      "buyer": "snhp-tuned",
+      "a_util_mean": 0.396,
+      "b_util_mean": 0.32399999999999995,
+      "deal_rate": 0.72
+    },
+    {
+      "seller": "split-the-diff",
+      "buyer": "random",
+      "a_util_mean": 0.5516869566862026,
+      "b_util_mean": 0.4483130433137974,
+      "deal_rate": 1.0
+    },
+    {
+      "seller": "split-the-diff",
+      "buyer": "fair-demand",
+      "a_util_mean": 0.49999999999999994,
+      "b_util_mean": 0.5,
+      "deal_rate": 1.0
+    },
+    {
+      "seller": "split-the-diff",
+      "buyer": "anchorer",
+      "a_util_mean": 0.3687432205787799,
+      "b_util_mean": 0.63125677942122,
+      "deal_rate": 1.0
+    },
+    {
+      "seller": "split-the-diff",
+      "buyer": "aspiration",
+      "a_util_mean": 0.38783545131708097,
+      "b_util_mean": 0.612164548682919,
+      "deal_rate": 1.0
+    },
+    {
+      "seller": "split-the-diff",
+      "buyer": "snhp-vanilla",
+      "a_util_mean": 0.43465026561084585,
+      "b_util_mean": 0.5653497343891541,
+      "deal_rate": 1.0
+    },
+    {
+      "seller": "split-the-diff",
+      "buyer": "snhp-tuned",
+      "a_util_mean": 0.38610246463475795,
+      "b_util_mean": 0.613897535365242,
+      "deal_rate": 1.0
+    },
+    {
+      "seller": "anchorer",
+      "buyer": "random",
+      "a_util_mean": 0.4580076982500145,
+      "b_util_mean": 0.24199230174998546,
+      "deal_rate": 0.7
+    },
+    {
+      "seller": "anchorer",
+      "buyer": "fair-demand",
+      "a_util_mean": 0.0,
+      "b_util_mean": 0.0,
+      "deal_rate": 0.0
+    },
+    {
+      "seller": "anchorer",
+      "buyer": "split-the-diff",
+      "a_util_mean": 0.3338978807882106,
+      "b_util_mean": 0.18610211921178943,
+      "deal_rate": 0.52
+    },
+    {
+      "seller": "anchorer",
+      "buyer": "aspiration",
+      "a_util_mean": 0.33509779621916985,
+      "b_util_mean": 0.22490220378083015,
+      "deal_rate": 0.56
+    },
+    {
+      "seller": "anchorer",
+      "buyer": "snhp-vanilla",
+      "a_util_mean": 0.39233333333333326,
+      "b_util_mean": 0.2676666666666667,
+      "deal_rate": 0.66
+    },
+    {
+      "seller": "anchorer",
+      "buyer": "snhp-tuned",
+      "a_util_mean": 0.34477777777777774,
+      "b_util_mean": 0.23522222222222228,
+      "deal_rate": 0.58
+    },
+    {
+      "seller": "aspiration",
+      "buyer": "random",
+      "a_util_mean": 0.5745687701113161,
+      "b_util_mean": 0.38543122988868384,
+      "deal_rate": 0.96
+    },
+    {
+      "seller": "aspiration",
+      "buyer": "fair-demand",
+      "a_util_mean": 0.3981336651454044,
+      "b_util_mean": 0.4618663348545956,
+      "deal_rate": 0.86
+    },
+    {
+      "seller": "aspiration",
+      "buyer": "split-the-diff",
+      "a_util_mean": 0.5964251107218639,
+      "b_util_mean": 0.38357488927813616,
+      "deal_rate": 0.98
+    },
+    {
+      "seller": "aspiration",
+      "buyer": "anchorer",
+      "a_util_mean": 0.44063200648369893,
+      "b_util_mean": 0.5593679935163011,
+      "deal_rate": 1.0
+    },
+    {
+      "seller": "aspiration",
+      "buyer": "snhp-vanilla",
+      "a_util_mean": 0.4482445674347127,
+      "b_util_mean": 0.4717554325652873,
+      "deal_rate": 0.92
+    },
+    {
+      "seller": "aspiration",
+      "buyer": "snhp-tuned",
+      "a_util_mean": 0.40528887682327097,
+      "b_util_mean": 0.49471112317672905,
+      "deal_rate": 0.9
+    },
+    {
+      "seller": "snhp-vanilla",
+      "buyer": "random",
+      "a_util_mean": 0.4909007644055713,
+      "b_util_mean": 0.28909923559442874,
+      "deal_rate": 0.78
+    },
+    {
+      "seller": "snhp-vanilla",
+      "buyer": "fair-demand",
+      "a_util_mean": 0.26999999999999996,
+      "b_util_mean": 0.33,
+      "deal_rate": 0.6
+    },
+    {
+      "seller": "snhp-vanilla",
+      "buyer": "split-the-diff",
+      "a_util_mean": 0.6247376345479561,
+      "b_util_mean": 0.37526236545204394,
+      "deal_rate": 1.0
+    },
+    {
+      "seller": "snhp-vanilla",
+      "buyer": "anchorer",
+      "a_util_mean": 0.2580802222222222,
+      "b_util_mean": 0.3019197777777778,
+      "deal_rate": 0.56
+    },
+    {
+      "seller": "snhp-vanilla",
+      "buyer": "aspiration",
+      "a_util_mean": 0.4938072949938916,
+      "b_util_mean": 0.40619270500610843,
+      "deal_rate": 0.9
+    },
+    {
+      "seller": "snhp-vanilla",
+      "buyer": "snhp-tuned",
+      "a_util_mean": 0.381936,
+      "b_util_mean": 0.358064,
+      "deal_rate": 0.74
+    },
+    {
+      "seller": "snhp-tuned",
+      "buyer": "random",
+      "a_util_mean": 0.3956030564311361,
+      "b_util_mean": 0.24439694356886393,
+      "deal_rate": 0.64
+    },
+    {
+      "seller": "snhp-tuned",
+      "buyer": "fair-demand",
+      "a_util_mean": 0.19799999999999998,
+      "b_util_mean": 0.24200000000000002,
+      "deal_rate": 0.44
+    },
+    {
+      "seller": "snhp-tuned",
+      "buyer": "split-the-diff",
+      "a_util_mean": 0.6361572323798569,
+      "b_util_mean": 0.3438427676201431,
+      "deal_rate": 0.98
+    },
+    {
+      "seller": "snhp-tuned",
+      "buyer": "anchorer",
+      "a_util_mean": 0.17323266666666667,
+      "b_util_mean": 0.22676733333333332,
+      "deal_rate": 0.4
+    },
+    {
+      "seller": "snhp-tuned",
+      "buyer": "aspiration",
+      "a_util_mean": 0.42372680370572957,
+      "b_util_mean": 0.35627319629427046,
+      "deal_rate": 0.78
+    },
+    {
+      "seller": "snhp-tuned",
+      "buyer": "snhp-vanilla",
+      "a_util_mean": 0.293472,
+      "b_util_mean": 0.286528,
+      "deal_rate": 0.58
+    }
+  ]
+}
