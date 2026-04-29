@@ -401,11 +401,34 @@ def _run_single_matchup(args):
     """Worker function for parallel matchup execution.
     Must be at module level for multiprocessing pickle.
     """
-    name_a, name_b, cls_a, cls_b, a_mem, b_mem, n_steps, n_rounds, batna, sp, bp = args
-    
+    if len(args) == 12:
+        name_a, name_b, cls_a, cls_b, a_mem, b_mem, n_steps, n_rounds, batna, sp, bp, worker_seed = args
+    else:
+        # Backward compat for callers that don't pass worker_seed.
+        name_a, name_b, cls_a, cls_b, a_mem, b_mem, n_steps, n_rounds, batna, sp, bp = args
+        worker_seed = None
+
+    # BUG FIX (2026-04-29): seed worker-process numpy + python random
+    # state from a per-matchup deterministic key. Without this, the
+    # multiprocessing workers inherit OS entropy and two tournaments
+    # at the same seed_offset produce different matchup outcomes
+    # (because BATNA noise, weight randomization, step count are all
+    # `np.random.*`-driven inside play_matchup).
+    if worker_seed is not None:
+        import zlib as _zlib
+        seed_str = f"{name_a}|{name_b}|{worker_seed}|snhp_matchup_v1"
+        seed = _zlib.crc32(seed_str.encode()) & 0x7fffffff
+        np.random.seed(seed)
+        import random as _random
+        _random.seed(seed)
+        # Also reset CrossSessionMemory PER WORKER PROCESS so bandit
+        # state doesn't drift across the matchups dispatched to this
+        # worker. (multiprocessing pool re-uses workers across jobs.)
+        negmas_agent.reset_global_memory()
+
     issues = create_issues()
     ufun_a, ufun_b = create_ufuns(issues, n_steps)
-    
+
     util_a, util_b, dr = play_matchup(
         cls_a, cls_b, ufun_a, ufun_b, issues,
         n_steps, n_rounds, batna,
@@ -443,6 +466,12 @@ def run_round_robin(seller_pressure=None, buyer_pressure=None,
     _np.random.seed(MASTER_SEED + seed_offset)
     _random.seed(MASTER_SEED + seed_offset)
 
+    # BUG FIX (2026-04-29): reset CrossSessionMemory between tournaments
+    # so Thompson Sampling arms don't leak from a previous run. Without
+    # this, two tournaments at seed_offset=0 produce different agent
+    # behavior because the bandit posteriors carry over.
+    negmas_agent.reset_global_memory()
+
     # Build player roster
     all_players = {}
     for name, cls in B2B_OPPONENTS.items():
@@ -472,6 +501,11 @@ def run_round_robin(seller_pressure=None, buyer_pressure=None,
 
     # ─── BUILD MATCHUP JOBS ───────────────────────────
     jobs = []
+    # Worker seed = MASTER_SEED + seed_offset; passed to each matchup so
+    # the worker process can deterministically seed its own RNGs from a
+    # per-matchup mix. With this in place, two tournaments at the same
+    # seed_offset produce byte-identical pairwise output.
+    worker_seed = MASTER_SEED + seed_offset
     for name_a in player_names:
         for name_b in player_names:
             pa = all_players[name_a]
@@ -481,7 +515,7 @@ def run_round_robin(seller_pressure=None, buyer_pressure=None,
                 pa["class"], pb["class"],
                 pa["uses_memory"], pb["uses_memory"],
                 N_STEPS, n_rounds, BATNA_CENTER,
-                sp, bp,
+                sp, bp, worker_seed,
             ))
     
     total_matchups = len(jobs)

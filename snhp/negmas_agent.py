@@ -509,6 +509,19 @@ _global_memory = CrossSessionMemory()
 _TUNE_PARAMS: dict = None
 
 
+def reset_global_memory() -> None:
+    """Reset _global_memory to a fresh instance.
+
+    Tournament harnesses (Optuna trials, ablation cells) call this between
+    independent runs so Thompson Sampling posteriors don't leak from one
+    trial to the next. Without it, trial N+1 inherits biased arm posteriors
+    from trial N — a major source of the +26/-23 reproducibility gap on
+    paired-seed Elo deltas.
+    """
+    global _global_memory
+    _global_memory = CrossSessionMemory()
+
+
 class SNHPAgent(SAONegotiator):
     """
     SNHP Agent for NegMAS/ANAC.
@@ -545,7 +558,12 @@ class SNHPAgent(SAONegotiator):
         self._running_aspiration: float = 0.90  # tracks actual aspiration as running state
         self._oscillation_phase: float = 0.0    # random phase per negotiation
         self._burst_fired: bool = False          # one burst per negotiation
-        self._rng = np.random.default_rng()      # per-agent RNG
+        # Per-agent RNG. Initialized unseeded here; on_negotiation_start
+        # re-seeds it deterministically from a name+role+nmi-id mix so two
+        # tournaments with seed_offset=0 produce byte-identical agent
+        # behavior. Without this re-seeding, multiprocessing workers
+        # inherit different OS entropy and Optuna trials can't be compared.
+        self._rng = np.random.default_rng()
         
         # === Preference Probing (Poisoned Wine Encoding) ===
         self._probe_offers: List[Tuple] = []     # pre-computed diagnostic probes
@@ -580,6 +598,21 @@ class SNHPAgent(SAONegotiator):
         # _snhp_role property can read _is_first_mover safely.
         self._is_first_mover: Optional[bool] = None
         self._aggression_role_sampled: Optional[str] = None
+
+        # BUG FIX (2026-04-29): seed _rng deterministically per negotiation.
+        # Use zlib.crc32 (cross-process-stable) on a string mix of the
+        # agent's name + n_steps + a fixed salt. Python's built-in hash()
+        # is randomized via PYTHONHASHSEED → different per process — using
+        # it for seeding broke reproducibility.
+        import zlib
+        seed_mix_str = (
+            f"{getattr(self, 'name', 'snhp')}|"
+            f"{int(getattr(self.nmi, 'n_steps', 10) or 10)}|"
+            f"snhp_v1_seed_salt"
+        )
+        seed_mix = zlib.crc32(seed_mix_str.encode()) & 0x7fffffff
+        self._rng = np.random.default_rng(seed_mix)
+
         # Role-agnostic prior; will be re-sampled with the detected role on
         # the first propose() call.
         self._aggression, self._arm_index = self.memory.sample_aggression(role=self._snhp_role)
@@ -1053,13 +1086,20 @@ class SNHPAgent(SAONegotiator):
             
             aspiration_start = self._pb_param('aspiration_start', 0.62)
             aspiration_floor = self._pb_param('aspiration_floor', 0.45)  # Above BATNA — don't give away surplus
-            
+
             # === SELF-CALIBRATED ASPIRATION ===
             # Use our median utility as landscape signal.
             # Higher median → more surplus → can aim higher.
             # But cap conservatively to avoid demanding too much.
+            #
+            # BUG FIX (2026-04-29): only apply when playbook mode is OFF.
+            # Previously this clobbered the playbook-composed asp_start
+            # (capping to 0.70) for any domain where median_u > 0.52,
+            # which silently neutered exploitation mode. Now: when
+            # playbook mode is active, the playbook owns asp_start —
+            # the calibration override is reserved for HONEST play only.
             median_u = self._fair_split_util  # actually our ufun median
-            if median_u > 0.52:
+            if _pb_mode() == "OFF" and median_u > 0.52:
                 # Surplus round: raise start modestly, raise floor
                 aspiration_start = min(0.70, median_u + 0.06)
                 aspiration_floor = max(aspiration_floor, median_u - 0.10)
@@ -1137,11 +1177,26 @@ class SNHPAgent(SAONegotiator):
             
             # ─── COUNTER-ANCHORING ────────────────────────────
             # Respond to extreme lowballs but stay in the deal zone.
-            # Cap at aspiration_start (0.55), never push higher — 
-            # the goal is to signal firmness, not escalate.
+            #
+            # BUG FIX (2026-04-29): when playbook mode is ON, the playbook-
+            # composed aspiration_start IS the deliberate ceiling — don't
+            # cap it at the legacy `counter_anchor_cap` heuristic
+            # (default 0.58). Previously: `min(ca_cap, aspiration_start)`
+            # truncated BOULWARE playbook (asp_start=0.95) down to 0.58,
+            # which is the second silent override of the playbook
+            # (after bug #1's self-calibration override).
             if opp_utils and opp_utils[0] < 0.05 and len(opp_utils) <= 2:
-                ca_cap = self._tp('counter_anchor_cap', 0.58)
-                self._zeuthen_aspiration = max(self._zeuthen_aspiration, min(ca_cap, aspiration_start))
+                if _pb_mode() != "OFF":
+                    # Playbook mode: trust the composed ceiling.
+                    self._zeuthen_aspiration = max(
+                        self._zeuthen_aspiration, aspiration_start,
+                    )
+                else:
+                    ca_cap = self._tp('counter_anchor_cap', 0.58)
+                    self._zeuthen_aspiration = max(
+                        self._zeuthen_aspiration,
+                        min(ca_cap, aspiration_start),
+                    )
             
             aspiration = self._zeuthen_aspiration
             aspiration_range = aspiration_start - aspiration_floor

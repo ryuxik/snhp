@@ -95,30 +95,38 @@ def _suggest_playbook(trial: optuna.Trial) -> dict[str, dict[str, float]]:
 # ─── Tournament evaluation ──────────────────────────────────────────────────
 
 
-def _baseline_tournament(n_rounds: int) -> dict:
-    """Run a single mode=OFF tournament to anchor paired-seed comparisons.
-    Returns rankings + pairwise. Cached across trials within one tuner run."""
+def _run_one_tournament(n_rounds: int, seed_offset: int) -> dict:
+    """Single-seed tournament run; mode is whatever's set in env."""
+    import importlib
+    if "b2b_round_robin" in sys.modules:
+        importlib.reload(sys.modules["b2b_round_robin"])
+    import b2b_round_robin as trnmt
+    trnmt.N_ROUNDS = n_rounds
+    rankings, pairwise, scores = trnmt.run_round_robin(seed_offset=seed_offset)
+    return {"rankings": rankings, "pairwise": dict(pairwise),
+             "scores": {k: list(v) for k, v in scores.items()}}
+
+
+def _baseline_tournaments(n_rounds: int, n_seeds: int) -> list[dict]:
+    """Run mode=OFF tournament across `n_seeds` independent seed offsets.
+    Returns a list of per-seed (rankings, pairwise, scores) dicts. The
+    candidate evaluator pairs each candidate seed against the SAME baseline
+    seed for true paired-seed Elo comparison (drops Elo MDE ~50% per √n)."""
     saved_mode = os.environ.get("SNHP_PLAYBOOK_MODE")
     os.environ["SNHP_PLAYBOOK_MODE"] = "OFF"
     try:
-        import importlib
-        if "b2b_round_robin" in sys.modules:
-            importlib.reload(sys.modules["b2b_round_robin"])
-        import b2b_round_robin as trnmt
-        trnmt.N_ROUNDS = n_rounds
-        rankings, pairwise, scores = trnmt.run_round_robin(seed_offset=0)
+        return [_run_one_tournament(n_rounds, seed_offset=s)
+                for s in range(n_seeds)]
     finally:
         if saved_mode is None:
             os.environ.pop("SNHP_PLAYBOOK_MODE", None)
         else:
             os.environ["SNHP_PLAYBOOK_MODE"] = saved_mode
-    return {"rankings": rankings, "pairwise": dict(pairwise),
-             "scores": {k: list(v) for k, v in scores.items()}}
 
 
-def _candidate_tournament(candidate_playbook: dict, n_rounds: int,
-                           confidence_min: float) -> dict:
-    """Run a tournament with the candidate playbook installed."""
+def _candidate_tournaments(candidate_playbook: dict, n_rounds: int,
+                            confidence_min: float, n_seeds: int) -> list[dict]:
+    """Run candidate playbook across `n_seeds` matched seed offsets."""
     saved = {
         k: os.environ.get(k) for k in
         ("SNHP_PLAYBOOK_MODE", "SNHP_CONFIDENCE_MIN")
@@ -127,12 +135,8 @@ def _candidate_tournament(candidate_playbook: dict, n_rounds: int,
     os.environ["SNHP_CONFIDENCE_MIN"] = str(confidence_min)
     playbooks.set_playbook_override(candidate_playbook)
     try:
-        import importlib
-        if "b2b_round_robin" in sys.modules:
-            importlib.reload(sys.modules["b2b_round_robin"])
-        import b2b_round_robin as trnmt
-        trnmt.N_ROUNDS = n_rounds
-        rankings, pairwise, scores = trnmt.run_round_robin(seed_offset=0)
+        return [_run_one_tournament(n_rounds, seed_offset=s)
+                for s in range(n_seeds)]
     finally:
         playbooks.set_playbook_override(None)
         for k, v in saved.items():
@@ -140,61 +144,105 @@ def _candidate_tournament(candidate_playbook: dict, n_rounds: int,
                 os.environ.pop(k, None)
             else:
                 os.environ[k] = v
-    return {"rankings": rankings, "pairwise": dict(pairwise),
-             "scores": {k: list(v) for k, v in scores.items()}}
 
 
 # ─── Multi-objective ────────────────────────────────────────────────────────
 
 
-def make_multi_objective(baseline: dict, n_rounds: int,
-                          confidence_min: float):
+def make_multi_objective(baselines: list[dict], n_rounds: int,
+                          confidence_min: float, n_seeds: int):
     """Returns an Optuna multi-objective callable that returns a 3-tuple:
        (avg_snhp_util, elo_paired_delta, min_per_opp_delta)
-    All three are maximized."""
-    base_snhp_per_opp = _snhp_per_opponent(baseline["pairwise"], "SNHP")
-    base_avg = next(
-        (r["avg"] for r in baseline["rankings"] if r["name"] == "SNHP"), 0.0
-    )
+    All three maximized. Each metric is the MEDIAN across `n_seeds`
+    paired-seed runs, dropping single-tournament noise.
+    """
+    import statistics as _stats
+
+    # Median baseline avg across seeds (the comparison anchor for avg_delta)
+    base_avgs_per_seed = [
+        next((r["avg"] for r in b["rankings"] if r["name"] == "SNHP"), 0.0)
+        for b in baselines
+    ]
+    median_base_avg = _stats.median(base_avgs_per_seed)
+
+    # Per-opponent median baseline utility for worst-case delta
+    base_per_opp_per_seed = [_snhp_per_opponent(b["pairwise"], "SNHP")
+                              for b in baselines]
+    all_opps = set().union(*(b.keys() for b in base_per_opp_per_seed))
+    base_per_opp_median = {
+        opp: _stats.median(
+            [b.get(opp, 0.0) for b in base_per_opp_per_seed if opp in b]
+            or [0.0]
+        )
+        for opp in all_opps
+    }
 
     def objective(trial):
         candidate = _suggest_playbook(trial)
         try:
-            cand = _candidate_tournament(candidate, n_rounds, confidence_min)
+            cands = _candidate_tournaments(
+                candidate, n_rounds, confidence_min, n_seeds,
+            )
         except Exception as e:
-            # Tournament failure → bottom of all 3 objectives.
             trial.set_user_attr("error", f"{type(e).__name__}: {e}")
             return 0.0, -1000.0, -1.0
 
-        # Headline: SNHP avg utility
-        avg = next(
-            (r["avg"] for r in cand["rankings"] if r["name"] == "SNHP"), 0.0
-        )
+        # Per-seed metrics
+        per_seed_avg = []
+        per_seed_elo = []
+        per_seed_worst = []
+        for i, cand in enumerate(cands):
+            cand_avg = next(
+                (r["avg"] for r in cand["rankings"] if r["name"] == "SNHP"),
+                0.0,
+            )
+            elo = paired_seed_elo_delta(
+                baselines[i]["pairwise"], cand["pairwise"],
+                target_player="SNHP",
+            )["delta"]
+            cand_per_opp = _snhp_per_opponent(cand["pairwise"], "SNHP")
+            per_opp_deltas = [
+                cand_per_opp.get(opp, base_per_opp_per_seed[i].get(opp, 0.0))
+                - base_per_opp_per_seed[i].get(opp, 0.0)
+                for opp in base_per_opp_per_seed[i]
+            ]
+            worst = min(per_opp_deltas) if per_opp_deltas else 0.0
+            per_seed_avg.append(cand_avg)
+            per_seed_elo.append(elo)
+            per_seed_worst.append(worst)
 
-        # Paired-seed Elo delta vs frozen baseline
-        elo = paired_seed_elo_delta(
-            baseline["pairwise"], cand["pairwise"], target_player="SNHP",
-        )["delta"]
+        # Median aggregation (robust to one-seed outliers)
+        avg_med = _stats.median(per_seed_avg)
+        elo_med = _stats.median(per_seed_elo)
+        worst_med = _stats.median(per_seed_worst)
 
-        # Worst-case per-opponent delta (we want to MAXIMIZE the minimum)
-        cand_snhp_per_opp = _snhp_per_opponent(cand["pairwise"], "SNHP")
-        per_opp_deltas = []
-        for opp, base_u in base_snhp_per_opp.items():
-            cand_u = cand_snhp_per_opp.get(opp, base_u)
-            per_opp_deltas.append(cand_u - base_u)
-        worst_case = min(per_opp_deltas) if per_opp_deltas else 0.0
+        # Variance diagnostics — large per-seed range = noisy result
+        elo_range = max(per_seed_elo) - min(per_seed_elo)
 
-        # Diagnostic attrs
-        trial.set_user_attr("avg", round(avg, 4))
-        trial.set_user_attr("avg_delta", round(avg - base_avg, 4))
-        trial.set_user_attr("elo_delta", round(elo, 1))
-        trial.set_user_attr("worst_case_delta", round(worst_case, 4))
+        # Per-opponent count regressed (median across seeds)
+        n_regressed_per_seed = []
+        for i, cand in enumerate(cands):
+            cand_per_opp = _snhp_per_opponent(cand["pairwise"], "SNHP")
+            n = sum(
+                1 for opp in base_per_opp_per_seed[i]
+                if cand_per_opp.get(opp, 0.0) - base_per_opp_per_seed[i][opp] < -0.005
+            )
+            n_regressed_per_seed.append(n)
+
+        trial.set_user_attr("n_seeds", n_seeds)
+        trial.set_user_attr("avg", round(avg_med, 4))
+        trial.set_user_attr("avg_delta", round(avg_med - median_base_avg, 4))
+        trial.set_user_attr("elo_delta", round(elo_med, 1))
+        trial.set_user_attr("elo_range_across_seeds", round(elo_range, 1))
+        trial.set_user_attr("worst_case_delta", round(worst_med, 4))
         trial.set_user_attr(
             "n_opponents_regressed",
-            sum(1 for d in per_opp_deltas if d < -0.005),
+            int(_stats.median(n_regressed_per_seed)),
         )
+        trial.set_user_attr("per_seed_elo", per_seed_elo)
+        trial.set_user_attr("per_seed_avg", [round(a, 4) for a in per_seed_avg])
 
-        return avg, elo, worst_case
+        return avg_med, elo_med, worst_med
 
     return objective
 
@@ -267,25 +315,30 @@ def main():
                     help="Output JSON path for the best playbook.")
     p.add_argument("--db-path", type=str, default=None,
                     help="Optuna SQLite path (default: in-memory ephemeral).")
+    p.add_argument("--n-seeds", type=int, default=3,
+                    help="Independent seed offsets per trial. Each trial's "
+                         "objective is the median across these. K=3 has Elo "
+                         "MDE ~10; K=5 ~7. Multiplies wall by K.")
     args = p.parse_args()
 
     n_rounds = args.n_rounds if args.n_rounds is not None else (5 if args.quick else 20)
 
-    print(f"=== Playbook tuner — {args.trials} trials × N_ROUNDS={n_rounds} ===")
+    print(f"=== Playbook tuner — {args.trials} trials × N_ROUNDS={n_rounds} × {args.n_seeds} seeds ===")
     print(f"  Search space: 5 params × 4 types = 20 dims (NSGA-II)")
     print(f"  Confidence floor: {args.confidence_min}")
     print(f"  Output: {args.out}")
     print()
-    print(f"Step 1/3: Running baseline tournament for paired-seed Elo anchor...")
+    print(f"Step 1/3: Running {args.n_seeds} baseline tournaments (paired-seed anchors)...")
     t_base_start = time.time()
-    baseline = _baseline_tournament(n_rounds)
-    base_avg = next(
-        r["avg"] for r in baseline["rankings"] if r["name"] == "SNHP"
-    )
-    print(f"  Baseline SNHP avg utility = {base_avg:.4f}  "
+    baselines = _baseline_tournaments(n_rounds, args.n_seeds)
+    base_avgs = [next((r["avg"] for r in b["rankings"] if r["name"] == "SNHP"), 0.0)
+                  for b in baselines]
+    print(f"  Baseline SNHP avg utility per seed = "
+          f"{[round(a, 4) for a in base_avgs]}  "
           f"(wall {time.time() - t_base_start:.1f}s)")
 
-    print(f"\nStep 2/3: NSGA-II search ({args.trials} trials)...")
+    print(f"\nStep 2/3: NSGA-II search ({args.trials} trials × {args.n_seeds} seeds = "
+          f"{args.trials * args.n_seeds} tournaments)...")
     db_path = args.db_path
     storage = f"sqlite:///{db_path}" if db_path else None
     sampler = NSGAIISampler(population_size=min(20, args.trials // 2 + 4),
@@ -297,7 +350,8 @@ def main():
     )
     optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-    obj = make_multi_objective(baseline, n_rounds, args.confidence_min)
+    obj = make_multi_objective(baselines, n_rounds, args.confidence_min,
+                                 args.n_seeds)
     t_search_start = time.time()
     study.optimize(obj, n_trials=args.trials, show_progress_bar=False)
     search_wall = time.time() - t_search_start
