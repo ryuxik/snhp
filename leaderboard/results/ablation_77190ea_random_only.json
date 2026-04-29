@@ -1,0 +1,201 @@
+{
+  "classifier": null,
+  "config": {
+    "SNHP_PLAYBOOK_MODE": "RANDOM_ONLY",
+    "n_rounds": 5
+  },
+  "exploitation_rate": 0.0181,
+  "gates": {
+    "g1_avg_drop": "PASS",
+    "g2_worst_case": "FAIL: worst-case pairing dropped -0.1323 (limit \u22120.01)",
+    "g3_deal_rate": "PASS",
+    "g4_n_opp_negative": "FAIL: 14 opponents regressed (limit 5)",
+    "g5_misclass_stress": "PASS (no stress run supplied)",
+    "g6_elo_paired": "FAIL: paired Elo delta -71.2 (limit \u221210)"
+  },
+  "headline": {
+    "avg": 0.5091,
+    "deal_rate": 0.805,
+    "elo_paired_delta": -71.2,
+    "robustness_p05": 0.2471
+  },
+  "meta": {
+    "cell": "random_only",
+    "generated_at": "2026-04-29T22:12:37+00:00",
+    "git_sha": "77190ea",
+    "wall_s": 7.2
+  },
+  "per_opponent": [
+    {
+      "deal_rate": 0.8,
+      "delta_vs_baseline": -0.0383,
+      "name": "Anchorer",
+      "opp_util": 0.6348,
+      "snhp_util": 0.456
+    },
+    {
+      "deal_rate": 0.5,
+      "delta_vs_baseline": -0.006,
+      "name": "Anchoring Bias",
+      "opp_util": 0.5474,
+      "snhp_util": 0.3678
+    },
+    {
+      "deal_rate": 0.5,
+      "delta_vs_baseline": -0.0134,
+      "name": "Aspiration",
+      "opp_util": 0.4624,
+      "snhp_util": 0.3664
+    },
+    {
+      "deal_rate": 1.0,
+      "delta_vs_baseline": 0.0161,
+      "name": "BATNA Bluffer",
+      "opp_util": 0.675,
+      "snhp_util": 0.5371
+    },
+    {
+      "deal_rate": 1.0,
+      "delta_vs_baseline": -0.0545,
+      "name": "Cialdini",
+      "opp_util": 0.5977,
+      "snhp_util": 0.5184
+    },
+    {
+      "deal_rate": 0.8,
+      "delta_vs_baseline": 0.0131,
+      "name": "Deadline Exploiter",
+      "opp_util": 0.651,
+      "snhp_util": 0.51
+    },
+    {
+      "deal_rate": 0.9,
+      "delta_vs_baseline": -0.033,
+      "name": "Fair Demand",
+      "opp_util": 0.4898,
+      "snhp_util": 0.5226
+    },
+    {
+      "deal_rate": 1.0,
+      "delta_vs_baseline": -0.051,
+      "name": "Fairness Norm",
+      "opp_util": 0.5714,
+      "snhp_util": 0.5645
+    },
+    {
+      "deal_rate": 1.0,
+      "delta_vs_baseline": 0.0463,
+      "name": "GoodCop/BadCop",
+      "opp_util": 0.6768,
+      "snhp_util": 0.5662
+    },
+    {
+      "deal_rate": 1.0,
+      "delta_vs_baseline": -0.0065,
+      "name": "Logroller",
+      "opp_util": 0.6424,
+      "snhp_util": 0.5734
+    },
+    {
+      "deal_rate": 0.1,
+      "delta_vs_baseline": -0.1292,
+      "name": "Loss Averse",
+      "opp_util": 0.3367,
+      "snhp_util": 0.2688
+    },
+    {
+      "deal_rate": 1.0,
+      "delta_vs_baseline": -0.0267,
+      "name": "Nibbler",
+      "opp_util": 0.6029,
+      "snhp_util": 0.5214
+    },
+    {
+      "deal_rate": 1.0,
+      "delta_vs_baseline": 0.0913,
+      "name": "Principled",
+      "opp_util": 0.6617,
+      "snhp_util": 0.6444
+    },
+    {
+      "deal_rate": 0.6,
+      "delta_vs_baseline": -0.0083,
+      "name": "Reciprocity",
+      "opp_util": 0.5335,
+      "snhp_util": 0.5215
+    },
+    {
+      "deal_rate": 0.2,
+      "delta_vs_baseline": -0.1323,
+      "name": "Silent Hardliner",
+      "opp_util": 0.4073,
+      "snhp_util": 0.3429
+    },
+    {
+      "deal_rate": 0.7,
+      "delta_vs_baseline": 0.0051,
+      "name": "Soviet Patience",
+      "opp_util": 0.6303,
+      "snhp_util": 0.4829
+    },
+    {
+      "deal_rate": 1.0,
+      "delta_vs_baseline": -0.0091,
+      "name": "Split-the-Diff",
+      "opp_util": 0.6258,
+      "snhp_util": 0.5947
+    },
+    {
+      "deal_rate": 1.0,
+      "delta_vs_baseline": -0.0089,
+      "name": "Sunk Cost",
+      "opp_util": 0.6212,
+      "snhp_util": 0.5932
+    },
+    {
+      "deal_rate": 1.0,
+      "delta_vs_baseline": 0.0563,
+      "name": "Tactical Empath",
+      "opp_util": 0.569,
+      "snhp_util": 0.6367
+    },
+    {
+      "deal_rate": 1.0,
+      "delta_vs_baseline": -0.0458,
+      "name": "The Closer",
+      "opp_util": 0.6468,
+      "snhp_util": 0.5363
+    }
+  ],
+  "per_type": {
+    "BOULWARE": {
+      "avg": 0.4236,
+      "ci_hi": 0.4968,
+      "ci_lo": 0.3505,
+      "n": 7
+    },
+    "CONCEDER": {
+      "avg": 0.5432,
+      "ci_hi": 0.6081,
+      "ci_lo": 0.4783,
+      "n": 7
+    },
+    "MIRROR": {
+      "avg": 0.5607,
+      "ci_hi": 0.6148,
+      "ci_lo": 0.5066,
+      "n": 4
+    },
+    "RANDOM": {
+      "avg": 0.5573,
+      "ci_hi": 0.6277,
+      "ci_lo": 0.4869,
+      "n": 2
+    }
+  },
+  "regret": {
+    "mean": null,
+    "note": "computed cross-cell at runner level",
+    "p95": null
+  }
+}

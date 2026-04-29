@@ -37,6 +37,18 @@ sys.path.insert(0, os.path.join(_snhp_dir, "core_math"))
 
 from rubinstein import compute_discount_factor, rubinstein_equilibrium
 
+# Playbook composition for the exploitation-mode rollout. When mode is
+# OFF (the default), `compose_belief_weighted_params` returns the HONEST
+# defaults — current SNHP behavior, no change in production. When mode
+# is ALL or *_ONLY (set by the ablation matrix runner), the per-call
+# parameters are blended from per-type playbooks weighted by the
+# OpponentModel's belief vector. See snhp/playbooks.py for the spec
+# and the plan file for the design rationale.
+from snhp.playbooks import (
+    compose_belief_weighted_params as _pb_compose,
+    playbook_mode as _pb_mode,
+)
+
 
 # ═══════════════════════════════════════════════════
 #  Bayesian Opponent Model
@@ -204,10 +216,40 @@ class OpponentModel:
             vel_std = float(np.std(self._concession_velocities))
             vel_mean = float(np.mean(self._concession_velocities))
             cv = vel_std / max(vel_mean, 0.001)
-            
+
             if cv > 2.5 and abs(slope) < 0.05:
                 self._type = self.RANDOM
                 self._type_confidence = min(0.75, n / 10)
+                return
+
+        # Force-misclassify hooks for the validation framework's stress
+        # cells. SNHP_FORCE_MISCLASS=RANDOM emits a uniform-random label;
+        # ADVERSARIAL emits the WORST playbook for the true type. The
+        # adversarial mode requires `self._true_type` set externally
+        # (the b2b_round_robin runner sets it from OPPONENT_TYPE_TAGS).
+        # When unset (production) this branch is a no-op.
+        force = os.environ.get("SNHP_FORCE_MISCLASS")
+        if force:
+            import random as _r
+            types = [self.BOULWARE, self.CONCEDER, self.MIRROR, self.RANDOM]
+            if force == "RANDOM":
+                self._type = _r.choice(types)
+                self._type_confidence = 0.85
+                return
+            if force == "ADVERSARIAL" and getattr(self, "_true_type", None):
+                # Worst playbook map: against true=BOULWARE, predicting
+                # CONCEDER is catastrophic (we concede into a wall). Map
+                # is symmetric in the sense that each true-type has a
+                # canonical "worst miss". Derived from the cost matrix
+                # in the plan's Section 3 (von Neumann perspective).
+                worst = {
+                    self.BOULWARE: self.CONCEDER,   # concede into wall
+                    self.CONCEDER: self.BOULWARE,   # over-firm where we'd win
+                    self.MIRROR:   self.CONCEDER,   # race to bottom against reflector
+                    self.RANDOM:   self.BOULWARE,   # over-firm against noise
+                }.get(self._true_type, self.UNKNOWN)
+                self._type = worst
+                self._type_confidence = 0.85
                 return
         
         # ─── CLASSIFICATION DECISION ───
@@ -320,7 +362,39 @@ class OpponentModel:
     @property
     def is_mirror(self) -> bool:
         return self._type == self.MIRROR and self._type_confidence > 0.4
-    
+
+    @property
+    def type_confidence(self) -> float:
+        """Confidence in the current opponent type classification, in [0, 1].
+        Distinct from `confidence` (which surfaces reservation_confidence).
+        Used by the playbook composition to gate exploit weight."""
+        return float(self._type_confidence)
+
+    def belief_vector(self) -> Dict[str, float]:
+        """Probability distribution over opponent types, summing to 1.0.
+
+        Used by exploitation-mode action composition: the agent computes
+        a belief-weighted blend of per-type playbooks rather than dispatching
+        on the argmax type. Per Nash's critique in the plan: discrete
+        argmax is a step function over belief space — opponents can sit
+        on the boundary to attack. Continuous blending is robust.
+
+        Construction: assigned-type gets `type_confidence` mass; the
+        remaining `1 − type_confidence` falls to UNKNOWN. This keeps the
+        residual on the non-exploitative HONEST playbook, so when the
+        classifier is uncertain we behave like the equilibrium-honest
+        default.
+        """
+        types = [self.BOULWARE, self.CONCEDER, self.MIRROR, self.RANDOM, self.UNKNOWN]
+        v = {t: 0.0 for t in types}
+        c = max(0.0, min(1.0, float(self._type_confidence)))
+        if self._type in v and self._type != self.UNKNOWN:
+            v[self._type] = c
+            v[self.UNKNOWN] = 1.0 - c
+        else:
+            v[self.UNKNOWN] = 1.0
+        return v
+
     def summary(self) -> Dict[str, Any]:
         return {
             "n_offers_observed": len(self.opponent_offers),
@@ -567,7 +641,7 @@ class SNHPAgent(SAONegotiator):
         through the role-aware _tp() so seller and buyer can have separate
         tuned values.
         """
-        return self._tp('commitment_margin', 0.03)
+        return self._pb_param('commitment_margin', 0.03)
 
     def _tp(self, name: str, default: float) -> float:
         """
@@ -595,7 +669,47 @@ class SNHPAgent(SAONegotiator):
         if name in _TUNE_PARAMS:
             return _TUNE_PARAMS[name]
         return default
-    
+
+    # Mapping from `_tp()`-style param names to the playbook spec keys
+    # used by snhp/playbooks.py. Keys not in this map fall back to `_tp()`.
+    _PLAYBOOK_PARAM_MAP = {
+        "aspiration_start":   "asp_start",
+        "aspiration_floor":   "asp_floor",
+        "accept_early_bar":   "accept_early_bar",
+        "commitment_margin":  "commitment_margin",
+        "concession_cap_b2b": "concession_cap",
+    }
+
+    def _pb_param(self, name: str, default: float) -> float:
+        """
+        Playbook-aware parameter lookup. When exploitation mode is OFF
+        (the default), defers to `_tp()` for the existing role-aware
+        lookup. When ON, returns the belief-weighted blended value from
+        the cached playbook for this propose/respond call.
+
+        The agent caches the composed playbook on each propose/respond
+        entry (`self._cached_playbook`) so multiple lookups within one
+        call don't recompose. The cache is invalidated on every call.
+        """
+        if _pb_mode() == "OFF":
+            return self._tp(name, default)
+        if name not in self._PLAYBOOK_PARAM_MAP:
+            return self._tp(name, default)
+        if not getattr(self, "_cached_playbook", None):
+            self._refresh_playbook()
+        return self._cached_playbook[self._PLAYBOOK_PARAM_MAP[name]]
+
+    def _refresh_playbook(self) -> None:
+        """Recompose the playbook for the current opponent belief.
+        Called at the top of propose() and respond() and any other entry
+        where the belief may have updated."""
+        if self.opponent_model is None:
+            self._cached_playbook = None
+            return
+        belief = self.opponent_model.belief_vector()
+        type_conf = self.opponent_model.type_confidence
+        self._cached_playbook = _pb_compose(belief, type_conf)
+
     def _ensure_initialized(self):
         """Lazy init: enumerate outcomes once ufun is available."""
         if self._initialized:
@@ -818,6 +932,10 @@ class SNHPAgent(SAONegotiator):
             self._aggression, self._arm_index = self.memory.sample_aggression(role=self._snhp_role)
             self._aggression_role_sampled = self._snhp_role
 
+        # Recompose the per-type playbook for this turn. No-op when
+        # SNHP_PLAYBOOK_MODE is OFF (the production default).
+        self._refresh_playbook()
+
         t = state.relative_time
         total_steps = getattr(self.nmi, 'n_steps', 100) or 100
         
@@ -933,8 +1051,8 @@ class SNHPAgent(SAONegotiator):
             # Concede when our risk > opponent's estimated risk.
             # This produces Pareto-optimal, individually rational outcomes.
             
-            aspiration_start = self._tp('aspiration_start', 0.62)
-            aspiration_floor = self._tp('aspiration_floor', 0.45)  # Above BATNA — don't give away surplus
+            aspiration_start = self._pb_param('aspiration_start', 0.62)
+            aspiration_floor = self._pb_param('aspiration_floor', 0.45)  # Above BATNA — don't give away surplus
             
             # === SELF-CALIBRATED ASPIRATION ===
             # Use our median utility as landscape signal.
@@ -1054,7 +1172,7 @@ class SNHPAgent(SAONegotiator):
         if self._my_offers:
             last_util = self.ufun(self._my_offers[-1])
             if last_util is not None:
-                base_cap = self._tp('concession_cap_b2b', 0.041) if total_steps <= 15 else 0.02
+                base_cap = self._pb_param('concession_cap_b2b', 0.041) if total_steps <= 15 else 0.02
                 
                 if t < 0.9:
                     max_concession = base_cap
@@ -1201,10 +1319,14 @@ class SNHPAgent(SAONegotiator):
             return ResponseType.REJECT_OFFER
         
         offer = state.current_offer
-        
+
         # Observe opponent's offer for modeling
         self.opponent_model.observe(offer, state.relative_time)
-        
+
+        # Recompose playbook AFTER observing this offer so the belief
+        # reflects the latest signal. No-op under SNHP_PLAYBOOK_MODE=OFF.
+        self._refresh_playbook()
+
         my_utility = self.ufun(offer)
         if my_utility is None:
             return ResponseType.REJECT_OFFER
@@ -1272,7 +1394,7 @@ class SNHPAgent(SAONegotiator):
             early_cutoff = self._tp('accept_early_cutoff', 0.20)
             if t < early_cutoff:
                 # Early: only accept genuinely good deals (first 2 rounds)
-                accept_bar = max(self._zeuthen_aspiration, self._tp('accept_early_bar', 0.54))
+                accept_bar = max(self._zeuthen_aspiration, self._pb_param('accept_early_bar', 0.54))
             elif t < self._tp('accept_late_start', 0.60):
                 # Mid-game: accept at or near aspiration
                 mid_offset = self._tp('accept_mid_offset', 0.0)
