@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from typing import Optional
 
 from negmas.outcomes import Outcome
@@ -32,9 +33,54 @@ sys.path.insert(0, _op.join(_op.dirname(_op.dirname(_op.dirname(_op.abspath(__fi
 
 from b2b_opponents import B2BBase  # noqa: E402
 
+from leaderboard.agents._usage import (  # noqa: E402
+    record_call, record_failure, record_retry,
+)
+
+
+# Retryable errors are usually 503 UNAVAILABLE / 504 DEADLINE_EXCEEDED /
+# 429 RESOURCE_EXHAUSTED bursts when many workers hit the API at once.
+# 4xx 'INVALID_ARGUMENT' / 'PERMISSION_DENIED' should NOT be retried — they
+# point to a bug in the prompt or the key.
+_RETRYABLE_STATUS = ("503", "504", "429", "UNAVAILABLE", "DEADLINE", "RESOURCE_EXHAUSTED")
+_MAX_ATTEMPTS = 4
+_BASE_SLEEP = 1.5  # seconds; doubles each retry → 1.5, 3.0, 6.0
+
+
+def _is_retryable(exc: Exception) -> bool:
+    s = f"{type(exc).__name__}: {exc}"
+    return any(tok in s for tok in _RETRYABLE_STATUS)
+
+
+def _call_with_retry(c, model: str, prompt: str, config: dict, *, agent: str):
+    """Single LLM call with exponential backoff on transient errors.
+    Returns (response, total_latency_ms) or raises the final exception."""
+    import random
+    last_exc: Optional[Exception] = None
+    t_outer = time.time()
+    for attempt in range(_MAX_ATTEMPTS):
+        try:
+            t0 = time.time()
+            r = c.models.generate_content(model=model, contents=prompt, config=config)
+            return r, (time.time() - t0) * 1000
+        except Exception as e:
+            last_exc = e
+            if not _is_retryable(e) or attempt == _MAX_ATTEMPTS - 1:
+                raise
+            sleep_s = _BASE_SLEEP * (2 ** attempt) * (0.5 + random.random())  # jittered
+            record_retry(agent=agent, model=model,
+                          attempt=attempt + 1, sleep_s=sleep_s)
+            time.sleep(sleep_s)
+    raise last_exc  # pragma: no cover (loop above always returns or raises)
+
 
 _genai_client = None
-_GEMINI_MODEL = os.environ.get("LEADERBOARD_GEMINI_MODEL", "gemini-2.5-flash")
+# Flash 2.5 is stale. Default to gemini-3-flash-preview (matches the rest of
+# the codebase per snhp/llm_extractor.py). Reasoning is OFF — set via
+# `thinking_config: {thinking_budget: 0}` below — so the
+# `reasoning_token_multiplier` in cost_calculator.py doesn't apply for the
+# tournament cost estimate.
+_GEMINI_MODEL = os.environ.get("LEADERBOARD_GEMINI_MODEL", "gemini-3-flash-preview")
 
 
 def _client():
@@ -84,19 +130,19 @@ Output JSON: {{"target_utility": <float in [{my_reservation:.3f}, 1.0]>}}.
 This is the utility level I should aim for in my NEXT proposal.
 Return ONLY the JSON object."""
 
+    config = {"temperature": 0.2, "thinking_config": {"thinking_budget": 0}}
     try:
-        response = c.models.generate_content(
-            model=_GEMINI_MODEL,
-            contents=prompt,
-            config={
-                "temperature": 0.2,
-                "response_mime_type": "application/json",
-                "thinking_config": {"thinking_budget": 0},
-            },
+        response, latency_ms = _call_with_retry(
+            c, _GEMINI_MODEL, prompt, config, agent="GeminiFlashVanilla",
         )
-        return _parse_target(response.text or "")
-    except Exception:
+    except Exception as e:
+        record_failure(agent="GeminiFlashVanilla", model=_GEMINI_MODEL,
+                        error=f"{type(e).__name__}: {e}")
         return None
+    record_call(agent="GeminiFlashVanilla", model=_GEMINI_MODEL,
+                usage_metadata=response.usage_metadata,
+                latency_ms=latency_ms)
+    return _parse_target(response.text or "")
 
 
 def _parse_target(raw: str) -> Optional[float]:

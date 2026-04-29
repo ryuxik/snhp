@@ -30,6 +30,9 @@ htmlcov/
 *.sqlite3
 !gametheory/evals/*.json
 
+# Runtime artifacts from leaderboard runs — regenerated per run.
+leaderboard/results/usage.jsonl
+
 # Editor / OS noise
 .DS_Store
 .idea/

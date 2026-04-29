@@ -38,6 +38,14 @@ def main() -> None:
                          "sellers') and emit a combined leaderboard.")
     p.add_argument("--with-gemini", action="store_true",
                     help="Add GeminiFlashVanilla as a player (needs GOOGLE_API_KEY).")
+    p.add_argument("--with-gemini-snhp", action="store_true",
+                    help="Add GeminiWithSnhp (LLM + SNHP scaffolding) as a "
+                         "player (needs GOOGLE_API_KEY).")
+    p.add_argument("--workers", type=int, default=None,
+                    help="Override worker pool size. Defaults to "
+                         "snhp.b2b_round_robin.N_WORKERS (14). Lower this "
+                         "(e.g. 4) when LLM agents are in the mix to fit "
+                         "free-tier API rate limits without 503 thrashing.")
     p.add_argument("--out-dir", type=Path,
                     default=Path(__file__).parent / "results")
     args = p.parse_args()
@@ -45,9 +53,9 @@ def main() -> None:
     if args.quick:
         os.environ["SNHP_TOURNAMENT_QUICK"] = "1"
 
-    if args.with_gemini and not os.environ.get("GOOGLE_API_KEY", "").strip():
-        print("WARNING: --with-gemini requested but GOOGLE_API_KEY not set. "
-              "Gemini will use heuristic fallback (clearly labeled in output).")
+    if (args.with_gemini or args.with_gemini_snhp) and not os.environ.get("GOOGLE_API_KEY", "").strip():
+        print("WARNING: --with-gemini[-snhp] requested but GOOGLE_API_KEY not set. "
+              "LLM agents will use heuristic fallback (clearly labeled in output).")
 
     # Import the tournament module + register the LLM player BEFORE
     # `run_round_robin` reads the roster. The roster is built per-call from
@@ -58,12 +66,18 @@ def main() -> None:
 
     if args.quick:
         trnmt.N_ROUNDS = 5
+    if args.workers is not None:
+        trnmt.N_WORKERS = max(1, args.workers)
 
     extra_player_names: list[str] = []
     if args.with_gemini:
         from leaderboard.agents.gemini_negmas import GeminiFlashVanilla
         B2B_OPPONENTS["GeminiFlashVanilla"] = GeminiFlashVanilla
         extra_player_names.append("GeminiFlashVanilla")
+    if args.with_gemini_snhp:
+        from leaderboard.agents.gemini_with_snhp import GeminiWithSnhp
+        B2B_OPPONENTS["GeminiWithSnhp"] = GeminiWithSnhp
+        extra_player_names.append("GeminiWithSnhp")
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
