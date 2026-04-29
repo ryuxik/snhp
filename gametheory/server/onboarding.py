@@ -15,6 +15,9 @@ Schema:
     rate_limit_per_minute   BIGINT NOT NULL
     created_at              BIGINT NOT NULL   -- unix seconds
     balance_usd_cents       BIGINT NOT NULL DEFAULT 0   -- credit balance
+    telemetry_consent       INTEGER NOT NULL DEFAULT 0  -- opt-in to data moat
+                                                         -- (set at issuance,
+                                                         -- immutable after)
 
 Storage: SQLite (default ~/.gametheory/keys.db) or Postgres if DATABASE_URL.
 """
@@ -41,16 +44,16 @@ _KEYS_SCHEMA = (
         tier TEXT NOT NULL,
         rate_limit_per_minute INTEGER NOT NULL,
         created_at INTEGER NOT NULL,
-        balance_usd_cents INTEGER NOT NULL DEFAULT 0
+        balance_usd_cents INTEGER NOT NULL DEFAULT 0,
+        telemetry_consent INTEGER NOT NULL DEFAULT 0
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_agent_id ON keys(agent_id, created_at)",
 )
-# NOTE: this schema is `IF NOT EXISTS`-only. Adding a column to an existing
-# DB requires a manual `ALTER TABLE keys ADD COLUMN ... DEFAULT ...` migration
-# (run before deploying the code that reads the column). The Stripe billing
-# rollout added `balance_usd_cents`; production DBs created before that need:
-#   ALTER TABLE keys ADD COLUMN balance_usd_cents BIGINT NOT NULL DEFAULT 0;
+# NOTE: this schema is `IF NOT EXISTS`-only. Adding a column to a DB created
+# before the column was in the schema requires a manual
+# `ALTER TABLE keys ADD COLUMN ... DEFAULT ...` run before deploying the code
+# that reads the column.
 
 
 def _conn():
@@ -58,10 +61,17 @@ def _conn():
 
 
 def issue_key(*, agent_id: str, contact_email: str,
-              intended_use_summary: str) -> dict:
+              intended_use_summary: str,
+              telemetry_consent: bool = False) -> dict:
     """
     Issue a new API key, idempotent on agent_id within 24h.
     Math endpoints are immediately callable; LLM endpoints require credits.
+
+    `telemetry_consent` is set at issuance and immutable afterwards.
+    Revocation is via /v1/telemetry/delete (which removes existing rows)
+    plus refraining from passing share_outcome=True on subsequent calls;
+    the consent flag itself doesn't change because doing so would create
+    races between consent state and in-flight writes.
     """
     if not agent_id or len(agent_id) < 3 or len(agent_id) > 128:
         raise ValueError("agent_id must be 3-128 chars")
@@ -72,11 +82,12 @@ def issue_key(*, agent_id: str, contact_email: str,
 
     now = int(time.time())
     cutoff = now - 86400
+    consent_int = 1 if telemetry_consent else 0
 
     with _conn() as c:
         row = c.execute(
             """SELECT api_key, tier, rate_limit_per_minute, created_at,
-                      balance_usd_cents
+                      balance_usd_cents, telemetry_consent
                FROM keys WHERE agent_id = ? AND created_at >= ?
                ORDER BY created_at DESC LIMIT 1""",
             (agent_id, cutoff),
@@ -88,6 +99,7 @@ def issue_key(*, agent_id: str, contact_email: str,
                 "rate_limit_per_minute": row[2],
                 "created_at": row[3],
                 "balance_usd_cents": row[4],
+                "telemetry_consent": bool(row[5]),
                 "reused": True,
             }
 
@@ -96,10 +108,10 @@ def issue_key(*, agent_id: str, contact_email: str,
             """INSERT INTO keys (api_key, agent_id, contact_email,
                                   intended_use_summary, tier,
                                   rate_limit_per_minute, created_at,
-                                  balance_usd_cents)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                                  balance_usd_cents, telemetry_consent)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (key, agent_id, contact_email, intended_use_summary,
-             "standard", _RATE_LIMIT_PER_MIN, now, 0),
+             "standard", _RATE_LIMIT_PER_MIN, now, 0, consent_int),
         )
         c.commit()
         return {
@@ -108,6 +120,7 @@ def issue_key(*, agent_id: str, contact_email: str,
             "rate_limit_per_minute": _RATE_LIMIT_PER_MIN,
             "created_at": now,
             "balance_usd_cents": 0,
+            "telemetry_consent": bool(consent_int),
             "reused": False,
         }
 
@@ -119,7 +132,7 @@ def lookup_key(api_key: str) -> Optional[dict]:
     with _conn() as c:
         row = c.execute(
             """SELECT agent_id, tier, rate_limit_per_minute, created_at,
-                      balance_usd_cents
+                      balance_usd_cents, telemetry_consent
                FROM keys WHERE api_key = ?""",
             (api_key,),
         ).fetchone()
@@ -131,6 +144,7 @@ def lookup_key(api_key: str) -> Optional[dict]:
             "rate_limit_per_minute": row[2],
             "created_at": row[3],
             "balance_usd_cents": row[4],
+            "telemetry_consent": bool(row[5]),
         }
 
 

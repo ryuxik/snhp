@@ -132,7 +132,12 @@ def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def _bearer_key(request: Request) -> str | None:
+def bearer_api_key(request: Request) -> str | None:
+    """Extract a `gt_*` bearer token from the Authorization header. None if
+    absent. Single source of truth — middleware (rate limit) and handlers
+    (telemetry, GDPR) both call this so they agree on what counts as a
+    valid bearer token. Divergence here would be security-relevant.
+    """
     auth = request.headers.get("authorization", "")
     if auth.lower().startswith("bearer "):
         token = auth.split(" ", 1)[1].strip()
@@ -162,7 +167,7 @@ class RateLimit(BaseHTTPMiddleware):
         elif path.startswith("/v1/"):
             if not _bucket_for("math_per_ip", ip).take():
                 return _ratelimit_response("math_per_ip")
-            key = _bearer_key(request)
+            key = bearer_api_key(request)
             if key is not None and not _bucket_for("math_per_key", key).take():
                 return _ratelimit_response("math_per_key")
 

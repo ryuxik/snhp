@@ -17,7 +17,7 @@ import os
 import time
 from typing import Callable, Literal, Optional
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
@@ -50,44 +50,139 @@ from gametheory.server.onboarding import (
     issue_key as _issue_key,
     lookup_key as _lookup_key,
 )
+from gametheory.server import telemetry as _telemetry
+from gametheory.server.middleware import bearer_api_key as _bearer_api_key
 
 
 _COST_FREE = "0"
 
+# Fields stripped from the request body before storage as request_features —
+# they're metadata about the consent decision, not features.
+_TELEMETRY_REQUEST_EXCLUDED = {"share_outcome", "vertical"}
 
-def _math_endpoint(handler: Callable[..., dict]) -> Callable:
+# Allowlisted endpoint identifiers stored in the telemetry corpus. Typed
+# rather than free-string so a typo here surfaces at module-load time
+# instead of silently sharding the corpus.
+_TelemetryEndpoint = Literal[
+    "negotiation/sell/next_offer",
+    "negotiation/buy/next_offer",
+    "auction/bidder/optimal_bid",
+    "mechanism/optimal_auction_design",
+    "mechanism/posted_price_optimal",
+]
+
+
+def _record_telemetry(request: Request, req: BaseModel, result: dict,
+                       *, endpoint: "_TelemetryEndpoint") -> Optional[str]:
+    """Record a telemetry row if the caller opted in. Returns the
+    recommendation_id (or None if not recorded).
+
+    Two-gate consent: `share_outcome=True` on the request AND account-level
+    consent. If pepper is missing on a share_outcome=True request, this
+    raises (per V1 design — better a loud failure than a silent privacy
+    lie). Other failures (DB hiccup, etc.) propagate too; the caller chose
+    to share, so degrading their request to a silent no-op would mislead.
     """
-    Decorator factory for the math-only endpoints. Wraps a pure-math handler
-    with timing, free-tier cost header, and ValueError → HTTP 400 conversion.
+    if not getattr(req, "share_outcome", False):
+        return None
+    api_key = _bearer_api_key(request)
+    if api_key is None:
+        # share_outcome=True with no bearer key — caller's mistake, but
+        # silently dropping is fine here: nothing to anchor a delete to.
+        return None
+    vertical = getattr(req, "vertical", None) or "other"
+    features = req.model_dump(exclude=_TELEMETRY_REQUEST_EXCLUDED)
+    return _telemetry.record_recommendation(
+        api_key=api_key, endpoint=endpoint, vertical=vertical,
+        request_features=features, recommendation=result,
+    )
 
-    FastAPI inspects the wrapper's signature to discover Pydantic body params
-    and injected dependencies (notably `Response`). We copy the handler's
-    type annotations onto the wrapper so FastAPI sees `req: <PydanticModel>`
-    instead of treating `req` as an unannotated query parameter. We can't use
-    `functools.wraps` because it would also hide the `response` parameter.
+
+def _math_endpoint(_handler: Optional[Callable[..., dict]] = None,
+                    *, telemetry: "Optional[_TelemetryEndpoint]" = None) -> Callable:
+    """
+    Decorator for math-only endpoints. Wraps a pure-math handler with
+    timing, free-tier cost header, and ValueError → HTTP 400 conversion.
+
+    Two forms:
+      @_math_endpoint                              # plain math, no telemetry
+      @_math_endpoint(telemetry="endpoint_name")   # opt-in telemetry record
+
+    FastAPI inspects the wrapper's signature to discover Pydantic body
+    params and injected dependencies (Response, Request). We copy the
+    handler's type annotations onto the wrapper so FastAPI sees
+    `req: <PydanticModel>` instead of treating `req` as a query parameter.
     """
 
-    def wrapper(req, response: Response):  # type: ignore[no-untyped-def]
-        t0 = time.time()
-        try:
-            result = handler(req)
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-        response.headers["X-GT-Cost-USD"] = _COST_FREE
-        response.headers["X-GT-Latency-Ms"] = f"{(time.time() - t0) * 1000:.1f}"
-        return result
+    def make(handler: Callable[..., dict]) -> Callable:
+        def wrapper(req, request: Request, response: Response):  # type: ignore[no-untyped-def]
+            t0 = time.time()
+            try:
+                result = handler(req)
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+            response.headers["X-GT-Cost-USD"] = _COST_FREE
+            response.headers["X-GT-Latency-Ms"] = f"{(time.time() - t0) * 1000:.1f}"
+            if telemetry is not None:
+                rec_id = _record_telemetry(request, req, result, endpoint=telemetry)
+                if rec_id is not None:
+                    response.headers["X-GT-Recommendation-Id"] = rec_id
+            return result
 
-    wrapper.__name__ = handler.__name__
-    wrapper.__doc__ = handler.__doc__
-    # Copy req's type annotation so FastAPI recognizes it as a body param.
-    handler_annotations = getattr(handler, "__annotations__", {}) or {}
-    if "req" in handler_annotations:
-        wrapper.__annotations__["req"] = handler_annotations["req"]
-    wrapper.__annotations__["response"] = Response
-    return wrapper
+        wrapper.__name__ = handler.__name__
+        wrapper.__doc__ = handler.__doc__
+        handler_annotations = getattr(handler, "__annotations__", {}) or {}
+        if "req" in handler_annotations:
+            wrapper.__annotations__["req"] = handler_annotations["req"]
+        wrapper.__annotations__["request"] = Request
+        wrapper.__annotations__["response"] = Response
+        return wrapper
+
+    if _handler is not None:
+        return make(_handler)
+    return make
 
 
 # ─── Models ──────────────────────────────────────────────────────────────────
+
+
+_VerticalLiteral = Literal[
+    "ad_inventory",
+    "saas_procurement",
+    "cloud_compute",
+    "freight_logistics",
+    "media_licensing",
+    "m_and_a_buyside",
+    "m_and_a_sellside",
+    "real_estate",
+    "energy_trading",
+    "professional_services",
+    "marketplace_b2b",
+    "other",
+]
+
+
+class _OptInTelemetry(BaseModel):
+    """Mixin: opt-in fields for contributing this call to our prior corpus.
+
+    Two-gate consent model: account-level `telemetry_consent` (set at /v1/keys
+    issuance, immutable) AND per-call `share_outcome=True` are BOTH required.
+    The per-call flag is a downgrade-only refinement — share_outcome=True
+    without account consent is silently ignored (record returns None).
+
+    `vertical` is an allowlisted enum (no free text — covert-channel risk).
+    The api_key is HMAC-hashed with a per-week server-side pepper before
+    storage (never reversible, not joinable across weeks). See
+    /v1/telemetry/* endpoints for outcome reporting, GDPR export, and
+    deletion. Privacy contract documented in /llms.txt.
+    """
+    share_outcome: bool = Field(default=False,
+        description="Opt-in: contribute this (anonymized) call to the prior "
+                     "corpus. Default False. Requires account-level consent "
+                     "set at /v1/keys issuance.")
+    vertical: Optional[_VerticalLiteral] = Field(default=None,
+        description="Self-declared vertical (allowlisted enum). Required "
+                     "when share_outcome=True. Use 'other' if none fit.")
 
 
 class WTPPrior(BaseModel):
@@ -95,7 +190,7 @@ class WTPPrior(BaseModel):
     sigma: float = Field(description="Lognormal σ of buyer WTP")
 
 
-class SellNextOfferRequest(BaseModel):
+class SellNextOfferRequest(_OptInTelemetry):
     my_reservation: float = Field(ge=0.0, le=1.0,
         description="Our walk-away utility, normalized to [0, 1]")
     opponent_offer_history: list[float] = Field(default_factory=list, max_length=128,
@@ -123,7 +218,7 @@ class PriorParams(BaseModel):
     params: dict
 
 
-class OptimalBidRequest(BaseModel):
+class OptimalBidRequest(_OptInTelemetry):
     auction_format: str = Field(
         description="first_price | second_price_vickrey | english_ascending")
     my_valuation: float = Field(gt=0.0)
@@ -190,7 +285,7 @@ class MarketPrior(BaseModel):
     sigma: float = Field(gt=0.0, description="Std of typical seller openings")
 
 
-class BuyNextOfferRequest(BaseModel):
+class BuyNextOfferRequest(_OptInTelemetry):
     my_reservation: float = Field(ge=0.0, le=1.0)
     seller_offer_history: list[float] = Field(default_factory=list, max_length=128,
         description="Seller's offers evaluated in our (buyer's) utility space, in [0, 1]")
@@ -294,7 +389,7 @@ class GaleShapleyResponse(BaseModel):
     n_proposals: int
 
 
-class OptimalAuctionDesignRequest(BaseModel):
+class OptimalAuctionDesignRequest(_OptInTelemetry):
     bidder_priors: list[PriorParams] = Field(min_length=1, max_length=50)
     seller_valuation: float = Field(ge=0.0)
     objective: Literal["revenue", "welfare"] = "revenue"
@@ -311,7 +406,7 @@ class OptimalAuctionDesignResponse(BaseModel):
     rationale: str
 
 
-class PostedPriceRequest(BaseModel):
+class PostedPriceRequest(_OptInTelemetry):
     # Tightened from {arrival_rate ≤ 1000, inventory ≤ 100k, horizon ≤ 30d}
     # because the DP allocates O(C × n_bins × |P|) where n_bins scales with
     # arrival_rate × horizon. Worst-case under the old bounds was 13 billion
@@ -358,6 +453,7 @@ app = FastAPI(
         {"name": "auctions",    "description": "Tier 2: single-unit auctions"},
         {"name": "mechanism",   "description": "Tier 3: marketplace operator primitives"},
         {"name": "discovery",   "description": "Catalog + agent onboarding"},
+        {"name": "telemetry",   "description": "Opt-in data sharing + GDPR (export/delete)"},
     ],
 )
 
@@ -395,7 +491,7 @@ app.add_middleware(BodySizeLimit)
         400: {"description": "Invalid input"},
     },
 )
-@_math_endpoint
+@_math_endpoint(telemetry="negotiation/sell/next_offer")
 def negotiation_sell_next_offer(req: SellNextOfferRequest):
     prior_dict = req.buyer_wtp_prior.model_dump() if req.buyer_wtp_prior else None
     return _sell_next_offer(
@@ -417,7 +513,7 @@ def negotiation_sell_next_offer(req: SellNextOfferRequest):
     response_model=OptimalBidResponse,
     summary="Optimal bid for first-price/Vickrey/English auction",
 )
-@_math_endpoint
+@_math_endpoint(telemetry="auction/bidder/optimal_bid")
 def auction_bidder_optimal_bid(req: OptimalBidRequest):
     return _bidder_optimal_bid(
         auction_format=req.auction_format,
@@ -682,8 +778,57 @@ agent needs natural-language drafting, do that with your own LLM provider
 
 ## Onboarding (no human in the loop)
 - POST /v1/keys
-    body: {agent_id, contact_email, intended_use_summary}
-    -> {api_key: "gt_*", ...}
+    body: {agent_id, contact_email, intended_use_summary,
+           telemetry_consent: bool = false}
+    -> {api_key: "gt_*", telemetry_consent, ...}
+
+## Telemetry (opt-in, off by default)
+We collect aggregate prior-corpus data ONLY when you opt in. The corpus
+warm-starts new agents in the same vertical (e.g. Bayesian priors for
+buyer WTP). Default behavior collects nothing.
+
+How to opt in:
+1. Pass `telemetry_consent: true` at /v1/keys issuance. Account-level
+   consent is set ONCE at issuance and immutable thereafter — to revoke,
+   call /v1/telemetry/delete and stop passing share_outcome on future calls.
+2. On each recommendation request, pass `share_outcome: true` AND
+   `vertical: "<one of the allowlisted enum values>"`. Both gates must
+   be true; either one false → no row is written.
+3. The successful response carries `X-GT-Recommendation-Id: rec_*`.
+   Store it; you'll need it to attach an outcome.
+4. After your deal closes (or doesn't), POST /v1/telemetry/report_outcome
+   with `{recommendation_id, deal_closed, my_utility, opponent_utility}`.
+   MUST be called within the same ISO week as the recommendation — the
+   per-week agent-hash bound caps outcome reporting at ~7 days.
+
+What we store:
+- An HMAC(pepper, api_key || iso_week) hash of your key, truncated to
+  128 bits, base64url. Per-week rotation eliminates cross-time linkability;
+  the pepper is a server secret and never leaves the box. Hashes are NOT
+  reversible to your key and NOT joinable across weeks.
+- Numeric features quantized to a 0.02 grid (50 buckets across [0,1]) to
+  shed fingerprint entropy.
+- Lists capped at 16 elements at storage; free-text rationale is stripped.
+- The vertical you self-declared (allowlisted enum, no free text).
+
+What we do NOT store:
+- Wall-clock timestamps (only the hour bucket).
+- Your raw api_key (only the per-week hash).
+- Free-text fields of any kind.
+- IP addresses, user agents, or other request metadata.
+
+GDPR (apply regardless of EU residence):
+- DELETE /v1/telemetry/delete  (Article 17: erasure)
+    -> {rows_deleted: N}
+  Sweeps the last 78 weeks of week-hashes.
+- GET /v1/telemetry/export  (Article 15: access)
+    -> {rows: [...]}
+  Returns every row tied to any of your week-hashes within the same window.
+
+Allowlisted verticals:
+  ad_inventory, saas_procurement, cloud_compute, freight_logistics,
+  media_licensing, m_and_a_buyside, m_and_a_sellside, real_estate,
+  energy_trading, professional_services, marketplace_b2b, other
 
 ## Drafting messages client-side (BYOK pattern)
 We deliberately do not call LLMs server-side; you bring your own. The
@@ -740,6 +885,13 @@ class IssueKeyRequest(BaseModel):
     contact_email: str = Field(description="Contact email for issues / overage notifications")
     intended_use_summary: str = Field(min_length=8, max_length=1024,
         description="One-sentence description of the intended use case")
+    telemetry_consent: bool = Field(default=False,
+        description=(
+            "Opt-in to contribute anonymized recommendation→outcome pairs to "
+            "the prior corpus. Default False. Set at issuance and immutable "
+            "afterwards (revocation = /v1/telemetry/delete + don't pass "
+            "share_outcome=True). See /llms.txt for the privacy contract."
+        ))
 
 
 class IssueKeyResponse(BaseModel):
@@ -748,6 +900,7 @@ class IssueKeyResponse(BaseModel):
     rate_limit_per_minute: int
     created_at: int
     balance_usd_cents: int = Field(description="Remaining credit balance in cents")
+    telemetry_consent: bool = Field(description="True if opted into telemetry at issuance")
     reused: bool = Field(description="True if an existing key for this agent_id was returned")
 
 
@@ -768,9 +921,108 @@ def issue_key(req: IssueKeyRequest):
             agent_id=req.agent_id,
             contact_email=req.contact_email,
             intended_use_summary=req.intended_use_summary,
+            telemetry_consent=req.telemetry_consent,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# ─── Telemetry: outcome reporting + GDPR ────────────────────────────────────
+
+
+def _require_bearer_key(request: Request) -> str:
+    """Extract a `gt_*` bearer token or raise 401."""
+    api_key = _bearer_api_key(request)
+    if api_key is None:
+        raise HTTPException(status_code=401,
+                            detail="Authorization: Bearer gt_* required")
+    return api_key
+
+
+class ReportOutcomeRequest(BaseModel):
+    recommendation_id: str = Field(min_length=1, max_length=128,
+        description="The X-GT-Recommendation-Id returned when share_outcome=True")
+    deal_closed: bool = Field(description="True if a deal was reached")
+    my_utility: Optional[float] = Field(default=None, ge=0.0, le=1.0,
+        description="Realized utility-to-self in [0, 1] (quantized at write)")
+    opponent_utility: Optional[float] = Field(default=None, ge=0.0, le=1.0,
+        description="Realized utility-to-opponent if known, in [0, 1]")
+
+
+class ReportOutcomeResponse(BaseModel):
+    accepted: bool = Field(description=(
+        "False if the recommendation_id doesn't exist, doesn't belong to "
+        "this key, is in a different ISO week (too late), or has already "
+        "been reported. Idempotent re-report = no-op."))
+
+
+@app.post(
+    "/v1/telemetry/report_outcome",
+    tags=["telemetry"],
+    response_model=ReportOutcomeResponse,
+    summary="Attach an outcome to a previously-recorded recommendation",
+    description=(
+        "Must be called within the same ISO week as the recommendation. "
+        "Per-week agent-hash bounding caps outcome reporting at ~7 days "
+        "(by design — eliminates long-horizon behavioral fingerprinting)."
+    ),
+)
+def telemetry_report_outcome(req: ReportOutcomeRequest, request: Request):
+    api_key = _require_bearer_key(request)
+    accepted = _telemetry.report_outcome(
+        api_key=api_key,
+        recommendation_id=req.recommendation_id,
+        deal_closed=req.deal_closed,
+        my_utility=req.my_utility,
+        opponent_utility=req.opponent_utility,
+    )
+    return {"accepted": accepted}
+
+
+class TelemetryDeleteResponse(BaseModel):
+    rows_deleted: int
+
+
+@app.delete(
+    "/v1/telemetry/delete",
+    tags=["telemetry"],
+    response_model=TelemetryDeleteResponse,
+    summary="GDPR Article 17 — delete all telemetry rows for this key",
+    description=(
+        "Deletes all rows whose week-hash matches any of this key's "
+        "possible week hashes within an 18-month retention window. "
+        "Returns the row count deleted. Note: SQLite/Postgres tombstone "
+        "reclaim is deferred (full storage reclaim within 30 days)."
+    ),
+)
+def telemetry_delete(request: Request):
+    api_key = _require_bearer_key(request)
+    return {"rows_deleted": _telemetry.delete_agent_records(api_key)}
+
+
+class TelemetryRecordOut(BaseModel):
+    recommendation_id: str
+    vertical: str
+    endpoint: str
+    request_features: dict
+    recommendation: dict
+    created_at_hour: int
+    outcome: Optional[dict]
+
+
+class TelemetryExportResponse(BaseModel):
+    rows: list[TelemetryRecordOut]
+
+
+@app.get(
+    "/v1/telemetry/export",
+    tags=["telemetry"],
+    response_model=TelemetryExportResponse,
+    summary="GDPR Article 15 — export all telemetry rows for this key",
+)
+def telemetry_export(request: Request):
+    api_key = _require_bearer_key(request)
+    return {"rows": _telemetry.export_agent_records(api_key)}
 
 
 # ─── Buy-side negotiation ───────────────────────────────────────────────────
@@ -782,7 +1034,7 @@ def issue_key(req: IssueKeyRequest):
     response_model=BuyNextOfferResponse,
     summary="Buy-side next-offer recommendation with defense bundle",
 )
-@_math_endpoint
+@_math_endpoint(telemetry="negotiation/buy/next_offer")
 def negotiation_buy_next_offer(req: BuyNextOfferRequest):
     return _buy_next_offer(
         my_reservation=req.my_reservation,
@@ -907,7 +1159,7 @@ def mechanism_gale_shapley(req: GaleShapleyRequest):
         "Tier 2 `optimal_reserve` answer."
     ),
 )
-@_math_endpoint
+@_math_endpoint(telemetry="mechanism/optimal_auction_design")
 def mechanism_optimal_auction_design(req: OptimalAuctionDesignRequest):
     return _optimal_auction_design(
         bidder_priors=[p.model_dump() for p in req.bidder_priors],
@@ -929,7 +1181,7 @@ def mechanism_optimal_auction_design(req: OptimalAuctionDesignRequest):
         "schedule from the backward DP."
     ),
 )
-@_math_endpoint
+@_math_endpoint(telemetry="mechanism/posted_price_optimal")
 def mechanism_posted_price_optimal(req: PostedPriceRequest):
     # DP allocates O(C × n_bins × |P|) where n_bins ≈ arrival_rate × T / 0.2.
     # |P| is fixed at 50; reject inputs that would exceed ~50M cells (~400 MB
