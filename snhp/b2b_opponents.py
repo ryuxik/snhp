@@ -933,6 +933,45 @@ class SunkCostBuyer(B2BBase):
 
 # ═══════════════════════════════════════════════════
 
+# Ground-truth opponent type labels for the validation framework.
+# Used by snhp/eval_metrics.py to bucket per-type utility (separate from
+# the runtime OpponentModel classifier — these are the "true" labels we
+# evaluate the classifier against). Categories follow the same 4-class
+# taxonomy the classifier uses: BOULWARE / CONCEDER / MIRROR / RANDOM.
+#
+# Assignment rationale (from each agent's docstring + propose() shape):
+#   BOULWARE  — extreme open + slow concession, refuses to converge
+#   CONCEDER  — aspiration-style cooperative descent
+#   MIRROR    — reflects/responds to our offers (tit-for-tat-ish)
+#   RANDOM    — erratic, exploits cognitive biases inconsistently
+OPPONENT_TYPE_TAGS: dict[str, str] = {
+    # BOULWARE — firm anchorers
+    "Anchorer":           "BOULWARE",
+    "BATNA Bluffer":      "BOULWARE",
+    "Silent Hardliner":   "BOULWARE",
+    "Soviet Patience":    "BOULWARE",
+    "Deadline Exploiter": "BOULWARE",
+    "Anchoring Bias":     "BOULWARE",
+    "Loss Averse":        "BOULWARE",
+    # CONCEDER — cooperative aspiration-style
+    "The Closer":         "CONCEDER",   # docstring: "Aspiration-style"
+    "Principled":         "CONCEDER",   # Fisher & Ury 50/50
+    "Logroller":          "CONCEDER",   # cross-attribute trades
+    "Split-the-Diff":     "CONCEDER",
+    "Fair Demand":        "CONCEDER",
+    "Fairness Norm":      "CONCEDER",
+    "Aspiration":         "CONCEDER",   # added by run_round_robin (NegMAS classic)
+    # MIRROR — tit-for-tat-ish reflectors
+    "Reciprocity":        "MIRROR",
+    "GoodCop/BadCop":     "MIRROR",
+    "Tactical Empath":    "MIRROR",     # docstring: "Mirrors opponent's last offer"
+    "Cialdini":           "MIRROR",
+    # RANDOM — erratic, bias-exploiting
+    "Nibbler":            "RANDOM",     # last-second extras pattern
+    "Sunk Cost":          "RANDOM",
+}
+
+
 B2B_OPPONENTS = {
     # Original 7
     "Anchorer": Anchorer,

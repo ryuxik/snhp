@@ -416,15 +416,32 @@ def _run_single_matchup(args):
     return (name_a, name_b, util_a, util_b, dr)
 
 
-def run_round_robin(seller_pressure=None, buyer_pressure=None):
+def run_round_robin(seller_pressure=None, buyer_pressure=None,
+                     *, seed_offset: int = 0):
     """Full all-vs-all round robin tournament.
-    
+
     Args:
         seller_pressure: Walk-away pressure multiplier for seller (A). >1 = buyer's market.
         buyer_pressure: Walk-away pressure multiplier for buyer (B). >1 = seller's market.
+        seed_offset: Reproducibility offset. With identical (player roster,
+            seller_pressure, buyer_pressure, seed_offset, code) two runs
+            produce identical pairwise outputs. Use this for paired-seed
+            Elo deltas in the ablation matrix — seed_offset=0 for both
+            baseline and candidate, then any pairwise diff is attributable
+            to the strategy change rather than random noise.
     """
     sp = seller_pressure if seller_pressure is not None else SELLER_PRESSURE
     bp = buyer_pressure if buyer_pressure is not None else BUYER_PRESSURE
+
+    # Anchor RNGs against MASTER_SEED + seed_offset. This is best-effort:
+    # the underlying matchup runner (_run_single_matchup) already pins its
+    # own per-job seed deterministically. Setting numpy here also captures
+    # any module-level randomness leaking through bootstrap_ci or numpy
+    # path inside the agent.
+    import numpy as _np
+    import random as _random
+    _np.random.seed(MASTER_SEED + seed_offset)
+    _random.seed(MASTER_SEED + seed_offset)
 
     # Build player roster
     all_players = {}
