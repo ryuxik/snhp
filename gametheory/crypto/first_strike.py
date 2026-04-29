@@ -33,6 +33,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
 import secrets
 import time
 from datetime import datetime, timezone, timedelta
@@ -44,6 +45,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 from cryptography.hazmat.primitives.serialization import (
     Encoding, PrivateFormat, NoEncryption, PublicFormat,
+    load_pem_private_key,
 )
 
 from gametheory._db import db_conn
@@ -71,21 +73,63 @@ def _conn():
 
 
 # ─── Trust-anchor key ────────────────────────────────────────────────────────
-# Single ephemeral EdDSA keypair per server process. Production wires this to
-# a KMS / sealed file with rotation. Generated lazily on first use; PEM-encoded
-# bytes are cached because PyJWT and the public-key endpoint both want PEM and
-# re-serializing per request is wasted CPU on the hot path.
+# Single EdDSA keypair per server process. Loaded from FIRST_STRIKE_PRIVATE_PEM
+# env var (the production path — JWTs survive restarts and the published public
+# key stays stable). Falls back to an ephemeral key generated on first use,
+# which is fine for local dev and for testing but means every restart issues
+# unverifiable historical attestations.
+#
+# To generate the env-var value:
+#   from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+#   from cryptography.hazmat.primitives.serialization import (
+#       Encoding, PrivateFormat, NoEncryption,
+#   )
+#   k = Ed25519PrivateKey.generate()
+#   print(k.private_bytes(
+#       Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()).decode())
+#
+# Then: fly secrets set FIRST_STRIKE_PRIVATE_PEM="$(cat path/to/private.pem)"
+#
+# Caching the PEM-encoded bytes alongside the key object is intentional: PyJWT
+# wants PEM bytes, and the public-key endpoint wants the PEM string — re-
+# serializing per request is wasted CPU on the hot path.
+
+_TRUST_ANCHOR_ENV_VAR = "FIRST_STRIKE_PRIVATE_PEM"
 
 _TRUST_ANCHOR_KEY: Optional[Ed25519PrivateKey] = None
 _TRUST_ANCHOR_PRIV_PEM: Optional[bytes] = None
 _TRUST_ANCHOR_PUB_PEM: Optional[str] = None
+_TRUST_ANCHOR_SOURCE: Optional[str] = None  # "env" or "ephemeral"
+
+
+def _load_or_generate_trust_anchor_key() -> tuple[Ed25519PrivateKey, str]:
+    """Load from FIRST_STRIKE_PRIVATE_PEM if set; else generate ephemerally."""
+    pem_str = os.environ.get(_TRUST_ANCHOR_ENV_VAR, "").strip()
+    if pem_str:
+        try:
+            key = load_pem_private_key(pem_str.encode(), password=None)
+        except (ValueError, TypeError) as e:
+            raise RuntimeError(
+                f"{_TRUST_ANCHOR_ENV_VAR} is set but doesn't parse as a PEM "
+                f"private key: {e}. Don't fall back to ephemeral — that would "
+                f"silently swap the trust anchor and invalidate every attestation "
+                f"the operator thought was persistent."
+            ) from e
+        if not isinstance(key, Ed25519PrivateKey):
+            raise RuntimeError(
+                f"{_TRUST_ANCHOR_ENV_VAR} parsed as {type(key).__name__}, "
+                f"expected Ed25519PrivateKey. Re-generate with PKCS8 + Ed25519."
+            )
+        return key, "env"
+    return Ed25519PrivateKey.generate(), "ephemeral"
 
 
 def _ensure_trust_anchor() -> None:
     global _TRUST_ANCHOR_KEY, _TRUST_ANCHOR_PRIV_PEM, _TRUST_ANCHOR_PUB_PEM
+    global _TRUST_ANCHOR_SOURCE
     if _TRUST_ANCHOR_KEY is not None:
         return
-    key = Ed25519PrivateKey.generate()
+    key, source = _load_or_generate_trust_anchor_key()
     _TRUST_ANCHOR_PRIV_PEM = key.private_bytes(
         Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()
     )
@@ -93,6 +137,13 @@ def _ensure_trust_anchor() -> None:
         Encoding.PEM, PublicFormat.SubjectPublicKeyInfo
     ).decode()
     _TRUST_ANCHOR_KEY = key
+    _TRUST_ANCHOR_SOURCE = source
+
+
+def trust_anchor_source() -> str:
+    """Returns 'env' or 'ephemeral' — useful for /health diagnostics."""
+    _ensure_trust_anchor()
+    return _TRUST_ANCHOR_SOURCE  # type: ignore[return-value]
 
 
 def trust_anchor_public_key_pem() -> str:

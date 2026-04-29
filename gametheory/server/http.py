@@ -36,6 +36,7 @@ from gametheory.crypto.first_strike import (
     declare_first_strike as _declare_first_strike,
     reveal_first_strike as _reveal_first_strike,
     trust_anchor_public_key_pem as _trust_anchor_pem,
+    trust_anchor_source as _trust_anchor_source,
     CommitmentNotFound, CommitmentExpired, CommitmentRevealMismatch,
 )
 from gametheory.mechanism.gale_shapley import gale_shapley as _gale_shapley
@@ -1055,4 +1056,12 @@ def mechanism_posted_price_optimal(req: PostedPriceRequest):
 
 @app.get("/health", tags=["discovery"], summary="Liveness check")
 def health():
-    return {"status": "ok", "version": "0.1.0"}
+    # `trust_anchor_source` reveals whether first-strike JWTs will survive
+    # restarts. "ephemeral" → fine for dev; in prod it means the operator
+    # forgot to set FIRST_STRIKE_PRIVATE_PEM and historical attestations
+    # become unverifiable on the next deploy.
+    return {
+        "status": "ok",
+        "version": "0.1.0",
+        "first_strike_key_source": _trust_anchor_source(),
+    }

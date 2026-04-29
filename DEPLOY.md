@@ -42,8 +42,9 @@ fly postgres attach snhp-db --app snhp
 # LLM provider key (for draft_message; copy from local .env):
 fly secrets set GOOGLE_API_KEY="<paste>" --app snhp
 
-# (Optional but recommended) persistent first-strike Ed25519 key.
-# Generate locally and seal as a secret so JWTs survive restarts:
+# Persistent first-strike Ed25519 key (recommended for production —
+# without this, every restart issues a fresh trust anchor and historical
+# JWTs become unverifiable).
 python -c "
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
@@ -52,12 +53,12 @@ print(k.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()).decode(
 " > /tmp/snhp-trust-anchor.pem
 fly secrets set FIRST_STRIKE_PRIVATE_PEM="$(cat /tmp/snhp-trust-anchor.pem)" --app snhp
 rm /tmp/snhp-trust-anchor.pem  # delete local copy after setting
-```
 
-> **TODO before this step is meaningful**: extend `gametheory/crypto/first_strike.py`
-> to read `FIRST_STRIKE_PRIVATE_PEM` at module load instead of always
-> generating an ephemeral key. Currently the secret is set but the code
-> doesn't honor it.
+# After deploy, verify the env var is being honored:
+#   curl https://snhp.fly.dev/health
+#   {"status":"ok", "version":"0.1.0", "first_strike_key_source":"env"}
+# If you see "ephemeral", the secret didn't land — re-check fly secrets.
+```
 
 ## 4. Deploy
 
