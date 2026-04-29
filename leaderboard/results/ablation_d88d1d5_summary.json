@@ -1,0 +1,40 @@
+{
+  "cells_run": [
+    "baseline",
+    "exploit_all_conf_0.65"
+  ],
+  "gates_per_cell": {
+    "baseline": {
+      "g1_avg_drop": "PASS (no baseline supplied)",
+      "g2_worst_case": "PASS",
+      "g3_deal_rate": "PASS",
+      "g4_n_opp_negative": "PASS",
+      "g5_misclass_stress": "PASS (no stress run supplied)",
+      "g6_elo_paired": "PASS"
+    },
+    "exploit_all_conf_0.65": {
+      "g1_avg_drop": "PASS",
+      "g2_worst_case": "FAIL: worst-case pairing dropped -0.0540 (limit \u22120.01)",
+      "g3_deal_rate": "PASS",
+      "g4_n_opp_negative": "FAIL: 6 opponents regressed (limit 5)",
+      "g5_misclass_stress": "PASS (no stress run supplied)",
+      "g6_elo_paired": "FAIL: paired Elo delta -23.7 (limit \u221210)"
+    }
+  },
+  "generated_at": "2026-04-29T22:43:34+00:00",
+  "git_sha": "d88d1d5",
+  "headline_per_cell": {
+    "baseline": {
+      "avg": 0.5145,
+      "deal_rate": 0.8637,
+      "elo_paired_delta": 0.0,
+      "robustness_p05": 0.3831
+    },
+    "exploit_all_conf_0.65": {
+      "avg": 0.5162,
+      "deal_rate": 0.8713,
+      "elo_paired_delta": -23.7,
+      "robustness_p05": 0.3828
+    }
+  }
+}

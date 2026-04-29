@@ -103,6 +103,9 @@ _CELLS = [
     ("oracle", {
         "SNHP_PLAYBOOK_MODE": "ORACLE",
     }, "Upper bound: classifier sees ground-truth opponent type tags"),
+    ("domain_only", {
+        "SNHP_PLAYBOOK_MODE": "DOMAIN_ONLY",
+    }, "Penguin-style: ignore opponent classification entirely (ANAC 2025 insight)"),
 ]
 
 

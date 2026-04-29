@@ -479,6 +479,16 @@ def run_round_robin(seller_pressure=None, buyer_pressure=None,
     all_players["SNHP"] = {"class": SNHPAgent, "uses_memory": True}
     all_players["Aspiration"] = {"class": AspirationNegotiator, "uses_memory": False}
 
+    # Off by default (preserves the historical 21-agent roster used by
+    # Optuna tuning); SNHP_INCLUDE_MICRO=1 adds MiCRO for ablation cells
+    # that test against this published-superior baseline.
+    if os.environ.get("SNHP_INCLUDE_MICRO", "").strip() == "1":
+        try:
+            from micro_agent import MiCROAgent  # type: ignore
+            all_players["MiCRO"] = {"class": MiCROAgent, "uses_memory": False}
+        except ImportError:
+            pass
+
     player_names = list(all_players.keys())
     n = len(player_names)
 

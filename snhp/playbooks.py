@@ -175,6 +175,11 @@ def playbook_mode() -> str:
                           (mixed-strategy verification cell).
       ORACLE           — classifier sees ground-truth labels (upper bound
                           on lift).
+      DOMAIN_ONLY      — Penguin-style: ignore opponent classification
+                          entirely, just play the math. Returns HONEST
+                          playbook regardless of belief state. Tests the
+                          ANAC 2025 insight that opponent modeling can
+                          be a liability.
     """
     return os.environ.get("SNHP_PLAYBOOK_MODE", "OFF").upper()
 
@@ -207,7 +212,8 @@ def compose_belief_weighted_params(
     pb = _active_playbooks()
     honest = pb["HONEST"]
 
-    if mode == "OFF":
+    if mode in ("OFF", "DOMAIN_ONLY"):
+        # DOMAIN_ONLY: same behavior as OFF; separate label for the ANAC ablation cell.
         return dict(honest)
 
     # Type-isolation modes: zero out belief for everyone except the

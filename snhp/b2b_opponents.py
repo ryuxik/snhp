@@ -997,3 +997,7 @@ B2B_OPPONENTS = {
     "Loss Averse": LossAverseBuyer,
     "Sunk Cost": SunkCostBuyer,
 }
+
+# MiCRO synchronizes per-round concession with whoever moved last —
+# functionally a stricter mirror, so tag it as MIRROR for ground-truth.
+OPPONENT_TYPE_TAGS["MiCRO"] = "MIRROR"
