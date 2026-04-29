@@ -522,6 +522,39 @@ def reset_global_memory() -> None:
     _global_memory = CrossSessionMemory()
 
 
+def _load_globals_optimal_from_disk() -> None:
+    """Best-effort load of snhp/playbook_globals_optimal.json (Optuna's
+    output for non-per-type tunables — aspiration detector params,
+    logrolling weights). Stored into module-global _TUNE_PARAMS so _tp()
+    finds them via the backward-compat (no-prefix) lookup path. The
+    on-disk JSON is overwritten by the playbook_tuner when it finishes
+    a search; production runs at module import pick it up."""
+    import json as _json
+    import os as _os
+    path = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                          "playbook_globals_optimal.json")
+    if not _os.path.isfile(path):
+        return
+    try:
+        with open(path, "r") as f:
+            d = _json.load(f)
+    except Exception:
+        return
+    if not isinstance(d, dict):
+        return
+    global _TUNE_PARAMS
+    if _TUNE_PARAMS is None:
+        _TUNE_PARAMS = {}
+    # Only set keys that aren't already present (don't clobber anyone
+    # who manually injected). Accept only float values.
+    for k, v in d.items():
+        if isinstance(v, (int, float)) and k not in _TUNE_PARAMS:
+            _TUNE_PARAMS[k] = float(v)
+
+
+_load_globals_optimal_from_disk()
+
+
 class SNHPAgent(SAONegotiator):
     """
     SNHP Agent for NegMAS/ANAC.
@@ -743,6 +776,133 @@ class SNHPAgent(SAONegotiator):
         type_conf = self.opponent_model.type_confidence
         self._cached_playbook = _pb_compose(belief, type_conf)
 
+    # ─── Deterministic-opponent (Aspiration-style) detector ─────────────
+    # Folded in from gametheory/agents/aspiration_detector.py (proven +1-3%
+    # Elo vs deterministic concession schedules in offline tests). Fires
+    # when len(opp_offers) >= 3 AND offers are monotonically improving for
+    # us with low first-difference variance — i.e., the opponent is on a
+    # known concession curve. In that regime we hold out at a high target
+    # and accept only when the curve has run down to ~reservation. Falls
+    # through to standard SNHP behavior otherwise.
+
+    _DET_MIN_OBS = 3
+
+    @property
+    def _det_max_diff_std(self) -> float:
+        return self._tp("det_max_diff_std", 0.025)
+
+    @property
+    def _det_min_pos_fraction(self) -> float:
+        return self._tp("det_min_pos_fraction", 0.7)
+
+    @property
+    def _det_hold_until_t(self) -> float:
+        return self._tp("det_hold_until_t", 0.85)
+
+    @property
+    def _det_bid_target_initial(self) -> float:
+        return self._tp("det_bid_target_initial", 0.85)
+
+    @property
+    def _det_bid_target_final(self) -> float:
+        return self._tp("det_bid_target_final", 0.65)
+
+    @property
+    def _det_target_floor_margin(self) -> float:
+        return self._tp("det_target_floor_margin", 0.30)
+
+    @property
+    def _det_early_accept_margin(self) -> float:
+        return self._tp("det_early_accept_margin", 0.40)
+
+    def _is_deterministic_opponent(self) -> bool:
+        if self.opponent_model is None:
+            return False
+        key = len(self.opponent_model.opponent_offers)
+        cached = getattr(self, "_det_cache", None)
+        if cached is not None and cached[0] == key:
+            return cached[1]
+        result = self._compute_det_detection()
+        self._det_cache = (key, result)
+        return result
+
+    def _compute_det_detection(self) -> bool:
+        import statistics as _stats
+        offers = list(self.opponent_model.opponent_offers)
+        if len(offers) < self._DET_MIN_OBS:
+            return False
+        utils = []
+        for o in offers:
+            try:
+                u = self.ufun(o)
+            except (TypeError, ValueError, AttributeError):
+                continue
+            if u is not None:
+                utils.append(float(u))
+        if len(utils) < self._DET_MIN_OBS:
+            return False
+        diffs = [utils[i + 1] - utils[i] for i in range(len(utils) - 1)]
+        if not diffs:
+            return False
+        positive = sum(1 for d in diffs if d > -0.005)
+        if positive < self._det_min_pos_fraction * len(diffs):
+            return False
+        if len(diffs) > 1 and _stats.stdev(diffs) > self._det_max_diff_std:
+            return False
+        return utils[-1] - utils[0] > 0.02
+
+    def _det_scored_outcomes(self) -> list:
+        cached = getattr(self, "_det_scored_outcomes_cache", None)
+        if cached is not None:
+            return cached
+        scored = []
+        outcomes = getattr(self.nmi, "outcomes", None) or []
+        for o in outcomes:
+            try:
+                v = self.ufun(o)
+                u = float(v) if v is not None else 0.0
+            except (TypeError, ValueError, AttributeError):
+                u = 0.0
+            scored.append((u, o))
+        self._det_scored_outcomes_cache = scored
+        return scored
+
+    def _det_bid_target(self, state) -> float:
+        rv = float(self.ufun.reserved_value or 0.0)
+        floor = rv + self._det_target_floor_margin
+        t = float(getattr(state, "relative_time", 0.0))
+        decayed = self._det_bid_target_initial - (
+            self._det_bid_target_initial - self._det_bid_target_final
+        ) * t
+        return max(decayed, floor)
+
+    def _det_propose(self, state):
+        scored = self._det_scored_outcomes()
+        if not scored:
+            return None
+        target = self._det_bid_target(state)
+        at_or_above = [s for s in scored if s[0] >= target - 1e-6]
+        if at_or_above:
+            return min(at_or_above, key=lambda s: s[0] - target)[1]
+        return max(scored, key=lambda s: s[0])[1]
+
+    def _det_respond(self, state):
+        offer = state.current_offer
+        if offer is None:
+            return ResponseType.REJECT_OFFER
+        rv = float(self.ufun.reserved_value or 0.0)
+        try:
+            v = self.ufun(offer)
+            u = float(v) if v is not None else 0.0
+        except (TypeError, ValueError, AttributeError):
+            u = 0.0
+        t = float(getattr(state, "relative_time", 0.0))
+        if t < self._det_hold_until_t:
+            return (ResponseType.ACCEPT_OFFER
+                    if u >= rv + self._det_early_accept_margin
+                    else ResponseType.REJECT_OFFER)
+        return ResponseType.ACCEPT_OFFER if u >= rv else ResponseType.REJECT_OFFER
+
     def _ensure_initialized(self):
         """Lazy init: enumerate outcomes once ufun is available."""
         if self._initialized:
@@ -951,6 +1111,25 @@ class SNHPAgent(SAONegotiator):
         self._ensure_initialized()
         if self.ufun is None or self._my_best is None:
             return self._my_best
+
+        # ─── Deterministic-opponent fast path ───────────────────────────
+        # Folded in from gametheory/agents/aspiration_detector.py. When the
+        # opponent's offer trajectory shows monotone-improving utility with
+        # low variance (i.e. they're on a known concession curve, e.g.
+        # AspirationNegotiator), hold out at a high target and accept late.
+        # Empirically +1-3% Elo against deterministic schedules; mode=OFF
+        # by detection (only fires when opponent looks deterministic).
+        if self._is_deterministic_opponent():
+            det_offer = self._det_propose(state)
+            if det_offer is not None:
+                self._my_offers.append(det_offer)
+                # Record our own utility for the bayesian / reciprocity tracks.
+                try:
+                    u = self.ufun(det_offer)
+                    self._my_utilities.append(float(u) if u is not None else 0.0)
+                except (TypeError, ValueError, AttributeError):
+                    pass
+                return det_offer
 
         # Detect mover order on the first propose() call. If the opponent has
         # already offered something before our first propose, we're going
@@ -1381,6 +1560,12 @@ class SNHPAgent(SAONegotiator):
         # Recompose playbook AFTER observing this offer so the belief
         # reflects the latest signal. No-op under SNHP_PLAYBOOK_MODE=OFF.
         self._refresh_playbook()
+
+        # Deterministic-opponent fast path (see propose() for context).
+        # When detected, use the dedicated hold-out / accept-late logic
+        # rather than the general adaptive decision flow.
+        if self._is_deterministic_opponent():
+            return self._det_respond(state)
 
         my_utility = self.ufun(offer)
         if my_utility is None:

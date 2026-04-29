@@ -69,9 +69,27 @@ _PARAM_BOUNDS = [
 ]
 _TYPES = ("BOULWARE", "CONCEDER", "MIRROR", "RANDOM")
 
+# Global mechanism params — apply across all opponent types, not per-type.
+# These are existing `_tp()`-readable tunables that were hand-tuned and
+# never put under search. Adds ~8 dims to the search space.
+#   det_*: aspiration-detector params (7 knobs from gametheory's
+#     SNHPWithAspirationDetector — folded into base in this commit).
+#   self_interest_weight: logrolling balance (1 knob inside _find_pareto_outcome).
+_GLOBAL_PARAM_BOUNDS = [
+    ("det_max_diff_std",        0.005, 0.06),
+    ("det_min_pos_fraction",    0.50, 0.90),
+    ("det_hold_until_t",        0.65, 0.95),
+    ("det_bid_target_initial",  0.65, 0.95),
+    ("det_bid_target_final",    0.40, 0.80),
+    ("det_target_floor_margin", 0.10, 0.40),
+    ("det_early_accept_margin", 0.20, 0.55),
+    ("self_interest_weight",    0.05, 0.50),
+]
 
-def _suggest_playbook(trial: optuna.Trial) -> dict[str, dict[str, float]]:
-    """Build a candidate playbook by suggesting all 20 params."""
+
+def _suggest_candidate(trial: optuna.Trial) -> tuple[dict, dict]:
+    """Build a candidate playbook + global tunable-params dict from the
+    trial's suggestions. Returns (playbook, global_tune_params)."""
     candidate = {}
     for ttype in _TYPES:
         candidate[ttype] = {}
@@ -89,7 +107,15 @@ def _suggest_playbook(trial: optuna.Trial) -> dict[str, dict[str, float]]:
     # Always include the HONEST baseline so compose_belief_weighted_params
     # can reach it via the residual UNKNOWN mass.
     candidate["HONEST"] = dict(playbooks._PLAYBOOKS["HONEST"])
-    return candidate
+
+    # Global tunable params (aspiration detector + logrolling weights).
+    # These get injected via negmas_agent._TUNE_PARAMS so the agent's
+    # _tp() lookup picks them up.
+    global_tune = {
+        name: trial.suggest_float(name, lo, hi)
+        for name, lo, hi in _GLOBAL_PARAM_BOUNDS
+    }
+    return candidate, global_tune
 
 
 # ─── Tournament evaluation ──────────────────────────────────────────────────
@@ -124,22 +150,38 @@ def _baseline_tournaments(n_rounds: int, n_seeds: int) -> list[dict]:
             os.environ["SNHP_PLAYBOOK_MODE"] = saved_mode
 
 
-def _candidate_tournaments(candidate_playbook: dict, n_rounds: int,
-                            confidence_min: float, n_seeds: int) -> list[dict]:
-    """Run candidate playbook across `n_seeds` matched seed offsets."""
-    saved = {
+def _candidate_tournaments(candidate_playbook: dict, global_tune: dict,
+                            n_rounds: int, confidence_min: float,
+                            n_seeds: int) -> list[dict]:
+    """Run candidate playbook + global tune-params across `n_seeds` matched
+    seed offsets. Both injections happen in-process before each tournament
+    and are cleared in `finally` so trials don't leak state."""
+    import sys as _sys
+    if "negmas_agent" not in _sys.modules:
+        # Force initial import so _TUNE_PARAMS is reachable.
+        _sys.path.insert(0, _op.join(_REPO_ROOT, "snhp"))
+        import negmas_agent  # noqa: F401
+    import negmas_agent as _na
+
+    saved_env = {
         k: os.environ.get(k) for k in
         ("SNHP_PLAYBOOK_MODE", "SNHP_CONFIDENCE_MIN")
     }
     os.environ["SNHP_PLAYBOOK_MODE"] = "ALL"
     os.environ["SNHP_CONFIDENCE_MIN"] = str(confidence_min)
     playbooks.set_playbook_override(candidate_playbook)
+    saved_tune = _na._TUNE_PARAMS
+    # Apply globals via the existing _tp() injection mechanism. Globals
+    # are non-prefixed (det_*, self_interest_weight) so they hit the
+    # backward-compat fallback in _tp() — no role prefix needed.
+    _na._TUNE_PARAMS = dict(global_tune)
     try:
         return [_run_one_tournament(n_rounds, seed_offset=s)
                 for s in range(n_seeds)]
     finally:
         playbooks.set_playbook_override(None)
-        for k, v in saved.items():
+        _na._TUNE_PARAMS = saved_tune
+        for k, v in saved_env.items():
             if v is None:
                 os.environ.pop(k, None)
             else:
@@ -178,10 +220,10 @@ def make_multi_objective(baselines: list[dict], n_rounds: int,
     }
 
     def objective(trial):
-        candidate = _suggest_playbook(trial)
+        candidate, global_tune = _suggest_candidate(trial)
         try:
             cands = _candidate_tournaments(
-                candidate, n_rounds, confidence_min, n_seeds,
+                candidate, global_tune, n_rounds, confidence_min, n_seeds,
             )
         except Exception as e:
             trial.set_user_attr("error", f"{type(e).__name__}: {e}")
@@ -281,21 +323,25 @@ def _pick_best_candidate(study: optuna.study.Study,
     return max(completed, key=lambda t: t.user_attrs.get("avg", 0.0))
 
 
-def _build_playbook_from_trial(trial: optuna.trial.FrozenTrial
-                                ) -> dict[str, dict[str, float]]:
-    """Reconstruct the playbook dict from a trial's params."""
+def _build_artifact_from_trial(trial: optuna.trial.FrozenTrial
+                                ) -> tuple[dict, dict]:
+    """Reconstruct (playbook, global_tune) from a trial's params."""
     pb = {ttype: {} for ttype in _TYPES}
+    global_tune: dict[str, float] = {}
+    global_keys = {name for name, _lo, _hi in _GLOBAL_PARAM_BOUNDS}
     for key, val in trial.params.items():
+        if key in global_keys:
+            global_tune[key] = round(float(val), 4)
+            continue
         ttype, _, name = key.partition("_")
         if ttype in pb and name:
             pb[ttype][name] = round(float(val), 4)
-    # Apply asp_floor < asp_start guard (same as suggest)
     for ttype in _TYPES:
         s = pb[ttype].get("asp_start", 0.95)
         if pb[ttype].get("asp_floor", 0.0) >= s:
             pb[ttype]["asp_floor"] = round(max(0.35, s - 0.05), 4)
     pb["HONEST"] = dict(playbooks._PLAYBOOKS["HONEST"])
-    return pb
+    return pb, global_tune
 
 
 def main():
@@ -323,8 +369,11 @@ def main():
 
     n_rounds = args.n_rounds if args.n_rounds is not None else (5 if args.quick else 20)
 
+    n_pb_dims = len(_PARAM_BOUNDS) * len(_TYPES)
+    n_global_dims = len(_GLOBAL_PARAM_BOUNDS)
     print(f"=== Playbook tuner — {args.trials} trials × N_ROUNDS={n_rounds} × {args.n_seeds} seeds ===")
-    print(f"  Search space: 5 params × 4 types = 20 dims (NSGA-II)")
+    print(f"  Search space: {n_pb_dims} per-type playbook + "
+          f"{n_global_dims} global = {n_pb_dims + n_global_dims} dims (NSGA-II)")
     print(f"  Confidence floor: {args.confidence_min}")
     print(f"  Output: {args.out}")
     print()
@@ -371,7 +420,7 @@ def main():
     print(f"  Trial passed gates: avg_d≥-0.005, worst≥-0.01, elo≥-10? "
           f"{(best.user_attrs['avg_delta'] >= -0.005 and best.user_attrs['worst_case_delta'] >= -0.01 and best.user_attrs['elo_delta'] >= -10)}")
 
-    candidate = _build_playbook_from_trial(best)
+    candidate, global_tune = _build_artifact_from_trial(best)
     artifact = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "n_trials": args.trials,
@@ -379,6 +428,7 @@ def main():
         "confidence_min": args.confidence_min,
         "trial_number": best.number,
         "user_attrs": dict(best.user_attrs),
+        "_global_tune": global_tune,
         **candidate,
     }
     with open(args.out, "w") as f:
@@ -386,6 +436,14 @@ def main():
         f.write("\n")
     print(f"\nWrote tuned playbook → {args.out}")
     print(f"  → re-import snhp.playbooks to load (or restart any tournament).")
+    if global_tune:
+        # Also write the global tune-params alongside, in the format
+        # negmas_agent._TUNE_PARAMS expects (non-prefixed keys).
+        global_path = _op.join(_SNHP_DIR, "playbook_globals_optimal.json")
+        with open(global_path, "w") as f:
+            json.dump(global_tune, f, sort_keys=True, indent=2)
+            f.write("\n")
+        print(f"Wrote global tune-params → {global_path}")
 
 
 if __name__ == "__main__":
