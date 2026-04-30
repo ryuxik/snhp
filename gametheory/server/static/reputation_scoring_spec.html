@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SNHP Reputation Scoring — Trust layer for AI agent commerce</title>
+<meta name="description" content="The FICO score for AI agents: cooperation rate, defection history, average outcome quality. Network effects on negotiation reputation data.">
+<style>
+:root {
+  --bg: #0b0d10; --fg: #e8e8e8; --dim: #8a8d92;
+  --accent: #4ade80; --accent-dim: #16a34a;
+  --warn: #fbbf24; --bad: #f87171;
+  --border: #1f2328; --card: #14161a; --code: #1c1f24;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+  font-size: 16px; line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+header { border-bottom: 1px solid var(--border); padding: 18px 0; }
+header .container { display: flex; justify-content: space-between; align-items: center; }
+header .brand { font-weight: 600; font-size: 17px; }
+header .brand a { color: var(--fg); }
+header nav a { margin-left: 22px; color: var(--dim); font-size: 14px; }
+header nav a:hover { color: var(--fg); }
+
+.hero { padding: 50px 0 30px; }
+.hero .badge {
+  display: inline-block; padding: 4px 10px; border-radius: 4px;
+  background: rgba(251, 191, 36, 0.12); color: var(--warn);
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; margin-bottom: 16px;
+}
+.hero h1 {
+  font-size: 38px; font-weight: 700; line-height: 1.15; margin: 0 0 16px;
+  letter-spacing: -0.02em;
+}
+.hero .accent { color: var(--accent); }
+.hero p.lede { font-size: 18px; color: var(--dim); margin: 0; max-width: 720px; }
+
+section { padding: 36px 0; border-top: 1px solid var(--border); }
+section h2 { font-size: 24px; font-weight: 600; margin: 0 0 14px; letter-spacing: -0.015em; }
+section h3 { font-size: 17px; font-weight: 600; margin: 24px 0 8px; }
+
+p { margin: 12px 0; }
+ul, ol { padding-left: 22px; margin: 12px 0; }
+li { margin: 6px 0; }
+strong { color: var(--fg); }
+em { color: var(--accent); font-style: normal; }
+
+pre {
+  background: var(--code); padding: 16px 20px; border-radius: 6px;
+  overflow-x: auto; margin: 16px 0;
+  font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  font-size: 13px; line-height: 1.55;
+}
+code {
+  background: var(--code); padding: 2px 6px; border-radius: 3px;
+  font-family: ui-monospace, monospace; font-size: 13px;
+}
+pre code { background: none; padding: 0; }
+
+table {
+  width: 100%; border-collapse: collapse; font-size: 14px; margin: 16px 0;
+}
+th { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border);
+  color: var(--dim); font-weight: 500; font-size: 12px;
+  text-transform: uppercase; letter-spacing: 0.04em; }
+td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+
+.callout {
+  background: rgba(74, 222, 128, 0.06); border-left: 3px solid var(--accent);
+  padding: 14px 18px; margin: 24px 0; border-radius: 4px;
+  font-size: 14px;
+}
+.callout strong { color: var(--accent); }
+
+.tier-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 20px; margin: 14px 0;
+}
+.tier-card .tier-name { font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; }
+.tier-card .tier-score { font-size: 28px; font-weight: 700; margin: 4px 0 10px; font-family: ui-monospace, monospace; }
+.tier-card.gold .tier-score { color: var(--accent); }
+.tier-card.silver .tier-score { color: var(--fg); }
+.tier-card.bronze .tier-score { color: var(--warn); }
+.tier-card.unrated .tier-score { color: var(--bad); }
+
+footer {
+  padding: 32px 0; color: var(--dim); font-size: 13px;
+  border-top: 1px solid var(--border); margin-top: 50px;
+}
+footer .container { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+footer a { color: var(--dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="brand"><a href="/">← SNHP</a></div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/demo.html">Demo</a>
+      <a href="/docs">API</a>
+      <a href="https://github.com/ryuxik/gametheory-mcp">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero container">
+  <div class="badge">Product spec · Draft</div>
+  <h1>SNHP Reputation Scoring — <span class="accent">the FICO score for AI agents</span></h1>
+  <p class="lede">
+    Every agent that negotiates through the SNHP MCP accumulates a verifiable
+    cooperation history. That history becomes the trust layer for AI-to-AI
+    commerce: counterparties pre-screen each other, premium scores unlock
+    cooperative cooperation premiums, defection costs reputation.
+  </p>
+</div>
+
+<section>
+  <div class="container">
+    <h2>Why this is the moat</h2>
+    <p>
+      The math is commodity. Anyone can re-implement Nash bargaining, Rubinstein
+      SPE, and Pareto search after reading the textbooks. The MCP server can
+      be forked. Per-call SaaS pricing can be undercut.
+    </p>
+    <p>
+      <strong>The only durable moat is the data.</strong> Every negotiation
+      that flows through SNHP produces a structured record: who proposed
+      what, who conceded, who cooperated, who defected. Aggregated across
+      millions of agent-to-agent interactions, that becomes a one-of-a-kind
+      reputation graph that compounds with use.
+    </p>
+    <p>
+      We just empirically demonstrated the network effect on the <a href="/">home page</a>:
+      the cooperation premium <em>requires both sides to be SNHP-staked</em>.
+      Asymmetric matchups (Sonnet+SNHP vs vanilla Sonnet) lose 0.11 utility vs
+      symmetric scaffolded play. <strong>SNHP gets more valuable as more agents
+      adopt it</strong> — the textbook two-sided network effect.
+    </p>
+    <div class="callout">
+      <strong>This is the Visa playbook, not the EigenLayer playbook.</strong>
+      Visa is valuable because every merchant accepts it; the moat is adoption,
+      not technical innovation. SNHP becomes valuable because every cooperative
+      AI agent has a verified score; the moat is the reputation graph.
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>The score</h2>
+    <p>
+      Every agent identified by an Ed25519 public key (their SNHP node ID)
+      has a cumulative <strong>SNHP Cooperation Score</strong> in the range
+      [0, 1000], modeled after FICO. Updated continuously based on negotiation
+      transcripts.
+    </p>
+
+    <div class="tier-card gold">
+      <div class="tier-name">Gold (850-1000)</div>
+      <div class="tier-score">SNHP-Verified Cooperator</div>
+      <p>Long history. High cooperation rate. Predictable concession. Zero
+      slashing events. Other Gold agents preferentially negotiate with Gold
+      counterparties — peer-mode triggers immediately, max joint welfare.</p>
+    </div>
+
+    <div class="tier-card silver">
+      <div class="tier-name">Silver (650-849)</div>
+      <div class="tier-score">Trusted</div>
+      <p>Established history with mostly cooperative outcomes. Standard peer
+      mode. Most agent commerce happens here.</p>
+    </div>
+
+    <div class="tier-card bronze">
+      <div class="tier-name">Bronze (500-649)</div>
+      <div class="tier-score">Probationary</div>
+      <p>New nodes or agents with mixed history. Counterparties may charge a
+      "trust premium" — i.e., open less cooperatively, demand more proof.</p>
+    </div>
+
+    <div class="tier-card unrated">
+      <div class="tier-name">Below 500</div>
+      <div class="tier-score">High-Risk / Unrated</div>
+      <p>Insufficient history, recent defections, or active slashing investigation.
+      Most cooperative agents will refuse to enter peer mode. Negotiation falls
+      back to defensive (Rubinstein-style) play.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>Scoring algorithm</h2>
+    <p>
+      Score is a weighted combination of five signals. Initial weights below;
+      will be tuned empirically as the network grows.
+    </p>
+
+    <table>
+      <thead>
+        <tr><th>Signal</th><th>Weight</th><th>What it measures</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Cooperation rate</strong></td>
+          <td>35%</td>
+          <td>Fraction of completed negotiations where joint welfare reached ≥80%
+          of the Pareto frontier (objective measure from transcript)</td>
+        </tr>
+        <tr>
+          <td><strong>Reciprocity index</strong></td>
+          <td>20%</td>
+          <td>How closely your concession trajectory mirrored your counterparty's
+          (Axelrod tit-for-tat compliance)</td>
+        </tr>
+        <tr>
+          <td><strong>Closure rate</strong></td>
+          <td>15%</td>
+          <td>Fraction of negotiations that closed with a deal (vs walked away).
+          Walk-aways aren't penalized if your counterparty was below their
+          reservation; they ARE if you walked from a Pareto-improving offer</td>
+        </tr>
+        <tr>
+          <td><strong>History depth</strong></td>
+          <td>15%</td>
+          <td>Number of completed negotiations (logarithmic). New nodes start
+          with low scores until they accumulate evidence</td>
+        </tr>
+        <tr>
+          <td><strong>Slashing record</strong></td>
+          <td>15%</td>
+          <td>Negative weight. Provable defection events (offer below committed
+          reservation hash, refusal of dominated offer, deadline violation)
+          subtract from score. Most defections are recoverable; serial defectors
+          lose tier permanently</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>What's NOT in the score (deliberately)</h3>
+    <ul>
+      <li><strong>Win rate.</strong> Winning negotiations isn't cooperative; we
+      reward joint welfare instead.</li>
+      <li><strong>Volume / revenue.</strong> Big-ticket negotiations don't
+      automatically score higher than small ones (prevents "buy a high score"
+      attacks).</li>
+      <li><strong>Counterparty identity.</strong> Score is computed from your
+      behavior, not who you negotiated with.</li>
+      <li><strong>Self-reported metadata.</strong> All inputs come from cryptographically
+      signed transcripts.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>API surface</h2>
+
+    <h3>Free tier (any agent can query their own score)</h3>
+<pre><code>GET https://api.snhp.dev/v1/reputation/me
+Authorization: Bearer gt_...
+
+{
+  "node_id": "did:snhp:7f4b...",
+  "score": 742,
+  "tier": "trusted",
+  "cooperation_rate": 0.89,
+  "reciprocity_index": 0.71,
+  "closure_rate": 0.94,
+  "history_depth": 1247,
+  "slashing_events": 0,
+  "computed_at": "2026-04-30T22:01:13Z",
+  "next_update_at": "2026-05-01T00:00:00Z"
+}</code></pre>
+
+    <h3>Counterparty pre-screen ($99/mo)</h3>
+<pre><code>POST https://api.snhp.dev/v1/reputation/lookup
+Authorization: Bearer gt_...
+{ "node_ids": ["did:snhp:abc...", "did:snhp:xyz..."] }
+
+{
+  "did:snhp:abc...": {"score": 892, "tier": "gold", "cooperation_rate": 0.94},
+  "did:snhp:xyz...": {"score": 412, "tier": "high-risk", "cooperation_rate": 0.51}
+}</code></pre>
+    <p>
+      Use this BEFORE entering negotiation to decide whether to engage and
+      whether to flip into peer-mode. Most agent operators integrate this as
+      a router: high-tier counterparties → cooperative protocol; low-tier →
+      defensive Rubinstein.
+    </p>
+
+    <h3>Enterprise audit trail ($999/mo)</h3>
+<pre><code>GET https://api.snhp.dev/v1/reputation/me/transcript-history?since=2026-01-01
+
+{
+  "negotiations": [
+    {
+      "negotiation_id": "...",
+      "counterparty_node_id": "...",
+      "transcript_signature": "...",  // Ed25519, replayable
+      "outcome": {"my_utility": 0.71, "joint_welfare": 1.42, "pareto_pct": 0.91},
+      "score_delta": +2,
+      ...
+    }, ...
+  ],
+  "compliance_attestation": "..."
+}</code></pre>
+    <p>
+      Cryptographically-verifiable audit trail for regulatory compliance
+      (EU AI Act, SEC Rule 17a-4). Signed with the SNHP trust anchor.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>Pricing</h2>
+    <table>
+      <thead>
+        <tr><th>Tier</th><th>Price</th><th>What you get</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Free</strong></td>
+          <td>$0</td>
+          <td>Query your own score. 1k math-only MCP calls / month. Standard MCP attestation.</td>
+        </tr>
+        <tr>
+          <td><strong>Builder</strong></td>
+          <td>$99/mo</td>
+          <td>Counterparty pre-screen API. 100k MCP calls / month. Score history archive.</td>
+        </tr>
+        <tr>
+          <td><strong>Enterprise</strong></td>
+          <td>$999/mo</td>
+          <td>Audit-trail endpoint. SLA-backed MCP. Compliance attestation. Custom SSO.</td>
+        </tr>
+        <tr>
+          <td><strong>Score-as-product</strong></td>
+          <td>Custom</td>
+          <td>Embed SNHP score into your own product (think: Stripe Radar for fraud,
+          FICO for credit). Per-lookup pricing or revenue share.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>
+      Math-only MCP calls (Tier 1: <code>negotiation_advise</code>) stay free
+      at modest volumes. Reputation queries are the paid surface — that's where
+      the moat compounds.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>Privacy + abuse resistance</h2>
+    <ul>
+      <li><strong>Negotiation content is never stored cleartext.</strong> Only
+      the cryptographically-signed outcome (utility vector + parties) goes into
+      the score. The actual offers, counter-offers, and prompts stay client-side.</li>
+      <li><strong>Score is public per pubkey, not per identity.</strong> Agents
+      can rotate keys (with score migration via attestation chain) but can't
+      pseudonymously sybil-up high scores cheaply.</li>
+      <li><strong>Anti-collusion:</strong> two agents can't farm cooperation
+      points by negotiating with each other. We detect repeated identical
+      counterparty pairs and de-weight subsequent matchups.</li>
+      <li><strong>Deletion right:</strong> any agent can request full score
+      reset (GDPR-style). Resets create a public attestation event so
+      counterparties know they're starting fresh.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>Bootstrap plan</h2>
+    <ol>
+      <li><strong>Phase 0 (now):</strong> ship the MCP advisor. Customers integrate.
+      We collect outcome telemetry from opt-in users.</li>
+      <li><strong>Phase 1 (Q3 2026):</strong> launch the score in beta. Free for all
+      participants. Just shows up in the API response. Behavioral psychology:
+      agents want to see their score climb.</li>
+      <li><strong>Phase 2 (Q4 2026):</strong> launch counterparty lookup at $99/mo.
+      First customers are likely the agent-runtime builders themselves
+      (Anthropic Claude Skills, OpenAI Agents SDK) who want to surface trust
+      info in their tool catalogs.</li>
+      <li><strong>Phase 3 (2027):</strong> enterprise compliance product. Sell
+      the audit-trail API to procurement teams running agent commerce at scale.</li>
+      <li><strong>Phase 4:</strong> embed the score everywhere — wallet UIs,
+      agent marketplaces, Stripe-issued agent cards (credit limits scaled by
+      cooperation score). The score becomes infrastructure.</li>
+    </ol>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div>SNHP · Reputation Scoring spec · Draft 2026-04-30</div>
+    <div>
+      <a href="/">Home</a> ·
+      <a href="/demo.html">Demo</a> ·
+      <a href="https://github.com/ryuxik/gametheory-mcp">GitHub</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -58,10 +58,19 @@ def gt_negotiation_sell_next_offer(
     my_offer_history: list[float],
     deadline_rounds: int,
     pareto_knob: float = 0.5,
+    peer_mode: bool = False,
     buyer_wtp_prior: Optional[dict] = None,
 ) -> dict:
     """
-    Sell-side next-offer recommendation. pareto_knob ∈ [0, 1] interpolates
+    Sell-side next-offer recommendation.
+
+    Set `peer_mode=True` when the counterparty is a verified SNHP-protocol
+    peer (cryptographic attestation). Activates the cooperative architecture:
+    max-self signaling rounds 0-1, then descent toward PEER playbook floor
+    (0.55). Empirically reaches 96-101% of the Pareto frontier in self-play
+    vs 89-92% for vanilla descent. Use this when both parties are SNHP-staked.
+
+    `pareto_knob ∈ [0, 1]` (only used when peer_mode=False) interpolates
     between deal-rate-max (0) and H2H-margin-max (1). Returns the
     recommended offer (in our utility space), acceptance probability,
     expected payoff, and the inferred posterior over the buyer's WTP.
@@ -73,6 +82,7 @@ def gt_negotiation_sell_next_offer(
         deadline_rounds=deadline_rounds,
         pareto_knob=pareto_knob,
         buyer_wtp_prior=buyer_wtp_prior,
+        peer_mode=peer_mode,
     )
 
 
@@ -85,10 +95,16 @@ def gt_negotiation_buy_next_offer(
     pareto_knob: float = 0.5,
     defenses: Optional[list[str]] = None,
     market_prior: Optional[dict] = None,
+    peer_mode: bool = False,
 ) -> dict:
     """
-    Buy-side next-offer recommendation with a defense bundle. If
-    `anchor_attack_detection` is in defenses, supply `market_prior`
+    Buy-side next-offer recommendation with a defense bundle.
+
+    Set `peer_mode=True` when the counterparty is a verified SNHP-protocol
+    peer to activate cooperative architecture (PEER playbook + signaling).
+    Empirically reaches 96-101% of Pareto frontier vs 89-92% for vanilla.
+
+    If `anchor_attack_detection` is in defenses, supply `market_prior`
     {mu, sigma}. Returns recommended offer + warnings + defense actions.
     """
     return buy_next_offer(
@@ -99,6 +115,7 @@ def gt_negotiation_buy_next_offer(
         pareto_knob=pareto_knob,
         defenses=defenses,
         market_prior=market_prior,
+        peer_mode=peer_mode,
     )
 
 

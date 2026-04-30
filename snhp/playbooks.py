@@ -77,13 +77,43 @@ _PLAYBOOKS: Dict[str, Dict[str, float]] = {
         "commitment_margin": 0.02,
         "concession_cap":    0.025,
     },
-    # UNKNOWN / fallback: equilibrium-honest defaults (current SNHP behavior).
+    # PEER: activated when the cryptographic protocol confirms the
+    # counterparty is a registered, signature-verified SNHP-protocol
+    # node (snhp_protocol.is_peer_verified()).
+    #
+    # Empirical note (2026-04-30): the random-weights harness Pareto
+    # frontier max is 1.29 mean / 1.70 p95. SNHP-vs-SNHP_B with HONEST
+    # defaults already lands at 1.27 = 98% of the mean ceiling. Pushing
+    # asp_floor to 0.65 / accept_early_bar to 0.70 (demanded both sides
+    # ≥0.70) collapsed pair welfare to 0.95 — infeasible against a 1.29
+    # mean frontier. PEER now mirrors HONEST on the bargaining params
+    # and lets the orthogonal changes (wider Pareto band, lower
+    # self-interest weight, Bayesian prior) deliver any remaining lift.
+    "PEER": {
+        "asp_start":         0.88,
+        "asp_floor":         0.50,
+        "accept_early_bar":  0.55,
+        "commitment_margin": 0.02,
+        # 0.020 empirically dominated 0.030 and 0.050 in conc=1.0 harness:
+        # peers descend slowly enough that the asymmetric Pareto outcome
+        # gets time to crystallize via mutual logrolling. Faster descent
+        # overshoots Pareto and gives surplus away.
+        "concession_cap":    0.020,
+    },
+    # UNKNOWN / fallback: open firm, descend toward fair share, walk away.
+    # The previous opener (0.62) ceded anchor advantage in round 1 against
+    # a field that opens at 0.95+ — Aspiration's high-anchor curve was
+    # closer to Rubinstein-SPE under impatience than our equilibrium share.
+    # Two cooperative SNHPs with this opener still converge symmetrically
+    # to ~0.55 (both descend toward asp_floor=0.55); against extractors,
+    # walk-away protection (raised in negmas_agent's late-game floor)
+    # prevents giving away surplus on the way down.
     "HONEST": {
-        "asp_start":         0.62,
-        "asp_floor":         0.45,
-        "accept_early_bar":  0.46,
-        "commitment_margin": 0.01,
-        "concession_cap":    0.025,
+        "asp_start":         0.85,
+        "asp_floor":         0.55,
+        "accept_early_bar":  0.55,
+        "commitment_margin": 0.02,
+        "concession_cap":    0.020,
     },
 }
 

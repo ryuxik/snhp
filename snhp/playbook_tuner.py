@@ -47,6 +47,14 @@ from optuna.samplers import NSGAIISampler
 from snhp import playbooks
 from snhp.eval_metrics import (  # noqa: E402
     paired_seed_elo_delta, _snhp_per_opponent,
+    pair_joint_welfare, mean_defense_floor_violation,
+)
+from snhp.b2b_opponents import OPPONENT_TYPE_TAGS  # noqa: E402
+
+# Extractor names = ground-truth BOULWARE-tagged opponents (the hardliners
+# we want to defend against). Used by the defense-floor metric.
+_EXTRACTOR_NAMES = sorted(
+    name for name, ttype in OPPONENT_TYPE_TAGS.items() if ttype == "BOULWARE"
 )
 
 
@@ -83,7 +91,22 @@ _GLOBAL_PARAM_BOUNDS = [
     ("det_bid_target_final",    0.40, 0.80),
     ("det_target_floor_margin", 0.10, 0.40),
     ("det_early_accept_margin", 0.20, 0.55),
-    ("self_interest_weight",    0.05, 0.50),
+    # Logrolling balance — was hardcoded; now also covers the asymmetry-
+    # bumped values so the search can choose how aggressively we punish
+    # one-sided concession.
+    ("self_interest_weight",    0.03, 0.40),
+    ("self_interest_mid",       0.10, 0.45),
+    ("self_interest_high",      0.20, 0.60),
+    # Pareto-search band per regime. Wider band = more candidate
+    # outcomes considered for logrolling, at cost of straying from
+    # the target utility. Tuned per regime: default / B2B-flat / hardliner.
+    ("pareto_band_normal",      0.04, 0.20),
+    ("pareto_band_b2b",         0.04, 0.20),
+    ("pareto_band_b2b_boulware", 0.06, 0.30),
+    # How many opponent offers we wait for before activating logrolling.
+    # Lower = faster (riskier inference); higher = more reliable but
+    # gives away rounds at our default proposal pattern.
+    ("logroll_min_offers",      1.0, 5.0),
 ]
 
 
@@ -137,9 +160,15 @@ def _baseline_tournaments(n_rounds: int, n_seeds: int) -> list[dict]:
     """Run mode=OFF tournament across `n_seeds` independent seed offsets.
     Returns a list of per-seed (rankings, pairwise, scores) dicts. The
     candidate evaluator pairs each candidate seed against the SAME baseline
-    seed for true paired-seed Elo comparison (drops Elo MDE ~50% per √n)."""
+    seed for true paired-seed Elo comparison (drops Elo MDE ~50% per √n).
+
+    SNHP_PAIR_TEST=1 is set so SNHP_B is in the roster — the dual-
+    objective evaluator needs the SNHP-vs-SNHP_B matchup data to compute
+    pair joint welfare."""
     saved_mode = os.environ.get("SNHP_PLAYBOOK_MODE")
+    saved_pair = os.environ.get("SNHP_PAIR_TEST")
     os.environ["SNHP_PLAYBOOK_MODE"] = "OFF"
+    os.environ["SNHP_PAIR_TEST"] = "1"
     try:
         return [_run_one_tournament(n_rounds, seed_offset=s)
                 for s in range(n_seeds)]
@@ -148,6 +177,10 @@ def _baseline_tournaments(n_rounds: int, n_seeds: int) -> list[dict]:
             os.environ.pop("SNHP_PLAYBOOK_MODE", None)
         else:
             os.environ["SNHP_PLAYBOOK_MODE"] = saved_mode
+        if saved_pair is None:
+            os.environ.pop("SNHP_PAIR_TEST", None)
+        else:
+            os.environ["SNHP_PAIR_TEST"] = saved_pair
 
 
 def _candidate_tournaments(candidate_playbook: dict, global_tune: dict,
@@ -165,10 +198,11 @@ def _candidate_tournaments(candidate_playbook: dict, global_tune: dict,
 
     saved_env = {
         k: os.environ.get(k) for k in
-        ("SNHP_PLAYBOOK_MODE", "SNHP_CONFIDENCE_MIN")
+        ("SNHP_PLAYBOOK_MODE", "SNHP_CONFIDENCE_MIN", "SNHP_PAIR_TEST")
     }
     os.environ["SNHP_PLAYBOOK_MODE"] = "ALL"
     os.environ["SNHP_CONFIDENCE_MIN"] = str(confidence_min)
+    os.environ["SNHP_PAIR_TEST"] = "1"
     playbooks.set_playbook_override(candidate_playbook)
     saved_tune = _na._TUNE_PARAMS
     # Apply globals via the existing _tp() injection mechanism. Globals
@@ -193,31 +227,36 @@ def _candidate_tournaments(candidate_playbook: dict, global_tune: dict,
 
 def make_multi_objective(baselines: list[dict], n_rounds: int,
                           confidence_min: float, n_seeds: int):
-    """Returns an Optuna multi-objective callable that returns a 3-tuple:
-       (avg_snhp_util, elo_paired_delta, min_per_opp_delta)
-    All three maximized. Each metric is the MEDIAN across `n_seeds`
-    paired-seed runs, dropping single-tournament noise.
+    """Returns an Optuna NSGA-II callable that returns a 3-tuple:
+       (joint_pair_welfare, neg_defense_loss, neg_worst_case_delta)
+    All three MAXIMIZED. Reformulated from the prior (avg, elo, worst_case)
+    objective per the cooperation thesis: SNHP wins as a *protocol* when
+    cooperator-pair joint welfare is high AND defender-side floor losses
+    are minimized. Avg utility is a derived diagnostic, not the objective.
+
+    Metrics aggregated as MEDIAN across `n_seeds` paired-seed runs to drop
+    single-tournament noise.
     """
     import statistics as _stats
 
-    # Median baseline avg across seeds (the comparison anchor for avg_delta)
     base_avgs_per_seed = [
         next((r["avg"] for r in b["rankings"] if r["name"] == "SNHP"), 0.0)
         for b in baselines
     ]
     median_base_avg = _stats.median(base_avgs_per_seed)
 
-    # Per-opponent median baseline utility for worst-case delta
     base_per_opp_per_seed = [_snhp_per_opponent(b["pairwise"], "SNHP")
                               for b in baselines]
-    all_opps = set().union(*(b.keys() for b in base_per_opp_per_seed))
-    base_per_opp_median = {
-        opp: _stats.median(
-            [b.get(opp, 0.0) for b in base_per_opp_per_seed if opp in b]
-            or [0.0]
-        )
-        for opp in all_opps
-    }
+
+    base_pair_per_seed = [
+        pair_joint_welfare(b["pairwise"], "SNHP", "SNHP_B") for b in baselines
+    ]
+    median_base_pair = _stats.median(base_pair_per_seed) if base_pair_per_seed else 0.0
+    base_def_per_seed = [
+        mean_defense_floor_violation(b["pairwise"], "SNHP", _EXTRACTOR_NAMES)
+        for b in baselines
+    ]
+    median_base_def = _stats.median(base_def_per_seed) if base_def_per_seed else 0.0
 
     def objective(trial):
         candidate, global_tune = _suggest_candidate(trial)
@@ -227,12 +266,13 @@ def make_multi_objective(baselines: list[dict], n_rounds: int,
             )
         except Exception as e:
             trial.set_user_attr("error", f"{type(e).__name__}: {e}")
-            return 0.0, -1000.0, -1.0
+            return -10.0, -10.0, -10.0
 
-        # Per-seed metrics
         per_seed_avg = []
         per_seed_elo = []
         per_seed_worst = []
+        per_seed_pair = []
+        per_seed_def = []
         for i, cand in enumerate(cands):
             cand_avg = next(
                 (r["avg"] for r in cand["rankings"] if r["name"] == "SNHP"),
@@ -249,42 +289,37 @@ def make_multi_objective(baselines: list[dict], n_rounds: int,
                 for opp in base_per_opp_per_seed[i]
             ]
             worst = min(per_opp_deltas) if per_opp_deltas else 0.0
+            pair = pair_joint_welfare(cand["pairwise"], "SNHP", "SNHP_B")
+            defloss = mean_defense_floor_violation(
+                cand["pairwise"], "SNHP", _EXTRACTOR_NAMES,
+            )
             per_seed_avg.append(cand_avg)
             per_seed_elo.append(elo)
             per_seed_worst.append(worst)
+            per_seed_pair.append(pair)
+            per_seed_def.append(defloss)
 
-        # Median aggregation (robust to one-seed outliers)
         avg_med = _stats.median(per_seed_avg)
         elo_med = _stats.median(per_seed_elo)
         worst_med = _stats.median(per_seed_worst)
-
-        # Variance diagnostics — large per-seed range = noisy result
-        elo_range = max(per_seed_elo) - min(per_seed_elo)
-
-        # Per-opponent count regressed (median across seeds)
-        n_regressed_per_seed = []
-        for i, cand in enumerate(cands):
-            cand_per_opp = _snhp_per_opponent(cand["pairwise"], "SNHP")
-            n = sum(
-                1 for opp in base_per_opp_per_seed[i]
-                if cand_per_opp.get(opp, 0.0) - base_per_opp_per_seed[i][opp] < -0.005
-            )
-            n_regressed_per_seed.append(n)
+        pair_med = _stats.median(per_seed_pair)
+        def_med = _stats.median(per_seed_def)
 
         trial.set_user_attr("n_seeds", n_seeds)
         trial.set_user_attr("avg", round(avg_med, 4))
         trial.set_user_attr("avg_delta", round(avg_med - median_base_avg, 4))
         trial.set_user_attr("elo_delta", round(elo_med, 1))
-        trial.set_user_attr("elo_range_across_seeds", round(elo_range, 1))
         trial.set_user_attr("worst_case_delta", round(worst_med, 4))
-        trial.set_user_attr(
-            "n_opponents_regressed",
-            int(_stats.median(n_regressed_per_seed)),
-        )
-        trial.set_user_attr("per_seed_elo", per_seed_elo)
-        trial.set_user_attr("per_seed_avg", [round(a, 4) for a in per_seed_avg])
+        trial.set_user_attr("pair_joint_welfare", round(pair_med, 4))
+        trial.set_user_attr("pair_delta", round(pair_med - median_base_pair, 4))
+        trial.set_user_attr("defense_floor_loss", round(def_med, 4))
+        trial.set_user_attr("defense_delta", round(median_base_def - def_med, 4))
+        trial.set_user_attr("per_seed_pair", [round(p, 4) for p in per_seed_pair])
+        trial.set_user_attr("per_seed_def", [round(d, 4) for d in per_seed_def])
 
-        return avg_med, elo_med, worst_med
+        # NSGA-II maximizes; defense_loss and worst_case are NEGATED so
+        # "less loss" / "less regression" becomes "more objective."
+        return pair_med, -def_med, worst_med
 
     return objective
 
@@ -293,13 +328,15 @@ def make_multi_objective(baselines: list[dict], n_rounds: int,
 
 
 def _pick_best_candidate(study: optuna.study.Study,
-                          gate_min_avg_drop_pct: float = -1.0,
-                          gate_min_worst_case: float = -0.01,
-                          gate_max_elo_drop: float = -10.0) -> Optional[optuna.trial.FrozenTrial]:
+                          gate_min_pair_delta: float = 0.0,
+                          gate_max_def_loss: float = 0.05,
+                          gate_min_worst_case: float = -0.02) -> Optional[optuna.trial.FrozenTrial]:
     """From the Pareto front, pick the candidate that:
-      1. Passes all 3 hard gates (avg_drop, worst_case, elo).
-      2. Among gate-passers, maximizes elo_delta.
-      3. If no gate-passer exists, fall back to highest-avg trial.
+      1. Passes 3 hard gates: pair welfare ≥ baseline (no cooperation
+         regression), defense loss ≤ 0.05 (we don't lose >0.05 below rv
+         on average vs extractors), worst-case per-opponent ≥ -0.02.
+      2. Among gate-passers, maximizes pair welfare (the headline metric).
+      3. If no gate-passer exists, fall back to highest pair welfare overall.
     """
     completed = [t for t in study.trials
                   if t.state == optuna.trial.TrialState.COMPLETE]
@@ -307,20 +344,19 @@ def _pick_best_candidate(study: optuna.study.Study,
         return None
 
     def gates_pass(t):
-        avg_d = t.user_attrs.get("avg_delta")
+        pair_d = t.user_attrs.get("pair_delta")
+        def_loss = t.user_attrs.get("defense_floor_loss")
         wc = t.user_attrs.get("worst_case_delta")
-        elo = t.user_attrs.get("elo_delta")
-        if avg_d is None or wc is None or elo is None:
+        if pair_d is None or def_loss is None or wc is None:
             return False
-        # avg_drop_pct ≥ −1.0% — i.e., delta ≥ -0.01 × baseline_avg ≈ -0.005
-        return (avg_d >= -0.005 and wc >= gate_min_worst_case
-                and elo >= gate_max_elo_drop)
+        return (pair_d >= gate_min_pair_delta
+                and def_loss <= gate_max_def_loss
+                and wc >= gate_min_worst_case)
 
     passers = [t for t in completed if gates_pass(t)]
     if passers:
-        return max(passers, key=lambda t: t.user_attrs["elo_delta"])
-    # Fallback: highest avg
-    return max(completed, key=lambda t: t.user_attrs.get("avg", 0.0))
+        return max(passers, key=lambda t: t.user_attrs["pair_joint_welfare"])
+    return max(completed, key=lambda t: t.user_attrs.get("pair_joint_welfare", 0.0))
 
 
 def _build_artifact_from_trial(trial: optuna.trial.FrozenTrial
@@ -382,18 +418,26 @@ def main():
     baselines = _baseline_tournaments(n_rounds, args.n_seeds)
     base_avgs = [next((r["avg"] for r in b["rankings"] if r["name"] == "SNHP"), 0.0)
                   for b in baselines]
-    print(f"  Baseline SNHP avg utility per seed = "
-          f"{[round(a, 4) for a in base_avgs]}  "
-          f"(wall {time.time() - t_base_start:.1f}s)")
+    base_pairs = [pair_joint_welfare(b["pairwise"], "SNHP", "SNHP_B") for b in baselines]
+    base_defs = [mean_defense_floor_violation(b["pairwise"], "SNHP", _EXTRACTOR_NAMES)
+                 for b in baselines]
+    print(f"  Baseline per-seed: avg={[round(a, 4) for a in base_avgs]}")
+    print(f"                     pair_welfare={[round(p, 4) for p in base_pairs]}")
+    print(f"                     defense_loss={[round(d, 4) for d in base_defs]}")
+    print(f"  Wall {time.time() - t_base_start:.1f}s, extractors={_EXTRACTOR_NAMES}")
 
     print(f"\nStep 2/3: NSGA-II search ({args.trials} trials × {args.n_seeds} seeds = "
           f"{args.trials * args.n_seeds} tournaments)...")
     db_path = args.db_path
     storage = f"sqlite:///{db_path}" if db_path else None
-    sampler = NSGAIISampler(population_size=min(20, args.trials // 2 + 4),
-                             seed=42)
+    # NSGA-II population sized to ~dim count for adequate Pareto coverage
+    # in a 32-dim search. Cap at trials // 4 so we get at least 4 generations.
+    pop_size = min(32, max(8, args.trials // 4))
+    sampler = NSGAIISampler(population_size=pop_size, seed=42)
+    print(f"  NSGA-II population: {pop_size}  ({args.trials // pop_size} generations)")
     study = optuna.create_study(
-        directions=["maximize", "maximize", "maximize"],   # avg, elo, worst_case
+        # Objectives in order: pair_welfare, neg_defense_loss, neg_worst_case
+        directions=["maximize", "maximize", "maximize"],
         sampler=sampler, storage=storage,
         load_if_exists=(storage is not None),
     )
@@ -412,13 +456,17 @@ def main():
     if best is None:
         print("  ❌ No completed trials; aborting.")
         sys.exit(1)
-    print(f"  Trial #{best.number}:  "
-          f"avg={best.user_attrs['avg']:.4f}  "
-          f"avg_delta={best.user_attrs['avg_delta']:+.4f}  "
-          f"elo_delta={best.user_attrs['elo_delta']:+.1f}  "
-          f"worst_case={best.user_attrs['worst_case_delta']:+.4f}")
-    print(f"  Trial passed gates: avg_d≥-0.005, worst≥-0.01, elo≥-10? "
-          f"{(best.user_attrs['avg_delta'] >= -0.005 and best.user_attrs['worst_case_delta'] >= -0.01 and best.user_attrs['elo_delta'] >= -10)}")
+    a = best.user_attrs
+    print(f"  Trial #{best.number}:")
+    print(f"    pair_welfare={a['pair_joint_welfare']:.4f}  "
+          f"(Δ {a['pair_delta']:+.4f})")
+    print(f"    defense_loss={a['defense_floor_loss']:.4f}  "
+          f"(Δ {a['defense_delta']:+.4f}, lower is better)")
+    print(f"    worst_case_delta={a['worst_case_delta']:+.4f}")
+    print(f"    avg={a['avg']:.4f}  (Δ {a['avg_delta']:+.4f}, derived diagnostic)")
+    gates_pass = (a['pair_delta'] >= 0.0 and a['defense_floor_loss'] <= 0.05
+                  and a['worst_case_delta'] >= -0.02)
+    print(f"  Gates pass (pairΔ≥0, defense_loss≤0.05, worst≥-0.02)? {gates_pass}")
 
     candidate, global_tune = _build_artifact_from_trial(best)
     artifact = {

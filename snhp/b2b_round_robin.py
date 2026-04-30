@@ -155,9 +155,14 @@ def create_ufuns(issues, n_steps=10, reserved_value=None, randomize_weights=Fals
         #   Seller: price=0.50, delivery=0.15, warranty=0.10, payment=0.25
         #   Buyer:  price=0.20, delivery=0.30, warranty=0.40, payment=0.10
         #
-        # Dirichlet(5 * mean) produces realistic variation while
-        # preserving the "what each side cares about" identity.
-        concentration = 5.0
+        # concentration controls how "tight" the variation is:
+        #   - low (e.g. 2): weights spread across many archetypes, more
+        #     extreme asymmetries — bigger Pareto frontier (logrolling surplus)
+        #   - high (e.g. 20): weights stay close to the mean, less variation,
+        #     smaller Pareto frontier
+        # Tunable via SNHP_DIRICHLET_CONCENTRATION env var so harness
+        # difficulty can be swept without code changes.
+        concentration = float(os.environ.get("SNHP_DIRICHLET_CONCENTRATION", "5.0"))
         alpha_a = np.array([0.50, 0.15, 0.10, 0.25]) * concentration
         alpha_b = np.array([0.20, 0.30, 0.40, 0.10]) * concentration
         
@@ -425,6 +430,15 @@ def _run_single_matchup(args):
         # state doesn't drift across the matchups dispatched to this
         # worker. (multiprocessing pool re-uses workers across jobs.)
         negmas_agent.reset_global_memory()
+        # Phase A peer-detection: clear protocol registry + attestation
+        # channel between matchups. Without this, attestations from a
+        # prior matchup leak into the next, making peer-verification
+        # signal nondeterministic.
+        try:
+            import snhp_protocol as _proto
+            _proto.reset_protocol_state()
+        except ImportError:
+            pass
 
     issues = create_issues()
     ufun_a, ufun_b = create_ufuns(issues, n_steps)
@@ -479,6 +493,14 @@ def run_round_robin(seller_pressure=None, buyer_pressure=None,
     all_players["SNHP"] = {"class": SNHPAgent, "uses_memory": True}
     all_players["Aspiration"] = {"class": AspirationNegotiator, "uses_memory": False}
 
+    # Second cooperative SNHP for the pair-welfare hypothesis test:
+    # if the tournament rewards extraction, two cooperative agents paired
+    # against each other should achieve the highest joint welfare (both
+    # land at fair share rather than one extracting from the other).
+    # Opt in with SNHP_PAIR_TEST=1 so default Optuna tuning is unaffected.
+    if os.environ.get("SNHP_PAIR_TEST", "").strip() == "1":
+        all_players["SNHP_B"] = {"class": SNHPAgent, "uses_memory": True}
+
     # Off by default (preserves the historical 21-agent roster used by
     # Optuna tuning); SNHP_INCLUDE_MICRO=1 adds MiCRO for ablation cells
     # that test against this published-superior baseline.
@@ -488,6 +510,52 @@ def run_round_robin(seller_pressure=None, buyer_pressure=None,
             all_players["MiCRO"] = {"class": MiCROAgent, "uses_memory": False}
         except ImportError:
             pass
+
+    # SNHP_INCLUDE_LLM=1 adds an Anthropic-Claude-backed negotiator (model
+    # selectable via SNHP_LLM_MODEL). Each propose/respond hits the API,
+    # so this is COSTLY — only enable for explicit cost-budgeted runs.
+    # Roster name is the model id so reports are self-documenting.
+    if os.environ.get("SNHP_INCLUDE_LLM", "").strip() == "1":
+        try:
+            from llm_negotiator import LLMNegotiator  # type: ignore
+            llm_name = os.environ.get("SNHP_LLM_MODEL", "claude-opus-4-7").strip()
+            all_players[llm_name] = {"class": LLMNegotiator, "uses_memory": False}
+            if os.environ.get("SNHP_LLM_PAIR", "").strip() == "1":
+                all_players[f"{llm_name}_B"] = {
+                    "class": LLMNegotiator, "uses_memory": False,
+                }
+        except ImportError:
+            pass
+
+    # SNHP_INCLUDE_LLM_SCAFFOLDED=1 adds an LLM negotiator that consults
+    # SNHP's Tier 1 advisor (gametheory.negotiation.{sell,buy}_next_offer)
+    # before each decision. This is the *treatment* arm for the headline
+    # experiment: vanilla-LLM-vs-vanilla-LLM (control) vs SNHP-scaffolded-
+    # vs-scaffolded (treatment). Roster name is "<model>_SNHP".
+    if os.environ.get("SNHP_INCLUDE_LLM_SCAFFOLDED", "").strip() == "1":
+        try:
+            from llm_with_snhp import LLMWithSNHP  # type: ignore
+            llm_name = os.environ.get("SNHP_LLM_MODEL", "claude-sonnet-4-6").strip()
+            all_players[f"{llm_name}_SNHP"] = {
+                "class": LLMWithSNHP, "uses_memory": False,
+            }
+        except ImportError:
+            pass
+
+    # SNHP_FOCUSED_4=1 strips the roster down to {Sonnet, Sonnet_SNHP,
+    # SNHP, Anchorer} for the focused experiment. All other archetypes
+    # are removed so the matchup count stays small.
+    if os.environ.get("SNHP_FOCUSED_4", "").strip() == "1":
+        keep = set()
+        # Always keep SNHP. LLM names are determined dynamically above.
+        llm_name = os.environ.get("SNHP_LLM_MODEL", "claude-sonnet-4-6").strip()
+        for k in [
+            "SNHP", llm_name, f"{llm_name}_SNHP", "Anchorer",
+        ]:
+            if k in all_players:
+                keep.add(k)
+        # Drop Aspiration and any other archetypes not in `keep`.
+        all_players = {k: v for k, v in all_players.items() if k in keep}
 
     player_names = list(all_players.keys())
     n = len(player_names)
@@ -629,25 +697,28 @@ def run_round_robin(seller_pressure=None, buyer_pressure=None,
 
     # ─── SNHP Analysis ────────────────────────────────
 
-    snhp_rank = next(i for i, r in enumerate(rankings, 1) if r["name"] == "SNHP")
-    asp_rank = next(i for i, r in enumerate(rankings, 1) if r["name"] == "Aspiration")
-    
-    print(f"\n  SNHP Rank: #{snhp_rank}/{n}")
-    print(f"  Aspiration Rank: #{asp_rank}/{n}")
+    snhp_rank = next((i for i, r in enumerate(rankings, 1) if r["name"] == "SNHP"), None)
+    asp_rank = next((i for i, r in enumerate(rankings, 1) if r["name"] == "Aspiration"), None)
 
-    # Show SNHP's matchup detail with significance
-    print(f"\n  SNHP Matchup Details (N={n_rounds} rounds):")
-    print(f"  {'Opponent':<22} {'SNHP':>8} {'Opp':>8} {'Deal%':>7} {'Result':>8}")
-    print("  " + "-" * 60)
+    if snhp_rank is not None:
+        print(f"\n  SNHP Rank: #{snhp_rank}/{n}")
+    if asp_rank is not None:
+        print(f"  Aspiration Rank: #{asp_rank}/{n}")
 
-    for opp in player_names:
-        if opp == "SNHP":
-            continue
-        su, ou, dr = pairwise[("SNHP", opp)]
-        opp_against_snhp = pairwise[(opp, "SNHP")][0]
-        result = "✅ WIN" if su > opp_against_snhp + 0.005 else (
-            "➖ TIE" if abs(su - opp_against_snhp) <= 0.005 else "❌ LOSE")
-        print(f"  {opp:<22} {su:>8.4f} {opp_against_snhp:>8.4f} {dr:>6.0%} {result:>8}")
+    # Show SNHP's matchup detail with significance (skip if SNHP missing)
+    if snhp_rank is not None:
+        print(f"\n  SNHP Matchup Details (N={n_rounds} rounds):")
+        print(f"  {'Opponent':<22} {'SNHP':>8} {'Opp':>8} {'Deal%':>7} {'Result':>8}")
+        print("  " + "-" * 60)
+
+        for opp in player_names:
+            if opp == "SNHP":
+                continue
+            su, ou, dr = pairwise[("SNHP", opp)]
+            opp_against_snhp = pairwise[(opp, "SNHP")][0]
+            result = "✅ WIN" if su > opp_against_snhp + 0.005 else (
+                "➖ TIE" if abs(su - opp_against_snhp) <= 0.005 else "❌ LOSE")
+            print(f"  {opp:<22} {su:>8.4f} {opp_against_snhp:>8.4f} {dr:>6.0%} {result:>8}")
     
     # ─── Significance vs Baselines ────────────────────
     print(f"\n  SIGNIFICANCE TESTS (Wilcoxon signed-rank, α=0.05)")
@@ -704,12 +775,13 @@ def run_round_robin(seller_pressure=None, buyer_pressure=None,
     # Most exploitable
     print(f"  Most exploitable:     {rankings[-1]['name']} (avg={rankings[-1]['avg']:.4f})")
     
-    # Best against SNHP
-    best_vs_snhp = max(
-        [(opp, pairwise[(opp, "SNHP")][0]) for opp in player_names if opp != "SNHP"],
-        key=lambda x: x[1]
-    )
-    print(f"  Best against SNHP:    {best_vs_snhp[0]} ({best_vs_snhp[1]:.4f})")
+    # Best against SNHP (skip if SNHP missing from roster)
+    if snhp_rank is not None:
+        best_vs_snhp = max(
+            [(opp, pairwise[(opp, "SNHP")][0]) for opp in player_names if opp != "SNHP"],
+            key=lambda x: x[1]
+        )
+        print(f"  Best against SNHP:    {best_vs_snhp[0]} ({best_vs_snhp[1]:.4f})")
 
     return rankings, pairwise, scores
 

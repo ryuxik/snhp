@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SNHP Demo — watch two Claude agents negotiate</title>
+<meta name="description" content="Replay of two Sonnet agents negotiating a B2B contract, with vs without the SNHP MCP tool. Same seed, same prompt, same opponent — observe the cooperation premium.">
+<style>
+:root {
+  --bg: #0b0d10; --fg: #e8e8e8; --dim: #8a8d92;
+  --accent: #4ade80; --accent-dim: #16a34a;
+  --warn: #fbbf24; --bad: #f87171;
+  --border: #1f2328; --card: #14161a; --code: #1c1f24;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+  font-size: 16px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+header {
+  border-bottom: 1px solid var(--border);
+  padding: 18px 0;
+}
+header .container { display: flex; justify-content: space-between; align-items: center; }
+header .brand { font-weight: 600; font-size: 17px; }
+header .brand a { color: var(--fg); }
+header nav a { margin-left: 22px; color: var(--dim); font-size: 14px; }
+header nav a:hover { color: var(--fg); }
+
+.hero { padding: 50px 0 30px; }
+.hero h1 {
+  font-size: 36px; font-weight: 700; line-height: 1.1; margin: 0 0 14px;
+  letter-spacing: -0.02em;
+}
+.hero h1 .accent { color: var(--accent); }
+.hero p.lede { font-size: 17px; color: var(--dim); margin: 0 0 18px; max-width: 780px; }
+
+.controls {
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  padding: 18px 0; border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+.btn {
+  padding: 10px 18px; border-radius: 5px; font-size: 14px; font-weight: 500;
+  background: var(--accent); color: #000; border: none; cursor: pointer;
+  transition: background 0.12s;
+}
+.btn:hover { background: var(--accent-dim); }
+.btn.btn-secondary { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+.btn.btn-secondary:hover { background: var(--card); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.speed-label { color: var(--dim); font-size: 13px; }
+.speed-select {
+  background: var(--card); color: var(--fg); border: 1px solid var(--border);
+  padding: 8px 12px; border-radius: 5px; font-size: 13px;
+}
+
+.scoreboard {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px;
+}
+@media (max-width: 800px) { .scoreboard { grid-template-columns: 1fr; } }
+
+.panel {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 24px; min-height: 600px;
+}
+.panel.scaffolded { border-color: var(--accent); }
+.panel-header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.panel-title { font-size: 14px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+.panel.scaffolded .panel-title { color: var(--accent); }
+.panel-status { font-size: 12px; color: var(--dim); font-family: ui-monospace, monospace; }
+
+.score-row {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;
+  background: var(--code); border-radius: 6px; padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.score-cell { text-align: center; }
+.score-cell .label { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+.score-cell .value { font-size: 22px; font-weight: 700; font-family: ui-monospace, monospace; line-height: 1; }
+.score-cell.joint .value { color: var(--accent); }
+.score-cell .pareto { font-size: 11px; color: var(--dim); margin-top: 4px; font-family: ui-monospace, monospace; }
+
+.transcript {
+  font-family: ui-monospace, "SF Mono", monospace;
+  font-size: 12px; line-height: 1.6;
+  max-height: 480px; overflow-y: auto;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 14px;
+}
+.transcript .turn {
+  margin-bottom: 14px; padding-bottom: 12px;
+  border-bottom: 1px dashed rgba(255,255,255,0.05);
+  opacity: 0; animation: fadeIn 0.4s ease-out forwards;
+}
+.transcript .turn:last-child { border-bottom: none; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+.turn-header {
+  display: flex; gap: 12px; margin-bottom: 6px; font-size: 11px;
+}
+.turn-header .role { color: var(--accent); font-weight: 600; }
+.turn-header .role.buyer { color: #60a5fa; }
+.turn-header .round { color: var(--dim); }
+.turn-header .time { color: var(--dim); margin-left: auto; }
+.turn-action { color: var(--dim); font-size: 11px; margin-bottom: 4px; }
+.turn-decision { color: var(--fg); }
+.turn-decision .target { font-weight: 600; }
+.turn-decision .target.high { color: var(--accent); }
+.turn-decision .target.low { color: var(--warn); }
+.turn-advisor {
+  margin-top: 4px; padding-left: 12px;
+  border-left: 2px solid var(--accent); color: var(--dim);
+  font-size: 11px;
+}
+.turn-advisor .adv-label { color: var(--accent); }
+
+.cost-bar {
+  background: var(--code); border-radius: 4px; padding: 10px 14px;
+  font-family: ui-monospace, monospace; font-size: 12px; color: var(--dim);
+  margin-top: 12px;
+  display: flex; justify-content: space-between;
+}
+.cost-bar .cost-value { color: var(--fg); }
+
+.progress-bar {
+  height: 6px; background: var(--code); border-radius: 3px; overflow: hidden;
+  margin: 12px 0;
+}
+.progress-fill {
+  height: 100%; background: var(--accent); width: 0%;
+  transition: width 0.3s ease;
+}
+
+.summary {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 24px; margin-top: 28px;
+  display: none;
+}
+.summary.show { display: block; animation: fadeIn 0.5s ease-out; }
+.summary h3 { margin: 0 0 14px; font-size: 18px; }
+.summary .verdict { font-size: 22px; font-weight: 700; margin: 12px 0; }
+.summary .verdict.win { color: var(--accent); }
+.summary .meta { color: var(--dim); font-size: 13px; margin-top: 14px; line-height: 1.6; }
+
+footer {
+  padding: 32px 0; color: var(--dim); font-size: 13px;
+  border-top: 1px solid var(--border); margin-top: 50px;
+}
+footer .container { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+footer a { color: var(--dim); }
+footer a:hover { color: var(--fg); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="brand"><a href="/">← SNHP</a></div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/docs">API</a>
+      <a href="https://github.com/ryuxik/gametheory-mcp">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero container">
+  <h1>Watch two Claude agents negotiate <span class="accent">— with and without SNHP</span>.</h1>
+  <p class="lede">
+    Same seed (42). Same Sonnet 4.6 model. Same prompt skeleton. Same opponent.
+    Only difference: the right panel has access to the SNHP MCP tool.
+    The data is real — captured from a live API run on 2026-04-30. Press play.
+  </p>
+</div>
+
+<div class="container">
+  <div class="controls">
+    <button class="btn" id="play-btn">▶ Play</button>
+    <button class="btn btn-secondary" id="reset-btn">↻ Reset</button>
+    <span class="speed-label">Playback speed:</span>
+    <select class="speed-select" id="speed">
+      <option value="1500">Slow (1.5s/turn)</option>
+      <option value="600" selected>Normal (0.6s/turn)</option>
+      <option value="200">Fast (0.2s/turn)</option>
+      <option value="0">Instant</option>
+    </select>
+    <span style="color: var(--dim); font-size: 13px; margin-left: auto;">Seed 42 · NegMAS B2B (rich-frontier harness, conc=1.0)</span>
+  </div>
+
+  <div class="scoreboard">
+    <div class="panel" id="vanilla-panel">
+      <div class="panel-header">
+        <span class="panel-title">Vanilla Sonnet — no SNHP</span>
+        <span class="panel-status" id="vanilla-status">paused</span>
+      </div>
+      <div class="score-row">
+        <div class="score-cell">
+          <div class="label">Sonnet A</div>
+          <div class="value" id="vanilla-a">0.00</div>
+        </div>
+        <div class="score-cell">
+          <div class="label">Sonnet B</div>
+          <div class="value" id="vanilla-b">0.00</div>
+        </div>
+        <div class="score-cell joint">
+          <div class="label">Joint</div>
+          <div class="value" id="vanilla-joint">0.00</div>
+          <div class="pareto" id="vanilla-pareto">— of frontier</div>
+        </div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="vanilla-progress"></div></div>
+      <div class="transcript" id="vanilla-transcript"></div>
+      <div class="cost-bar">
+        <span>API spend so far:</span>
+        <span class="cost-value" id="vanilla-cost">$0.0000</span>
+      </div>
+    </div>
+
+    <div class="panel scaffolded" id="scaffold-panel">
+      <div class="panel-header">
+        <span class="panel-title">Sonnet + SNHP MCP tool</span>
+        <span class="panel-status" id="scaffold-status">paused</span>
+      </div>
+      <div class="score-row">
+        <div class="score-cell">
+          <div class="label">Sonnet A</div>
+          <div class="value" id="scaffold-a">0.00</div>
+        </div>
+        <div class="score-cell">
+          <div class="label">Sonnet B</div>
+          <div class="value" id="scaffold-b">0.00</div>
+        </div>
+        <div class="score-cell joint">
+          <div class="label">Joint</div>
+          <div class="value" id="scaffold-joint">0.00</div>
+          <div class="pareto" id="scaffold-pareto">— of frontier</div>
+        </div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="scaffold-progress"></div></div>
+      <div class="transcript" id="scaffold-transcript"></div>
+      <div class="cost-bar">
+        <span>API spend so far:</span>
+        <span class="cost-value" id="scaffold-cost">$0.0000</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary" id="summary">
+    <h3>Result</h3>
+    <div class="verdict" id="verdict"></div>
+    <div class="meta" id="verdict-meta"></div>
+  </div>
+
+  <p style="color: var(--dim); font-size: 13px; margin-top: 32px; line-height: 1.7;">
+    <strong>What you're seeing:</strong> Each "turn" is one Anthropic API call.
+    The agent receives the negotiation state and either proposes a target
+    utility or accepts/rejects the opponent's last offer. The scaffolded
+    variant additionally receives an SNHP advisor recommendation (shown in
+    green under the decision) and decides whether to follow it. Joint welfare
+    is the sum of both sides' utility from the final agreed outcome (or 2×
+    walk-away utility if no deal closes).
+  </p>
+  <p style="color: var(--dim); font-size: 13px;">
+    <strong>This particular seed (42)</strong> is a hard one for vanilla Sonnet —
+    its joint welfare lands at 0.84, well below the 1.40 average across N=20
+    seeds. The scaffolded variant reaches 1.49 on the same seed. The +0.65
+    delta here is larger than the +0.19 mean lift — but the direction is
+    consistent across 18 of 20 seeds tested. <a href="/">Full data on the home page</a>.
+  </p>
+</div>
+
+<footer>
+  <div class="container">
+    <div>SNHP · Demo trace captured 2026-04-30 from real API · Seed 42</div>
+    <div>
+      <a href="/">Home</a> ·
+      <a href="/static/demo_trace.json">Raw trace JSON</a> ·
+      <a href="https://github.com/ryuxik/gametheory-mcp">Source</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+const PARETO_FRONTIER_MEAN = 1.57;
+let traceData = null;
+let playState = { vanilla: { idx: 0 }, scaffold: { idx: 0 }, playing: false, timer: null };
+
+async function loadTrace() {
+  const r = await fetch("/static/demo_trace.json");
+  traceData = await r.json();
+}
+
+function fmtUtility(v) { return v.toFixed(4); }
+function fmtPct(v) { return Math.round(v / PARETO_FRONTIER_MEAN * 100) + "% of frontier"; }
+
+function renderTurn(side, turn, isLast) {
+  const t = document.createElement("div");
+  t.className = "turn";
+  const role = (turn.role || "").toLowerCase();
+  const target = turn.decision_target ?? 0;
+  const advisor = turn.advisor_recommendation;
+  const accept = turn.decision_accept;
+  const targetClass = target >= 0.7 ? "high" : (target <= 0.45 ? "low" : "");
+  const advHtml = advisor != null ?
+    `<div class="turn-advisor"><span class="adv-label">SNHP advisor:</span> recommends ${advisor.toFixed(3)} · agent ${Math.abs(target - advisor) < 0.05 ? "followed ✓" : "overrode ✗"}</div>` : "";
+  t.innerHTML = `
+    <div class="turn-header">
+      <span class="role ${role}">${role || "?"}</span>
+      <span class="round">round ${turn.round_n} · ${turn.action}</span>
+      <span class="time">t=${(turn.relative_time || 0).toFixed(2)}</span>
+    </div>
+    <div class="turn-decision">
+      → target_utility: <span class="target ${targetClass}">${target.toFixed(3)}</span>
+      ${turn.action === "respond" ? ` · accept: ${accept ? "<span style=\"color: var(--accent);\">YES</span>" : "no"}` : ""}
+    </div>
+    ${advHtml}
+  `;
+  return t;
+}
+
+function step(side) {
+  const data = traceData[side === "scaffold" ? "scaffolded" : "vanilla"];
+  const traces = data.traces || [];
+  if (playState[side].idx >= traces.length) return false;
+
+  const turn = traces[playState[side].idx];
+  const transcript = document.getElementById(`${side}-transcript`);
+  const node = renderTurn(side, turn);
+  transcript.appendChild(node);
+  transcript.scrollTop = transcript.scrollHeight;
+
+  // Update cost (running sum)
+  let runningCost = 0;
+  for (let i = 0; i <= playState[side].idx; i++) {
+    runningCost += traces[i].cost_usd || 0;
+  }
+  document.getElementById(`${side}-cost`).textContent = `$${runningCost.toFixed(4)}`;
+
+  // Progress bar
+  const pct = (playState[side].idx + 1) / traces.length * 100;
+  document.getElementById(`${side}-progress`).style.width = `${pct}%`;
+
+  playState[side].idx += 1;
+
+  // Final turn — render outcome
+  if (playState[side].idx >= traces.length) {
+    document.getElementById(`${side}-a`).textContent = fmtUtility(data.util_a);
+    document.getElementById(`${side}-b`).textContent = fmtUtility(data.util_b);
+    document.getElementById(`${side}-joint`).textContent = fmtUtility(data.joint);
+    document.getElementById(`${side}-pareto`).textContent = fmtPct(data.joint);
+    document.getElementById(`${side}-status`).textContent = "complete";
+  }
+  return true;
+}
+
+function tick() {
+  let stillRunning = false;
+  if (step("vanilla")) stillRunning = true;
+  if (step("scaffold")) stillRunning = true;
+  if (!stillRunning) {
+    stop();
+    showSummary();
+  }
+}
+
+function play() {
+  if (playState.playing) return;
+  playState.playing = true;
+  document.getElementById("vanilla-status").textContent = "playing";
+  document.getElementById("scaffold-status").textContent = "playing";
+  document.getElementById("play-btn").textContent = "⏸ Pause";
+  const speed = parseInt(document.getElementById("speed").value, 10);
+  if (speed === 0) {
+    while (true) {
+      let any = false;
+      if (step("vanilla")) any = true;
+      if (step("scaffold")) any = true;
+      if (!any) break;
+    }
+    stop(); showSummary();
+  } else {
+    playState.timer = setInterval(tick, speed);
+  }
+}
+
+function pause() {
+  if (!playState.playing) return;
+  clearInterval(playState.timer);
+  playState.playing = false;
+  document.getElementById("vanilla-status").textContent = "paused";
+  document.getElementById("scaffold-status").textContent = "paused";
+  document.getElementById("play-btn").textContent = "▶ Play";
+}
+
+function stop() {
+  clearInterval(playState.timer);
+  playState.playing = false;
+  document.getElementById("play-btn").textContent = "▶ Play";
+}
+
+function reset() {
+  pause();
+  playState.vanilla.idx = 0;
+  playState.scaffold.idx = 0;
+  ["vanilla", "scaffold"].forEach(s => {
+    document.getElementById(`${s}-transcript`).innerHTML = "";
+    document.getElementById(`${s}-a`).textContent = "0.00";
+    document.getElementById(`${s}-b`).textContent = "0.00";
+    document.getElementById(`${s}-joint`).textContent = "0.00";
+    document.getElementById(`${s}-pareto`).textContent = "— of frontier";
+    document.getElementById(`${s}-cost`).textContent = "$0.0000";
+    document.getElementById(`${s}-progress`).style.width = "0%";
+    document.getElementById(`${s}-status`).textContent = "paused";
+  });
+  document.getElementById("summary").classList.remove("show");
+}
+
+function showSummary() {
+  const v = traceData.vanilla;
+  const s = traceData.scaffolded;
+  const lift = s.joint - v.joint;
+  const liftPct = ((s.joint - v.joint) / v.joint * 100).toFixed(1);
+  const verdict = lift > 0
+    ? `Sonnet+SNHP closed ${liftPct}% more joint welfare on this seed (+${lift.toFixed(3)})`
+    : `Vanilla Sonnet matched this seed within ${Math.abs(lift).toFixed(3)} of joint welfare`;
+  document.getElementById("verdict").textContent = verdict;
+  document.getElementById("verdict").classList.toggle("win", lift > 0);
+  document.getElementById("verdict-meta").innerHTML = `
+    Vanilla joint:    <strong>${fmtUtility(v.joint)}</strong> (${fmtPct(v.joint)}) — cost $${v.cost_usd.toFixed(4)}<br>
+    Scaffolded joint: <strong>${fmtUtility(s.joint)}</strong> (${fmtPct(s.joint)}) — cost $${s.cost_usd.toFixed(4)}<br>
+    <br>
+    Across N=20 paired seeds: scaffold beat vanilla on 18/20 (sign test p=0.0004),
+    mean lift +0.186 joint welfare. This seed (42) is one of the most dramatic
+    lifts; smaller deltas are typical.
+  `;
+  document.getElementById("summary").classList.add("show");
+}
+
+document.getElementById("play-btn").addEventListener("click", () => {
+  if (playState.playing) pause(); else play();
+});
+document.getElementById("reset-btn").addEventListener("click", reset);
+
+loadTrace().catch(e => console.error("Failed to load trace:", e));
+</script>
+</body>
+</html>

@@ -125,6 +125,7 @@ def buy_next_offer(
     defenses: Optional[list[str]] = None,
     market_prior: Optional[dict] = None,
     n_particles: int = _DEFAULT_PARTICLES,
+    peer_mode: bool = False,
 ) -> dict:
     """
     Recommend the next buyer-side offer.
@@ -134,6 +135,8 @@ def buy_next_offer(
         names raise rather than silently drop).
       - `market_prior` is required when `anchor_attack_detection` is in
         `defenses`; otherwise ignored.
+      - `peer_mode=True` activates the cooperative architecture (PEER
+        playbook + signaling) when counterparty is a verified SNHP peer.
 
     Returns offer + acceptance_probability + warnings (a list of detected
     issues, including any anchor-attack flag) + defense_actions (suggestions
@@ -145,6 +148,20 @@ def buy_next_offer(
         raise ValueError(f"pareto_knob must be in [0, 1], got {pareto_knob}")
     if deadline_rounds < 1:
         raise ValueError("deadline_rounds must be >= 1")
+
+    # Peer-mode delegates to the shared cooperative recommendation.
+    if peer_mode:
+        from gametheory.negotiation.sell import _peer_mode_recommendation
+        result = _peer_mode_recommendation(
+            my_reservation=my_reservation,
+            opponent_offer_history=seller_offer_history,
+            my_offer_history=my_offer_history,
+            deadline_rounds=deadline_rounds,
+            role="buyer",
+        )
+        result["warnings"] = []
+        result["defense_actions"] = []
+        return result
 
     # Default omits anchor_attack_detection because that defense requires a
     # market_prior; we don't make the default raise on callers who don't

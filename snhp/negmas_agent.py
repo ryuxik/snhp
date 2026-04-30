@@ -586,6 +586,24 @@ class SNHPAgent(SAONegotiator):
         self._initialized: bool = False
         self._last_target_utility: float = 0.5
         self._detected_opp_type: str = "unknown"
+
+        # ─── Phase A peer-detection: register this node in the protocol ───
+        # Each instance gets a unique ed25519 keypair and a node_id derived
+        # from the agent's name + Python id. When two SNHP instances share
+        # a process (= same matchup), they can find each other's
+        # attestations and flip into cooperation mode.
+        from snhp_protocol import (
+            generate_node_keypair, register_node, env_disabled,
+        )
+        self._protocol_disabled = env_disabled()
+        if not self._protocol_disabled:
+            self._snhp_priv, self._snhp_pub = generate_node_keypair()
+            self._snhp_node_id = f"{getattr(self, 'name', 'snhp')}-{id(self):x}"
+            register_node(self._snhp_node_id, self._snhp_pub)
+        else:
+            self._snhp_priv = self._snhp_pub = b""
+            self._snhp_node_id = ""
+        self._peer_verified: bool = False
         
         # === Mixed Strategy State ===
         self._running_aspiration: float = 0.90  # tracks actual aspiration as running state
@@ -679,6 +697,28 @@ class SNHPAgent(SAONegotiator):
         # reset so each session starts clean.
         self._in_capitulation = False
         self._dc_proposal_counter = 0
+
+        # ─── Phase A: emit signed attestation for this negotiation ───
+        # nmi.id is shared between both SAO parties → same negotiation_id
+        # for both attestations. Lazy peer-verification happens on each
+        # respond/propose; the result caches in self._peer_verified.
+        # We deliberately do NOT disclose issue weights — weight inference
+        # happens via the negotiation transcript (offer patterns).
+        self._peer_verified = False
+        if not self._protocol_disabled:
+            try:
+                from snhp_protocol import emit_my_attestation
+                neg_id = str(getattr(self.nmi, "id", "")) or "unknown"
+                emit_my_attestation(
+                    negotiation_id=neg_id,
+                    node_id=self._snhp_node_id,
+                    private_key_bytes=self._snhp_priv,
+                    public_key_bytes=self._snhp_pub,
+                )
+            except Exception:
+                # Protocol failure must never break the strategy layer —
+                # silently fall through to defensive (unverified) mode.
+                pass
         # _is_first_mover already initialized above (before aggression sample)
         # so the role-aware bandit lookup can read it.
 
@@ -768,13 +808,67 @@ class SNHPAgent(SAONegotiator):
     def _refresh_playbook(self) -> None:
         """Recompose the playbook for the current opponent belief.
         Called at the top of propose() and respond() and any other entry
-        where the belief may have updated."""
+        where the belief may have updated.
+
+        Phase A peer-detection gate: if the counterparty has posted a
+        signature-verified, registered-node attestation for this
+        negotiation, force HONEST regardless of mode. Verified peers
+        coordinate symmetrically on the cooperative focal point;
+        belief-weighted typed playbooks would only break that symmetry."""
         if self.opponent_model is None:
             self._cached_playbook = None
+            return
+        if not self._peer_verified and not self._protocol_disabled:
+            self._peer_verified = self._check_peer_verified()
+        if self._peer_verified:
+            from playbooks import _PLAYBOOKS  # noqa: PLC0415 — late import to avoid cycles
+            # Asymmetry-adaptive: PEER architectural overrides only help
+            # when the harness has a rich Pareto frontier (asymmetric
+            # weights). In low-asymmetry matchups, peer's max-self offer
+            # gives us ≥0.40 utility (our weights overlap with theirs)
+            # and HONEST already saturates the small frontier — overriding
+            # to PEER throws away the saturation. Compute and cache the
+            # asymmetry signal so it gates fast-accept + signaling too.
+            self._peer_high_asym = self._infer_peer_high_asym()
+            if self._peer_high_asym:
+                self._cached_playbook = dict(_PLAYBOOKS.get("PEER", _PLAYBOOKS["HONEST"]))
+            else:
+                self._cached_playbook = dict(_PLAYBOOKS["HONEST"])
             return
         belief = self.opponent_model.belief_vector()
         type_conf = self.opponent_model.type_confidence
         self._cached_playbook = _pb_compose(belief, type_conf)
+
+    def _check_peer_verified(self) -> bool:
+        """Lookup-and-verify peer attestation on the protocol channel.
+        Returns True only when (a) a peer has posted, (b) their pubkey
+        is registered, (c) their signature verifies. Cached in
+        self._peer_verified once True (won't downgrade)."""
+        try:
+            from snhp_protocol import is_peer_verified
+            neg_id = str(getattr(self.nmi, "id", "")) or "unknown"
+            return is_peer_verified(neg_id, self._snhp_node_id)
+        except Exception:
+            return False
+
+    def _infer_peer_high_asym(self) -> bool:
+        """Estimate whether the harness's joint Pareto frontier is rich
+        enough to warrant peer-mode architectural overrides. Heuristic:
+        peer's max-self first offer should give us LOW utility (<= 0.40)
+        in high-asymmetry harnesses (their max ≈ our min). When ≥ 0.40,
+        weights overlap — frontier is small and HONEST saturates it.
+        Defaults to False until we've observed peer's first offer."""
+        if (len(self.opponent_model.opponent_offers) < 1
+                or self.ufun is None):
+            return False
+        try:
+            first_opp = self.opponent_model.opponent_offers[0]
+            u = self.ufun(first_opp)
+            if u is None:
+                return False
+            return float(u) <= self._tp('peer_high_asym_thresh', 0.35)
+        except (TypeError, ValueError, AttributeError):
+            return False
 
     # ─── Deterministic-opponent (Aspiration-style) detector ─────────────
     # Folded in from gametheory/agents/aspiration_detector.py (proven +1-3%
@@ -1150,6 +1244,31 @@ class SNHPAgent(SAONegotiator):
 
         t = state.relative_time
         total_steps = getattr(self.nmi, 'n_steps', 100) or 100
+
+        # ─── Peer-verified first-round signaling ─────────────────────────
+        # When the cryptographic protocol confirms the counterparty is a
+        # peer, OPEN at our maximum-utility outcome (= _my_best). This is
+        # how Aspiration-style agents reach 101% of frontier in pair welfare
+        # against SNHP — the extreme opening reveals weights via the
+        # offer's issue values. Two SNHPs both opening at max self-favor
+        # see each other's preference structure in round 1; from round 2
+        # onward, both have Bayesian-updated weights and can converge on
+        # the asymmetric Pareto outcome. Without this, two symmetric
+        # cooperators converge at fair share (~83% of frontier), missing
+        # the logrolling surplus.
+        my_offer_count = len(self._my_offers)
+        if (getattr(self, '_peer_verified', False)
+                and getattr(self, '_peer_high_asym', False)
+                and my_offer_count < 2
+                and self._my_best is not None):
+            offer = self._my_best
+            self._my_offers.append(offer)
+            try:
+                u = self.ufun(offer)
+                self._my_utilities.append(float(u) if u is not None else 1.0)
+            except (TypeError, ValueError, AttributeError):
+                pass
+            return offer
         
         # === Preference Probing Phase ===
         # Probes serve dual purpose in B2B: (1) gather opponent weight info
@@ -1186,9 +1305,25 @@ class SNHPAgent(SAONegotiator):
         # Exit probing if we've run out of time budget
         self._probe_phase = False
         
-        # Try to infer weights if we haven't yet
-        if self._inferred_opp_weights is None and len(self.opponent_model.opponent_offers) >= 2:
-            self._inferred_opp_weights = self._infer_opponent_weights()
+        # Bayesian prior: install uniform weights from round 1 so logrolling
+        # has SOMETHING to work with even before we've seen counter-offers.
+        # As offers come in, the inferred posterior replaces the prior.
+        # Without this, the first 2-3 rounds of every negotiation skip
+        # logrolling entirely → ~30% of a 7-round game wasted at the
+        # default proposal pattern.
+        if self._inferred_opp_weights is None and self._sorted_outcomes:
+            # Uniform prior — every issue equally weighted.
+            n_issues = len(self._sorted_outcomes[0][0]) if self._sorted_outcomes else 0
+            if n_issues > 0:
+                self._inferred_opp_weights = {i: 1.0 / n_issues for i in range(n_issues)}
+        # Posterior update: once we have enough signal, swap in the real
+        # inferred weights. Keep `logroll_min_offers` tunable so the
+        # search can find the right speed/accuracy tradeoff.
+        min_offers_logroll = max(1, int(self._tp('logroll_min_offers', 2)))
+        if len(self.opponent_model.opponent_offers) >= min_offers_logroll:
+            inferred = self._infer_opponent_weights()
+            if inferred is not None:
+                self._inferred_opp_weights = inferred
         
         # === Reservation Value ===
         rv = getattr(self.ufun, 'reserved_value', None)
@@ -1480,6 +1615,16 @@ class SNHPAgent(SAONegotiator):
             target_utility = max(dc_floor, target_utility)  # never below floor
             self._in_capitulation = True
         
+        # Optional: add Gaussian noise to target_utility (for the
+        # "is the LLM-vs-pure SNHP delta just noise?" experiment).
+        # SNHP_TARGET_NOISE_STD env var; default 0 = no noise.
+        _noise_std = float(os.environ.get("SNHP_TARGET_NOISE_STD", "0") or 0)
+        if _noise_std > 0:
+            target_utility += float(self._rng.normal(0, _noise_std))
+            # Clamp to safe range
+            rv_clamp = float(self.ufun.reserved_value or 0.0)
+            target_utility = max(rv_clamp + 0.02, min(0.97, target_utility))
+
         self._last_target_utility = target_utility
         
         # === Find closest outcome to target utility (Pareto-aware) ===
@@ -1585,7 +1730,30 @@ class SNHPAgent(SAONegotiator):
             # walking away at BATNA (0.40). Accept anything above rv
             # when time pressure rises. Track best opponent offer for
             # "accept if better than next" logic.
-            
+
+            # ─── PEER-VERIFIED FAST ACCEPT ───────────────────
+            # After 2 signaling rounds, both peers have revealed
+            # preferences via offer issue values. From round 3 onward,
+            # accept any offer giving us >= 0.55 utility — both peers
+            # are converging toward the asymmetric Pareto outcome
+            # that mutual logrolling has now identified. This closes
+            # the 20% deadlock leak: in low-asymmetry matchups, two
+            # firmly-conceding peers might run out of time at the firm
+            # accept_bar; trusting the verified peer to be cooperating
+            # in good faith breaks the deadlock.
+            # Late-game urgency only: in low-asymmetry matchups (small
+            # joint frontier), two firm peers can deadlock past the
+            # deadline. After t > 0.55, accept anything ≥ 0.45 to break
+            # deadlock. Earlier triggering hurt the rich-harness regime
+            # where cooperation has time to find higher-utility outcomes.
+            if (getattr(self, '_peer_verified', False)
+                    and getattr(self, '_peer_high_asym', False)
+                    and t > self._tp('peer_fast_accept_t', 0.55)
+                    and len(self.opponent_model.opponent_offers) >= 2
+                    and my_utility >= self._tp('peer_fast_accept_bar', 0.45)):
+                self._record_outcome(True, my_utility)
+                return ResponseType.ACCEPT_OFFER
+
             opp_type = self.opponent_model.opponent_type
             opp_conf = self.opponent_model.confidence
             opp_utils = self.opponent_model._opp_utilities
@@ -1617,12 +1785,13 @@ class SNHPAgent(SAONegotiator):
                 elif t > 0.75 and best_opp_for_us < 0.35 and opp_max_improvement < 0.12:
                     self._damage_control = True
             
-            # ─── DAMAGE CONTROL ACCEPTANCE (with Schelling commitment) ──
-            # Refuse deals within `commitment_margin` of BATNA even in DC mode.
-            # Without this, BATNA Bluffer / Aspiration / Reciprocity extract
-            # deals barely above our walk-away by stalling.
+            # ─── DAMAGE CONTROL ACCEPTANCE ──
+            # Walk-away yields rv. Accepting at rv + commitment_margin (~0.41)
+            # only nets ~0.01 above walk-away while ceding 0.30+ surplus to
+            # the hardliner. Require meaningful surplus before damage-control
+            # closes — otherwise let the standard logic walk away.
             if self._damage_control:
-                dc_bar = rv + self._commitment_margin
+                dc_bar = max(rv + 0.10, self._tp('damage_control_floor', 0.50))
                 if my_utility >= dc_bar:
                     self._record_outcome(True, my_utility)
                     return ResponseType.ACCEPT_OFFER
@@ -1640,11 +1809,23 @@ class SNHPAgent(SAONegotiator):
                 mid_offset = self._tp('accept_mid_offset', 0.0)
                 accept_bar = self._zeuthen_aspiration + mid_offset
             else:
-                # Late-game: graduate toward rv + margin
+                # Late-game: graduate toward fair share, not toward rv.
+                # Old default (0.43) ceded surplus voluntarily — Aspiration
+                # offered 0.45, we accepted, opp got 0.55. New default holds
+                # at the cooperative Nash share (~0.50) so we either get a
+                # fair deal or walk away to rv.
+                # Peer-verified mode: trust the peer enough to accept any
+                # positive deal late game (rv + small margin). This recovers
+                # joint surplus in low-asymmetry matchups where both peers
+                # would otherwise hold firm and deadlock.
                 late_start = self._tp('accept_late_start', 0.60)
                 deadline_progress = (t - late_start) / (1.0 - late_start)
                 top = self._zeuthen_aspiration
-                bottom = max(rv, self._tp('accept_late_bottom', 0.43))
+                if (getattr(self, '_peer_verified', False)
+                        and getattr(self, '_peer_high_asym', False)):
+                    bottom = rv + self._tp('peer_late_margin', 0.02)
+                else:
+                    bottom = max(rv, self._tp('accept_late_bottom', 0.50))
                 accept_bar = top - (top - bottom) * (deadline_progress ** self._tp('accept_late_curve', 0.58))
             
             # Best-opponent-offer logic: if this offer is the best we've seen,
@@ -1661,10 +1842,10 @@ class SNHPAgent(SAONegotiator):
                 self._record_outcome(True, my_utility)
                 return ResponseType.ACCEPT_OFFER
             
-            # Emergency late-game acceptance, gated by Schelling commitment.
-            # Previously: accept anything >= rv at t>=0.75 — exploitable.
-            # Now: must clear rv + commitment_margin even in emergency.
-            if t >= self._tp('emergency_time', 0.75) and my_utility >= rv + self._commitment_margin:
+            # Emergency late-game: require fair-share margin, not just commitment.
+            # rv + commitment_margin is a token improvement (~0.41 vs walk-away
+            # 0.40). Require rv + 0.10 before accepting under deadline pressure.
+            if t >= self._tp('emergency_time', 0.75) and my_utility >= rv + self._tp('emergency_margin', 0.10):
                 self._record_outcome(True, my_utility)
                 return ResponseType.ACCEPT_OFFER
             
@@ -1766,16 +1947,23 @@ class SNHPAgent(SAONegotiator):
         total_steps = getattr(self.nmi, 'n_steps', 100) or 100
         
         # ─── BAND SELECTION ──────────────────────────────
-        # Wider band = more logrolling candidates to choose from.
-        # In B2B with a flat curve, we want maximum variety within
-        # a tight utility window to find the best issue compositions.
-        band = 0.08  # Normal band
-        if total_steps <= 15:
-            band = 0.06  # Tighter for flat curve — don't stray from target
-            opp_type = self.opponent_model.opponent_type
-            opp_conf = self.opponent_model.confidence
-            if opp_type == OpponentModel.BOULWARE and opp_conf > 0.25:
-                band = 0.15  # Widen for hardliners — need creative trades
+        # Wider band = more logrolling candidates to choose from. Tunable
+        # so the Optuna search can balance "stray from target" against
+        # "find creative trades" per regime (default / B2B / hardliner).
+        # Peer-verified case widens dramatically: cooperation is
+        # cryptographically guaranteed so straying from target is fine —
+        # both peers will gravitate toward the joint Pareto outcome.
+        if (getattr(self, '_peer_verified', False)
+                and getattr(self, '_peer_high_asym', False)):
+            band = self._tp('pareto_band_peer', 0.20)
+        else:
+            band = self._tp('pareto_band_normal', 0.08)
+            if total_steps <= 15:
+                band = self._tp('pareto_band_b2b', 0.06)
+                opp_type = self.opponent_model.opponent_type
+                opp_conf = self.opponent_model.confidence
+                if opp_type == OpponentModel.BOULWARE and opp_conf > 0.25:
+                    band = self._tp('pareto_band_b2b_boulware', 0.15)
         
         candidates = [(o, u) for o, u in self._sorted_outcomes 
                       if u >= target - band and u <= target + band]
@@ -1840,17 +2028,25 @@ class SNHPAgent(SAONegotiator):
             
             # ─── ASYMMETRY CHECK ─────────────────────────────
             # If we're conceding much more than opponent, shift weight
-            # toward self-interest to prevent exploitation.
-            self_interest_weight = 0.10  # Low default — prioritize logrolling
-            if len(opp_utils) >= 3 and len(self._my_utilities) >= 3:
-                our_total_concession = abs(self._my_utilities[-1] - self._my_utilities[0])
-                opp_total_concession = abs(opp_utils[-1] - opp_utils[0])
-                if our_total_concession > 0.03 and opp_total_concession > 0:
-                    asymmetry = our_total_concession / max(opp_total_concession, 0.001)
-                    if asymmetry > 2.0:
-                        self_interest_weight = 0.30
-                    elif asymmetry > 1.5:
-                        self_interest_weight = 0.20
+            # toward self-interest to prevent exploitation. Floor + bumped
+            # values are tunable so the search can balance logrolling
+            # aggressiveness against defection sensitivity. When peer is
+            # cryptographically verified, defection is impossible by
+            # protocol → drop self-interest weight to maximize logrolling.
+            if (getattr(self, '_peer_verified', False)
+                    and getattr(self, '_peer_high_asym', False)):
+                self_interest_weight = self._tp('self_interest_peer', 0.05)
+            else:
+                self_interest_weight = self._tp('self_interest_weight', 0.10)
+                if len(opp_utils) >= 3 and len(self._my_utilities) >= 3:
+                    our_total_concession = abs(self._my_utilities[-1] - self._my_utilities[0])
+                    opp_total_concession = abs(opp_utils[-1] - opp_utils[0])
+                    if our_total_concession > 0.03 and opp_total_concession > 0:
+                        asymmetry = our_total_concession / max(opp_total_concession, 0.001)
+                        if asymmetry > 2.0:
+                            self_interest_weight = self._tp('self_interest_high', 0.30)
+                        elif asymmetry > 1.5:
+                            self_interest_weight = self._tp('self_interest_mid', 0.20)
             
             # ─── FINAL SCORE ─────────────────────────────────
             # Logrolling-dominant: maximize opponent value while staying

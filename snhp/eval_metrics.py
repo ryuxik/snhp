@@ -184,6 +184,40 @@ def exploitation_rate(
 # ─── 4. Robustness score ────────────────────────────────────────────────────
 
 
+def pair_joint_welfare(
+    pairwise: dict[tuple[str, str], tuple[float, float, float]],
+    agent_a: str, agent_b: str,
+) -> float:
+    """Combined utility (sum of both sides) when agent_a meets agent_b,
+    averaged across both directions. The cooperation-pair objective: two
+    cooperative agents should meet at a joint outcome strictly above what
+    extractor-vs-extractor pairs produce. Returns 0.0 if either agent is
+    missing from the pairwise dict."""
+    pairs = []
+    for (a, b), (ua, ub, _dr) in pairwise.items():
+        if {a, b} == {agent_a, agent_b}:
+            pairs.append(ua + ub)
+    return sum(pairs) / len(pairs) if pairs else 0.0
+
+
+def mean_defense_floor_violation(
+    pairwise: dict[tuple[str, str], tuple[float, float, float]],
+    target: str, extractor_names: list[str], floor: float = 0.40,
+) -> float:
+    """Mean amount that target's utility falls below `floor` across matchups
+    against the named extractors. The defense objective: walk-away yields
+    reservation (~floor), so any matchup that delivers less than walk-away
+    is a strict regression. Aim: minimize this number toward 0."""
+    losses = []
+    for ext in extractor_names:
+        for (a, b), (ua, ub, _dr) in pairwise.items():
+            if a == target and b == ext:
+                losses.append(max(0.0, floor - ua))
+            elif a == ext and b == target:
+                losses.append(max(0.0, floor - ub))
+    return sum(losses) / len(losses) if losses else 0.0
+
+
 def robustness_score(snhp_per_match_utilities: list[float],
                       percentile: float = 5.0) -> float:
     """
