@@ -494,30 +494,55 @@ if os.path.isdir(_STATIC_DIR):
     app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
 
+# CSP for marketing pages — same-origin only, allows inline styles/scripts
+# the static pages bundle. Marketing pages don't reflect user input.
+_LANDING_CSP = (
+    "default-src 'self'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "connect-src 'self'; "
+    "img-src 'self' data:; "
+    "frame-ancestors 'none'"
+)
+
+
+def _serve_static_page(filename: str, media_type: str = "text/html"):
+    """Helper to serve a static asset from `static/` at a root-level URL
+    (so links like /demo.html work, not just /static/demo.html)."""
+    path = os.path.join(_STATIC_DIR, filename)
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail=f"{filename} not bundled")
+    return FileResponse(
+        path,
+        media_type=media_type,
+        headers={"Content-Security-Policy": _LANDING_CSP},
+    )
+
+
 @app.get("/", include_in_schema=False)
 def landing():
     """Marketing landing page. Anything outside `/v1/*`, `/health`,
-    `/docs`, `/openapi.json`, `/llms.txt` falls through to here.
+    `/docs`, `/openapi.json`, `/llms.txt` falls through to here."""
+    return _serve_static_page("index.html")
 
-    The strict default CSP (`default-src 'none'`) blocks the page's inline
-    style + script. Relax CSP to same-origin only for this route — there
-    is no user-input reflection so inline is safe."""
-    if not os.path.isfile(_INDEX_HTML):
-        raise HTTPException(status_code=404, detail="landing page not bundled")
-    return FileResponse(
-        _INDEX_HTML,
-        media_type="text/html",
-        headers={
-            "Content-Security-Policy": (
-                "default-src 'self'; "
-                "style-src 'self' 'unsafe-inline'; "
-                "script-src 'self' 'unsafe-inline'; "
-                "connect-src 'self'; "
-                "img-src 'self' data:; "
-                "frame-ancestors 'none'"
-            ),
-        },
-    )
+
+@app.get("/demo.html", include_in_schema=False)
+def demo_page():
+    """Interactive replay of vanilla-vs-scaffolded LLM negotiation
+    (real Anthropic API trace at seed=42)."""
+    return _serve_static_page("demo.html")
+
+
+@app.get("/demo_trace.json", include_in_schema=False)
+def demo_trace():
+    """Trace data consumed by the demo replay player."""
+    return _serve_static_page("demo_trace.json", media_type="application/json")
+
+
+@app.get("/reputation_scoring_spec.html", include_in_schema=False)
+def reputation_spec_page():
+    """Spec for the SNHP Reputation Scoring product (the moat layer)."""
+    return _serve_static_page("reputation_scoring_spec.html")
 
 
 # ─── Tier 1: Negotiation ─────────────────────────────────────────────────────
