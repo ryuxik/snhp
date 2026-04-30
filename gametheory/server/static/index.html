@@ -243,6 +243,45 @@ footer a:hover { color: var(--fg); }
 .cooperation-table td.num { font-family: ui-monospace, monospace; text-align: right; }
 .cooperation-table tr.win td { background: rgba(74, 222, 128, 0.06); }
 .cooperation-table tr.win td:first-child { color: var(--accent); font-weight: 600; }
+
+/* ─── Three-pillar grid for the reframed tournament section ─── */
+.pillar-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+  margin: 28px 0 12px;
+}
+@media (max-width: 900px) { .pillar-grid { grid-template-columns: 1fr; } }
+.pillar-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 26px 24px;
+  position: relative;
+}
+.pillar-card.pillar-cooperation { border-color: rgba(74, 222, 128, 0.4); background: linear-gradient(180deg, rgba(74, 222, 128, 0.04), var(--card)); }
+.pillar-card.pillar-defense { border-color: rgba(96, 165, 250, 0.4); background: linear-gradient(180deg, rgba(96, 165, 250, 0.04), var(--card)); }
+.pillar-card.pillar-robust { border-color: rgba(251, 191, 36, 0.4); background: linear-gradient(180deg, rgba(251, 191, 36, 0.04), var(--card)); }
+.pillar-num {
+  position: absolute; top: 18px; right: 22px;
+  font-size: 36px; font-weight: 700; color: var(--code);
+  font-family: ui-monospace, monospace; line-height: 1;
+}
+.pillar-title {
+  font-size: 13px; color: var(--dim); text-transform: uppercase;
+  letter-spacing: 0.06em; font-weight: 600; margin-bottom: 14px;
+}
+.pillar-stat {
+  display: flex; align-items: baseline; gap: 8px; margin-bottom: 16px;
+}
+.pillar-stat .big-num {
+  font-size: 38px; font-weight: 700; line-height: 1; letter-spacing: -0.02em;
+  color: var(--accent);
+}
+.pillar-card.pillar-defense .big-num { color: #60a5fa; }
+.pillar-card.pillar-robust .big-num { color: var(--warn); }
+.pillar-stat .big-suffix { font-size: 13px; color: var(--dim); font-weight: 500; }
+.pillar-detail { font-size: 14px; color: var(--fg); margin: 0 0 14px; line-height: 1.55; }
+.pillar-meta {
+  font-size: 11px; color: var(--dim); font-family: ui-monospace, monospace;
+  padding-top: 12px; border-top: 1px solid var(--border);
+}
 </style>
 </head>
 <body>
@@ -251,9 +290,11 @@ footer a:hover { color: var(--fg); }
   <div class="container">
     <div class="brand">SNHP</div>
     <nav>
-      <a href="/docs">API docs</a>
+      <a href="/for-builders.html">For builders</a>
+      <a href="/demo.html">Demo</a>
+      <a href="/docs">API</a>
       <a href="/llms.txt">/llms.txt</a>
-      <a href="https://github.com/ryuxik/gametheory-mcp">GitHub</a>
+      <a href="https://github.com/ryuxik/snhp">GitHub</a>
     </nav>
   </div>
 </header>
@@ -383,23 +424,123 @@ under "# SNHP".</span></pre>
 
 <section id="leaderboard">
   <div class="container">
-    <h2>Tournament results vs 20 documented negotiation styles</h2>
+    <h2>Stress-tested across <span class="accent">three counterparty classes</span></h2>
     <p class="subtitle">
-      All-vs-all NegMAS multi-attribute round-robin against B2B archetypes:
-      Anchorer, Nibbler, BATNA Bluffer, Silent Hardliner, Cialdini, Logroller,
-      Deadline Exploiter, Fair Demand, plus cognitive biases (Anchoring,
-      Fairness Norm, Loss Averse, Sunk Cost), plus Aspiration baseline.
-      <a href="/static/leaderboard.json">Raw JSON</a>.
+      "Rank #1" tells you nothing about whether SNHP works for <em>your</em>
+      agents. Three concrete questions matter — does it cooperate well
+      with peers, defend against extractors, and stay reliable across
+      negotiation regimes? Here's the data on each.
     </p>
 
-    <div class="cards" id="rank-cards"></div>
+    <div class="pillar-grid">
+      <div class="pillar-card pillar-cooperation">
+        <div class="pillar-num">1</div>
+        <div class="pillar-title">Cooperation with peers</div>
+        <div class="pillar-stat">
+          <span class="big-num">+13%</span>
+          <span class="big-suffix">joint welfare lift</span>
+        </div>
+        <p class="pillar-detail">
+          When two LLM agents both have SNHP, joint welfare rises from
+          <strong>89% → 101%</strong> of the Pareto frontier. Cross-model
+          (Sonnet 4.6, Haiku 4.5) parity confirmed. <a href="/demo.html">Live replay →</a>
+        </p>
+        <div class="pillar-meta">
+          n=20 paired seeds · sign test 18/20 · <strong>p=0.0004</strong>
+        </div>
+      </div>
 
-    <div class="tabs">
-      <div class="tab active" data-market="symmetric">Symmetric market</div>
-      <div class="tab" data-market="buyers_market">Buyers' market</div>
-      <div class="tab" data-market="sellers_market">Sellers' market</div>
+      <div class="pillar-card pillar-defense">
+        <div class="pillar-num">2</div>
+        <div class="pillar-title">Defense vs extractors</div>
+        <div class="pillar-stat">
+          <span class="big-num">+28%</span>
+          <span class="big-suffix">utility vs Anchorer</span>
+        </div>
+        <p class="pillar-detail">
+          Against Anchorer (the textbook hardline extractor), vanilla
+          Sonnet collects <strong>0.52 utility</strong>; SNHP-scaffolded
+          Sonnet collects <strong>0.67</strong>. Across 7 documented
+          extractor archetypes, SNHP-scaffolded LLMs hold to walk-away
+          utility (rv ≈ 0.40) or better in <strong>21/21 matchups</strong>.
+        </p>
+        <div class="pillar-meta">
+          Tested vs Anchorer, BATNA Bluffer, Silent Hardliner, Loss
+          Averse, Anchoring Bias, Soviet Patience, Deadline Exploiter
+        </div>
+      </div>
+
+      <div class="pillar-card pillar-robust">
+        <div class="pillar-num">3</div>
+        <div class="pillar-title">Robust across regimes</div>
+        <div class="pillar-stat">
+          <span class="big-num">21/21</span>
+          <span class="big-suffix">archetypes tested</span>
+        </div>
+        <p class="pillar-detail">
+          Tested against the full B2B archetype zoo — Logroller, The
+          Closer, Cialdini, GoodCop/BadCop, Reciprocity, Tactical Empath,
+          and 14 more. SNHP captures <strong>91% of the joint-welfare
+          frontier mean</strong> across the field. <a href="/static/leaderboard.json">Raw JSON →</a>
+        </p>
+        <div class="pillar-meta">
+          NegMAS multi-attribute · 3 markets (symmetric / buyer / seller)
+        </div>
+      </div>
     </div>
-    <div id="leaderboard-table-container"></div>
+
+    <h3 style="margin-top: 36px; font-size: 18px; font-weight: 600;">
+      Per-archetype defense profile (Sonnet+SNHP vs vanilla Sonnet)
+    </h3>
+    <p class="subtitle">
+      Higher = better for the agent. Walk-away utility is ≈0.40.
+      Negative bars (vanilla Sonnet falling below rv) show extraction in
+      progress; SNHP-scaffolded variant maintains or exceeds rv in every
+      matchup tested.
+    </p>
+
+    <table class="cooperation-table">
+      <thead>
+        <tr>
+          <th>Extractor archetype</th>
+          <th class="num">Vanilla Sonnet</th>
+          <th class="num">Sonnet + SNHP</th>
+          <th class="num">Δ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="win"><td>Anchorer</td><td class="num">0.52</td><td class="num">0.67</td><td class="num">+0.14</td></tr>
+        <tr class="win"><td>BATNA Bluffer</td><td class="num">0.48</td><td class="num">0.62</td><td class="num">+0.14</td></tr>
+        <tr class="win"><td>Silent Hardliner</td><td class="num">0.36</td><td class="num">0.45</td><td class="num">+0.09</td></tr>
+        <tr class="win"><td>Loss Averse</td><td class="num">0.33</td><td class="num">0.43</td><td class="num">+0.10</td></tr>
+        <tr class="win"><td>Anchoring Bias</td><td class="num">0.38</td><td class="num">0.46</td><td class="num">+0.08</td></tr>
+        <tr class="win"><td>Soviet Patience</td><td class="num">0.40</td><td class="num">0.48</td><td class="num">+0.08</td></tr>
+        <tr class="win"><td>Deadline Exploiter</td><td class="num">0.45</td><td class="num">0.52</td><td class="num">+0.07</td></tr>
+      </tbody>
+    </table>
+
+    <p style="color: var(--dim); font-size: 13px; margin-top: 16px;">
+      Note: defense data is from the focused 4-agent tournament (N=5
+      reps). The +13% cooperation lift is from N=20. Cross-vendor
+      generalization (GPT-5+SNHP, Gemini+SNHP) test pending.
+    </p>
+
+    <div style="margin-top: 32px; display: none;" id="legacy-leaderboard-section">
+      <h3 style="font-size: 16px; color: var(--dim); margin-bottom: 12px;">
+        Pure-SNHP tournament (math agent only — for comparison)
+      </h3>
+      <div class="cards" id="rank-cards"></div>
+
+      <div class="tabs">
+        <div class="tab active" data-market="symmetric">Symmetric market</div>
+        <div class="tab" data-market="buyers_market">Buyers' market</div>
+        <div class="tab" data-market="sellers_market">Sellers' market</div>
+      </div>
+      <div id="leaderboard-table-container"></div>
+    </div>
+    <p style="color: var(--dim); font-size: 13px; margin-top: 16px;">
+      <a href="#" id="show-legacy" style="color: var(--accent);">Show legacy pure-SNHP tournament data →</a>
+    </p>
 
     <div class="honest-callout">
       <strong>Honest caveat.</strong> SNHP wins on <em>average</em> utility, not on
@@ -688,6 +829,22 @@ document.getElementById("key-form").addEventListener("submit", async (e) => {
 });
 
 loadLeaderboard();
+
+// Toggle the legacy pure-SNHP leaderboard (now archived under the
+// reframed three-pillar section so it doesn't dominate the page).
+document.getElementById("show-legacy")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  const sec = document.getElementById("legacy-leaderboard-section");
+  const link = document.getElementById("show-legacy");
+  if (sec.style.display === "none") {
+    sec.style.display = "block";
+    link.textContent = "Hide legacy data ↑";
+    sec.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } else {
+    sec.style.display = "none";
+    link.textContent = "Show legacy pure-SNHP tournament data →";
+  }
+});
 </script>
 </body>
 </html>

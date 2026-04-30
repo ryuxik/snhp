@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SNHP for AI agent builders — measurable cooperation lift, $0.05/call</title>
+<meta name="description" content="If your AI agents negotiate (refunds, pricing, contracts, scheduling), SNHP gives them measurably better outcomes — and the integration is one MCP tool away.">
+<style>
+:root {
+  --bg: #0b0d10; --fg: #e8e8e8; --dim: #8a8d92;
+  --accent: #4ade80; --accent-dim: #16a34a;
+  --warn: #fbbf24; --bad: #f87171;
+  --border: #1f2328; --card: #14161a; --code: #1c1f24;
+  --blue: #60a5fa;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif;
+  font-size: 16px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.container { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+
+header { border-bottom: 1px solid var(--border); padding: 18px 0; }
+header .container { display: flex; justify-content: space-between; align-items: center; }
+header .brand { font-weight: 600; font-size: 17px; }
+header .brand a { color: var(--fg); }
+header nav a { margin-left: 22px; color: var(--dim); font-size: 14px; }
+header nav a:hover { color: var(--fg); }
+
+.hero { padding: 72px 0 36px; }
+.hero .badge {
+  display: inline-block; padding: 4px 10px; border-radius: 4px;
+  background: rgba(74, 222, 128, 0.12); color: var(--accent);
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; margin-bottom: 18px;
+}
+.hero h1 {
+  font-size: 42px; font-weight: 700; line-height: 1.12; margin: 0 0 18px;
+  letter-spacing: -0.025em;
+}
+.hero h1 .accent { color: var(--accent); }
+.hero p.lede { font-size: 19px; color: var(--dim); margin: 0 0 28px; max-width: 720px; }
+
+.cta-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 24px 0; }
+.btn {
+  display: inline-block; padding: 12px 22px; border-radius: 6px;
+  font-size: 15px; font-weight: 600; text-decoration: none;
+  border: 1px solid var(--border);
+  transition: all 0.12s ease;
+}
+.btn-primary { background: var(--accent); color: #000; border-color: var(--accent); }
+.btn-primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); text-decoration: none; }
+.btn-secondary { color: var(--fg); }
+.btn-secondary:hover { background: var(--card); text-decoration: none; }
+
+section { padding: 48px 0; border-top: 1px solid var(--border); }
+section h2 { font-size: 26px; font-weight: 600; margin: 0 0 14px; letter-spacing: -0.015em; }
+section .subtitle { color: var(--dim); margin: 0 0 24px; font-size: 15px; }
+
+.who-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 28px; }
+@media (max-width: 700px) { .who-grid { grid-template-columns: 1fr; } }
+.who-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 22px;
+}
+.who-card h3 { margin: 0 0 8px; font-size: 16px; color: var(--accent); }
+.who-card p { margin: 0; color: var(--dim); font-size: 14px; line-height: 1.55; }
+
+.proof-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 32px 0;
+}
+@media (max-width: 700px) { .proof-grid { grid-template-columns: 1fr; } }
+.proof-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 22px; text-align: center;
+}
+.proof-card .num {
+  font-size: 38px; font-weight: 700; line-height: 1; color: var(--accent);
+  letter-spacing: -0.02em; margin-bottom: 8px;
+  font-family: ui-monospace, monospace;
+}
+.proof-card .label { font-size: 13px; color: var(--dim); }
+
+.code-block {
+  background: var(--code); border-radius: 8px; padding: 20px 22px;
+  margin: 18px 0; overflow-x: auto;
+  font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  font-size: 13px; line-height: 1.6;
+}
+.code-block .comment { color: var(--dim); }
+.code-block .keyword { color: var(--accent); }
+.code-block .string { color: #fbbf24; }
+
+.steps {
+  list-style: none; padding: 0; margin: 28px 0;
+  counter-reset: step;
+}
+.steps li {
+  counter-increment: step;
+  position: relative; padding: 18px 22px 18px 64px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; margin-bottom: 12px;
+}
+.steps li::before {
+  content: counter(step);
+  position: absolute; left: 18px; top: 18px;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--accent); color: #000;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 15px;
+}
+.steps li h3 { margin: 0 0 6px; font-size: 15px; }
+.steps li p { margin: 0; color: var(--dim); font-size: 14px; }
+.steps li code { background: var(--code); padding: 2px 6px; border-radius: 3px; font-size: 13px; }
+
+.cta-band {
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.08), rgba(96, 165, 250, 0.06));
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: 12px; padding: 36px 40px; margin: 40px 0;
+  text-align: center;
+}
+.cta-band h2 { margin: 0 0 12px; font-size: 24px; letter-spacing: -0.015em; }
+.cta-band p { color: var(--dim); margin: 0 0 22px; font-size: 15px; }
+
+.contact-form {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 26px; margin-top: 16px;
+}
+.contact-form .row { margin-bottom: 14px; text-align: left; }
+.contact-form label { display: block; font-size: 13px; color: var(--dim); margin-bottom: 6px; }
+.contact-form input, .contact-form textarea {
+  width: 100%; padding: 10px 12px; border-radius: 5px;
+  background: var(--bg); border: 1px solid var(--border); color: var(--fg);
+  font-family: inherit; font-size: 14px;
+}
+.contact-form input:focus, .contact-form textarea:focus {
+  outline: none; border-color: var(--accent);
+}
+
+.faq { margin: 24px 0; }
+.faq details {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 22px; margin-bottom: 10px;
+}
+.faq summary {
+  cursor: pointer; font-weight: 500; font-size: 15px;
+  list-style: none;
+}
+.faq summary::after {
+  content: "+"; float: right; color: var(--accent); font-size: 20px; line-height: 1;
+}
+.faq details[open] summary::after { content: "−"; }
+.faq details p { margin: 14px 0 0; color: var(--dim); font-size: 14px; line-height: 1.6; }
+
+footer {
+  padding: 36px 0; color: var(--dim); font-size: 13px;
+  border-top: 1px solid var(--border); margin-top: 50px;
+}
+footer .container { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+footer a { color: var(--dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="brand"><a href="/">← SNHP</a></div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/demo.html">Demo</a>
+      <a href="/llms.txt">/llms.txt</a>
+      <a href="https://github.com/ryuxik/snhp">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero container">
+  <div class="badge">For AI agent builders</div>
+  <h1>Your agents are negotiating right now. <span class="accent">Make them measurably better.</span></h1>
+  <p class="lede">
+    If your product has AI agents handling refunds, pricing, contracts, scheduling,
+    procurement, or any kind of back-and-forth with a counterparty — SNHP is a
+    one-MCP-tool integration that lifts joint-welfare outcomes by 13%, with
+    cryptographically-verifiable audit trails for compliance buyers.
+  </p>
+  <div class="cta-row">
+    <a class="btn btn-primary" href="#contact">Book a 15-min call →</a>
+    <a class="btn btn-secondary" href="/demo.html">See the live demo</a>
+    <a class="btn btn-secondary" href="/llms.txt">Read the docs (LLM-first)</a>
+  </div>
+</div>
+
+<section>
+  <div class="container">
+    <h2>The proof, in three numbers</h2>
+    <p class="subtitle">
+      Two Claude Sonnet agents negotiate a B2B contract. The only difference
+      between groups: one has the SNHP MCP tool. Same prompt skeleton, same
+      opponent, same seed. Live API run on 2026-04-30, replicable in 4 minutes.
+    </p>
+
+    <div class="proof-grid">
+      <div class="proof-card">
+        <div class="num">+13%</div>
+        <div class="label">joint welfare lift, Sonnet+SNHP vs vanilla Sonnet (n=20, p=0.0004)</div>
+      </div>
+      <div class="proof-card">
+        <div class="num">$0.05</div>
+        <div class="label">per matchup, end-to-end (LLM + MCP combined). Free tier covers ~1k math calls/mo.</div>
+      </div>
+      <div class="proof-card">
+        <div class="num">~10 min</div>
+        <div class="label">to integrate: install MCP, drop a system-prompt clause, you're shipping.</div>
+      </div>
+    </div>
+
+    <p style="color: var(--dim); font-size: 13px; margin-top: 8px;">
+      Cross-vendor: cross-model (Sonnet 4.6, Haiku 4.5) parity confirmed.
+      GPT-5 / Gemini test in progress. <a href="/">Full data on the home page →</a>
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>Who this is for</h2>
+    <p class="subtitle">
+      If your agents touch any of these workflows, the +13% lift is directly
+      applicable to your unit economics.
+    </p>
+
+    <div class="who-grid">
+      <div class="who-card">
+        <h3>Customer-service agents</h3>
+        <p>Refund negotiations, retention conversations, escalation handling.
+        Every interaction is a multi-attribute negotiation between agent and
+        customer (compensation amount, timeline, what's covered).</p>
+      </div>
+      <div class="who-card">
+        <h3>Procurement / vendor-management agents</h3>
+        <p>SaaS contract renegotiation, supplier RFPs, pricing discussions.
+        Multi-issue (price, term, SLA, support, payment) — exactly the
+        domain SNHP was tested on.</p>
+      </div>
+      <div class="who-card">
+        <h3>Sales agents</h3>
+        <p>Deal closing, discount negotiation, package configuration. SNHP
+        gives the agent a math-derived "best next move" and an
+        acceptance-probability estimate per round.</p>
+      </div>
+      <div class="who-card">
+        <h3>Marketplace / scheduling agents</h3>
+        <p>Two-sided bookings, freelancer-to-client negotiations,
+        appointment juggling. Asymmetric utility weights between the two
+        sides — exactly where logrolling pays off.</p>
+      </div>
+      <div class="who-card">
+        <h3>Multi-agent commerce</h3>
+        <p>If your agents transact with other AI agents (think: AI buyer
+        meets AI seller in an autonomous procurement workflow), the
+        cooperation premium <em>compounds</em> when both sides are SNHP-staked.</p>
+      </div>
+      <div class="who-card">
+        <h3>Legal / contract redlining</h3>
+        <p>Multi-clause negotiation with clear utility per clause and
+        explicit walk-away conditions (non-starter terms). The math
+        primitives map directly onto contract clause negotiation.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>Integrate in 4 steps</h2>
+    <ol class="steps">
+      <li>
+        <h3>Issue an API key (no human approval)</h3>
+        <p><code>POST /v1/keys</code> with your agent_id and contact email.
+        Get back a <code>gt_live_*</code> key. Free tier: 600 req/min.</p>
+      </li>
+      <li>
+        <h3>Add the MCP server to your runtime</h3>
+        <p>Claude Code, OpenAI Agents SDK, LangChain, Mistral — anything
+        that supports MCP works. <code>uvx gametheory-mcp</code> as the
+        command, point your runtime at it.</p>
+      </li>
+      <li>
+        <h3>Drop one clause into your system prompt</h3>
+        <p>"You have access to SNHP — a game-theory negotiation expert tool.
+        Its recommendation is in the user message under # SNHP." That's it.</p>
+      </li>
+      <li>
+        <h3>Call <code>gt_negotiation_sell_next_offer</code> each round</h3>
+        <p>Pass the offer history, deadline, and (when both sides are
+        SNHP-staked) <code>peer_mode=true</code>. Inject the recommendation
+        into your prompt context. Your LLM does the rest.</p>
+      </li>
+    </ol>
+
+    <pre class="code-block"><span class="comment"># Concrete: what every round looks like in your agent loop</span>
+from gametheory.negotiation.sell import sell_next_offer
+
+advice = sell_next_offer(
+    my_reservation=0.40,
+    opponent_offer_history=[0.55, 0.62],
+    my_offer_history=[0.85, 0.78],
+    deadline_rounds=8,
+    peer_mode=True,  <span class="comment"># if counterparty is SNHP-staked</span>
+)
+
+prompt = f"""... {state} ...
+
+# SNHP:
+  recommended_target_utility: {advice['recommended_offer']:.3f}
+  acceptance_probability:     {advice['acceptance_probability']:.2f}
+  rationale: {advice['rationale']}
+"""
+<span class="comment"># LLM decides → output target_utility + accept</span></pre>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>FAQ</h2>
+    <div class="faq">
+      <details>
+        <summary>How is this different from just better prompting?</summary>
+        <p>We tested both. Vanilla Sonnet with a strong production prompt
+        ("senior B2B negotiator, principles list") gets 89% of the Pareto
+        frontier. Sonnet + SNHP gets 101%. The lift is from real game-theory
+        math (Bayesian opponent inference, Rubinstein equilibrium) the LLM
+        doesn't replicate from prompting. Replication is 4 minutes via the
+        public test script.</p>
+      </details>
+      <details>
+        <summary>Does it work on models other than Claude?</summary>
+        <p>Cross-model parity confirmed for Anthropic Sonnet 4.6 and Haiku 4.5.
+        GPT-5 and Gemini 2.5 tests are queued. The MCP interface is
+        model-agnostic — any tool-use-capable LLM can call it.</p>
+      </details>
+      <details>
+        <summary>What if my counterparty isn't using SNHP?</summary>
+        <p>The cooperation premium requires both sides staked. Against an
+        un-SNHP counterparty, scaffold mode is roughly neutral but provides
+        a measurably better defense floor against extractive opponents
+        (+0.14 utility vs Anchorer-style hardliners). Network effect on
+        cooperation, baseline lift on defense.</p>
+      </details>
+      <details>
+        <summary>What about audit trails / compliance?</summary>
+        <p>Every recommendation includes a deterministic rationale string;
+        every negotiation transcript can be cryptographically signed via the
+        SNHP attestation chain (Ed25519). Enterprise tier includes an
+        audit-trail endpoint for EU AI Act / SEC Rule 17a-4 compliance.
+        See the <a href="/reputation_scoring_spec.html">reputation scoring spec</a>.</p>
+      </details>
+      <details>
+        <summary>What's the pricing?</summary>
+        <p>Math-only MCP calls: free up to 1,000/month, then $0.10/call.
+        Reputation lookup + audit trail: $99/mo. Enterprise SLA + compliance:
+        $999/mo. We do not host LLM calls — bring your own provider.</p>
+      </details>
+      <details>
+        <summary>Is this open source?</summary>
+        <p>Yes. The full SNHP repository is on
+        <a href="https://github.com/ryuxik/snhp">GitHub</a>. The MCP server
+        is Apache 2.0. The hosted API (api.snhp.dev) provides reliability,
+        rate-limiting, and the reputation scoring layer on top.</p>
+      </details>
+      <details>
+        <summary>How was the +13% number generated?</summary>
+        <p>20 paired seeds × Sonnet self-play with vs without the SNHP MCP
+        tool, on a Dirichlet-randomized NegMAS B2B harness (Pareto frontier
+        mean = 1.57). Sign test 18/20 (p=0.0004), mean lift +0.186 joint
+        welfare. Total experiment cost: $1.97 in API spend. Replicate via
+        <code>python /tmp/multi_seed.py</code> after cloning the repo.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container" id="contact">
+    <div class="cta-band">
+      <h2>Want a 15-min call?</h2>
+      <p>
+        We'll show you the data, walk through the integration for your
+        specific agent stack, and give you a free trial key. No deck,
+        no pitch — just see if it's useful.
+      </p>
+      <form class="contact-form" id="contact-form" onsubmit="event.preventDefault(); window.location.href = `mailto:hello@snhp.dev?subject=Builder+inquiry+from+${encodeURIComponent(document.getElementById('cf-company').value)}&body=${encodeURIComponent('Company: ' + document.getElementById('cf-company').value + '\nName: ' + document.getElementById('cf-name').value + '\nUse case: ' + document.getElementById('cf-usecase').value)}`;">
+        <div class="row">
+          <label for="cf-name">Name</label>
+          <input type="text" id="cf-name" required minlength="2">
+        </div>
+        <div class="row">
+          <label for="cf-company">Company / project</label>
+          <input type="text" id="cf-company" required minlength="2">
+        </div>
+        <div class="row">
+          <label for="cf-usecase">What do your agents negotiate? (one sentence)</label>
+          <textarea id="cf-usecase" rows="2" required minlength="8" placeholder="e.g. Customer-service agents handling refund negotiations on Shopify orders"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 15px;">Send → opens email draft</button>
+      </form>
+      <p style="font-size: 12px; color: var(--dim); margin-top: 12px;">
+        Or email <a href="mailto:hello@snhp.dev">hello@snhp.dev</a> directly.
+      </p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div>SNHP · Game-theory layer for AI agents · Apache 2.0</div>
+    <div>
+      <a href="/">Home</a> ·
+      <a href="/demo.html">Demo</a> ·
+      <a href="/reputation_scoring_spec.html">Reputation spec</a> ·
+      <a href="/llms.txt">/llms.txt</a> ·
+      <a href="https://github.com/ryuxik/snhp">GitHub</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

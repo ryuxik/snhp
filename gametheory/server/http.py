@@ -545,6 +545,13 @@ def reputation_spec_page():
     return _serve_static_page("reputation_scoring_spec.html")
 
 
+@app.get("/for-builders.html", include_in_schema=False)
+def for_builders_page():
+    """Outreach landing tailored to AI agent builders — proof, who-it's-for,
+    integration steps, FAQ, contact form."""
+    return _serve_static_page("for-builders.html")
+
+
 # ─── Tier 1: Negotiation ─────────────────────────────────────────────────────
 
 
