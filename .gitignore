@@ -40,3 +40,11 @@ leaderboard/results/usage.jsonl
 *.swp
 *.swo
 *~
+
+# Internal-only strategy / planning docs (never publish to the public repo).
+# The whitepaper PRDs and the synthetic_handshake_protocol spec are public;
+# anything under SNHP_Whitepaper/ ending in _STRATEGY.md, _INTERNAL.md, or
+# starting with INTERNAL_ stays local-only.
+SNHP_Whitepaper/*_STRATEGY.md
+SNHP_Whitepaper/*_INTERNAL.md
+SNHP_Whitepaper/INTERNAL_*
