@@ -186,18 +186,25 @@ footer a:hover { color: var(--fg); }
 </div>
 
 <div class="container">
-  <div class="controls">
+  <div class="controls" style="flex-wrap: wrap;">
+    <span class="speed-label">Pick a matchup:</span>
+    <select class="speed-select" id="tournament" style="min-width: 280px;">
+      <option value="dramatic">Dramatic (seed=42) — vanilla collapses to 53%</option>
+      <option value="typical" selected>Typical (seed=300) — solid +0.34 lift</option>
+      <option value="high_frontier">High-frontier (seed=200) — both strong</option>
+      <option value="tight_frontier">Tight (seed=700) — hard cooperation</option>
+    </select>
     <button class="btn" id="play-btn">▶ Play</button>
     <button class="btn btn-secondary" id="reset-btn">↻ Reset</button>
-    <span class="speed-label">Playback speed:</span>
+    <span class="speed-label">Speed:</span>
     <select class="speed-select" id="speed">
-      <option value="1500">Slow (1.5s/turn)</option>
-      <option value="600" selected>Normal (0.6s/turn)</option>
-      <option value="200">Fast (0.2s/turn)</option>
+      <option value="1500">Slow</option>
+      <option value="600" selected>Normal</option>
+      <option value="200">Fast</option>
       <option value="0">Instant</option>
     </select>
-    <span style="color: var(--dim); font-size: 13px; margin-left: auto;">Seed 42 · NegMAS B2B (rich-frontier harness, conc=1.0)</span>
   </div>
+  <p id="tournament-meta" style="color: var(--dim); font-size: 13px; margin: 12px 0 16px;"></p>
 
   <div class="scoreboard">
     <div class="panel" id="vanilla-panel">
@@ -294,12 +301,37 @@ footer a:hover { color: var(--fg); }
 
 <script>
 const PARETO_FRONTIER_MEAN = 1.57;
-let traceData = null;
+let allTournaments = null;
+let traceData = null;  // currently-selected tournament
 let playState = { vanilla: { idx: 0 }, scaffold: { idx: 0 }, playing: false, timer: null };
 
-async function loadTrace() {
-  const r = await fetch("/static/demo_trace.json");
-  traceData = await r.json();
+async function loadAllTraces() {
+  const r = await fetch("/static/demo_traces.json");
+  allTournaments = await r.json();
+  selectTournament("typical");
+}
+
+function selectTournament(key) {
+  pause();
+  playState.vanilla.idx = 0;
+  playState.scaffold.idx = 0;
+  const t = allTournaments[key];
+  if (!t) return;
+  traceData = t;
+  document.getElementById("tournament-meta").innerHTML =
+    `<strong style="color: var(--fg);">${t.title}</strong> · ${t.subtitle}`;
+  // Reset transcripts + scoreboards
+  ["vanilla", "scaffold"].forEach(s => {
+    document.getElementById(`${s}-transcript`).innerHTML = "";
+    document.getElementById(`${s}-a`).textContent = "0.00";
+    document.getElementById(`${s}-b`).textContent = "0.00";
+    document.getElementById(`${s}-joint`).textContent = "0.00";
+    document.getElementById(`${s}-pareto`).textContent = "— of frontier";
+    document.getElementById(`${s}-cost`).textContent = "$0.0000";
+    document.getElementById(`${s}-progress`).style.width = "0%";
+    document.getElementById(`${s}-status`).textContent = "ready";
+  });
+  document.getElementById("summary").classList.remove("show");
 }
 
 function fmtUtility(v) { return v.toFixed(4); }
@@ -452,8 +484,11 @@ document.getElementById("play-btn").addEventListener("click", () => {
   if (playState.playing) pause(); else play();
 });
 document.getElementById("reset-btn").addEventListener("click", reset);
+document.getElementById("tournament").addEventListener("change", (e) => {
+  selectTournament(e.target.value);
+});
 
-loadTrace().catch(e => console.error("Failed to load trace:", e));
+loadAllTraces().catch(e => console.error("Failed to load traces:", e));
 </script>
 </body>
 </html>

@@ -539,6 +539,19 @@ def demo_trace():
     return _serve_static_page("demo_trace.json", media_type="application/json")
 
 
+@app.get("/demo_traces.json", include_in_schema=False)
+def demo_traces():
+    """Multi-tournament trace data for the Try-live selector."""
+    return _serve_static_page("demo_traces.json", media_type="application/json")
+
+
+@app.get("/cs_dataset.json", include_in_schema=False)
+def cs_dataset():
+    """1000-scenario customer-service negotiation dataset for the
+    homepage component."""
+    return _serve_static_page("cs_dataset.json", media_type="application/json")
+
+
 @app.get("/reputation_scoring_spec.html", include_in_schema=False)
 def reputation_spec_page():
     """Spec for the SNHP Reputation Scoring product (the moat layer)."""
@@ -683,8 +696,24 @@ def catalog():
                 "stability": "beta",
                 "description": (
                     "Sell-side next-offer recommendation with Pareto knob. "
-                    "Wraps SNHP math; rank #1/21 in independent eval."
+                    "Wraps SNHP math; rank #1/21 in independent eval. "
+                    "Set peer_mode=true when counterparty is a verified "
+                    "SNHP-protocol peer for the +13% cooperation lift."
                 ),
+                "example_input": {
+                    "my_reservation": 0.40,
+                    "opponent_offer_history": [0.55, 0.62],
+                    "my_offer_history": [0.85, 0.78],
+                    "deadline_rounds": 8,
+                    "pareto_knob": 0.5,
+                    "peer_mode": False,
+                },
+                "example_output": {
+                    "recommended_offer": 0.68,
+                    "acceptance_probability": 0.42,
+                    "expected_payoff": 0.56,
+                    "rationale": "(elided)",
+                },
             },
             {
                 "name": "gt.auction.bidder.optimal_bid",
@@ -729,8 +758,16 @@ def catalog():
                 "stability": "beta",
                 "description": (
                     "Buy-side recommender with defense bundle (anchor-attack "
-                    "detection, Schelling commitment). Pareto knob for buyers."
+                    "detection, Schelling commitment). Pareto knob for buyers. "
+                    "Set peer_mode=true for cooperative counterparties."
                 ),
+                "example_input": {
+                    "my_reservation": 0.40,
+                    "seller_offer_history": [0.55, 0.62],
+                    "my_offer_history": [0.15, 0.22],
+                    "deadline_rounds": 8,
+                    "peer_mode": False,
+                },
             },
             {
                 "name": "gt.negotiation.detect_anchor_attack",
@@ -909,6 +946,29 @@ agent needs natural-language drafting, do that with your own LLM provider
     body: {agent_id, contact_email, intended_use_summary,
            telemetry_consent: bool = false}
     -> {api_key: "gt_*", telemetry_consent, ...}
+
+## 30-second integration (literal commands)
+
+```
+# 1. Issue your key (no human approval, returns gt_* in <500ms):
+curl -sX POST https://snhp.fly.dev/v1/keys -H 'Content-Type: application/json' \\
+  -d '{"agent_id":"my_agent","contact_email":"you@example.com",
+       "intended_use_summary":"negotiation pilot"}'
+
+# 2. Call sell-side recommender with peer_mode (the +13% lift path):
+curl -sX POST https://snhp.fly.dev/v1/negotiation/sell/next_offer \\
+  -H "Authorization: Bearer $GT_KEY" -H 'Content-Type: application/json' \\
+  -d '{"my_reservation":0.40, "opponent_offer_history":[0.55,0.62],
+       "my_offer_history":[0.85,0.78], "deadline_rounds":8,
+       "peer_mode":true}'
+
+# 3. Same for buy-side:
+curl -sX POST https://snhp.fly.dev/v1/negotiation/buy/next_offer \\
+  -H "Authorization: Bearer $GT_KEY" -H 'Content-Type: application/json' \\
+  -d '{"my_reservation":0.40, "seller_offer_history":[0.55,0.62],
+       "my_offer_history":[0.15,0.22], "deadline_rounds":8,
+       "peer_mode":true}'
+```
 
 ## Telemetry (opt-in, off by default)
 We collect aggregate prior-corpus data ONLY when you opt in. The corpus
