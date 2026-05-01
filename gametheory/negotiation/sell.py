@@ -123,7 +123,15 @@ def _peer_mode_recommendation(
         "peer_mode": True,
         "peer_phase": phase,
         "peer_asp_floor": _PEER_ASP_FLOOR,
+        # Schema-compat fields required by SellNextOfferResponse. They
+        # don't carry strategic meaning in peer mode (we're using PEER
+        # playbook, not Rubinstein/Schelling), but the response schema
+        # mandates them. Echo the relevant defaults.
+        "rubinstein_share": 0.5,  # symmetric peer assumption
+        "schelling_floor": _PEER_ASP_FLOOR,
         "posterior": {
+            "inferred_opp_price_weight": 0.5,  # symmetric prior
+            "confidence": 0.5,
             "n_particles": 0,
             "estimated_opp_reservation": my_reservation,  # symmetric assumption
         },
