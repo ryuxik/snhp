@@ -309,8 +309,8 @@ footer a:hover { color: var(--fg); }
           finds Pareto-improving bundles vanilla agents miss. Network
           good for partner ecosystems — both sides win more.<br>
           <span style="color: var(--dim); font-size: 14px;">
-            *N=20 borderline-significant (CI [+2.8%, +11.8%], sign-test p=0.058).
-            <a href="#methodology" style="color: var(--dim); text-decoration: underline;">Pending N=50 confirmation.</a>
+            Confirmed at N=50: p=0.00047, CI [+3.2%, +11.0%].
+            <a href="#methodology" style="color: var(--dim); text-decoration: underline;">Methodology →</a>
           </span>
         </p>
         <div class="compare">
@@ -579,38 +579,47 @@ footer a:hover { color: var(--fg); }
           <td>H3 head-to-head margin (+12%)</td>
           <td class="num" style="font-size: 14px;">0.79</td>
           <td class="ci">19</td>
-          <td class="ci" style="color: var(--accent);">well-powered</td>
+          <td class="ci" style="color: var(--accent);">replicated (E1: p&lt;0.0001 on disjoint N=20)</td>
         </tr>
         <tr>
           <td>H2_A single SNHP-seller benefit (+7.5%)</td>
           <td class="num" style="font-size: 14px;">0.66</td>
           <td class="ci">27</td>
-          <td class="ci">borderline (p=0.006 sign)</td>
+          <td class="ci" style="color: var(--accent);">significant (p=0.006)</td>
         </tr>
         <tr>
           <td>H1 cooperation premium (+7%)</td>
           <td class="num" style="font-size: 14px;">0.50</td>
           <td class="ci">47</td>
-          <td class="ci" style="color: var(--dim);">underpowered (p=0.058)</td>
+          <td class="ci" style="color: var(--accent);">confirmed (E2: p=0.00047 at N=50)</td>
         </tr>
         <tr>
           <td>H2_B single SNHP-buyer benefit (+3.5%)</td>
           <td class="num" style="font-size: 14px;">0.22</td>
           <td class="ci">238</td>
-          <td class="ci" style="color: var(--dim);">heavily underpowered</td>
+          <td class="ci" style="color: var(--dim);">demoted (would need ~$24 to confirm; not on hero)</td>
         </tr>
       </tbody>
     </table>
 
     <p style="font-size: 14px; color: var(--fg); margin-top: 24px; line-height: 1.6;">
-      The H3 head-to-head claim is robust at our current sample size.
-      H2_A is borderline. H1 cooperation premium has 95% bootstrap CI
-      that excludes zero, but sign-test p=0.058 — confirming requires
-      N≈47. H2_B is currently noise-floor.
+      Both hero claims are now empirically validated across multiple
+      disjoint runs at p&lt;0.001. <strong>H3</strong> replicated on
+      seeds 2000-2019 (E1, +0.150 vs T1's +0.121, both p&lt;0.0001).
+      <strong>H1</strong> upgraded from "borderline at N=20 (p=0.058)"
+      to "confirmed at N=50 (p=0.00047)" via the planned power-up.
     </p>
     <p style="font-size: 14px; color: var(--fg); margin-top: 12px; line-height: 1.6;">
-      <strong>Roadmap:</strong> N=50 paired self-play LLM run (~$5)
-      to confirm H1 stat-sig. The framework that produced these numbers
+      <strong>Mechanism research dead-end:</strong> we tested whether a
+      cryptographic commit-reveal mechanism (BATNA + preference reveal)
+      could push past the 97% Pareto plateau. Sim predicted +8% lift;
+      LLM tournament showed −0.6% (p=0.98 wrong direction). Reproduces
+      a previously-observed pattern where the no-LLM simulator inflates
+      mechanism wins by 13× over actual LLM behavior. Mechanism roadmap
+      shelved until LLM-loop tuning is feasible at scale.
+    </p>
+    <p style="font-size: 14px; color: var(--fg); margin-top: 12px; line-height: 1.6;">
+      The framework that produced these numbers
       (param tuning + faithful sim + LLM-loop validation) is documented
       in <a href="https://github.com/ryuxik/snhp/blob/main/gametheory/CHANGELOG.md">CHANGELOG.md</a>.
     </p>

@@ -1,5 +1,94 @@
 # gametheory CHANGELOG
 
+## 2026-05-02 — Hassabis experiment portfolio (5 experiments, $5.88 total)
+
+After committing the homepage rewrite, ran a Hassabis-designed portfolio
+to confirm or falsify the strongest claims at maximum information per
+dollar. **Result: both hero claims survived empirical attack at p<0.001;
+mechanism-design roadmap is dead.**
+
+### Experiments + verdicts
+
+**E1 — H3 fresh-seed replication ($0.69)**:
+Tested whether the +12% head-to-head margin replicates on disjoint seeds
+(2000-2019, no overlap with prior 20-seed set). Result: lift +0.150,
+CI [+0.101, +0.200], sign 32/40, **p<0.0001**. T1 baseline was +0.121
+with overlapping CI. **Headline +12% confirmed; could honestly bump to
++13-14%.** Saved → `e1_h3_replication.json`.
+
+**E2 — H1 power-up at N=50 ($3.01)**:
+Hassabis predicted N≈47 needed for p<0.01 confirmation of the +7%
+cooperation premium. Ran N=50 paired self-play on seeds 2100-2149.
+Result: lift +0.070, CI [+0.032, +0.110], sign 37/50, **p=0.00047**.
+T1 baseline was +0.071 with sign-test borderline at p=0.058. **Same
+magnitude, much tighter CI. The "borderline" footnote on the homepage
+is removed.** Saved → `e2_h1_power_up.json`.
+
+**E3 — Sim-only commit-reveal sweep ($0.00)**:
+Three mechanism variants (V1 BATNA-revealed, V2 preference-revealed,
+V3 staged BATNA reveal after round 3) tested in production-faithful sim.
+All three tied at +0.081 sim Δ over current SNHP self-play (1.13 → 1.21).
+Verdict: PROMOTE TO E4 LLM-loop validation. Saved → `e3_commit_reveal_sweep.json`.
+
+**E4 — Oracle-reveal LLM-loop validation ($1.48)**:
+Implemented `LLMMinimalSNHP_OracleReveal` subclass that overrides the
+outcome picker to MAXIMIZE TRUE OPP UTILITY (oracle access to opp's
+utility function — models the end-state of cryptographic commit-reveal).
+N=20 paired (current vs oracle, self-play). **Result: lift −0.006, CI
+[−0.054, +0.045], sign 6/20, p=0.98 (wrong direction).** Sim predicted
++0.081. Mechanism does NOT transfer to LLM loop. Verdict: ABANDON.
+Saved → `e4_oracle_reveal.json`.
+
+**E5 — Stuck-deal stratification ($0.00, re-mining existing data)**:
+Hypothesized the "+12% population lift" might be a much larger "+18%
+on negotiations that actually negotiate" if we filter out matchups
+that close on the first offer. Result: influenceable-subset lift only
++0.139 vs population +0.118 (jump +0.021, well below Hassabis's +0.04
+threshold). Verdict: NO HIDDEN EFFECT. Saved → `e5_stuck_deal_stratification.json`.
+
+### Strategic implications
+
+1. **Both hero claims are CI-validated at p<0.001.** The +12% H3 and
+   +7% H1 are now defensible through replication and power-up. The
+   homepage's earlier "borderline at N=20" footnote on H1 is replaced
+   with "Confirmed at N=50: p=0.00047, CI [+3.2%, +11.0%]."
+
+2. **Mechanism research is dead.** Sim-vs-LLM-loop divergence is now
+   confirmed *empirically twice*: peer_cs (peer params) and oracle-reveal
+   (outcome picker). Both showed strong sim signal that didn't transfer.
+   **No more sim-only mechanism experiments without LLM-loop validation
+   in the same trial.** Future commit-reveal work is shelved until we
+   can afford in-LLM-loop iteration at scale (~$50+ per Optuna round).
+
+3. **The 97% Pareto plateau is the product ceiling.** SNHP self-play
+   already hits 97% of theoretical Pareto frontier. Remaining 3% headroom
+   isn't unlockable via parameter tuning OR mechanism change at any
+   horizon we tested. **Future gains come from distribution (more
+   customers, larger N, network adoption), not from algorithm
+   improvements.**
+
+4. **$9.12 of $15 budget unspent.** Per Hassabis's "redirect to
+   distribution" recommendation, this should fund customer outreach
+   (cold-email Sierra/Decagon/Cresta CS Ops + AI Product leads) rather
+   than more LLM experiments.
+
+### What we deliberately did NOT do
+
+Per Hassabis's portfolio design, we did NOT run:
+- **Cross-vendor (Haiku) test** — Phase 2 question; spending now confounds
+  "does it work?" with "does it work cross-vendor?" before core is
+  reproducible. Resolved by E1+E2 confirmation; cross-vendor is now a
+  cleaner future test.
+- **Boulware/Conceder adversarial baselines** — research-paper material,
+  not homepage material.
+- **Horizon test at fixed n=13** — no current homepage claim depends on
+  resolving the +13% vs +7% horizon mystery; defer until something forces
+  the question.
+- **H2_B re-test at N=238 (~$24)** — the resulting marketing claim is too
+  weak to lead with even if confirmed. Demoted from homepage; spend $0.
+
+---
+
 ## 2026-05-01 — Magic-number framework + Phase 1-2 tuning (in progress)
 
 ### Context

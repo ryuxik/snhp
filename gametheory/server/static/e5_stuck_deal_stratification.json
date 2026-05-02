@@ -1,0 +1,50 @@
+{
+  "per_dataset": [
+    {
+      "dataset": "BASELINE",
+      "h3_all": 0.02309544508661394,
+      "h3_infl": 0.034264685525607144,
+      "lift_jump": 0.011169240438993203,
+      "n_all": 40,
+      "n_infl": 32
+    },
+    {
+      "dataset": "T1",
+      "h3_all": 0.12097992291515869,
+      "h3_infl": 0.14545557067850565,
+      "lift_jump": 0.024475647763346958,
+      "n_all": 40,
+      "n_infl": 28
+    },
+    {
+      "dataset": "PHASE2",
+      "h3_all": 0.17453792436533525,
+      "h3_infl": 0.20552713091882582,
+      "lift_jump": 0.030989206553490578,
+      "n_all": 40,
+      "n_infl": 31
+    },
+    {
+      "dataset": "PHASE25",
+      "h3_all": 0.15399176108599605,
+      "h3_infl": 0.1766924986910612,
+      "lift_jump": 0.022700737605065163,
+      "n_all": 40,
+      "n_infl": 31
+    }
+  ],
+  "pooled_all": {
+    "mean": 0.11815126336327597,
+    "ci_low": 0.09191668508475943,
+    "ci_high": 0.1449251083237266,
+    "n": 160
+  },
+  "pooled_infl": {
+    "mean": 0.13949208552232858,
+    "ci_low": 0.10707240033627582,
+    "ci_high": 0.1709535867140799,
+    "n": 122
+  },
+  "verdict": "NO HIDDEN EFFECT",
+  "verdict_text": "Influenceable subset doesn't materially differ from population. No claim worth adding."
+}
