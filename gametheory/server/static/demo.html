@@ -473,9 +473,10 @@ function showSummary() {
     Vanilla joint:    <strong>${fmtUtility(v.joint)}</strong> (${fmtPct(v.joint)}) — cost $${v.cost_usd.toFixed(4)}<br>
     Scaffolded joint: <strong>${fmtUtility(s.joint)}</strong> (${fmtPct(s.joint)}) — cost $${s.cost_usd.toFixed(4)}<br>
     <br>
-    Across N=20 paired seeds: scaffold beat vanilla on 18/20 (sign test p=0.0004),
-    mean lift +0.186 joint welfare. This seed (42) is one of the most dramatic
-    lifts; smaller deltas are typical.
+    Across N=20 paired seeds (T1 build, 2026-05-01): SNHP single-side adoption
+    yields +12.1% head-to-head margin (CI [+6.5%, +17.4%]). Bilateral cooperation
+    premium +7.1% (CI [+2.8%, +11.8%], borderline at N=20). This seed (42) is
+    one of the more dramatic lifts; per-seed variance is high.
   `;
   document.getElementById("summary").classList.add("show");
 }

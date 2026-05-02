@@ -201,13 +201,14 @@ footer a { color: var(--dim); }
     <p class="subtitle">
       Two Claude Sonnet agents negotiate a B2B contract. The only difference
       between groups: one has the SNHP MCP tool. Same prompt skeleton, same
-      opponent, same seed. Live API run on 2026-04-30, replicable in 4 minutes.
+      opponent, same seed. T1 production build (2026-05-01), replicable in
+      ~12 minutes for ~$2.
     </p>
 
     <div class="proof-grid">
       <div class="proof-card">
-        <div class="num">+13%</div>
-        <div class="label">joint welfare lift, Sonnet+SNHP vs vanilla Sonnet (n=20, p=0.0004)</div>
+        <div class="num">+12%</div>
+        <div class="label">head-to-head margin, single SNHP customer vs vanilla counterparty (n=20, p&lt;0.0001, CI [+6.5%, +17.4%])</div>
       </div>
       <div class="proof-card">
         <div class="num">$0.05</div>
@@ -220,8 +221,11 @@ footer a { color: var(--dim); }
     </div>
 
     <p style="color: var(--dim); font-size: 13px; margin-top: 8px;">
-      Cross-vendor: cross-model (Sonnet 4.6, Haiku 4.5) parity confirmed.
-      GPT-5 / Gemini test in progress. <a href="/">Full data on the home page →</a>
+      The +12% number is for single-side adoption (you ship SNHP, your
+      counterparty doesn't). With both sides on SNHP, joint welfare lifts
+      an additional +7% (CI [+2.8%, +11.8%], borderline at N=20 — see
+      <a href="/#methodology">homepage methodology</a>).
+      <a href="/">Full breakdown on the home page →</a>
     </p>
   </div>
 </section>
@@ -230,8 +234,9 @@ footer a { color: var(--dim); }
   <div class="container">
     <h2>Who this is for</h2>
     <p class="subtitle">
-      If your agents touch any of these workflows, the +13% lift is directly
-      applicable to your unit economics.
+      If your agents touch any of these workflows, the +12% head-to-head
+      margin (and +7% bilateral cooperation premium when both sides adopt)
+      is directly applicable to your unit economics.
     </p>
 
     <div class="who-grid">
@@ -374,12 +379,20 @@ prompt = f"""... {state} ...
         rate-limiting, and the reputation scoring layer on top.</p>
       </details>
       <details>
-        <summary>How was the +13% number generated?</summary>
-        <p>20 paired seeds × Sonnet self-play with vs without the SNHP MCP
-        tool, on a Dirichlet-randomized NegMAS B2B harness (Pareto frontier
-        mean = 1.57). Sign test 18/20 (p=0.0004), mean lift +0.186 joint
-        welfare. Total experiment cost: $1.97 in API spend. Replicate via
-        <code>python /tmp/multi_seed.py</code> after cloning the repo.</p>
+        <summary>How was the +12% number generated?</summary>
+        <p>20 paired seeds × asymmetric Sonnet matchups on a
+        Dirichlet-randomized NegMAS B2B harness (Pareto frontier mean ≈
+        1.57). T1 build (knob=1.0, 2026-05-01): single SNHP customer
+        beats vanilla counterparty by +0.121 utility head-to-head,
+        sign-test 32/40 pooled (p&lt;0.0001), 95% bootstrap CI [+6.5%,
+        +17.4%]. Total experiment cost: ~$2 in API spend. Raw data:
+        <a href="/static/asymmetric_b2b_n20_T1_knob1.json">
+        asymmetric_b2b_n20_T1_knob1.json</a>. The original "+13%"
+        number was a self-play measurement at randomized horizons that
+        was above the upper edge of the production-build CI; we revised
+        downward when our own audit caught the discrepancy. See
+        <a href="https://github.com/ryuxik/snhp/blob/main/gametheory/CHANGELOG.md">
+        CHANGELOG</a>.</p>
       </details>
     </div>
   </div>

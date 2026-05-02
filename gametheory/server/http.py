@@ -673,6 +673,22 @@ def auction_simulate(req: SimulateRequest):
 
 
 @app.get(
+    "/v1/internal/params",
+    tags=["discovery"],
+    summary="Currently-active negotiation parameters (for telemetry/debug)",
+    description=(
+        "Returns every tunable parameter, its default, current active value, "
+        "whether it's overridden via env var, and metadata (rationale + source). "
+        "Useful for confirming which Optuna-tuned values are live + detecting "
+        "drift. No auth required (server-state only, no per-call data)."
+    ),
+)
+def internal_params():
+    from gametheory.negotiation._config import active_snapshot
+    return active_snapshot()
+
+
+@app.get(
     "/v1/catalog",
     tags=["discovery"],
     summary="Tool catalog for agent discovery",
@@ -696,9 +712,11 @@ def catalog():
                 "stability": "beta",
                 "description": (
                     "Sell-side next-offer recommendation with Pareto knob. "
-                    "Wraps SNHP math; rank #1/21 in independent eval. "
-                    "Set peer_mode=true when counterparty is a verified "
-                    "SNHP-protocol peer for the +13% cooperation lift."
+                    "Wraps SNHP math. Single SNHP customer beats vanilla "
+                    "counterparty by +12% head-to-head margin (T1, n=20, "
+                    "p<0.0001). Set peer_mode=true when counterparty is a "
+                    "verified SNHP-protocol peer for the +7% bilateral "
+                    "cooperation premium."
                 ),
                 "example_input": {
                     "my_reservation": 0.40,
@@ -855,21 +873,23 @@ contract negotiation actually improves outcomes. Setup: two Sonnet
 agents negotiate, both with the same "senior B2B negotiator" production
 prompt. The scaffolded variant additionally has the SNHP advisor tool.
 
-Result over n=20 paired seeds (rich-frontier harness, Pareto max=1.57):
-  Vanilla Sonnet self-play joint welfare:  1.40 (89% of frontier)
-  Pure SNHP-vs-SNHP joint welfare:         1.45 (92% of frontier)
-  Sonnet+SNHP self-play joint welfare:     1.59 (101% of frontier)
-  Haiku+SNHP self-play joint welfare:      1.61 (102% — cross-model parity)
+Production-build results (T1, knob=1.0, n=20 paired seeds, n_steps=10):
 
-Lift from adding SNHP tool: +0.186 joint welfare (11-13% relative).
-Sign test 18/20, p=0.0004. Cost: $0.025/matchup.
+SINGLE-SIDE adoption (one Sonnet+SNHP vs vanilla Sonnet counterparty):
+  Head-to-head margin:  +12.1%  (CI [+6.5%, +17.4%], p<0.0001)
+  Single-customer lift:  +5.5%  (CI [+1.3%, +9.2%], p=0.001)
+  Joint welfare in asymm: ~neutral (-1% on average)
 
-Network effect (important): the cooperation premium requires BOTH sides
-to be SNHP-staked. In asymmetric matchups (Sonnet+SNHP vs vanilla
-Sonnet), the scaffolded side gets only 0.68 utility — slightly below
-its self-play half (0.79). Peer-mode advisor only activates when the
-counterparty has posted a verifiable SNHP attestation. SNHP gets more
-valuable as more agents adopt it.
+BILATERAL adoption (both Sonnets have SNHP, attested):
+  Cooperation premium:   +7.1%  (CI [+2.8%, +11.8%], p=0.058 borderline)
+  N=50 confirmation pending; current N=20 is underpowered for H1.
+
+Earlier-cited "+13% / +0.186" was a self-play measurement at randomized
+horizons (U(7,13)). Above the upper edge of the production-build CI;
+revised on 2026-05-01 after our own audit. See CHANGELOG.md.
+
+Cost: ~$0.025/matchup. Single-side adoption gives positive H2 even at
+N=1 (no network needed). Bilateral adoption adds a cooperation premium.
 
 ## Scaffolded prompt template (drop into your system message verbatim)
 
@@ -915,6 +935,28 @@ See https://api.snhp.dev/reputation_scoring_spec.html for the spec
 - GET  /v1/keys/trust_anchor  [free]
   Public key for verifying first-strike attestations.
 
+## Tunable parameters (advanced; defaults are Optuna-tuned)
+
+Every internal magic number in the negotiation advisor is exposed as an
+env var (`SNHP_<UPPERCASE_NAME>`). Defaults are validated against an
+LLM-loop tournament (see CHANGELOG entry "Phase 1-3 magic-number
+framework", 2026-05-01). Override only if you know what you're doing
+and have data to support a different value. Notable params:
+
+- `SNHP_PARETO_KNOB` (default 0.971): asp_start = lerp(0.55, 0.929, knob).
+  Higher = more aggressive opening anchor. Was 0.5 (asp_start=0.72) until
+  T1 experiment showed that under-anchored vs vanilla LLM counterparties.
+- `SNHP_PEER_ASP_FLOOR` (default 0.462): the floor in cooperative descent.
+  Lower = more concession to find logrolling outcomes.
+- `SNHP_OUTCOME_PICKER_BAND` (default 0.068): tolerance for logrolling
+  outcome selection. Wider = more candidate bundles considered.
+- `SNHP_PEER_SIGNALING_ROUNDS` (default 3): rounds of max-self signaling
+  before descent. More signaling = more bilateral preference revelation.
+- `SNHP_ASP_START_MARGIN_MAX` (default 0.929): the upper anchor at
+  pareto_knob=1.0. Should ≈ vanilla LLM natural anchor.
+
+Full inventory + metadata: `gametheory/negotiation/_config.py`.
+
 ## Tier 2 — Auctions
 - POST /v1/auction/bidder/optimal_bid  [free]
   Optimal bid for first-price (BNE), Vickrey (truthful), English ascending.
@@ -955,7 +997,7 @@ curl -sX POST https://snhp.fly.dev/v1/keys -H 'Content-Type: application/json' \
   -d '{"agent_id":"my_agent","contact_email":"you@example.com",
        "intended_use_summary":"negotiation pilot"}'
 
-# 2. Call sell-side recommender with peer_mode (the +13% lift path):
+# 2. Call sell-side recommender with peer_mode (the +7% bilateral premium path):
 curl -sX POST https://snhp.fly.dev/v1/negotiation/sell/next_offer \\
   -H "Authorization: Bearer $GT_KEY" -H 'Content-Type: application/json' \\
   -d '{"my_reservation":0.40, "opponent_offer_history":[0.55,0.62],

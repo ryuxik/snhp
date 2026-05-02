@@ -110,6 +110,17 @@ class LLMMinimalSNHP(LLMNegotiator):
         rv = float(getattr(self.ufun, "reserved_value", 0.0) or 0.0)
         is_seller = self._llm_role == "seller"
         peer_mode = self._is_peer_verified()
+        # pareto_knob default = 1.0 (margin-max, asp_start=0.89), env-overridable.
+        # The previous 0.5 default opened at 0.72, ~13 points below where vanilla
+        # LLMs naturally anchor (~0.85). In asymmetric matchups (SNHP vs vanilla)
+        # this gave away the entire anchor advantage and SNHP-side lost −0.034
+        # utility (p=0.98 wrong direction in 2026-05-01 experiment). 1.0 opens
+        # at ~0.89 ≈ vanilla anchor. Knob is ignored when peer_mode=True.
+        knob_raw = os.environ.get("SNHP_PARETO_KNOB", "1.0").strip()
+        try:
+            knob = max(0.0, min(1.0, float(knob_raw)))
+        except ValueError:
+            knob = 1.0
         try:
             if is_seller:
                 return sell_next_offer(
@@ -117,7 +128,7 @@ class LLMMinimalSNHP(LLMNegotiator):
                     opponent_offer_history=list(self._opp_utils),
                     my_offer_history=list(self._my_utils),
                     deadline_rounds=deadline_rounds,
-                    pareto_knob=0.5,
+                    pareto_knob=knob,
                     peer_mode=peer_mode,
                 )
             else:
@@ -126,7 +137,7 @@ class LLMMinimalSNHP(LLMNegotiator):
                     seller_offer_history=list(self._opp_utils),
                     my_offer_history=list(self._my_utils),
                     deadline_rounds=deadline_rounds,
-                    pareto_knob=0.5,
+                    pareto_knob=knob,
                     peer_mode=peer_mode,
                 )
         except Exception as e:

@@ -151,13 +151,12 @@ def buy_next_offer(
 
     # Peer-mode delegates to the shared cooperative recommendation.
     if peer_mode:
-        from gametheory.negotiation.sell import _peer_mode_recommendation
-        result = _peer_mode_recommendation(
+        from gametheory.negotiation._peer import peer_recommendation
+        result = peer_recommendation(
             my_reservation=my_reservation,
             opponent_offer_history=seller_offer_history,
             my_offer_history=my_offer_history,
             deadline_rounds=deadline_rounds,
-            role="buyer",
         )
         result["warnings"] = []
         result["defense_actions"] = []

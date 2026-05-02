@@ -18,124 +18,30 @@ from typing import Optional
 import numpy as np
 
 from gametheory._internal import ensure_snhp_path  # noqa: F401  (side-effect import)
+from gametheory.negotiation._config import get_param, get_int_param
 
 from bayesian_agent import BayesianParticleFilter  # noqa: E402
 from core_math.rubinstein import rubinstein_equilibrium  # noqa: E402
 
 
-# Empirical Pareto endpoints. Updating these requires re-running
-# snhp/optuna_tuner.py --pareto and updating both ends of the curve here.
-_ASP_START_DEAL_RATE_MAX = 0.55  # max deal rate, min margin
-_ASP_START_MARGIN_MAX = 0.89     # max margin, lower deal rate
+# All tunable values live in `_config.py`. The two empirical endpoints
+# (Pareto frontier extrema) are exposed here as module-level for
+# convenience; their actual values are pulled from _config so env-var
+# overrides work.
+def _asp_start_deal_rate_max() -> float: return get_param("asp_start_deal_rate_max")
+def _asp_start_margin_max() -> float: return get_param("asp_start_margin_max")
 
-_DEFAULT_PARTICLES = 500
-
-# Bayesian filter contract grid. 50 points × 1D contract space; recreating
-# this every call costs ~1µs but it's a clean module-level invariant.
-_CONTRACT_GRID = np.linspace(0.0, 1.0, 50).reshape(-1, 1)
+# Bayesian filter contract grid built lazily per-call (param tunable).
+def _contract_grid():
+    n = get_int_param("bayesian_contract_grid_n")
+    return np.linspace(0.0, 1.0, n).reshape(-1, 1)
 
 
 def _lerp(a: float, b: float, t: float) -> float:
     return a + t * (b - a)
 
 
-# PEER playbook (mirrors snhp.playbooks._PLAYBOOKS["PEER"]). Used by
-# both sell and buy when peer_mode=True. Conservative defaults:
-# - asp_start 0.92: open near max-self (signals preferences via outcome)
-# - asp_floor 0.55: refuse to descend below cooperative Nash share
-# - signaling rounds: hold at max-self for 1-2 rounds
-_PEER_ASP_START = 0.92
-_PEER_ASP_FLOOR = 0.55
-_PEER_SIGNALING_ROUNDS = 2  # hold at near-max-self for first N proposals
-_PEER_MAX_SELF_TARGET = 0.95  # what to recommend during signaling phase
-
-
-def _peer_mode_recommendation(
-    *,
-    my_reservation: float,
-    opponent_offer_history: list[float],
-    my_offer_history: list[float],
-    deadline_rounds: int,
-    role: str,
-) -> dict:
-    """Cooperative recommendation when both parties are SNHP-protocol peers.
-
-    Phase 1 (rounds 0-1, signaling): recommend opening near max-self
-    (~0.95). The high opening reveals our preferences via the offer's
-    issue values, letting the verified peer infer our weights without
-    explicit disclosure. Two peers signaling simultaneously converge on
-    the asymmetric Pareto outcome by round 3-4.
-
-    Phase 2 (rounds 2+, descent): descend from asp_start (0.92) toward
-    asp_floor (0.55) via cubic schedule. Slower than Rubinstein-aspiration
-    so cooperation has time to crystallize.
-
-    Acceptance: accept if peer offers ≥ asp_floor AND we're past round 2
-    (signaling complete).
-    """
-    rounds_used = len(my_offer_history) + len(opponent_offer_history)
-    time_fraction = min(1.0, rounds_used / max(deadline_rounds, 1))
-    n_my_offers = len(my_offer_history)
-
-    # Phase 1: signaling
-    if n_my_offers < _PEER_SIGNALING_ROUNDS:
-        recommended = _PEER_MAX_SELF_TARGET
-        phase = "peer_signaling"
-        rationale = (
-            f"PEER mode round {n_my_offers + 1}/{_PEER_SIGNALING_ROUNDS}: "
-            f"open at {_PEER_MAX_SELF_TARGET:.2f} to signal preferences "
-            f"via offer issue values. Verified peer will infer your "
-            f"weights and signal back in kind."
-        )
-    else:
-        # Phase 2: cubic descent
-        descent_t = max(0.0, (time_fraction - 0.2) / 0.8)
-        recommended = _PEER_ASP_START - (_PEER_ASP_START - _PEER_ASP_FLOOR) * (descent_t ** 3)
-        phase = "peer_descent"
-        rationale = (
-            f"PEER mode descent: t={time_fraction:.2f}, recommended "
-            f"{recommended:.3f} (cubic descent from {_PEER_ASP_START:.2f} "
-            f"toward floor {_PEER_ASP_FLOOR:.2f}). Both peers should "
-            f"converge near the asymmetric Pareto outcome."
-        )
-    recommended = max(my_reservation + 0.05, min(0.97, recommended))
-
-    # Acceptance prob estimate: in peer mode, peer is also descending
-    # symmetrically, so probability is high once past signaling.
-    if n_my_offers < _PEER_SIGNALING_ROUNDS:
-        accept_prob = 0.10  # signaling phase: peer also opening high, won't accept
-    else:
-        # Estimate from opponent's most recent offer + descent trajectory
-        if opponent_offer_history:
-            opp_last = opponent_offer_history[-1]
-            # If their last offer is above our floor, they're cooperating
-            accept_prob = 0.85 if opp_last >= _PEER_ASP_FLOOR else 0.40
-        else:
-            accept_prob = 0.60
-
-    expected_payoff = accept_prob * recommended + (1.0 - accept_prob) * my_reservation
-
-    return {
-        "recommended_offer": round(recommended, 4),
-        "acceptance_probability": round(accept_prob, 4),
-        "expected_payoff": round(expected_payoff, 4),
-        "rationale": rationale,
-        "peer_mode": True,
-        "peer_phase": phase,
-        "peer_asp_floor": _PEER_ASP_FLOOR,
-        # Schema-compat fields required by SellNextOfferResponse. They
-        # don't carry strategic meaning in peer mode (we're using PEER
-        # playbook, not Rubinstein/Schelling), but the response schema
-        # mandates them. Echo the relevant defaults.
-        "rubinstein_share": 0.5,  # symmetric peer assumption
-        "schelling_floor": _PEER_ASP_FLOOR,
-        "posterior": {
-            "inferred_opp_price_weight": 0.5,  # symmetric prior
-            "confidence": 0.5,
-            "n_particles": 0,
-            "estimated_opp_reservation": my_reservation,  # symmetric assumption
-        },
-    }
+from gametheory.negotiation._peer import peer_recommendation
 
 
 def _validate(my_reservation: float, pareto_knob: float, deadline_rounds: int):
@@ -155,7 +61,7 @@ def sell_next_offer(
     deadline_rounds: int,
     pareto_knob: float = 0.5,
     buyer_wtp_prior: Optional[dict] = None,
-    n_particles: int = _DEFAULT_PARTICLES,
+    n_particles: Optional[int] = None,  # default pulled from _config
     peer_mode: bool = False,
 ) -> dict:
     """
@@ -164,9 +70,12 @@ def sell_next_offer(
     `peer_mode=True` activates the cooperative architecture used by the
     full SNHP agent when its counterparty is a verified SNHP-protocol
     peer (cryptographic attestation): max-self signaling for rounds 0-1,
-    then descent toward PEER playbook floor (0.55). This produces
-    higher joint welfare than the standard Rubinstein+aspiration descent
-    because both peers can find the asymmetric Pareto outcome.
+    then cubic descent toward the PEER floor (0.55). Validated in the
+    N=20 NegMAS LLM tournament at U(7,13) negotiation rounds: +0.186
+    joint welfare lift, p=0.0004. At ≤6-round horizons the lift
+    compresses to ~+0.07 and is not stat-sig at n=20 — improving
+    short-horizon behavior is a research direction (mechanism change),
+    not a parameter-tuning question.
 
     `pareto_knob ∈ [0, 1]` interpolates between the two empirically-mapped
     extremes from the seller-side Pareto frontier (only applies when
@@ -190,107 +99,95 @@ def sell_next_offer(
     # via offer issue values), then descend slowly toward fair share.
     # Empirically reaches 96% of frontier vs 75-90% for vanilla descent.
     if peer_mode:
-        return _peer_mode_recommendation(
+        return peer_recommendation(
             my_reservation=my_reservation,
             opponent_offer_history=opponent_offer_history,
             my_offer_history=my_offer_history,
             deadline_rounds=deadline_rounds,
-            role="seller",
         )
 
-    # ── Aspiration curve from the Pareto knob ──────────────────────────
-    asp_start = _lerp(_ASP_START_DEAL_RATE_MAX, _ASP_START_MARGIN_MAX, pareto_knob)
-    # Schelling commitment: never recommend below my reservation + a small
-    # buffer for negotiating room. The aspiration curve floor IS reservation
-    # — at deadline we're willing to take any deal above walk-away. (Earlier
-    # versions floored at 0.40 absolute / 0.6×asp_start; that was tuned for
-    # multi-attribute B2B with logrolling and starves single-axis games of
-    # the deals the math should land.)
-    schelling_floor = my_reservation + min(0.05, 0.5 * (1.0 - my_reservation))
+    # All magic numbers come from _config.py; env-overridable via SNHP_*.
+    if n_particles is None:
+        n_particles = get_int_param("bayesian_n_particles")
+
+    asp_start = _lerp(_asp_start_deal_rate_max(), _asp_start_margin_max(), pareto_knob)
+    schelling_buf_abs = get_param("schelling_buffer_abs")
+    schelling_buf_rel = get_param("schelling_buffer_rel")
+    schelling_floor = my_reservation + min(schelling_buf_abs, schelling_buf_rel * (1.0 - my_reservation))
     asp_floor = my_reservation
 
-    # Total alternating-offer rounds elapsed = sum of both histories. Earlier
-    # `max(len(mine), len(theirs))` underestimated by ~2× — a 10-round game
-    # with both sides at 5 offers reads as t=0.5, not t≈1.0, leaving SNHP's
-    # aspiration almost undecayed at the deadline.
     rounds_used = len(my_offer_history) + len(opponent_offer_history)
     time_fraction = min(1.0, rounds_used / max(deadline_rounds, 1))
 
-    # Power-law concession (see negmas_agent.py:propose). base_exp=3 means
-    # most of the concession happens late — preserves margin against a
-    # firm-but-time-aware opponent, but still concedes against deadlines.
-    base_exp = 3.0
+    base_exp = get_param("concession_exponent")
     aspiration = asp_start - (asp_start - asp_floor) * (time_fraction ** base_exp)
 
     # ── Bayesian inference on opponent's offers ────────────────────────
+    bayesian_uncertainty = get_param("bayesian_uncertainty")
     if buyer_wtp_prior is not None:
         prior_mu = float(buyer_wtp_prior.get("mu", 0.5))
-        prior_sigma = float(buyer_wtp_prior.get("sigma", 0.2))
+        prior_sigma = float(buyer_wtp_prior.get("sigma", bayesian_uncertainty))
         b_filter = BayesianParticleFilter(
             num_variables=1, num_particles=n_particles,
             historical_prior=[prior_mu], uncertainty=prior_sigma,
         )
     else:
         b_filter = BayesianParticleFilter(
-            num_variables=1, num_particles=n_particles, uncertainty=0.2
+            num_variables=1, num_particles=n_particles, uncertainty=bayesian_uncertainty
         )
 
-    # Iterate over the full opponent history so the posterior compounds
-    # evidence (the SNHP fix from this session — single-anchor updates
-    # under-update against slow-conceders).
+    contract_grid = _contract_grid()
     for opp_util_to_us in opponent_offer_history:
-        # In a 1D zero-sum projection, opp's utility from their own offer ≈
-        # 1 - (opp's offer in our utility space). The filter expects the
-        # opponent's contract features; we use their utility from their
-        # own offer as the anchor.
         opp_util_to_self = max(0.0, min(1.0, 1.0 - float(opp_util_to_us)))
         anchor = np.array([opp_util_to_self])
-        b_filter.update_beliefs(anchor, _CONTRACT_GRID)
+        b_filter.update_beliefs(anchor, contract_grid)
 
     inferred_weights = b_filter.get_inferred_weights()
     inferred_opp_weight = float(inferred_weights[0])
     spread = float(np.std(b_filter.particles[:, 0]))
-    confidence = float(np.clip(1.0 - spread * 2.5, 0.05, 0.95))
+    confidence = float(np.clip(
+        1.0 - spread * get_param("bayesian_confidence_slope"),
+        get_param("accept_prob_clamp_low"),
+        get_param("accept_prob_clamp_high"),
+    ))
 
     # ── Rubinstein equilibrium floor ───────────────────────────────────
-    # Opp's reservation estimate: scaled by inferred preference. A buyer
-    # who values price heavily (weight ≈ 1) has lower BATNA in our space.
-    opp_rv_estimate = float(np.clip(0.4 - 0.2 * inferred_opp_weight, 0.1, 0.6))
+    opp_rv_intercept = get_param("opp_rv_estimate_intercept")
+    opp_rv_slope = get_param("opp_rv_estimate_slope")
+    opp_rv_clip_lo = get_param("opp_rv_estimate_clip_low")
+    opp_rv_clip_hi = get_param("opp_rv_estimate_clip_high")
+    opp_rv_estimate = float(np.clip(
+        opp_rv_intercept - opp_rv_slope * inferred_opp_weight,
+        opp_rv_clip_lo, opp_rv_clip_hi,
+    ))
     surplus = max(0.01, (1.0 - my_reservation) - opp_rv_estimate)
 
-    my_discount = 0.95
-    opp_discount = 0.92
-    # Use the role-aware Rubinstein call. Sell-side is first-mover by
-    # convention so we take freelancer_share directly.
+    my_discount = get_param("rubinstein_my_discount")
+    opp_discount = get_param("rubinstein_opp_discount")
     rub = rubinstein_equilibrium(my_discount, opp_discount, surplus)
     rubinstein_floor = my_reservation + surplus * rub["freelancer_share"]
 
     # ── Recommendation ─────────────────────────────────────────────────
-    # Rubinstein gives the SPE share assuming the opponent is also playing
-    # equilibrium. Many real opponents (aspiration, anchor-and-retreat,
-    # vanilla LLMs) instead concede over time. If we've observed concession
-    # — opp's last offer is meaningfully better than their first — we trust
-    # the aspiration curve to land deals; otherwise we hold at Rubinstein.
     if len(opponent_offer_history) >= 2:
         opp_concession = opponent_offer_history[-1] - opponent_offer_history[0]
     else:
         opp_concession = 0.0
-    if opp_concession > 0.05:
+    if opp_concession > get_param("opp_concession_threshold"):
         recommended = max(aspiration, schelling_floor)
     else:
         recommended = max(aspiration, rubinstein_floor)
-    recommended = min(recommended, 0.99)
+    recommended = min(recommended, get_param("recommended_ceiling_adversarial"))
 
     # ── Acceptance probability ─────────────────────────────────────────
-    # P(opp accepts) ≈ probability the offer leaves opp above their BATNA.
-    # In zero-sum projection, opp_util_from_offer = 1 - recommended.
+    accept_clamp_lo = get_param("accept_prob_clamp_low")
+    accept_clamp_hi = get_param("accept_prob_clamp_high")
     opp_util_from_offer = 1.0 - recommended
     if opp_util_from_offer <= opp_rv_estimate:
-        accept_prob = 0.05
+        accept_prob = accept_clamp_lo
     else:
         accept_prob = float(np.clip(
             (opp_util_from_offer - opp_rv_estimate) / (1.0 - opp_rv_estimate + 1e-9),
-            0.05, 0.95,
+            accept_clamp_lo, accept_clamp_hi,
         ))
 
     expected_payoff = accept_prob * recommended + (1.0 - accept_prob) * my_reservation

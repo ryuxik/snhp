@@ -66,9 +66,12 @@ def gt_negotiation_sell_next_offer(
 
     Set `peer_mode=True` when the counterparty is a verified SNHP-protocol
     peer (cryptographic attestation). Activates the cooperative architecture:
-    max-self signaling rounds 0-1, then descent toward PEER playbook floor
-    (0.55). Empirically reaches 96-101% of the Pareto frontier in self-play
-    vs 89-92% for vanilla descent. Use this when both parties are SNHP-staked.
+    max-self signaling rounds 0-1, then cubic descent toward the PEER floor
+    (0.55). Adds bilateral cooperation premium ~+7% (CI [+2.8%, +11.8%],
+    n=20 LLM tournament, p=0.058 borderline — N=50 confirmation pending).
+
+    Without peer_mode (single-side adoption): SNHP customer beats vanilla
+    counterparty by +12.1% head-to-head margin (CI [+6.5%, +17.4%], p<0.0001).
 
     `pareto_knob ∈ [0, 1]` (only used when peer_mode=False) interpolates
     between deal-rate-max (0) and H2H-margin-max (1). Returns the
@@ -102,7 +105,6 @@ def gt_negotiation_buy_next_offer(
 
     Set `peer_mode=True` when the counterparty is a verified SNHP-protocol
     peer to activate cooperative architecture (PEER playbook + signaling).
-    Empirically reaches 96-101% of Pareto frontier vs 89-92% for vanilla.
 
     If `anchor_attack_detection` is in defenses, supply `market_prior`
     {mu, sigma}. Returns recommended offer + warnings + defense actions.
