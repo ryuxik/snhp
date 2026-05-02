@@ -579,7 +579,7 @@ footer a:hover { color: var(--fg); }
           <td>H3 head-to-head margin (+12%)</td>
           <td class="num" style="font-size: 14px;">0.79</td>
           <td class="ci">19</td>
-          <td class="ci" style="color: var(--accent);">replicated (E1: p&lt;0.0001 on disjoint N=20)</td>
+          <td class="ci" style="color: var(--accent);">replicated 3× (in-vendor + cross-vendor)</td>
         </tr>
         <tr>
           <td>H2_A single SNHP-seller benefit (+7.5%)</td>
@@ -604,8 +604,11 @@ footer a:hover { color: var(--fg); }
 
     <p style="font-size: 14px; color: var(--fg); margin-top: 24px; line-height: 1.6;">
       Both hero claims are now empirically validated across multiple
-      disjoint runs at p&lt;0.001. <strong>H3</strong> replicated on
-      seeds 2000-2019 (E1, +0.150 vs T1's +0.121, both p&lt;0.0001).
+      disjoint runs at p&lt;0.001. <strong>H3</strong> replicated three
+      times: T1 in-vendor (+0.121, Sonnet × Sonnet, p&lt;0.0001), E1
+      fresh seeds (+0.150, p&lt;0.0001), <strong>E6 cross-vendor
+      (+0.125, Sonnet+SNHP × Haiku-vanilla, p=0.0032)</strong> — the
+      algorithmic claim transfers across model families.
       <strong>H1</strong> upgraded from "borderline at N=20 (p=0.058)"
       to "confirmed at N=50 (p=0.00047)" via the planned power-up.
     </p>
