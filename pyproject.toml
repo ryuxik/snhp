@@ -35,16 +35,17 @@ snhp = [
 ]
 # Runtime deps for the hosted FastAPI server. numba for the JIT-compiled
 # SNHP math, dotenv for env config, psycopg2 for Postgres when
-# DATABASE_URL is set. Excludes negmas / optuna / pandas / scikit-learn
-# — those are tuning-time only. Excludes litellm / google-genai because
-# we don't host LLM calls server-side (BYOK pattern; agents bring their
-# own LLM key client-side). Excludes stripe because the billing routes
-# are deferred — `gametheory.server.billing` stays in the codebase but
-# unused; re-add `stripe>=8.0` when re-wiring paid endpoints.
+# DATABASE_URL is set. anthropic powers the dispute co-pilot's server-side
+# LLM calls (extract + draft) — a deliberate departure from the original
+# BYOK pattern, bounded by the $5/day kill switch (gametheory.server._llm_budget).
+# Excludes negmas / optuna / pandas / scikit-learn — tuning-time only.
+# Excludes stripe — billing routes deferred (re-add `stripe>=8.0` when
+# re-wiring paid endpoints).
 prod = [
     "psycopg2-binary>=2.9",
     "numba>=0.59",
     "python-dotenv>=1.0",
+    "anthropic>=0.97",
 ]
 
 [project.scripts]

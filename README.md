@@ -34,22 +34,52 @@ gametheory-mcp
 
 ## Empirical anchor
 
-### Headline (2026-04-30): adding the SNHP MCP tool to Claude lifts cooperation by +13%
+### Two different numbers — keep them straight
 
-We tested whether scaffolding Claude Sonnet 4.6 with the SNHP MCP advisor
-actually improves negotiation outcomes. Two-Sonnet B2B contract negotiation,
-n=20 paired seeds on the rich-frontier harness:
+There are two distinct measurements; conflating them is the easy mistake.
 
-| Condition | Joint welfare | % of Pareto frontier (1.57) |
-|---|---:|---:|
-| Vanilla Sonnet (production prompt, no SNHP) | 1.40 | 89% |
-| Pure SNHP-vs-SNHP (math only) | 1.45 | 92% |
-| **Sonnet + SNHP MCP tool** | **1.59** | **101%** |
-| Haiku + SNHP MCP tool (cross-model) | 1.61 | 102% |
+**1. Head-to-head competitive margin (the product-relevant number).** In a
+SNHP-scaffolded LLM vs a non-SNHP LLM, how much more of the surplus does the SNHP
+side capture? On the committed cross-vendor run (`gametheory/server/static/e6_cross_vendor.json`,
+Sonnet+SNHP vs Haiku, n=20 paired seeds) the pooled margin is **~+12.5%**
+(`mean h3_margin ≈ 0.125`, 29/40 positive signs). This is the number the shipped
+tools cite as "~12% better head-to-head." Caveats: n=20, LLM-vs-LLM, single-issue
+price, and the opponent is a *general* vanilla prompt — see the strong-baseline
+note below.
 
-Lift from adding SNHP tool: **+0.186 joint welfare**, sign test 18/20,
-**p=0.0004**. Cross-model parity confirmed (Haiku works as well as Sonnet).
-Cost: $0.025 per matchup at 2026-04 Anthropic pricing.
+**2. Joint-welfare lift in self-play (a cooperation metric, NOT the same thing).**
+Two-Sonnet B2B contract negotiation, n=20 paired seeds:
+
+| Condition | Joint welfare (frontier ≈ 1.57, estimated) |
+|---|---:|
+| Vanilla Sonnet (general prompt, no SNHP) | 1.40 |
+| Pure SNHP-vs-SNHP (math only) | 1.45 |
+| **Sonnet + SNHP MCP tool (both sides)** | **1.59** |
+| Haiku + SNHP MCP tool (cross-model) | 1.61 |
+
+Lift from both sides adopting the SNHP tool: **+0.186 joint welfare**, sign test
+18/20, **p=0.0004**. (The 1.59/1.61 slightly exceed the 1.57 frontier *estimate* —
+the frontier was estimated on a coarse grid, so treat these as "at the frontier,"
+not "beyond it.") Cost: $0.025 per matchup at 2026-04 pricing.
+
+### 3. The build-vs-buy test: SNHP vs a STRONG production prompt
+
+Both numbers above are vs a *general* vanilla prompt. The sharper question — "why not
+just prompt the LLM well?" — is answered by running SNHP against a strong production
+prompt (`snhp/llm_strong_baseline.py`, whose system prompt even includes logrolling
+advice). On the 4-issue contract, Haiku+SNHP-tool vs Haiku+strong-prompt, n=12 paired
+seeds (`python -m snhp.strong_baseline_headtohead`, result committed at
+`gametheory/server/static/strong_baseline_headtohead.json`):
+
+| Metric | Value |
+|---|---|
+| Utility margin (SNHP − strong baseline) | **+0.077**, 95% CI **[+0.039, +0.115]** (excludes 0) |
+| SNHP share of joint surplus | **54%** (CI [52%, 56%]) |
+| Sign test | **8/12 positive, 0 negative** |
+
+SNHP beats even a strong production prompt — but by roughly **half** the edge it shows
+against a weak one. Caveats: n=12, Haiku (not Sonnet), one contract domain; re-run at
+larger n / a stronger model to tighten the CI.
 
 **Network effect**: the cooperation premium requires both sides to be
 SNHP-staked. Asymmetric matchups (Sonnet+SNHP vs vanilla Sonnet) lose 0.11
@@ -58,12 +88,24 @@ counterparty has posted a verifiable SNHP attestation.
 
 Live demo (replay of the actual API trace at seed=42): https://snhp.dev/demo.html
 
-### Tournament rank
+### Tournament rank (honest, per-market)
 
-SNHP ranks **#1 of 21** by average utility in a NegMAS round-robin tournament
-at `n_rounds=20` (the standard horizon). At `n_rounds=100` the field
-restabilizes and Aspiration takes #1 — SNHP slips to #4, but its variance
-is the smallest of any agent in the field.
+In the committed round-robin (`leaderboard/results/leaderboard.json`, `n_rounds=20`),
+SNHP's rank by average utility depends on the market:
+
+| Market (BATNA) | SNHP rank | Top of field |
+|---|---|---|
+| Buyer's market (asymmetric) | **#1 of 21** | SNHP 0.508 |
+| Seller's market (asymmetric) | **#1 of 21** | SNHP 0.520 |
+| Symmetric (neutral) | **5th of 21** | Logroller 0.525, The Closer, Cialdini, Principled, then SNHP 0.512 |
+
+So SNHP is #1 **in the asymmetric markets** and **mid-pack in the symmetric one** —
+do not read this as "#1 overall." Its variance is the smallest in the field. At
+`n_rounds=100` the symmetric field restabilizes further and Aspiration leads.
+
+This NegMAS agent (`snhp/negmas_agent.py`) is a **research artifact and is NOT the
+shipped product recommender** — the product claims below are measured on the
+shipped code, not on this tournament.
 
 See `gametheory/evals/README.md` for the eval/tuning runbook.
 

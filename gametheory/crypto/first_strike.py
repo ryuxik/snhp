@@ -170,6 +170,57 @@ def trust_anchor_public_key_pem() -> str:
     return _TRUST_ANCHOR_PUB_PEM  # type: ignore[return-value]
 
 
+def trust_anchor_private_pem() -> bytes:
+    """PKCS8 PEM bytes of the registry-CA / first-strike trust-anchor private key.
+    Signs commitments and operator attestations. AP2 settlement uses a SEPARATE,
+    derived notary key (see settlement_notary_private_pem) so a settlement-key
+    leak can't forge identities and vice versa. NOTE: both still derive from one
+    vendor-held root — see TRUST_MODEL.md for what that does and does not buy."""
+    _ensure_trust_anchor()
+    return _TRUST_ANCHOR_PRIV_PEM  # type: ignore[return-value]
+
+
+# ─── Settlement-notary subkey (separated from the registry-CA key) ───────────
+# The AP2 settlement notary signs Cart/Intent Mandates with a key DISTINCT from
+# the operator-registry/first-strike trust anchor, so compromising one role does
+# not compromise the other. It is derived deterministically from the same root
+# secret via HKDF, so it survives restarts with the one FIRST_STRIKE_PRIVATE_PEM
+# secret (no second Fly secret needed) while remaining a different keypair.
+_SETTLEMENT_KEY: Optional[Ed25519PrivateKey] = None
+_SETTLEMENT_PRIV_PEM: Optional[bytes] = None
+_SETTLEMENT_PUB_PEM: Optional[str] = None
+
+
+def _ensure_settlement_notary() -> None:
+    global _SETTLEMENT_KEY, _SETTLEMENT_PRIV_PEM, _SETTLEMENT_PUB_PEM
+    if _SETTLEMENT_KEY is not None:
+        return
+    from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+    from cryptography.hazmat.primitives import hashes
+    _ensure_trust_anchor()
+    seed = HKDF(
+        algorithm=hashes.SHA256(), length=32, salt=None,
+        info=b"snhp-ap2-settlement-notary-v1",
+    ).derive(_TRUST_ANCHOR_KEY.private_bytes_raw())  # type: ignore[union-attr]
+    key = Ed25519PrivateKey.from_private_bytes(seed)
+    _SETTLEMENT_KEY = key
+    _SETTLEMENT_PRIV_PEM = key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
+    _SETTLEMENT_PUB_PEM = key.public_key().public_bytes(
+        Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode()
+
+
+def settlement_notary_private_pem() -> bytes:
+    """PKCS8 PEM of the AP2 settlement-notary key (distinct from the registry CA)."""
+    _ensure_settlement_notary()
+    return _SETTLEMENT_PRIV_PEM  # type: ignore[return-value]
+
+
+def settlement_notary_public_key_pem() -> str:
+    """Public half AP2-aware parties use to verify Cart/Intent Mandates offline."""
+    _ensure_settlement_notary()
+    return _SETTLEMENT_PUB_PEM  # type: ignore[return-value]
+
+
 # JWT issuer + audience + expected `kind`. Issuer pinned per-deployment;
 # audience reserved for future cross-app federation. The decoder enforces
 # both, so a token issued for one purpose can't be used for another even

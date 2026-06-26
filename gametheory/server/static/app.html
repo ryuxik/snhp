@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Owed — get the refund you're actually due</title>
+<meta name="description" content="When a delivery app lowballs your refund, it's betting you won't push back. See what you're really owed — and exactly what to say to get it.">
+<meta property="og:title" content="You're owed more than they offered.">
+<meta property="og:description" content="Delivery apps lowball refunds because they bet you won't push back. See what you're really owed.">
+<style>
+:root {
+  --ink:#eaf3ee; --dim:rgba(234,243,238,.6); --faint:rgba(234,243,238,.4);
+  --accent:#4ade80; --accent-soft:#34d399; --rose:#fb7185;
+  --glass-bg:hsl(160 30% 80% / .07);
+  --glass-brd:rgba(255,255,255,.14);
+  --radius:24px;
+}
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body {
+  margin:0; padding:0; background:#05080a; color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Inter","SF Pro Text",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased; line-height:1.5; font-size:17px;
+  overflow-x:hidden;
+}
+
+/* ── flowing liquid background (the thing the glass refracts) ── */
+.bg { position:fixed; inset:-12%; z-index:0; }
+.bg span {
+  position:absolute; border-radius:50%; filter:blur(40px); opacity:.55;
+  will-change:transform;
+}
+.bg .b1 { width:62vmax; height:62vmax; left:-12vw; top:-14vh;
+  background:radial-gradient(circle,#10b981,transparent 62%); animation:drift1 26s ease-in-out infinite; }
+.bg .b2 { width:54vmax; height:54vmax; right:-16vw; top:2vh;
+  background:radial-gradient(circle,#22d3ee,transparent 62%); animation:drift2 32s ease-in-out infinite; }
+.bg .b3 { width:58vmax; height:58vmax; left:6vw; bottom:-20vh;
+  background:radial-gradient(circle,#8b5cf6,transparent 62%); animation:drift3 30s ease-in-out infinite; opacity:.45; }
+.bg .b4 { width:40vmax; height:40vmax; right:0; bottom:-6vh;
+  background:radial-gradient(circle,#34d399,transparent 60%); animation:drift1 22s ease-in-out infinite reverse; opacity:.45; }
+/* Real 2026 liquid refraction goes on a SEPARATE, non-load-bearing overlay —
+   never on the only color layer (an SVG displacement filter can render empty,
+   which would blank the whole background). If this warps, it adds liquid
+   shimmer; if the browser can't, you lose only a faint overlay. */
+.bg-warp { position:fixed; inset:-10%; z-index:0; pointer-events:none; opacity:.5;
+  background:
+    radial-gradient(22vmax 22vmax at 30% 25%, rgba(255,255,255,.06), transparent 70%),
+    radial-gradient(26vmax 26vmax at 75% 70%, rgba(150,255,210,.05), transparent 70%); }
+@supports (filter:url(#liquid)) { .bg-warp { filter:url(#liquid); } }
+@keyframes drift1 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(6vw,4vh) scale(1.08);} }
+@keyframes drift2 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(-5vw,5vh) scale(1.1);} }
+@keyframes drift3 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(4vw,-4vh) scale(1.06);} }
+
+.wrap { max-width:560px; margin:0 auto; padding:0 22px; width:100%; }
+.screen { display:none; min-height:100svh; flex-direction:column; justify-content:center;
+  padding:48px 0; animation:rise .45s cubic-bezier(.2,.8,.2,1);
+  position:relative; z-index:1; }
+.screen.on { display:flex; }
+@keyframes rise { from{opacity:0;transform:translateY(14px);} to{opacity:1;transform:none;} }
+@keyframes pop { from{opacity:0;transform:scale(.95);} to{opacity:1;transform:scale(1);} }
+
+h1 { font-size:clamp(31px,8.5vw,44px); line-height:1.06; letter-spacing:-0.03em;
+  margin:0 0 18px; font-weight:700; }
+.lede { font-size:18px; color:var(--dim); margin:0 0 30px; }
+.lede b { color:var(--ink); font-weight:600; }
+.tiny { font-size:13px; color:var(--faint); }
+.sec-h { font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--faint);
+  margin:0 0 8px; }
+
+/* ── liquid-glass panel ── */
+.glass {
+  position:relative; isolation:isolate; border-radius:var(--radius);
+  background:var(--glass-bg);
+  backdrop-filter:blur(18px) saturate(190%); -webkit-backdrop-filter:blur(18px) saturate(190%);
+  border:1px solid var(--glass-brd);
+  box-shadow:0 10px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.45),
+             inset 0 -1px 1px rgba(0,0,0,.25);
+  transform:translateZ(0);
+}
+/* moving specular sheen — the "liquid" highlight */
+.glass::after {
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:2;
+  background:linear-gradient(110deg, transparent 32%, rgba(255,255,255,.14) 46%,
+            rgba(255,255,255,.03) 54%, transparent 68%);
+  background-size:280% 280%; animation:sheen 8s ease-in-out infinite;
+}
+@keyframes sheen { 0%,100%{background-position:8% 0%;} 50%{background-position:92% 100%;} }
+
+button {
+  font:inherit; cursor:pointer; border-radius:16px; border:1px solid var(--glass-brd);
+  background:var(--glass-bg); backdrop-filter:blur(14px) saturate(180%);
+  -webkit-backdrop-filter:blur(14px) saturate(180%); color:var(--ink);
+  padding:16px 20px; transition:transform .1s, filter .15s; width:100%; font-weight:500;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3);
+}
+button:active { transform:scale(.97); }
+button.primary {
+  background:linear-gradient(180deg, #5cf08e, #2bb866); border:none; color:#04240f;
+  font-weight:700; font-size:18px;
+  box-shadow:0 8px 28px rgba(74,222,128,.35), inset 0 1px 0 rgba(255,255,255,.5);
+}
+button.primary:active { filter:brightness(1.05); }
+.cta-row { margin-top:10px; }
+
+/* dispute card */
+.disp { padding:22px; margin-bottom:24px; }
+.disp .head { font-size:19px; line-height:1.42; margin-bottom:18px; position:relative; z-index:1; }
+.disp .nums { display:flex; gap:14px; position:relative; z-index:1; }
+.disp .n { flex:1; }
+.disp .n .k { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--faint); }
+.disp .n .v { font-size:27px; font-weight:700; margin-top:3px; }
+.disp .n .v.bad { color:var(--rose); }
+
+/* the climb — a paced, narrated negotiation */
+.climb-wrap { text-align:center; cursor:pointer; }
+.climb-scene { color:var(--dim); font-size:15px; margin-bottom:26px; }
+.climb-scene b { color:var(--ink); font-weight:600; }
+.climb-who { font-size:13px; text-transform:uppercase; letter-spacing:.1em; min-height:18px;
+  transition:color .25s; }
+.climb-who.app { color:var(--rose); }
+.climb-who.you { color:var(--accent); }
+.climb { font-size:clamp(66px,23vw,128px); font-weight:800; letter-spacing:-0.04em; line-height:1;
+  margin:8px 0; font-variant-numeric:tabular-nums; color:var(--ink); }
+.climb.win { background:linear-gradient(180deg,#8af3ad,#22c573); -webkit-background-clip:text;
+  background-clip:text; color:transparent; animation:winpop .55s cubic-bezier(.2,1.5,.4,1); }
+@keyframes winpop { 0%{transform:scale(1);} 42%{transform:scale(1.13);} 100%{transform:scale(1);} }
+.climb-cap { color:var(--ink); font-size:18px; line-height:1.45; min-height:78px; margin-top:10px;
+  max-width:380px; margin-left:auto; margin-right:auto; transition:opacity .25s; }
+.climb-skip { color:var(--faint); font-size:13px; margin-top:26px; }
+
+/* share card */
+.card-share { padding:36px 26px; text-align:center; animation:pop .5s cubic-bezier(.2,.8,.2,1); }
+.card-share > * { position:relative; z-index:1; }
+.card-share .from-to { font-size:clamp(42px,14vw,68px); font-weight:800; letter-spacing:-0.03em; line-height:1.04; }
+.card-share .from-to .was { color:var(--faint); text-decoration:line-through; text-decoration-thickness:3px; }
+.card-share .from-to .now {
+  background:linear-gradient(180deg,#8af3ad,#22c573); -webkit-background-clip:text;
+  background-clip:text; color:transparent; }
+.card-share .mult { font-size:20px; font-weight:600; margin-top:10px; }
+.card-share .quip { color:var(--dim); margin-top:14px; font-size:16px; }
+.card-share .mark { margin-top:22px; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); }
+.card-share .mark b { color:var(--accent); }
+
+/* co-pilot */
+textarea {
+  width:100%; color:var(--ink); border:1px solid var(--glass-brd); border-radius:16px;
+  padding:16px; font:inherit; resize:vertical; min-height:120px;
+  background:hsl(160 30% 80% / .05); backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px); box-shadow:inset 0 1px 0 rgba(255,255,255,.2);
+}
+textarea:focus { outline:none; border-color:rgba(74,222,128,.6); }
+.counter { text-align:right; font-size:12px; color:var(--faint); margin-top:6px;
+  font-variant-numeric:tabular-nums; }
+.counter.near { color:var(--rose); }
+.owed-k { font-size:12px; text-transform:uppercase; letter-spacing:.09em; color:var(--faint); }
+.owed { font-size:clamp(42px,13vw,64px); font-weight:800; letter-spacing:-0.03em; line-height:1; margin:4px 0;
+  background:linear-gradient(180deg,#8af3ad,#22c573); -webkit-background-clip:text;
+  background-clip:text; color:transparent; }
+.msg { padding:18px; font-size:16px; line-height:1.55; white-space:pre-wrap; margin:14px 0; }
+.msg-inner { position:relative; z-index:1; }
+.disclaimer { font-size:12px; color:var(--faint); line-height:1.55; margin-top:18px;
+  border-top:1px solid var(--glass-brd); padding-top:14px; }
+.disclaimer b { color:var(--dim); }
+.status { font-size:14px; color:var(--dim); margin-top:12px; text-align:center; }
+.status.err { color:var(--rose); }
+.spin { display:inline-block; width:16px; height:16px; border:2px solid var(--glass-brd);
+  border-top-color:var(--accent); border-radius:50%; animation:rot .7s linear infinite;
+  vertical-align:-3px; margin-right:8px; }
+@keyframes rot { to { transform:rotate(360deg); } }
+.foot { text-align:center; padding:26px 0 40px; position:relative; z-index:1; }
+.foot a { color:var(--faint); font-size:13px; text-decoration:none; }
+.back { background:none; border:none; color:var(--faint); width:auto; padding:8px 0; font-size:14px;
+  margin-top:18px; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
+
+@media (prefers-reduced-motion:reduce) {
+  .bg span { animation:none; }
+  .glass::after { animation:none; }
+  .bg-warp { filter:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- flowing liquid backdrop -->
+<div class="bg"><span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span></div>
+<div class="bg-warp"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="liquid" x="-20%" y="-20%" width="140%" height="140%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.006 0.010" numOctaves="2" seed="7" result="n">
+      <animate attributeName="baseFrequency" dur="26s"
+        values="0.006 0.010;0.009 0.006;0.006 0.010" repeatCount="indefinite"/>
+    </feTurbulence>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="42" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<!-- ── 0 · hero ── -->
+<section class="screen on" id="s-hero"><div class="wrap">
+  <div class="glass" id="outcome-prompt" style="display:none;padding:18px 20px;margin-bottom:24px">
+    <div class="msg-inner">
+      <div class="sec-h" style="margin-bottom:6px">Welcome back</div>
+      <div id="outcome-q" style="font-size:16px;margin-bottom:14px"></div>
+      <div id="outcome-opts" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    </div>
+  </div>
+  <h1>You're owed more<br>than they offered.</h1>
+  <p class="lede">When a delivery app lowballs your refund, it's
+    <b>betting you won't push back</b>. SNHP tells you what you're really
+    owed — and exactly what to say to get it.</p>
+  <button class="primary" id="go-copilot">What am I owed? →</button>
+  <button id="go-demo" style="margin-top:12px">See how it works · 20s</button>
+  <p class="tiny" style="margin-top:14px">Free. Nothing to install.</p>
+</div></section>
+
+<!-- ── 1 · the climb (the demo) — a paced, narrated negotiation ── -->
+<section class="screen" id="s-climb"><div class="wrap">
+  <div class="climb-wrap" id="climb-wrap">
+    <div class="climb-scene">A $52 delivery order — <b>$24</b> of it never arrived.</div>
+    <div class="climb-who" id="climb-who"></div>
+    <div class="climb" id="climb">$6</div>
+    <div class="climb-cap" id="climb-cap"></div>
+    <div class="climb-skip" id="climb-skip">tap anywhere to skip ›</div>
+  </div>
+</div></section>
+
+<!-- ── 3 · share card ── -->
+<section class="screen" id="s-result"><div class="wrap">
+  <div class="glass card-share">
+    <div class="from-to"><span class="was" id="r-was">$6</span>
+      <span style="color:var(--faint)"> → </span><span class="now" id="r-now">$24</span></div>
+    <div class="mult" id="r-mult">4× what they offered</div>
+    <div class="quip">They bet you wouldn't push back.</div>
+    <div class="mark">pushed back with <b>SNHP</b></div>
+  </div>
+  <div class="cta-row" style="margin-top:22px">
+    <button class="primary" id="go-real">Now do it for your real dispute →</button>
+  </div>
+  <button class="back" id="back-hero">↺ run the demo again</button>
+</div></section>
+
+<!-- ── 4 · real co-pilot ── -->
+<section class="screen" id="s-real"><div class="wrap">
+  <p class="sec-h">Your real dispute</p>
+  <h1 style="font-size:27px;margin-bottom:12px">What happened?</h1>
+  <p class="lede" style="font-size:16px;margin-bottom:16px">A few sentences —
+    what you ordered, what went wrong, and what they've offered so far.</p>
+  <textarea id="real-text" maxlength="2000"
+    placeholder="e.g. I ordered $40 of groceries, three items never came, and they only offered me a $5 credit…"></textarea>
+  <div class="counter" id="char-count">0 / 2000</div>
+  <div class="cta-row" style="margin-top:10px">
+    <button class="primary" id="go-coach">What am I owed? →</button>
+  </div>
+  <div class="status" id="coach-status"></div>
+
+  <div id="coach-out" style="display:none;margin-top:26px">
+    <div class="owed-k">You're owed about</div>
+    <div class="owed" id="owed-amt">$0</div>
+    <p class="sec-h" style="margin-top:22px">Send them this</p>
+    <div class="glass msg"><div class="msg-inner" id="owed-msg"></div></div>
+    <button id="copy-msg">Copy message</button>
+    <div class="disclaimer">
+      SNHP tells you what to ask for and drafts the message — <b>you</b> send it.
+      Built for real, honest grievances. Not legal advice.
+    </div>
+  </div>
+  <button class="back" id="back-result">← back</button>
+</div></section>
+
+<div class="foot"><a href="/">What is SNHP?</a></div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const money = x => "$" + (Math.round(x * 100) / 100).toFixed(Number.isInteger(x) ? 0 : 2);
+const show = id => { document.querySelectorAll('.screen').forEach(s =>
+  s.classList.toggle('on', s.id === id)); window.scrollTo(0, 0); };
+
+const DEMO = { firstOffer: 6, orderTotal: 52, disputed: 24, walkCost: 54, floor: 14 };
+const state = { settlement: 24 };
+
+// ── analytics: capture data from any usage ──
+function sid() {
+  let s = null;
+  try { s = localStorage.getItem("snhp_sid"); } catch (e) {}
+  if (!s) {
+    s = (crypto.randomUUID ? crypto.randomUUID() : "s" + Date.now() + Math.random()).slice(0, 64);
+    try { localStorage.setItem("snhp_sid", s); } catch (e) {}
+  }
+  return s;
+}
+function track(event, payload) {
+  try {
+    fetch("/v1/dispute/event", {
+      method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
+      body: JSON.stringify({ session_id: sid(), event, payload: payload || {} }),
+    }).catch(() => {});
+  } catch (e) {}
+}
+
+// Primary path: straight to the real tool.
+$("go-copilot").onclick = () => { track("copilot_started", { from: "hero" }); show('s-real'); };
+// Secondary path: the question-free demo, which then funnels into the tool.
+$("go-demo").onclick = () => { track("demo_started"); runDemo(); };
+$("back-hero").onclick = () => show('s-hero');
+
+// The demo as a paced, narrated negotiation. Each beat: who's speaking, the
+// number it moves to, the line of story, and how long to hold so it reads.
+let demoStopped = false, demoTimer = null;
+
+function buildBeats(from, to) {
+  const m1 = Math.round(from + (to - from) * 0.4);
+  const m2 = Math.round(from + (to - from) * 0.72);
+  return [
+    { who: "app", to: from, hold: 2200,
+      cap: `The app opens at ${money(from)} — a fraction of the ${money(to)} you lost.` },
+    { who: "you", to: from, hold: 2000,
+      cap: `SNHP pushes back: you're owed the full ${money(to)} of food that never came.` },
+    { who: "app", to: m1, hold: 1700, cap: `They nudge up to ${money(m1)}.` },
+    { who: "you", to: m2, hold: 2200,
+      cap: `SNHP holds firm — a chargeback would cost them more than paying you.` },
+    { who: "app", to: to, hold: 1600, win: true,
+      cap: `They settle at ${money(to)} — the fair value of what you lost.` },
+  ];
+}
+
+async function runDemo() {
+  demoStopped = false;
+  clearTimeout(demoTimer);
+  $("climb").textContent = money(DEMO.firstOffer);
+  $("climb").classList.remove("win");
+  $("climb-who").textContent = ""; $("climb-who").className = "climb-who";
+  $("climb-cap").textContent = "";
+  show('s-climb');
+  let settle = DEMO.disputed;
+  try {
+    const r = await fetch("/v1/dispute/negotiate", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        platform_first_offer: DEMO.firstOffer, platform_walk_cost: DEMO.walkCost,
+        customer_floor: DEMO.floor, customer_target: DEMO.disputed,
+      }),
+    });
+    if (r.ok) { const d = await r.json(); settle = d.snhp.settlement; }
+  } catch (e) { /* fall back to fair value */ }
+  // Honest cap: never show a settlement above the fair value of the harm.
+  state.settlement = Math.min(settle, DEMO.disputed);
+  playBeats(buildBeats(DEMO.firstOffer, state.settlement));
+}
+
+function playBeats(beats) {
+  let i = 0, cur = beats[0].to;
+  function next() {
+    if (demoStopped) return;
+    if (i >= beats.length) { showResult(); return; }
+    const b = beats[i++];
+    $("climb-who").textContent = b.who === "you" ? "SNHP, for you" : "The app";
+    $("climb-who").className = "climb-who " + b.who;
+    $("climb-cap").textContent = b.cap;
+    if (b.win) $("climb").classList.add("win");
+    tweenNumber(cur, b.to, b.to === cur ? 0 : 700, () => {
+      cur = b.to;
+      demoTimer = setTimeout(next, b.hold);
+    });
+  }
+  next();
+}
+
+function tweenNumber(from, to, dur, done) {
+  if (demoStopped) return;
+  const t0 = performance.now();
+  function frame(now) {
+    if (demoStopped) return;
+    const p = dur <= 0 ? 1 : Math.min(1, (now - t0) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    $("climb").textContent = money(Math.round(from + (to - from) * eased));
+    if (p < 1) requestAnimationFrame(frame); else done();
+  }
+  requestAnimationFrame(frame);
+}
+
+function skipDemo() {
+  if (demoStopped) return;
+  demoStopped = true;
+  clearTimeout(demoTimer);
+  showResult();
+}
+$("climb-wrap").onclick = skipDemo;
+
+function showResult() {
+  const s = state.settlement, mult = s / DEMO.firstOffer;
+  $("r-was").textContent = money(DEMO.firstOffer);
+  $("r-now").textContent = money(s);
+  $("r-mult").textContent = mult.toFixed(mult >= 10 ? 0 : 1) + "× what they offered";
+  track("demo_completed", { settlement: s, mult: Math.round(mult * 10) / 10 });
+  show('s-result');
+}
+
+// Sharing is reserved for REAL outcomes (see the outcome loop) — never the demo.
+async function doShare(text) {
+  const url = location.origin + location.pathname;
+  try {
+    if (navigator.share) { await navigator.share({ title: "I got my refund.", text, url }); }
+    else { await navigator.clipboard.writeText(text + " " + url); }
+  } catch (e) { /* cancelled */ }
+}
+
+// ── real co-pilot ──
+$("go-real").onclick = () => { track("copilot_started"); show('s-real'); };
+$("back-result").onclick = () => show('s-result');
+
+const ta = $("real-text"), CAP = 2000;
+ta.addEventListener("input", () => {
+  const n = ta.value.length;
+  $("char-count").textContent = n + " / " + CAP;
+  $("char-count").classList.toggle("near", n > CAP * 0.9);
+});
+
+async function api(path, body) {
+  const r = await fetch(path, { method: "POST",
+    headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) {
+    let d; try { d = (await r.json()).detail; } catch (e) { d = "Something went wrong."; }
+    const err = new Error(d || "error"); err.status = r.status; throw err;
+  }
+  return r.json();
+}
+
+$("go-coach").onclick = async () => {
+  const text = ta.value.trim();
+  if (text.length < 12) { $("coach-status").textContent = "Tell me a little more about what happened."; return; }
+  $("go-coach").disabled = true;
+  $("coach-status").className = "status";
+  $("coach-status").innerHTML = '<span class="spin"></span>Reading your dispute…';
+  try {
+    const d = await api("/v1/dispute/extract", { text });
+    const disputed = Number(d.disputed_value) || 0;
+    if (disputed <= 0) { throw new Error("I couldn't find a dollar amount — mention what the items or refund were worth."); }
+    const floor = Math.max(1, Math.round(disputed * 0.5));
+    $("coach-status").innerHTML = '<span class="spin"></span>Working out your move…';
+    const c = await api("/v1/dispute/coach", {
+      dispute: d, customer_floor: floor, platform_offers: d.platform_offer ? [Number(d.platform_offer)] : [],
+      customer_demands: [],
+    });
+    $("owed-amt").textContent = money(c.recommended_demand);
+    $("owed-msg").textContent = c.drafted_message;
+    $("coach-out").style.display = "block";
+    $("coach-status").textContent = "";
+    $("coach-out").scrollIntoView({ behavior: "smooth", block: "start" });
+    track("copilot_result", { disputed, recommended: c.recommended_demand,
+      category: d.issue_category || "other", platform: d.platform || "unknown",
+      batna: !!c.batna_deployed });
+    // remember this attempt so we can ask "did it work?" when they return —
+    // store the offer too so a real-outcome share has the before/after.
+    try { localStorage.setItem("snhp_pending", JSON.stringify({
+      recommended: c.recommended_demand, offered: Number(d.platform_offer) || null,
+      at: Date.now() })); } catch (e) {}
+  } catch (e) {
+    track(e.status === 429 ? "at_capacity" : "copilot_error", { status: e.status || 0 });
+    $("coach-status").className = "status err";
+    $("coach-status").textContent = e.status === 429
+      ? e.message : (e.message || "Something went wrong — try again.");
+  } finally { $("go-coach").disabled = false; }
+};
+
+$("copy-msg").onclick = async () => {
+  // track FIRST — never let a clipboard rejection (headless/mobile) swallow
+  // the strongest intent signal we have.
+  track("message_copied", { recommended: parseFloat($("owed-amt").textContent.replace(/[^0-9.]/g, "")) || 0 });
+  try { await navigator.clipboard.writeText($("owed-msg").textContent); } catch (e) {}
+  $("copy-msg").textContent = "Copied ✓";
+  setTimeout(() => { $("copy-msg").textContent = "Copy message"; }, 1600);
+};
+
+// ── outcome loop: ask returning visitors whether it worked ──
+function maybeAskOutcome() {
+  let pending = null;
+  try { pending = JSON.parse(localStorage.getItem("snhp_pending") || "null"); } catch (e) {}
+  // only ask if there's a pending attempt at least ~6h old (gave them time to send it)
+  if (!pending || (Date.now() - (pending.at || 0)) < 6 * 3600 * 1000) return;
+  $("outcome-q").textContent =
+    `Last time, SNHP said you were owed ${money(pending.recommended)}. Did you get it?`;
+  const opts = [["worked", "I did 🎉"], ["partly", "Some of it"], ["waiting", "Still waiting"], ["no", "No luck"]];
+  const box = $("outcome-opts"); box.innerHTML = "";
+  for (const [val, label] of opts) {
+    const b = document.createElement("button");
+    b.className = "glass"; b.style.cssText = "width:auto;padding:10px 16px;font-size:15px";
+    b.textContent = label;
+    b.onclick = () => {
+      track("outcome_reported", { result: val, recommended: pending.recommended });
+      try { localStorage.removeItem("snhp_pending"); } catch (e) {}
+      // Only real wins get a share — this is the authentic, shareable outcome.
+      if (val === "worked" || val === "partly") offerWinShare(pending, val);
+      else $("outcome-prompt").style.display = "none";
+    };
+    box.appendChild(b);
+  }
+  $("outcome-prompt").style.display = "block";
+}
+
+function offerWinShare(pending, result) {
+  $("outcome-q").textContent = result === "worked"
+    ? "Amazing. Want to show people it works?" : "Nice — every dollar back counts.";
+  const box = $("outcome-opts"); box.innerHTML = "";
+  const sb = document.createElement("button");
+  sb.className = "glass"; sb.style.cssText = "width:auto;padding:10px 16px;font-size:15px";
+  sb.textContent = "Share your win →";
+  sb.onclick = () => {
+    track("share_clicked", { kind: "real_outcome", result });
+    const got = pending.recommended, off = pending.offered;
+    let text;
+    if (result === "worked" && off) {
+      text = `A delivery app offered me ${money(off)} for a botched order. With SNHP I got ${money(got)} back — they bet I wouldn't push back.`;
+    } else if (result === "worked") {
+      text = `SNHP showed me what I was really owed on a botched delivery order — and I got the full ${money(got)} back.`;
+    } else {
+      text = `A delivery app tried to lowball my refund. SNHP helped me push back and get more than they first offered.`;
+    }
+    doShare(text);
+  };
+  box.appendChild(sb);
+}
+
+track("page_view");
+maybeAskOutcome();
+</script>
+</body>
+</html>

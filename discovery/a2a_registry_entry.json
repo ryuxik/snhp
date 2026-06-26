@@ -1,0 +1,13 @@
+{
+  "_comment": "Submission payload for the A2A Protocol Agent Registry (a2aregistry.org). Submit AFTER deploy so the agent-card URL resolves. The registry fetches /.well-known/agent-card.json from `agentCardUrl` for the live capability list.",
+  "name": "Negotiation Copilot for Agents (SNHP)",
+  "description": "Get the math-optimal next move in a price negotiation, in plain dollars. Call POST /v1/negotiate/turn with your side, walk-away $, target $, and the other side's offers; it returns the dollar counter to send, a ready-to-send message, and when to accept or walk. Negotiates ~12% better head-to-head (validated, n=20 paired LLM negotiations, p<0.0001), works against any counterparty with zero setup, no LLM needed. For multi-issue deals (job offer, vendor contract) use /v1/negotiate/bundle, which logrolls across linked issues. Advanced: when both agents run SNHP, verified peering unlocks a cooperation premium and signed AP2 settlement.",
+  "homepage": "https://snhp.dev",
+  "agentCardUrl": "https://snhp.dev/.well-known/agent-card.json",
+  "primaryEndpoint": "https://snhp.dev/v1/negotiate/turn",
+  "protocolVersion": "0.3.0",
+  "extensions": ["https://snhp.dev/a2a/negotiation/v1"],
+  "skills": ["negotiate_turn", "negotiate_bundle", "settle"],
+  "tags": ["negotiation", "bargaining", "pricing", "haggling", "deals", "multi-issue", "logrolling", "agent-commerce", "ap2", "snhp"],
+  "auth": "none for negotiation; operator registration only for advanced verified peering"
+}

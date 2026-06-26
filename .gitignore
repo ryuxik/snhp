@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# Local editor / agent config
+.claude/settings.local.json
+
 # Python
 __pycache__/
 *.py[cod]
@@ -33,6 +36,15 @@ htmlcov/
 # Runtime artifacts from leaderboard runs — regenerated per run.
 leaderboard/results/usage.jsonl
 
+# Operator-console session log — contains real dispute content; never commit.
+snhp/dispute_console_log.jsonl
+
+# Daily LLM spend counter — runtime state.
+snhp/.daily_llm_usage.json
+
+# Dispute-tool analytics event log — runtime data.
+snhp/dispute_events.jsonl
+
 # Editor / OS noise
 .DS_Store
 .idea/
@@ -48,3 +60,6 @@ leaderboard/results/usage.jsonl
 SNHP_Whitepaper/*_STRATEGY.md
 SNHP_Whitepaper/*_INTERNAL.md
 SNHP_Whitepaper/INTERNAL_*
+
+# Cached real-market datasets fetched by snhp/market/data_sources.py
+snhp/market/data/

@@ -13,6 +13,7 @@ OpenAPI spec served at /openapi.json; Swagger UI at /docs.
 """
 from __future__ import annotations
 
+import json
 import os
 import time
 from typing import Callable, Literal, Optional
@@ -27,6 +28,12 @@ from gametheory.negotiation.buy import (
     buy_next_offer as _buy_next_offer,
     detect_anchor_attack as _detect_anchor_attack,
 )
+from gametheory.negotiation.dispute_sim import run_comparison as _dispute_run_comparison
+from gametheory.negotiation.dispute_copilot import (
+    extract_dispute as _extract_dispute,
+    parse_platform_reply as _parse_platform_reply,
+    coach_round as _coach_round,
+)
 from gametheory.auctions.bidder import optimal_bid as _bidder_optimal_bid
 from gametheory.auctions.seller import (
     optimal_reserve as _seller_optimal_reserve,
@@ -38,6 +45,7 @@ from gametheory.crypto.first_strike import (
     reveal_first_strike as _reveal_first_strike,
     trust_anchor_public_key_pem as _trust_anchor_pem,
     trust_anchor_source as _trust_anchor_source,
+    settlement_notary_public_key_pem as _settlement_notary_pem,
     CommitmentNotFound, CommitmentExpired, CommitmentRevealMismatch,
 )
 from gametheory.mechanism.gale_shapley import gale_shapley as _gale_shapley
@@ -52,6 +60,8 @@ from gametheory.server.onboarding import (
     lookup_key as _lookup_key,
 )
 from gametheory.server import telemetry as _telemetry
+from gametheory.server import _llm_budget
+from gametheory.server import dispute_analytics as _analytics
 from gametheory.server.middleware import bearer_api_key as _bearer_api_key
 
 
@@ -451,15 +461,16 @@ class PostedPriceResponse(BaseModel):
 app = FastAPI(
     title="Game Theory Layer for AI Agents",
     description=(
-        "Equilibrium-aware primitives for AI agents. Tier 1: negotiation "
-        "(sell-side + buy-side, with cryptographic first-strike). Tier 2: "
-        "auctions (Myerson, Vickrey, English). Tier 3: mechanism design "
-        "(Gale-Shapley, optimal auction, posted-price). All endpoints free "
-        "today; LLM drafting is BYOK (you bring your own LLM key).\n\n"
-        "Empirical: SNHP rank #1/21 in NegMAS round-robin tournament; "
-        "p<0.014 vs Aspiration / Split-the-Diff / Fair Demand.\n\n"
-        "Discovery: GET /v1/catalog for tool list, /llms.txt for LLM-readable "
-        "agent guide."
+        "Start with ONE tool: POST /v1/negotiate/turn — plain-dollar price "
+        "negotiation (your walk-away + the other side's offers in dollars -> the "
+        "counter to send, a ready-to-send message, accept/walk advice). Also: "
+        "auctions (Myerson, Vickrey, English), mechanism design (Gale-Shapley, "
+        "posted-price), and an advanced verified agent-to-agent + AP2 flow. All "
+        "math endpoints free.\n\n"
+        "Validated: the negotiate tool is ~12% better head-to-head (n=20 paired "
+        "LLM negotiations, 95% CI +6.5-17.4%, p<0.0001).\n\n"
+        "Discovery: GET /v1/catalog for the tool list, /llms.txt for the "
+        "LLM-readable guide."
     ),
     version="0.1.0",
     openapi_tags=[
@@ -482,6 +493,14 @@ from gametheory.server.middleware import (  # noqa: E402
 app.add_middleware(SecurityHeaders)
 app.add_middleware(RateLimit)
 app.add_middleware(BodySizeLimit)
+
+
+# ─── Agent-to-agent commerce: A2A discovery, verified peering, AP2 settlement ─
+# Operator registry + verified-peer sessions + AP2 mandates. peer_mode is
+# DERIVED from a verified handshake here (vs the self-asserted boolean on the
+# legacy /v1/negotiation/* endpoints).
+from gametheory.server.a2a_routes import router as _a2a_router  # noqa: E402
+app.include_router(_a2a_router)
 
 
 # ─── Static landing page + assets ───────────────────────────────────────────
@@ -519,10 +538,25 @@ def _serve_static_page(filename: str, media_type: str = "text/html"):
     )
 
 
+# Hostnames that should land directly on the public dispute tool (app.html)
+# instead of the marketing index. Set SNHP_TOOL_HOSTS to a comma-separated
+# list to override (e.g. on a staging subdomain).
+_TOOL_HOSTS = {
+    h.strip().lower() for h in
+    os.environ.get("SNHP_TOOL_HOSTS", "disputes.snhp.dev,try.snhp.dev").split(",")
+    if h.strip()
+}
+
+
 @app.get("/", include_in_schema=False)
-def landing():
-    """Marketing landing page. Anything outside `/v1/*`, `/health`,
-    `/docs`, `/openapi.json`, `/llms.txt` falls through to here."""
+def landing(request: Request):
+    """Root page. On the dispute-tool subdomain(s) this serves the tool
+    directly (so a Twitter tap lands right on it); everywhere else it serves
+    the marketing index. Anything outside `/v1/*`, `/health`, `/docs`,
+    `/openapi.json`, `/llms.txt` falls through to here."""
+    host = request.headers.get("host", "").split(":")[0].lower()
+    if host in _TOOL_HOSTS:
+        return _serve_static_page("app.html")
     return _serve_static_page("index.html")
 
 
@@ -545,11 +579,39 @@ def demo_traces():
     return _serve_static_page("demo_traces.json", media_type="application/json")
 
 
-@app.get("/cs_dataset.json", include_in_schema=False)
-def cs_dataset():
-    """1000-scenario customer-service negotiation dataset for the
-    homepage component."""
-    return _serve_static_page("cs_dataset.json", media_type="application/json")
+@app.get("/dispute.html", include_in_schema=False)
+def dispute_page():
+    """Dispute-resolution negotiation prototype: pick a dispute, elicit the
+    customer's settlement band, run the real negotiation core, see the
+    outcome vs. an unaided baseline."""
+    return _serve_static_page("dispute.html")
+
+
+@app.get("/platforms.html", include_in_schema=False)
+def platforms_page():
+    """Business-facing landing page — SNHP as a dispute-settlement layer."""
+    return _serve_static_page("platforms.html")
+
+
+@app.get("/console.html", include_in_schema=False)
+def console_page():
+    """Operator console — run one real dispute through SNHP: extract, coach
+    each round, draft messages, log the (context, action, outcome) record."""
+    return _serve_static_page("console.html")
+
+
+@app.get("/app.html", include_in_schema=False)
+def app_page():
+    """The public, mobile-first dispute tool (Twitter landing): zero-cost
+    demo gasp → share card → rate-limited 'your real dispute' co-pilot."""
+    return _serve_static_page("app.html")
+
+
+@app.get("/dispute_scenarios.json", include_in_schema=False)
+def dispute_scenarios():
+    """Synthetic dispute scenario shells consumed by /dispute.html.
+    Generator: snhp/cs_negotiation_dataset.py."""
+    return _serve_static_page("dispute_scenarios.json", media_type="application/json")
 
 
 @app.get("/reputation_scoring_spec.html", include_in_schema=False)
@@ -703,7 +765,101 @@ def catalog():
         "openapi_url": "/openapi.json",
         "docs_url": "/docs",
         "llms_txt_url": "/llms.txt",
+        "pricing_url": "/PRICING.md",
+        "pricing": {
+            "model": "free core math; usage-based LLM extras; settlement fee on the A2A moat",
+            "tiers": [
+                {"tier": 0, "what": "core math tools (negotiate.*, auction.*, mechanism.*)",
+                 "price": "free", "key_required": False},
+                {"tier": 1, "what": "LLM-backed extras (/v1/dispute/* drafting & coaching)",
+                 "price": "off by default (opt-in); when on, hard $/day cap + per-IP limit; key-gated for production",
+                 "llm": True, "default_enabled": False},
+                {"tier": 2, "what": "A2A verified commerce + AP2 settlement (/v1/a2a/*)",
+                 "price": "0.1-0.5% of settled value (or operator seat); priced per partner"},
+            ],
+        },
+        "sla": {
+            "level": "best-effort",
+            "uptime_guarantee": None,
+            "self_hostable": True,
+            "note": ("No uptime SLA today (single deployment) — best-effort. The core "
+                     "math is deterministic and self-hostable, so you can depend on no "
+                     "one. A real 99.9%-with-credits commitment comes only with "
+                     "redundant infra."),
+        },
         "tools": [
+            {
+                "name": "gt.negotiate.turn",
+                "tier": 1,
+                "endpoint": "POST /v1/negotiate/turn",
+                "cost_class": "free",
+                "stability": "stable",
+                "description": (
+                    "START HERE. The math-optimal next move in a single-price "
+                    "negotiation, in plain DOLLARS — no game theory needed. Give it "
+                    "your side, walk-away $, target $, and the other side's offers "
+                    "in $; get back the dollar counter to send, a ready-to-send "
+                    "message, and accept/walk advice. Validated ~12% better "
+                    "head-to-head (n=20 paired LLM negotiations, 95% CI +6.5-17.4%, "
+                    "p<0.0001). Works against ANY counterparty, zero setup. Use for "
+                    "multi-round price haggling; NOT one-shot fixed prices, "
+                    "multi-issue bundles (use gt.negotiate.bundle for those), or "
+                    "non-price decisions like accept-vs-decline."
+                ),
+                "example_input": {
+                    "side": "sell", "walk_away": 4000, "target": 6000,
+                    "counterparty_offers": [4200, 4500], "rounds_left": 6,
+                },
+                "example_output": {
+                    "action": "counter", "recommended_price": 5387.0,
+                    "message": "Thanks for the offer. The best I can do on this is $5,387.00.",
+                    "fit": {"score": "good"}, "expected_settlement": 4943.5,
+                },
+            },
+            {
+                "name": "gt.negotiate.bundle",
+                "tier": 1,
+                "endpoint": "POST /v1/negotiate/bundle",
+                "cost_class": "free",
+                "stability": "beta",
+                "description": (
+                    "MULTI-ISSUE deals. When a negotiation has several linked issues "
+                    "at once (a job offer = base + equity + signing; a SaaS contract "
+                    "= price + seats + term + SLA), this LOGROLLS: it concedes on the "
+                    "issues you care about less (and they care about more) to win the "
+                    "ones you care about most — a package that beats splitting every "
+                    "issue down the middle. Give your and their per-option values per "
+                    "issue; it INFERS their priorities from their offers and returns "
+                    "the package to propose plus the trade logic. Use gt.negotiate.turn "
+                    "for a single price. Validated (separate from the +12%): returns a "
+                    "Pareto-efficient package that beats naive split-every-issue "
+                    "bargaining by ~40% joint surplus (300 random 4-issue profiles). "
+                    "Honest caveat: the priority-inference is weak (r≈0.3) and adds "
+                    "only ~1% over a no-inference baseline — the proven value is the "
+                    "efficient-package search, not yet the logrolling edge."
+                ),
+                "example_input": {
+                    "issues": [
+                        {"name": "price_per_seat", "options": ["$50", "$40", "$30"],
+                         "my_utility": [0, 0.5, 1], "their_utility": [1, 0.5, 0]},
+                        {"name": "seats", "options": ["50", "100", "200"],
+                         "my_utility": [1, 0.6, 0.2], "their_utility": [0, 0.6, 1]},
+                        {"name": "sla", "options": ["99%", "99.9%"],
+                         "my_utility": [0, 1], "their_utility": [1, 0]},
+                    ],
+                    "my_priorities": {"price_per_seat": 0.6, "seats": 0.25, "sla": 0.15},
+                    "their_offers": [{"price_per_seat": "$50", "seats": "200", "sla": "99%"}],
+                },
+                "example_output": {
+                    "action": "counter",
+                    "recommended_offer": {"price_per_seat": "$30", "seats": "100", "sla": "99%"},
+                    "message": "Proposed package — price_per_seat: $30, seats: 100, sla: 99%. "
+                               "Give ground on 'sla' to hold firm on 'price_per_seat'.",
+                    "my_utility": 0.65, "their_expected_utility": 0.74,
+                    "inferred_their_priorities": {"price_per_seat": 0.18, "seats": 0.19, "sla": 0.31},
+                    "fit": {"score": "good"},
+                },
+            },
             {
                 "name": "gt.negotiation.sell.next_offer",
                 "tier": 1,
@@ -711,12 +867,11 @@ def catalog():
                 "cost_class": "free",
                 "stability": "beta",
                 "description": (
-                    "Sell-side next-offer recommendation with Pareto knob. "
-                    "Wraps SNHP math. Single SNHP customer beats vanilla "
-                    "counterparty by +12% head-to-head margin (T1, n=20, "
-                    "p<0.0001). Set peer_mode=true when counterparty is a "
-                    "verified SNHP-protocol peer for the +7% bilateral "
-                    "cooperation premium."
+                    "ADVANCED / low-level. Sell-side recommendation in NORMALIZED "
+                    "utility [0,1] (prefer gt.negotiate.turn, which speaks dollars). "
+                    "Single SNHP customer beats vanilla counterparty by +12% "
+                    "head-to-head (T1, n=20, p<0.0001). Set peer_mode=true when the "
+                    "counterparty is a verified SNHP peer for the +7% premium."
                 ),
                 "example_input": {
                     "my_reservation": 0.40,
@@ -740,9 +895,29 @@ def catalog():
                 "cost_class": "free",
                 "stability": "beta",
                 "description": (
-                    "Optimal bid for first-price BNE / Vickrey (truthful) / "
-                    "English ascending. Reuses Myerson math from snhp/core_math."
+                    "The bid to place when you're BIDDING in an auction "
+                    "(first-price sealed bid, second-price/Vickrey, or English "
+                    "ascending). Tell it your own value for the item, how many "
+                    "rivals you face, and a rough range of what they'd pay; get "
+                    "back the bid that maximizes your expected surplus without "
+                    "overpaying. The bid comes back in the SAME dollars you put "
+                    "in. Use when you're a bidder; to RUN an auction use "
+                    "gt.auction.seller.optimal_reserve, for 1:1 haggling use "
+                    "gt.negotiate.turn."
                 ),
+                "example_input": {
+                    "auction_format": "first_price",
+                    "my_valuation": 5000,
+                    "n_competing_bidders": 4,
+                    "competitor_value_prior": {
+                        "family": "uniform", "params": {"low": 0, "high": 6000},
+                    },
+                },
+                "example_output": {
+                    "optimal_bid": 4000.0, "expected_surplus": 482.25,
+                    "win_probability": 0.48, "dominant_strategy": False,
+                    "rationale": "(elided)",
+                },
             },
             {
                 "name": "gt.auction.seller.optimal_reserve",
@@ -750,7 +925,27 @@ def catalog():
                 "endpoint": "POST /v1/auction/seller/optimal_reserve",
                 "cost_class": "free",
                 "stability": "beta",
-                "description": "Myerson optimal reserve via virtual-value-zero solve.",
+                "description": (
+                    "The revenue-maximizing RESERVE PRICE (the lowest bid you'll "
+                    "accept) for an auction you're RUNNING. Tell it how many "
+                    "bidders, what the item is worth to YOU, and a rough range of "
+                    "what bidders would pay; get back the floor price and the "
+                    "expected revenue. Reserve and revenue come back in the SAME "
+                    "dollars you put in. Use when you're the seller; to BID use "
+                    "gt.auction.bidder.optimal_bid, for 1:1 haggling use "
+                    "gt.negotiate.turn."
+                ),
+                "example_input": {
+                    "bidder_value_prior": {
+                        "family": "uniform", "params": {"low": 2000, "high": 8000},
+                    },
+                    "n_bidders": 5, "seller_valuation": 1000,
+                },
+                "example_output": {
+                    "reserve_price": 4500.0, "expected_revenue": 6014.29,
+                    "expected_revenue_no_reserve": 6006.87,
+                    "rationale": "(elided)",
+                },
             },
             {
                 "name": "gt.auction.seller.format_recommendation",
@@ -822,9 +1017,33 @@ def catalog():
                 "cost_class": "free",
                 "stability": "beta",
                 "description": (
-                    "Stable matching via deferred acceptance, with capacities "
-                    "(school-choice variant) and a blocking-pair sanity check."
+                    "Match two groups by their rankings so the result is STABLE "
+                    "— no pair would both rather have each other than who they "
+                    "got (interns<->teams, students<->schools, mentors<->mentees). "
+                    "Give each side a list of {id, preferences} (preferences = "
+                    "the other side's ids, most-wanted first; receivers may set "
+                    "capacity for >1 slot). Get back the assignment by name, who "
+                    "went unmatched, and a blocking-pair check (empty = stable). "
+                    "NOTE: it returns the PROPOSER-optimal matching, so put the "
+                    "side you want to favor in `proposers`."
                 ),
+                "example_input": {
+                    "proposers": [
+                        {"id": "Ana", "preferences": ["Growth", "Core", "Infra"]},
+                        {"id": "Ben", "preferences": ["Core", "Growth", "Infra"]},
+                        {"id": "Cy", "preferences": ["Growth", "Infra", "Core"]},
+                    ],
+                    "receivers": [
+                        {"id": "Growth", "preferences": ["Ben", "Ana", "Cy"]},
+                        {"id": "Core", "preferences": ["Ana", "Ben", "Cy"]},
+                        {"id": "Infra", "preferences": ["Cy", "Ana", "Ben"]},
+                    ],
+                },
+                "example_output": {
+                    "matching": {"Ana": "Growth", "Ben": "Core", "Cy": "Infra"},
+                    "unmatched_proposers": [], "blocking_pairs": [],
+                    "n_proposals": 4,
+                },
             },
             {
                 "name": "gt.mechanism.optimal_auction_design",
@@ -845,11 +1064,56 @@ def catalog():
                 "cost_class": "free",
                 "stability": "beta",
                 "description": (
-                    "Gallego-van Ryzin posted-price (static p* + dynamic "
-                    "schedule from backward DP)."
+                    "Best price (and how to drop it over time) when you must sell "
+                    "a FIXED stock by a DEADLINE with demand trickling in — "
+                    "event tickets, perishable inventory, end-of-life units. Give "
+                    "it your stock count, the selling window in SECONDS, how many "
+                    "shoppers arrive per second, and a rough range of what they'd "
+                    "pay; get back one good fixed price AND a markdown schedule "
+                    "(price at each time point) plus expected revenue. All prices "
+                    "in the SAME dollars you put in. (Convert your window: 14 days "
+                    "= 14*24*3600 = 1209600 seconds; rate = expected shoppers / "
+                    "that window.) Not for 1:1 haggling (gt.negotiate.turn) or "
+                    "auctions (gt.auction.*)."
                 ),
+                "example_input": {
+                    "buyer_arrival_prior": {
+                        "family": "uniform", "params": {"low": 40, "high": 150},
+                    },
+                    "arrival_rate_per_second": 0.000496,
+                    "inventory": 200,
+                    "horizon_seconds": 1209600,
+                },
+                "example_output": {
+                    "static_price": 112.18,
+                    "static_expected_revenue": 22088.61,
+                    "dynamic_schedule": [
+                        {"t_seconds": 0.0, "recommended_price": 114.08},
+                        {"t_seconds": 604800.0, "recommended_price": 80.41},
+                        "... 9 more waypoints to the deadline ...",
+                    ],
+                    "sellthrough_rate": 0.98,
+                    "rationale": "(elided)",
+                },
             },
         ],
+        "a2a_flow": {
+            "what": ("ADVANCED: use only when the counterparty ALSO runs SNHP. Prove "
+                     "both identities to unlock a cooperation premium (more joint "
+                     "surplus between verified peers) and a signed, settleable AP2 deal "
+                     "record. Against an unknown counterparty just use gt.negotiate.turn "
+                     "/ gt.negotiate.bundle — none of this is needed."),
+            "guide": "gametheory/server/A2A_FLOW.md",
+            "steps": [
+                "0. POST /v1/registry/register_operator (each side, once; optional "
+                "/v1/registry/request_domain_challenge + /verify_domain for domain identity)",
+                "1. build a peer proof LOCALLY (MCP gt_a2a_build_peer_proof; key stays on your host)",
+                "2. exchange the two proofs with the counterparty",
+                "3. POST /v1/a2a/open_session with both proofs -> session_id + server-derived peer_mode",
+                "4. POST /v1/a2a/next_offer using the session's peer_mode",
+                "5. POST /v1/a2a/settle -> a signed AP2 Cart Mandate (the deal record)",
+            ],
+        },
         "coming_later": [
             "gt.negotiation.propose_unbundling",
             "gt.negotiation.coalition_form",
@@ -865,6 +1129,34 @@ _LLMS_TXT = """\
 This API exposes equilibrium-aware primitives so AI agents can compose
 game-theoretic strategies without re-deriving the math. LLMs are
 structurally bad at multi-round, opponent-modeling problems; we are not.
+
+## Quickstart — negotiate a price in plain dollars (start here)
+
+You almost certainly want ONE tool: POST /v1/negotiate/turn. It speaks
+DOLLARS, not math. Give it your side, your walk-away, your target, and the
+other side's offers; it returns the dollar counter to send, a ready-to-send
+message, and accept/walk advice. No keys, no setup, works against any
+counterparty. Validated edge: ~12% better head-to-head (n=20 paired LLM
+negotiations, 95% CI +6.5-17.4%, p<0.0001). Scope: single-issue price.
+
+  curl -s https://snhp.dev/v1/negotiate/turn -H 'content-type: application/json' \\
+    -d '{"side":"sell","walk_away":4000,"target":6000,
+         "counterparty_offers":[4200,4500],"rounds_left":6}'
+  -> {"action":"counter","recommended_price":5386.6,
+      "message":"Thanks for the offer. The best I can do on this is $5,386.60.",
+      "fit":{"score":"good"},"expected_settlement":4943.3}
+
+Use it for multi-round price/terms haggling. Not for one-shot fixed prices
+(it tells you). Everything below is advanced: the low-level utility-space
+primitives and the verified-peer agent-to-agent (A2A) + AP2 settlement flow.
+
+## Pricing & SLA (honest)
+
+The core math tools (negotiate.*, auction.*, mechanism.*) are FREE, no key.
+LLM-backed extras (dispute drafting/coaching) are usage-based. The A2A verified
+commerce + AP2 settlement layer is the paid moat (a fee on settled value, priced
+per partner). No uptime SLA today — best-effort, single deployment, and the math is
+self-hostable so you can depend on no one. Full posture: /PRICING.md.
 
 ## Empirical anchor (2026-04-30)
 
@@ -916,9 +1208,10 @@ See https://api.snhp.dev/reputation_scoring_spec.html for the spec
 ## Tier 1 — Negotiation
 - POST /v1/negotiation/sell/next_offer  [free]
   Sell-side recommender. `pareto_knob` ∈ [0, 1] interpolates between
-  deal-rate-max (0) and H2H-margin-max (1). Empirical anchor: SNHP
-  rank #1/21 in our NegMAS round-robin tournament; beats Aspiration
-  (p=0.011), Split-the-Diff (p=0.014), Fair Demand (p<0.001).
+  deal-rate-max (0) and H2H-margin-max (1). Empirical anchor: the shipped
+  recommender is ~12% better head-to-head (n=20 paired LLM negotiations,
+  95% CI +6.5-17.4%, p<0.0001). (A separate NegMAS research agent ranks
+  #1 in asymmetric markets / mid-pack symmetric — not the product claim.)
 - POST /v1/negotiation/buy/next_offer  [free]
   Buy-side recommender with a defense bundle (Schelling commitment,
   anchor-attack detection). Pass `market_prior` to enable anchor
@@ -1106,6 +1399,19 @@ def llms_txt() -> str:
     return _LLMS_TXT
 
 
+@app.get("/PRICING.md", tags=["discovery"], response_class=PlainTextResponse,
+         summary="Pricing & service posture")
+def pricing_md() -> str:
+    _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    try:
+        with open(os.path.join(_root, "PRICING.md")) as f:
+            return f.read()
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404,
+            detail="PRICING.md not bundled in this deploy; see the 'pricing' block in /v1/catalog")
+
+
 # ─── Onboarding ──────────────────────────────────────────────────────────────
 
 
@@ -1278,6 +1584,164 @@ def negotiation_buy_next_offer(req: BuyNextOfferRequest):
     )
 
 
+class DisputeNegotiateRequest(BaseModel):
+    """Inputs for a refund-dispute settlement negotiation. All dollar
+    amounts in USD."""
+    platform_first_offer: float = Field(ge=0.0,
+        description="The platform's lowball opening offer")
+    platform_walk_cost: float = Field(gt=0.0,
+        description="The platform's walk-away cost — the most it will pay "
+                    "before a chargeback + continued handling cost it more")
+    customer_floor: float = Field(ge=0.0,
+        description="The least the customer will accept before walking away")
+    customer_target: Optional[float] = Field(default=None, ge=0.0,
+        description="The customer's happy point (carried through for display)")
+    deadline_rounds: int = Field(default=10, ge=4, le=32)
+
+
+@app.post(
+    "/v1/dispute/negotiate",
+    tags=["negotiation"],
+    summary="Run a refund-dispute settlement negotiation: unaided vs. SNHP-coached",
+    description=(
+        "Plays a 1-D refund-dispute negotiation (customer vs. platform) to a "
+        "settlement, twice — once with the customer unaided, once SNHP-coached "
+        "— against an identical platform. Both arms use the real negotiation "
+        "core. Returns both transcripts and the dollar delta. Free (math only)."
+    ),
+)
+@_math_endpoint
+def dispute_negotiate(req: DisputeNegotiateRequest):
+    return _dispute_run_comparison(
+        platform_first_offer=req.platform_first_offer,
+        platform_walk_cost=req.platform_walk_cost,
+        customer_floor=req.customer_floor,
+        customer_target=req.customer_target,
+        deadline_rounds=req.deadline_rounds,
+    )
+
+
+# ─── Dispute co-pilot (operator console — LLM-backed) ───────────────────────
+
+
+class DisputeExtractRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=2000,
+        description="Free-text dispute description, or a pasted platform reply")
+
+
+class DisputeCoachRequest(BaseModel):
+    dispute: dict = Field(description="Structured dispute (from /v1/dispute/extract)")
+    customer_floor: float = Field(ge=0.0,
+        description="The least the customer will accept, USD")
+    platform_offers: list[float] = Field(default_factory=list, max_length=32,
+        description="Dollar amounts the platform has offered, in order")
+    customer_demands: list[float] = Field(default_factory=list, max_length=32,
+        description="Dollar amounts the customer has demanded, in order")
+    platform_last_message: Optional[str] = Field(default=None, max_length=2000)
+    deadline_rounds: int = Field(default=10, ge=4, le=32)
+
+
+class DisputeLogRequest(BaseModel):
+    session: dict = Field(description="The full console session record to append")
+
+
+class DisputeEventRequest(BaseModel):
+    session_id: str = Field(default="", max_length=64,
+        description="Client-generated anonymous session id (stitches a visit)")
+    event: str = Field(min_length=1, max_length=40,
+        description="Allowlisted funnel/outcome event name")
+    payload: Optional[dict] = Field(default=None,
+        description="Small structured extras (amounts/category/outcome)")
+
+
+@app.post("/v1/dispute/event", tags=["negotiation"], include_in_schema=False,
+          summary="Record one anonymous dispute-tool funnel/outcome event")
+def dispute_event(req: DisputeEventRequest):
+    _analytics.record_event(req.event, req.session_id, req.payload)
+    return {"ok": True}
+
+
+def _client_ip(request: Request) -> Optional[str]:
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else None
+
+
+def _llm_endpoint(request: Request, fn):
+    """Run an LLM-backed handler behind the daily/per-IP cost guard,
+    converting failures to clean HTTP errors."""
+    # OPT-IN: LLM-backed endpoints are OFF by default, so a public deploy has ZERO
+    # LLM exposure and cannot be abused to drain the operator's API budget. The
+    # operator enables them explicitly; even then a hard daily $ cap + per-IP cap
+    # bound the worst-case spend. The free math tools call no LLM and are unaffected.
+    # Parse as a real boolean so "0"/"false"/"off" DISABLE (bare truthiness would
+    # treat those non-empty strings as enabled — the opposite of intent).
+    _llm_enabled = os.environ.get("SNHP_ENABLE_DISPUTE_LLM", "").strip().lower() \
+        in ("1", "true", "yes", "on")
+    if not _llm_enabled:
+        raise HTTPException(
+            status_code=503,
+            detail="LLM-backed endpoints are disabled (operator opt-in via "
+                   "SNHP_ENABLE_DISPUTE_LLM=1; a daily $ cap + per-IP limit then apply). "
+                   "The free math tools need no LLM and are unaffected.")
+    allowed, reason = _llm_budget.consume(_client_ip(request))
+    if not allowed:
+        raise HTTPException(status_code=429, detail=reason)
+    try:
+        return fn()
+    except RuntimeError as e:           # missing API key etc.
+        raise HTTPException(status_code=503, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:              # noqa: BLE001 — API / parse failure
+        raise HTTPException(status_code=502, detail=f"LLM step failed: {e}")
+
+
+@app.post("/v1/dispute/extract", tags=["negotiation"], include_in_schema=False,
+          summary="Free-text dispute description → structured dispute")
+def dispute_extract(req: DisputeExtractRequest, request: Request):
+    return _llm_endpoint(request, lambda: _extract_dispute(req.text))
+
+
+@app.post("/v1/dispute/parse_reply", tags=["negotiation"], include_in_schema=False,
+          summary="A pasted platform reply → the platform's latest offer")
+def dispute_parse_reply(req: DisputeExtractRequest, request: Request):
+    return _llm_endpoint(request, lambda: _parse_platform_reply(req.text))
+
+
+@app.post("/v1/dispute/coach", tags=["negotiation"], include_in_schema=False,
+          summary="One coaching round: recommended demand + drafted message")
+def dispute_coach(req: DisputeCoachRequest, request: Request):
+    return _llm_endpoint(request, lambda: _coach_round(
+        dispute=req.dispute, customer_floor=req.customer_floor,
+        platform_offers=req.platform_offers, customer_demands=req.customer_demands,
+        platform_last_message=req.platform_last_message,
+        deadline_rounds=req.deadline_rounds))
+
+
+@app.get("/v1/dispute/stats", tags=["negotiation"], include_in_schema=False,
+         summary="Private launch dashboard — funnel, outcomes, spend")
+def dispute_stats(key: str = ""):
+    """Token-gated usage summary. Set SNHP_STATS_KEY and pass ?key=… . Returns
+    404 (not 401) without a valid key so the endpoint's existence stays hidden."""
+    expected = os.environ.get("SNHP_STATS_KEY", "")
+    if not expected or key != expected:
+        raise HTTPException(status_code=404, detail="Not Found")
+    return _analytics.summarize()
+
+
+@app.post("/v1/dispute/log", tags=["negotiation"], include_in_schema=False,
+          summary="Append a completed console session to the Phase-1 log")
+def dispute_log(req: DisputeLogRequest):
+    log_dir = _analytics.data_dir()
+    os.makedirs(log_dir, exist_ok=True)
+    path = os.path.join(log_dir, "dispute_console_log.jsonl")
+    with open(path, "a") as f:
+        f.write(json.dumps({"logged_at": int(time.time()), "session": req.session}) + "\n")
+    return {"logged": True}
+
+
 @app.post(
     "/v1/negotiation/detect_anchor_attack",
     tags=["negotiation"],
@@ -1352,6 +1816,16 @@ def negotiation_reveal_first_strike(req: RevealFirstStrikeRequest, response: Res
 )
 def keys_trust_anchor():
     return _trust_anchor_pem()
+
+
+@app.get(
+    "/v1/keys/settlement_notary",
+    tags=["discovery"],
+    response_class=PlainTextResponse,
+    summary="Public key for verifying AP2 Cart/Intent mandates (separate from the CA)",
+)
+def keys_settlement_notary():
+    return _settlement_notary_pem()
 
 
 # ─── Tier 3: Mechanism Design ───────────────────────────────────────────────

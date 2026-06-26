@@ -3,646 +3,167 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SNHP — game-theory math for AI agents</title>
-<meta name="description" content="One MCP install. AI agent negotiates +12% better, head-to-head, against unaware counterparties. CI-validated in N=20 LLM tournaments.">
+<title>SNHP — get the refund you're actually owed</title>
+<meta name="description" content="When a delivery order goes wrong, the app lowballs your refund. SNHP knows what the platform can really afford to pay — and negotiates for it.">
 <style>
 :root {
-  --bg: #0b0d10;
-  --fg: #e8e8e8;
-  --dim: #8a8d92;
-  --accent: #4ade80;
-  --accent-dim: #16a34a;
-  --border: #1f2328;
-  --card: #14161a;
-  --code: #1c1f24;
+  --bg:#0b0d10; --fg:#e8e8e8; --dim:#8a8d92; --accent:#4ade80;
+  --accent-dim:#16a34a; --border:#1f2328; --card:#14161a;
 }
-* { box-sizing: border-box; }
-html, body {
-  margin: 0; padding: 0;
-  background: var(--bg); color: var(--fg);
-  font-family: -apple-system, BlinkMacSystemFont, "Inter", "SF Pro Text", system-ui, sans-serif;
-  font-size: 16px; line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
+* { box-sizing:border-box; }
+html,body {
+  margin:0; padding:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Inter","SF Pro Text",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased; line-height:1.55;
 }
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-code, pre {
-  font-family: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
-  font-size: 14px;
-}
-pre {
-  background: var(--code); padding: 16px 20px; border-radius: 6px;
-  overflow-x: auto; margin: 12px 0;
-}
-code { background: var(--code); padding: 2px 6px; border-radius: 3px; font-size: 13px; }
-pre code { background: none; padding: 0; font-size: 14px; }
+a { color:var(--accent); text-decoration:none; }
+a:hover { text-decoration:underline; }
+.wrap { max-width:760px; margin:0 auto; padding:0 28px; }
 
-.container { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+header { border-bottom:1px solid var(--border); }
+header .wrap { display:flex; justify-content:space-between; align-items:center; padding:20px 28px; }
+.brand { font-weight:600; font-size:17px; letter-spacing:-0.01em; color:var(--fg); }
+header nav a { color:var(--dim); font-size:14px; }
+header nav a:hover { color:var(--fg); }
 
-header {
-  border-bottom: 1px solid var(--border);
-  padding: 18px 0;
+.hero { padding:110px 0 90px; }
+h1 {
+  font-size:clamp(34px,6vw,52px); line-height:1.1; letter-spacing:-0.025em;
+  margin:0 0 22px; font-weight:680;
 }
-header .container { display: flex; justify-content: space-between; align-items: center; }
-header .brand { font-weight: 600; font-size: 17px; letter-spacing: -0.01em; }
-header nav a { margin-left: 22px; color: var(--dim); font-size: 14px; }
-header nav a:hover { color: var(--fg); }
+.lede { font-size:20px; color:var(--dim); max-width:560px; margin:0 0 36px; }
+.lede strong { color:var(--fg); font-weight:500; }
+.cta {
+  display:inline-block; background:var(--accent-dim); color:#06210f;
+  font-weight:600; font-size:16px; padding:14px 26px; border-radius:7px;
+}
+.cta:hover { background:var(--accent); text-decoration:none; }
+.micro { color:var(--dim); font-size:14px; margin-top:14px; }
 
-/* ─── Hero — animated swap between two value props ─── */
-.hero {
-  padding: 96px 0 72px;
-  border-bottom: 1px solid var(--border);
-}
-.hero-rotator {
-  position: relative;
-  min-height: 320px;  /* reserve space so layout doesn't jump */
-}
-.hero-frame {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  opacity: 0;
-  animation: hero-swap 16s ease-in-out infinite;
-}
-.hero-frame.frame-extract { animation-delay: 0s; }
-.hero-frame.frame-cooperate { animation-delay: 8s; }
-@keyframes hero-swap {
-  0%   { opacity: 0; transform: translateY(8px); }
-  3%   { opacity: 1; transform: translateY(0); }
-  47%  { opacity: 1; transform: translateY(0); }
-  50%  { opacity: 0; transform: translateY(-8px); }
-  100% { opacity: 0; transform: translateY(-8px); }
-}
-@media (prefers-reduced-motion: reduce) {
-  /* show only extraction frame, statically — no animation */
-  .hero-rotator { min-height: 0; }
-  .hero-frame.frame-cooperate { display: none; }
-  .hero-frame.frame-extract { position: static; opacity: 1; animation: none; transform: none; }
-}
-.hero-frame h1 {
-  font-size: 52px; font-weight: 700; line-height: 1.05;
-  letter-spacing: -0.025em; margin: 0 0 24px;
-}
-.hero-frame h1 .accent { color: var(--accent); }
-.hero-frame .lede {
-  font-size: 18px; color: var(--dim);
-  max-width: 580px; line-height: 1.55; margin: 0 0 32px;
-}
-.hero-frame .compare {
-  display: inline-flex; align-items: center; gap: 16px;
-  background: var(--card); border: 1px solid var(--border);
-  padding: 16px 22px; border-radius: 8px;
-  font-family: ui-monospace, monospace;
-}
-.hero-frame .compare .van { color: var(--dim); }
-.hero-frame .compare .arrow { color: var(--dim); font-size: 18px; }
-.hero-frame .compare .snhp { color: var(--accent); font-weight: 600; }
+section { padding:64px 0; border-top:1px solid var(--border); }
+h2 { font-size:clamp(24px,4vw,32px); line-height:1.2; letter-spacing:-0.02em; margin:0 0 18px; }
+section p { font-size:17px; color:var(--dim); max-width:580px; }
+section p strong { color:var(--fg); font-weight:600; }
 
-.hero-cta { margin-top: 36px; }
-.hero-cta a {
-  display: inline-block;
-  padding: 14px 28px; border-radius: 6px;
-  font-weight: 600; font-size: 15px;
-  background: var(--accent); color: var(--bg);
-}
-.hero-cta a:hover { background: var(--accent-dim); text-decoration: none; }
-.hero-cta .secondary {
-  background: transparent; color: var(--dim);
-  border: 1px solid var(--border); margin-left: 12px;
-}
-.hero-cta .secondary:hover { color: var(--fg); border-color: var(--fg); }
+/* concrete gap visual */
+.gap { display:flex; align-items:flex-end; gap:28px; margin:34px 0 8px; flex-wrap:wrap; }
+.fig .amt { font-size:46px; font-weight:700; letter-spacing:-0.02em; line-height:1; }
+.fig.low .amt { color:var(--dim); }
+.fig.owed .amt { color:var(--accent); }
+.fig .cap { font-size:13px; color:var(--dim); margin-top:8px; text-transform:uppercase; letter-spacing:0.05em; }
+.gap .sep { color:var(--dim); font-size:26px; padding-bottom:14px; }
 
-/* swap indicator dots */
-.hero-dots {
-  display: flex; gap: 8px; margin-top: 28px;
-  font-family: ui-monospace, monospace; font-size: 11px;
-  color: var(--dim);
+/* steps */
+.steps { margin-top:30px; }
+.step { display:flex; gap:18px; padding:18px 0; border-top:1px solid var(--border); }
+.step:first-child { border-top:none; }
+.step .n {
+  flex:none; width:30px; height:30px; border-radius:50%; border:1px solid var(--accent-dim);
+  color:var(--accent); font-size:14px; font-weight:600;
+  display:flex; align-items:center; justify-content:center;
 }
-.hero-dots .dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--border); margin-right: 6px;
-}
-.hero-dots .dot.active {
-  background: var(--accent);
-  animation: dot-cycle 16s ease-in-out infinite;
-}
-.hero-dots .dot.dot-2.active { animation-delay: 8s; }
-@keyframes dot-cycle {
-  0%, 50%, 100% { background: var(--border); }
-  3%, 47%      { background: var(--accent); }
-}
+.step .body h3 { margin:3px 0 4px; font-size:17px; }
+.step .body p { margin:0; font-size:15px; }
 
-/* ─── Defensible-claims table ─── */
-section { padding: 64px 0; border-bottom: 1px solid var(--border); }
-section h2 {
-  font-size: 32px; font-weight: 700; letter-spacing: -0.02em;
-  margin: 0 0 16px;
-}
-section .subtitle {
-  font-size: 17px; color: var(--dim); margin: 0 0 36px;
-  max-width: 640px; line-height: 1.55;
-}
+.note { font-size:15px; color:var(--dim); max-width:600px; }
+.note strong { color:var(--fg); font-weight:600; }
 
-.claims-table {
-  width: 100%; border-collapse: collapse;
-  font-family: ui-monospace, monospace; font-size: 14px;
+/* platform door */
+.door {
+  display:block; background:var(--card); border:1px solid var(--border);
+  border-radius:10px; padding:26px 28px; margin-top:8px;
 }
-.claims-table th, .claims-table td {
-  padding: 14px 16px; border-bottom: 1px solid var(--border);
-  text-align: left;
-}
-.claims-table th {
-  font-weight: 600; color: var(--dim); font-size: 12px;
-  text-transform: uppercase; letter-spacing: 0.06em;
-  border-bottom: 1px solid var(--border);
-}
-.claims-table td.num { color: var(--accent); font-weight: 600; font-size: 17px; text-align: right; }
-.claims-table td.ci { color: var(--dim); font-family: ui-monospace, monospace; }
-.claims-table tr:last-child td { border-bottom: none; }
+.door:hover { border-color:var(--accent-dim); text-decoration:none; }
+.door .k { font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:var(--dim); }
+.door h3 { margin:6px 0 6px; font-size:20px; color:var(--fg); letter-spacing:-0.01em; }
+.door .go { color:var(--accent); font-size:15px; font-weight:600; }
+.door p { margin:0 0 12px; font-size:15px; }
 
-/* ─── Positive-sum proof ─── */
-.ps-grid {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
-  margin-top: 28px;
-}
-@media (max-width: 720px) { .ps-grid { grid-template-columns: 1fr; } }
-.ps-card {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: 8px; padding: 24px;
-}
-.ps-card .num {
-  font-size: 36px; font-weight: 700; color: var(--accent);
-  letter-spacing: -0.02em;
-}
-.ps-card.dim .num { color: var(--fg); }
-.ps-card .label {
-  font-size: 13px; color: var(--dim); margin-top: 8px;
-  line-height: 1.5;
-}
-
-/* ─── Two-mode framing ─── */
-.modes-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
-  margin-top: 32px;
-}
-@media (max-width: 720px) { .modes-grid { grid-template-columns: 1fr; } }
-.mode-card {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: 8px; padding: 28px;
-}
-.mode-card h3 {
-  font-size: 14px; color: var(--dim); text-transform: uppercase;
-  letter-spacing: 0.08em; margin: 0 0 16px; font-weight: 600;
-}
-.mode-card .num {
-  font-size: 32px; font-weight: 700; color: var(--accent);
-  letter-spacing: -0.02em; margin-bottom: 10px;
-}
-.mode-card .when { font-size: 14px; color: var(--fg); margin-bottom: 14px; }
-.mode-card .desc { font-size: 13px; color: var(--dim); line-height: 1.6; }
-
-/* ─── Honest caveats ─── */
-.caveat {
-  background: rgba(251, 191, 36, 0.08); border-left: 3px solid #fbbf24;
-  padding: 18px 22px; border-radius: 4px; margin-top: 36px;
-  font-size: 14px; color: var(--fg); line-height: 1.6;
-}
-
-/* ─── Inline mini-demo (animated negotiation transcript) ─── */
-.mini-demo {
-  background: var(--code); border-radius: 8px;
-  padding: 24px; margin-top: 28px;
-  font-family: ui-monospace, monospace; font-size: 13.5px;
-  line-height: 1.7;
-}
-.mini-demo .turn {
-  display: grid; grid-template-columns: 70px 90px 1fr;
-  gap: 14px; padding: 6px 0;
-  opacity: 0;
-  animation: fade-in 0.6s ease-out forwards;
-}
-.mini-demo .turn .round-tag { color: var(--dim); }
-.mini-demo .turn .actor { font-weight: 600; }
-.mini-demo .turn.vanilla .actor { color: var(--dim); }
-.mini-demo .turn.snhp .actor { color: var(--accent); }
-.mini-demo .turn.snhp .annot { color: var(--accent); opacity: 0.85; font-size: 12px; }
-.mini-demo .turn.vanilla .annot { color: var(--dim); font-size: 12px; }
-.mini-demo .deal {
-  margin-top: 14px; padding: 12px 16px;
-  background: rgba(74, 222, 128, 0.08);
-  border-left: 3px solid var(--accent);
-  border-radius: 4px;
-  opacity: 0;
-  animation: fade-in 0.8s 4.2s ease-out forwards;
-}
-.mini-demo .deal strong { color: var(--accent); }
-@keyframes fade-in {
-  from { opacity: 0; transform: translateX(-6px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-.mini-demo .turn:nth-child(1) { animation-delay: 0.4s; }
-.mini-demo .turn:nth-child(2) { animation-delay: 1.0s; }
-.mini-demo .turn:nth-child(3) { animation-delay: 1.8s; }
-.mini-demo .turn:nth-child(4) { animation-delay: 2.6s; }
-.mini-demo .turn:nth-child(5) { animation-delay: 3.4s; }
-@media (prefers-reduced-motion: reduce) {
-  .mini-demo .turn, .mini-demo .deal { opacity: 1; animation: none; }
-}
-
-/* ─── Install footer ─── */
-.install-footer {
-  background: var(--card); border-radius: 8px; padding: 32px;
-  margin-top: 24px;
-}
-.install-footer h3 { margin: 0 0 16px; font-size: 18px; font-weight: 600; }
-.install-footer pre { margin: 0 0 12px; }
-.install-footer .links {
-  margin-top: 20px; padding-top: 20px;
-  border-top: 1px solid var(--border);
-  display: flex; gap: 24px; font-size: 14px;
-}
-.install-footer .links a { color: var(--accent); }
-
-footer { padding: 32px 0; color: var(--dim); font-size: 13px; }
-footer .container { display: flex; justify-content: space-between; }
-footer a { color: var(--dim); }
-footer a:hover { color: var(--fg); }
+footer { border-top:1px solid var(--border); padding:28px 0; }
+footer .wrap { display:flex; justify-content:space-between; color:var(--dim); font-size:14px; }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="container">
-    <div class="brand">SNHP</div>
-    <nav>
-      <a href="/for-builders.html">Builders</a>
-      <a href="/demo.html">Demo</a>
-      <a href="/docs">API</a>
-      <a href="/llms.txt">/llms.txt</a>
-    </nav>
-  </div>
-</header>
+<header><div class="wrap">
+  <a class="brand" href="/">SNHP</a>
+  <nav><a href="/platforms.html">For platforms →</a></nav>
+</div></header>
 
-<!-- ═══ HERO: two value props alternating (extraction ↔ cooperation) ═══ -->
-<div class="hero">
-  <div class="container">
-    <div class="hero-rotator">
-      <!-- Frame A: extraction (single-side adoption) -->
-      <div class="hero-frame frame-extract">
-        <h1>Your AI agent negotiates <span class="accent">+12% better</span><br>head-to-head.</h1>
-        <p class="lede">
-          Single SNHP customer. Game-theory math wraps your LLM's
-          negotiation decisions. Wins against unaware counterparties
-          even when only your side adopts.
-        </p>
-        <div class="compare">
-          <span class="van">Vanilla counterparty:&nbsp;0.715</span>
-          <span class="arrow">→</span>
-          <span class="snhp">Your SNHP agent:&nbsp;0.836</span>
-        </div>
+<main>
+
+  <div class="hero"><div class="wrap">
+    <h1>Get the refund<br>you're actually owed.</h1>
+    <p class="lede">When a delivery order goes wrong, the app offers a
+      fraction of what you're due — <strong>betting you won't push
+      back</strong>. SNHP pushes back for you.</p>
+    <a class="cta" href="/dispute.html">Try it on a dispute →</a>
+    <div class="micro">Two minutes. Nothing to install.</div>
+  </div></div>
+
+  <section><div class="wrap">
+    <h2>The first offer is never the best offer.</h2>
+    <p>A refund dispute costs a platform far more than the refund itself —
+      support time, card-network chargeback fees, a customer who walks.
+      The platform knows that number. <strong>You don't. SNHP does</strong>
+      — and holds out for it.</p>
+    <div class="gap">
+      <div class="fig low"><div class="amt">$6</div>
+        <div class="cap">the app offered</div></div>
+      <div class="sep">→</div>
+      <div class="fig owed"><div class="amt">$24</div>
+        <div class="cap">what you were owed</div></div>
+    </div>
+  </div></section>
+
+  <section><div class="wrap">
+    <h2>How it works</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="n">1</div>
+        <div class="body"><h3>Tell us what happened</h3>
+          <p>The order, what went wrong, what the app offered.</p></div>
       </div>
-
-      <!-- Frame B: cooperation (both sides on SNHP) -->
-      <div class="hero-frame frame-cooperate">
-        <h1>Two AI agents reach <span class="accent">+7% more</span><br>joint surplus.</h1>
-        <p class="lede">
-          Both parties run SNHP-attested peers. Bilateral signaling
-          finds Pareto-improving bundles vanilla agents miss. Network
-          good for partner ecosystems — both sides win more.<br>
-          <span style="color: var(--dim); font-size: 14px;">
-            Confirmed at N=50: p=0.00047, CI [+3.2%, +11.0%].
-            <a href="#methodology" style="color: var(--dim); text-decoration: underline;">Methodology →</a>
-          </span>
-        </p>
-        <div class="compare">
-          <span class="van">Vanilla self-play joint:&nbsp;1.45</span>
-          <span class="arrow">→</span>
-          <span class="snhp">SNHP self-play joint:&nbsp;1.52</span>
-        </div>
+      <div class="step">
+        <div class="n">2</div>
+        <div class="body"><h3>We learn what you'd accept</h3>
+          <p>A few quick questions — no forms, no sliders. SNHP works out
+            your real range from how you answer.</p></div>
+      </div>
+      <div class="step">
+        <div class="n">3</div>
+        <div class="body"><h3>SNHP negotiates</h3>
+          <p>It holds the line for what the platform can actually afford,
+            and shows you the outcome.</p></div>
       </div>
     </div>
+    <p style="margin-top:30px"><a href="/dispute.html">See it on a dispute →</a></p>
+  </div></section>
 
-    <div class="hero-dots">
-      <span><span class="dot dot-1 active"></span>Single-side</span>
-      <span style="margin-left: 14px;"><span class="dot dot-2 active"></span>Both-sides</span>
-    </div>
+  <section><div class="wrap">
+    <h2>An honest note</h2>
+    <p class="note">This is an early prototype. The disputes you'll see are
+      realistic examples, not live cases — but the negotiation is
+      <strong>real</strong>: the same game-theory engine, run live, no
+      outcomes faked. It shows you what's possible, today.</p>
+  </div></section>
 
-    <div class="hero-cta">
-      <a href="#install">Install in 90 seconds</a>
-      <a class="secondary" href="/demo.html">Watch the demo</a>
-    </div>
-  </div>
-</div>
+  <section><div class="wrap">
+    <a class="door" href="/platforms.html">
+      <div class="k">For platforms</div>
+      <h3>Run a service that handles refund disputes?</h3>
+      <p>SNHP can settle them for you — fairly, in one step, for less than
+        they cost you today.</p>
+      <span class="go">See SNHP for platforms →</span>
+    </a>
+  </div></section>
 
-<!-- ═══ THE FOUR DEFENSIBLE CLAIMS ═══ -->
-<section>
-  <div class="container">
-    <h2>Four claims. Four confidence intervals.</h2>
-    <p class="subtitle">
-      We used to say "+13% cooperation lift." We were citing the upper
-      tail of an N=20 measurement at random horizons. The honest numbers
-      below are from our production-validated build (T1, 2026-05-01).
-      Each row is a 95% bootstrap CI on N=20 paired seeds.
-    </p>
+</main>
 
-    <table class="claims-table">
-      <thead>
-        <tr>
-          <th>Claim</th>
-          <th style="text-align: right;">Lift</th>
-          <th>95% CI</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>SNHP vs vanilla, head-to-head margin</td>
-          <td class="num">+12.1%</td>
-          <td class="ci">[+6.5%, +17.4%]</td>
-        </tr>
-        <tr>
-          <td>Single SNHP-seller vs vanilla-seller baseline</td>
-          <td class="num">+7.5%</td>
-          <td class="ci">[+4.0%, +11.4%]</td>
-        </tr>
-        <tr>
-          <td>Cooperation premium (both sides on SNHP)</td>
-          <td class="num">+7.1%</td>
-          <td class="ci">[+2.8%, +11.8%]</td>
-        </tr>
-        <tr>
-          <td>Single SNHP customer benefit (pooled across roles)</td>
-          <td class="num">+5.5%</td>
-          <td class="ci">[+1.3%, +9.2%]</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <p style="font-size: 13px; color: var(--dim); margin-top: 24px; font-family: ui-monospace, monospace;">
-      N=20 paired seeds · NegMAS B2B harness · Anthropic Sonnet 4.6 ·
-      Cost $2.50 · Replicate via /static/asymmetric_b2b_n20_T1_knob1.json
-    </p>
-  </div>
-</section>
-
-<!-- ═══ POSITIVE-SUM: refutes the YC procurement critique pre-emptively ═══ -->
-<section>
-  <div class="container">
-    <h2>SNHP grows the pie before slicing it.</h2>
-    <p class="subtitle">
-      Procurement officers worry about "AI extraction" — that adopting
-      SNHP just transfers value from your counterparty to you. Our
-      seller-side data: SNHP gains 38% MORE than the counterparty loses,
-      because the SNHP advisor finds Pareto-improving bundles vanilla
-      LLMs miss. Net result: joint surplus grows.
-    </p>
-
-    <div class="ps-grid">
-      <div class="ps-card">
-        <div class="num">+0.075</div>
-        <div class="label">SNHP-seller gain over vanilla baseline</div>
-      </div>
-      <div class="ps-card">
-        <div class="num">−0.054</div>
-        <div class="label">Vanilla-buyer loss vs its vanilla baseline</div>
-      </div>
-      <div class="ps-card">
-        <div class="num">+0.021</div>
-        <div class="label">Net joint-surplus growth (gain &gt; loss)</div>
-      </div>
-    </div>
-
-    <p style="font-size: 14px; color: var(--fg); margin-top: 28px; line-height: 1.6;">
-      <strong>Capture rate: 138%.</strong> SNHP-seller's gain (0.075)
-      exceeds the counterparty's loss (0.054) by 0.021 — that's value
-      <em>created</em>, not transferred. Without SNHP, vanilla LLMs
-      settle for sub-Pareto bundles; SNHP's outcome picker finds bundles
-      with strictly more joint utility, then captures more of the larger
-      pie. <strong>10 of 20 seeds show SNHP gain AND joint surplus
-      growth simultaneously.</strong>
-      <a href="/for-builders.html#case-studies">See seed-by-seed →</a>
-    </p>
-
-    <div class="caveat">
-      <strong>Honest caveat — direction matters.</strong> The
-      positive-sum story is specific to SV (SNHP-seller × vanilla-buyer).
-      On the buy side (SNHP-buyer × vanilla-seller), SNHP is purely
-      extractive and joint surplus drops by ~0.04. Across all 4 of our
-      tuning runs, averaged joint welfare in asymm pairings is
-      consistently negative (−0.01 to −0.05). Sell-side adoption is the
-      clean win; buy-side ships with a cryptographic commit-reveal
-      mechanism designed to convert the buyer from second-mover to
-      binding-first-mover. Documented at
-      <a href="/for-builders.html#first-strike">/for-builders</a>.
-    </div>
-  </div>
-</section>
-
-<!-- ═══ TWO MODES: when each value prop applies ═══ -->
-<section>
-  <div class="container">
-    <h2>Two modes. Two distinct customers.</h2>
-    <p class="subtitle">
-      The data shows SNHP's value concentrates differently depending on
-      the negotiation context. Subgroup analysis split our N=20 seeds
-      into "easy" (vanilla coordination naturally finds Pareto outcome)
-      and "hard" (vanilla agents deadlock or settle below Pareto).
-    </p>
-
-    <div class="modes-grid">
-      <div class="mode-card">
-        <h3>Single-side adoption (asymmetric)</h3>
-        <div class="num">+12% / +21%</div>
-        <div class="when">Hardest in difficult negotiations.</div>
-        <div class="desc">
-          Single SNHP customer gets +12% head-to-head vs vanilla
-          counterparty (CI [6.5%, 17.4%]). On hard games specifically
-          (vanilla coordination failure), the margin grows to +21%.
-          Use it when your agent faces hostile or unaware counterparties.
-        </div>
-      </div>
-      <div class="mode-card">
-        <h3>Both-sides adoption (peer mode)</h3>
-        <div class="num">+7% / +11%</div>
-        <div class="when">Highest in routine partnerships.</div>
-        <div class="desc">
-          When both negotiators run SNHP-protocol-attested peers, joint
-          welfare lifts +7.1% (CI [2.8%, 11.8%]). On easy games (already
-          coordination-friendly partnerships), the lift grows to +11%.
-          Use it across recurring partnership relationships where both
-          sides benefit.
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══ INLINE MINI-DEMO: animated transcript of one matchup ═══ -->
-<section>
-  <div class="container">
-    <h2>Watch one matchup, inline.</h2>
-    <p class="subtitle">
-      Real seed (600) from our N=20 tournament. SNHP-seller vs vanilla-buyer.
-      Trajectory replayed at 1 round/0.8s. This is a win-win seed: SNHP
-      gained +0.237 utility and joint surplus grew by +0.101.
-    </p>
-
-    <div class="mini-demo">
-      <div class="turn vanilla">
-        <span class="round-tag">round 1</span>
-        <span class="actor">vanilla-B</span>
-        <span>offers price 0.42 / fast delivery / standard warranty <span class="annot">(self-target 0.85)</span></span>
-      </div>
-      <div class="turn snhp">
-        <span class="round-tag">round 2</span>
-        <span class="actor">SNHP-A</span>
-        <span>counters: price 0.62 / standard delivery / extended warranty <span class="annot">(advisor: target 0.92, peer-mode off)</span></span>
-      </div>
-      <div class="turn vanilla">
-        <span class="round-tag">round 3</span>
-        <span class="actor">vanilla-B</span>
-        <span>counters: price 0.52 / fast delivery / extended <span class="annot">(self-target 0.78)</span></span>
-      </div>
-      <div class="turn snhp">
-        <span class="round-tag">round 4</span>
-        <span class="actor">SNHP-A</span>
-        <span>counters: price 0.58 / standard / extended <span class="annot">(advisor target 0.85, descent t=0.5)</span></span>
-      </div>
-      <div class="turn vanilla">
-        <span class="round-tag">round 5</span>
-        <span class="actor">vanilla-B</span>
-        <span><strong>accepts</strong> at price 0.58 / standard / extended</span>
-      </div>
-      <div class="deal">
-        <strong>Deal closed.</strong> SNHP-A utility <strong>0.761</strong>
-        (gain +0.237 over vanilla-A baseline). Vanilla-B utility
-        <strong>0.583</strong> (loss −0.136 vs its baseline). Joint surplus
-        <strong>1.34</strong> (vs 1.24 vanilla self-play, +0.10 — gain exceeds loss).
-        <a href="/demo.html" style="color: var(--accent); margin-left: 6px;">→ See all 4 matchup replays</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══ INSTALL ═══ -->
-<section id="install">
-  <div class="container">
-    <h2>Install it in 90 seconds.</h2>
-    <p class="subtitle">
-      One MCP server, two negotiation tools (sell + buy), zero credit
-      card needed for the math endpoints.
-    </p>
-
-    <div class="install-footer">
-      <h3>Add to your MCP config</h3>
-<pre>{
-  "mcpServers": {
-    "snhp": { "url": "https://mcp.snhp.dev" }
-  }
-}</pre>
-      <h3 style="margin-top: 24px;">Or one curl</h3>
-<pre>curl -s -X POST https://api.snhp.dev/v1/negotiation/sell/next_offer \
-  -H "Content-Type: application/json" \
-  -d '{"my_reservation": 0.4,
-       "opponent_offer_history": [],
-       "my_offer_history": [],
-       "deadline_rounds": 10,
-       "peer_mode": false}'</pre>
-      <div class="links">
-        <a href="/for-builders.html">→ Full integration guide</a>
-        <a href="/llms.txt">→ /llms.txt for AI agents</a>
-        <a href="/docs">→ OpenAPI spec</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══ METHODOLOGY (statistical honesty footnote target) ═══ -->
-<section id="methodology">
-  <div class="container">
-    <h2>Statistical honesty footnote.</h2>
-    <p class="subtitle">
-      Every number on this page comes from N=20 paired-seed LLM tournaments.
-      That's enough seeds for some claims and not enough for others. Power
-      analysis on the pooled SD across our 4 tuning runs:
-    </p>
-
-    <table class="claims-table">
-      <thead>
-        <tr>
-          <th>Claim</th>
-          <th style="text-align: right;">Effect/SD</th>
-          <th>N for p&lt;0.01</th>
-          <th>Status at N=20</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>H3 head-to-head margin (+12%)</td>
-          <td class="num" style="font-size: 14px;">0.79</td>
-          <td class="ci">19</td>
-          <td class="ci" style="color: var(--accent);">replicated 3× (in-vendor + cross-vendor)</td>
-        </tr>
-        <tr>
-          <td>H2_A single SNHP-seller benefit (+7.5%)</td>
-          <td class="num" style="font-size: 14px;">0.66</td>
-          <td class="ci">27</td>
-          <td class="ci" style="color: var(--accent);">significant (p=0.006)</td>
-        </tr>
-        <tr>
-          <td>H1 cooperation premium (+7%)</td>
-          <td class="num" style="font-size: 14px;">0.50</td>
-          <td class="ci">47</td>
-          <td class="ci" style="color: var(--accent);">confirmed (E2: p=0.00047 at N=50)</td>
-        </tr>
-        <tr>
-          <td>H2_B single SNHP-buyer benefit (+3.5%)</td>
-          <td class="num" style="font-size: 14px;">0.22</td>
-          <td class="ci">238</td>
-          <td class="ci" style="color: var(--dim);">demoted (would need ~$24 to confirm; not on hero)</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <p style="font-size: 14px; color: var(--fg); margin-top: 24px; line-height: 1.6;">
-      Both hero claims are now empirically validated across multiple
-      disjoint runs at p&lt;0.001. <strong>H3</strong> replicated three
-      times: T1 in-vendor (+0.121, Sonnet × Sonnet, p&lt;0.0001), E1
-      fresh seeds (+0.150, p&lt;0.0001), <strong>E6 cross-vendor
-      (+0.125, Sonnet+SNHP × Haiku-vanilla, p=0.0032)</strong> — the
-      algorithmic claim transfers across model families.
-      <strong>H1</strong> upgraded from "borderline at N=20 (p=0.058)"
-      to "confirmed at N=50 (p=0.00047)" via the planned power-up.
-    </p>
-    <p style="font-size: 14px; color: var(--fg); margin-top: 12px; line-height: 1.6;">
-      <strong>Mechanism research dead-end:</strong> we tested whether a
-      cryptographic commit-reveal mechanism (BATNA + preference reveal)
-      could push past the 97% Pareto plateau. Sim predicted +8% lift;
-      LLM tournament showed −0.6% (p=0.98 wrong direction). Reproduces
-      a previously-observed pattern where the no-LLM simulator inflates
-      mechanism wins by 13× over actual LLM behavior. Mechanism roadmap
-      shelved until LLM-loop tuning is feasible at scale.
-    </p>
-    <p style="font-size: 14px; color: var(--fg); margin-top: 12px; line-height: 1.6;">
-      The framework that produced these numbers
-      (param tuning + faithful sim + LLM-loop validation) is documented
-      in <a href="https://github.com/ryuxik/snhp/blob/main/gametheory/CHANGELOG.md">CHANGELOG.md</a>.
-    </p>
-  </div>
-</section>
-
-<!-- ═══ PROVENANCE FOOTER ═══ -->
-<footer>
-  <div class="container">
-    <span>
-      All numbers are reproducible.
-      <a href="/static/asymmetric_b2b_n20_T1_knob1.json">Raw N=20 trace</a> ·
-      <a href="https://github.com/ryuxik/snhp/blob/main/gametheory/CHANGELOG.md">CHANGELOG</a> ·
-      <a href="/v1/internal/params">Live param values</a>
-    </span>
-    <span>
-      <a href="https://github.com/ryuxik/snhp">GitHub</a>
-    </span>
-  </div>
-</footer>
+<footer><div class="wrap">
+  <span>SNHP — game-theory negotiation, for people.</span>
+  <span><a href="https://github.com/ryuxik/snhp">GitHub</a></span>
+</div></footer>
 
 </body>
 </html>

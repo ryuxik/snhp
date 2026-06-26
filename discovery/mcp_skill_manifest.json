@@ -1,0 +1,36 @@
+{
+  "_comment": "MCP-server / skill listing for OpenClaw ClawHub, Awesome OpenClaw Skills, AI Agent Store, and the official MCP registry. The server is the existing `gametheory-mcp` stdio server (also streamable-HTTP). Confirm each registry's exact submission schema before publishing; this is the source-of-truth content.",
+  "name": "snhp-negotiation",
+  "displayName": "Negotiation Copilot for Agents",
+  "description": "Get the math-optimal next move in a price negotiation, in plain dollars. Tell gt_negotiate_turn your side, walk-away $, target $, and the other side's offers; it returns the dollar counter to send, a ready-to-send message, and when to accept or walk. Negotiates ~12% better head-to-head (validated; n=20 paired LLM negotiations, p<0.0001). For multi-issue deals (a job offer, a vendor contract) use gt_negotiate_bundle, which logrolls across linked issues. Works against any counterparty with zero setup, no LLM required. Also includes auctions, optimal reserves, stable matching, dynamic pricing, and an advanced verified agent-to-agent peering + AP2 settlement flow.",
+  "categories": ["AI/ML", "Business", "Finance"],
+  "transport": {
+    "stdio": "gametheory-mcp",
+    "streamable_http": "https://snhp.dev/mcp"
+  },
+  "homepage": "https://snhp.dev",
+  "repository": "https://gametheory.dev",
+  "license": "Proprietary",
+  "primary_tool": "gt_negotiate_turn",
+  "tools": [
+    "gt_negotiate_turn",
+    "gt_negotiate_bundle",
+    "gt_auction_optimal_reserve",
+    "gt_auction_optimal_bid",
+    "gt_mechanism_gale_shapley",
+    "gt_mechanism_optimal_auction_design",
+    "gt_mechanism_posted_price_optimal",
+    "gt_negotiation_sell_next_offer",
+    "gt_negotiation_buy_next_offer",
+    "gt_negotiation_declare_first_strike",
+    "gt_negotiation_reveal_first_strike",
+    "gt_a2a_register_operator",
+    "gt_a2a_request_domain_challenge",
+    "gt_a2a_verify_domain",
+    "gt_a2a_build_peer_proof",
+    "gt_a2a_open_session",
+    "gt_a2a_next_offer",
+    "gt_a2a_settle"
+  ],
+  "tags": ["negotiation", "bargaining", "pricing", "haggling", "deals", "multi-issue", "logrolling", "contract", "auctions", "matching", "a2a", "ap2", "agent-commerce"]
+}

@@ -1,0 +1,77 @@
+{
+  "n_scenarios": 2,
+  "seed": 42,
+  "assumptions": {
+    "note": "Platform-economics figures are a transparent model, not measured data. walk_cost = at_risk_value + handling_cost + chargeback_premium + retention_exposure (model: snhp/dispute_economics.py). Negotiation outcomes are NOT in this file \u2014 they come from running the real negotiation core on a scenario.",
+    "chargeback_fee_usd": 15.0,
+    "severity_disputed_multiplier": {
+      "minor": 0.9,
+      "major": 1.0,
+      "critical": 1.1
+    },
+    "severity_handling_cost_usd": {
+      "minor": 4.0,
+      "major": 9.0,
+      "critical": 16.0
+    },
+    "severity_ratio_penalty_usd": {
+      "minor": 6.0,
+      "major": 12.0,
+      "critical": 25.0
+    },
+    "severity_chargeback_probability": {
+      "minor": 0.15,
+      "major": 0.4,
+      "critical": 0.7
+    },
+    "profile_retention_exposure_usd": {
+      "loyal_high_ltv": 14.0,
+      "established": 5.0,
+      "new_acquisition": 6.0,
+      "churn_risk": 10.0
+    }
+  },
+  "archetype_counts": {
+    "late_delivery": 2
+  },
+  "scenarios": [
+    {
+      "id": "dsp-0001",
+      "archetype": "late_delivery",
+      "archetype_label": "Unusably late",
+      "narrative": "Your $34.51 order arrived over an hour late and inedible.",
+      "customer_profile": "loyal_high_ltv",
+      "severity": "minor",
+      "order_total": 34.51,
+      "disputed_value": 24.27,
+      "platform_first_offer": 10.6,
+      "platform_first_offer_form": "credit",
+      "platform_walk_cost": 45.42,
+      "platform_economics": {
+        "at_risk_value": 24.27,
+        "handling_cost": 4.0,
+        "chargeback_premium": 3.15,
+        "retention_exposure": 14.0
+      }
+    },
+    {
+      "id": "dsp-0002",
+      "archetype": "late_delivery",
+      "archetype_label": "Unusably late",
+      "narrative": "Your $35.12 order arrived long after the event it was ordered for.",
+      "customer_profile": "loyal_high_ltv",
+      "severity": "minor",
+      "order_total": 35.12,
+      "disputed_value": 22.79,
+      "platform_first_offer": 9.03,
+      "platform_first_offer_form": "credit",
+      "platform_walk_cost": 43.94,
+      "platform_economics": {
+        "at_risk_value": 22.79,
+        "handling_cost": 4.0,
+        "chargeback_premium": 3.15,
+        "retention_exposure": 14.0
+      }
+    }
+  ]
+}

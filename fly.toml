@@ -31,6 +31,17 @@ primary_region = "sjc"
   # SNHP_LLM_MODEL controls which model draft_message uses; override via
   # `fly secrets set SNHP_LLM_MODEL=...` if you switch providers.
   SNHP_LLM_MODEL = "gemini/gemini-3-flash-preview"
+  # Durable data dir on the mounted volume (below) — the dispute analytics
+  # event log, console log, and daily LLM-spend counter live here so they
+  # survive deploys (otherwise they sit on the ephemeral container FS).
+  SNHP_DATA_DIR = "/data"
+
+# Persistent volume for runtime data (analytics events + logs). One machine
+# → one volume. The mountpoint is root-owned on first mount; a one-time
+# `chown` to the non-root `snhp` user is run post-deploy (DEPLOY.md §12.4).
+[mounts]
+  source = "snhp_data"
+  destination = "/data"
 
 [http_service]
   internal_port = 8080

@@ -1,0 +1,16 @@
+{
+  "det_bid_target_final": 0.5824,
+  "det_bid_target_initial": 0.7599,
+  "det_early_accept_margin": 0.2699,
+  "det_hold_until_t": 0.7376,
+  "det_max_diff_std": 0.0387,
+  "det_min_pos_fraction": 0.5558,
+  "det_target_floor_margin": 0.3356,
+  "logroll_min_offers": 4.7955,
+  "pareto_band_b2b": 0.0673,
+  "pareto_band_b2b_boulware": 0.0756,
+  "pareto_band_normal": 0.1372,
+  "self_interest_high": 0.2186,
+  "self_interest_mid": 0.3073,
+  "self_interest_weight": 0.2203
+}

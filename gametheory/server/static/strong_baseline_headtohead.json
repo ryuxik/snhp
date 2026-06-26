@@ -1,0 +1,166 @@
+{
+  "experiment": "strong_baseline_headtohead",
+  "model": "claude-haiku-4-5",
+  "n_seeds": 12,
+  "seeds": [
+    4200,
+    4201,
+    4202,
+    4203,
+    4204,
+    4205,
+    4206,
+    4207,
+    4208,
+    4209,
+    4210,
+    4211
+  ],
+  "margin_mean": 0.07675594480448693,
+  "margin_ci95": [
+    0.03949563866661026,
+    0.1153507445929901
+  ],
+  "snhp_share_mean": 0.5397909808842093,
+  "snhp_share_ci95": [
+    0.5201232393607497,
+    0.5602808031485055
+  ],
+  "positive_signs": "8/12",
+  "verdict": "SNHP beats the strong baseline",
+  "rows": [
+    {
+      "seed": 4200,
+      "snhp_util": 0.5545012059025004,
+      "base_util": 0.48942460856783865,
+      "margin": 0.06507659733466176,
+      "snhp_share": 0.531169167594385,
+      "deals": [
+        true,
+        true
+      ]
+    },
+    {
+      "seed": 4201,
+      "snhp_util": 0.4581833939888431,
+      "base_util": 0.4581833939888431,
+      "margin": 0.0,
+      "snhp_share": 0.5,
+      "deals": [
+        false,
+        false
+      ]
+    },
+    {
+      "seed": 4202,
+      "snhp_util": 0.5274649443124604,
+      "base_util": 0.45000738172400523,
+      "margin": 0.07745756258845515,
+      "snhp_share": 0.5396213583368321,
+      "deals": [
+        true,
+        false
+      ]
+    },
+    {
+      "seed": 4203,
+      "snhp_util": 0.5046064521955982,
+      "base_util": 0.4218128290793944,
+      "margin": 0.08279362311620381,
+      "snhp_share": 0.5446847473868734,
+      "deals": [
+        true,
+        true
+      ]
+    },
+    {
+      "seed": 4204,
+      "snhp_util": 0.47941999350423153,
+      "base_util": 0.47941999350423153,
+      "margin": 0.0,
+      "snhp_share": 0.5,
+      "deals": [
+        false,
+        false
+      ]
+    },
+    {
+      "seed": 4205,
+      "snhp_util": 0.46344271630795864,
+      "base_util": 0.46344271630795864,
+      "margin": 0.0,
+      "snhp_share": 0.5,
+      "deals": [
+        false,
+        false
+      ]
+    },
+    {
+      "seed": 4206,
+      "snhp_util": 0.5643289644848214,
+      "base_util": 0.37523318667936617,
+      "margin": 0.18909577780545522,
+      "snhp_share": 0.6006297335259575,
+      "deals": [
+        true,
+        true
+      ]
+    },
+    {
+      "seed": 4207,
+      "snhp_util": 0.5659196620830891,
+      "base_util": 0.3945409100591757,
+      "margin": 0.1713787520239134,
+      "snhp_share": 0.5892169637123472,
+      "deals": [
+        true,
+        true
+      ]
+    },
+    {
+      "seed": 4208,
+      "snhp_util": 0.5576886397760052,
+      "base_util": 0.38630988775209196,
+      "margin": 0.17137875202391328,
+      "snhp_share": 0.5907727856698444,
+      "deals": [
+        true,
+        true
+      ]
+    },
+    {
+      "seed": 4209,
+      "snhp_util": 0.47228015283108377,
+      "base_util": 0.47228015283108377,
+      "margin": 0.0,
+      "snhp_share": 0.5,
+      "deals": [
+        false,
+        false
+      ]
+    },
+    {
+      "seed": 4210,
+      "snhp_util": 0.5297987390875388,
+      "base_util": 0.4487020894425021,
+      "margin": 0.08109664964503671,
+      "snhp_share": 0.5414392340203047,
+      "deals": [
+        true,
+        true
+      ]
+    },
+    {
+      "seed": 4211,
+      "snhp_util": 0.5594037075997099,
+      "base_util": 0.4766100844835062,
+      "margin": 0.0827936231162037,
+      "snhp_share": 0.5399577803639671,
+      "deals": [
+        true,
+        true
+      ]
+    }
+  ],
+  "wall_seconds": 694.3
+}

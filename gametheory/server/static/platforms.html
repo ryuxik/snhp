@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SNHP for platforms — settle disputes in one fair step</title>
+<meta name="description" content="Every refund dispute is a negotiation. SNHP settles it in one step — a neutral, math-backed proposal both sides accept. Fewer chargebacks, lower cost per ticket.">
+<style>
+:root {
+  --bg:#0b0d10; --fg:#e8e8e8; --dim:#8a8d92; --accent:#4ade80;
+  --accent-dim:#16a34a; --border:#1f2328; --card:#14161a;
+}
+* { box-sizing:border-box; }
+html,body {
+  margin:0; padding:0; background:var(--bg); color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Inter","SF Pro Text",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased; line-height:1.55;
+}
+a { color:var(--accent); text-decoration:none; }
+a:hover { text-decoration:underline; }
+.wrap { max-width:760px; margin:0 auto; padding:0 28px; }
+
+header { border-bottom:1px solid var(--border); }
+header .wrap { display:flex; justify-content:space-between; align-items:center; padding:20px 28px; }
+.brand { font-weight:600; font-size:17px; letter-spacing:-0.01em; color:var(--fg); }
+header nav a { color:var(--dim); font-size:14px; }
+header nav a:hover { color:var(--fg); }
+
+.hero { padding:110px 0 90px; }
+h1 {
+  font-size:clamp(34px,6vw,52px); line-height:1.1; letter-spacing:-0.025em;
+  margin:0 0 22px; font-weight:680;
+}
+.lede { font-size:20px; color:var(--dim); max-width:580px; margin:0 0 36px; }
+.lede strong { color:var(--fg); font-weight:500; }
+.cta {
+  display:inline-block; background:var(--accent-dim); color:#06210f;
+  font-weight:600; font-size:16px; padding:14px 26px; border-radius:7px;
+}
+.cta:hover { background:var(--accent); text-decoration:none; }
+.micro { color:var(--dim); font-size:14px; margin-top:14px; }
+
+section { padding:64px 0; border-top:1px solid var(--border); }
+h2 { font-size:clamp(24px,4vw,32px); line-height:1.2; letter-spacing:-0.02em; margin:0 0 18px; }
+section p { font-size:17px; color:var(--dim); max-width:600px; }
+section p strong { color:var(--fg); font-weight:600; }
+
+.costs { margin-top:26px; }
+.cost { display:flex; gap:16px; padding:16px 0; border-top:1px solid var(--border); }
+.cost:first-child { border-top:none; }
+.cost .h { flex:none; width:124px; color:var(--fg); font-weight:600; font-size:15px; }
+.cost .d { font-size:15px; color:var(--dim); }
+
+.door {
+  display:block; background:var(--card); border:1px solid var(--border);
+  border-radius:10px; padding:26px 28px; margin-top:8px;
+}
+.door:hover { border-color:var(--accent-dim); text-decoration:none; }
+.door .k { font-size:13px; text-transform:uppercase; letter-spacing:0.06em; color:var(--dim); }
+.door h3 { margin:6px 0 6px; font-size:20px; color:var(--fg); letter-spacing:-0.01em; }
+.door p { margin:0 0 12px; font-size:15px; }
+.door .go { color:var(--accent); font-size:15px; font-weight:600; }
+
+footer { border-top:1px solid var(--border); padding:28px 0; }
+footer .wrap { display:flex; justify-content:space-between; color:var(--dim); font-size:14px; }
+</style>
+</head>
+<body>
+
+<header><div class="wrap">
+  <a class="brand" href="/">SNHP</a>
+  <nav><a href="/">For people →</a></nav>
+</div></header>
+
+<main>
+
+  <div class="hero"><div class="wrap">
+    <h1>Settle disputes in<br>one fair step.</h1>
+    <p class="lede">Every refund dispute is a negotiation. Today it's ten
+      messages, an agent's time, and too often a chargeback. SNHP makes it
+      <strong>one step</strong> — a neutral, math-backed settlement both
+      sides accept.</p>
+    <a class="cta" href="mailto:hello@snhp.dev?subject=SNHP%20for%20platforms">Get in touch →</a>
+    <div class="micro">Early access — building with our first design partners.</div>
+  </div></div>
+
+  <section><div class="wrap">
+    <h2>A dispute costs far more than the refund.</h2>
+    <p>The refund is the small number. The real bill is everything around it
+      — and it's paid on every contested ticket, whether you settle or not.</p>
+    <div class="costs">
+      <div class="cost"><div class="h">Support time</div>
+        <div class="d">Every back-and-forth is an agent's minutes — and the
+          slow band of mid-size claims is too big to auto-approve, too small
+          to investigate.</div></div>
+      <div class="cost"><div class="h">Chargebacks</div>
+        <div class="d">A card-network dispute is a flat fee plus the amount,
+          win or lose — and a rising ratio pushes you toward monitoring
+          programs and higher processing rates.</div></div>
+      <div class="cost"><div class="h">Churn</div>
+        <div class="d">A customer who feels cheated by the resolution
+          doesn't order again.</div></div>
+    </div>
+  </div></section>
+
+  <section><div class="wrap">
+    <h2>A neutral mediator that knows both sides.</h2>
+    <p>SNHP sits between your customer and your policy. It works out what a
+      fair resolution looks like for <strong>each</strong> side and proposes
+      it directly — no haggling, no escalation queue. Both sides accept
+      because the proposal is fair to both, and it lands in one step instead
+      of ten.</p>
+  </div></section>
+
+  <section><div class="wrap">
+    <h2>Math, not a black box.</h2>
+    <p>Every settlement SNHP proposes can be replayed and checked — the
+      logic is game theory, not an opaque model. That makes it defensible:
+      <strong>consistent, logged, explainable</strong> to a customer or a
+      regulator. SNHP isn't the customer's adversary, and it isn't yours.
+      It's the referee.</p>
+  </div></section>
+
+  <section><div class="wrap">
+    <h2>Where we are</h2>
+    <p>SNHP is early. The negotiation engine is built and working; the
+      platform integration is what we're designing now, with our first
+      partners. If your service handles refund disputes at volume, that's
+      exactly the conversation we want.</p>
+    <p style="margin-top:22px">
+      <a class="cta" href="mailto:hello@snhp.dev?subject=SNHP%20for%20platforms">Talk to us →</a>
+    </p>
+  </div></section>
+
+  <section><div class="wrap">
+    <a class="door" href="/">
+      <div class="k">For people</div>
+      <h3>Just have a dispute of your own?</h3>
+      <p>See what SNHP does on a single refund dispute — in two minutes.</p>
+      <span class="go">Try it yourself →</span>
+    </a>
+  </div></section>
+
+</main>
+
+<footer><div class="wrap">
+  <span>SNHP — game-theory negotiation, for platforms.</span>
+  <span><a href="https://github.com/ryuxik/snhp">GitHub</a></span>
+</div></footer>
+
+</body>
+</html>
