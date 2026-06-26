@@ -1,0 +1,16 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ryuxik/snhp-negotiation",
+  "description": "Math-optimal negotiation moves for AI agents, in plain dollars: single-price (negotiate_turn) and multi-issue logrolling (negotiate_bundle), plus auctions, stable matching, dynamic pricing, and a verified agent-to-agent + AP2 settlement flow. No LLM required.",
+  "repository": {
+    "url": "https://github.com/ryuxik/snhp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://snhp.dev/mcp"
+    }
+  ]
+}
