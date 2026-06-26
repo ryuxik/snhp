@@ -7,19 +7,25 @@ discoverable until the agent card resolves at a real URL.
 
 ## 1. Deploy the server (Fly — see DEPLOY.md for the full version)
 
+LIVE STATE (2026-06-26): the `snhp` app is already deployed at https://snhp.dev
+(custom domain cert issued; `snhp.fly.dev` too), with `snhp-db` Postgres and the
+required secrets set (FIRST_STRIKE_PRIVATE_PEM, DATABASE_URL, ANTHROPIC_API_KEY,
+TELEMETRY_PEPPER, SNHP_STATS_KEY). It auto-stops when idle (zero cost) and
+cold-starts on first request.
+
 ```bash
-# Trust-anchor key MUST be persistent in prod, or every issued attestation /
-# operator identity / cart mandate becomes unverifiable on restart.
-python3 -c "from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey as K; \
-from cryptography.hazmat.primitives.serialization import Encoding,PrivateFormat,NoEncryption as N; \
-print(K.generate().private_bytes(Encoding.PEM,PrivateFormat.PKCS8,N()).decode())" > /tmp/snhp-anchor.pem
-fly secrets set FIRST_STRIKE_PRIVATE_PEM="$(cat /tmp/snhp-anchor.pem)" --app snhp
-
-# Tell the agent card its own public URL (used for absolute endpoints + the card's url).
-fly secrets set SNHP_PUBLIC_BASE_URL="https://snhp.dev" --app snhp
-
+# Redeploy current code (the usual case now):
 fly deploy --app snhp
+
+# (Optional) expose the LLM dispute endpoints — OFF by default:
+#   fly secrets set SNHP_ENABLE_DISPUTE_LLM=1 --app snhp   # then a $5/day cap + per-IP limit apply
 ```
+
+Fresh fork from scratch? `fly apps create snhp`; generate the trust-anchor key
+YOURSELF (it is your root of trust — keep a backup) and
+`fly secrets set FIRST_STRIKE_PRIVATE_PEM="$(cat snhp-anchor.pem)"`; optionally
+`fly secrets set SNHP_PUBLIC_BASE_URL=https://snhp.fly.dev` (no custom DNS needed);
+then `fly deploy`.
 
 ## 2. Verify it's live, usable, and the card is correct
 
