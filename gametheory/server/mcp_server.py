@@ -20,6 +20,7 @@ import sys
 from typing import Literal, Optional
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 from gametheory.negotiation.sell import sell_next_offer
 from gametheory.negotiation.buy import buy_next_offer, detect_anchor_attack
@@ -51,6 +52,18 @@ mcp = FastMCP(
         "Honest limitation: declare_first_strike provides cryptographic "
         "commitment but only delivers equilibrium benefit when sellers are "
         "aware of and respect the binding nature."
+    ),
+    # Hosted streamable-HTTP transport (mounted at /mcp by the FastAPI app).
+    # Stateless so it works behind Fly's proxy + auto-stop; the host allow-list
+    # is DNS-rebinding protection scoped to our real domains. stdio (the
+    # gametheory-mcp console script) ignores these HTTP-only settings.
+    stateless_http=True,
+    streamable_http_path="/",
+    transport_security=TransportSecuritySettings(
+        allowed_hosts=["snhp.dev", "www.snhp.dev", "api.snhp.dev",
+                       "snhp.fly.dev", "localhost", "127.0.0.1"],
+        allowed_origins=["https://snhp.dev", "https://www.snhp.dev",
+                         "https://snhp.fly.dev"],
     ),
 )
 

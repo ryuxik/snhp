@@ -457,8 +457,24 @@ class PostedPriceResponse(BaseModel):
 
 # ─── App ─────────────────────────────────────────────────────────────────────
 
+# Hosted streamable MCP transport — mounted at /mcp below. The MCP session
+# manager needs its lifespan run, so we nest it inside the FastAPI app's
+# lifespan (else /mcp errors with "task group not initialized"). Transport/host
+# config lives on the shared FastMCP instance in mcp_server.py.
+from contextlib import asynccontextmanager as _asynccontextmanager  # noqa: E402
+from gametheory.server.mcp_server import mcp as _mcp  # noqa: E402
+
+_mcp_app = _mcp.streamable_http_app()
+
+
+@_asynccontextmanager
+async def _lifespan(_app):
+    async with _mcp_app.router.lifespan_context(_mcp_app):
+        yield
+
 
 app = FastAPI(
+    lifespan=_lifespan,
     title="Game Theory Layer for AI Agents",
     description=(
         "Start with ONE tool: POST /v1/negotiate/turn — plain-dollar price "
@@ -501,6 +517,11 @@ app.add_middleware(BodySizeLimit)
 # legacy /v1/negotiation/* endpoints).
 from gametheory.server.a2a_routes import router as _a2a_router  # noqa: E402
 app.include_router(_a2a_router)
+
+# Hosted MCP server (streamable HTTP) at /mcp — same toolkit, MCP-native, so
+# agents/clients that speak MCP over HTTP can connect without installing the
+# stdio package. (Endpoint serves at /mcp/; /mcp 307-redirects to it.)
+app.mount("/mcp", _mcp_app)
 
 
 # ─── Static landing page + assets ───────────────────────────────────────────
