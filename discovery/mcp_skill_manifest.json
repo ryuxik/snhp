@@ -6,7 +6,8 @@
   "categories": ["AI/ML", "Business", "Finance"],
   "transport": {
     "stdio": "gametheory-mcp",
-    "streamable_http": "https://snhp.dev/mcp"
+    "streamable_http": null,
+    "_note": "stdio console script (gametheory-mcp) is the live MCP transport; a hosted streamable-HTTP endpoint at https://snhp.dev/mcp is a planned follow-up (not yet mounted). The full toolkit is also live as a plain HTTP+A2A API at https://snhp.dev (see /v1/catalog and /.well-known/agent-card.json)."
   },
   "homepage": "https://snhp.dev",
   "repository": "https://gametheory.dev",
