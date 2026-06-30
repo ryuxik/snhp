@@ -80,6 +80,7 @@ def gt_negotiate_turn(
     my_previous_offers: Optional[list[float]] = None,
     rounds_left: int = 8,
     item: str = "this",
+    compute_ms: int = 0,
 ) -> dict:
     """Get the math-optimal next move in a price negotiation — in plain dollars.
 
@@ -97,6 +98,11 @@ def gt_negotiate_turn(
       target        your aspiration in dollars (seller=high, buyer=low)
       counterparty_offers  their offers so far, in dollars, oldest first
       rounds_left   (optional, default 8) roughly how many back-and-forths remain
+      compute_ms    (optional, default 0) milliseconds of Monte-Carlo rollouts to
+                    spend refining the move while you'd otherwise sit idle waiting
+                    on your LLM or the counterparty. 0 = instant closed form. The
+                    refined move is never worse than the closed form in-model and
+                    the reply carries a "compute" block (samples, convergence)
 
     You get back, in dollars:
       {"action": "counter"|"accept"|"walk", "recommended_price": 5387.0,
@@ -113,6 +119,14 @@ def gt_negotiate_turn(
     Works against ANY counterparty with zero setup. (The verified-peer cooperation
     premium is the separate, advanced gt_a2a_* flow.)
     """
+    if compute_ms and compute_ms > 0:
+        # Tier 1: spend the budget on Monte-Carlo rollouts, refining the counter.
+        from gametheory.negotiation.mc_search import negotiate_turn_mc
+        return negotiate_turn_mc(
+            side=side, walk_away=walk_away, target=target,
+            counterparty_offers=counterparty_offers,
+            my_previous_offers=my_previous_offers, rounds_left=rounds_left,
+            item=item, compute_ms=compute_ms)
     return _negotiate_turn(
         side=side, walk_away=walk_away, target=target,
         counterparty_offers=counterparty_offers,
@@ -638,6 +652,62 @@ def gt_a2a_settle(
             buyer_operator=session["buyer_operator"],
             max_price=buyer_max_price, currency=currency, item=item)
     return out
+
+
+# ─── Tier 2: Pondering sessions (spend the counterparty's think-time) ─────────
+
+
+@mcp.tool()
+def gt_negotiate_open_session(
+    side: str, walk_away: float, target: float, rounds_left: int = 8,
+    item: str = "this", compute_ms: int = 200,
+) -> dict:
+    """Open a stateful price-negotiation session that PONDERS on the other side's clock.
+
+    Unlike one-shot gt_negotiate_turn, a session remembers the running history and —
+    after each propose/respond — speculates in the BACKGROUND over the counter-offers
+    the other side is likely to make, pre-solving your reply to each. So while you're
+    blocked waiting for their response, idle compute is already searching; when their
+    counter arrives, gt_negotiate_respond often returns an instant, deeply-searched
+    move. side='sell'/'buy', walk_away/target in dollars (same meaning as
+    gt_negotiate_turn), compute_ms = rollout budget per move. Returns {session_id}.
+    NEXT: gt_negotiate_propose to make your opening move."""
+    from gametheory.negotiation import pondering as _p
+    sid = _p.open_session(side=side, walk_away=walk_away, target=target,
+                          rounds_left=rounds_left, item=item, compute_ms=compute_ms)
+    return {"session_id": sid, "rounds_left": rounds_left}
+
+
+@mcp.tool()
+def gt_negotiate_propose(session_id: str, compute_ms: Optional[int] = None) -> dict:
+    """Make your next move in a pondering session and kick off background speculation.
+
+    Returns the same dict as gt_negotiate_turn (action, recommended_price, message,
+    compute, ...). Immediately after returning, the session searches your replies to
+    the counter-offers it expects — on the counterparty's clock. NEXT: when they
+    reply, gt_negotiate_respond(session_id, their_offer)."""
+    from gametheory.negotiation import pondering as _p
+    return _p.get_session(session_id).propose(compute_ms=compute_ms)
+
+
+@mcp.tool()
+def gt_negotiate_respond(
+    session_id: str, their_offer: float, compute_ms: Optional[int] = None,
+) -> dict:
+    """Feed the counterparty's latest dollar offer and get your next move.
+
+    If their offer is roughly what the session anticipated, the deeply-searched reply
+    is already cached and returned instantly (the reply's "_pondered" field is True);
+    otherwise a fresh warm-started search runs. Same return shape as gt_negotiate_turn."""
+    from gametheory.negotiation import pondering as _p
+    return _p.get_session(session_id).respond(their_offer, compute_ms=compute_ms)
+
+
+@mcp.tool()
+def gt_negotiate_close_session(session_id: str) -> dict:
+    """Close a pondering session and cancel any in-flight background speculation."""
+    from gametheory.negotiation import pondering as _p
+    return {"closed": _p.close_session(session_id)}
 
 
 def main() -> None:
