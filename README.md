@@ -1,35 +1,80 @@
 # SNHP
 
-The Synthetic Negotiation Handshake Protocol — and a 4-tier game-theory
-toolkit for AI agents built around it.
+**Math-optimal negotiation moves for AI agents, in plain dollars.** Your agent
+brings the LLM; SNHP brings the game theory — single-price *and* multi-issue,
+LLM-free, runs locally.
+
+[![PyPI](https://img.shields.io/pypi/v/snhp.svg)](https://pypi.org/project/snhp/)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+&nbsp;·&nbsp; [snhp.dev](https://snhp.dev) &nbsp;·&nbsp; [Manifesto](MANIFESTO.md)
+
+## Install
+
+```bash
+uvx snhp            # zero-install: runs the stdio MCP server on demand
+# or
+pip install snhp
+```
+
+Wire it into any MCP client (Claude Desktop, Cursor, Cline, …):
+
+```json
+{ "mcpServers": { "snhp": { "command": "uvx", "args": ["snhp"] } } }
+```
+
+Or call the math directly — plain dollars in, the move out:
+
+```python
+from gametheory.server.mcp_server import gt_negotiate_turn
+
+gt_negotiate_turn(
+    side="sell", walk_away=4000, target=6000,
+    counterparty_offers=[4200, 4500], rounds_left=6,
+)
+# -> {'action': 'counter', 'recommended_price': 5714.0,
+#     'message': 'Thanks for the offer. The best I can do on this is $5,714.00.', ...}
+```
+
+Multi-issue deals logroll automatically — SNHP infers the other side's priorities
+and proposes the package that maximises joint surplus (concede what you value
+least to hold what you value most):
+
+```python
+from gametheory.server.mcp_server import gt_negotiate_bundle
+
+gt_negotiate_bundle(
+    issues=[
+        {"name": "price",   "options": [100, 120, 140], "my_utility": [1.0, 0.5, 0.0], "their_utility": [0.0, 0.5, 1.0]},
+        {"name": "support", "options": ["basic", "priority"], "my_utility": [1.0, 0.0], "their_utility": [0.0, 1.0]},
+    ],
+    my_priorities={"price": 0.8, "support": 0.2},
+)
+# -> recommended_offer {'price': 100, 'support': 'priority'} + the trade logic behind it
+```
+
+Hosted agent card, streamable MCP, and a live demo: **[snhp.dev](https://snhp.dev)**.
 
 ## What's here
 
 ```
-snhp/                  Algorithm + NegMAS agent + B2B tournament harness
-gametheory/            Productization layer (FastAPI, MCP, Tier 1/2/3 endpoints)
-gametheory/agents/     Aspiration detector + variant zoo
-gametheory/evals/      Tournament + Optuna tuning + PBT scaffolds
-gametheory/server/     HTTP + MCP entry points
-gametheory/tests/      pytest suite (55 tests passing)
-SNHP_Whitepaper/       Protocol description + 3 component PRDs
+snhp/                   Core algorithm + NegMAS agent + B2B tournament harness
+gametheory/             Productization layer (FastAPI, MCP, Tier 1/2/3 endpoints)
+gametheory/negotiation/ Plain-terms single- + multi-issue (logrolling) engines
+gametheory/server/      HTTP + MCP entry points
+gametheory/tests/       pytest suite
+SNHP_Whitepaper/        Protocol description + 3 component PRDs
 ```
 
-## Quick start
+## Develop from source
 
 ```bash
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+git clone https://github.com/ryuxik/snhp && cd snhp
+python -m venv venv && source venv/bin/activate
+pip install -e ".[test]"
 
-# Run the test suite
-python -m pytest gametheory/tests/
-
-# Boot the FastAPI server locally (catalog at http://127.0.0.1:8000/v1/catalog)
-uvicorn gametheory.server.http:app --reload
-
-# Boot the MCP server (stdio)
-gametheory-mcp
+python -m pytest gametheory/tests/                  # test suite
+uvicorn gametheory.server.http:app --reload         # local API (catalog at /v1/catalog)
+snhp                                                # stdio MCP server
 ```
 
 ## Empirical anchor
