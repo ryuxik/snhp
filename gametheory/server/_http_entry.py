@@ -18,4 +18,11 @@ def main() -> None:
     uvicorn.run(
         "gametheory.server.http:app",
         host=host, port=port, log_level=log_level,
+        # Behind Fly's TLS proxy: trust X-Forwarded-Proto/-For so the app knows
+        # requests are HTTPS. Without this, uvicorn only trusts forwarded headers
+        # from localhost, so it treats proxied requests as http:// and emits
+        # http:// redirects (e.g. /mcp -> http://host/mcp/) that break MCP
+        # scanners following the redirect over a streaming POST.
+        proxy_headers=True,
+        forwarded_allow_ips=os.environ.get("FORWARDED_ALLOW_IPS", "*"),
     )

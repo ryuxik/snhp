@@ -48,6 +48,46 @@ def _base_url() -> str:
     return os.environ.get("SNHP_PUBLIC_BASE_URL", "https://snhp.dev").rstrip("/")
 
 
+# ─── Discovery: MCP server card ──────────────────────────────────────────────
+def _mcp_tool_summaries() -> list[dict]:
+    """Tool names + one-line descriptions, pulled live from the MCP instance so the
+    card never drifts. Lazy import + defensive: a card is better than a 500."""
+    try:
+        from gametheory.server.mcp_server import mcp as _mcp
+        out = []
+        for t in _mcp._tool_manager.list_tools():
+            desc = (t.description or "").strip().splitlines()
+            out.append({"name": t.name, "description": (desc[0] if desc else "")[:200]})
+        return out
+    except Exception:
+        return []
+
+
+@router.get("/.well-known/mcp/server-card.json", tags=["discovery"],
+            summary="MCP server card (lets registries skip a live scan)")
+def mcp_server_card() -> dict:
+    """Static MCP server card at the well-known path so registries (Smithery, Glama,
+    …) can index the hosted streamable-HTTP server WITHOUT a live initialize scan,
+    which can 502 on a cold start. Mirrors the official-registry record."""
+    base = _base_url()
+    return {
+        "schemaVersion": "2024-11-05",
+        "name": "io.github.ryuxik/snhp-negotiation",
+        "title": "SNHP — game-theory negotiation for AI agents",
+        "description": (
+            "Math-optimal negotiation moves for AI agents in plain dollars — "
+            "single-price and multi-issue logrolling, auctions / mechanism design, "
+            "and a signed agent-to-agent (A2A/AP2) settlement flow. LLM-free."
+        ),
+        "version": "0.1.0",
+        "homepage": base,
+        "repository": "https://github.com/ryuxik/snhp",
+        "transport": {"type": "streamable-http", "url": base + "/mcp/"},
+        "capabilities": {"tools": {"listChanged": False}},
+        "tools": _mcp_tool_summaries(),
+    }
+
+
 # ─── Discovery: A2A Agent Card ───────────────────────────────────────────────
 
 @router.get("/.well-known/agent-card.json", tags=["discovery"],
