@@ -187,3 +187,92 @@ def negotiate_turn_mc(*, side, walk_away, target, counterparty_offers=None,
         "ci95": round(res.ci, 4), "vs_closed_form": round(res.value - res.base_value, 4),
     }
     return base
+
+
+# ── Multi-issue (bundle) MC: needs a horizon, so the package choice becomes a
+#    timing decision the rollout can exploit (the +9% from mc_multi). ──────────
+from gametheory.negotiation.bundle import (  # noqa: E402
+    negotiate_bundle as _closed_form_bundle, _build_model as _build_bundle_model,
+    _trade_logic as _bundle_trade_logic, _message as _bundle_message,
+    _acceptance_probability as _bundle_accept_prob,
+)
+
+_BUNDLE_THR_E = 2.5         # opponent concession exponent over the rounds
+_BUNDLE_MAX_CAND = 128      # cap the package action space (top by my-utility)
+
+
+def _bundle_payoffs(Uself_cand, Vthem_cand, prob, thr, rng, n):
+    """Each candidate = commit to that package and hold until they concede to it.
+    It's accepted at the first round whose declining threshold its sampled
+    their-utility clears; payoff = discounted my-utility. THIS is the timing lever:
+    a firmer package (higher my-utility, lower their-utility) closes later (more
+    discount) than a generous one, so the first move genuinely matters. Vectorised
+    over (candidate, sampled opponent)."""
+    idx = rng.choice(Vthem_cand.shape[1], size=n, p=prob)
+    Vs = Vthem_cand[:, idx]                                   # [n_cand, n]
+    payoff = np.zeros_like(Vs)
+    found = np.zeros_like(Vs, dtype=bool)
+    for t in range(len(thr)):
+        acc = (~found) & (Vs >= thr[t])
+        payoff = np.where(acc, (_DELTA ** t) * Uself_cand[:, None], payoff)
+        found |= acc
+    return payoff
+
+
+def negotiate_bundle_mc(*, issues, their_offers=None, my_priorities=None, my_batna=0.40,
+                        their_batna_estimate=0.40, rounds_left=8, compute_ms=0, seed=0):
+    """Tier 1 for multi-issue: the closed-form package, optionally refined by an
+    anytime MC rollout over the remaining `rounds_left`. With a horizon the choice
+    of package becomes a timing decision (hold a firmer package as they concede vs.
+    close now) — which is where the multi-issue compute edge lives. Never worse than
+    the closed form in-model; returns the same dict plus a `compute` block."""
+    base = _closed_form_bundle(
+        issues=issues, their_offers=their_offers, my_priorities=my_priorities,
+        my_batna=my_batna, their_batna_estimate=their_batna_estimate)
+    if (compute_ms <= 0 or base.get("action") != "counter"
+            or base.get("recommended_offer") is None or rounds_left < 2):
+        return base
+
+    m = _build_bundle_model(issues, their_offers, my_priorities, my_batna, their_batna_estimate)
+    if m.best_idx is None:
+        return base
+    cand = sorted(set(int(i) for i in m.pareto_idx) | {int(m.best_idx)})
+    cand = np.array(cand, dtype=int)
+    if len(cand) > _BUNDLE_MAX_CAND:                          # keep the packages I'd actually offer
+        keep = set(np.asarray(cand)[np.argsort(-m.u_self[cand])[:_BUNDLE_MAX_CAND]].tolist())
+        keep.add(int(m.best_idx))
+        cand = np.array(sorted(keep), dtype=int)
+
+    Uself_cand = m.u_self[cand]                               # [n_cand]
+    Vthem_cand = m.their_per_dim[cand] @ m.particles.T        # [n_cand, n_part]
+    prob = np.asarray(m.probabilities, float)
+    prob = prob / prob.sum()
+    R = int(rounds_left)
+    thr_hi = float(np.clip((Vthem_cand @ prob).max(), their_batna_estimate + 0.05, 1.0))
+    tt = np.arange(R)
+    thr = their_batna_estimate + (thr_hi - their_batna_estimate) * ((R - 1 - tt) / (R - 1)) ** (1.0 / _BUNDLE_THR_E)
+    base_index = int(np.where(cand == int(m.best_idx))[0][0])
+
+    rng = np.random.default_rng(seed)
+    res = anytime_search(
+        list(range(len(cand))),
+        lambda nb: _bundle_payoffs(Uself_cand, Vthem_cand, prob, thr, rng, nb),
+        deadline_s=compute_ms / 1000.0, base_index=base_index)
+
+    if res.improved:
+        new_idx = int(cand[res.action_index])
+        rec = {m.names[i]: m.options[i][int(m.idx_grid[new_idx, i])] for i in range(len(m.names))}
+        trade = _bundle_trade_logic(m.names, m.my_w, m.their_w, m.idx_grid[new_idx], m.my_per_dim[new_idx])
+        base["recommended_offer"] = rec
+        base["my_utility"] = round(float(m.u_self[new_idx]), 3)
+        base["their_expected_utility"] = round(float(m.u_opp[new_idx]), 3)
+        base["trade_logic"] = trade
+        base["message"] = _bundle_message(rec, trade, "counter", "")
+        base["acceptance_probability"] = round(
+            float(_bundle_accept_prob(m.u_opp[new_idx], their_batna_estimate, m.confidence)), 3)
+    base["compute"] = {
+        "budget_ms": compute_ms, "rounds_left": R, "samples": res.samples,
+        "converged": res.converged, "improved": res.improved,
+        "value": round(res.value, 4), "vs_closed_form": round(res.value - res.base_value, 4),
+    }
+    return base

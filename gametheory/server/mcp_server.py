@@ -140,6 +140,8 @@ def gt_negotiate_bundle(
     my_priorities: Optional[dict] = None,
     my_batna: float = 0.40,
     their_batna_estimate: float = 0.40,
+    rounds_left: int = 8,
+    compute_ms: int = 0,
 ) -> dict:
     """Negotiate SEVERAL linked issues at once by logrolling — in plain terms.
 
@@ -167,6 +169,13 @@ def gt_negotiate_bundle(
     with no inference — so the proven value today is the efficient-package search,
     not (yet) the logrolling edge.
 
+    Optional timing refinement: pass `rounds_left` (bargaining rounds remaining)
+    with `compute_ms` > 0 to spend that many ms of Monte-Carlo rollouts choosing
+    WHICH package to hold for as the other side concedes over the rounds — a firmer
+    package closes later (discounted) than a generous one. 0 = the instant
+    closed-form package; the reply then carries a `compute` block. Modest by design
+    (never worse than the closed form in-model; helps on a minority of deals).
+
     Example: a SaaS contract — you most want a low price_per_seat, can flex on
     seats/term/SLA. gt_negotiate_bundle(issues=[
       {"name":"price_per_seat","options":["$50","$40","$30"],"my_utility":[0,0.5,1],"their_utility":[1,0.5,0]},
@@ -174,6 +183,15 @@ def gt_negotiate_bundle(
       my_priorities={"price_per_seat":0.55,"sla":0.1,...}, their_offers=[...])
       -> a full package that gives ground on SLA to hold the price.
     """
+    if compute_ms and compute_ms > 0:
+        # Tier 1 (multi-issue): spend the budget on rollouts over the remaining
+        # rounds_left, refining WHICH package to propose (a timing decision). Never
+        # worse than the closed-form package in-model.
+        from gametheory.negotiation.mc_search import negotiate_bundle_mc
+        return negotiate_bundle_mc(
+            issues=issues, their_offers=their_offers, my_priorities=my_priorities,
+            my_batna=my_batna, their_batna_estimate=their_batna_estimate,
+            rounds_left=rounds_left, compute_ms=compute_ms)
     return _negotiate_bundle(
         issues=issues, their_offers=their_offers, my_priorities=my_priorities,
         my_batna=my_batna, their_batna_estimate=their_batna_estimate)

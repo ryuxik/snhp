@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import itertools
 import math
+from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
@@ -79,6 +80,101 @@ def _validate(issues: list[dict]) -> None:
             )
 
 
+@dataclass
+class _BundleModel:
+    """The full math pipeline for a bundle (shared by the closed form and the MC
+    refinement). particles/probabilities expose the belief over their weights so a
+    Monte-Carlo rollout can sample opponents."""
+    names: list
+    options: list
+    my_w: np.ndarray
+    my_u: list
+    their_u: list
+    idx_grid: np.ndarray
+    my_per_dim: np.ndarray
+    their_per_dim: np.ndarray
+    u_self: np.ndarray
+    u_opp: np.ndarray
+    their_w: np.ndarray
+    confidence: float
+    particles: np.ndarray         # [n_particles, n_issues] — belief over their weights
+    probabilities: np.ndarray     # [n_particles] — posterior weight per particle
+    pareto_idx: np.ndarray
+    best_idx: Optional[int]
+
+
+def _build_model(issues, their_offers, my_priorities, my_batna, their_batna_estimate):
+    """Build the outcome space, infer their priorities, and pick the Nash package.
+    Assumes `issues` is validated and has >= 2 issues. Raises BundleInputError on a
+    too-large outcome space or malformed counter-offers."""
+    n_issues = len(issues)
+    names = [iss["name"] for iss in issues]
+    options = [list(iss["options"]) for iss in issues]
+    my_u = [_norm01(iss["my_utility"]) for iss in issues]
+    their_u = [_norm01(iss["their_utility"]) for iss in issues]
+
+    if my_priorities:
+        try:
+            w = np.array([float(my_priorities.get(n, 0.0)) for n in names], dtype=np.float64)
+        except (TypeError, ValueError):
+            raise BundleInputError("my_priorities values must be numbers — a weight per issue.")
+        if np.any(w < 0):
+            raise BundleInputError("my_priorities weights must be non-negative.")
+        if w.sum() <= 0:
+            w = np.ones(n_issues)
+    else:
+        w = np.ones(n_issues)
+    my_w = w / w.sum()
+
+    n_outcomes = math.prod(len(o) for o in options)
+    if n_outcomes > _MAX_OUTCOMES:
+        raise BundleInputError(
+            f"Outcome space is {n_outcomes} combinations (> {_MAX_OUTCOMES}). Reduce "
+            f"the number of issues or options per issue (coarser buckets are fine).")
+    idx_grid = np.array(list(itertools.product(*[range(len(o)) for o in options])), dtype=np.int32)
+    my_per_dim = np.column_stack([my_u[i][idx_grid[:, i]] for i in range(n_issues)])
+    their_per_dim = np.column_stack([their_u[i][idx_grid[:, i]] for i in range(n_issues)])
+    u_self = my_per_dim @ my_w
+
+    # Belief over their per-issue priorities. We always build the particle filter
+    # (so MC has a prior to sample even cold) but only adopt the inferred point
+    # estimate when they've actually made offers — cold-start their_w stays the
+    # validated uniform default, leaving the closed-form package unchanged.
+    bf = BayesianParticleFilter(
+        num_variables=n_issues, num_particles=_N_PARTICLES, uncertainty=_PRIOR_UNCERTAINTY)
+    if their_offers:
+        for offer in their_offers:
+            missing = [names[i] for i in range(n_issues) if offer.get(names[i]) is None]
+            if missing:
+                raise BundleInputError(
+                    f"Each counterparty offer must specify every issue; this one is "
+                    f"missing {missing}.")
+            anchor = np.array([
+                their_u[i][_option_index(options[i], offer[names[i]])]
+                for i in range(n_issues)
+            ], dtype=np.float64)
+            bf.update_beliefs(anchor, their_per_dim)
+        their_w = bf.get_inferred_weights()
+        their_w = their_w / their_w.sum()
+        spread = float(np.std(bf.particles, axis=0).mean())
+        confidence = float(np.clip(1.0 - spread * 2.5, 0.05, 0.95))
+    else:
+        their_w = np.ones(n_issues) / n_issues
+        confidence = 0.30
+
+    u_opp = their_per_dim @ their_w
+    pareto_idx = filter_pareto_frontier(idx_grid.astype(np.float64), u_self, u_opp)
+    best_idx = find_nash_bargaining_solution(
+        pareto_idx, u_self, u_opp, my_batna, their_batna_estimate, batna_b_inferred=True)
+
+    return _BundleModel(
+        names=names, options=options, my_w=my_w, my_u=my_u, their_u=their_u,
+        idx_grid=idx_grid, my_per_dim=my_per_dim, their_per_dim=their_per_dim,
+        u_self=u_self, u_opp=u_opp, their_w=their_w, confidence=confidence,
+        particles=bf.particles, probabilities=bf.probabilities,
+        pareto_idx=pareto_idx, best_idx=best_idx)
+
+
 def negotiate_bundle(
     *,
     issues: list[dict],
@@ -119,76 +215,13 @@ def negotiate_bundle(
             "confidence": 0.0,
             "acceptance_probability": None,
         }
-    names = [iss["name"] for iss in issues]
-    options = [list(iss["options"]) for iss in issues]
-
-    # Per-issue normalized utilities (per option) for us and for them.
-    my_u = [_norm01(iss["my_utility"]) for iss in issues]
-    their_u = [_norm01(iss["their_utility"]) for iss in issues]
-
-    # My priorities (weights across issues).
-    if my_priorities:
-        try:
-            w = np.array([float(my_priorities.get(n, 0.0)) for n in names], dtype=np.float64)
-        except (TypeError, ValueError):
-            raise BundleInputError(
-                "my_priorities values must be numbers — a weight per issue.")
-        if np.any(w < 0):
-            raise BundleInputError("my_priorities weights must be non-negative.")
-        if w.sum() <= 0:
-            w = np.ones(n_issues)
-    else:
-        w = np.ones(n_issues)
-    my_w = w / w.sum()
-
-    # Build the full outcome space (Cartesian product of option indices).
-    # math.prod (arbitrary-precision) so a huge issue/option count can't overflow
-    # int64 and silently slip under the cap.
-    n_outcomes = math.prod(len(o) for o in options)
-    if n_outcomes > _MAX_OUTCOMES:
-        raise BundleInputError(
-            f"Outcome space is {n_outcomes} combinations (> {_MAX_OUTCOMES}). Reduce "
-            f"the number of issues or options per issue (coarser buckets are fine)."
-        )
-    idx_grid = np.array(list(itertools.product(*[range(len(o)) for o in options])), dtype=np.int32)
-    # Per-dim utility matrices: shape (n_outcomes, n_issues).
-    my_per_dim = np.column_stack([my_u[i][idx_grid[:, i]] for i in range(n_issues)])
-    their_per_dim = np.column_stack([their_u[i][idx_grid[:, i]] for i in range(n_issues)])
-
-    u_self = my_per_dim @ my_w
-
-    # Infer their priorities from their offers (else cold-start equal weights).
-    if their_offers:
-        bf = BayesianParticleFilter(
-            num_variables=n_issues, num_particles=_N_PARTICLES, uncertainty=_PRIOR_UNCERTAINTY,
-        )
-        for offer in their_offers:
-            # A counterparty offer is a FULL package; a missing issue can't be
-            # silently treated as option 0, or the inference is fed invented data.
-            missing = [names[i] for i in range(n_issues) if offer.get(names[i]) is None]
-            if missing:
-                raise BundleInputError(
-                    f"Each counterparty offer must specify every issue; this one is "
-                    f"missing {missing}.")
-            anchor = np.array([
-                their_u[i][_option_index(options[i], offer[names[i]])]
-                for i in range(n_issues)
-            ], dtype=np.float64)
-            bf.update_beliefs(anchor, their_per_dim)
-        their_w = bf.get_inferred_weights()
-        their_w = their_w / their_w.sum()
-        spread = float(np.std(bf.particles, axis=0).mean())
-        confidence = float(np.clip(1.0 - spread * 2.5, 0.05, 0.95))
-    else:
-        their_w = np.ones(n_issues) / n_issues
-        confidence = 0.30
-
-    u_opp = their_per_dim @ their_w
-
-    pareto_idx = filter_pareto_frontier(idx_grid.astype(np.float64), u_self, u_opp)
-    best_idx = find_nash_bargaining_solution(
-        pareto_idx, u_self, u_opp, my_batna, their_batna_estimate, batna_b_inferred=True,
-    )
+    m = _build_model(issues, their_offers, my_priorities, my_batna, their_batna_estimate)
+    names, options = m.names, m.options
+    my_w, my_u, their_u = m.my_w, m.my_u, m.their_u
+    idx_grid, my_per_dim = m.idx_grid, m.my_per_dim
+    u_self, u_opp = m.u_self, m.u_opp
+    their_w, confidence = m.their_w, m.confidence
+    pareto_idx, best_idx = m.pareto_idx, m.best_idx
 
     inferred = {names[i]: round(float(their_w[i]), 3) for i in range(n_issues)}
 

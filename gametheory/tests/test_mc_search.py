@@ -4,7 +4,9 @@ import time
 import numpy as np
 import pytest
 
-from gametheory.negotiation.mc_search import anytime_search, negotiate_turn_mc
+from gametheory.negotiation.mc_search import (
+    anytime_search, negotiate_turn_mc, negotiate_bundle_mc,
+)
 from gametheory.negotiation import pondering
 from gametheory.server import mcp_server as srv
 
@@ -114,6 +116,42 @@ def test_mcp_tool_compute_ms_passthrough():
                                 counterparty_offers=[4200, 4500], rounds_left=6,
                                 compute_ms=40)
     assert "compute" in out and out["compute"]["samples"] > 0
+
+
+# ── Tier 1: multi-issue (bundle) with a horizon ───────────────────────────────
+_ISSUES = [
+    {"name": "price", "options": [100, 120, 140], "my_utility": [1, .5, 0], "their_utility": [0, .5, 1]},
+    {"name": "term", "options": ["1y", "2y", "3y"], "my_utility": [1, .5, 0], "their_utility": [0, .5, 1]},
+    {"name": "sla", "options": ["99%", "99.9%"], "my_utility": [1, 0], "their_utility": [0, 1]},
+]
+_PRI = {"price": 0.6, "term": 0.25, "sla": 0.15}
+_THEIR = [{"price": 140, "term": "3y", "sla": "99.9%"}]   # their opening (all their-best)
+
+
+def test_bundle_zero_budget_is_closed_form():
+    out = negotiate_bundle_mc(issues=_ISSUES, their_offers=_THEIR, my_priorities=_PRI, compute_ms=0)
+    assert "compute" not in out
+
+
+def test_bundle_budget_is_never_worse_in_model():
+    out = negotiate_bundle_mc(issues=_ISSUES, their_offers=_THEIR, my_priorities=_PRI,
+                              rounds_left=8, compute_ms=60, seed=3)
+    if out.get("action") == "counter":
+        assert "compute" in out and out["compute"]["vs_closed_form"] >= -1e-9
+        assert out["compute"]["rounds_left"] == 8
+
+
+def test_bundle_no_horizon_skips_compute():
+    out = negotiate_bundle_mc(issues=_ISSUES, their_offers=_THEIR, my_priorities=_PRI,
+                              rounds_left=1, compute_ms=100)
+    assert "compute" not in out               # no rounds to exploit -> closed form
+
+
+def test_mcp_bundle_compute_passthrough():
+    out = srv.gt_negotiate_bundle(issues=_ISSUES, their_offers=_THEIR, my_priorities=_PRI,
+                                  rounds_left=8, compute_ms=40)
+    if out.get("action") == "counter":
+        assert "compute" in out and out["compute"]["samples"] > 0
 
 
 def test_mcp_session_tools_roundtrip():
