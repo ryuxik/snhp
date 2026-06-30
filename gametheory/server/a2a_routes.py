@@ -48,43 +48,58 @@ def _base_url() -> str:
     return os.environ.get("SNHP_PUBLIC_BASE_URL", "https://snhp.dev").rstrip("/")
 
 
-# ─── Discovery: MCP server card ──────────────────────────────────────────────
-def _mcp_tool_summaries() -> list[dict]:
-    """Tool names + one-line descriptions, pulled live from the MCP instance so the
-    card never drifts. Lazy import + defensive: a card is better than a 500."""
+# ─── Discovery: MCP server card (SEP-1649) ───────────────────────────────────
+def _mcp_tools_for_card() -> list[dict]:
+    """Full tool definitions (name, description, inputSchema) — the same shape an
+    MCP tools/list returns — so a registry can skip the live scan and still get the
+    real toolset. Lazy import + defensive: a card is better than a 500."""
     try:
         from gametheory.server.mcp_server import mcp as _mcp
         out = []
         for t in _mcp._tool_manager.list_tools():
-            desc = (t.description or "").strip().splitlines()
-            out.append({"name": t.name, "description": (desc[0] if desc else "")[:200]})
+            schema = getattr(t, "parameters", None) or {"type": "object", "properties": {}}
+            if "type" not in schema:
+                schema = {"type": "object", **schema}
+            out.append({"name": t.name,
+                        "description": (t.description or "").strip(),
+                        "inputSchema": schema})
         return out
     except Exception:
         return []
 
 
 @router.get("/.well-known/mcp/server-card.json", tags=["discovery"],
-            summary="MCP server card (lets registries skip a live scan)")
+            summary="MCP server card (SEP-1649 — lets registries skip a live scan)")
 def mcp_server_card() -> dict:
-    """Static MCP server card at the well-known path so registries (Smithery, Glama,
-    …) can index the hosted streamable-HTTP server WITHOUT a live initialize scan,
-    which can 502 on a cold start. Mirrors the official-registry record."""
+    """Static MCP server card in the SEP-1649 shape (serverInfo + tools/resources/
+    prompts + authentication) so Smithery/registries index the hosted
+    streamable-HTTP server WITHOUT a live initialize scan (which can 502 on a cold
+    start, and which some scanners can't complete through the /mcp -> /mcp/
+    redirect). Generated from the live tool definitions so it never drifts."""
     base = _base_url()
+    try:
+        from gametheory.server.mcp_server import mcp as _mcp
+        server_name = getattr(_mcp, "name", None) or "snhp"
+    except Exception:
+        server_name = "snhp"
     return {
-        "schemaVersion": "2024-11-05",
+        # SEP-1649 fields Smithery parses:
+        "serverInfo": {"name": server_name, "version": "0.1.0"},
+        "capabilities": {"tools": {"listChanged": False}},
+        "authentication": {"required": False, "schemes": []},
+        "tools": _mcp_tools_for_card(),
+        "resources": [],
+        "prompts": [],
+        # Extra human/registry metadata (ignored by the SEP-1649 parser):
         "name": "io.github.ryuxik/snhp-negotiation",
-        "title": "SNHP — game-theory negotiation for AI agents",
         "description": (
             "Math-optimal negotiation moves for AI agents in plain dollars — "
             "single-price and multi-issue logrolling, auctions / mechanism design, "
             "and a signed agent-to-agent (A2A/AP2) settlement flow. LLM-free."
         ),
-        "version": "0.1.0",
         "homepage": base,
         "repository": "https://github.com/ryuxik/snhp",
         "transport": {"type": "streamable-http", "url": base + "/mcp/"},
-        "capabilities": {"tools": {"listChanged": False}},
-        "tools": _mcp_tool_summaries(),
     }
 
 
