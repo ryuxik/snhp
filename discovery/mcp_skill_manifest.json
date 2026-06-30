@@ -5,7 +5,7 @@
   "description": "Get the math-optimal next move in a price negotiation, in plain dollars. Tell gt_negotiate_turn your side, walk-away $, target $, and the other side's offers; it returns the dollar counter to send, a ready-to-send message, and when to accept or walk. Negotiates ~12% better head-to-head (validated; n=20 paired LLM negotiations, p<0.0001). For multi-issue deals (a job offer, a vendor contract) use gt_negotiate_bundle, which logrolls across linked issues. Works against any counterparty with zero setup, no LLM required. Also includes auctions, optimal reserves, stable matching, dynamic pricing, and an advanced verified agent-to-agent peering + AP2 settlement flow.",
   "categories": ["AI/ML", "Business", "Finance"],
   "transport": {
-    "stdio": "gametheory-mcp",
+    "stdio": "uvx snhp",
     "streamable_http": "https://snhp.dev/mcp"
   },
   "homepage": "https://snhp.dev",

@@ -3,12 +3,12 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "gametheory"
+name = "snhp"
 version = "0.1.0"
-description = "Game-theory layer for AI agents — equilibrium-aware primitives"
+description = "Math-optimal negotiation moves for AI agents, in plain dollars (single + multi-issue)."
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "Proprietary"}
+license = {text = "Apache-2.0"}
 authors = [{name = "gametheory.dev"}]
 keywords = ["negotiation", "auctions", "mechanism-design", "agents", "mcp"]
 
@@ -21,6 +21,7 @@ dependencies = [
     "cryptography>=42",
     "PyJWT>=2.8",
     "mcp>=1.27",
+    "numba>=0.59",
 ]
 
 [project.optional-dependencies]
@@ -49,7 +50,8 @@ prod = [
 ]
 
 [project.scripts]
-# `pip install -e .` then `gametheory-mcp` runs the stdio MCP server.
+# `uvx snhp` (or `gametheory-mcp`) runs the stdio MCP server.
+snhp = "gametheory.server.mcp_server:main"
 gametheory-mcp = "gametheory.server.mcp_server:main"
 gametheory-http = "gametheory.server._http_entry:main"
 
@@ -58,5 +60,5 @@ homepage = "https://gametheory.dev"
 docs = "https://docs.gametheory.dev/llms.txt"
 
 [tool.setuptools.packages.find]
-include = ["gametheory*"]
-exclude = ["snhp*", "tests*", "venv*"]
+include = ["gametheory*", "snhp*"]
+exclude = ["snhp.tests*", "tests*", "venv*", "leaderboard*"]
