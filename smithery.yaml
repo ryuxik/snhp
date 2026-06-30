@@ -1,0 +1,9 @@
+# Smithery config — lists the snhp stdio MCP server (PyPI package, Apache-2.0).
+# https://smithery.ai/docs
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties: {}
+  commandFunction: |-
+    (config) => ({ command: 'uvx', args: ['snhp'] })
