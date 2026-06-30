@@ -98,11 +98,11 @@ def gt_negotiate_turn(
       target        your aspiration in dollars (seller=high, buyer=low)
       counterparty_offers  their offers so far, in dollars, oldest first
       rounds_left   (optional, default 8) roughly how many back-and-forths remain
-      compute_ms    (optional, default 0) milliseconds of Monte-Carlo rollouts to
-                    spend refining the move while you'd otherwise sit idle waiting
-                    on your LLM or the counterparty. 0 = instant closed form. The
-                    refined move is never worse than the closed form in-model and
-                    the reply carries a "compute" block (samples, convergence)
+      compute_ms    (optional, default 0; EXPERIMENTAL) milliseconds of Monte-Carlo
+                    rollouts to spend refining the move. 0 = instant closed form.
+                    Validated to show NO realized edge over the closed form (n=400,
+                    mc_validation.py) — kept off by default as a research mechanism,
+                    not a quality improvement. The reply carries a "compute" block
 
     You get back, in dollars:
       {"action": "counter"|"accept"|"walk", "recommended_price": 5387.0,

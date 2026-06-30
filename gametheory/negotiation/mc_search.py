@@ -15,10 +15,16 @@ Two tiers sit on top of this module:
   background during the counterparty's think-time.
 
 The rollout model here is deliberately simple (a conceder opponent with an unknown
-reservation, expressed in OUR utility frame) and is a v0 to be calibrated against
-the tournament — the value of this module is the anytime mechanism and the
-in-model improvement guarantee, not a claim that the heuristic belief is exact.
-See mc_prototype.py / mc_multi.py for the controlled measurements that motivate it.
+reservation, expressed in OUR utility frame) — the value is the anytime mechanism
+and the in-model improvement guarantee, not a claim that the heuristic belief is exact.
+
+IMPORTANT — VALIDATED, NO REALIZED EDGE. mc_validation.py played this tier against
+the SHIPPED closed-form recommender in realized negotiations (n=400, opponents drawn
+outside the rollout's assumed model): MC − closed form = -0.002, 95% CI
+[-0.043, +0.038], 98% ties. It beats a myopic strawman (mc_prototype: +66%) but does
+NOT beat the production recommender, which is already strong. So `compute_ms` ships
+OFF BY DEFAULT and EXPERIMENTAL — do not present it as a quality edge. The harness is
+kept so a better belief can be re-measured against the same bar.
 """
 from __future__ import annotations
 
