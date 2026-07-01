@@ -10,8 +10,8 @@ API at `/par/*` — same-origin, so the front end's `fetch()` needs no CORS.
 |---|---|
 | App container | ✅ `par/Dockerfile` (build context = repo root) |
 | Fly config | ✅ `par/fly.toml` (health check `/health`, HTTPS, sjc) |
-| DB schema | ✅ `par/schema.sql` (results, streaks, groups, waitlist, events, scenarios) |
-| Persistence swap | ⬜ the stores are **in-memory** today — see below |
+| DB schema | ✅ auto-created by `par/_store.py` on first connect; `par/schema.sql` is the reference + prod indexes |
+| Persistence | ✅ **durable** — SQLite locally, Postgres in prod (`par/_store.py` via `gametheory._db`); survives restarts |
 | Actually running `fly deploy` | ⬜ **you** — needs your Fly auth + domain DNS |
 
 ## Ship it (one-time)
@@ -29,27 +29,22 @@ fly deploy --dockerfile par/Dockerfile
 
 Then `curl https://par.game/par/today` and open `https://par.game`.
 
-## The one real blocker before scaling: persistence
+## Persistence (done) & scaling
 
-`par/scoreboard.py` and `par/funnel.py` are **in-memory dicts**. That's fine for a single
-machine (why `fly.toml` pins `min_machines_running = 1`), but:
+State lives in SQL via `par/_store.py`, which reuses `gametheory._db`: **SQLite by default**
+(a local `par/.par.db` — zero setup, gitignored) and **Postgres when `DATABASE_URL` is set**
+(the `fly postgres attach` above). One DDL runs on both; upserts use `ON CONFLICT ... DO
+UPDATE`. Verified: results, streaks, groups, waitlist, and the funnel all survive a restart.
 
-- state resets on every deploy, and
-- it can't be shared across instances, so you can't scale out or idle to 0.
+So scaling is now a config choice:
 
-The swap is mechanical because the module boundaries were drawn for it — every function is
-already a `GROUP BY` waiting to happen:
+- **With Postgres attached** (prod): state is shared across machines → set
+  `min_machines_running = 0` and let `auto_stop_machines` idle it to zero between traffic.
+- **Without `DATABASE_URL`**: SQLite is per-machine and lives on the container FS — fine for
+  one machine, but mount a volume (or keep Postgres) before scaling out.
 
-1. `pip install psycopg2-binary` (or `asyncpg`); read `DATABASE_URL` at startup.
-2. In `scoreboard.py`: `record` → `INSERT ... ON CONFLICT (day,user_id) DO UPDATE`; `stats`
-   / `group_board` → the `SELECT ... GROUP BY` over `results` + `groups`; streak → an
-   `UPDATE streaks`. Same return shapes.
-3. In `funnel.py`: `record_event`/`join_waitlist` → `INSERT`; `funnel()` → `SELECT name,
-   count(distinct user_id) ... GROUP BY name`.
-4. Drop the `seed_demo` / `seed_group_demo` calls in `api.py`; seed the `scenarios` table
-   from the real deck instead.
-
-Endpoints, the SPA, and the tests don't change — only the storage layer behind them.
+The only prod-seeding TODO: drop the `seed_demo` / `seed_group_demo` calls in `api.py` and
+seed a real `scenarios` table from the audited deck instead of the demo spread.
 
 ## After it's live
 

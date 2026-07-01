@@ -9,9 +9,10 @@
 #   fly certs add par.game --app par                # custom domain + auto HTTPS
 #   fly deploy --dockerfile par/Dockerfile
 #
-# NOTE: the scoreboard/funnel stores are in-memory today — fine for one machine, but they
-# reset on deploy and don't share across instances. Keep min_machines_running = 1 until the
-# Postgres swap (par/schema.sql) lands, then you can scale out and idle to 0.
+# State is durable via par/_store.py (Postgres when DATABASE_URL is set). Once `fly postgres
+# attach` is done, set min_machines_running = 0 to idle to zero between traffic. It's pinned
+# to 1 below only as a safe default for a first deploy before Postgres is attached (SQLite is
+# per-machine on the container FS).
 
 app = "par"
 primary_region = "sjc"

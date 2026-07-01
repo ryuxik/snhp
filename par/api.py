@@ -17,11 +17,11 @@ import os
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from gametheory.negotiation.par_game import Scenario, house_move, score, agent_close
 from gametheory.negotiation.bundle import negotiate_bundle
-from gametheory.negotiation.plain_terms import negotiate_turn
+from gametheory.negotiation.plain_terms import negotiate_turn, NegotiationInputError
 from par import scoreboard, funnel
 
 app = FastAPI(title="PAR", description="out-negotiate a perfect AI, daily")
@@ -68,8 +68,8 @@ def today(day: Optional[int] = None) -> dict:
 
 class MoveReq(BaseModel):
     day: int
-    your_offers: list[float]            # the player's asks so far, oldest first
-    house_offers: list[float] = []      # the House's prior offers
+    your_offers: list[float] = Field(..., max_length=100)      # the player's asks so far, oldest first
+    house_offers: list[float] = Field(default=[], max_length=100)   # the House's prior offers
     rounds_left: int
 
 
@@ -115,7 +115,7 @@ def _with_agent(sc: Scenario, s: dict) -> dict:
 # ── scoreboard: streak, percentile, distribution (the virality layer) ─────────
 class SubmitReq(BaseModel):
     day: int
-    user_id: str                        # anon device id or account id
+    user_id: str = Field(..., max_length=64)   # anon device id or account id
     close: Optional[float] = None       # the agreed price, or None on a walk
 
 
@@ -145,9 +145,9 @@ def stats(day: Optional[int] = None) -> dict:
 
 # ── friends leaderboard (the spread loop: beat your friends, not the crowd) ────
 class JoinReq(BaseModel):
-    group: str
-    user_id: str
-    name: Optional[str] = None
+    group: str = Field(..., max_length=64)
+    user_id: str = Field(..., max_length=64)
+    name: Optional[str] = Field(default=None, max_length=40)
 
 
 @app.post("/par/group/join")
@@ -168,9 +168,9 @@ def group(group: str, day: Optional[int] = None) -> dict:
 
 # ── funnel: waitlist + event instrumentation (the growth loop, measured) ───────
 class WaitReq(BaseModel):
-    user_id: str
-    scenario: str
-    contact: Optional[str] = None       # email/phone — optional; a device id already IDs them
+    user_id: str = Field(..., max_length=64)
+    scenario: str = Field(..., max_length=64)
+    contact: Optional[str] = Field(default=None, max_length=128)   # email/phone — optional
 
 
 @app.post("/par/waitlist")
@@ -182,8 +182,8 @@ def waitlist(req: WaitReq) -> dict:
 
 
 class EventReq(BaseModel):
-    user_id: str
-    name: str                           # play | share | cta_view | cta_click | waitlist
+    user_id: str = Field(..., max_length=64)
+    name: str = Field(..., max_length=32)   # play | share | cta_view | cta_click | waitlist
     meta: Optional[dict] = None
 
 
@@ -202,11 +202,11 @@ def funnel_stats() -> dict:
 
 # ── the agent, on a REAL deal (the MVP behind the CTA) ────────────────────────
 class AdviseReq(BaseModel):
-    side: str                           # "sell" | "buy" — YOUR side in the real negotiation
+    side: str = Field(..., max_length=8)   # "sell" | "buy" — YOUR side in the real negotiation
     walk_away: float
     target: float
-    counterparty_offers: list[float] = []
-    my_previous_offers: list[float] = []
+    counterparty_offers: list[float] = Field(default=[], max_length=100)
+    my_previous_offers: list[float] = Field(default=[], max_length=100)
     rounds_left: int = 4
 
 
@@ -219,7 +219,7 @@ def advise(req: AdviseReq) -> dict:
         rec = negotiate_turn(side=req.side, walk_away=req.walk_away, target=req.target,
                              counterparty_offers=req.counterparty_offers,
                              my_previous_offers=req.my_previous_offers, rounds_left=req.rounds_left)
-    except Exception as e:
+    except NegotiationInputError as e:                   # bad input is a 400; real bugs still 500
         raise HTTPException(status_code=400, detail=str(e))
     return {"action": rec["action"], "recommended_price": rec.get("recommended_price"),
             "message": rec.get("message", ""), "rationale": rec.get("rationale", ""),
