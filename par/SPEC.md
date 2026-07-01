@@ -125,8 +125,17 @@ that mirrors the `/par/submit` board exactly, plus a seeded demo distribution
 anonymous crowd): the share text carries a group link (`par.game/?g=<code>`); opening a
 friend's link joins their group (`/par/group/join`), and `/par/group` returns today's
 members ranked best-first (unplayed last). The reveal shows it under a **friends** tab
-next to **everyone** (the distribution). Offline, `par.js` mirrors it with a seeded
-`FRIENDS` stand-in; the front end mints/adopts the `?g=` code in `localStorage`.
+next to **everyone** (the distribution). Offline, `par.js` falls back to a seeded
+`FRIENDS` stand-in; online it renders the live `/par/group` (progressive enhancement —
+the stand-in paints instantly, the live board swaps in when the fetch returns).
+
+**Identity without accounts.** A persistent device `user_id` (localStorage `par-user`) is
+the real key; the **name** is only a display label — unique *within a group*, not
+globally, so duplicates get a short server-side suffix off the hidden id (`Alex·a1`).
+Because `/par/submit` recomputes the score from `close`, the *number* can't be forged;
+inside a trusted friend group, social accountability covers *whose* number it is. Climb
+the ladder only if you need more: a saved **recovery code** for cross-device, a signed
+device token if boards ever go public, passkeys as the eventual accountless account.
 
 Still to build on top: a **daily push** ("today's deal is live") paired with the streak,
 and turning `agent_close`/`agent_pct` into the **conversion CTA** ("let our agent

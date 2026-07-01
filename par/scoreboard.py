@@ -87,10 +87,16 @@ def group_board(group_id: str, day: int) -> dict:
     spreads a daily game — you share to beat your friends, not the anonymous crowd."""
     members = _groups.get(group_id, {})
     today = _results.get(day, {})
+    # display names only need to be unique WITHIN the group — disambiguate dupes with a
+    # short suffix off the (hidden) user_id, so two "Alex"es read Alex·a1 / Alex·7f.
+    counts: dict = {}
+    for name in members.values():
+        counts[name] = counts.get(name, 0) + 1
     rows = []
     for uid, name in members.items():
+        disp = name if counts.get(name, 0) < 2 else name + "·" + uid[-2:]
         r = today.get(uid)
-        rows.append({"user": uid, "name": name,
+        rows.append({"user": uid, "name": disp,
                      "pct": r["pct"] if r else None, "played": r is not None})
     rows.sort(key=lambda x: (x["played"], x["pct"] or 0), reverse=True)
     for i, row in enumerate(rows):
@@ -100,15 +106,14 @@ def group_board(group_id: str, day: int) -> dict:
 
 
 def seed_group_demo(group_id: str, day: int) -> None:
-    """DEMO ONLY — a friend group with a few named players who already finished today, so
-    the leaderboard renders alive offline. Remove with the real groups table."""
-    if _groups.get(group_id):
-        return
+    """DEMO ONLY — a friend group with a few named players who already finished, so the
+    leaderboard renders alive. Membership is seeded once; results are seeded per day (so
+    every SPA puzzle number has friends to rank). Remove with the real groups table."""
     friends = [("maya", "Maya", 96.0), ("dev", "Dev", 88.0),
                ("sam", "Sam", 74.0), ("priya", "Priya", 61.0), ("theo", "Theo", None)]
     for uid, name, pct in friends:
-        _groups[group_id][uid] = name
-        if pct is not None:
+        _groups[group_id][uid] = name                    # membership: idempotent
+        if pct is not None and uid not in _results[day]:  # results: per day
             _results[day][uid] = {"pct": pct, "walked": False}
 
 

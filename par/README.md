@@ -12,22 +12,28 @@ No vibes-based negotiation game can fake a defensible "perfect deal" — that's 
 
 ## Run it
 
-Front end (zero backend — ships with an inline scenario stand-in):
-
-```sh
-cd par/web && python3 -m http.server 8100
-# open http://localhost:8100            (a sell day: the salary talk)
-# open http://localhost:8100/?s=buy     (a buy day: the used car)
-# open http://localhost:8100/?g=abc123  (arrive on a friend's group link)
-```
-
-Backend (the live daily API):
+The whole game, live (uvicorn serves the SPA **and** the API same-origin, so the front
+end's `fetch()` calls need no CORS):
 
 ```sh
 pip install fastapi uvicorn          # if needed
 uvicorn par.api:app --reload --port 8099
-# GET  http://localhost:8099/par/today
+# open http://localhost:8099            (a sell day: the salary talk)
+# open http://localhost:8099/?s=buy     (a buy day: the used car)
+# open http://localhost:8099/?g=demo    (join a friend group — the seeded leaderboard)
 ```
+
+Front end only (zero backend — the SPA falls back to an inline stand-in for the House,
+the distribution, and the friends board):
+
+```sh
+cd par/web && python3 -m http.server 8100     # open http://localhost:8100
+```
+
+**Identity, no accounts:** a persistent device `user_id` (localStorage) is the key; the
+name you pick is just a label, unique only within a group (dupes get a server suffix,
+`Alex·a1`). Scores are recomputed server-side from your close, so the board can't be
+gamed. See SPEC.md §4.
 
 ## Layout
 

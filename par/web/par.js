@@ -19,14 +19,14 @@ const fmt = (v) => "$" + (Math.round(v * 10) / 10) + "k";
    target = your aspiration. offers/willing/msg = the offline House stand-in. */
 const SCENARIOS = {
   sell: {
-    no: 214, side: "sell", title: "the salary talk", floor: 90, target: 130, par: 118, rounds: 5,
+    no: 216, side: "sell", title: "the salary talk", floor: 90, target: 130, par: 118, rounds: 5,
     axisMin: 90, axisMax: 124, gapK: 4, step: 1,
     offers: [95, 103, 109, 114, 117], willing: [98, 106, 111, 115, 118],
     msg: ['“We can do $95k.”', '“I can stretch to $103k.”', '“$109k — near the top of band.”',
       '“$114k, out on a limb here.”', '“Final: $117k. Take it or we re-open.”'],
   },
   buy: {
-    no: 215, side: "buy", title: "the used car", floor: 14, target: 9, par: 11, rounds: 5,
+    no: 214, side: "buy", title: "the used car", floor: 14, target: 9, par: 11, rounds: 5,
     axisMin: 9, axisMax: 14, gapK: 32, step: 0.1,
     offers: [13, 12.4, 11.9, 11.5, 11.2], willing: [12.4, 11.9, 11.5, 11.2, 11.0],
     msg: ['“$13k, and that’s me being nice.”', '“I could come down to $12.4k.”',
@@ -176,10 +176,41 @@ function myGroup() {                                      // adopt a friend's co
   localStorage.setItem("par-group", gc);
   return gc;
 }
+/* IDENTITY without accounts: a persistent device id is the key; the name is just a label
+   (unique only within a group — collisions get a server-side suffix). prod: swap the
+   blocking prompt for an inline name field, and add a signed token if boards go public. */
+function myUser() {
+  let u = localStorage.getItem("par-user");
+  if (!u) { u = "u_" + Math.random().toString(36).slice(2, 10); localStorage.setItem("par-user", u); }
+  return u;
+}
+function myName() {
+  let n = localStorage.getItem("par-name");
+  if (!n) {
+    n = ((typeof prompt === "function" && prompt("pick a name for the leaderboard")) || "").trim().slice(0, 16) || "player";
+    localStorage.setItem("par-name", n);
+  }
+  return n;
+}
 function localFriends(myPct) {
-  const rows = FRIENDS.concat([{ name: "you", pct: myPct, you: true }]);
+  const rows = FRIENDS.concat([{ name: myName(), pct: myPct, you: true }]);
   rows.sort((a, b) => (b.pct == null ? -1 : a.pct == null ? 1 : b.pct - a.pct));
   return rows.map((r, i) => ({ ...r, rank: i + 1 }));
+}
+
+/* the LIVE board: register self in the group, submit the score (server recomputes it from
+   `close` — the % can't be faked), fetch the ranked group. Falls back to the stand-in when
+   no backend is reachable, so the SPA still runs offline. API base is same-origin (the API
+   also serves this page) unless overridden with ?api=. */
+const API = new URLSearchParams(location.search).get("api") || "";
+async function fetchBoards(close) {
+  const user = myUser(), name = myName(), group = myGroup(), day = DAY.no;
+  const post = (path, body) => fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  await post("/par/group/join", { group, user_id: user, name });
+  const board = await post("/par/submit", { day, user_id: user, close }).then((r) => r.json());
+  const grp = await fetch(API + "/par/group?group=" + encodeURIComponent(group) + "&day=" + day).then((r) => r.json());
+  const friends = grp.board.map((r) => ({ name: r.name, pct: r.pct, rank: r.rank, you: r.user === user }));
+  return { board, friends };
 }
 
 function boardHTML(b, friends) {
@@ -207,7 +238,8 @@ function wireTabs() {
 function finish() {
   g.over = true; $("play-house").style.display = "none"; show("s-reveal"); drawReveal();
   const won = g.deal != null, p = won ? pctOf(g.deal) : 0;
-  const board = boardHTML(localBoard(p), localFriends(p)); // prod: /par/submit + /par/group
+  // render the offline stand-in instantly, then upgrade to the live board if a backend answers
+  const board = '<div id="board-slot">' + boardHTML(localBoard(p), localFriends(p)) + '</div>';
   const btns = '<div style="display:flex;gap:10px;margin-top:16px"><button class="pri" id="rev-share">share result</button><button id="rev-again">play tomorrow</button></div>';
   let head;
   if (won) {
@@ -221,6 +253,11 @@ function finish() {
   }
   $("rev-body").innerHTML = '<div style="border-top:0.5px solid var(--line);margin-top:8px;padding-top:14px">' + head + board + btns + '</div>';
   wireTabs();
+  fetchBoards(won ? g.deal : null).then((real) => {   // progressive: swap in the live board
+    if (!real || !$("board-slot")) return;
+    $("board-slot").innerHTML = boardHTML(real.board, real.friends);
+    wireTabs();
+  }).catch(() => { });                                 // offline → keep the stand-in
   $("rev-again").onclick = () => { resetPlay(); show("s-landing"); };
   $("rev-share").onclick = shareResult;
 }

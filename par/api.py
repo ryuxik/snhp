@@ -13,7 +13,10 @@ from __future__ import annotations
 from datetime import date, timezone, datetime
 from typing import Optional
 
+import os
+
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from gametheory.negotiation.par_game import Scenario, house_move, score, agent_close
@@ -173,8 +176,15 @@ def bundle_move(req: BundleReq) -> dict:
     return rec
 
 
-# DEMO: seed a believable spread for today + the deck-index days used in replay/testing,
-# so /par/stats and the reveal histogram render alive offline. Remove with the real table.
-for _d in {_day_number(None), 0, 1, 2, 3}:
+# DEMO: seed a believable spread for today + the deck-index days used in replay/testing
+# (and the SPA's stand-in puzzle numbers), so /par/stats, the histogram, and the friends
+# board render alive. Remove with the real tables.
+for _d in {_day_number(None), 0, 1, 2, 3, 214, 216}:
     scoreboard.seed_demo(_d)
     scoreboard.seed_group_demo("demo", _d)
+
+# Serve the SPA same-origin so the front end's fetch() calls need no CORS. The /par/*
+# routes above are matched before this catch-all mount. `uvicorn par.api:app` now serves
+# the whole game at / (index.html) and the API under /par/*.
+_WEB = os.path.join(os.path.dirname(__file__), "web")
+app.mount("/", StaticFiles(directory=_WEB, html=True), name="web")
