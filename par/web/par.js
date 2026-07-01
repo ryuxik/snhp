@@ -25,6 +25,7 @@ const SCENARIOS = {
   sell: {
     no: 216, side: "sell", title: "the salary talk", floor: 90, target: 130, par: 118, rounds: 5,
     unit: "k", axisMin: 90, axisMax: 124, gapK: 4, step: 1,
+    cta: { hook: "a raise, an offer, a review — the same perfect negotiator runs the room.", verb: "let the agent run your next raise" },
     offers: [95, 103, 109, 114, 117], willing: [98, 106, 111, 115, 118],
     msg: ['“We can do $95k.”', '“I can stretch to $103k.”', '“$109k — near the top of band.”',
       '“$114k, out on a limb here.”', '“Final: $117k. Take it or we re-open.”'],
@@ -32,6 +33,7 @@ const SCENARIOS = {
   buy: {
     no: 214, side: "buy", title: "the used car", floor: 14000, target: 9000, par: 11200, rounds: 5,
     unit: "", axisMin: 9000, axisMax: 14000, gapK: 0.032, step: 100,
+    cta: { hook: "a car, rent, any big-ticket haggle — the agent does the back-and-forth.", verb: "let the agent haggle your next one" },
     offers: [13000, 12400, 11900, 11500, 11200], willing: [12400, 11900, 11500, 11200, 11000],
     msg: ['“$13,000, and that’s me being nice.”', '“I could come down to $12,400.”',
       '“$11,900 — now you’re squeezing me.”', '“$11,500, that’s basically cost.”',
@@ -111,10 +113,12 @@ function drawReveal() {
       // the wedge = the value between your close and par. The hero number sits to the
       // RIGHT of it on the dark field, vertically centred — works whether par is above
       // your close (selling) or below it (buying).
-      const cy = (yP + yD) / 2;
-      s += '<polygon points="300,' + yD + ' 500,' + yP + ' 500,' + yD + '" fill="#9D86F2"/>' +
-           '<text x="516" y="' + (cy + 6) + '" font-size="42" fill="' + VB + '" ' + FN + '>' + fmt(leftOf(g.deal)) + '</text>' +
-           '<text x="518" y="' + (cy + 28) + '" font-size="12" fill="' + VD + '" ' + FN + '>on the table</text>';
+      // hero sits right of the wedge; scale its size to the string so a wide "$19.2k" or
+      // "$1,300" never clips the right edge (a small "$7k" stays big).
+      const cy = (yP + yD) / 2, hero = fmt(leftOf(g.deal)), hfs = Math.min(42, Math.round(134 / (hero.length * 0.6)));
+      s += '<polygon points="300,' + yD + ' 470,' + yP + ' 470,' + yD + '" fill="#9D86F2"/>' +
+           '<text x="486" y="' + (cy + 6) + '" font-size="' + hfs + '" fill="' + VB + '" ' + FN + '>' + hero + '</text>' +
+           '<text x="488" y="' + (cy + 26) + '" font-size="12" fill="' + VD + '" ' + FN + '>on the table</text>';
     } else s += '<text x="430" y="' + (yP + 40) + '" font-size="24" fill="' + VB + '" text-anchor="middle" ' + FN + '>at par.</text>';
     // put the close label on the side away from par: below the node when par is the ceiling
     // (above), above the node when par is the floor (below) — so it never lands on the par line.
@@ -250,7 +254,10 @@ function finish() {
                             : ("the House would have sold for as low as " + fmt(DAY.par) + ". you walked from all of it.");
     head = '<div style="font-size:30px;color:#B05A55;line-height:1">no deal · 0%</div><div style="margin-top:9px;font-size:13px;color:var(--muted)">' + missed + '</div>';
   }
-  $("rev-body").innerHTML = '<div style="border-top:0.5px solid var(--line);margin-top:8px;padding-top:14px">' + head + board + btns + '</div>';
+  // the conversion CTA — rides the "the agent beat you" moment straight into the product
+  const cta = '<div class="cta"><div class="hook">' + DAY.cta.hook + '</div><button class="cta-go" id="rev-cta">' + DAY.cta.verb + ' →</button></div>';
+  $("rev-body").innerHTML = '<div style="border-top:0.5px solid var(--line);margin-top:8px;padding-top:14px">' + head + board + cta + btns + '</div>';
+  $("rev-cta").onclick = openAgent;
   wireTabs();
   fetchBoards(won ? g.deal : null).then((real) => {   // progressive: swap in the live board
     if (!real || !$("board-slot")) return;
@@ -341,6 +348,18 @@ function shareResult() {
   $("share-ov").classList.add("on");
 }
 
+/* the conversion bridge: the game proved the agent beats you; this turns that into intent.
+   The fee model is the point — because PAR measures "$ on the table", the agent's value is
+   billable: a cut of the surplus it wins above your walk-away. Aligned; you never pay to lose. */
+function openAgent() {
+  const won = g.deal != null;
+  $("ag-lede").innerHTML = won
+    ? ('you just left <b>' + fmt(leftOf(g.deal)) + '</b> on the table against a perfect negotiator — one that never gets tired, anchored, or talked down. now point it at a real deal.')
+    : ('you walked from the whole room. a perfect negotiator would have closed it. now point it at a real deal.');
+  $("ag-fee").innerHTML = 'the model: <b>you keep what it wins.</b> the agent takes a cut only of the surplus it captures above your walk-away — so you never pay to lose.';
+  $("agent-ov").classList.add("on");
+}
+
 /* ---- onboarding flow ------------------------------------------------------ */
 function startOnboard() {
   show("s-onboard"); onbBeat(0); $("onb-drag").value = 0;
@@ -360,3 +379,6 @@ $("land-play").onclick = () => { localStorage.getItem("par-played") ? startPlay(
 $("play-ask").oninput = function () { const v = +this.value; $("play-askv").textContent = fmt(v); $("play-cv-amt").textContent = fmt(v); drawPlay(v); };
 $("play-counter").onclick = counter; $("play-accept").onclick = accept; $("play-walk").onclick = walk;
 $("share-close").onclick = () => $("share-ov").classList.remove("on");
+$("agent-close").onclick = () => $("agent-ov").classList.remove("on");
+// prod: POST the waitlist signup (device id, scenario) — this is a local stub.
+$("ag-join").onclick = () => { const b = $("ag-join"); b.textContent = "on the list ✓"; b.disabled = true; };

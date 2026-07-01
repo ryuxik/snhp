@@ -68,6 +68,21 @@ input[type=range]{accent-color:var(--violet);height:4px;width:100%}
 .tabs{display:flex;gap:8px;margin:2px 0 13px}
 .tab{font-size:12px;padding:5px 13px;border-radius:7px;background:transparent;border:0.5px solid var(--line);color:var(--muted)}
 .tab.on{background:#191427;border-color:#463A78;color:var(--violet-bright)}
+/* the conversion CTA on the reveal (rides the "$X on the table" regret) + the pitch overlay */
+.cta{margin-top:16px;border-top:0.5px solid var(--line);padding-top:15px;display:flex;flex-direction:column;gap:10px}
+.cta .hook{font-size:14px;color:var(--ink-dim)}
+.cta .hook b{color:var(--violet-bright);font-weight:600}
+button.cta-go{align-self:flex-start;background:var(--violet);color:var(--violet-deep);border:none;font-weight:500;font-size:14px;padding:11px 18px;border-radius:9px}
+button.cta-go:hover{background:var(--violet-bright)}
+.agent-card{max-width:420px;padding:24px 24px 18px}
+.ag-h{font-size:24px;color:var(--ink);letter-spacing:0.01em}
+.ag-lede{font-size:14px;color:var(--ink-dim);margin-top:12px;line-height:1.5}
+.ag-lede b{color:var(--violet-bright);font-weight:600}
+.ag-how{margin:18px 0;display:flex;flex-direction:column;gap:11px}
+.ag-step{display:flex;gap:12px;align-items:baseline;font-size:13px;color:#C9C9C4}
+.ag-n{flex:none;width:20px;height:20px;border-radius:50%;background:#191427;border:0.5px solid #463A78;color:var(--violet-bright);font-size:11px;text-align:center;line-height:20px}
+.ag-fee{font-size:13px;color:var(--muted);background:#141019;border:0.5px solid var(--line);border-radius:9px;padding:11px 13px;line-height:1.5}
+.ag-fee b{color:var(--violet-bright);font-weight:600}
 .fname{width:100%;background:#16171C;border:0.5px solid var(--card-line);border-radius:7px;color:var(--ink);font-family:inherit;font-size:12px;padding:7px 10px;margin-bottom:10px}
 .fname:focus{outline:none;border-color:#463A78}
 .fname::placeholder{color:var(--faint)}
