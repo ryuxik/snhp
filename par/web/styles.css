@@ -99,3 +99,17 @@ button.ag-not:hover{background:none;color:var(--ink-dim)}
 .fr-name{flex:1}
 .fr-pct{font-variant-numeric:tabular-nums;color:var(--ink-dim)}
 .frow.me .fr-pct{color:var(--violet-bright);font-weight:600}
+
+/* mobile pass — reclaim width from padding so the reveal + play don't cramp at ~390px */
+@media (max-width:440px){
+  body{padding:12px}
+  .card{padding:20px 15px 16px}
+  .land{padding:30px 16px 24px}
+  .land .big{font-size:44px}
+  .land .hook{font-size:15px}
+  .land svg{width:160px}
+  .row .sub{font-size:11px}
+  .house{gap:8px}.house .a{font-size:18px}.house .q{font-size:13px}
+  .btns{gap:8px}.btns button{font-size:13px;padding:10px 12px}
+  .agent-card{padding:20px 18px 16px}.ag-h{font-size:21px}
+}

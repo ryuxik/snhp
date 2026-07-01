@@ -25,7 +25,7 @@ const SCENARIOS = {
   sell: {
     no: 216, side: "sell", title: "the salary talk", floor: 90, target: 130, par: 118, rounds: 5,
     unit: "k", axisMin: 90, axisMax: 124, gapK: 4, step: 1,
-    cta: { hook: "a raise, an offer, a review — the same perfect negotiator runs the room.", verb: "let the agent run your next raise" },
+    cta: { hook: "a raise, an offer, a review — get the perfect negotiator in your corner.", verb: "have the agent coach your next raise" },
     offers: [95, 103, 109, 114, 117], willing: [98, 106, 111, 115, 118],
     msg: ['“We can do $95k.”', '“I can stretch to $103k.”', '“$109k — near the top of band.”',
       '“$114k, out on a limb here.”', '“Final: $117k. Take it or we re-open.”'],
@@ -33,7 +33,7 @@ const SCENARIOS = {
   buy: {
     no: 214, side: "buy", title: "the used car", floor: 14000, target: 9000, par: 11200, rounds: 5,
     unit: "", axisMin: 9000, axisMax: 14000, gapK: 0.032, step: 100,
-    cta: { hook: "a car, rent, any big-ticket haggle — the agent does the back-and-forth.", verb: "let the agent haggle your next one" },
+    cta: { hook: "a car, rent, any big-ticket haggle — have the agent coach every move.", verb: "have the agent coach your next deal" },
     offers: [13000, 12400, 11900, 11500, 11200], willing: [12400, 11900, 11500, 11200, 11000],
     msg: ['“$13,000, and that’s me being nice.”', '“I could come down to $12,400.”',
       '“$11,900 — now you’re squeezing me.”', '“$11,500, that’s basically cost.”',
@@ -264,11 +264,13 @@ function finish() {
                             : ("the House would have sold for as low as " + fmt(DAY.par) + ". you walked from all of it.");
     head = '<div style="font-size:30px;color:#B05A55;line-height:1">no deal · 0%</div><div style="margin-top:9px;font-size:13px;color:var(--muted)">' + missed + '</div>';
   }
-  // the conversion CTA — rides the "the agent beat you" moment straight into the product
-  const cta = '<div class="cta"><div class="hook">' + DAY.cta.hook + '</div><button class="cta-go" id="rev-cta">' + DAY.cta.verb + ' →</button></div>';
+  // the conversion CTA — rides the "the agent beat you" moment. But NOT on the first game:
+  // the panel read a day-1 upsell as "farmed", so earn it (show from the 2nd play on).
+  const plays = +(localStorage.getItem("par-plays") || 0) + 1;
+  localStorage.setItem("par-plays", plays);
+  const cta = plays < 2 ? "" : '<div class="cta"><div class="hook">' + DAY.cta.hook + '</div><button class="cta-go" id="rev-cta">' + DAY.cta.verb + ' →</button></div>';
   $("rev-body").innerHTML = '<div style="border-top:0.5px solid var(--line);margin-top:8px;padding-top:14px">' + head + board + cta + btns + '</div>';
-  $("rev-cta").onclick = openAgent;
-  track("cta_view");
+  if ($("rev-cta")) { $("rev-cta").onclick = openAgent; track("cta_view"); }
   wireTabs();
   fetchBoards(won ? g.deal : null).then((real) => {   // progressive: swap in the live board
     if (!real || !$("board-slot")) return;
@@ -338,7 +340,7 @@ function shareCardSVG() {
   const won = g.deal != null;
   const pct = won ? pctOf(g.deal) : 0;
   const hero = won ? fmt(leftOf(g.deal)) : "no deal";
-  const hs = won ? 92 : 52;                              // "no deal" is wider — shrink it
+  const hs = won ? Math.min(92, Math.round(230 / (hero.length * 0.62))) : 52;  // scale to the void so a wide "$19.2k" never clips
   const sub = won ? "left on the table" : "walked — all of it";
   const closed = won ? ("you closed " + fmt(g.deal)) : "you walked away";
   return '<text x="44" y="60" font-size="24" letter-spacing="5" fill="#E8E8E3" ' + FN + '>PAR</text>'
@@ -350,12 +352,17 @@ function shareCardSVG() {
     + '<path fill="#9D86F2" d="M340,150 L552,150 L552,432 L270,432 Z"/>'
     + '<text x="422" y="316" font-size="' + hs + '" fill="#16102C" text-anchor="middle" ' + FN + '>' + hero + '</text>'
     + '<text x="422" y="360" font-size="17" letter-spacing="1" fill="#2A2150" text-anchor="middle" ' + FN + '>' + sub + '</text>'
-    + '<text x="44" y="510" font-size="13" fill="#4A4B52" ' + FN + '>out-negotiate a perfect AI</text>'
-    + '<text x="496" y="510" font-size="13" fill="#4A4B52" text-anchor="end" ' + FN + '>par.game</text>';
+    + '<text x="44" y="510" font-size="14" fill="#9385D6" ' + FN + '>' + (won ? "can you beat this? →" : "think you’re better? →") + '</text>'
+    + '<text x="496" y="510" font-size="13" fill="#7C7C77" text-anchor="end" ' + FN + '>par.game</text>';
 }
 function shareResult() {
   const won = g.deal != null, p = won ? pctOf(g.deal) : 0;
-  const txt = "PAR no." + DAY.no + " — " + (won ? fmt(leftOf(g.deal)) + " left on the table · " + p + "% of par" : "walked, no deal") + "\nbeat me → par.game/?g=" + myGroup();
+  // a CHALLENGE, not a report: the link seeds the recipient into MY group (?g=) and carries
+  // my "left on the table" (?c=) so their landing reads "a friend left $X — beat them".
+  const link = "par.game/?g=" + myGroup() + (won ? "&c=" + Math.round(leftOf(g.deal)) : "");
+  const txt = "PAR no." + DAY.no + " — " +
+    (won ? "i left " + fmt(leftOf(g.deal)) + " on the table (" + p + "% of par). beat me:" : "i walked it. beat me:") +
+    "\n" + link;
   if (navigator.clipboard) navigator.clipboard.writeText(txt);
   $("share-cv").innerHTML = shareCardSVG();
   $("share-ov").classList.add("on");
@@ -369,9 +376,9 @@ function openAgent() {
   track("cta_click");
   const won = g.deal != null;
   $("ag-lede").innerHTML = won
-    ? ('you just left <b>' + fmt(leftOf(g.deal)) + '</b> on the table against a perfect negotiator — one that never gets tired, anchored, or talked down. now point it at a real deal.')
-    : ('you walked from the whole room. a perfect negotiator would have closed it. now point it at a real deal.');
-  $("ag-fee").innerHTML = 'the model: <b>you keep what it wins.</b> the agent takes a cut only of the surplus it captures above your walk-away — so you never pay to lose.';
+    ? ('you just left <b>' + fmt(leftOf(g.deal)) + '</b> on the table against a perfect negotiator. it can coach your real ones — a raise, rent, an offer — so you don’t.')
+    : ('you walked from the whole room. a perfect negotiator would have closed it — and it can coach your real ones so you don’t.');
+  $("ag-fee").innerHTML = '<b>you set the floor; the fee is capped.</b> it takes a cut only of what it wins above your number — never pay to lose, never a surprise bill.';
   $("agent-ov").classList.add("on");
 }
 
@@ -385,11 +392,18 @@ function startOnboard() {
 
 /* ---- boot ----------------------------------------------------------------- */
 landCanyon();
+const _params = new URLSearchParams(location.search);
 // arriving on a friend's share link joins their group. prod: POST /par/group/join
-const _gArg = new URLSearchParams(location.search).get("g"); if (_gArg) localStorage.setItem("par-group", _gArg);
+const _gArg = _params.get("g"); if (_gArg) localStorage.setItem("par-group", _gArg);
 $("land-daily").textContent = "no. " + DAY.no + " · " + DAY.title + " · 5h left";
-// live social proof. prod: GET /par/stats -> {par_hits, played}
+// live social proof (GET /par/stats); the seeded stand-in is the offline fallback.
 $("land-soc").textContent = BOARD_BASE[5].n + " of " + BOARD_TOTAL + " hit par today";
+fetch(API + "/par/stats").then((r) => r.json()).then((s) => {
+  if (s && s.played != null) $("land-soc").textContent = s.par_hits + " of " + s.played + " hit par today";
+}).catch(() => { });
+// arrived via a friend's challenge link (?c=<left>): reframe the hook as a gauntlet.
+const _c = _params.get("c");
+if (_c) { const h = document.querySelector(".land .hook"); if (h) h.textContent = "a friend left " + fmt(+_c) + " on the table today. your move →"; }
 $("land-play").onclick = () => { localStorage.getItem("par-played") ? startPlay() : (localStorage.setItem("par-played", "1"), startOnboard()); };
 $("play-ask").oninput = function () { const v = +this.value; $("play-askv").textContent = fmt(v); $("play-cv-amt").textContent = fmt(v); drawPlay(v); };
 $("play-counter").onclick = counter; $("play-accept").onclick = accept; $("play-walk").onclick = walk;
