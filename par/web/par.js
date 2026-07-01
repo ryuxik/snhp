@@ -212,6 +212,16 @@ async function fetchBoards(close) {
   return { board, friends };
 }
 
+/* funnel instrumentation: fire-and-forget events so we can see where the loop leaks
+   (play -> share -> cta_view -> cta_click -> waitlist). Silent offline. */
+function track(name, meta) {
+  try { fetch(API + "/par/event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: myUser(), name: name, meta: meta || {} }) }); } catch (e) { }
+}
+async function joinWaitlist() {                          // the CTA's real destination
+  const b = $("ag-join"); b.textContent = "on the list ✓"; b.disabled = true;
+  try { await fetch(API + "/par/waitlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: myUser(), scenario: DAY.title }) }); } catch (e) { }
+}
+
 function boardHTML(b, friends) {
   const max = Math.max(...b.distribution.map((d) => d.count));
   const dist = b.distribution.map((d) =>
@@ -258,6 +268,7 @@ function finish() {
   const cta = '<div class="cta"><div class="hook">' + DAY.cta.hook + '</div><button class="cta-go" id="rev-cta">' + DAY.cta.verb + ' →</button></div>';
   $("rev-body").innerHTML = '<div style="border-top:0.5px solid var(--line);margin-top:8px;padding-top:14px">' + head + board + cta + btns + '</div>';
   $("rev-cta").onclick = openAgent;
+  track("cta_view");
   wireTabs();
   fetchBoards(won ? g.deal : null).then((real) => {   // progressive: swap in the live board
     if (!real || !$("board-slot")) return;
@@ -313,7 +324,7 @@ function resetPlay() {
 async function startPlay() {
   resetPlay(); $("play-sub").textContent = "no. " + DAY.no + " · " + DAY.title;
   $("play-house").innerHTML = '<span class="l">the house</span><span class="q">opening…</span>';
-  show("s-play");
+  show("s-play"); track("play");
   const open = await houseMove([], [], DAY.rounds);      // the House opens
   g.houseOffers.push(open.offer); g.curOffer = open.offer; g.curMsg = open.message;
   syncHouse(); drawPlay(DAY.target);
@@ -346,12 +357,14 @@ function shareResult() {
   if (navigator.clipboard) navigator.clipboard.writeText(txt);
   $("share-cv").innerHTML = shareCardSVG();
   $("share-ov").classList.add("on");
+  track("share");
 }
 
 /* the conversion bridge: the game proved the agent beats you; this turns that into intent.
    The fee model is the point — because PAR measures "$ on the table", the agent's value is
    billable: a cut of the surplus it wins above your walk-away. Aligned; you never pay to lose. */
 function openAgent() {
+  track("cta_click");
   const won = g.deal != null;
   $("ag-lede").innerHTML = won
     ? ('you just left <b>' + fmt(leftOf(g.deal)) + '</b> on the table against a perfect negotiator — one that never gets tired, anchored, or talked down. now point it at a real deal.')
@@ -380,5 +393,4 @@ $("play-ask").oninput = function () { const v = +this.value; $("play-askv").text
 $("play-counter").onclick = counter; $("play-accept").onclick = accept; $("play-walk").onclick = walk;
 $("share-close").onclick = () => $("share-ov").classList.remove("on");
 $("agent-close").onclick = () => $("agent-ov").classList.remove("on");
-// prod: POST the waitlist signup (device id, scenario) — this is a local stub.
-$("ag-join").onclick = () => { const b = $("ag-join"); b.textContent = "on the list ✓"; b.disabled = true; };
+$("ag-join").onclick = joinWaitlist;                     // POSTs /par/waitlist (+ funnel event)

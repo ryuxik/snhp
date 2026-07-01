@@ -39,15 +39,25 @@ gamed. See SPEC.md §4.
 
 ```
 par/
-  api.py          FastAPI: /par/today, /par/house_move, /par/grade, /par/submit,
-                  /par/stats, /par/group(/join), /par/bundle_move
+  api.py          FastAPI: today, house_move, grade, submit, stats, group(/join),
+                  bundle_move, waitlist, event, funnel, advise, /health — + serves the SPA
   scoreboard.py   streak / percentile / distribution / friend groups (in-memory; -> DB)
-  SPEC.md         daily rotation, the API contract, scoreboard, multi-issue generator
+  funnel.py       waitlist + funnel events (play→share→cta→waitlist); measures conversion
+  SPEC.md         daily rotation, API contract, scoreboard, identity, multi-issue generator
+  Dockerfile      par.game image (build context = repo root)
+  fly.toml        Fly app config (par.game, HTTPS, health check)
+  schema.sql      Postgres DDL — the swap target for the in-memory stores
+  DEPLOY.md       how to ship it + the in-memory → Postgres swap
   web/
-    index.html    4-screen SPA shell (landing · onboard · play · reveal) + share overlay
+    index.html    SPA shell (landing · onboard · play · reveal) + share/agent overlays
     styles.css    dark / off-white / violet palette
-    par.js        canyon + value-axis renderers, game flow, scoreboard (inline stand-in)
+    par.js        canyon + value-axis renderers, live play, scoreboard, conversion CTA
 ```
+
+`POST /par/advise` is the agent MVP: the same SNHP equilibrium the game runs, now advising
+a **real** negotiation (give it your side, walk-away, target, and the offers so far → it
+returns the move + rationale). It's the conversion the game's "the agent beat you by $X"
+has been earning. See [DEPLOY.md](DEPLOY.md) to ship the game to par.game.
 
 The engine wire lives in [`gametheory/negotiation/par_game.py`](../gametheory/negotiation/par_game.py):
 the House move, par, and a `play_out` harness. Run `python -m

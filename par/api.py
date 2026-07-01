@@ -21,9 +21,15 @@ from pydantic import BaseModel
 
 from gametheory.negotiation.par_game import Scenario, house_move, score, agent_close
 from gametheory.negotiation.bundle import negotiate_bundle
-from par import scoreboard
+from gametheory.negotiation.plain_terms import negotiate_turn
+from par import scoreboard, funnel
 
 app = FastAPI(title="PAR", description="out-negotiate a perfect AI, daily")
+
+
+@app.get("/health")
+def health() -> dict:                    # Fly healthcheck; matched before the static mount
+    return {"ok": True, "service": "par"}
 
 # The deck. One deal per day; index by days-since-epoch so everyone gets the same
 # deal on the same date (Wordle-style). Real deployment loads this from a table and
@@ -158,6 +164,66 @@ def group(group: str, day: Optional[int] = None) -> dict:
     if day is not None and day < 0:
         raise HTTPException(status_code=400, detail="day must be >= 0")
     return scoreboard.group_board(group, _day_number(day))
+
+
+# ── funnel: waitlist + event instrumentation (the growth loop, measured) ───────
+class WaitReq(BaseModel):
+    user_id: str
+    scenario: str
+    contact: Optional[str] = None       # email/phone — optional; a device id already IDs them
+
+
+@app.post("/par/waitlist")
+def waitlist(req: WaitReq) -> dict:
+    """Join the product waitlist (the CTA's real destination). Idempotent per user."""
+    size = funnel.join_waitlist(req.user_id, req.scenario, req.contact)
+    funnel.record_event(req.user_id, "waitlist", {"scenario": req.scenario})
+    return {"ok": True, "size": size}
+
+
+class EventReq(BaseModel):
+    user_id: str
+    name: str                           # play | share | cta_view | cta_click | waitlist
+    meta: Optional[dict] = None
+
+
+@app.post("/par/event")
+def event(req: EventReq) -> dict:
+    """A funnel event. Fire-and-forget from the client so we can see where it leaks."""
+    funnel.record_event(req.user_id, req.name, req.meta)
+    return {"ok": True}
+
+
+@app.get("/par/funnel")
+def funnel_stats() -> dict:
+    """The funnel: unique users per step + step-over-step conversion (the k-factor lens)."""
+    return funnel.funnel()
+
+
+# ── the agent, on a REAL deal (the MVP behind the CTA) ────────────────────────
+class AdviseReq(BaseModel):
+    side: str                           # "sell" | "buy" — YOUR side in the real negotiation
+    walk_away: float
+    target: float
+    counterparty_offers: list[float] = []
+    my_previous_offers: list[float] = []
+    rounds_left: int = 4
+
+
+@app.post("/par/advise")
+def advise(req: AdviseReq) -> dict:
+    """The agent advising your live negotiation — the SAME SNHP equilibrium the game runs,
+    now pointed at a real deal. Advisory MVP (a move at a time) before full agent-to-agent;
+    it's the conversion the game's 'the agent beat you by $X' has been earning."""
+    try:
+        rec = negotiate_turn(side=req.side, walk_away=req.walk_away, target=req.target,
+                             counterparty_offers=req.counterparty_offers,
+                             my_previous_offers=req.my_previous_offers, rounds_left=req.rounds_left)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"action": rec["action"], "recommended_price": rec.get("recommended_price"),
+            "message": rec.get("message", ""), "rationale": rec.get("rationale", ""),
+            "expected_settlement": rec.get("expected_settlement")}
 
 
 # ── multi-issue day (logrolling, graded by gt_negotiate_bundle) ───────────────

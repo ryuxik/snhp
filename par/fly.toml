@@ -1,0 +1,47 @@
+# Fly.io app config for PAR (par.game) — the daily negotiation game (SPA + API).
+# A separate app from "snhp" (the toolkit API), sharing the gametheory engine.
+#
+# One-time setup (on your laptop, from the repo root):
+#   fly auth login                       # account: ryuxik@gmail.com
+#   fly launch --no-deploy --name par --dockerfile par/Dockerfile   # writes/merges this file
+#   fly postgres create --name par-db --region sjc --vm-size shared-cpu-1x --volume-size 1
+#   fly postgres attach par-db --app par            # sets DATABASE_URL (see par/schema.sql)
+#   fly certs add par.game --app par                # custom domain + auto HTTPS
+#   fly deploy --dockerfile par/Dockerfile
+#
+# NOTE: the scoreboard/funnel stores are in-memory today — fine for one machine, but they
+# reset on deploy and don't share across instances. Keep min_machines_running = 1 until the
+# Postgres swap (par/schema.sql) lands, then you can scale out and idle to 0.
+
+app = "par"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "par/Dockerfile"
+
+[env]
+  PORT = "8080"
+  LOG_LEVEL = "info"
+  # after `fly postgres attach`, DATABASE_URL is injected; the persistence layer
+  # (par/scoreboard.py, par/funnel.py) reads it once the in-memory stores are swapped.
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_start_machines = true
+  auto_stop_machines = "stop"
+  min_machines_running = 1          # 1 until state is in Postgres (in-memory can't scale)
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
