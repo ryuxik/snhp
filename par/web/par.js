@@ -115,7 +115,8 @@ function drawReveal() {
       // your close (selling) or below it (buying).
       // hero sits right of the wedge; scale its size to the string so a wide "$19.2k" or
       // "$1,300" never clips the right edge (a small "$7k" stays big).
-      const cy = (yP + yD) / 2, hero = fmt(leftOf(g.deal)), hfs = Math.min(42, Math.round(134 / (hero.length * 0.6)));
+      // near-par wins make a thin wedge high near the ceiling label; keep the hero clear of it
+      const cy = (isSell() ? Math.max((yP + yD) / 2, yP + 30) : (yP + yD) / 2), hero = fmt(leftOf(g.deal)), hfs = Math.min(42, Math.round(134 / (hero.length * 0.6)));
       s += '<polygon points="300,' + yD + ' 470,' + yP + ' 470,' + yD + '" fill="#9D86F2"/>' +
            '<text x="486" y="' + (cy + 6) + '" font-size="' + hfs + '" fill="' + VB + '" ' + FN + '>' + hero + '</text>' +
            '<text x="488" y="' + (cy + 26) + '" font-size="12" fill="' + VD + '" ' + FN + '>on the table</text>';
@@ -257,8 +258,20 @@ function finish() {
   let head;
   if (won) {
     const ag = Math.round(DAY.par * (isSell() ? 0.975 : 1.025) / DAY.step) * DAY.step, ap = pctOf(ag);
-    const closer = Math.round(Math.abs(g.deal - ag) / DAY.step) * DAY.step;
-    head = '<div style="display:flex;align-items:baseline;gap:12px"><span style="font-size:34px;color:var(--violet);line-height:1">' + p + '%</span><span style="font-size:13px;color:var(--muted)">of par · closed ' + fmt(g.deal) + '</span></div><div style="margin-top:11px;font-size:14px;color:var(--ink-dim)">your agent would have closed <span style="color:var(--violet-bright)">' + fmt(ag) + '</span> · ' + ap + '% — sat ' + fmt(closer) + ' closer than you</div>';
+    // reward mastery, not just show a gap: a personal best (fires even on a loss), and the
+    // rare "beat the agent" / "at par" wins — so the game isn't only ever "you're bad".
+    const prevBest = +(localStorage.getItem("par-best") || 0);
+    const isBest = p > prevBest; if (isBest) localStorage.setItem("par-best", p);
+    const pb = isBest ? '<div style="margin-top:9px;font-size:13px;color:var(--violet-bright)">★ new personal best</div>' : '';
+    const bigWord = p >= 100 ? "at par" : (p + "%");
+    let line;
+    if (p >= 100)                                        // matched a perfect negotiator
+      line = 'you closed at <b style="color:var(--violet-bright)">par</b>. you matched a perfect negotiator — almost nobody does.';
+    else if (p >= ap)                                    // closer to par than our own agent — the rare win
+      line = 'you <b style="color:var(--violet-bright)">beat the agent</b> — it lands ' + ap + '% of par, and you got past it.';
+    else                                                 // the default gut-punch
+      line = 'your agent would have closed <span style="color:var(--violet-bright)">' + fmt(ag) + '</span> · ' + ap + '% — sat ' + fmt(Math.round(Math.abs(g.deal - ag) / DAY.step) * DAY.step) + ' closer than you';
+    head = '<div style="display:flex;align-items:baseline;gap:12px"><span style="font-size:34px;color:var(--violet);line-height:1">' + bigWord + '</span><span style="font-size:13px;color:var(--muted)">' + (p >= 100 ? "" : "of par · ") + 'closed ' + fmt(g.deal) + '</span></div><div style="margin-top:11px;font-size:14px;color:var(--ink-dim)">' + line + '</div>' + pb;
   } else {
     const missed = isSell() ? ("the House would have paid up to " + fmt(DAY.par) + ". you left all of it.")
                             : ("the House would have sold for as low as " + fmt(DAY.par) + ". you walked from all of it.");
@@ -339,9 +352,10 @@ async function startPlay() {
 function shareCardSVG() {
   const won = g.deal != null;
   const pct = won ? pctOf(g.deal) : 0;
-  const hero = won ? fmt(leftOf(g.deal)) : "no deal";
-  const hs = won ? Math.min(92, Math.round(230 / (hero.length * 0.62))) : 52;  // scale to the void so a wide "$19.2k" never clips
-  const sub = won ? "left on the table" : "walked — all of it";
+  const atPar = won && leftOf(g.deal) <= 0;             // matched par — flex, not "$0k left"
+  const hero = !won ? "no deal" : atPar ? "at par" : fmt(leftOf(g.deal));
+  const hs = !won ? 52 : atPar ? 62 : Math.min(92, Math.round(230 / (hero.length * 0.62)));  // scale so a wide "$19.2k" never clips
+  const sub = !won ? "walked — all of it" : atPar ? "you matched perfect" : "left on the table";
   const closed = won ? ("you closed " + fmt(g.deal)) : "you walked away";
   return '<text x="44" y="60" font-size="24" letter-spacing="5" fill="#E8E8E3" ' + FN + '>PAR</text>'
     + '<text x="496" y="60" font-size="13" fill="#7C7C77" text-anchor="end" ' + FN + '>no. ' + DAY.no + ' · ' + DAY.title + '</text>'
@@ -357,12 +371,15 @@ function shareCardSVG() {
 }
 function shareResult() {
   const won = g.deal != null, p = won ? pctOf(g.deal) : 0;
+  const ap = pctOf(Math.round(DAY.par * (isSell() ? 0.975 : 1.025) / DAY.step) * DAY.step);
   // a CHALLENGE, not a report: the link seeds the recipient into MY group (?g=) and carries
-  // my "left on the table" (?c=) so their landing reads "a friend left $X — beat them".
+  // my "left on the table" (?c=). The brag flips to a flex when you win.
+  const brag = !won ? "i walked it. beat me:"
+    : p >= 100 ? "i hit PAR — matched a perfect negotiator. beat me:"
+    : p >= ap ? "i beat the agent (" + p + "% of par). beat me:"
+    : "i left " + fmt(leftOf(g.deal)) + " on the table (" + p + "% of par). beat me:";
   const link = "par.game/?g=" + myGroup() + (won ? "&c=" + Math.round(leftOf(g.deal)) : "");
-  const txt = "PAR no." + DAY.no + " — " +
-    (won ? "i left " + fmt(leftOf(g.deal)) + " on the table (" + p + "% of par). beat me:" : "i walked it. beat me:") +
-    "\n" + link;
+  const txt = "PAR no." + DAY.no + " — " + brag + "\n" + link;
   if (navigator.clipboard) navigator.clipboard.writeText(txt);
   $("share-cv").innerHTML = shareCardSVG();
   $("share-ov").classList.add("on");
