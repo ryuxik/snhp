@@ -312,8 +312,8 @@ async function counter() {
   if (g.t >= DAY.rounds) { g.walked = true; finish(); return; }     // deadline: no rounds left
   syncHouse(); drawPlay(+$("play-ask").value);
 }
-function accept() { g.deal = g.curOffer; finish(); }                 // take the standing offer
-function walk() { g.walked = true; finish(); }
+function accept() { if (g.busy || g.curOffer == null) return; g.deal = g.curOffer; finish(); }  // take the standing offer
+function walk() { if (g.busy) return; g.walked = true; finish(); }
 function resetPlay() {
   g.t = 0; g.asks = []; g.houseOffers = []; g.curOffer = null; g.curMsg = ""; g.deal = null; g.walked = false; g.over = false; g.busy = false;
   $("play-house").style.display = "flex";
@@ -322,11 +322,13 @@ function resetPlay() {
   $("play-askv").textContent = fmt(DAY.target); $("play-cv-amt").textContent = fmt(DAY.target);
 }
 async function startPlay() {
-  resetPlay(); $("play-sub").textContent = "no. " + DAY.no + " · " + DAY.title;
+  resetPlay(); g.busy = true;                            // lock counter/accept/walk until the House opens
+  $("play-sub").textContent = "no. " + DAY.no + " · " + DAY.title;
   $("play-house").innerHTML = '<span class="l">the house</span><span class="q">opening…</span>';
   show("s-play"); track("play");
   const open = await houseMove([], [], DAY.rounds);      // the House opens
   g.houseOffers.push(open.offer); g.curOffer = open.offer; g.curMsg = open.message;
+  g.busy = false;                                        // unlock — controls now act on a real offer
   syncHouse(); drawPlay(DAY.target);
 }
 
