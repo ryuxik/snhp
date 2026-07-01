@@ -1,37 +1,41 @@
 "use strict";
 /* PAR — the front end. Renders the loop-locked screens (landing, onboarding, play,
-   reveal) and runs the daily negotiation. The House's moves and `par` are served by
-   the SNHP engine in production (see ../api.py / ../SPEC.md); this file ships a local
-   stand-in so `index.html` runs offline. Swap `DAY`/`houseAccepts` for fetch() to go live.
+   reveal) and runs the daily negotiation LIVE against the SNHP engine: every House move
+   is POST /par/house_move and the score/board are POST /par/submit + /par/group (see
+   ../api.py / ../SPEC.md). Each call falls back to an offline stand-in, so index.html
+   still runs with zero backend.
 
    SIDE-AWARE: a scenario is "sell" (you want a HIGH number, the House buys) or "buy"
    (you want LOW, the House sells). The play canyon is symmetric (it shows the |gap|), so
-   the direction shows up only in labels, the slider clamp, the accept test, and scoring.
-   All money is in k-units so "$Xk" formats both a $118k salary and an $11.2k car. */
+   the direction shows up only in labels, the slider clamp, and scoring. Money is in each
+   scenario's native units (a $118k salary, an $11,200 car) via a per-scenario `unit`. */
 const $ = (id) => document.getElementById(id);
 const show = (id) => document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("on", s.id === id));
 const FN = 'font-family="ui-monospace,Menlo,monospace"';
 const V = "#A78BFA", VB = "#BBA6FF", VD = "#9385D6";
-const fmt = (v) => "$" + (Math.round(v * 10) / 10) + "k";
+// per-scenario unit: "k" -> "$118k" (salary, in thousands); "" -> "$11,200" (car, raw $).
+const fmt = (v) => DAY.unit === "k" ? ("$" + (Math.round(v * 10) / 10) + "k") : ("$" + Math.round(v).toLocaleString());
 
 /* ---- today's deal (prod: GET /par/today) ---------------------------------- */
 /* floor = YOUR walk-away (sell: the least you'd take; buy: the most you'd pay).
-   target = your aspiration. offers/willing/msg = the offline House stand-in. */
+   target = your aspiration. offers/willing/msg = the OFFLINE House stand-in (online,
+   every move comes from POST /par/house_move). Values are in each scenario's native units
+   and match the backend deck, so a submitted close grades correctly either way. */
 const SCENARIOS = {
   sell: {
     no: 216, side: "sell", title: "the salary talk", floor: 90, target: 130, par: 118, rounds: 5,
-    axisMin: 90, axisMax: 124, gapK: 4, step: 1,
+    unit: "k", axisMin: 90, axisMax: 124, gapK: 4, step: 1,
     offers: [95, 103, 109, 114, 117], willing: [98, 106, 111, 115, 118],
     msg: ['“We can do $95k.”', '“I can stretch to $103k.”', '“$109k — near the top of band.”',
       '“$114k, out on a limb here.”', '“Final: $117k. Take it or we re-open.”'],
   },
   buy: {
-    no: 214, side: "buy", title: "the used car", floor: 14, target: 9, par: 11, rounds: 5,
-    axisMin: 9, axisMax: 14, gapK: 32, step: 0.1,
-    offers: [13, 12.4, 11.9, 11.5, 11.2], willing: [12.4, 11.9, 11.5, 11.2, 11.0],
-    msg: ['“$13k, and that’s me being nice.”', '“I could come down to $12.4k.”',
-      '“$11.9k — now you’re squeezing me.”', '“$11.5k, that’s basically cost.”',
-      '“$11.2k. Last number, take it.”'],
+    no: 214, side: "buy", title: "the used car", floor: 14000, target: 9000, par: 11200, rounds: 5,
+    unit: "", axisMin: 9000, axisMax: 14000, gapK: 0.032, step: 100,
+    offers: [13000, 12400, 11900, 11500, 11200], willing: [12400, 11900, 11500, 11200, 11000],
+    msg: ['“$13,000, and that’s me being nice.”', '“I could come down to $12,400.”',
+      '“$11,900 — now you’re squeezing me.”', '“$11,500, that’s basically cost.”',
+      '“$11,200. Last number, take it.”'],
   },
 };
 const DAY = SCENARIOS[new URLSearchParams(location.search).get("s") === "buy" ? "buy" : "sell"];
@@ -68,29 +72,23 @@ function onbBeat(p) {
 }
 
 /* ---- play: the live canyon (frontier, open channel, preview) -------------- */
-const g = { t: 0, asks: [], deal: null, walked: false, over: false };
+const g = { t: 0, asks: [], houseOffers: [], curOffer: null, curMsg: "", deal: null, walked: false, over: false, busy: false };
 function xR(i) { return 50 + i * 110; }
 function gpx(a, o) { return Math.max(6, Math.min(190, Math.abs(a - o) * DAY.gapK)); }
 function drawPlay(C) {
   const fi = g.t, top = [], bot = [];
   const ask = (i) => (i < g.t ? g.asks[i] : C);
-  for (let i = 0; i <= fi; i++) { const gg = gpx(ask(i), DAY.offers[i]); top.push([xR(i), 120 - gg / 2]); bot.push([xR(i), 120 + gg / 2]); }
+  for (let i = 0; i <= fi; i++) { const gg = gpx(ask(i), g.houseOffers[i]); top.push([xR(i), 120 - gg / 2]); bot.push([xR(i), 120 + gg / 2]); }
   const fx = xR(fi), ft = top[fi][1], fb = bot[fi][1];
   let tp = "M0,0 L540,0 L540," + ft + " L" + fx + "," + ft + " "; for (let i = fi - 1; i >= 0; i--) tp += "L" + top[i][0] + "," + top[i][1] + " "; tp += "L0," + top[0][1] + " Z";
   let bp = "M0,240 L540,240 L540," + fb + " L" + fx + "," + fb + " "; for (let i = fi - 1; i >= 0; i--) bp += "L" + bot[i][0] + "," + bot[i][1] + " "; bp += "L0," + bot[0][1] + " Z";
   let s = '<path fill="#E8E8E3" d="' + tp + '"/><path fill="#E8E8E3" d="' + bp + '"/>';
   for (let i = fi + 1; i < DAY.rounds; i++) s += '<line x1="' + xR(i) + '" y1="' + ft + '" x2="' + xR(i) + '" y2="' + fb + '" stroke="#34353C" stroke-width="1" stroke-dasharray="3 5"/><text x="' + xR(i) + '" y="' + (fb + 22) + '" font-size="12" fill="#4A4B52" text-anchor="middle" ' + FN + '>' + (i + 1) + '</text>';
-  if (g.t < DAY.rounds - 1) {
-    const nx = xR(g.t + 1), ng = gpx(C, DAY.offers[g.t + 1]), nt = 120 - ng / 2, nb = 120 + ng / 2, ny = Math.abs(C - DAY.offers[g.t + 1]);
-    s += '<path d="M' + fx + ',' + ft + ' L' + nx + ',' + nt + ' L' + nx + ',' + nb + ' L' + fx + ',' + fb + ' Z" fill="' + V + '" fill-opacity="0.16"/>' +
-         '<line x1="' + nx + '" y1="' + nt + '" x2="' + nx + '" y2="' + nb + '" stroke="' + V + '" stroke-width="2.5"/>' +
-         '<text x="' + (nx + 12) + '" y="119" font-size="12.5" fill="' + VD + '" ' + FN + '>closes to ' + fmt(ny) + '</text>';
-  }
   const topLabel = isSell() ? "you want ↑" : "the house ↑", botLabel = isSell() ? "the house ↓" : "you want ↓";
   s += '<line x1="' + fx + '" y1="' + (ft - 4) + '" x2="' + fx + '" y2="' + (fb + 4) + '" stroke="#E8E8E3" stroke-width="2"/>' +
        '<circle cx="' + fx + '" cy="' + ft + '" r="4.5" fill="#E8E8E3"/><circle cx="' + fx + '" cy="' + fb + '" r="4.5" fill="#9A9A93"/>' +
        '<text x="' + fx + '" y="' + (ft - 13) + '" font-size="11" fill="#6B6C73" text-anchor="middle" ' + FN + '>now</text>' +
-       '<text x="' + Math.max(fx - 12, 92) + '" y="124" font-size="13" fill="#9A9A93" text-anchor="end" ' + FN + '>' + fmt(Math.abs(C - DAY.offers[g.t])) + ' apart</text>' +
+       '<text x="' + Math.max(fx - 12, 92) + '" y="124" font-size="13" fill="#9A9A93" text-anchor="end" ' + FN + '>' + fmt(Math.abs(C - g.curOffer)) + ' apart</text>' +
        '<text x="14" y="20" font-size="14" fill="#13151A" ' + FN + '>' + topLabel + '</text><text x="14" y="232" font-size="14" fill="#13151A" ' + FN + '>' + botLabel + '</text>';
   $("play-cv").innerHTML = s;
 }
@@ -108,7 +106,7 @@ function drawReveal() {
   if (g.deal != null) {
     const yD = ym(g.deal);
     // the two paths your asks took, converging on where you actually closed
-    s += '<path d="M40,' + ym(DAY.target) + ' L300,' + yD + '" fill="none" stroke="#4F505A" stroke-width="1.5"/><path d="M40,' + ym(DAY.offers[0]) + ' L300,' + yD + '" fill="none" stroke="#4F505A" stroke-width="1.5"/>';
+    s += '<path d="M40,' + ym(DAY.target) + ' L300,' + yD + '" fill="none" stroke="#4F505A" stroke-width="1.5"/><path d="M40,' + ym(g.houseOffers[0]) + ' L300,' + yD + '" fill="none" stroke="#4F505A" stroke-width="1.5"/>';
     if (g.deal !== DAY.par) {
       // the wedge = the value between your close and par. The hero number sits to the
       // RIGHT of it on the dark field, vertically centred — works whether par is above
@@ -118,7 +116,10 @@ function drawReveal() {
            '<text x="516" y="' + (cy + 6) + '" font-size="42" fill="' + VB + '" ' + FN + '>' + fmt(leftOf(g.deal)) + '</text>' +
            '<text x="518" y="' + (cy + 28) + '" font-size="12" fill="' + VD + '" ' + FN + '>on the table</text>';
     } else s += '<text x="430" y="' + (yP + 40) + '" font-size="24" fill="' + VB + '" text-anchor="middle" ' + FN + '>at par.</text>';
-    s += '<circle cx="300" cy="' + yD + '" r="6" fill="' + V + '"/><text x="294" y="' + (yD + 22) + '" font-size="13" fill="#C9C9C4" text-anchor="end" ' + FN + '>you closed ' + fmt(g.deal) + '</text><text x="44" y="' + (ym(DAY.target) - 6) + '" font-size="11" fill="#6B6C73" ' + FN + '>your ask</text>';
+    // put the close label on the side away from par: below the node when par is the ceiling
+    // (above), above the node when par is the floor (below) — so it never lands on the par line.
+    const clY = isSell() ? yD + 22 : yD - 12;
+    s += '<circle cx="300" cy="' + yD + '" r="6" fill="' + V + '"/><text x="294" y="' + clY + '" font-size="13" fill="#C9C9C4" text-anchor="end" ' + FN + '>you closed ' + fmt(g.deal) + '</text><text x="44" y="' + (ym(DAY.target) - 6) + '" font-size="11" fill="#6B6C73" ' + FN + '>your ask</text>';
   } else {
     const yF = ym(DAY.floor), cy = (yF + yP) / 2;
     s += '<polygon points="40,' + yF + ' 500,' + yP + ' 500,' + yF + '" fill="#5A4FA0" fill-opacity="0.25"/><text x="516" y="' + cy + '" font-size="26" fill="#B05A55" ' + FN + '>walked</text><text x="518" y="' + (cy + 22) + '" font-size="12" fill="#8A8A85" ' + FN + '>the whole room — gone</text>';
@@ -128,8 +129,8 @@ function drawReveal() {
 
 /* ---- play flow ------------------------------------------------------------ */
 function syncHouse() {
-  const o = DAY.offers[g.t];
-  $("play-house").innerHTML = '<span class="l">the house</span><span class="a">' + fmt(o) + '</span><span class="q">' + DAY.msg[g.t] + '</span>';
+  const o = g.curOffer;
+  $("play-house").innerHTML = '<span class="l">the house</span><span class="a">' + fmt(o) + '</span><span class="q">' + g.curMsg + '</span>';
   $("play-acc-amt").textContent = fmt(o); $("play-rnd").textContent = "round " + (g.t + 1) + " / " + DAY.rounds;
   // you'd never cross the number already on the table — that's just "accept". Selling:
   // don't counter BELOW their offer (clamp the min). Buying: don't offer ABOVE it (clamp max).
@@ -184,14 +185,8 @@ function myUser() {
   if (!u) { u = "u_" + Math.random().toString(36).slice(2, 10); localStorage.setItem("par-user", u); }
   return u;
 }
-function myName() {
-  let n = localStorage.getItem("par-name");
-  if (!n) {
-    n = ((typeof prompt === "function" && prompt("pick a name for the leaderboard")) || "").trim().slice(0, 16) || "player";
-    localStorage.setItem("par-name", n);
-  }
-  return n;
-}
+function myName() { return localStorage.getItem("par-name") || "you"; }   // non-blocking default
+function setMyName(n) { localStorage.setItem("par-name", (n || "").trim().slice(0, 16) || "you"); }
 function localFriends(myPct) {
   const rows = FRIENDS.concat([{ name: myName(), pct: myPct, you: true }]);
   rows.sort((a, b) => (b.pct == null ? -1 : a.pct == null ? 1 : b.pct - a.pct));
@@ -225,7 +220,9 @@ function boardHTML(b, friends) {
     '</span><span>you beat <b>' + b.percentile + '%</b> today</span></div>' +
     '<div class="tabs"><button class="tab on" data-v="everyone">everyone</button><button class="tab" data-v="friends">friends</button></div>' +
     '<div id="bv-everyone" class="bview"><div class="dist">' + dist + '</div></div>' +
-    '<div id="bv-friends" class="bview" style="display:none"><div class="flist">' + fl + '</div></div></div>';
+    '<div id="bv-friends" class="bview" style="display:none">' +
+    '<input id="fname" class="fname" maxlength="16" placeholder="your name — appears on the board" value="' +
+    (localStorage.getItem("par-name") || "") + '"><div class="flist">' + fl + '</div></div></div>';
 }
 function wireTabs() {
   document.querySelectorAll(".tab").forEach((t) => t.onclick = () => {
@@ -233,6 +230,8 @@ function wireTabs() {
     $("bv-everyone").style.display = t.dataset.v === "everyone" ? "block" : "none";
     $("bv-friends").style.display = t.dataset.v === "friends" ? "block" : "none";
   });
+  const f = $("fname");                                   // inline name (persists; applies next play)
+  if (f) f.onchange = () => setMyName(f.value);
 }
 
 function finish() {
@@ -261,22 +260,57 @@ function finish() {
   $("rev-again").onclick = () => { resetPlay(); show("s-landing"); };
   $("rev-share").onclick = shareResult;
 }
-// prod: the LIVE House decides — replace with `rec.action === "accept"` from POST
-// /par/house_move. DAY.willing is the offline stand-in's hidden threshold. Selling: they
-// accept an ask at/below what they'll pay; buying: an ask at/above what they'll take.
-function houseAccepts(ask) { return isSell() ? ask <= DAY.willing[g.t] : ask >= DAY.willing[g.t]; }
-function counter() { const C = +$("play-ask").value; g.asks[g.t] = C;
-  if (houseAccepts(C)) { g.deal = C; finish(); return; }
-  g.t++; if (g.t >= DAY.rounds) { g.walked = true; finish(); return; } syncHouse(); drawPlay(+$("play-ask").value); }
-function accept() { g.asks[g.t] = DAY.offers[g.t]; g.deal = DAY.offers[g.t]; finish(); }
+/* The House, live. Each round POSTs /par/house_move and the SNHP equilibrium decides
+   (accept | counter | walk); offline it falls back to the same shape from the stand-in
+   arrays. `i` = how many offers the House has already made (0 = its opening). */
+function standInHouse(yourOffers, houseOffers) {
+  const i = houseOffers.length, lastAsk = yourOffers[yourOffers.length - 1];
+  if (lastAsk != null && i >= 1) {
+    const w = DAY.willing[i - 1], hit = isSell() ? lastAsk <= w : lastAsk >= w;
+    if (hit) return { action: "accept", offer: lastAsk, message: "Deal." };
+  }
+  if (i >= DAY.rounds) return { action: "walk", offer: null, message: "We're done here." };
+  return { action: "counter", offer: DAY.offers[i], message: DAY.msg[i] };
+}
+async function houseMove(yourOffers, houseOffers, roundsLeft) {
+  try {
+    const r = await fetch(API + "/par/house_move", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ day: DAY.no, your_offers: yourOffers, house_offers: houseOffers, rounds_left: roundsLeft }),
+    });
+    if (!r.ok) throw 0;
+    return await r.json();                              // {action, offer, message}
+  } catch (e) { return standInHouse(yourOffers, houseOffers); }
+}
+
+async function counter() {
+  if (g.busy) return; g.busy = true;
+  const C = +$("play-ask").value; g.asks[g.t] = C;
+  const rec = await houseMove(g.asks, g.houseOffers, Math.max(1, DAY.rounds - g.t));
+  g.busy = false;
+  if (rec.action === "accept") { g.deal = C; finish(); return; }   // House met your ask
+  if (rec.action === "walk") { g.walked = true; finish(); return; }
+  g.houseOffers.push(rec.offer); g.curOffer = rec.offer; g.curMsg = rec.message; g.t++;
+  if (g.t >= DAY.rounds) { g.walked = true; finish(); return; }     // deadline: no rounds left
+  syncHouse(); drawPlay(+$("play-ask").value);
+}
+function accept() { g.deal = g.curOffer; finish(); }                 // take the standing offer
 function walk() { g.walked = true; finish(); }
 function resetPlay() {
-  g.t = 0; g.asks = []; g.deal = null; g.walked = false; g.over = false; $("play-house").style.display = "flex";
+  g.t = 0; g.asks = []; g.houseOffers = []; g.curOffer = null; g.curMsg = ""; g.deal = null; g.walked = false; g.over = false; g.busy = false;
+  $("play-house").style.display = "flex";
   const el = $("play-ask"), lo = Math.min(DAY.target, DAY.floor), hi = Math.max(DAY.target, DAY.floor);
   el.min = lo; el.max = hi; el.step = DAY.step; el.value = DAY.target;
   $("play-askv").textContent = fmt(DAY.target); $("play-cv-amt").textContent = fmt(DAY.target);
 }
-function startPlay() { resetPlay(); $("play-sub").textContent = "no. " + DAY.no + " · " + DAY.title; syncHouse(); drawPlay(DAY.target); show("s-play"); }
+async function startPlay() {
+  resetPlay(); $("play-sub").textContent = "no. " + DAY.no + " · " + DAY.title;
+  $("play-house").innerHTML = '<span class="l">the house</span><span class="q">opening…</span>';
+  show("s-play");
+  const open = await houseMove([], [], DAY.rounds);      // the House opens
+  g.houseOffers.push(open.offer); g.curOffer = open.offer; g.curMsg = open.message;
+  syncHouse(); drawPlay(DAY.target);
+}
 
 /* the iconic, screenshot-ready result card. The HOLE is the hero: the violet void =
    what you left on the table (the regret), the deal demoted to a thin muted line. */
