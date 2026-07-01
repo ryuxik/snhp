@@ -16,7 +16,9 @@ Front end (zero backend — ships with an inline scenario stand-in):
 
 ```sh
 cd par/web && python3 -m http.server 8100
-# open http://localhost:8100
+# open http://localhost:8100            (a sell day: the salary talk)
+# open http://localhost:8100/?s=buy     (a buy day: the used car)
+# open http://localhost:8100/?g=abc123  (arrive on a friend's group link)
 ```
 
 Backend (the live daily API):
@@ -31,9 +33,9 @@ uvicorn par.api:app --reload --port 8099
 
 ```
 par/
-  api.py          FastAPI: /par/today, /par/house_move, /par/grade,
-                  /par/submit, /par/stats, /par/bundle_move
-  scoreboard.py   streak / percentile / distribution (in-memory; swaps for a DB table)
+  api.py          FastAPI: /par/today, /par/house_move, /par/grade, /par/submit,
+                  /par/stats, /par/group(/join), /par/bundle_move
+  scoreboard.py   streak / percentile / distribution / friend groups (in-memory; -> DB)
   SPEC.md         daily rotation, the API contract, scoreboard, multi-issue generator
   web/
     index.html    4-screen SPA shell (landing · onboard · play · reveal) + share overlay

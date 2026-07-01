@@ -134,6 +134,29 @@ def stats(day: Optional[int] = None) -> dict:
     return {"no": n, **scoreboard.stats(n)}
 
 
+# ── friends leaderboard (the spread loop: beat your friends, not the crowd) ────
+class JoinReq(BaseModel):
+    group: str
+    user_id: str
+    name: Optional[str] = None
+
+
+@app.post("/par/group/join")
+def group_join(req: JoinReq) -> dict:
+    """Join a friend group. The group id rides in on a shared link (par.game/?g=<id>);
+    opening a friend's link is what seeds the group."""
+    scoreboard.join_group(req.group, req.user_id, req.name or req.user_id)
+    return {"group": req.group, "ok": True}
+
+
+@app.get("/par/group")
+def group(group: str, day: Optional[int] = None) -> dict:
+    """Today's ranked leaderboard for one friend group."""
+    if day is not None and day < 0:
+        raise HTTPException(status_code=400, detail="day must be >= 0")
+    return scoreboard.group_board(group, _day_number(day))
+
+
 # ── multi-issue day (logrolling, graded by gt_negotiate_bundle) ───────────────
 class BundleReq(BaseModel):
     issues: list[dict]                  # {name, options, my_utility, their_utility}
@@ -154,3 +177,4 @@ def bundle_move(req: BundleReq) -> dict:
 # so /par/stats and the reveal histogram render alive offline. Remove with the real table.
 for _d in {_day_number(None), 0, 1, 2, 3}:
     scoreboard.seed_demo(_d)
+    scoreboard.seed_group_demo("demo", _d)

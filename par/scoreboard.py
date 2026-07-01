@@ -20,6 +20,8 @@ from typing import Optional
 _results: "defaultdict[int, dict]" = defaultdict(dict)
 # user_id -> {"current": int, "max": int, "last_day": int|None}
 _streaks: dict = {}
+# group_id -> {user_id: display_name}  (a friend group, seeded by the share link)
+_groups: "defaultdict[str, dict]" = defaultdict(dict)
 
 # pct_of_par buckets for the reveal's "where everyone landed" histogram
 _BUCKETS = [(0, 60, "<60"), (60, 70, "60s"), (70, 80, "70s"),
@@ -71,6 +73,43 @@ def stats(day: int) -> dict:
         "top_pct": max(pcts) if pcts else None,
         "distribution": _bucketize(pcts),
     }
+
+
+def join_group(group_id: str, user_id: str, name: str) -> None:
+    """Add a player to a friend group. The group_id rides in on the share link
+    (par.game/?g=<id>); opening a friend's link is what seeds the group."""
+    _groups[group_id][user_id] = name or user_id
+
+
+def group_board(group_id: str, day: int) -> dict:
+    """Today's ranked leaderboard for one friend group: each member with their pct_of_par
+    (None if they haven't played yet), sorted best-first. This is the loop that actually
+    spreads a daily game — you share to beat your friends, not the anonymous crowd."""
+    members = _groups.get(group_id, {})
+    today = _results.get(day, {})
+    rows = []
+    for uid, name in members.items():
+        r = today.get(uid)
+        rows.append({"user": uid, "name": name,
+                     "pct": r["pct"] if r else None, "played": r is not None})
+    rows.sort(key=lambda x: (x["played"], x["pct"] or 0), reverse=True)
+    for i, row in enumerate(rows):
+        row["rank"] = i + 1
+    return {"group": group_id, "members": len(members),
+            "played": sum(1 for r in rows if r["played"]), "board": rows}
+
+
+def seed_group_demo(group_id: str, day: int) -> None:
+    """DEMO ONLY — a friend group with a few named players who already finished today, so
+    the leaderboard renders alive offline. Remove with the real groups table."""
+    if _groups.get(group_id):
+        return
+    friends = [("maya", "Maya", 96.0), ("dev", "Dev", 88.0),
+               ("sam", "Sam", 74.0), ("priya", "Priya", 61.0), ("theo", "Theo", None)]
+    for uid, name, pct in friends:
+        _groups[group_id][uid] = name
+        if pct is not None:
+            _results[day][uid] = {"pct": pct, "walked": False}
 
 
 def seed_demo(day: int, n: int = 240) -> None:

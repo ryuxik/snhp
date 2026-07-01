@@ -2,23 +2,43 @@
 /* PAR — the front end. Renders the loop-locked screens (landing, onboarding, play,
    reveal) and runs the daily negotiation. The House's moves and `par` are served by
    the SNHP engine in production (see ../api.py / ../SPEC.md); this file ships a local
-   stand-in so `index.html` runs offline. Swap `house` / `DAY` for fetch() to go live. */
+   stand-in so `index.html` runs offline. Swap `DAY`/`houseAccepts` for fetch() to go live.
+
+   SIDE-AWARE: a scenario is "sell" (you want a HIGH number, the House buys) or "buy"
+   (you want LOW, the House sells). The play canyon is symmetric (it shows the |gap|), so
+   the direction shows up only in labels, the slider clamp, the accept test, and scoring.
+   All money is in k-units so "$Xk" formats both a $118k salary and an $11.2k car. */
 const $ = (id) => document.getElementById(id);
 const show = (id) => document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("on", s.id === id));
 const FN = 'font-family="ui-monospace,Menlo,monospace"';
 const V = "#A78BFA", VB = "#BBA6FF", VD = "#9385D6";
+const fmt = (v) => "$" + (Math.round(v * 10) / 10) + "k";
 
 /* ---- today's deal (prod: GET /par/today) ---------------------------------- */
-const DAY = {
-  no: 214, title: "the salary talk", floor: 90, target: 130, par: 118, rounds: 5,
-  offers: [95, 103, 109, 114, 117],          // prod: each round POST /par/house_move -> SNHP
-  willing: [98, 106, 111, 115, 118],
-  msg: ['“We can do $95k.”', '“I can stretch to $103k.”', '“$109k — near the top of band.”',
-        '“$114k, out on a limb here.”', '“Final: $117k. Take it or we re-open.”'],
+/* floor = YOUR walk-away (sell: the least you'd take; buy: the most you'd pay).
+   target = your aspiration. offers/willing/msg = the offline House stand-in. */
+const SCENARIOS = {
+  sell: {
+    no: 214, side: "sell", title: "the salary talk", floor: 90, target: 130, par: 118, rounds: 5,
+    axisMin: 90, axisMax: 124, gapK: 4, step: 1,
+    offers: [95, 103, 109, 114, 117], willing: [98, 106, 111, 115, 118],
+    msg: ['“We can do $95k.”', '“I can stretch to $103k.”', '“$109k — near the top of band.”',
+      '“$114k, out on a limb here.”', '“Final: $117k. Take it or we re-open.”'],
+  },
+  buy: {
+    no: 215, side: "buy", title: "the used car", floor: 14, target: 9, par: 11, rounds: 5,
+    axisMin: 9, axisMax: 14, gapK: 32, step: 0.1,
+    offers: [13, 12.4, 11.9, 11.5, 11.2], willing: [12.4, 11.9, 11.5, 11.2, 11.0],
+    msg: ['“$13k, and that’s me being nice.”', '“I could come down to $12.4k.”',
+      '“$11.9k — now you’re squeezing me.”', '“$11.5k, that’s basically cost.”',
+      '“$11.2k. Last number, take it.”'],
+  },
 };
-
-/* ---- shared geometry ------------------------------------------------------ */
-function poly(pts) { return pts.map((p, i) => (i ? "L" : "M") + p[0] + "," + p[1]).join(" "); }
+const DAY = SCENARIOS[new URLSearchParams(location.search).get("s") === "buy" ? "buy" : "sell"];
+const isSell = () => DAY.side === "sell";
+// scoring, direction baked in: selling wants high (deal/par), buying wants low (par/deal).
+const pctOf = (deal) => Math.round((isSell() ? deal / DAY.par : DAY.par / deal) * 100);
+const leftOf = (deal) => Math.round((isSell() ? DAY.par - deal : deal - DAY.par) * 10) / 10;
 
 /* ---- landing brand mark (the iconic canyon, violet seal) ------------------ */
 function landCanyon() {
@@ -50,7 +70,7 @@ function onbBeat(p) {
 /* ---- play: the live canyon (frontier, open channel, preview) -------------- */
 const g = { t: 0, asks: [], deal: null, walked: false, over: false };
 function xR(i) { return 50 + i * 110; }
-function gpx(a, o) { return Math.max(6, Math.min(190, (a - o) * 4)); }
+function gpx(a, o) { return Math.max(6, Math.min(190, Math.abs(a - o) * DAY.gapK)); }
 function drawPlay(C) {
   const fi = g.t, top = [], bot = [];
   const ask = (i) => (i < g.t ? g.asks[i] : C);
@@ -61,40 +81,47 @@ function drawPlay(C) {
   let s = '<path fill="#E8E8E3" d="' + tp + '"/><path fill="#E8E8E3" d="' + bp + '"/>';
   for (let i = fi + 1; i < DAY.rounds; i++) s += '<line x1="' + xR(i) + '" y1="' + ft + '" x2="' + xR(i) + '" y2="' + fb + '" stroke="#34353C" stroke-width="1" stroke-dasharray="3 5"/><text x="' + xR(i) + '" y="' + (fb + 22) + '" font-size="12" fill="#4A4B52" text-anchor="middle" ' + FN + '>' + (i + 1) + '</text>';
   if (g.t < DAY.rounds - 1) {
-    const nx = xR(g.t + 1), ng = gpx(C, DAY.offers[g.t + 1]), nt = 120 - ng / 2, nb = 120 + ng / 2, ny = Math.max(0, C - DAY.offers[g.t + 1]);
+    const nx = xR(g.t + 1), ng = gpx(C, DAY.offers[g.t + 1]), nt = 120 - ng / 2, nb = 120 + ng / 2, ny = Math.abs(C - DAY.offers[g.t + 1]);
     s += '<path d="M' + fx + ',' + ft + ' L' + nx + ',' + nt + ' L' + nx + ',' + nb + ' L' + fx + ',' + fb + ' Z" fill="' + V + '" fill-opacity="0.16"/>' +
          '<line x1="' + nx + '" y1="' + nt + '" x2="' + nx + '" y2="' + nb + '" stroke="' + V + '" stroke-width="2.5"/>' +
-         '<text x="' + (nx + 12) + '" y="119" font-size="12.5" fill="' + VD + '" ' + FN + '>closes to $' + ny + 'k</text>';
+         '<text x="' + (nx + 12) + '" y="119" font-size="12.5" fill="' + VD + '" ' + FN + '>closes to ' + fmt(ny) + '</text>';
   }
+  const topLabel = isSell() ? "you want ↑" : "the house ↑", botLabel = isSell() ? "the house ↓" : "you want ↓";
   s += '<line x1="' + fx + '" y1="' + (ft - 4) + '" x2="' + fx + '" y2="' + (fb + 4) + '" stroke="#E8E8E3" stroke-width="2"/>' +
        '<circle cx="' + fx + '" cy="' + ft + '" r="4.5" fill="#E8E8E3"/><circle cx="' + fx + '" cy="' + fb + '" r="4.5" fill="#9A9A93"/>' +
        '<text x="' + fx + '" y="' + (ft - 13) + '" font-size="11" fill="#6B6C73" text-anchor="middle" ' + FN + '>now</text>' +
-       '<text x="' + Math.max(fx - 12, 92) + '" y="124" font-size="13" fill="#9A9A93" text-anchor="end" ' + FN + '>$' + Math.max(0, C - DAY.offers[g.t]) + 'k apart</text>' +
-       '<text x="14" y="20" font-size="14" fill="#13151A" ' + FN + '>you want ↑</text><text x="14" y="232" font-size="14" fill="#13151A" ' + FN + '>the house ↓</text>';
+       '<text x="' + Math.max(fx - 12, 92) + '" y="124" font-size="13" fill="#9A9A93" text-anchor="end" ' + FN + '>' + fmt(Math.abs(C - DAY.offers[g.t])) + ' apart</text>' +
+       '<text x="14" y="20" font-size="14" fill="#13151A" ' + FN + '>' + topLabel + '</text><text x="14" y="232" font-size="14" fill="#13151A" ' + FN + '>' + botLabel + '</text>';
   $("play-cv").innerHTML = s;
 }
 
 /* ---- reveal: the value-axis wedge (measures what you left) ----------------- */
-function ym(s) { return Math.max(18, Math.min(222, 208 - (s - 90) / 30 * 178)); }
+function ym(v) { return Math.max(18, Math.min(222, 214 - (v - DAY.axisMin) / (DAY.axisMax - DAY.axisMin) * 196)); }
 function drawReveal() {
-  const yP = ym(DAY.par);
-  // the ceiling: par as a dashed line across the value axis
-  let s = '<line x1="40" y1="' + yP + '" x2="560" y2="' + yP + '" stroke="#5A4FA0" stroke-width="1" stroke-dasharray="5 5"/><text x="560" y="' + (yP - 8) + '" font-size="12" fill="' + VD + '" text-anchor="end" ' + FN + '>par · the ceiling · $' + DAY.par + 'k</text>';
+  $("rev-sub").textContent = "no. " + DAY.no + " · " + DAY.title + " · result";
+  const yP = ym(DAY.par), edge = isSell() ? "the ceiling" : "the floor";
+  // par as a dashed reference line across the value axis (ceiling when selling, floor when
+  // buying). Anchor the label away from the right-side wedge/hero: top-right when par is the
+  // ceiling (above the close), left when it's the floor (below the close, near the hero).
+  const lx = isSell() ? 560 : 44, la = isSell() ? "end" : "start";
+  let s = '<line x1="40" y1="' + yP + '" x2="560" y2="' + yP + '" stroke="#5A4FA0" stroke-width="1" stroke-dasharray="5 5"/><text x="' + lx + '" y="' + (yP - 8) + '" font-size="12" fill="' + VD + '" text-anchor="' + la + '" ' + FN + '>par · ' + edge + ' · ' + fmt(DAY.par) + '</text>';
   if (g.deal != null) {
     const yD = ym(g.deal);
     // the two paths your asks took, converging on where you actually closed
-    s += '<path d="M40,' + ym(130) + ' L300,' + yD + '" fill="none" stroke="#4F505A" stroke-width="1.5"/><path d="M40,' + ym(DAY.offers[0]) + ' L300,' + yD + '" fill="none" stroke="#4F505A" stroke-width="1.5"/>';
-    if (g.deal < DAY.par) {
-      // the wedge = the value between your close and the ceiling. The hero number sits
-      // to the RIGHT of it on the dark field, vertically centred — uniform at any gap.
+    s += '<path d="M40,' + ym(DAY.target) + ' L300,' + yD + '" fill="none" stroke="#4F505A" stroke-width="1.5"/><path d="M40,' + ym(DAY.offers[0]) + ' L300,' + yD + '" fill="none" stroke="#4F505A" stroke-width="1.5"/>';
+    if (g.deal !== DAY.par) {
+      // the wedge = the value between your close and par. The hero number sits to the
+      // RIGHT of it on the dark field, vertically centred — works whether par is above
+      // your close (selling) or below it (buying).
       const cy = (yP + yD) / 2;
       s += '<polygon points="300,' + yD + ' 500,' + yP + ' 500,' + yD + '" fill="#9D86F2"/>' +
-           '<text x="516" y="' + (cy + 6) + '" font-size="42" fill="' + VB + '" ' + FN + '>$' + (DAY.par - g.deal) + 'k</text>' +
+           '<text x="516" y="' + (cy + 6) + '" font-size="42" fill="' + VB + '" ' + FN + '>' + fmt(leftOf(g.deal)) + '</text>' +
            '<text x="518" y="' + (cy + 28) + '" font-size="12" fill="' + VD + '" ' + FN + '>on the table</text>';
     } else s += '<text x="430" y="' + (yP + 40) + '" font-size="24" fill="' + VB + '" text-anchor="middle" ' + FN + '>at par.</text>';
-    s += '<circle cx="300" cy="' + yD + '" r="6" fill="' + V + '"/><text x="294" y="' + (yD + 22) + '" font-size="13" fill="#C9C9C4" text-anchor="end" ' + FN + '>you closed $' + g.deal + 'k</text><text x="44" y="' + (ym(130) - 6) + '" font-size="11" fill="#6B6C73" ' + FN + '>your ask</text>';
+    s += '<circle cx="300" cy="' + yD + '" r="6" fill="' + V + '"/><text x="294" y="' + (yD + 22) + '" font-size="13" fill="#C9C9C4" text-anchor="end" ' + FN + '>you closed ' + fmt(g.deal) + '</text><text x="44" y="' + (ym(DAY.target) - 6) + '" font-size="11" fill="#6B6C73" ' + FN + '>your ask</text>';
   } else {
-    s += '<polygon points="40,' + ym(90) + ' 500,' + yP + ' 500,' + ym(90) + '" fill="#5A4FA0" fill-opacity="0.25"/><text x="516" y="' + (ym(90) + (yP - ym(90)) / 2) + '" font-size="26" fill="#B05A55" ' + FN + '>walked</text><text x="518" y="' + (ym(90) + (yP - ym(90)) / 2 + 22) + '" font-size="12" fill="#8A8A85" ' + FN + '>the whole room — gone</text>';
+    const yF = ym(DAY.floor), cy = (yF + yP) / 2;
+    s += '<polygon points="40,' + yF + ' 500,' + yP + ' 500,' + yF + '" fill="#5A4FA0" fill-opacity="0.25"/><text x="516" y="' + cy + '" font-size="26" fill="#B05A55" ' + FN + '>walked</text><text x="518" y="' + (cy + 22) + '" font-size="12" fill="#8A8A85" ' + FN + '>the whole room — gone</text>';
   }
   $("rev-cv").innerHTML = s;
 }
@@ -102,12 +129,14 @@ function drawReveal() {
 /* ---- play flow ------------------------------------------------------------ */
 function syncHouse() {
   const o = DAY.offers[g.t];
-  $("play-house").innerHTML = '<span class="l">the house</span><span class="a">$' + o + 'k</span><span class="q">' + DAY.msg[g.t] + '</span>';
-  $("play-acc-amt").textContent = "$" + o + "k"; $("play-rnd").textContent = "round " + (g.t + 1) + " / " + DAY.rounds;
-  // you'd never counter BELOW the number already on the table — that's just "accept".
-  // (sell-side stand-in: clamp the floor to their offer; a buy scenario clamps the ceiling.)
-  const ask = $("play-ask"); ask.min = o;
-  if (+ask.value < o) { ask.value = o; $("play-askv").textContent = "$" + o + "k"; $("play-cv-amt").textContent = "$" + o + "k"; }
+  $("play-house").innerHTML = '<span class="l">the house</span><span class="a">' + fmt(o) + '</span><span class="q">' + DAY.msg[g.t] + '</span>';
+  $("play-acc-amt").textContent = fmt(o); $("play-rnd").textContent = "round " + (g.t + 1) + " / " + DAY.rounds;
+  // you'd never cross the number already on the table — that's just "accept". Selling:
+  // don't counter BELOW their offer (clamp the min). Buying: don't offer ABOVE it (clamp max).
+  const ask = $("play-ask");
+  if (isSell()) { ask.min = o; if (+ask.value < o) { ask.value = o; } }
+  else { ask.max = o; if (+ask.value > o) { ask.value = o; } }
+  $("play-askv").textContent = fmt(+ask.value); $("play-cv-amt").textContent = fmt(+ask.value);
 }
 /* ---- scoreboard (the retention + virality layer) -------------------------- */
 /* Offline stand-in for POST /par/submit's board. prod: this whole object is the API
@@ -137,49 +166,90 @@ function localBoard(pct) {
   return { ...streakBump(), played: BOARD_TOTAL + 1,
     percentile: Math.round((below + mine / 2) / BOARD_TOTAL * 100), distribution: dist };
 }
-function boardHTML(b) {
+/* the friend group, seeded by the share link (par.game/?g=<code>). Offline stand-in;
+   prod: POST /par/group/join on arrival + GET /par/group for the board. */
+const FRIENDS = [{ name: "Maya", pct: 96 }, { name: "Dev", pct: 88 }, { name: "Sam", pct: 74 },
+{ name: "Priya", pct: 61 }, { name: "Theo", pct: null }];
+function myGroup() {                                      // adopt a friend's code or mint one
+  let gc = new URLSearchParams(location.search).get("g") || localStorage.getItem("par-group");
+  if (!gc) gc = Math.random().toString(36).slice(2, 8);
+  localStorage.setItem("par-group", gc);
+  return gc;
+}
+function localFriends(myPct) {
+  const rows = FRIENDS.concat([{ name: "you", pct: myPct, you: true }]);
+  rows.sort((a, b) => (b.pct == null ? -1 : a.pct == null ? 1 : b.pct - a.pct));
+  return rows.map((r, i) => ({ ...r, rank: i + 1 }));
+}
+
+function boardHTML(b, friends) {
   const max = Math.max(...b.distribution.map((d) => d.count));
-  const rows = b.distribution.map((d) =>
+  const dist = b.distribution.map((d) =>
     '<div class="drow' + (d.you ? ' me' : '') + '"><span class="dl">' + d.label + '</span><span class="dbar' + (d.you ? ' me' : '') +
     '" style="width:' + Math.max(Math.round(d.count / max * 100), 4) + '%">' + (d.you ? d.count : '') + '</span></div>').join("");
+  const fl = friends.map((r) =>
+    '<div class="frow' + (r.you ? ' me' : '') + '"><span class="fr-rank">' + r.rank + '</span><span class="fr-name">' + r.name +
+    '</span><span class="fr-pct">' + (r.pct == null ? "—" : r.pct + "%") + '</span></div>').join("");
   return '<div class="board"><div class="brow"><span>streak <b>' + b.streak + '</b> ' + (b.streak === 1 ? "day" : "days") +
-    '</span><span>you beat <b>' + b.percentile + '%</b> today</span></div><div class="dist">' + rows + '</div></div>';
+    '</span><span>you beat <b>' + b.percentile + '%</b> today</span></div>' +
+    '<div class="tabs"><button class="tab on" data-v="everyone">everyone</button><button class="tab" data-v="friends">friends</button></div>' +
+    '<div id="bv-everyone" class="bview"><div class="dist">' + dist + '</div></div>' +
+    '<div id="bv-friends" class="bview" style="display:none"><div class="flist">' + fl + '</div></div></div>';
+}
+function wireTabs() {
+  document.querySelectorAll(".tab").forEach((t) => t.onclick = () => {
+    document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x === t));
+    $("bv-everyone").style.display = t.dataset.v === "everyone" ? "block" : "none";
+    $("bv-friends").style.display = t.dataset.v === "friends" ? "block" : "none";
+  });
 }
 
 function finish() {
   g.over = true; $("play-house").style.display = "none"; show("s-reveal"); drawReveal();
-  const won = g.deal != null, p = won ? Math.round(g.deal / DAY.par * 100) : 0;
-  const board = boardHTML(localBoard(p));                 // prod: from POST /par/submit
+  const won = g.deal != null, p = won ? pctOf(g.deal) : 0;
+  const board = boardHTML(localBoard(p), localFriends(p)); // prod: /par/submit + /par/group
   const btns = '<div style="display:flex;gap:10px;margin-top:16px"><button class="pri" id="rev-share">share result</button><button id="rev-again">play tomorrow</button></div>';
   let head;
-  if (won) { const ag = Math.round(DAY.par * 0.975), ap = Math.round(ag / DAY.par * 100);
-    head = '<div style="display:flex;align-items:baseline;gap:12px"><span style="font-size:34px;color:var(--violet);line-height:1">' + p + '%</span><span style="font-size:13px;color:var(--muted)">of par · closed $' + g.deal + 'k</span></div><div style="margin-top:11px;font-size:14px;color:var(--ink-dim)">your agent would have closed <span style="color:var(--violet-bright)">$' + ag + 'k</span> · ' + ap + '% — sat $' + (ag - g.deal) + 'k closer than you</div>';
-  } else head = '<div style="font-size:30px;color:#B05A55;line-height:1">no deal · 0%</div><div style="margin-top:9px;font-size:13px;color:var(--muted)">the House would have paid up to $' + DAY.par + 'k. you left all of it.</div>';
+  if (won) {
+    const ag = Math.round(DAY.par * (isSell() ? 0.975 : 1.025) / DAY.step) * DAY.step, ap = pctOf(ag);
+    const closer = Math.round(Math.abs(g.deal - ag) / DAY.step) * DAY.step;
+    head = '<div style="display:flex;align-items:baseline;gap:12px"><span style="font-size:34px;color:var(--violet);line-height:1">' + p + '%</span><span style="font-size:13px;color:var(--muted)">of par · closed ' + fmt(g.deal) + '</span></div><div style="margin-top:11px;font-size:14px;color:var(--ink-dim)">your agent would have closed <span style="color:var(--violet-bright)">' + fmt(ag) + '</span> · ' + ap + '% — sat ' + fmt(closer) + ' closer than you</div>';
+  } else {
+    const missed = isSell() ? ("the House would have paid up to " + fmt(DAY.par) + ". you left all of it.")
+                            : ("the House would have sold for as low as " + fmt(DAY.par) + ". you walked from all of it.");
+    head = '<div style="font-size:30px;color:#B05A55;line-height:1">no deal · 0%</div><div style="margin-top:9px;font-size:13px;color:var(--muted)">' + missed + '</div>';
+  }
   $("rev-body").innerHTML = '<div style="border-top:0.5px solid var(--line);margin-top:8px;padding-top:14px">' + head + board + btns + '</div>';
+  wireTabs();
   $("rev-again").onclick = () => { resetPlay(); show("s-landing"); };
   $("rev-share").onclick = shareResult;
 }
-// prod: the LIVE House decides — replace this with `rec.action === "accept"` from
-// POST /par/house_move. DAY.willing is the offline stand-in's hidden threshold.
-function houseAccepts(ask) { return ask <= DAY.willing[g.t]; }
+// prod: the LIVE House decides — replace with `rec.action === "accept"` from POST
+// /par/house_move. DAY.willing is the offline stand-in's hidden threshold. Selling: they
+// accept an ask at/below what they'll pay; buying: an ask at/above what they'll take.
+function houseAccepts(ask) { return isSell() ? ask <= DAY.willing[g.t] : ask >= DAY.willing[g.t]; }
 function counter() { const C = +$("play-ask").value; g.asks[g.t] = C;
   if (houseAccepts(C)) { g.deal = C; finish(); return; }
   g.t++; if (g.t >= DAY.rounds) { g.walked = true; finish(); return; } syncHouse(); drawPlay(+$("play-ask").value); }
 function accept() { g.asks[g.t] = DAY.offers[g.t]; g.deal = DAY.offers[g.t]; finish(); }
 function walk() { g.walked = true; finish(); }
-function resetPlay() { g.t = 0; g.asks = []; g.deal = null; g.walked = false; g.over = false; $("play-house").style.display = "flex"; $("play-ask").value = 130; $("play-askv").textContent = "$130k"; $("play-cv-amt").textContent = "$130k"; }
-function startPlay() { resetPlay(); $("play-sub").textContent = "no. " + DAY.no + " · " + DAY.title; syncHouse(); drawPlay(130); show("s-play"); }
+function resetPlay() {
+  g.t = 0; g.asks = []; g.deal = null; g.walked = false; g.over = false; $("play-house").style.display = "flex";
+  const el = $("play-ask"), lo = Math.min(DAY.target, DAY.floor), hi = Math.max(DAY.target, DAY.floor);
+  el.min = lo; el.max = hi; el.step = DAY.step; el.value = DAY.target;
+  $("play-askv").textContent = fmt(DAY.target); $("play-cv-amt").textContent = fmt(DAY.target);
+}
+function startPlay() { resetPlay(); $("play-sub").textContent = "no. " + DAY.no + " · " + DAY.title; syncHouse(); drawPlay(DAY.target); show("s-play"); }
 
 /* the iconic, screenshot-ready result card. The HOLE is the hero: the violet void =
    what you left on the table (the regret), the deal demoted to a thin muted line. */
 function shareCardSVG() {
   const won = g.deal != null;
-  const pct = won ? Math.round(g.deal / DAY.par * 100) : 0;
-  const left = won ? (DAY.par - g.deal) : 0;             // only the won card shows a $ figure
-  const hero = won ? ("$" + left + "k") : "no deal";
+  const pct = won ? pctOf(g.deal) : 0;
+  const hero = won ? fmt(leftOf(g.deal)) : "no deal";
   const hs = won ? 92 : 52;                              // "no deal" is wider — shrink it
   const sub = won ? "left on the table" : "walked — all of it";
-  const closed = won ? ("you closed $" + g.deal + "k") : "you walked away";
+  const closed = won ? ("you closed " + fmt(g.deal)) : "you walked away";
   return '<text x="44" y="60" font-size="24" letter-spacing="5" fill="#E8E8E3" ' + FN + '>PAR</text>'
     + '<text x="496" y="60" font-size="13" fill="#7C7C77" text-anchor="end" ' + FN + '>no. ' + DAY.no + ' · ' + DAY.title + '</text>'
     + '<line x1="44" y1="300" x2="276" y2="300" stroke="#4A4B52" stroke-width="2"/>'
@@ -193,8 +263,8 @@ function shareCardSVG() {
     + '<text x="496" y="510" font-size="13" fill="#4A4B52" text-anchor="end" ' + FN + '>par.game</text>';
 }
 function shareResult() {
-  const won = g.deal != null, p = won ? Math.round(g.deal / DAY.par * 100) : 0;
-  const txt = "PAR no." + DAY.no + " — " + (won ? "$" + (DAY.par - g.deal) + "k left on the table · " + p + "% of par" : "walked, no deal") + "\nplay: par.game";
+  const won = g.deal != null, p = won ? pctOf(g.deal) : 0;
+  const txt = "PAR no." + DAY.no + " — " + (won ? fmt(leftOf(g.deal)) + " left on the table · " + p + "% of par" : "walked, no deal") + "\nbeat me → par.game/?g=" + myGroup();
   if (navigator.clipboard) navigator.clipboard.writeText(txt);
   $("share-cv").innerHTML = shareCardSVG();
   $("share-ov").classList.add("on");
@@ -210,10 +280,12 @@ function startOnboard() {
 
 /* ---- boot ----------------------------------------------------------------- */
 landCanyon();
+// arriving on a friend's share link joins their group. prod: POST /par/group/join
+const _gArg = new URLSearchParams(location.search).get("g"); if (_gArg) localStorage.setItem("par-group", _gArg);
 $("land-daily").textContent = "no. " + DAY.no + " · " + DAY.title + " · 5h left";
 // live social proof. prod: GET /par/stats -> {par_hits, played}
 $("land-soc").textContent = BOARD_BASE[5].n + " of " + BOARD_TOTAL + " hit par today";
 $("land-play").onclick = () => { localStorage.getItem("par-played") ? startPlay() : (localStorage.setItem("par-played", "1"), startOnboard()); };
-$("play-ask").oninput = function () { const v = +this.value; $("play-askv").textContent = "$" + v + "k"; $("play-cv-amt").textContent = "$" + v + "k"; drawPlay(v); };
+$("play-ask").oninput = function () { const v = +this.value; $("play-askv").textContent = fmt(v); $("play-cv-amt").textContent = fmt(v); drawPlay(v); };
 $("play-counter").onclick = counter; $("play-accept").onclick = accept; $("play-walk").onclick = walk;
 $("share-close").onclick = () => $("share-ov").classList.remove("on");

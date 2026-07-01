@@ -52,6 +52,8 @@ whichever side the player is on, so a "120%" or negative table is always a deck 
 | `/par/grade` | POST | `{day, close?}` | `{par, deal, pct_of_par, left_on_table, agent_close, agent_pct}` | yes (by design — this IS the reveal) |
 | `/par/submit` | POST | `{day, user_id, close?}` | grade **+** `{streak, max_streak, played, percentile, par_hits, distribution[]}` | yes (it's the reveal + the board) |
 | `/par/stats` | GET | `?day=` (optional) | `{no, played, par_hits, top_pct, distribution[]}` | **no** (anonymous rollup) |
+| `/par/group/join` | POST | `{group, user_id, name?}` | `{group, ok}` | **no** |
+| `/par/group` | GET | `?group=&day=` | `{group, members, played, board[]}` (ranked, unplayed last) | **no** |
 | `/par/bundle_move` | POST | `{issues[], their_offers?, my_priorities?}` | full `negotiate_bundle` dict | n/a (multi-issue) |
 
 Notes:
@@ -119,10 +121,16 @@ proof ("N hit par today"). The front end ships a `localBoard()`/`BOARD_BASE` sta
 that mirrors the `/par/submit` board exactly, plus a seeded demo distribution
 (`scoreboard.seed_demo`, **remove in prod**) so the histogram renders alive offline.
 
-What to build next for virality, on top of this layer: a **friends leaderboard** (seed
-it from the share text, not a global ladder), a **daily push** ("today's deal is live")
-paired with the streak, and turning `agent_close`/`agent_pct` into the **conversion CTA**
-("let our agent negotiate the real one for you").
+**Friends leaderboard** (the spread loop — you share to beat your friends, not the
+anonymous crowd): the share text carries a group link (`par.game/?g=<code>`); opening a
+friend's link joins their group (`/par/group/join`), and `/par/group` returns today's
+members ranked best-first (unplayed last). The reveal shows it under a **friends** tab
+next to **everyone** (the distribution). Offline, `par.js` mirrors it with a seeded
+`FRIENDS` stand-in; the front end mints/adopts the `?g=` code in `localStorage`.
+
+Still to build on top: a **daily push** ("today's deal is live") paired with the streak,
+and turning `agent_close`/`agent_pct` into the **conversion CTA** ("let our agent
+negotiate the real one for you").
 
 ## 5. Wiring the front end
 
@@ -135,9 +143,11 @@ Going live is three swaps (all marked in `par.js`):
   do not exist on the wire — the House is recomputed server-side each round.
 - finish → `POST /par/grade` (drives the reveal's par line + "$ on the table")
 
-**One real front-end gap:** the play/reveal renderers (and the slider clamp) are
-currently **sell-oriented** — "you want ↑", ask above the House's offer, wedge = par −
-deal. A `side: "buy"` day needs the mirrored views (you want ↓, ask below the offer,
-wedge = deal − par). The backend already grades both directions correctly via
-`score`; the front end needs a `side` branch in `drawPlay`/`drawReveal`/`syncHouse`
-before buy days ship. Until then, only `sell` decks are playable in the SPA.
+**Both directions are playable.** `par.js` is side-aware: a `buy` day mirrors the play
+canyon labels ("you want ↓ / the house ↑"), clamps the slider to the seller's offer as a
+ceiling (you never offer *above* it), flips the accept test (`ask >= willing`), and the
+reveal puts par on the *floor* with the wedge = deal − par (the overpayment). All money
+is in k-units so `$Xk` formats a $118k salary and an $11.2k car alike. Load a buy day
+offline with `?s=buy` (the used car); prod picks the side from `/par/today`'s `side`
+field. The par label moves left when par is the floor so it clears the "$X on the table"
+hero.
