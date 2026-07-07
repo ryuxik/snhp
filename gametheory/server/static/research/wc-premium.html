@@ -237,6 +237,33 @@
 </div>
 
 
+<div class="eyebrow">§ 5 — The sellers already know</div>
+<div class="prose">
+<h2>The sellers can be read, too</h2>
+<p>The premium is a buyer's disease — but the same Bayesian toolkit points the other way. A selling club's behavior is data: every rejected bid says the offer sat below their true number, every asking price is that number wearing a markup, and a release clause is a written promise to accept. Feed a saga's verified record into a reservation filter and out comes a posterior over the one figure every negotiation is secretly about: what the seller would actually take, today.</p>
+<p>It works. Fed only Newcastle's <em>pre-close</em> behavior in the Tonali saga — two rejections and a £100m ask — the filter read their accept-now number at <strong>£88–104m, median £94.9m</strong>. They signed days later for a package worth £97.75m in expected value, £92.5m guaranteed. On the window's live sagas, the same filter currently says:</p>
+</div>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Seller</th><th>Observed behavior</th><th>The engine's read (80% interval)</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>Newcastle (Tonali)</td><td>rejected £75m, rejected ~£90m, asked £100m</td><td class="num">£88–104m · median £94.9m</td><td>closed at £97.75m EV — <strong>inside the read</strong></td></tr>
+    <tr><td>RB Leipzig (Diomande)</td><td>rejected €100m, asking €130m</td><td class="num">€104–130m · median €114m</td><td>in play — the read says the public €130m carries ~€16m of markup</td></tr>
+    <tr><td>Tijuana (Mora)</td><td>asks of €30–40m, a reported ~€25m clause</td><td class="num">€26–29m · median €27m</td><td>in play — the clause commitment overrules the asks</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="prose">
+<p>And once every deal can be benchmarked against what the engine says a competent negotiation was worth, you can do the thing football does to everything else: make a table.</p>
+</div>
+
+<figure>
+  <p class="fig-title">The window league table, v0 — surplus captured vs the engine's benchmark</p>
+  <p class="fig-sub">Sellers modeled in this series: actual or reported outcome minus the engine benchmark for that deal (per-deal currency)</p>
+  <div class="chart-box" id="c4"></div>
+  <figcaption>Newcastle beat the symmetric-negotiation benchmark by ~£7m — the only closed deal so far, and the seller won it. Cruz Azul's kept promise runs ~$7m under benchmark by design; Tijuana's reported clause sits ~€18m under a three-bidder market. RB Leipzig are in play, refusing €100m against a €120m bilateral benchmark — the one row where the seller is currently <em>above</em> the line. The table fills in as the window closes.</figcaption>
+</figure>
+
 <div class="eyebrow">§ interactive — price your own rumor</div>
 <div class="widget" id="wg">
   <p class="w-title">Is the price move you just read about real?</p>
@@ -278,13 +305,13 @@
 })();
 </script>
 
-<div class="eyebrow">§ 5 — What this doesn't say</div>
+<div class="eyebrow">§ 6 — What this doesn't say</div>
 <div class="prose">
 <h2>Does the model tell the whole truth?</h2>
-<p>The rational updates are modeled from reported stats and minutes, not event data — sweep every calibration and the hype median moves between 1.1× and 3.8×; the size is uncertain, the direction never flips. The tracked numbers are a mix of editorial valuations, database values, and club asking prices — and an ask is a negotiating position, not a belief; the model treats them identically, which flatters nobody. A World Cup can also carry real information the arithmetic can't see: a new position mastered, a temperament revealed on the biggest stage. Scouts are right that tournaments matter — the model only insists they matter about a tenth as much as the market prices them, and that the tenth is worth paying for.</p>
+<p>The rational updates are modeled from reported stats and minutes, not event data — sweep every calibration and the hype median moves between 1.1× and 3.8×; the size is uncertain, the direction never flips. The tracked numbers are a mix of editorial valuations, database values, and club asking prices — and an ask is a negotiating position, not a belief; the model treats them identically, which flatters nobody. A World Cup can also carry real information the arithmetic can't see: a new position mastered, a temperament revealed on the biggest stage. The seller reads in §5 assume a simple behavioral model — a rejection means the offer sat below the seller’s number plus noise, an ask carries an ~18% markup — and one resolved saga is a validation, not a track record. Scouts are right that tournaments matter — the model only insists they matter about a tenth as much as the market prices them, and that the tenth is worth paying for.</p>
 </div>
 
-<div class="eyebrow">§ 6 — Predictions</div>
+<div class="eyebrow">§ 7 — Predictions</div>
 <div class="prose">
 <h2>On the record, for July 2027</h2>
 <p>Tijuana, Cruz Azul and Leipzig are selling July. Somebody is buying it.</p>
@@ -309,7 +336,7 @@
 </ol>
 </div>
 <div class="footnote">
-  <strong>Reproducibility.</strong> The null tournament: 700 players, gamma-distributed true rates, Poisson goals over 120–480 minutes, 2,000 simulated tournaments, seeded. Rational updates: normal-normal shrinkage with a 2,800-effective-minute prior and value elasticity 1.6 (both swept; the hype median ranges 1.1–3.8×). Companion pieces: <a href="/research/diomande-ladder">Diomande</a>, <a href="/research/tonali-100m">Tonali</a>, <a href="/research/mora-clause">Mora</a>, <a href="/research/lira-promise">Lira</a>.
+  <strong>Reproducibility.</strong> The null tournament: 700 players, gamma-distributed true rates, Poisson goals over 120–480 minutes, 2,000 simulated tournaments, seeded. Seller reads: grid-Bayes reservation filter over each saga's verified bids/asks/commitments. Rational updates: normal-normal shrinkage with a 2,800-effective-minute prior and value elasticity 1.6 (both swept; the hype median ranges 1.1–3.8×). Companion pieces: <a href="/research/diomande-ladder">Diomande</a>, <a href="/research/tonali-100m">Tonali</a>, <a href="/research/mora-clause">Mora</a>, <a href="/research/lira-promise">Lira</a>.
  All simulation code and results are public: <a href="https://github.com/ryuxik/snhp/tree/main/research">github.com/ryuxik/snhp/research</a>.</div>
 </div>
 
@@ -423,6 +450,44 @@
     });
     el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
       .textContent = "value / asking-price change during the tournament → (hype multiple at right)";
+  })();
+
+  /* ---------- Chart 4: window league table ---------- */
+  (function () {
+    const box = document.getElementById("c4"), tip = tooltipFor(box);
+    const ROWS = [
+      ["Newcastle", "Tonali — closed", 7.1, "£", "beat the benchmark by £7.1m"],
+      ["RB Leipzig", "Diomande — in play", null, "€", "refusing €100m vs a €120m benchmark: holding above the line"],
+      ["Cruz Azul", "Lira — promise pending", -6.8, "$", "the kept promise: $6.8m under benchmark, by design"],
+      ["Tijuana", "Mora — clause pending", -18.2, "€", "reported clause vs a three-bidder market: €18.2m under"]
+    ];
+    const W = 780, rowH = 44, M = { l: 130, r: 24, t: 26, b: 40 };
+    const H = M.t + M.b + ROWS.length * rowH;
+    const svg = makeSVG(box, W, H);
+    const X = v => M.l + ((v + 22) / 32) * (W - M.l - M.r);
+    [-20, -10, 0, 10].forEach(v => {
+      el("line", { x1: X(v), x2: X(v), y1: M.t - 8, y2: H - M.b, stroke: v === 0 ? "var(--baseline)" : "var(--grid)", "stroke-width": v === 0 ? 2 : 1 }, svg);
+      el("text", { x: X(v), y: H - M.b + 18, "text-anchor": "middle", class: "tick" }, svg).textContent = (v > 0 ? "+" : "") + v + "m";
+    });
+    ROWS.forEach((r, i) => {
+      const [club, deal, d, ccy, note] = r;
+      const y = M.t + i * rowH + rowH / 2;
+      el("text", { x: M.l - 10, y: y + 4, "text-anchor": "end", class: "dlabel" }, svg).textContent = club;
+      if (d === null) {
+        const hold = el("circle", { cx: X(0) + 10, cy: y, r: 6, fill: "none", stroke: "var(--s-1)", "stroke-width": 2.5 }, svg);
+        el("text", { x: X(0) + 24, y: y + 4, class: "dlabel-2" }, svg).textContent = "in play — above the line";
+        bindTip(hold, tip, box, `<b>${club}</b> · ${deal}<br>${note}`);
+      } else {
+        const x0 = X(Math.min(0, d)), x1 = X(Math.max(0, d));
+        const bar = el("rect", { x: x0, y: y - 11, width: Math.max(x1 - x0, 2), height: 22, rx: 5,
+          fill: d >= 0 ? "var(--s-1)" : "var(--s-2)" }, svg);
+        bindTip(bar, tip, box, `<b>${club}</b> · ${deal}<br>${note}`);
+        el("text", { x: d >= 0 ? x1 + 8 : x0 - 8, y: y + 4, "text-anchor": d >= 0 ? "start" : "end", class: "dlabel" }, svg)
+          .textContent = (d >= 0 ? "+" : "−") + ccy + Math.abs(d).toFixed(1) + "m";
+      }
+    });
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 6, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "surplus vs the engine benchmark (per-deal currency) →";
   })();
 })();
 </script>

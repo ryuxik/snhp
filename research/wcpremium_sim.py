@@ -118,4 +118,73 @@ for np_eff in [1800, 2800, 4000]:
                      "hype_median": round(float(np.median(hs)), 1)})
 OUT["sensitivity"] = sens
 
+# ----------------------------------------------------------------------------
+# D. Reading the sellers: grid-Bayes posterior over each seller's true
+#    accept-now reservation, from their VERIFIED observed behavior only.
+#    Behavioral model: reject offer x if x < R + noise(tau); an ask is
+#    R*(1+markup), markup ~ N(0.18, 0.12); a posted clause/commitment at x
+#    is a (soft) promise to accept at x.
+# ----------------------------------------------------------------------------
+from scipy.stats import norm as _norm
+
+def seller_posterior(lo, hi, obs, tau=4.0, mark_mu=0.18, mark_sd=0.12):
+    Rg = np.linspace(lo, hi, 2001)
+    logw = np.zeros_like(Rg)
+    for kind, x in obs:
+        if kind == "reject":
+            logw += np.log(_norm.cdf((Rg - x) / tau) + 1e-12)
+        elif kind == "accept":
+            logw += np.log(_norm.cdf((x - Rg) / tau) + 1e-12)
+        elif kind == "ask":
+            logw += _norm.logpdf(x / Rg - 1, mark_mu, mark_sd)
+        elif kind == "commit":
+            logw += np.log(_norm.cdf((x - Rg) / (tau / 2)) + 1e-12)
+    w = np.exp(logw - logw.max()); w /= w.sum()
+    cdf = np.cumsum(w)
+    q = lambda p: float(Rg[np.searchsorted(cdf, p)])
+    return {"p10": round(q(0.10), 1), "median": round(q(0.50), 1), "p90": round(q(0.90), 1)}
+
+SAGAS = {
+    "Newcastle (Tonali), pre-close": {
+        "ccy": "GBP", "prior": (70, 110),
+        "obs": [("reject", 75), ("reject", 90), ("ask", 100)],
+        "resolution": "accepted a package worth ~97.75 EV (92.5 guaranteed)",
+    },
+    "RB Leipzig (Diomande), live": {
+        "ccy": "EUR", "prior": (85, 145),
+        "obs": [("reject", 100), ("ask", 130)],
+        "resolution": None,
+    },
+    "Tijuana (Mora), live": {
+        "ccy": "EUR", "prior": (12, 45),
+        "obs": [("ask", 30), ("ask", 40), ("commit", 25)],
+        "resolution": None,
+    },
+}
+OUT["seller_reads"] = {
+    name: {**seller_posterior(*cfg["prior"], cfg["obs"]),
+           "ccy": cfg["ccy"], "n_obs": len(cfg["obs"]), "resolution": cfg["resolution"]}
+    for name, cfg in SAGAS.items()
+}
+
+# ----------------------------------------------------------------------------
+# E. The window league table (v0): actual/reported outcome vs the series'
+#    own engine benchmark for each modeled seller. Values from the committed
+#    results of pieces No. 1-4.
+# ----------------------------------------------------------------------------
+OUT["league_table"] = [
+    {"club": "Newcastle", "deal": "Tonali -> Spurs (closed)", "ccy": "GBP",
+     "benchmark": 90.6, "actual": 97.75, "delta": 7.1,
+     "note": "beat the symmetric-negotiation benchmark"},
+    {"club": "RB Leipzig", "deal": "Diomande (in play)", "ccy": "EUR",
+     "benchmark": 120.0, "actual": None, "delta": None,
+     "note": "refusing 100 vs a 130 bilateral read - holding above benchmark"},
+    {"club": "Cruz Azul", "deal": "Lira (promise pending)", "ccy": "USD",
+     "benchmark": 10.7, "actual": 3.9, "delta": -6.8,
+     "note": "the kept promise, at the best-sourced $4m reading"},
+    {"club": "Tijuana", "deal": "Mora (clause pending)", "ccy": "EUR",
+     "benchmark": 41.2, "actual": 23.0, "delta": -18.2,
+     "note": "the reported clause vs a three-bidder market"},
+]
+
 print(json.dumps(OUT, indent=1))

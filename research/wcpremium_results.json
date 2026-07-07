@@ -255,5 +255,69 @@
    "elasticity": 2.2,
    "hype_median": 2.3
   }
+ ],
+ "seller_reads": {
+  "Newcastle (Tonali), pre-close": {
+   "p10": 88.1,
+   "median": 94.9,
+   "p90": 103.9,
+   "ccy": "GBP",
+   "n_obs": 3,
+   "resolution": "accepted a package worth ~97.75 EV (92.5 guaranteed)"
+  },
+  "RB Leipzig (Diomande), live": {
+   "p10": 103.6,
+   "median": 114.3,
+   "p90": 129.9,
+   "ccy": "EUR",
+   "n_obs": 2,
+   "resolution": null
+  },
+  "Tijuana (Mora), live": {
+   "p10": 25.7,
+   "median": 27.4,
+   "p90": 29.1,
+   "ccy": "EUR",
+   "n_obs": 3,
+   "resolution": null
+  }
+ },
+ "league_table": [
+  {
+   "club": "Newcastle",
+   "deal": "Tonali -> Spurs (closed)",
+   "ccy": "GBP",
+   "benchmark": 90.6,
+   "actual": 97.75,
+   "delta": 7.1,
+   "note": "beat the symmetric-negotiation benchmark"
+  },
+  {
+   "club": "RB Leipzig",
+   "deal": "Diomande (in play)",
+   "ccy": "EUR",
+   "benchmark": 120.0,
+   "actual": null,
+   "delta": null,
+   "note": "refusing 100 vs a 130 bilateral read - holding above benchmark"
+  },
+  {
+   "club": "Cruz Azul",
+   "deal": "Lira (promise pending)",
+   "ccy": "USD",
+   "benchmark": 10.7,
+   "actual": 3.9,
+   "delta": -6.8,
+   "note": "the kept promise, at the best-sourced $4m reading"
+  },
+  {
+   "club": "Tijuana",
+   "deal": "Mora (clause pending)",
+   "ccy": "EUR",
+   "benchmark": 41.2,
+   "actual": 23.0,
+   "delta": -18.2,
+   "note": "the reported clause vs a three-bidder market"
+  }
  ]
 }
