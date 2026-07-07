@@ -172,7 +172,7 @@ function localBoard(pct) {
   return { ...streakBump(), played: BOARD_TOTAL + 1,
     percentile: Math.round((below + mine / 2) / BOARD_TOTAL * 100), distribution: dist };
 }
-/* the friend group, seeded by the share link (par.game/?g=<code>). Offline stand-in;
+/* the friend group, seeded by the share link (par.snhp.dev/?g=<code>). Offline stand-in;
    prod: POST /par/group/join on arrival + GET /par/group for the board. */
 const FRIENDS = [{ name: "Maya", pct: 96 }, { name: "Dev", pct: 88 }, { name: "Sam", pct: 74 },
 { name: "Priya", pct: 61 }, { name: "Theo", pct: null }];
@@ -444,7 +444,7 @@ function shareCardSVG() {
     + '<text x="422" y="316" font-size="' + hs + '" fill="#16102C" text-anchor="middle" ' + FN + '>' + hero + '</text>'
     + '<text x="422" y="360" font-size="17" letter-spacing="1" fill="#2A2150" text-anchor="middle" ' + FN + '>' + sub + '</text>'
     + '<text x="44" y="510" font-size="14" fill="#9385D6" ' + FN + '>' + (won ? "can you beat this? →" : "think you’re better? →") + '</text>'
-    + '<text x="496" y="510" font-size="13" fill="#7C7C77" text-anchor="end" ' + FN + '>par.game</text>';
+    + '<text x="496" y="510" font-size="13" fill="#7C7C77" text-anchor="end" ' + FN + '>par.snhp.dev</text>';
 }
 function shareResult() {
   const won = g.deal != null, p = won ? pctOf(g.deal) : 0;
@@ -455,7 +455,7 @@ function shareResult() {
     : p >= 100 ? "i hit PAR — matched a perfect negotiator. beat me:"
     : p >= ap ? "i beat the engine’s line (" + p + "% of par). beat me:"
     : "i left " + fmt(leftOf(g.deal)) + " on the table (" + p + "% of par). beat me:";
-  const link = "par.game/?g=" + myGroup() + (won ? "&c=" + Math.round(leftOf(g.deal)) : "");
+  const link = "par.snhp.dev/?g=" + myGroup() + (won ? "&c=" + Math.round(leftOf(g.deal)) : "");
   const txt = "PAR no." + DAY.no + " — " + brag + "\n" + link;
   if (navigator.clipboard) navigator.clipboard.writeText(txt);
   $("share-cv").innerHTML = shareCardSVG();

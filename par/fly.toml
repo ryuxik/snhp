@@ -1,4 +1,4 @@
-# Fly.io app config for PAR (par.game) — the daily negotiation game (SPA + API).
+# Fly.io app config for PAR (par.snhp.dev) — the daily negotiation game (SPA + API).
 # A separate app from "snhp" (the toolkit API), sharing the gametheory engine.
 #
 # One-time setup (on your laptop, from the repo root):
@@ -6,7 +6,7 @@
 #   fly launch --no-deploy --name par --dockerfile par/Dockerfile   # writes/merges this file
 #   fly postgres create --name par-db --region sjc --vm-size shared-cpu-1x --volume-size 1
 #   fly postgres attach par-db --app par            # sets DATABASE_URL (see par/schema.sql)
-#   fly certs add par.game --app par                # custom domain + auto HTTPS
+#   fly certs add par.snhp.dev --app par                # custom domain + auto HTTPS
 #   fly deploy --dockerfile par/Dockerfile
 #
 # State is durable via par/_store.py (Postgres when DATABASE_URL is set). Once `fly postgres

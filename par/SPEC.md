@@ -142,7 +142,7 @@ that mirrors the `/par/submit` board exactly, plus a seeded demo distribution
 (`scoreboard.seed_demo`, **remove in prod**) so the histogram renders alive offline.
 
 **Friends leaderboard** (the spread loop — you share to beat your friends, not the
-anonymous crowd): the share text carries a group link (`par.game/?g=<code>`); opening a
+anonymous crowd): the share text carries a group link (`par.snhp.dev/?g=<code>`); opening a
 friend's link joins their group (`/par/group/join`), and `/par/group` returns today's
 members ranked best-first (unplayed last). The reveal shows it under a **friends** tab
 next to **everyone** (the distribution). Offline, `par.js` falls back to a seeded

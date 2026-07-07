@@ -1,6 +1,6 @@
 # Deploying PAR
 
-PAR ships as its own Fly app (`par`, domain `par.game`), separate from the `snhp` toolkit
+PAR ships as its own Fly app (`par`, domain `par.snhp.dev`), separate from the `snhp` toolkit
 API but sharing the `gametheory` engine. `uvicorn par.api:app` serves the SPA at `/` and the
 API at `/par/*` — same-origin, so the front end's `fetch()` needs no CORS.
 
@@ -24,8 +24,8 @@ is **par-game** ("par" is taken on Fly's global namespace) and it shares the exi
 fly apps create par-game --org personal
 fly postgres attach snhp-db --app par-game --yes    # injects DATABASE_URL (db: par_game)
 fly deploy . -c par/fly.toml --remote-only --yes    # context = repo root; dockerfile from toml
-# custom domain, once par.game DNS points at Fly:
-#   fly certs add par.game --app par-game
+fly certs add par.snhp.dev --app par-game           # done — cert issued; needs the DNS record:
+#   par  CNAME  par-game.fly.dev        (or A 66.241.124.141 / AAAA 2a09:8280:1::141:b3c:0)
 ```
 
 The schema auto-creates on first connect (par/_store.py); `psql -f par/schema.sql` is only
@@ -66,7 +66,7 @@ slow DB can't crash-loop the app before `/health`) and only when `DATABASE_URL` 
 
 ## After it's live
 
-- Point the share link's `par.game/?g=<code>` at the real domain (it already renders it).
+- Share links point at `par.snhp.dev/?g=<code>` — live once the CNAME above is added.
 - Watch `GET /par/funnel` for the play → share → cta_view → cta_click → waitlist rates.
 - Wire the `/par/advise` MVP (the agent on a real deal) behind the waitlist as it graduates
   from advisory to full agent-to-agent.

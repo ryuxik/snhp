@@ -44,8 +44,8 @@ par/
   scoreboard.py   streak / percentile / distribution / friend groups (in-memory; -> DB)
   funnel.py       waitlist + funnel events (play→share→cta→waitlist); measures conversion
   SPEC.md         daily rotation, API contract, scoreboard, identity, multi-issue generator
-  Dockerfile      par.game image (build context = repo root)
-  fly.toml        Fly app config (par.game, HTTPS, health check)
+  Dockerfile      par.snhp.dev image (build context = repo root)
+  fly.toml        Fly app config (par.snhp.dev, HTTPS, health check)
   schema.sql      Postgres DDL — the swap target for the in-memory stores
   DEPLOY.md       how to ship it + the in-memory → Postgres swap
   web/
@@ -57,7 +57,7 @@ par/
 `POST /par/advise` is the agent MVP: the same SNHP equilibrium the game runs, now advising
 a **real** negotiation (give it your side, walk-away, target, and the offers so far → it
 returns the move + rationale). It's the conversion the game's "the agent beat you by $X"
-has been earning. See [DEPLOY.md](DEPLOY.md) to ship the game to par.game.
+has been earning. See [DEPLOY.md](DEPLOY.md) to ship the game to par.snhp.dev.
 
 The engine wire lives in [`gametheory/negotiation/par_game.py`](../gametheory/negotiation/par_game.py):
 the House move, par, and a `play_out` harness. Run `python -m
