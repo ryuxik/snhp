@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>World Cup ticket prices are collapsing. FIFA's market is working exactly as designed.</title>
+<meta name="description" content="Twenty possible finals, each priced. The market's error on the semifinal lottery: $30. Whether to buy now or wait, and what FIFA's 30% resale cut actually kills - graded July 15 and 19.">
+<link rel="canonical" href="https://snhp.dev/research/wc-final-tickets">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="SNHP Research">
+<meta property="og:title" content="World Cup ticket prices are collapsing. FIFA's market is working exactly as designed.">
+<meta property="og:description" content="Twenty possible finals, each priced. The market's error on the semifinal lottery: $30. Whether to buy now or wait, and what FIFA's 30% resale cut actually kills - graded July 15 and 19.">
+<meta property="og:url" content="https://snhp.dev/research/wc-final-tickets">
+<meta property="og:image" content="https://snhp.dev/static/research/img/tickets-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="World Cup ticket prices are collapsing. FIFA's market is working exactly as designed.">
+<meta name="twitter:description" content="Twenty possible finals, each priced. The market's error on the semifinal lottery: $30. Whether to buy now or wait, and what FIFA's 30% resale cut actually kills - graded July 15 and 19.">
+<meta name="twitter:image" content="https://snhp.dev/static/research/img/tickets-card.png">
+</head>
+<body>
+<style>
+  :root {
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+    --muted: #898781; --grid: #e1e0d9; --baseline: #c3c2b7;
+    --hairline: rgba(11,11,11,0.10); --accent: #2a78d6;
+    --s-1: #2a78d6; --s-2: #eb6834; --s-3: #1baf7a; --cloud: #c9c8c0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+      --muted: #898781; --grid: #2c2c2a; --baseline: #383835;
+      --hairline: rgba(255,255,255,0.10); --accent: #3987e5;
+      --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --cloud: #3c3c39;
+    }
+  }
+  :root[data-theme="light"] {
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+    --muted: #898781; --grid: #e1e0d9; --baseline: #c3c2b7;
+    --hairline: rgba(11,11,11,0.10); --accent: #2a78d6;
+    --s-1: #2a78d6; --s-2: #eb6834; --s-3: #1baf7a; --cloud: #c9c8c0;
+  }
+  :root[data-theme="dark"] {
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+    --muted: #898781; --grid: #2c2c2a; --baseline: #383835;
+    --hairline: rgba(255,255,255,0.10); --accent: #3987e5;
+    --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --cloud: #3c3c39;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--page); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.65; margin: 0; padding: 0 20px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 56px 0 96px; }
+  .prose { max-width: 66ch; }
+  .eyebrow {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin: 64px 0 10px;
+  }
+  header .eyebrow { margin-top: 0; }
+  h1 {
+    font-size: clamp(30px, 5vw, 44px); line-height: 1.12; letter-spacing: -0.02em;
+    font-weight: 750; margin: 0 0 18px; text-wrap: balance; max-width: 24ch;
+  }
+  .standfirst { font-size: 18px; color: var(--ink-2); max-width: 58ch; margin: 0 0 8px; }
+  .byline { font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .byline .draft {
+    display: inline-block; border: 1px solid var(--hairline); border-radius: 3px;
+    padding: 1px 7px; margin-left: 8px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-size: 11px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  h2 { font-size: 22px; letter-spacing: -0.01em; font-weight: 700; margin: 6px 0 14px; text-wrap: balance; }
+  p { margin: 0 0 16px; }
+  .prose strong { font-weight: 650; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 36px 0 8px; }
+  .tile { background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; padding: 14px 16px; }
+  .tile .label { font-size: 12.5px; color: var(--ink-2); margin-bottom: 6px; line-height: 1.35; }
+  .tile .value { font-size: 30px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.1; }
+  .tile:first-child .value { font-size: 36px; }
+  .tile .note { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.35; }
+  figure { margin: 26px 0 8px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; padding: 18px 18px 10px; }
+  figure .fig-title { font-size: 14.5px; font-weight: 650; margin: 0 0 2px; }
+  figure .fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+  figcaption { font-size: 12.5px; color: var(--ink-2); padding: 10px 2px 6px; line-height: 1.5; max-width: 70ch; }
+  .chart-box { position: relative; width: 100%; overflow-x: auto; }
+  .chart-box svg { display: block; width: 100%; min-width: 640px; height: auto; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12.5px; color: var(--ink-2); padding: 4px 2px 2px; }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .tooltip {
+    position: absolute; pointer-events: none; z-index: 5; display: none;
+    background: var(--ink); color: var(--page);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11.5px; line-height: 1.45; padding: 7px 9px; border-radius: 4px;
+    max-width: 280px; white-space: nowrap;
+  }
+  .tablewrap { overflow-x: auto; margin: 20px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; background: var(--surface); }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  td.num, th.num { font-variant-numeric: tabular-nums; }
+  td:first-child { font-weight: 600; }
+  .facts { list-style: none; padding: 0; margin: 0 0 16px; max-width: 66ch; }
+  .facts li { padding: 8px 0; border-bottom: 1px solid var(--grid); font-size: 15px; }
+  .facts li:first-child { border-top: 1px solid var(--grid); }
+  .facts .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--muted); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; margin-right: 10px; }
+  .watchlist { list-style: none; padding: 0; margin: 0 0 16px; max-width: 66ch; counter-reset: watch; }
+  .watchlist li { padding: 10px 0 10px 42px; border-bottom: 1px solid var(--grid); position: relative; font-size: 15px; counter-increment: watch; }
+  .watchlist li:first-child { border-top: 1px solid var(--grid); }
+  .watchlist li::before {
+    content: counter(watch, decimal-leading-zero); position: absolute; left: 0; top: 12px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; color: var(--accent); font-weight: 600;
+  }
+  ol.sources { font-size: 13.5px; color: var(--ink-2); padding-left: 20px; }
+  ol.sources li { margin-bottom: 6px; }
+  .footnote { font-size: 13px; color: var(--muted); border-top: 1px solid var(--grid); margin-top: 48px; padding-top: 16px; max-width: 66ch; }
+  .footnote code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+  svg text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  svg .axis-label, svg .tick { font-size: 11px; fill: var(--muted); }
+  svg .dlabel { font-size: 11.5px; font-weight: 600; fill: var(--ink); }
+  svg .dlabel-2 { font-size: 11px; fill: var(--ink-2); }
+  .widget { margin: 26px 0 8px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; padding: 18px; }
+  .widget .w-title { font-size: 14.5px; font-weight: 650; margin: 0 0 2px; }
+  .widget .w-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+  .w-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px 18px; margin-bottom: 14px; }
+  .w-ctl label { display: block; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+  .w-ctl label b { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+  .w-ctl input[type=range] { width: 100%; accent-color: var(--accent); }
+  .w-out { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; border-top: 1px solid var(--grid); padding-top: 14px; }
+  .w-stat .l { font-size: 12px; color: var(--muted); line-height: 1.35; }
+  .w-stat .v { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .w-verdict { font-size: 13.5px; color: var(--ink-2); margin-top: 12px; border-left: 3px solid var(--accent); padding-left: 10px; }
+  .w-note { font-size: 11.5px; color: var(--muted); margin-top: 10px; }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Transfer market mechanics · No. 6 · special: the ticket market</div>
+  <h1>World Cup ticket prices are collapsing. FIFA's market is working exactly as designed.</h1>
+  <p class="standfirst">Quarterfinal tickets lost up to two-thirds of their value in two weeks. Two attorneys general have subpoenaed FIFA. And the cheapest seat at the final still costs $9,346 — a number that will jump or crash on four semifinal results. This piece prices every version of July 19, tells you whether to buy now or wait, and shows what FIFA's 30% cut of every resale actually does. Every prediction gets graded within twelve days.</p>
+  <p class="byline">Santiago Munoz · July 2026 <span class="draft">Draft 1 · graded July 15 &amp; 19</span></p>
+
+  <div class="tiles">
+    <div class="tile">
+      <div class="label">The market's pricing error on the semifinal lottery</div>
+      <div class="value">$30</div>
+      <div class="note">today's $9,346 get-in vs the model's $9,380 expected price after the semis</div>
+    </div>
+    <div class="tile">
+      <div class="label">Chance the final's price goes UP after the semis</div>
+      <div class="value">2 in 3</div>
+      <div class="note">modest rises toward ~$10,600 — against a fat tail down to $4,600</div>
+    </div>
+    <div class="tile">
+      <div class="label">FIFA's take on every resale</div>
+      <div class="value">30%</div>
+      <div class="note">15% from the buyer + 15% from the seller; no price cap in the US or Canada</div>
+    </div>
+    <div class="tile">
+      <div class="label">Feasible trades that fee kills</div>
+      <div class="value">~1 in 5</div>
+      <div class="note">in the model's crashed-market calibration — why listings balloon while sales stall</div>
+    </div>
+  </div>
+</header>
+
+<div class="eyebrow">§ 1 — The week the market turned</div>
+<div class="prose">
+<h2>Two-thirds off, and nobody's celebrating</h2>
+<p>On June 24, the cheapest ticket to Spain–Belgium in Los Angeles cost $4,740. This morning it costs $1,317 — down 68%. France–Morocco in Boston: down 66%. Norway–England in Miami: down 57%. In the three days after the United States lost 4–1 to Belgium and joined Mexico and Canada on the way out, average quarterfinal get-in prices halved, and the number of tickets listed for resale nearly doubled, from 28,285 to 49,415. Someone, presumably as commentary, listed an England–Norway quarterfinal ticket for $8 million.</p>
+<p>This is the first World Cup priced like an airline. FIFA adopted dynamic pricing — a tournament first — and raised prices on more than 90 of the 104 matches between October and April, by about 34% on average across the main categories. The cheapest seat at the final went from $6,730 at launch to $8,680 by December to $10,990 by April, and in April FIFA invented a new "Front Category" at $32,970 — reassigning some fans who had already bought Category 1 to worse seats in the process. That last move is part of why the attorneys general of New York and New Jersey subpoenaed FIFA on May 27. FIFA's president, asked about all of this in June, told fans to "just chill, relax," and said the average ticket costs below $500 — a claim the AP noted didn't hold for list prices.</p>
+<p>Here's the uncomfortable part, and the reason this piece exists: <strong>by FIFA's own objective, the system worked.</strong> The group stage sold 99.7% of capacity — 4.64 million tickets, an all-time record. Prices that rose into the boom are now falling into the bust, exactly as a revenue-managed market should. The outrage and the efficiency are both real. What's left for the people still holding tickets, or still wanting one, is a pricing problem — and pricing problems can be solved.</p>
+</div>
+
+<div class="eyebrow">§ 2 — The model</div>
+<div class="prose">
+<h2>The final is a lottery with four draws left</h2>
+<p>Eight teams remain (one quarterfinal spot — Switzerland or Colombia — was still being decided as this published). The bracket: France–Morocco and Spain–Belgium feed the Dallas semifinal on July 14; Norway–England and Argentina–QF4 feed Atlanta on July 15. The final is July 19 at MetLife. So today's $9,346 get-in is really a price on a <em>probability distribution over twenty possible finals</em>, weighted by the bookmakers' odds — FanDuel makes France (~53% to reach the final) and Argentina (~45%) the modal pairing, a 2022 rematch.</p>
+<p>The model prices each version of July 19 with a demand multiplier per finalist — England's traveling support, the enormous Argentine and Colombian communities around New York, France and Spain's global draw — and an elasticity calibrated to the sharpest fact in this week's data: while quarterfinal prices fell 57–68% on the co-hosts' exit, <strong>the final fell only about 20%</strong>. A final's demand is anchored to the event, not the matchup. The Atlanta semifinal (the England/Argentina side) already trades 17% above Dallas ($2,708 vs $2,320) despite Dallas having France <em>and</em> Spain — the market is already paying for the marquee bracket. Every multiplier is modeled and swept; §7 owns that honestly.</p>
+</div>
+
+<div class="eyebrow">§ 3 — The lottery, priced</div>
+<div class="prose">
+<h2>The market has this priced to within $30</h2>
+<p>Run all twenty possible finals through the model, weight by the odds, and the expected get-in after the semifinals is <strong>$9,380 — thirty dollars from today's price</strong>. Whatever else FIFA's market is, it is not stupid. But the average hides a violent asymmetry:</p>
+</div>
+
+<figure>
+  <p class="fig-title">Twenty possible finals, one price for each</p>
+  <p class="fig-sub">Model's expected get-in for every remaining final matchup ($, MetLife, July 19), sorted; bar shade = probability from bookmaker odds; hairline = today's $9,346</p>
+  <div class="chart-box" id="c1"></div>
+  <figcaption>The likely finals are the expensive ones: France–Argentina (20% — the single most likely) prices at ~$10,630, and every England or Argentina final clears $8,500. The cheap seats live in the tail: any Belgium, Norway or Switzerland final crashes the get-in below $6,000 — but those finals are collectively unlikely. If you want an affordable July 19, you are rooting for Belgium. Hover the bars.</figcaption>
+</figure>
+
+<div class="eyebrow">§ 4 — So: buy now, or wait?</div>
+<div class="prose">
+<h2>A coin flip — unless you disagree with the bookmakers</h2>
+<p>At market odds, waiting for the semifinals is almost exactly a fair bet: two-in-three you'll pay ~$900 more, one-in-three you might save thousands. Which means the buy-now-or-wait decision isn't about the market — it's about <em>you</em>: your own beliefs about the bracket, and how you feel about risk. Set your belief before the model shows you the market's:</p>
+</div>
+
+<div class="widget" id="wg">
+  <p class="w-title">Should you buy your final ticket now?</p>
+  <p class="w-sub">First, your guess: how likely is it that England or Argentina reaches the final? Set it before you peek — the market's answer is revealed below.</p>
+  <div class="w-controls">
+    <div class="w-ctl"><label>Your P(England or Argentina in the final): <b id="wgPv">50%</b></label><input type="range" id="wgP" min="5" max="95" step="1" value="50"></div>
+    <div class="w-ctl"><label>The most you'd ever pay: <b id="wgBv">$12,000</b></label><input type="range" id="wgB" min="5000" max="25000" step="500" value="12000"></div>
+  </div>
+  <div class="w-out">
+    <div class="w-stat"><div class="l">expected price after semis, at your odds</div><div class="v" id="wgE">—</div></div>
+    <div class="w-stat"><div class="l">vs today</div><div class="v" id="wgD">—</div></div>
+    <div class="w-stat"><div class="l">the market's P(marquee final)</div><div class="v">73%</div></div>
+  </div>
+  <p class="w-verdict" id="wgV"></p>
+  <p class="w-note">Two-state partition of the model's twenty scenarios: marquee final (England or Argentina) → expected get-in $10,260; neither → $6,910. Same closed forms as §3; reference implementation in Python, linked below.</p>
+</div>
+
+<div class="eyebrow">§ 5 — The 30% wedge</div>
+<div class="prose">
+<h2>Why 49,415 tickets are for sale and so few are selling</h2>
+<p>Every resale on FIFA's official marketplace pays FIFA twice: 15% from the seller, 15% from the buyer. For a trade to happen, a buyer must value the ticket at roughly <strong>1.35× what the seller will accept</strong>. In a rising market that's friction; in a crashing one it's a wall — sellers who bought at April's dynamic-pricing peaks anchor on what they paid, buyers anchor on this week's collapse, and the wedge swallows the space between them. That's the mechanism behind the ballooning listings: the market isn't clearing, it's queuing.</p>
+</div>
+
+<figure>
+  <p class="fig-title">FIFA's fee is a tax on the trades that most need to happen</p>
+  <p class="fig-sub">Share of feasible resales that clear, by combined fee level — model calibration of the post-collapse final market; FIFA's 30% marked</p>
+  <div class="chart-box" id="c2"></div>
+  <figcaption>At a 0% fee, ~44% of buyer-seller pairs in the model can trade; at FIFA's 30%, ~25% — roughly one in five feasible trades never happens. The darker point: in this calibration FIFA's fee isn't even revenue-maximizing (that peak sits near 42%) — the 30% take is high enough to strand thousands of sellers and low enough to leave FIFA money on the table. Nobody wins the space in between. Illustrative calibration; assumptions in §7.</figcaption>
+</figure>
+
+<div class="prose">
+<p>One more engine note, connecting this to <a href="/research/lira-promise">piece No. 3</a>: run the final's marginal seat through the same dynamic-pricing solver that priced Erik Lira's transfer window, and the profit-maximizing ask starts near <strong>$12,800 and marks down toward July 19</strong> — the exact shape FIFA's own market followed when it quietly cut prices across all 104 matches in early June, and the shape the resale market is following now, two weeks at a time. Whether it's a Bundesliga winger or Section 348 Row 20, a wasting asset obeys one law: the schedule only ever goes down, and the deadline sets the pace.</p>
+</div>
+
+<div class="eyebrow">§ 6 — What this doesn't say</div>
+<div class="prose">
+<h2>Does the model tell the whole truth?</h2>
+<p>The team demand multipliers are modeled, not measured — the sweep moves every scenario band, and the Atlanta-vs-Dallas semifinal premium is the only direct market evidence for them. The bookmaker odds carry vig (normalized per bracket side, but still bookmaker beliefs, not truth). The wedge calibration assumes lognormal buyer values and cost-anchored sellers; the ~1-in-5 killed trades and the 42% revenue peak are illustrative of the mechanism, not audit findings. And a real buyer faces frictions no model prices: FIFA's transfer app failed publicly in late June, stranding resale buyers mid-purchase, and the FBI is warning about fake ticket sites. The model tells you what the lottery is worth. Getting the ticket delivered is your own adventure.</p>
+</div>
+
+<div class="eyebrow">§ 7 — Predictions</div>
+<div class="prose">
+<h2>Graded on July 15 and July 19 — the fastest scorecard in this series</h2>
+</div>
+<ul class="watchlist">
+  <li><strong>If England or Argentina reaches the final</strong> (market: 73%), the get-in lands $9,200–$11,800 by July 16. If <em>both</em> marquee sides deliver — a France/Spain vs England/Argentina final — the top of that band.</li>
+  <li><strong>If neither reaches it</strong>, the get-in drops below $8,400 in every remaining scenario, and below $6,000 if the final involves Belgium, Norway or Switzerland.</li>
+  <li><strong>Resale listings keep growing faster than sales until the semis resolve.</strong> The wedge model says a falling market with a 30% fee queues instead of clearing — watch the listing counts, not the prices.</li>
+  <li><strong>The last 72 hours before kickoff will see markdowns, not markups</strong>, in every scenario except the marquee-vs-marquee final — the same deadline law as every piece in this series.</li>
+</ul>
+<div class="prose">
+<p><strong>A market can work perfectly and still work against you. The difference is whose objective it maximizes — FIFA wrote its own, and now you can read yours.</strong></p>
+</div>
+
+<div class="eyebrow">Sources &amp; method</div>
+<div class="prose">
+<ol class="sources">
+  <li><a href="https://www.forbes.com/sites/antoniopequenoiv/2026/07/07/ticket-prices-collapse-nearly-60-for-world-cup-quarterfinal-match-after-usa-portugal-eliminated/">Forbes (July 7)</a> — final get-in $9,346; SeatPick's −31.5%/day and −50.4%/3-day averages; TickPick listings 28,285→49,415</li>
+  <li><a href="https://sports.yahoo.com/soccer/article/world-cup-2026-ticket-prices-drop-off-after-usmnt-mexico-canada-exit-tournament-144749167.html">Yahoo Sports / Gametime</a> — quarterfinal get-ins and peaks (ESP-BEL $4,740→$1,317; FRA-MAR −66%; NOR-ENG −57%); semifinal get-ins Dallas $2,320 / Atlanta $2,708</li>
+  <li><a href="https://ag.ny.gov/press-release/2026/attorney-general-james-and-attorney-general-davenport-subpoena-fifa-over-world">NY Attorney General press release (May 27)</a> — the subpoena; 90+ of 104 matches raised ~34%; seat-reassignment grievance · <a href="https://www.cnn.com/2026/05/27/business/world-cup-tickets-new-york-new-jersey-subpoena">CNN</a></li>
+  <li><a href="https://gpcustomersupportfwc2026.tickets.fifa.com/hc/en-gb/articles/30546977220253">FIFA's own marketplace FAQ</a> — 15% buyer + 15% seller fees; Mexico-only price cap</li>
+  <li><a href="https://www.npr.org/2026/05/28/nx-s1-5836514/2026-world-cup-fifa-ticket-prices">NPR</a> — the final's face-price sequence $6,730→$10,990 and the $32,970 Front Category · <a href="https://inside.fifa.com/news/records-world-cup-2026-group-stage-sets-new-benchmark">FIFA</a> — 99.7% group-stage capacity, 4.64M tickets</li>
+  <li><a href="https://www.pbs.org/newshour/world/fifas-infantino-defends-world-cup-ticket-prices-says-fans-should-chill-about-ref-denied-us-entry">PBS/AP</a> — Infantino: "just chill, relax"; the sub-$500 claim; 130,000 $60 federation tickets</li>
+  <li><a href="https://www.foxsports.com/stories/soccer/2026-world-cup-odds-make-the-final">FOX Sports / FanDuel (July 7)</a> — reach-the-final odds · <a href="https://frontofficesports.com/world-cup-ticket-prices-knockouts-drop/">Front Office Sports</a> — FIFA's early-June across-the-board price cuts · <a href="https://www.npr.org/2026/06/26/nx-s1-5871397/world-cup-tickets-stubhub-resale-controversy">NPR</a> — the June 26 transfer failures</li>
+</ol>
+</div>
+<div class="footnote">
+  <strong>Reproducibility.</strong> Scenario pricing by odds-weighted demand multipliers with elasticity calibrated to the finals-vs-quarterfinals collapse gap, swept ±; the marginal-seat schedule via <code>gametheory.mechanism.posted_price</code> (Gallego–van Ryzin, the same module as piece No. 3); the resale wedge as bilateral Nash-split clearing under a two-sided fee, 200,000 draws. All simulation code and results are public: <a href="https://github.com/ryuxik/snhp/tree/main/research">github.com/ryuxik/snhp/research</a>. Companion pieces: <a href="/research/tonali-100m">Tonali</a>, <a href="/research/mora-clause">Mora</a>, <a href="/research/lira-promise">Lira</a>, <a href="/research/diomande-ladder">Diomande</a>, <a href="/research/wc-premium">the World Cup premium</a>.
+</div>
+</div>
+
+<script>
+(function () {
+  const DATA = {
+    scenarios: [
+      ["France v Argentina", 0.203, 10630], ["France v England", 0.158, 10630],
+      ["Spain v Argentina", 0.145, 10250], ["Spain v England", 0.113, 10250],
+      ["Morocco v Argentina", 0.034, 9670], ["Morocco v England", 0.027, 9670],
+      ["Belgium v Argentina", 0.031, 8540], ["Belgium v England", 0.024, 8540],
+      ["France v Colombia", 0.045, 8360], ["Spain v Colombia", 0.032, 7990],
+      ["Morocco v Colombia", 0.008, 7440], ["France v Norway", 0.068, 6720],
+      ["France v Switzerland", 0.018, 6540], ["Spain v Norway", 0.048, 6360],
+      ["Belgium v Colombia", 0.007, 6360], ["Spain v Switzerland", 0.013, 6180],
+      ["Morocco v Norway", 0.011, 5830], ["Morocco v Switzerland", 0.003, 5660],
+      ["Belgium v Norway", 0.010, 4800], ["Belgium v Switzerland", 0.003, 4630]
+    ],
+    today: 9346,
+    wedge: [[0, 43.5], [6, 40.0], [12, 36.5], [18, 32.8], [24, 29.1], [30, 25.2], [36, 21.4], [42, 17.6], [48, 13.9], [54, 10.4], [60, 7.3]]
+  };
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent) {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+  function makeSVG(box, w, h) {
+    const svg = el("svg", { viewBox: `0 0 ${w} ${h}`, role: "img" });
+    box.appendChild(svg);
+    return svg;
+  }
+  function tooltipFor(box) {
+    const t = document.createElement("div");
+    t.className = "tooltip";
+    box.appendChild(t);
+    return t;
+  }
+  function bindTip(target, tip, box, html) {
+    target.addEventListener("mouseenter", () => { tip.innerHTML = html; tip.style.display = "block"; });
+    target.addEventListener("mousemove", (e) => {
+      const r = box.getBoundingClientRect();
+      let x = e.clientX - r.left + 12, y = e.clientY - r.top - 10;
+      if (x + tip.offsetWidth > r.width - 4) x = e.clientX - r.left - tip.offsetWidth - 12;
+      tip.style.left = x + "px"; tip.style.top = y + "px";
+    });
+    target.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+  }
+
+  /* ---------- Chart 1: the twenty finals ---------- */
+  (function () {
+    const box = document.getElementById("c1"), tip = tooltipFor(box);
+    const rows = DATA.scenarios;
+    const W = 780, rowH = 24, M = { l: 172, r: 66, t: 20, b: 44 };
+    const H = M.t + M.b + rows.length * rowH;
+    const svg = makeSVG(box, W, H);
+    const X = v => M.l + (v / 12000) * (W - M.l - M.r);
+    [4000, 6000, 8000, 10000, 12000].forEach(v => {
+      el("line", { x1: X(v), x2: X(v), y1: M.t - 6, y2: H - M.b, stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: X(v), y: H - M.b + 18, "text-anchor": "middle", class: "tick" }, svg).textContent = "$" + (v / 1000) + "k";
+    });
+    el("line", { x1: X(DATA.today), x2: X(DATA.today), y1: M.t - 6, y2: H - M.b, stroke: "var(--s-2)", "stroke-width": 2 }, svg);
+    el("text", { x: X(DATA.today), y: M.t - 9, "text-anchor": "middle", class: "dlabel-2" }, svg).textContent = "today: $9,346";
+    const pmax = Math.max(...rows.map(r => r[1]));
+    rows.forEach((r, i) => {
+      const [name, p, v] = r;
+      const y = M.t + i * rowH + rowH / 2;
+      el("text", { x: M.l - 10, y: y + 4, "text-anchor": "end", class: "dlabel-2" }, svg).textContent = name;
+      const bar = el("rect", { x: M.l, y: y - 8, width: Math.max(X(v) - M.l, 2), height: 16, rx: 4,
+        fill: "var(--s-1)", opacity: 0.25 + 0.75 * (p / pmax) }, svg);
+      bindTip(bar, tip, box, `<b>${name}</b><br>probability ${(100 * p).toFixed(1)}% · expected get-in $${v.toLocaleString()}`);
+      el("text", { x: X(v) + 8, y: y + 4, class: "dlabel-2" }, svg).textContent = (100 * p).toFixed(0) + "%";
+    });
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "model's expected get-in price for that final → (bar shade = probability)";
+  })();
+
+  /* ---------- Chart 2: the wedge ---------- */
+  (function () {
+    const box = document.getElementById("c2"), tip = tooltipFor(box);
+    const W = 780, H = 340, M = { l: 52, r: 24, t: 24, b: 48 };
+    const svg = makeSVG(box, W, H);
+    const X = f => M.l + (f / 60) * (W - M.l - M.r);
+    const Y = v => H - M.b - (v / 50) * (H - M.t - M.b);
+    for (let g = 0; g <= 50; g += 10) {
+      el("line", { x1: M.l, x2: W - M.r, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: M.l - 8, y: Y(g) + 4, "text-anchor": "end", class: "tick" }, svg).textContent = g + "%";
+    }
+    [0, 15, 30, 45, 60].forEach(f => {
+      el("text", { x: X(f), y: H - M.b + 18, "text-anchor": "middle", class: "tick" }, svg).textContent = f + "%";
+    });
+    const d = DATA.wedge.map(([f, v], i) => `${i ? "L" : "M"}${X(f)},${Y(v)}`).join("");
+    el("path", { d, fill: "none", stroke: "var(--s-1)", "stroke-width": 2.5, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    DATA.wedge.forEach(([f, v]) => {
+      const hit = el("circle", { cx: X(f), cy: Y(v), r: 11, fill: "transparent" }, svg);
+      bindTip(hit, tip, box, `combined fee ${f}% → ${v}% of feasible trades clear`);
+    });
+    el("circle", { cx: X(30), cy: Y(25.2), r: 7, fill: "var(--s-2)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+    el("text", { x: X(30) + 12, y: Y(25.2) - 10, class: "dlabel" }, svg).textContent = "FIFA: 30% → one in five feasible trades dies";
+    el("circle", { cx: X(42), cy: Y(17.6), r: 6, fill: "var(--s-3)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+    el("text", { x: X(42) + 10, y: Y(17.6) + 18, class: "dlabel-2" }, svg).textContent = "revenue peak ≈ 42%";
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "combined resale fee → share of feasible buyer-seller pairs that trade";
+  })();
+
+  /* ---------- Widget: buy now or wait ---------- */
+  (function () {
+    const $ = id => document.getElementById(id);
+    const TODAY = 9346, E_BIG = 10260, E_SMALL = 6910;
+    function go() {
+      const p = +$("wgP").value / 100, B = +$("wgB").value;
+      $("wgPv").textContent = Math.round(p * 100) + "%";
+      $("wgBv").textContent = "$" + B.toLocaleString();
+      const e = p * E_BIG + (1 - p) * E_SMALL;
+      const d = e - TODAY;
+      $("wgE").textContent = "$" + Math.round(e).toLocaleString();
+      $("wgD").textContent = (d >= 0 ? "+$" : "−$") + Math.abs(Math.round(d)).toLocaleString();
+      let v;
+      if (TODAY > B) v = "Today's price already exceeds your ceiling — you're waiting and hoping for the crash scenarios, which is a bet, not a plan.";
+      else if (d > 300) v = "Buy now. At your odds, the semifinal lottery raises the price — waiting is paying extra for suspense.";
+      else if (d < -300) v = "Wait. Your beliefs say the marquee final is less likely than the market thinks — the lottery is overpriced and the semis should hand you a discount.";
+      else v = "It's a genuine coin flip at your numbers — the market agrees with you. Decide on risk: buying now locks certainty, waiting buys a 1-in-3 shot at thousands off.";
+      $("wgV").textContent = v;
+    }
+    ["wgP", "wgB"].forEach(id => $(id).addEventListener("input", go)); go();
+  })();
+})();
+</script>
+
+</body>
+</html>

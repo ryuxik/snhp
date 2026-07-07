@@ -654,13 +654,15 @@ def for_builders_page():
 # (served via the /static mount, which the pages' og:image URLs point at).
 
 # Canonical slugs, plus the short aliases used in tweets (/r/tonali → canonical).
-_RESEARCH_SLUGS = {"tonali-100m", "mora-clause", "lira-promise", "diomande-ladder", "wc-premium"}
+_RESEARCH_SLUGS = {"tonali-100m", "mora-clause", "lira-promise", "diomande-ladder",
+                   "wc-premium", "wc-final-tickets"}
 _RESEARCH_ALIASES = {
     "tonali": "tonali-100m",
     "mora": "mora-clause",
     "lira": "lira-promise",
     "diomande": "diomande-ladder",
     "premium": "wc-premium",
+    "tickets": "wc-final-tickets",
 }
 
 

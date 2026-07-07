@@ -1,0 +1,224 @@
+{
+ "scenarios": [
+  {
+   "final": "France v Argentina",
+   "p": 0.203,
+   "get_in": 10630.0
+  },
+  {
+   "final": "France v England",
+   "p": 0.158,
+   "get_in": 10630.0
+  },
+  {
+   "final": "Spain v Argentina",
+   "p": 0.145,
+   "get_in": 10250.0
+  },
+  {
+   "final": "Spain v England",
+   "p": 0.113,
+   "get_in": 10250.0
+  },
+  {
+   "final": "Morocco v Argentina",
+   "p": 0.034,
+   "get_in": 9670.0
+  },
+  {
+   "final": "Morocco v England",
+   "p": 0.027,
+   "get_in": 9670.0
+  },
+  {
+   "final": "Belgium v Argentina",
+   "p": 0.031,
+   "get_in": 8540.0
+  },
+  {
+   "final": "Belgium v England",
+   "p": 0.024,
+   "get_in": 8540.0
+  },
+  {
+   "final": "France v Colombia",
+   "p": 0.045,
+   "get_in": 8360.0
+  },
+  {
+   "final": "Spain v Colombia",
+   "p": 0.032,
+   "get_in": 7990.0
+  },
+  {
+   "final": "Morocco v Colombia",
+   "p": 0.008,
+   "get_in": 7440.0
+  },
+  {
+   "final": "France v Norway",
+   "p": 0.068,
+   "get_in": 6720.0
+  },
+  {
+   "final": "France v Switzerland",
+   "p": 0.018,
+   "get_in": 6540.0
+  },
+  {
+   "final": "Spain v Norway",
+   "p": 0.048,
+   "get_in": 6360.0
+  },
+  {
+   "final": "Belgium v Colombia",
+   "p": 0.007,
+   "get_in": 6360.0
+  },
+  {
+   "final": "Spain v Switzerland",
+   "p": 0.013,
+   "get_in": 6180.0
+  },
+  {
+   "final": "Morocco v Norway",
+   "p": 0.011,
+   "get_in": 5830.0
+  },
+  {
+   "final": "Morocco v Switzerland",
+   "p": 0.003,
+   "get_in": 5660.0
+  },
+  {
+   "final": "Belgium v Norway",
+   "p": 0.01,
+   "get_in": 4800.0
+  },
+  {
+   "final": "Belgium v Switzerland",
+   "p": 0.003,
+   "get_in": 4630.0
+  }
+ ],
+ "buy_now_or_wait": {
+  "today": 9346.0,
+  "expected_after_semis": 9380.0,
+  "wait_saves_expected": -30.0,
+  "p_price_above_today": 0.68,
+  "spike_scenario": {
+   "final": "France v Argentina",
+   "p": 0.203,
+   "get_in": 10630.0
+  },
+  "crash_scenario": {
+   "final": "Belgium v Switzerland",
+   "p": 0.003,
+   "get_in": 4630.0
+  }
+ },
+ "wedge": {
+  "curve": [
+   {
+    "fee": 0.0,
+    "clears_pct": 43.5,
+    "fifa_rev_index": 0.0
+   },
+   {
+    "fee": 0.06,
+    "clears_pct": 40.0,
+    "fifa_rev_index": 236.6
+   },
+   {
+    "fee": 0.12,
+    "clears_pct": 36.5,
+    "fifa_rev_index": 446.6
+   },
+   {
+    "fee": 0.18,
+    "clears_pct": 32.8,
+    "fifa_rev_index": 624.0
+   },
+   {
+    "fee": 0.24,
+    "clears_pct": 29.1,
+    "fifa_rev_index": 767.1
+   },
+   {
+    "fee": 0.3,
+    "clears_pct": 25.2,
+    "fifa_rev_index": 869.3
+   },
+   {
+    "fee": 0.36,
+    "clears_pct": 21.4,
+    "fifa_rev_index": 928.8
+   },
+   {
+    "fee": 0.42,
+    "clears_pct": 17.6,
+    "fifa_rev_index": 937.2
+   },
+   {
+    "fee": 0.48,
+    "clears_pct": 13.9,
+    "fifa_rev_index": 897.9
+   },
+   {
+    "fee": 0.54,
+    "clears_pct": 10.4,
+    "fifa_rev_index": 809.9
+   },
+   {
+    "fee": 0.6,
+    "clears_pct": 7.3,
+    "fifa_rev_index": 675.6
+   }
+  ],
+  "fifa_fee": 0.3,
+  "at_30": {
+   "fee": 0.3,
+   "clears_pct": 25.2,
+   "fifa_rev_index": 869.3
+  },
+  "revenue_optimal_fee": {
+   "fee": 0.4,
+   "clears_pct": 18.8,
+   "fifa_rev_index": 938.9
+  },
+  "trades_killed_at_30_pct": 18.3
+ },
+ "widget_partition": {
+  "p_big_default": 0.734,
+  "e_getin_if_big": 10260.0,
+  "e_getin_if_small": 6910.0
+ },
+ "scenario_bands": {
+  "France v Argentina": {
+   "p10": 9710.0,
+   "median": 10560.0,
+   "p90": 11630.0
+  },
+  "Spain v England": {
+   "p10": 9170.0,
+   "median": 10200.0,
+   "p90": 11430.0
+  },
+  "France v England": {
+   "p10": 9590.0,
+   "median": 10580.0,
+   "p90": 11790.0
+  },
+  "Belgium v Norway": {
+   "p10": 3770.0,
+   "median": 4860.0,
+   "p90": 5950.0
+  }
+ },
+ "engine_schedule": {
+  "static_price": 12817.0306,
+  "static_ev": 10222.6233,
+  "sellthrough": 0.7785,
+  "note": "the optimal ask for a marginal final seat starts above today's market and marks down into July 19 \u2014 the same markdown law FIFA's own last-3-days price cuts obeyed in the group stage"
+ }
+}
