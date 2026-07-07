@@ -14,20 +14,23 @@ API at `/par/*` — same-origin, so the front end's `fetch()` needs no CORS.
 | Persistence | ✅ **durable** — SQLite locally, Postgres in prod (`par/_store.py` via `gametheory._db`); survives restarts |
 | Actually running `fly deploy` | ⬜ **you** — needs your Fly auth + domain DNS |
 
-## Ship it (one-time)
+## Ship it (this is how it was actually deployed)
 
-From the repo root, with `flyctl` installed and `fly auth login` (ryuxik@gmail.com):
+From the repo root, with `flyctl` installed and `fly auth login` (ryuxik@gmail.com). The app
+is **par-game** ("par" is taken on Fly's global namespace) and it shares the existing
+`snhp-db` Postgres cluster (its own database + user inside it):
 
 ```sh
-fly launch --no-deploy --name par --dockerfile par/Dockerfile   # writes/merges par/fly.toml
-fly postgres create --name par-db --region sjc --vm-size shared-cpu-1x --volume-size 1
-fly postgres attach par-db --app par                            # injects DATABASE_URL
-psql "$(fly postgres connect --app par-db --command '\conninfo' 2>/dev/null)" -f par/schema.sql
-fly certs add par.game --app par                                # + point DNS at Fly (A/AAAA)
-fly deploy --dockerfile par/Dockerfile
+fly apps create par-game --org personal
+fly postgres attach snhp-db --app par-game --yes    # injects DATABASE_URL (db: par_game)
+fly deploy . -c par/fly.toml --remote-only --yes    # context = repo root; dockerfile from toml
+# custom domain, once par.game DNS points at Fly:
+#   fly certs add par.game --app par-game
 ```
 
-Then `curl https://par.game/par/today` and open `https://par.game`.
+The schema auto-creates on first connect (par/_store.py); `psql -f par/schema.sql` is only
+for the optional prod indexes. Then: `curl https://par-game.fly.dev/health` and `/par/today`,
+and open https://par-game.fly.dev.
 
 ## Persistence (done) & scaling
 

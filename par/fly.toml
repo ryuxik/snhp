@@ -18,7 +18,9 @@ app = "par-game"                    # fly.io app name ("par" is taken); site: pa
 primary_region = "sjc"
 
 [build]
-  dockerfile = "par/Dockerfile"
+  # resolved relative to THIS file's directory; the build context is the repo root
+  # (deploy with:  fly deploy . -c par/fly.toml  — from the repo root)
+  dockerfile = "Dockerfile"
 
 [env]
   PORT = "8080"
