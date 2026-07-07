@@ -664,13 +664,16 @@ _RESEARCH_ALIASES = {
 }
 
 
-@app.get("/research", include_in_schema=False)
+# GET + HEAD on all research routes: link-preview crawlers (Twitterbot,
+# Slack, iMessage) often probe with HEAD before fetching, and FastAPI's
+# @app.get does not answer HEAD on its own.
+@app.api_route("/research", methods=["GET", "HEAD"], include_in_schema=False)
 def research_index():
     """Index of the Transfer Market Mechanics series."""
     return _serve_static_page("research/index.html")
 
 
-@app.get("/research/{slug}", include_in_schema=False)
+@app.api_route("/research/{slug}", methods=["GET", "HEAD"], include_in_schema=False)
 def research_piece(slug: str):
     """One research piece, by canonical slug."""
     if slug in _RESEARCH_ALIASES:
@@ -680,13 +683,19 @@ def research_piece(slug: str):
     return _serve_static_page(f"research/{slug}.html")
 
 
-@app.get("/r/{slug}", include_in_schema=False)
+@app.api_route("/r/{slug}", methods=["GET", "HEAD"], include_in_schema=False)
 def research_short_link(slug: str):
     """Short share links for tweets: /r/tonali, /r/mora."""
     canonical = _RESEARCH_ALIASES.get(slug, slug if slug in _RESEARCH_SLUGS else None)
     if canonical is None:
         raise HTTPException(status_code=404, detail="no such research piece")
     return RedirectResponse(f"/research/{canonical}", status_code=301)
+
+
+@app.api_route("/robots.txt", methods=["GET", "HEAD"], include_in_schema=False)
+def robots_txt():
+    """Allow all crawlers — link-preview bots included."""
+    return PlainTextResponse("User-agent: *\nAllow: /\n")
 
 
 # ─── Tier 1: Negotiation ─────────────────────────────────────────────────────
