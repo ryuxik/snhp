@@ -1,0 +1,235 @@
+{
+ "curve": [
+  {
+   "n": 1,
+   "exp_price": 9.2,
+   "mode": "bilateral Nash"
+  },
+  {
+   "n": 2,
+   "exp_price": 10.64,
+   "mode": "English, no reserve"
+  },
+  {
+   "n": 3,
+   "exp_price": 12.16,
+   "mode": "English, no reserve"
+  },
+  {
+   "n": 4,
+   "exp_price": 13.07,
+   "mode": "English, no reserve"
+  },
+  {
+   "n": 5,
+   "exp_price": 13.72,
+   "mode": "English, no reserve"
+  },
+  {
+   "n": 6,
+   "exp_price": 14.21,
+   "mode": "English, no reserve"
+  }
+ ],
+ "clause_gap": {
+  "clause": 7.5,
+  "vs_three_bidders": 4.66,
+  "vs_two": 3.14,
+  "vs_six": 6.71,
+  "p_trigger": 0.9698
+ },
+ "window": {
+  "now": {
+   "static_price": 12.0017,
+   "static_ev": 10.376,
+   "engine_dynamic_v0": 10.7283,
+   "fine_dynamic_v0": 10.69,
+   "sellthrough": 0.86,
+   "schedule_fine": [
+    [
+     0.0,
+     13.65
+    ],
+    [
+     5.1,
+     13.4
+    ],
+    [
+     10.2,
+     13.12
+    ],
+    [
+     15.3,
+     12.81
+    ],
+    [
+     20.4,
+     12.47
+    ],
+    [
+     25.4,
+     12.09
+    ],
+    [
+     30.5,
+     11.68
+    ],
+    [
+     35.6,
+     11.22
+    ],
+    [
+     40.7,
+     10.72
+    ],
+    [
+     45.8,
+     10.19
+    ],
+    [
+     50.9,
+     9.64
+    ],
+    [
+     56.0,
+     9.1
+    ]
+   ]
+  },
+  "later_12mo": {
+   "static_price": 9.6998,
+   "static_ev": 7.9958,
+   "fine_dynamic_v0": 8.18
+  },
+  "window_premium_revenue_only": 2.51,
+  "window_premium_keepvalue_adj": 2.12
+ },
+ "monte_carlo": {
+  "n": 10000,
+  "auction_minus_clause_75": {
+   "p10": 2.86,
+   "median": 5.32,
+   "p90": 7.84
+  },
+  "optimal_posted_price": {
+   "p10": 10.5,
+   "median": 12.2,
+   "p90": 14.1
+  },
+  "discount_at_4": {
+   "p10": 4.94,
+   "median": 6.57,
+   "p90": 8.35
+  },
+  "discount_at_75": {
+   "p10": 1.65,
+   "median": 3.17,
+   "p90": 4.88
+  },
+  "discount_at_9": {
+   "p10": 0.52,
+   "median": 1.79,
+   "p90": 3.41
+  },
+  "pct_discount_positive_at_9": 100.0,
+  "sell_now_minus_hold_keepvalue_adj": {
+   "p10": 1.32,
+   "median": 2.74,
+   "p90": 4.26
+  },
+  "pct_sell_now_wins": 99.8,
+  "mean_prob_clause75_below_every_bidder": 0.822,
+  "promise_curve": [
+   {
+    "c": 3.0,
+    "p10": 5.9,
+    "median": 7.55,
+    "p90": 9.35
+   },
+   {
+    "c": 3.5,
+    "p10": 5.42,
+    "median": 7.06,
+    "p90": 8.85
+   },
+   {
+    "c": 4.0,
+    "p10": 4.94,
+    "median": 6.57,
+    "p90": 8.35
+   },
+   {
+    "c": 4.5,
+    "p10": 4.46,
+    "median": 6.08,
+    "p90": 7.85
+   },
+   {
+    "c": 5.0,
+    "p10": 3.97,
+    "median": 5.59,
+    "p90": 7.36
+   },
+   {
+    "c": 5.5,
+    "p10": 3.5,
+    "median": 5.11,
+    "p90": 6.86
+   },
+   {
+    "c": 6.0,
+    "p10": 3.02,
+    "median": 4.62,
+    "p90": 6.36
+   },
+   {
+    "c": 6.5,
+    "p10": 2.56,
+    "median": 4.14,
+    "p90": 5.87
+   },
+   {
+    "c": 7.0,
+    "p10": 2.1,
+    "median": 3.65,
+    "p90": 5.37
+   },
+   {
+    "c": 7.5,
+    "p10": 1.65,
+    "median": 3.17,
+    "p90": 4.88
+   },
+   {
+    "c": 8.0,
+    "p10": 1.24,
+    "median": 2.7,
+    "p90": 4.39
+   },
+   {
+    "c": 8.5,
+    "p10": 0.86,
+    "median": 2.24,
+    "p90": 3.9
+   },
+   {
+    "c": 9.0,
+    "p10": 0.52,
+    "median": 1.79,
+    "p90": 3.41
+   },
+   {
+    "c": 9.5,
+    "p10": 0.24,
+    "median": 1.37,
+    "p90": 2.94
+   },
+   {
+    "c": 10.0,
+    "p10": 0.07,
+    "median": 0.97,
+    "p90": 2.47
+   }
+  ]
+ }
+}

@@ -1,0 +1,259 @@
+{
+ "null_tournament": {
+  "n_players": 700,
+  "n_sims": 2000,
+  "top10_apparent_improvement": {
+   "p10": 4.33,
+   "median": 4.9,
+   "p90": 5.57
+  },
+  "hist": {
+   "bins": [
+    3.5,
+    4.0,
+    4.5,
+    5.0,
+    5.5,
+    6.0,
+    6.5,
+    7.0
+   ],
+   "counts": [
+    34,
+    364,
+    779,
+    588,
+    174,
+    50,
+    10
+   ]
+  },
+  "note": "median: the tournament's top-10 'risers' look ~Xx better than their true selves in a world where NOBODY improved"
+ },
+ "movers": [
+  {
+   "name": "Michael Olise",
+   "pre": 125,
+   "post": 150,
+   "wc_minutes": 430,
+   "kind": "value",
+   "rational_post": 152.7,
+   "observed_gain_pct": 20.0,
+   "rational_gain_pct": 22.0,
+   "hype_multiple": 0.9
+  },
+  {
+   "name": "Yan Diomande",
+   "pre": 80,
+   "post": 92.5,
+   "wc_minutes": 398,
+   "kind": "value",
+   "rational_post": 86.5,
+   "observed_gain_pct": 16.0,
+   "rational_gain_pct": 8.0,
+   "hype_multiple": 1.9
+  },
+  {
+   "name": "Ayyoub Bouaddi",
+   "pre": 45,
+   "post": 65,
+   "wc_minutes": 380,
+   "kind": "value",
+   "rational_post": 51.2,
+   "observed_gain_pct": 44.0,
+   "rational_gain_pct": 14.0,
+   "hype_multiple": 3.2
+  },
+  {
+   "name": "Crysencio Summerville",
+   "pre": 25,
+   "post": 50,
+   "wc_minutes": 133,
+   "kind": "ask",
+   "rational_post": 29.7,
+   "observed_gain_pct": 100.0,
+   "rational_gain_pct": 19.0,
+   "hype_multiple": 5.3
+  },
+  {
+   "name": "Deniz Undav",
+   "pre": 30,
+   "post": 40,
+   "wc_minutes": 150,
+   "kind": "value",
+   "rational_post": 33.7,
+   "observed_gain_pct": 33.0,
+   "rational_gain_pct": 12.0,
+   "hype_multiple": 2.7
+  },
+  {
+   "name": "Elijah Just",
+   "pre": 2.5,
+   "post": 10,
+   "wc_minutes": 270,
+   "kind": "ask",
+   "rational_post": 3.2,
+   "observed_gain_pct": 300.0,
+   "rational_gain_pct": 30.0,
+   "hype_multiple": 10.1
+  },
+  {
+   "name": "Malik Tillman",
+   "pre": 40,
+   "post": 65,
+   "wc_minutes": 360,
+   "kind": "value",
+   "rational_post": 49.1,
+   "observed_gain_pct": 62.0,
+   "rational_gain_pct": 23.0,
+   "hype_multiple": 2.7
+  },
+  {
+   "name": "Johan Manzambi",
+   "pre": 42,
+   "post": 51.2,
+   "wc_minutes": 129,
+   "kind": "ask",
+   "rational_post": 51.2,
+   "observed_gain_pct": 22.0,
+   "rational_gain_pct": 22.0,
+   "hype_multiple": 1.0
+  },
+  {
+   "name": "Christ Inao Oulai",
+   "pre": 25,
+   "post": 45,
+   "wc_minutes": 300,
+   "kind": "ask",
+   "rational_post": 29.0,
+   "observed_gain_pct": 80.0,
+   "rational_gain_pct": 16.0,
+   "hype_multiple": 5.0
+  },
+  {
+   "name": "Brian Brobbey",
+   "pre": 25,
+   "post": 50,
+   "wc_minutes": 330,
+   "kind": "ask",
+   "rational_post": 31.2,
+   "observed_gain_pct": 100.0,
+   "rational_gain_pct": 25.0,
+   "hype_multiple": 4.1
+  },
+  {
+   "name": "Kylian Mbappe",
+   "pre": 155,
+   "post": 200,
+   "wc_minutes": 450,
+   "kind": "value",
+   "rational_post": 187.0,
+   "observed_gain_pct": 29.0,
+   "rational_gain_pct": 21.0,
+   "hype_multiple": 1.4
+  },
+  {
+   "name": "Lamine Yamal",
+   "pre": 200,
+   "post": 205,
+   "wc_minutes": 400,
+   "kind": "value",
+   "rational_post": 204.0,
+   "observed_gain_pct": 2.0,
+   "rational_gain_pct": 2.0,
+   "hype_multiple": 1.2
+  },
+  {
+   "name": "Bradley Barcola",
+   "pre": 60,
+   "post": 65,
+   "wc_minutes": 200,
+   "kind": "value",
+   "rational_post": 62.6,
+   "observed_gain_pct": 8.0,
+   "rational_gain_pct": 4.0,
+   "hype_multiple": 1.9
+  },
+  {
+   "name": "Julian Alvarez",
+   "pre": 120,
+   "post": 105,
+   "wc_minutes": 160,
+   "kind": "value",
+   "rational_post": 114.9,
+   "observed_gain_pct": -12.0,
+   "rational_gain_pct": -4.0,
+   "hype_multiple": 2.9
+  },
+  {
+   "name": "Elliot Anderson",
+   "pre": 105,
+   "post": 97.5,
+   "wc_minutes": 380,
+   "kind": "value",
+   "rational_post": 99.0,
+   "observed_gain_pct": -7.0,
+   "rational_gain_pct": -6.0,
+   "hype_multiple": 1.3
+  },
+  {
+   "name": "Morgan Rogers",
+   "pre": 90,
+   "post": 85,
+   "wc_minutes": 150,
+   "kind": "value",
+   "rational_post": 87.1,
+   "observed_gain_pct": -6.0,
+   "rational_gain_pct": -3.0,
+   "hype_multiple": 1.7
+  }
+ ],
+ "hype_median": 2.3,
+ "sensitivity": [
+  {
+   "n_prior": 1800,
+   "elasticity": 1.2,
+   "hype_median": 2.1
+  },
+  {
+   "n_prior": 1800,
+   "elasticity": 1.6,
+   "hype_median": 1.5
+  },
+  {
+   "n_prior": 1800,
+   "elasticity": 2.2,
+   "hype_median": 1.1
+  },
+  {
+   "n_prior": 2800,
+   "elasticity": 1.2,
+   "hype_median": 3.1
+  },
+  {
+   "n_prior": 2800,
+   "elasticity": 1.6,
+   "hype_median": 2.3
+  },
+  {
+   "n_prior": 2800,
+   "elasticity": 2.2,
+   "hype_median": 1.6
+  },
+  {
+   "n_prior": 4000,
+   "elasticity": 1.2,
+   "hype_median": 4.4
+  },
+  {
+   "n_prior": 4000,
+   "elasticity": 1.6,
+   "hype_median": 3.3
+  },
+  {
+   "n_prior": 4000,
+   "elasticity": 2.2,
+   "hype_median": 2.3
+  }
+ ]
+}

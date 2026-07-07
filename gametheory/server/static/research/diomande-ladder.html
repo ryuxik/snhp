@@ -126,6 +126,18 @@
   svg .axis-label, svg .tick { font-size: 11px; fill: var(--muted); }
   svg .dlabel { font-size: 11.5px; font-weight: 600; fill: var(--ink); }
   svg .dlabel-2 { font-size: 11px; fill: var(--ink-2); }
+  .widget { margin: 26px 0 8px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; padding: 18px; }
+  .widget .w-title { font-size: 14.5px; font-weight: 650; margin: 0 0 2px; }
+  .widget .w-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+  .w-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px 18px; margin-bottom: 14px; }
+  .w-ctl label { display: block; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+  .w-ctl label b { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+  .w-ctl input[type=range] { width: 100%; accent-color: var(--accent); }
+  .w-out { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; border-top: 1px solid var(--grid); padding-top: 14px; }
+  .w-stat .l { font-size: 12px; color: var(--muted); line-height: 1.35; }
+  .w-stat .v { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .w-verdict { font-size: 13.5px; color: var(--ink-2); margin-top: 12px; border-left: 3px solid var(--accent); padding-left: 10px; }
+  .w-note { font-size: 11.5px; color: var(--muted); margin-top: 10px; }
 </style>
 
 <div class="wrap">
@@ -224,6 +236,46 @@
 <p>Sweep PSG's valuation (€110–145m), Leipzig's now-reservation (€110–140m), and the patience parameters. Three outcomes carve up the probability: in <strong>~57% of worlds a deal clears this window</strong>, at a median <strong>€130m</strong> — €120m+ in 88% of clearing worlds, past Wirtz's €125m Bundesliga record fixed fee in half of them, and a €110m+ profit on a €20m purchase in essentially all of them. In the remaining ~43%, PSG's number never reaches Leipzig's, and the Romano-reported fallback becomes the story: a new contract with a 2027 release clause — which would make Diomande the third player in this series to have his exit promised at a pre-agreed price, and the first where the promise would be <em>above</em> market.</p>
 </div>
 
+
+<div class="eyebrow">§ interactive — argue with this piece</div>
+<div class="widget" id="wg">
+  <p class="w-title">Run the standoff yourself</p>
+  <p class="w-sub">Three numbers decide everything: what Leipzig would really accept now, what PSG would really pay, and where Liverpool's ceiling was before they walked. (Patience parameters fixed at the piece's δ = 0.94 / 0.86.)</p>
+  <div class="w-controls">
+    <div class="w-ctl"><label>Leipzig's now-reservation: <b id="wgRv">€125m</b></label><input type="range" id="wgR" min="110" max="140" step="1" value="125"></div>
+    <div class="w-ctl"><label>PSG's true valuation: <b id="wgPv">€128m</b></label><input type="range" id="wgP" min="110" max="145" step="1" value="128"></div>
+    <div class="w-ctl"><label>Liverpool's ceiling (the dead auction): <b id="wgLv">€103m</b></label><input type="range" id="wgL" min="95" max="110" step="1" value="103"></div>
+  </div>
+  <div class="w-out">
+    <div class="w-stat"><div class="l">the auction would've cleared at</div><div class="v" id="wgA">—</div></div>
+    <div class="w-stat"><div class="l">the bilateral clears at</div><div class="v" id="wgB">—</div></div>
+    <div class="w-stat"><div class="l">the handshake costs PSG</div><div class="v" id="wgD">—</div></div>
+  </div>
+  <p class="w-verdict" id="wgV"></p>
+  <p class="w-note">English auction vs Rubinstein split — the same closed forms as §3. Reference implementation in Python, linked below.</p>
+</div>
+<script>
+(function(){
+  const $=id=>document.getElementById(id), D1=0.94, D2=0.86;
+  const SHARE=D1*(1-D2)/(1-D1*D2);
+  function go(){
+    const R=+$('wgR').value, VP=+$('wgP').value, VL=+$('wgL').value;
+    $('wgRv').textContent='€'+R+'m'; $('wgPv').textContent='€'+VP+'m'; $('wgLv').textContent='€'+VL+'m';
+    const hi=Math.max(VP,VL), sec=Math.min(VP,VL);
+    const auc = hi>=R ? Math.max(sec,R) : null;
+    const bil = VP>=R ? R+SHARE*(VP-R) : null;
+    $('wgA').textContent = auc===null?'no sale':'€'+auc.toFixed(0)+'m';
+    $('wgB').textContent = bil===null?'no deal':'€'+bil.toFixed(0)+'m';
+    $('wgD').textContent = (auc!==null&&bil!==null)?'€'+(bil-auc).toFixed(0)+'m':'—';
+    $('wgV').textContent = bil===null ? 'At these numbers PSG and Leipzig never meet — the 2027-release-clause branch is live.' :
+      auc===null ? 'The auction never clears at these numbers; the bilateral is the only path.' :
+      (bil-auc)>0 ? 'Diomande\u2019s handshake is a transfer from PSG to Leipzig — the player chose the seller\u2019s side of the table.' :
+      'At these numbers the dead auction would have cost PSG more — Liverpool leaving was the favor.';
+  }
+  ['wgR','wgP','wgL'].forEach(id=>$(id).addEventListener('input',go)); go();
+})();
+</script>
+
 <div class="eyebrow">§ 6 — What this doesn't say</div>
 <div class="prose">
 <h2>Does the model tell the whole truth?</h2>
@@ -255,7 +307,7 @@
 </div>
 <div class="footnote">
   <strong>Reproducibility.</strong> All computation runs on the open-source <code>snhp</code> engine (<code>pip install snhp</code>): the auction-vs-bilateral comparison by order statistics and Rubinstein bargaining (<code>snhp.core_math.rubinstein</code>), the hold-vs-sell curve by seeded Monte Carlo over one-year value growth (N = 100,000 per point), sensitivity over all §5 parameter ranges. Companion pieces: <a href="/research/tonali-100m">Tonali</a>, <a href="/research/mora-clause">Mora</a>, <a href="/research/lira-promise">Lira</a> — four deals, four mechanisms, one engine.
-</div>
+ All simulation code and results are public: <a href="https://github.com/ryuxik/snhp/tree/main/research">github.com/ryuxik/snhp/research</a>.</div>
 </div>
 
 <script>

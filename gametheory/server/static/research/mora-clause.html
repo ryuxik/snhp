@@ -146,6 +146,18 @@
   svg .axis-label, svg .tick { font-size: 11px; fill: var(--muted); }
   svg .dlabel { font-size: 11.5px; font-weight: 600; fill: var(--ink); }
   svg .dlabel-2 { font-size: 11px; fill: var(--ink-2); }
+  .widget { margin: 26px 0 8px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; padding: 18px; }
+  .widget .w-title { font-size: 14.5px; font-weight: 650; margin: 0 0 2px; }
+  .widget .w-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+  .w-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px 18px; margin-bottom: 14px; }
+  .w-ctl label { display: block; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+  .w-ctl label b { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+  .w-ctl input[type=range] { width: 100%; accent-color: var(--accent); }
+  .w-out { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; border-top: 1px solid var(--grid); padding-top: 14px; }
+  .w-stat .l { font-size: 12px; color: var(--muted); line-height: 1.35; }
+  .w-stat .v { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .w-verdict { font-size: 13.5px; color: var(--ink-2); margin-top: 12px; border-left: 3px solid var(--accent); padding-left: 10px; }
+  .w-note { font-size: 11.5px; color: var(--muted); margin-top: 10px; }
 </style>
 
 <div class="wrap">
@@ -276,6 +288,61 @@
   <figcaption>Median €16.4m forgone (10th–90th pct: €4.6–32.6m). The clause wins in roughly 1 world in 60 — the ones where interest collapses to two lukewarm bidders and valuations sag. The conclusion survives every assumption I know how to vary.</figcaption>
 </figure>
 
+
+<div class="eyebrow">§ interactive — argue with this piece</div>
+<div class="widget" id="wg">
+  <p class="w-title">Price the clause yourself</p>
+  <p class="w-sub">Set the market and the tag; the widget re-runs the auction against the clause. (Valuation spread fixed at the piece's σ = 0.35; keep-value €15m.)</p>
+  <div class="w-controls">
+    <div class="w-ctl"><label>Median club valuation: <b id="wgMv">€40m</b></label><input type="range" id="wgM" min="30" max="55" step="1" value="40"></div>
+    <div class="w-ctl"><label>Credible bidders: <b id="wgNv">3</b></label><input type="range" id="wgN" min="2" max="6" step="1" value="3"></div>
+    <div class="w-ctl"><label>Clause level: <b id="wgCv">€23m</b></label><input type="range" id="wgC" min="15" max="60" step="1" value="23"></div>
+  </div>
+  <div class="w-out">
+    <div class="w-stat"><div class="l">open bidding is worth</div><div class="v" id="wgA">—</div></div>
+    <div class="w-stat"><div class="l">the clause is worth</div><div class="v" id="wgE">—</div></div>
+    <div class="w-stat"><div class="l">forgone by the clause</div><div class="v" id="wgF">—</div></div>
+  </div>
+  <p class="w-verdict" id="wgV"></p>
+  <p class="w-note">Second-highest-valuation auction vs posted-price expected value — the same computation as §3–4, seeded Monte Carlo, in your browser. Reference implementation in Python, linked below.</p>
+</div>
+<script>
+(function(){
+function erfc(x){const z=Math.abs(x),t=1/(1+z/2);const r=t*Math.exp(-z*z-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277)))))))));return x>=0?r:2-r;}
+function lnSF(p,med,sig){return 0.5*erfc((Math.log(p/med))/(sig*Math.SQRT2));}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+  const $=id=>document.getElementById(id), SIG=0.35, KEEP=15;
+  function e2nd(med,n){
+    const rnd=mulberry32(42); let s=0; const SIMS=3000;
+    for(let i=0;i<SIMS;i++){
+      let hi=-1,se=-1;
+      for(let j=0;j<n;j++){
+        const u1=Math.max(rnd(),1e-12),u2=rnd();
+        const v=med*Math.exp(SIG*Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2));
+        if(v>hi){se=hi;hi=v;}else if(v>se){se=v;}
+      }
+      s+=se;
+    }
+    return s/SIMS;
+  }
+  function go(){
+    const M=+$('wgM').value, N=+$('wgN').value, C=+$('wgC').value;
+    $('wgMv').textContent='€'+M+'m'; $('wgNv').textContent=N; $('wgCv').textContent='€'+C+'m';
+    const a=e2nd(M,N);
+    const pTrig=1-Math.pow(1-lnSF(C,M,SIG),N);
+    const ev=C*pTrig+KEEP*(1-pTrig);
+    const f=a-ev;
+    $('wgA').textContent='€'+a.toFixed(1)+'m'; $('wgE').textContent='€'+ev.toFixed(1)+'m';
+    $('wgF').textContent=(f>=0?'€':'−€')+Math.abs(f).toFixed(1)+'m';
+    $('wgV').textContent = f>10 ? 'That clause is a gift to whichever club triggers it first.' :
+      f>3 ? 'The clause still leaves real money on the buyer\u2019s side of the table.' :
+      f>-1 ? 'At these numbers the clause is close to fair.' :
+      'At these numbers the clause is above what open bidding would produce — no one triggers it.';
+  }
+  ['wgM','wgN','wgC'].forEach(id=>$(id).addEventListener('input',go)); go();
+})();
+</script>
+
 <div class="eyebrow">§ 7 — What this doesn't say</div>
 <div class="prose">
 <h2>Does the model tell the whole truth?</h2>
@@ -312,8 +379,8 @@
 </ol>
 </div>
 <div class="footnote">
-  <strong>Reproducibility.</strong> All computation runs on the open-source <code>snhp</code> engine (<code>pip install snhp</code>): auction pricing by direct order-statistic Monte Carlo on the lognormal prior (200k draws), the optimal clause by direct expected-value maximization over the same draws, the package frontier via <code>snhp.nash_solver.filter_pareto_frontier</code> / <code>find_nash_bargaining_solution</code>. Sensitivity: N = 10,000 seeded draws over all tabled parameters. Companion piece: <a href="/research/tonali-100m">the Tonali deal, replayed</a>. Simulation script (~180 lines) available on request.
-</div>
+  <strong>Reproducibility.</strong> All computation runs on the open-source <code>snhp</code> engine (<code>pip install snhp</code>): auction pricing by direct order-statistic Monte Carlo on the lognormal prior (200k draws), the optimal clause by direct expected-value maximization over the same draws, the package frontier via <code>snhp.nash_solver.filter_pareto_frontier</code> / <code>find_nash_bargaining_solution</code>. Sensitivity: N = 10,000 seeded draws over all tabled parameters. Companion piece: <a href="/research/tonali-100m">the Tonali deal, replayed</a>.
+ All simulation code and results are public: <a href="https://github.com/ryuxik/snhp/tree/main/research">github.com/ryuxik/snhp/research</a>.</div>
 </div>
 
 <script>

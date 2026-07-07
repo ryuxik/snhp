@@ -1,0 +1,103 @@
+{
+ "revealed": {
+  "v_liverpool_geq": 100.0,
+  "leipzig_continuation_gt": 100.0,
+  "only_mainstream_ask": 130.0,
+  "fabricated_rungs": [
+   116.0,
+   148.0,
+   160.0
+  ]
+ },
+ "mechanisms": {
+  "auction_if_liverpool_stayed": {
+   "p10": 111.8,
+   "median": 120.0,
+   "p90": 133.0,
+   "p_deal": 0.573
+  },
+  "bilateral_psg_rubinstein": {
+   "p10": 118.9,
+   "median": 130.3,
+   "p90": 138.2,
+   "p_deal": 0.573
+  },
+  "seller_share": 0.687,
+  "choice_cost_to_psg_median": 10.3
+ },
+ "mintzlaff_bet": {
+  "sell_now_median": 130.3,
+  "hold_curve": [
+   {
+    "growth": -0.1,
+    "ev_hold": 97.6
+   },
+   {
+    "growth": -0.05,
+    "ev_hold": 102.2
+   },
+   {
+    "growth": 0.0,
+    "ev_hold": 107.1
+   },
+   {
+    "growth": 0.05,
+    "ev_hold": 111.6
+   },
+   {
+    "growth": 0.1,
+    "ev_hold": 116.3
+   },
+   {
+    "growth": 0.15,
+    "ev_hold": 121.4
+   },
+   {
+    "growth": 0.2,
+    "ev_hold": 125.7
+   },
+   {
+    "growth": 0.25,
+    "ev_hold": 130.8
+   },
+   {
+    "growth": 0.3,
+    "ev_hold": 135.4
+   },
+   {
+    "growth": 0.35,
+    "ev_hold": 140.2
+   },
+   {
+    "growth": 0.4,
+    "ev_hold": 145.1
+   },
+   {
+    "growth": 0.45,
+    "ev_hold": 149.9
+   }
+  ],
+  "breakeven_growth": 0.25,
+  "gvardiol_precedent": "held post-WC 2022, sold 2023 at 90 (club record)"
+ },
+ "menu": {
+  "immediacy_premium_median": 15.9,
+  "note": "what 'Diomande now' should cost above 'Diomande in 2027 + loan-back'"
+ },
+ "prediction": {
+  "if_sold_this_window": {
+   "p10": 118.9,
+   "median": 130.3,
+   "p90": 138.2,
+   "p_deal": 0.573
+  },
+  "p_geq_120": 0.876,
+  "p_geq_130": 0.512,
+  "p_lt_110": 0.0,
+  "refs": {
+   "leipzig_record_sale": 90.0,
+   "bundesliga_record_fixed": 125.0,
+   "leipzig_paid": 20.0
+  }
+ }
+}

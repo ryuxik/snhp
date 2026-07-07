@@ -121,6 +121,18 @@
   svg .axis-label, svg .tick { font-size: 11px; fill: var(--muted); }
   svg .dlabel { font-size: 11.5px; font-weight: 600; fill: var(--ink); }
   svg .dlabel-2 { font-size: 11px; fill: var(--ink-2); }
+  .widget { margin: 26px 0 8px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; padding: 18px; }
+  .widget .w-title { font-size: 14.5px; font-weight: 650; margin: 0 0 2px; }
+  .widget .w-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+  .w-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px 18px; margin-bottom: 14px; }
+  .w-ctl label { display: block; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+  .w-ctl label b { color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+  .w-ctl input[type=range] { width: 100%; accent-color: var(--accent); }
+  .w-out { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; border-top: 1px solid var(--grid); padding-top: 14px; }
+  .w-stat .l { font-size: 12px; color: var(--muted); line-height: 1.35; }
+  .w-stat .v { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .w-verdict { font-size: 13.5px; color: var(--ink-2); margin-top: 12px; border-left: 3px solid var(--accent); padding-left: 10px; }
+  .w-note { font-size: 11.5px; color: var(--muted); margin-top: 10px; }
 </style>
 
 <div class="wrap">
@@ -224,6 +236,48 @@
 <p>And only two buyers in this record ever got to watch the goods after the glow faded — Bayern with James on loan, United with Amrabat. Both handed them back. When someone gets a trial period on a World Cup star, they don't pay the World Cup price.</p>
 </div>
 
+
+<div class="eyebrow">§ interactive — price your own rumor</div>
+<div class="widget" id="wg">
+  <p class="w-title">Is the price move you just read about real?</p>
+  <p class="w-sub">Any player, any tournament claim: set the minutes, how far above their club baseline they performed, and what the reported price did. (Prior fixed at a full club season, 2,800 minutes; value elasticity 1.6.)</p>
+  <div class="w-controls">
+    <div class="w-ctl"><label>Tournament minutes: <b id="wgMv">300</b></label><input type="range" id="wgM" min="90" max="540" step="10" value="300"></div>
+    <div class="w-ctl"><label>Performance vs club baseline: <b id="wgPv">2.0×</b></label><input type="range" id="wgP" min="0.5" max="4" step="0.1" value="2"></div>
+    <div class="w-ctl"><label>Reported price move: <b id="wgOv">+50%</b></label><input type="range" id="wgO" min="-20" max="300" step="5" value="50"></div>
+  </div>
+  <div class="w-out">
+    <div class="w-stat"><div class="l">the evidence justifies</div><div class="v" id="wgR">—</div></div>
+    <div class="w-stat"><div class="l">the market moved</div><div class="v" id="wgB">—</div></div>
+    <div class="w-stat"><div class="l">hype multiple</div><div class="v" id="wgH">—</div></div>
+  </div>
+  <p class="w-verdict" id="wgV"></p>
+  <p class="w-note">Normal-normal shrinkage, the same arithmetic as §3. Reference implementation in Python, linked below.</p>
+</div>
+<script>
+(function(){
+  const $=id=>document.getElementById(id), NP=2800, EL=1.6;
+  function go(){
+    const M=+$('wgM').value, P=+$('wgP').value, O=+$('wgO').value;
+    $('wgMv').textContent=M; $('wgPv').textContent=P.toFixed(1)+'\u00d7';
+    $('wgOv').textContent=(O>=0?'+':'')+O+'%';
+    const w=M/(M+NP);
+    const rat=(Math.pow(1+w*(P-1),EL)-1)*100;
+    $('wgR').textContent=(rat>=0?'+':'')+rat.toFixed(0)+'%';
+    $('wgB').textContent=(O>=0?'+':'')+O+'%';
+    let verdict, hypeTxt;
+    if(Math.abs(rat)<0.5){ hypeTxt='—'; verdict = Math.abs(O)<3 ? 'No evidence, no move. Rational.' : 'The tournament produced no evidence at all — that price move is pure television.'; }
+    else if((rat>0)!==(O>0) && Math.abs(O)>3){ hypeTxt='wrong way'; verdict='The market moved against the evidence. Someone is trading on vibes.'; }
+    else { const h=O/rat; hypeTxt=h.toFixed(1)+'\u00d7';
+      verdict = Math.abs(h)<1.3 ? 'That\u2019s a Bayesian market move — believe it.' :
+        Math.abs(h)<2.5 ? 'Warm. There\u2019s some television in that price.' :
+        'You\u2019re buying television.'; }
+    $('wgH').textContent=hypeTxt; $('wgV').textContent=verdict;
+  }
+  ['wgM','wgP','wgO'].forEach(id=>$(id).addEventListener('input',go)); go();
+})();
+</script>
+
 <div class="eyebrow">§ 5 — What this doesn't say</div>
 <div class="prose">
 <h2>Does the model tell the whole truth?</h2>
@@ -255,8 +309,8 @@
 </ol>
 </div>
 <div class="footnote">
-  <strong>Reproducibility.</strong> The null tournament: 700 players, gamma-distributed true rates, Poisson goals over 120–480 minutes, 2,000 simulated tournaments, seeded. Rational updates: normal-normal shrinkage with a 2,800-effective-minute prior and value elasticity 1.6 (both swept; the hype median ranges 1.1–3.8×). ~40 lines of numpy; script available on request. Companion pieces: <a href="/research/diomande-ladder">Diomande</a>, <a href="/research/tonali-100m">Tonali</a>, <a href="/research/mora-clause">Mora</a>, <a href="/research/lira-promise">Lira</a>.
-</div>
+  <strong>Reproducibility.</strong> The null tournament: 700 players, gamma-distributed true rates, Poisson goals over 120–480 minutes, 2,000 simulated tournaments, seeded. Rational updates: normal-normal shrinkage with a 2,800-effective-minute prior and value elasticity 1.6 (both swept; the hype median ranges 1.1–3.8×). Companion pieces: <a href="/research/diomande-ladder">Diomande</a>, <a href="/research/tonali-100m">Tonali</a>, <a href="/research/mora-clause">Mora</a>, <a href="/research/lira-promise">Lira</a>.
+ All simulation code and results are public: <a href="https://github.com/ryuxik/snhp/tree/main/research">github.com/ryuxik/snhp/research</a>.</div>
 </div>
 
 <script>
