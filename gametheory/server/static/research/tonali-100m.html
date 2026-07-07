@@ -179,7 +179,7 @@
   <div class="eyebrow">Transfer market mechanics · No. 1</div>
   <h1>Who won the £100m Tonali deal?</h1>
   <p class="standfirst">Tottenham's club-record signing of Sandro Tonali has a structure — £92.5m guaranteed, £7.5m if Spurs reach Europe. I rebuilt the negotiation as a formal bargaining problem and ran it through a game-theory engine. The answer: Newcastle won the split, both clubs left money in the structure — and the conditional add-on isn't a footnote, it's the whole logic of the deal. It was also probably too small.</p>
-  <p class="byline">Santiago Munoz · July 2026 <span class="draft mono">Draft 4</span></p>
+  <p class="byline">Santiago Munoz · July 2026 <span class="draft mono">Draft 5</span></p>
 
   <div class="tiles">
     <div class="tile">
@@ -232,8 +232,8 @@
   <tbody>
     <tr><td>Newcastle's P(add-on triggers)</td><td class="num">0.70</td><td>Sky reported the club believe it "very likely"; modeled just under that. Swept 0.50–0.85 in the Monte Carlo.</td></tr>
     <tr><td>Spurs' effective cost per £1 of add-on</td><td class="num">£0.40</td><td>Their subjective P(Europe) × a self-financing discount — the bonus only pays in the world where European revenue exists. Swept 0.30–0.65.</td></tr>
-    <tr><td>Newcastle reservation (walk-away EV)</td><td class="num">£82m</td><td>Willing sellers, but with Man City as an outside option and no pressure to sell. Swept £76–88m.</td></tr>
-    <tr><td>Spurs ceiling (max total EV cost)</td><td class="num">£106m</td><td>Implied by paying £100m headline and stretching past a £75m opener. Swept £100–112m.</td></tr>
+    <tr><td>Newcastle reservation (walk-away EV)</td><td class="num">£82m</td><td>Under contract to 2029 — no forced sale — with City circling. Their rejection of ~£90m mid-window is the revealed floor on what continuing was worth. Swept £76–88m.</td></tr>
+    <tr><td>Spurs ceiling (max total EV cost)</td><td class="num">£106m</td><td>Anchored by the £100m they actually paid and reports of City preparing ~£95m before add-ons. The load-bearing assumption — see §6. Swept £100–112m.</td></tr>
     <tr><td>Schedule premium</td><td class="num">£2.5m vs £2.0m</td><td>Early cash is worth ~£2.5m to Newcastle (PV + post-PSR cash preference) and costs Spurs ~£2.0m in financing. Both swept.</td></tr>
     <tr><td>Sell-on clause economics</td><td class="num">£1.0m per 10%, ×1.3 to buyer</td><td>Modest resale odds on a 26-year-old record signing; the buyer bears an extra flexibility penalty — which makes the clause jointly inefficient.</td></tr>
   </tbody>
@@ -286,7 +286,7 @@
 
 <div class="prose">
 <p>Two symmetric, equally-patient negotiators land at <strong>£90.6m flat</strong>. Newcastle actually banked £92.5m guaranteed plus an add-on the model says they value near £5m — <strong>the model puts their haul at £97.8m of expected value, roughly £7m above the symmetric equilibrium</strong>. Across the Monte Carlo, Newcastle's median share of the realized joint surplus is 61%. The seller won, and not by a rounding error.</p>
-<p>Why? The two candidates are the same thing wearing different hats: <em>outside options and patience</em>. Manchester City's interest gave Newcastle a live alternative buyer; De Zerbi's rebuild gave Spurs a clock. In bargaining terms, Newcastle discounted the future at δ ≈ 0.93 per round, Spurs at δ ≈ 0.76 — and in the Rubinstein equilibrium (the standard model of offer-counteroffer bargaining, in which the more patient side simply gets more), that patience gap alone hands the seller <strong>roughly three-quarters of the £24m bargaining zone</strong> (76.5% with Spurs proposing first, as they did), implying a total around £100.4m. The actual deal sits between the symmetric replay (£90.6m) and the full patience-asymmetry solution (~£100.4m) — which is where you'd expect it, since City's interest was real but reportedly never reached a formal bid. One reported detail lands eerily close: Newcastle reportedly turned down an intermediate ~£90m bid — almost exactly what a symmetric negotiation is worth. They refused the equal-leverage price, and got paid for the difference.</p>
+<p>Why? Patience — and look at where it actually came from. Not primarily Manchester City: Tonali wanted De Zerbi, which quietly hollows a rival bid as a threat. Newcastle's patience was the <strong>contract to 2029</strong> — a seller who doesn't have to sell discounts the future slowly, and rejecting ~£90m mid-window is what that looks like in the wild. Spurs, rebuilding off a 17th-place finish, discount it fast. In bargaining terms, Newcastle at δ ≈ 0.93 per round, Spurs at δ ≈ 0.76 — and in the Rubinstein equilibrium (the standard model of offer-counteroffer bargaining, in which the more patient side simply gets more), that patience gap alone hands the seller <strong>roughly three-quarters of the £24m bargaining zone</strong> (76.5% with Spurs proposing first, as they did), implying a total around £100.4m. One more real-world force the model books silently under "ceiling": Newcastle were selling inside the league, to a direct competitor — and Premier League clubs charge rivals a premium a foreign buyer wouldn't pay. The actual deal sits between the symmetric replay (£90.6m) and the full patience-asymmetry solution (~£100.4m) — which is where you'd expect it, since City's interest was real but reportedly never reached a formal bid. One reported detail lands eerily close: Newcastle reportedly turned down an intermediate ~£90m bid — almost exactly what a symmetric negotiation is worth. They refused the equal-leverage price, and got paid for the difference.</p>
 </div>
 
 <figure>
@@ -320,7 +320,7 @@
 <div class="prose">
 <h2>Does the model tell the whole truth?</h2>
 <p><strong>The fees are journalism, not documents.</strong> "£92.5m + £7.5m" is well-sourced reporting, but installment schedules and add-on conditions beyond "European qualification" aren't public. The schedule dimension in the model is assumption end to end.</p>
-<p><strong>The utilities are modeled, not measured.</strong> No one outside the two boardrooms knows either club's true reservation or subjective probabilities. The Monte Carlo brackets that ignorance honestly, but a bracket is not knowledge — a club running this internally would replace priors with its own numbers, which is rather the point.</p>
+<p><strong>The utilities are modeled, not measured — and the split leans hardest on one of them.</strong> No one outside the two boardrooms knows either club's true reservation or ceiling. The "who won" arithmetic is most sensitive to Spurs' modeled £106m ceiling: at £100m Newcastle's share reads 88%, at £112m it reads 52%. "Newcastle ahead" survives the whole range; the 61% is the base-case reading, not a measurement. A club running this internally would replace these priors with its own numbers — which is rather the point.</p>
 <p><strong>Linear surplus, one-shot deal.</strong> The model ignores relationship effects (these clubs will trade again), agent fees and player-side terms (Tonali's £275k+/week was its own negotiation), and treats add-on £s as linearly divisible. And the engine's head-to-head validation comes from commerce negotiations, not transfers — this piece is a demonstration of method, not a backtest.</p>
 </div>
 

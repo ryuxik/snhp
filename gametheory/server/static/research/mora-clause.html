@@ -153,13 +153,13 @@
   <div class="eyebrow">Transfer market mechanics · No. 2</div>
   <h1>Half of Europe wants Gilberto Mora. Why is his exit priced so low?</h1>
   <p class="standfirst">Mexico are out of their World Cup, and their youngest player is the most-watched 17-year-old on earth. A queue of Europe's biggest clubs is circling — Liverpool reportedly now at the front — and Tijuana re-signed him behind a "structured release mechanism" that this week's reports price around $25–27m, while asking-price talk runs past €40m. I priced that gap with auction theory. Even the generous ~€30m reading of Tijuana's posture is what <em>one</em> buyer looks like — and there isn't one, there's a queue.</p>
-  <p class="byline">Santiago Munoz · July 2026 <span class="draft">Draft 3 · rumor-stage</span></p>
+  <p class="byline">Santiago Munoz · July 2026 <span class="draft">Draft 4 · rumor-stage</span></p>
 
   <div class="tiles">
     <div class="tile">
-      <div class="label">Expected sale price if six clubs actually compete</div>
-      <div class="value">€51m</div>
-      <div class="note">second-highest valuation, English auction, base beliefs</div>
+      <div class="label">What three real bidders are worth</div>
+      <div class="value">€41m</div>
+      <div class="note">€34m with two; €51m if all six of the queue actually bid</div>
     </div>
     <div class="tile">
       <div class="label">What a one-buyer negotiation is worth</div>
@@ -199,7 +199,7 @@
 <div class="prose">
 <h2>A release clause is a price tag on an auction lot</h2>
 <p>Strip the football away and Tijuana's situation is a classic selling problem. They own an asset of uncertain value; several deep-pocketed buyers each privately know roughly what it's worth <em>to them</em>; the seller must choose the <em>rules</em> of the sale. Football gives clubs three rule-sets: negotiate with one club (a bilateral deal), let several clubs bid each other up (an auction — this is what "a bidding war" is), or post a fixed price in the player's contract that any club can trigger (a release clause). The tool that prices these choices is auction theory, and it runs on one input: a probability distribution over what buyers might pay.</p>
-<p>I model each interested club's private valuation as a draw from a lognormal distribution with median <strong>€40m</strong> — the reported market value — and enough spread that a pessimistic club sees ~€26m and a believer sees ~€63m (that spread, not the median, is what being seventeen means). Tijuana's walk-away value for <em>keeping</em> him is their reported €15m floor. Every number is swept ±heavily in §6, because all of them are assumptions.</p>
+<p>I model each interested club's private valuation as a draw from a lognormal distribution with median <strong>€40m</strong> — the reported market value — and enough spread that a pessimistic club sees ~€26m and a believer sees ~€63m (that spread, not the median, is what being seventeen means). Tijuana's walk-away value for <em>keeping</em> him is their reported €15m floor. Treat the frictionless auction as the benchmark, not the forecast — §3 immediately stress-tests it against the two ways reality bites: fewer real bidders than reported suitors, and clubs whose scouting overlaps. Every number is swept ±heavily in §6, because all of them are assumptions.</p>
 </div>
 
 <div class="eyebrow">§ 3 — The bidder curve</div>
@@ -213,11 +213,11 @@
   <p class="fig-title">Each credible bidder is worth millions — six nearly double the one-buyer price</p>
   <p class="fig-sub">Expected sale price vs number of credible bidders — €m, base beliefs (median valuation €40m)</p>
   <div class="chart-box" id="c1"></div>
-  <figcaption>One buyer: a negotiated ~€29m. Six buyers bidding openly: ~€51m — the price rises to the second-most-optimistic club's valuation. The distance between the first dot and the last is the value of making bidders visible to each other. Hover the dots.</figcaption>
+  <figcaption>One buyer: a negotiated ~€29m. Three credible bidders — the realistic read of the queue: ~€41m. All six: ~€51m. The price rises to the second-most-optimistic club's valuation, so the distance between the first dot and the rest is the value of making bidders visible to each other. Hover the dots.</figcaption>
 </figure>
 
 <div class="prose">
-<p>Two things make the curve climb. Each extra club raises the chance that <em>someone</em> loves the player; and in an open contest the winner doesn't pay what the seller asks — they pay just above what the <strong>second</strong>-keenest rival would. With six clubs whose beliefs about a 17-year-old genuinely differ, that second-highest number is high: <strong>€51m expected</strong>, twenty-plus above the bilateral answer, from the exact same player and the exact same beliefs.</p>
+<p>Two things make the curve climb. Each extra club raises the chance that <em>someone</em> loves the player; and in an open contest the winner doesn't pay what the seller asks — they pay just above what the <strong>second</strong>-keenest rival would. Now discount the curve for reality, twice. Tracking is cheap and bidding is not, so call it <strong>three</strong> clubs that would actually move before personal terms lock in: <strong>€41m</strong>. And clubs scout the same tournaments with the same data — but even if 70% of every club's valuation is shared information, three bidders are still worth <strong>€42m</strong>, because correlation pulls the runner-up's number toward the winner's. The worst corner of reality — two lukewarm, like-minded bidders — clears <strong>€34m</strong>. The full queue showing up is worth €51m. Every one of those numbers embarrasses a $25–27m tag.</p>
 </div>
 
 <div class="eyebrow">§ 4 — The clause</div>
@@ -235,8 +235,8 @@
 
 <div class="prose">
 <p>Split that €21m gap into its two parts, because they mean different things. About <strong>€14m is the level</strong>: €30m is simply below where six-club demand clears — the revenue-maximizing tag against this queue (the answer to "what's the highest price that still very probably gets triggered?") is <strong>≈€50m</strong>, and it stays above €42m in 9 of every 10 simulated markets. The remaining <strong>€6.6m is the format itself</strong>: even a perfectly-priced clause loses to open competition, because a fixed tag can't discover which club is the believer and make the runner-up set the price.</p>
-<p>And if this week's clause reports ($25–26.8m ≈ €21–24m) are accurate, the arithmetic turns harsher: a tag in that range gets triggered with near-certainty and forfeits <strong>€27–29m</strong> against the six-club benchmark — more than the fee itself, and below even the one-buyer negotiation value from §3.</p>
-<p>So is Tijuana's front office naive? Almost certainly not. The clause wasn't <em>chosen by</em> Tijuana; it was <em>conceded to</em> the player: Mora's camp trades three more years of the club's control for a guaranteed exit door. The model doesn't say the clause is a blunder. It says the "clear pathway" has a price, and prices it: <strong>€7–21m of expected fee, depending on where the tag is set</strong>. That's what Tijuana paid, in expectation, to keep their No. 10 signed and smiling through a World Cup summer. Whether that was worth it is a judgment call — but it should be a <em>priced</em> judgment call.</p>
+<p>And if this week's clause reports ($25–26.8m ≈ €21–24m) are accurate, the arithmetic turns harsher: a tag in that range gets triggered with near-certainty and forfeits <strong>~€18m against even a three-bidder market</strong> — €27–29m against the full queue — below even the one-buyer negotiation value from §3.</p>
+<p>So is Tijuana's front office naive? No — look at where the money goes, not just where it doesn't. A release clause doesn't <em>delete</em> the competition premium; it <em>reroutes</em> it. With the fee pinned, the queue doesn't stop competing — it competes for the player, in wages, signing bonus and agent fees, paid to the side that negotiated the mechanism. The <strong>€11–18m</strong> the clause forfeits doesn't vanish: it moves across the table to Mora's camp, and Tijuana is the only party in the room the queue cannot pay. That's the real answer to this piece's title. The exit isn't priced low because nobody did the math. It's priced low because the person who did the math gets paid on the other side of it.</p>
 </div>
 
 <div class="eyebrow">§ 5 — The package</div>
@@ -280,7 +280,7 @@
 <div class="prose">
 <h2>Does the model tell the whole truth?</h2>
 <p>Every price here is transfer journalism, and the reports disagree by 4× — Transfermarkt's lagging database value says €10m while asking-price stories say €40m+. The model's valuation sweep is anchored on the asking-price end; if the market's true belief sits lower, every number above shrinks with it. And the clause's real structure is unverified — "highly tailored" may mean tiered by year or by buyer, in which case Pimenta's team has already run this math and every flat-clause read, including this week's $25–27m reports, is wrong.</p>
-<p>The model also treats the queue as six independent wallets bidding to full value. Real clubs watch each other and shade their bids for fear of overpaying; tracking is cheap while bidding is not (the sweep runs 2–6 credible bidders — the clause still loses at two); and the player picks the destination, which prunes the queue — his camp shaped this mechanism precisely because footballers aren't auctioned. All of that shrinks the €51m. None of it makes a below-market posted price optimal.</p>
+<p>Beyond the bidder-count and shared-information stress already run in §3, the residual risk is simple: if fewer than two clubs ever actually bid, the clause is close to fair. Everything above — and this week's reporting — says that isn't the world we're in.</p>
 </div>
 
 <div class="eyebrow">§ 8 — Predictions</div>
@@ -293,6 +293,7 @@
   <li><strong>A sell-on clause appears.</strong> The model puts double-digit sell-on percentage in almost every efficient package. A deal announced without one would be a genuine strike against this framework (or evidence of a cash-now constraint the model can't see).</li>
   <li><strong>A loan-back through the Apertura.</strong> Costs the buyer almost nothing before his 18th birthday; worth millions to Tijuana. Its absence would be surprising; its presence is weak confirmation (it's also just common sense).</li>
   <li><strong>Timing.</strong> The October birthday plus the January window means the highest-information move is a deal announced late 2026 with a January or summer-2027 arrival. An announcement <em>during</em> this window, at a low number, would suggest the clause is already being triggered — and that it was set too low.</li>
+  <li><strong>The redirect shows up in the player's package.</strong> If the rerouting argument in §4 is right, competition at a pinned fee pays out on the player's side: when he moves, expect a wage-and-bonus package abnormally rich for a $25–27m transfer. A modest package alongside a modest fee would count against this piece.</li>
 </ul>
 
 <div class="eyebrow">Sources &amp; method</div>
