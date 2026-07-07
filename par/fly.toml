@@ -14,7 +14,7 @@
 # to 1 below only as a safe default for a first deploy before Postgres is attached (SQLite is
 # per-machine on the container FS).
 
-app = "par"
+app = "par-game"                    # fly.io app name ("par" is taken); site: par-game.fly.dev
 primary_region = "sjc"
 
 [build]
