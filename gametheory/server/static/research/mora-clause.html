@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Half of Europe wants Gilberto Mora. Why is his exit priced so low?</title>
+<meta name="description" content="A queue of Europe's biggest clubs, a 17-year-old World Cup star, and a release clause reportedly around $25–27m. Auction theory prices what that mechanism gives away — about €16m at the median.">
+<link rel="canonical" href="https://snhp.dev/research/mora-clause">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="SNHP Research">
+<meta property="og:title" content="Half of Europe wants Gilberto Mora. Why is his exit priced so low?">
+<meta property="og:description" content="A queue of Europe's biggest clubs, a 17-year-old World Cup star, and a release clause reportedly around $25–27m. Auction theory prices what that mechanism gives away — about €16m at the median.">
+<meta property="og:url" content="https://snhp.dev/research/mora-clause">
+<meta property="og:image" content="https://snhp.dev/static/research/img/mora-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Half of Europe wants Gilberto Mora. Why is his exit priced so low?">
+<meta name="twitter:description" content="A queue of Europe's biggest clubs, a 17-year-old World Cup star, and a release clause reportedly around $25–27m. Auction theory prices what that mechanism gives away — about €16m at the median.">
+<meta name="twitter:image" content="https://snhp.dev/static/research/img/mora-card.png">
+</head>
+<body>
+<style>
+  :root {
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --hairline: rgba(11,11,11,0.10);
+    --accent: #2a78d6;
+    --s-1: #2a78d6;   /* blue: auction / frontier */
+    --s-2: #eb6834;   /* orange: the clause / reported posture */
+    --s-3: #1baf7a;   /* aqua: Nash package */
+    --cloud: #c9c8c0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+      --muted: #898781; --grid: #2c2c2a; --baseline: #383835;
+      --hairline: rgba(255,255,255,0.10); --accent: #3987e5;
+      --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --cloud: #3c3c39;
+    }
+  }
+  :root[data-theme="light"] {
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+    --muted: #898781; --grid: #e1e0d9; --baseline: #c3c2b7;
+    --hairline: rgba(11,11,11,0.10); --accent: #2a78d6;
+    --s-1: #2a78d6; --s-2: #eb6834; --s-3: #1baf7a; --cloud: #c9c8c0;
+  }
+  :root[data-theme="dark"] {
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+    --muted: #898781; --grid: #2c2c2a; --baseline: #383835;
+    --hairline: rgba(255,255,255,0.10); --accent: #3987e5;
+    --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --cloud: #3c3c39;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--page); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.65; margin: 0; padding: 0 20px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 56px 0 96px; }
+  .prose { max-width: 66ch; }
+
+  .eyebrow {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin: 64px 0 10px;
+  }
+  header .eyebrow { margin-top: 0; }
+  h1 {
+    font-size: clamp(30px, 5vw, 44px); line-height: 1.12; letter-spacing: -0.02em;
+    font-weight: 750; margin: 0 0 18px; text-wrap: balance; max-width: 22ch;
+  }
+  .standfirst { font-size: 18px; color: var(--ink-2); max-width: 58ch; margin: 0 0 8px; }
+  .byline { font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .byline .draft {
+    display: inline-block; border: 1px solid var(--hairline); border-radius: 3px;
+    padding: 1px 7px; margin-left: 8px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-size: 11px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  h2 { font-size: 22px; letter-spacing: -0.01em; font-weight: 700; margin: 6px 0 14px; text-wrap: balance; }
+  p { margin: 0 0 16px; }
+  .prose strong { font-weight: 650; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 36px 0 8px; }
+  .tile { background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; padding: 14px 16px; }
+  .tile .label { font-size: 12.5px; color: var(--ink-2); margin-bottom: 6px; line-height: 1.35; }
+  .tile .value { font-size: 30px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.1; }
+  .tile .note { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.35; }
+
+  figure { margin: 26px 0 8px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; padding: 18px 18px 10px; }
+  figure .fig-title { font-size: 14.5px; font-weight: 650; margin: 0 0 2px; }
+  figure .fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+  figcaption { font-size: 12.5px; color: var(--ink-2); padding: 10px 2px 6px; line-height: 1.5; max-width: 70ch; }
+  .chart-box { position: relative; width: 100%; overflow-x: auto; }
+  .chart-box svg { display: block; width: 100%; min-width: 640px; height: auto; }
+  .tile:first-child .value { font-size: 36px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12.5px; color: var(--ink-2); padding: 4px 2px 2px; }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .legend .sw.line { width: 16px; height: 2px; border-radius: 1px; }
+
+  .tooltip {
+    position: absolute; pointer-events: none; z-index: 5; display: none;
+    background: var(--ink); color: var(--page);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11.5px; line-height: 1.45; padding: 7px 9px; border-radius: 4px;
+    max-width: 260px; white-space: nowrap;
+  }
+
+  .tablewrap { overflow-x: auto; margin: 20px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; background: var(--surface); }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  td.num, th.num { font-variant-numeric: tabular-nums; }
+  td:first-child { font-weight: 600; }
+
+  .facts { list-style: none; padding: 0; margin: 0 0 16px; max-width: 66ch; }
+  .facts li { padding: 8px 0; border-bottom: 1px solid var(--grid); font-size: 15px; }
+  .facts li:first-child { border-top: 1px solid var(--grid); }
+  .facts .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--muted); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; margin-right: 10px; }
+
+  .watchlist { list-style: none; padding: 0; margin: 0 0 16px; max-width: 66ch; counter-reset: watch; }
+  .watchlist li { padding: 10px 0 10px 42px; border-bottom: 1px solid var(--grid); position: relative; font-size: 15px; counter-increment: watch; }
+  .watchlist li:first-child { border-top: 1px solid var(--grid); }
+  .watchlist li::before {
+    content: counter(watch, decimal-leading-zero); position: absolute; left: 0; top: 12px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; color: var(--accent); font-weight: 600;
+  }
+
+  ol.sources { font-size: 13.5px; color: var(--ink-2); padding-left: 20px; }
+  ol.sources li { margin-bottom: 6px; }
+  .footnote { font-size: 13px; color: var(--muted); border-top: 1px solid var(--grid); margin-top: 48px; padding-top: 16px; max-width: 66ch; }
+  .footnote code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+
+  svg text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  svg .axis-label, svg .tick { font-size: 11px; fill: var(--muted); }
+  svg .dlabel { font-size: 11.5px; font-weight: 600; fill: var(--ink); }
+  svg .dlabel-2 { font-size: 11px; fill: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Transfer market mechanics · No. 2</div>
+  <h1>Half of Europe wants Gilberto Mora. Why is his exit priced so low?</h1>
+  <p class="standfirst">Mexico are out of their World Cup, and their youngest player is the most-watched 17-year-old on earth. A queue of Europe's biggest clubs is circling — Liverpool reportedly now at the front — and Tijuana re-signed him behind a "structured release mechanism" that this week's reports price around $25–27m, while asking-price talk runs past €40m. I priced that gap with auction theory. Even the generous ~€30m reading of Tijuana's posture is what <em>one</em> buyer looks like — and there isn't one, there's a queue.</p>
+  <p class="byline">Santiago Munoz · July 2026 <span class="draft">Draft 3 · rumor-stage</span></p>
+
+  <div class="tiles">
+    <div class="tile">
+      <div class="label">Expected sale price if six clubs actually compete</div>
+      <div class="value">€51m</div>
+      <div class="note">second-highest valuation, English auction, base beliefs</div>
+    </div>
+    <div class="tile">
+      <div class="label">What a one-buyer negotiation is worth</div>
+      <div class="value">€29m</div>
+      <div class="note">≈ the €30m end of Tijuana's reported ask — that's the tell</div>
+    </div>
+    <div class="tile">
+      <div class="label">Median cost of a €30m clause vs the auction</div>
+      <div class="value">€16m</div>
+      <div class="note">the clause loses in 49 of every 50 simulated worlds</div>
+    </div>
+    <div class="tile">
+      <div class="label">The clause level that would maximize Tijuana's value</div>
+      <div class="value">€50m</div>
+      <div class="note">≈€49.9m at base beliefs; above €42m in 9 of 10 simulated markets</div>
+    </div>
+  </div>
+</header>
+
+<div class="eyebrow">§ 1 — The situation, as reported</div>
+<div class="prose">
+<h2>A 17-year-old, a new contract, and a queue</h2>
+<p>Mexico's World Cup ended on July 5 — a 3-2 round-of-16 loss to England at the Azteca. Gilberto Mora, 17, was the youngest player in the tournament and started three of Mexico's five games. What's on the record:</p>
+</div>
+<ul class="facts">
+  <li><span class="mono">Player</span>Born October 2008 — youngest senior Mexico international, youngest Liga MX goalscorer, youngest winner of a senior international tournament (Gold Cup at 16)</li>
+  <li><span class="mono">Contract</span>A three-year Tijuana extension to June 2029, announced June 9 amid Real Madrid speculation, with a "highly tailored and clearly structured release mechanism" (ESPN) — agent Rafaela Pimenta calls it "a clear pathway"</li>
+  <li><span class="mono">Price talk</span>A 4× spread: Transfermarkt's database value is €10m; this week's reports (Daily Mail, El Universal) put the release mechanism at $25–26.8m; Tijuana's reported ask runs $30m to €40m+</li>
+  <li><span class="mono">The queue</span>Real Madrid, Barcelona, Manchester City, Chelsea and AC Milan reported interested; Liverpool made exploratory contact this week and are reportedly ahead; Arsenal, Bayern and PSG linked; Manchester United have reportedly stepped back</li>
+  <li><span class="mono">The clock</span>FIFA's minor-protection rules bar an international transfer before his 18th birthday on October 14 — clubs can legally pre-agree a deal now (the Endrick–Real Madrid route), but January 2027 is his earliest European registration</li>
+</ul>
+<div class="prose">
+<p>Hold the ends of that price spread next to each other. Asking-price reports run <em>past €40m</em>. The newest clause reports say any club could take him for roughly <em>$25–27m</em>. This piece is about that gap — and the answer isn't scouting. It's mechanism design: <strong>what a release clause is, economically, and what it costs to sell a player through one when half of Europe wants him.</strong></p>
+</div>
+
+<div class="eyebrow">§ 2 — The model</div>
+<div class="prose">
+<h2>A release clause is a price tag on an auction lot</h2>
+<p>Strip the football away and Tijuana's situation is a classic selling problem. They own an asset of uncertain value; several deep-pocketed buyers each privately know roughly what it's worth <em>to them</em>; the seller must choose the <em>rules</em> of the sale. Football gives clubs three rule-sets: negotiate with one club (a bilateral deal), let several clubs bid each other up (an auction — this is what "a bidding war" is), or post a fixed price in the player's contract that any club can trigger (a release clause). The tool that prices these choices is auction theory, and it runs on one input: a probability distribution over what buyers might pay.</p>
+<p>I model each interested club's private valuation as a draw from a lognormal distribution with median <strong>€40m</strong> — the reported market value — and enough spread that a pessimistic club sees ~€26m and a believer sees ~€63m (that spread, not the median, is what being seventeen means). Tijuana's walk-away value for <em>keeping</em> him is their reported €15m floor. Every number is swept ±heavily in §6, because all of them are assumptions.</p>
+</div>
+
+<div class="eyebrow">§ 3 — The bidder curve</div>
+<div class="prose">
+<h2>Tijuana's €30m is the right answer to the wrong question</h2>
+<p>Start with the most generous current reading of Tijuana's posture — the ~€30m end of their reported ask (the newest clause reports sit lower still). Run the model with <em>one</em> buyer — a bilateral negotiation with, say, Real Madrid, splitting the difference between Tijuana's floor and the buyer's valuation — and the expected settlement is <strong>€28.8m</strong>. That is almost exactly the club's posture. Tijuana's number isn't wrong; it's the correct price of a negotiation <em>with one club</em>.</p>
+<p>But the reporting names a queue. Watch what each additional credible bidder does:</p>
+</div>
+
+<figure>
+  <p class="fig-title">Each credible bidder is worth millions — six nearly double the one-buyer price</p>
+  <p class="fig-sub">Expected sale price vs number of credible bidders — €m, base beliefs (median valuation €40m)</p>
+  <div class="chart-box" id="c1"></div>
+  <figcaption>One buyer: a negotiated ~€29m. Six buyers bidding openly: ~€51m — the price rises to the second-most-optimistic club's valuation. The distance between the first dot and the last is the value of making bidders visible to each other. Hover the dots.</figcaption>
+</figure>
+
+<div class="prose">
+<p>Two things make the curve climb. Each extra club raises the chance that <em>someone</em> loves the player; and in an open contest the winner doesn't pay what the seller asks — they pay just above what the <strong>second</strong>-keenest rival would. With six clubs whose beliefs about a 17-year-old genuinely differ, that second-highest number is high: <strong>€51m expected</strong>, twenty-plus above the bilateral answer, from the exact same player and the exact same beliefs.</p>
+</div>
+
+<div class="eyebrow">§ 4 — The clause</div>
+<div class="prose">
+<h2>What the "clear pathway" costs</h2>
+<p>A release clause pre-commits Tijuana to a fixed price — economically, it converts the auction into a take-it-or-leave-it tag any club can rip off. That has a price, and it can be computed exactly:</p>
+</div>
+
+<figure>
+  <p class="fig-title">Even a perfectly-priced clause loses to the auction</p>
+  <p class="fig-sub">€m of expected value to Tijuana (sale price if triggered, keep-the-player value if not) — six interested clubs</p>
+  <div class="chart-box" id="c2"></div>
+  <figcaption>A €30m clause gets triggered with near-certainty and yields €30m — €21m below the auction benchmark (hairline). The best possible clause (~€49.5m, triggered 85% of the time) still gives up €6.6m. A posted price can never beat the auction; the only question is by how much it loses.</figcaption>
+</figure>
+
+<div class="prose">
+<p>Split that €21m gap into its two parts, because they mean different things. About <strong>€14m is the level</strong>: €30m is simply below where six-club demand clears — the revenue-maximizing tag against this queue (the answer to "what's the highest price that still very probably gets triggered?") is <strong>≈€50m</strong>, and it stays above €42m in 9 of every 10 simulated markets. The remaining <strong>€6.6m is the format itself</strong>: even a perfectly-priced clause loses to open competition, because a fixed tag can't discover which club is the believer and make the runner-up set the price.</p>
+<p>And if this week's clause reports ($25–26.8m ≈ €21–24m) are accurate, the arithmetic turns harsher: a tag in that range gets triggered with near-certainty and forfeits <strong>€27–29m</strong> against the six-club benchmark — more than the fee itself, and below even the one-buyer negotiation value from §3.</p>
+<p>So is Tijuana's front office naive? Almost certainly not. The clause wasn't <em>chosen by</em> Tijuana; it was <em>conceded to</em> the player: Mora's camp trades three more years of the club's control for a guaranteed exit door. The model doesn't say the clause is a blunder. It says the "clear pathway" has a price, and prices it: <strong>€7–21m of expected fee, depending on where the tag is set</strong>. That's what Tijuana paid, in expectation, to keep their No. 10 signed and smiling through a World Cup summer. Whether that was worth it is a judgment call — but it should be a <em>priced</em> judgment call.</p>
+</div>
+
+<div class="eyebrow">§ 5 — The package</div>
+<div class="prose">
+<h2>The deal that should exist (and it isn't a flat fee)</h2>
+<p>Whatever the clause says, the eventual transfer will be a package, and here the seventeen-ness cuts the other way. In the <a href="/research/tonali-100m">Tonali piece</a> the model zeroed out the sell-on clause — for a 26-year-old at a career-peak fee, resale upside is thin, so the clause destroys joint value. For Mora every contingent instrument flips sign. Model the bilateral package with the lead buyer over four issues — guaranteed fee, sell-on percentage, milestone add-ons, and a loan-back leaving him at Tijuana — and the Pareto frontier (the set of deals you can't make better for one club without making worse for the other) is built out of exactly the terms a flat clause ignores:</p>
+</div>
+
+<figure>
+  <p class="fig-title">The efficient Mora deal is not a flat fee</p>
+  <p class="fig-sub">All 266 feasible packages; surplus in €m of expected value over each side's walk-away, base beliefs</p>
+  <div class="chart-box" id="c3"></div>
+  <div class="legend">
+    <span class="key"><span class="sw line" style="background:var(--s-1)"></span>Pareto frontier (61 packages)</span>
+    <span class="key"><span class="sw" style="background:var(--s-2)"></span>Flat €30m clause-only sale</span>
+    <span class="key"><span class="sw" style="background:var(--s-3)"></span>Nash package</span>
+    <span class="key"><span class="sw" style="background:var(--cloud)"></span>other feasible packages</span>
+  </div>
+  <figcaption>The Nash package (the deal both sides would sign rather than keep haggling) — <strong>€25m guaranteed + 25% sell-on + €15m in milestone add-ons + a loan-back through the Apertura</strong> — sits on the frontier and splits the surplus. A flat €30m clause-only sale (orange) hands the buyer nearly all of it: Tijuana clears just €2m over their own walk-away.</figcaption>
+</figure>
+
+<div class="prose">
+<p>Why these terms work here: the sell-on creates value for both clubs at once in <strong>about four of every five simulated belief-worlds</strong>, because a 17-year-old has real resale probability and Tijuana — who developed him and believe hardest — value that option above what it costs a buyer who plans to keep him. The loan-back is nearly free money: FIFA's age rule means he can't register in Europe before October <em>anyway</em>, so leaving him at Tijuana through the Liga MX season costs the buyer little and is worth millions to the club (and, plausibly, to the player's development). And milestone add-ons monetize the same belief gap they did in the Tonali deal — just pointing the other way.</p>
+<p>One grain of salt: a linear model pushes efficient terms to their limits, so read the Nash package as direction and proportion — big sell-on, real conditional money, keep him through the Apertura — not clause-by-clause advice.</p>
+</div>
+
+<div class="eyebrow">§ 6 — Stress test</div>
+<div class="prose">
+<h2>10,000 versions of this market</h2>
+<p>Sweep everything modeled: median valuation €30–55m, valuation spread, the number of credible bidders (2–6), and both sides' sell-on beliefs. For each world, re-price the auction and the €30m clause:</p>
+</div>
+
+<figure>
+  <p class="fig-title">A €30m clause loses in 49 of every 50 simulated worlds</p>
+  <p class="fig-sub">Auction expected price minus €30m-clause expected value, €m — 10,000 draws</p>
+  <div class="chart-box" id="c4"></div>
+  <figcaption>Median €16.4m forgone (10th–90th pct: €4.6–32.6m). The clause wins in roughly 1 world in 60 — the ones where interest collapses to two lukewarm bidders and valuations sag. The conclusion survives every assumption I know how to vary.</figcaption>
+</figure>
+
+<div class="eyebrow">§ 7 — What this doesn't say</div>
+<div class="prose">
+<h2>Does the model tell the whole truth?</h2>
+<p>Every price here is transfer journalism, and the reports disagree by 4× — Transfermarkt's lagging database value says €10m while asking-price stories say €40m+. The model's valuation sweep is anchored on the asking-price end; if the market's true belief sits lower, every number above shrinks with it. And the clause's real structure is unverified — "highly tailored" may mean tiered by year or by buyer, in which case Pimenta's team has already run this math and every flat-clause read, including this week's $25–27m reports, is wrong.</p>
+<p>The model also treats the queue as six independent wallets bidding to full value. Real clubs watch each other and shade their bids for fear of overpaying; tracking is cheap while bidding is not (the sweep runs 2–6 credible bidders — the clause still loses at two); and the player picks the destination, which prunes the queue — his camp shaped this mechanism precisely because footballers aren't auctioned. All of that shrinks the €51m. None of it makes a below-market posted price optimal.</p>
+</div>
+
+<div class="eyebrow">§ 8 — Predictions</div>
+<div class="prose">
+<h2>What to watch — this piece is falsifiable</h2>
+<p>A rumor-stage model should say in advance what would confirm or embarrass it. On the record:</p>
+</div>
+<ul class="watchlist">
+  <li><strong>The clause level — first returns already in.</strong> July 5–7 reports put the release mechanism at $25–26.8m. If that holds, Tijuana priced the exit below even the one-buyer value — an eight-figure giveaway. If the real mechanism tiers up toward €50m, they priced it like an auctioneer. The model calls any flat tag below €40m a discount to the queue.</li>
+  <li><strong>A sell-on clause appears.</strong> The model puts double-digit sell-on percentage in almost every efficient package. A deal announced without one would be a genuine strike against this framework (or evidence of a cash-now constraint the model can't see).</li>
+  <li><strong>A loan-back through the Apertura.</strong> Costs the buyer almost nothing before his 18th birthday; worth millions to Tijuana. Its absence would be surprising; its presence is weak confirmation (it's also just common sense).</li>
+  <li><strong>Timing.</strong> The October birthday plus the January window means the highest-information move is a deal announced late 2026 with a January or summer-2027 arrival. An announcement <em>during</em> this window, at a low number, would suggest the clause is already being triggered — and that it was set too low.</li>
+</ul>
+
+<div class="eyebrow">Sources &amp; method</div>
+<div class="prose">
+<ol class="sources">
+  <li><a href="https://www.espn.com/soccer/story/_/id/49009234/mexico-teenager-gilberto-mora-signs-deal-stay-tijuana-real-madrid">ESPN — Mora signs new Tijuana deal with structured release mechanism</a> (contract, Pimenta quote, interested clubs)</li>
+  <li><a href="https://roundtable.io/sports/soccer/la-liga/real-madrid/news/world-cup-sensation-gilberto-mora-draws-real-madrid-barcelona-attention">Roundtable — Mora draws Real Madrid, Barcelona attention</a> (€40m+ valuation; carries the stale Oct-2025 "€15m floor / almost double" line)</li>
+  <li><a href="https://www.teamtalk.com/news/gilberto-mora-liverpool-transfer-contact-man-utd-decision-real-madrid-barcelona">TEAMtalk — Liverpool make contact; United step back</a> (July 6; €40m+ ask)</li>
+  <li><a href="https://www.espn.com/soccer/story/_/id/49293765/transfer-rumors-news-liverpool-ahead-man-united-mora-race">ESPN — Liverpool ahead in the Mora race</a> (July 7)</li>
+  <li><a href="https://dailycannon.com/2026/07/arsenal-gilberto-mora-asking-price/">Daily Cannon, citing El Universal — release clause reported ~$25m</a> (July 7)</li>
+  <li><a href="https://www.transfermarkt.co.uk/gilberto-mora/marktwertverlauf/spieler/1155723">Transfermarkt — database market value €10m</a> (May 2026)</li>
+  <li><a href="https://digitalhub.fifa.com/m/696d877ea35ca761/original/Regulations-on-the-Status-and-Transfer-of-Players-January-2025-edition.pdf">FIFA RSTP, Art. 19</a> (minor-transfer rules; the January-2027 earliest-registration reading)</li>
+  <li><a href="https://www.espn.com/soccer/story/_/id/49184393/transfer-rumors-news-man-united-tracking-mexico-mora">ESPN — Man United tracking Mora</a> (June; United, Chelsea, City interest)</li>
+  <li><a href="https://www.espn.com/soccer/story/_/id/49285203/mexicos-world-cup-knockout-hurts-deeply-says-captain-edson-alvarez">ESPN — Mexico's World Cup exit</a> (3-2 R16 loss to England, July 5)</li>
+  <li><a href="https://fox5sandiego.com/sports/gilberto-mora-mexico-world-cup/amp/">Fox 5 — Mora's rise from Tijuana to the World Cup</a> (age records, profile)</li>
+</ol>
+</div>
+<div class="footnote">
+  <strong>Reproducibility.</strong> All computation runs on the open-source <code>snhp</code> engine (<code>pip install snhp</code>): auction pricing by direct order-statistic Monte Carlo on the lognormal prior (200k draws), the optimal clause by direct expected-value maximization over the same draws, the package frontier via <code>snhp.nash_solver.filter_pareto_frontier</code> / <code>find_nash_bargaining_solution</code>. Sensitivity: N = 10,000 seeded draws over all tabled parameters. Companion piece: <a href="/research/tonali-100m">the Tonali deal, replayed</a>. Simulation script (~180 lines) available on request.
+</div>
+</div>
+
+<script>
+(function () {
+  const DATA = {
+    curve: [[1, 28.8], [2, 34.2], [3, 41.1], [4, 45.4], [5, 48.5], [6, 50.9]],
+    posted: [[15,15],[17,17],[19,19],[21,21],[23,23],[25,25],[27,27],[29,29],[31,31],[33,32.99],[35,34.96],[37,36.89],[39,38.73],[41,40.43],[43,41.91],[45,43.08],[47,43.87],[49,44.27],[51,44.23],[53,43.78],[55,42.94],[57,41.77],[59,40.31],[61,38.7],[63,36.97],[65,35.18],[67,33.4],[69,31.64],[71,30.0],[73,28.38],[75,26.89]],
+    auctionEV: 50.9,
+    frontier: [[0,23.2],[0.3,23.05],[0.7,22.65],[1,22.5],[1.4,22.25],[1.5,22],[1.8,21.85],[2.2,21.6],[2.5,21.45],[2.9,21.05],[3,20.95],[3.3,20.8],[3.7,20.4],[4,20.25],[4.4,20],[4.5,19.75],[4.8,19.6],[5.2,19.35],[5.5,19.2],[5.9,18.8],[6.3,18.55],[6.7,18.15],[7,18],[7.4,17.75],[7.8,17.35],[8.5,16.95],[8.9,16.55],[10,15.75],[10.2,14.35],[10.5,14.2],[10.9,13.8],[11.3,13.55],[11.7,13.15],[12,13],[12.4,12.75],[12.8,12.35],[13.5,11.95],[13.9,11.55],[15,10.75],[15.2,9.35],[15.5,9.2],[15.9,8.8],[16.3,8.55],[16.7,8.15],[17,8],[17.4,7.75],[17.8,7.35],[18.5,6.95],[18.9,6.55],[20,5.75],[20.2,4.35],[20.5,4.2],[20.9,3.8],[21.3,3.55],[21.7,3.15],[22,3],[22.4,2.75],[22.8,2.35],[23.5,1.95],[23.9,1.55],[25,0.75]],
+    frontierPkgs: ["€20m + 0% sell-on + €10m adds, loan 6mo","€20m + 15% sell-on + €5m adds, loan 6mo","€20m + 10% sell-on + €5m adds, loan 12mo","€20m + 25% sell-on + €0m adds, loan 12mo","€20m + 20% sell-on + €5m adds, loan 6mo","€20m + 0% sell-on + €10m adds, loan 12mo","€20m + 15% sell-on + €5m adds, loan 12mo","€20m + 10% sell-on + €10m adds, loan 6mo","€20m + 25% sell-on + €5m adds, loan 6mo","€20m + 20% sell-on + €5m adds, loan 12mo","€20m + 0% sell-on + €15m adds, loan 6mo","€20m + 15% sell-on + €10m adds, loan 6mo","€20m + 10% sell-on + €10m adds, loan 12mo","€20m + 25% sell-on + €5m adds, loan 12mo","€20m + 20% sell-on + €10m adds, loan 6mo","€20m + 0% sell-on + €15m adds, loan 12mo","€20m + 15% sell-on + €10m adds, loan 12mo","€20m + 10% sell-on + €15m adds, loan 6mo","€20m + 25% sell-on + €10m adds, loan 6mo","€20m + 20% sell-on + €10m adds, loan 12mo","€20m + 15% sell-on + €15m adds, loan 6mo","€20m + 10% sell-on + €15m adds, loan 12mo","€20m + 25% sell-on + €10m adds, loan 12mo","€20m + 20% sell-on + €15m adds, loan 6mo","€20m + 15% sell-on + €15m adds, loan 12mo","€20m + 25% sell-on + €15m adds, loan 6mo","€20m + 20% sell-on + €15m adds, loan 12mo","€20m + 25% sell-on + €15m adds, loan 12mo","€25m + 10% sell-on + €15m adds, loan 6mo","€25m + 25% sell-on + €10m adds, loan 6mo","€25m + 20% sell-on + €10m adds, loan 12mo","€25m + 15% sell-on + €15m adds, loan 6mo","€25m + 10% sell-on + €15m adds, loan 12mo","€25m + 25% sell-on + €10m adds, loan 12mo","€25m + 20% sell-on + €15m adds, loan 6mo","€25m + 15% sell-on + €15m adds, loan 12mo","€25m + 25% sell-on + €15m adds, loan 6mo","€25m + 20% sell-on + €15m adds, loan 12mo","€25m + 25% sell-on + €15m adds, loan 12mo","€30m + 10% sell-on + €15m adds, loan 6mo","€30m + 25% sell-on + €10m adds, loan 6mo","€30m + 20% sell-on + €10m adds, loan 12mo","€30m + 15% sell-on + €15m adds, loan 6mo","€30m + 10% sell-on + €15m adds, loan 12mo","€30m + 25% sell-on + €10m adds, loan 12mo","€30m + 20% sell-on + €15m adds, loan 6mo","€30m + 15% sell-on + €15m adds, loan 12mo","€30m + 25% sell-on + €15m adds, loan 6mo","€30m + 20% sell-on + €15m adds, loan 12mo","€30m + 25% sell-on + €15m adds, loan 12mo","€35m + 10% sell-on + €15m adds, loan 6mo","€35m + 25% sell-on + €10m adds, loan 6mo","€35m + 20% sell-on + €10m adds, loan 12mo","€35m + 15% sell-on + €15m adds, loan 6mo","€35m + 10% sell-on + €15m adds, loan 12mo","€35m + 25% sell-on + €10m adds, loan 12mo","€35m + 20% sell-on + €15m adds, loan 6mo","€35m + 15% sell-on + €15m adds, loan 12mo","€35m + 25% sell-on + €15m adds, loan 6mo","€35m + 20% sell-on + €15m adds, loan 12mo","€35m + 25% sell-on + €15m adds, loan 12mo"],
+    cloud: [[0,23.2],[1.5,22],[1,21.2],[3,21],[4.5,19.8],[0.7,22.6],[0.2,21.9],[2.2,21.6],[3.7,20.4],[3.2,19.6],[5.2,19.3],[6.7,18.2],[0.3,23],[1.8,21.8],[1.3,21.1],[3.3,20.8],[4.8,19.6],[4.3,18.8],[6.3,18.6],[7.8,17.4],[1.4,22.2],[2.9,21],[2.4,20.3],[4.4,20],[5.9,18.8],[5.4,18],[7.4,17.8],[8.9,16.6],[1,22.5],[0.5,21.8],[2.5,21.4],[4,20.2],[3.5,19.5],[5.5,19.2],[7,18],[6.5,17.2],[8.5,17],[10,15.8],[0.5,21.5],[0,20.8],[2,20.4],[3.5,19.2],[3,18.5],[5,18.2],[6.5,17],[6,16.2],[8,16],[9.5,14.8],[1.2,21.1],[2.7,19.9],[2.2,19.2],[4.2,18.8],[5.7,17.6],[5.2,16.9],[7.2,16.6],[8.7,15.4],[8.2,14.6],[10.2,14.4],[11.7,13.2],[0.3,20.6],[2.3,20.3],[3.8,19.1],[3.3,18.4],[5.3,18],[6.8,16.8],[6.3,16.1],[8.3,15.8],[9.8,14.6],[9.3,13.8],[11.3,13.6],[12.8,12.4],[1.4,19.8],[3.4,19.5],[4.9,18.3],[4.4,17.6],[6.4,17.2],[7.9,16],[7.4,15.3],[9.4,15],[10.9,13.8],[10.4,13],[12.4,12.8],[13.9,11.5],[2.5,19],[4.5,18.7],[6,17.5],[5.5,16.8],[7.5,16.4],[9,15.2],[8.5,14.5],[10.5,14.2],[12,13],[11.5,12.2],[13.5,12],[15,10.8],[2,18],[4,17.7],[5.5,16.5],[5,15.8],[7,15.5],[8.5,14.2],[8,13.5],[10,13.2],[11.5,12],[11,11.2],[13,11],[14.5,9.8],[4.2,16.4],[6.2,16.1],[7.7,14.9],[7.2,14.2],[9.2,13.8],[10.7,12.6],[10.2,11.9],[12.2,11.6],[13.7,10.4],[13.2,9.6],[15.2,9.4],[16.7,8.1],[5.3,15.6],[7.3,15.3],[8.8,14.1],[8.3,13.4],[10.3,13.1],[11.8,11.9],[11.3,11.1],[13.3,10.8],[14.8,9.6],[14.3,8.9],[16.3,8.6],[17.8,7.4],[6.4,14.8],[8.4,14.5],[9.9,13.3],[9.4,12.5],[11.4,12.2],[12.9,11],[12.4,10.3],[14.4,10],[15.9,8.8],[15.4,8],[17.4,7.8],[18.9,6.5],[7.5,14],[9.5,13.7],[11,12.5],[10.5,11.8],[12.5,11.5],[14,10.2],[13.5,9.5],[15.5,9.2],[17,8],[16.5,7.2],[18.5,7],[20,5.8],[7,13],[9,12.7],[10.5,11.5],[10,10.8],[12,10.5],[13.5,9.2],[13,8.5],[15,8.2],[16.5,7],[16,6.2],[18,6],[19.5,4.8],[9.2,11.4],[11.2,11.1],[12.7,9.9],[12.2,9.1],[14.2,8.9],[15.7,7.6],[15.2,6.9],[17.2,6.6],[18.7,5.4],[18.2,4.6],[20.2,4.4],[21.7,3.1],[10.3,10.6],[12.3,10.3],[13.8,9.1],[13.3,8.4],[15.3,8.1],[16.8,6.9],[16.3,6.1],[18.3,5.8],[19.8,4.6],[19.3,3.9],[21.3,3.6],[22.8,2.4],[11.4,9.8],[13.4,9.5],[14.9,8.3],[14.4,7.5],[16.4,7.2],[17.9,6],[17.4,5.3],[19.4,5],[20.9,3.8],[20.4,3],[22.4,2.8],[23.9,1.5],[12.5,9],[14.5,8.7],[16,7.5],[15.5,6.8],[17.5,6.5],[19,5.2],[18.5,4.5],[20.5,4.2],[22,3],[21.5,2.2],[23.5,2],[25,0.8],[12,8],[14,7.7],[15.5,6.5],[15,5.8],[17,5.5],[18.5,4.2],[18,3.5],[20,3.2],[21.5,2],[21,1.2],[23,1],[14.2,6.4],[16.2,6.1],[17.7,4.9],[17.2,4.1],[19.2,3.9],[20.7,2.6],[20.2,1.9],[22.2,1.6],[23.7,0.4],[15.3,5.6],[17.3,5.3],[18.8,4.1],[18.3,3.4],[20.3,3.1],[21.8,1.9],[21.3,1.1],[23.3,0.8],[16.4,4.8],[18.4,4.5],[19.9,3.3],[19.4,2.5],[21.4,2.2],[22.9,1],[22.4,0.3],[24.4,0],[17.5,4],[19.5,3.7],[21,2.5],[20.5,1.8],[22.5,1.5],[24,0.2],[17,3],[19,2.7],[20.5,1.5],[20,0.8],[22,0.5],[19.2,1.4],[21.2,1.1],[20.3,0.6],[22.3,0.3]],
+    nash: { x: 13.5, y: 11.95 },
+    plain: { x: 2.0, y: 18.0 },
+    hist: [
+      { bin: "0–5", pct: 9.5 }, { bin: "5–10", pct: 15.5 }, { bin: "10–15", pct: 18.4 },
+      { bin: "15–20", pct: 16.2 }, { bin: "20–25", pct: 13.1 }, { bin: "25–30", pct: 11.1 },
+      { bin: "30–40", pct: 12.8 }, { bin: "40–60", pct: 1.9 }
+    ]
+  };
+
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent) {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+  function makeSVG(box, w, h) {
+    const svg = el("svg", { viewBox: `0 0 ${w} ${h}`, role: "img" });
+    box.appendChild(svg);
+    return svg;
+  }
+  function tooltipFor(box) {
+    const t = document.createElement("div");
+    t.className = "tooltip";
+    box.appendChild(t);
+    return t;
+  }
+  function bindTip(target, tip, box, html) {
+    target.addEventListener("mouseenter", () => { tip.innerHTML = html; tip.style.display = "block"; });
+    target.addEventListener("mousemove", (e) => {
+      const r = box.getBoundingClientRect();
+      let x = e.clientX - r.left + 12, y = e.clientY - r.top - 10;
+      if (x + tip.offsetWidth > r.width - 4) x = e.clientX - r.left - tip.offsetWidth - 12;
+      tip.style.left = x + "px"; tip.style.top = y + "px";
+    });
+    target.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+  }
+
+  /* ---------- Chart 1: bidder curve ---------- */
+  (function () {
+    const box = document.getElementById("c1"), tip = tooltipFor(box);
+    const W = 780, H = 340, M = { l: 52, r: 24, t: 20, b: 46 };
+    const svg = makeSVG(box, W, H);
+    const Y = v => H - M.b - ((v - 20) / 40) * (H - M.t - M.b);
+    const X = n => M.l + ((n - 1) / 5) * (W - M.l - M.r - 150);
+    for (let g = 20; g <= 60; g += 10) {
+      el("line", { x1: M.l, x2: W - M.r, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: M.l - 8, y: Y(g) + 4, "text-anchor": "end", class: "tick" }, svg).textContent = "€" + g + "m";
+    }
+    const d = DATA.curve.map((p, i) => `${i ? "L" : "M"}${X(p[0])},${Y(p[1])}`).join("");
+    el("path", { d, fill: "none", stroke: "var(--s-1)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    DATA.curve.forEach(p => {
+      const dot = el("circle", { cx: X(p[0]), cy: Y(p[1]), r: 5.5, fill: "var(--s-1)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+      bindTip(dot, tip, box, `<b>${p[0]} credible bidder${p[0] > 1 ? "s" : ""}</b> → E[price] €${p[1]}m` +
+        (p[0] === 1 ? "<br>(bilateral Nash split)" : "<br>(second-highest valuation)"));
+      el("text", { x: X(p[0]), y: H - M.b + 18, "text-anchor": "middle", class: "tick" }, svg).textContent = p[0];
+    });
+    el("text", { x: X(1) + 12, y: Y(28.8) + 22, class: "dlabel" }, svg).textContent = "€28.8m — one buyer";
+    el("text", { x: X(1) + 12, y: Y(28.8) + 37, class: "dlabel-2" }, svg).textContent = "≈ Tijuana's reported ~€30m expectation";
+    el("text", { x: X(6) + 12, y: Y(50.9) + 2, class: "dlabel" }, svg).textContent = "€50.9m — six clubs";
+    el("text", { x: X(6) + 12, y: Y(50.9) + 17, class: "dlabel-2" }, svg).textContent = "the queue, made to bid";
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "number of credible bidders →";
+  })();
+
+  /* ---------- Chart 2: posted price curve ---------- */
+  (function () {
+    const box = document.getElementById("c2"), tip = tooltipFor(box);
+    const W = 780, H = 360, M = { l: 52, r: 24, t: 26, b: 46 };
+    const svg = makeSVG(box, W, H);
+    const X = r => M.l + ((r - 15) / 60) * (W - M.l - M.r);
+    const Y = v => H - M.b - ((v - 10) / 45) * (H - M.t - M.b);
+    for (let g = 10; g <= 50; g += 10) {
+      el("line", { x1: M.l, x2: W - M.r, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: M.l - 8, y: Y(g) + 4, "text-anchor": "end", class: "tick" }, svg).textContent = "€" + g + "m";
+    }
+    for (let r = 20; r <= 70; r += 10) {
+      el("text", { x: X(r), y: H - M.b + 18, "text-anchor": "middle", class: "tick" }, svg).textContent = "€" + r + "m";
+    }
+    // auction benchmark
+    el("line", { x1: M.l, x2: W - M.r, y1: Y(DATA.auctionEV), y2: Y(DATA.auctionEV), stroke: "var(--baseline)", "stroke-width": 1.5 }, svg);
+    el("text", { x: M.l + 10, y: Y(DATA.auctionEV) - 7, class: "dlabel-2" }, svg).textContent = "six-club auction benchmark €50.9m";
+    const d = DATA.posted.map((p, i) => `${i ? "L" : "M"}${X(p[0])},${Y(p[1])}`).join("");
+    el("path", { d, fill: "none", stroke: "var(--s-1)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    DATA.posted.forEach(p => {
+      const dot = el("circle", { cx: X(p[0]), cy: Y(p[1]), r: 4, fill: "var(--s-1)", stroke: "var(--surface)", "stroke-width": 2, opacity: 0 }, svg);
+      const hit = el("circle", { cx: X(p[0]), cy: Y(p[1]), r: 10, fill: "transparent" }, svg);
+      hit.addEventListener("mouseenter", () => dot.setAttribute("opacity", 1));
+      hit.addEventListener("mouseleave", () => dot.setAttribute("opacity", 0));
+      bindTip(hit, tip, box, `clause €${p[0]}m → E[value] €${p[1]}m`);
+    });
+    // marks: 30 and optimum
+    const m30 = el("circle", { cx: X(30), cy: Y(30), r: 7, fill: "var(--s-2)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+    bindTip(m30, tip, box, "<b>€30m clause</b><br>triggered ~100% of the time<br>E[value] €30m — €20.9m below the auction");
+    el("text", { x: X(30), y: Y(30) + 24, "text-anchor": "middle", class: "dlabel" }, svg).textContent = "€30m clause";
+    const mo = el("circle", { cx: X(49.5), cy: Y(44.3), r: 7, fill: "var(--s-3)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+    bindTip(mo, tip, box, "<b>best possible clause ≈ €49.5m</b><br>triggered 85% of the time<br>E[value] €44.3m — still €6.6m below the auction");
+    el("text", { x: X(49.5), y: Y(44.3) - 14, "text-anchor": "middle", class: "dlabel" }, svg).textContent = "best possible clause";
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "release-clause level →";
+  })();
+
+  /* ---------- Chart 3: frontier scatter ---------- */
+  (function () {
+    const box = document.getElementById("c3"), tip = tooltipFor(box);
+    const W = 780, H = 430, M = { l: 52, r: 20, t: 12, b: 44 };
+    const svg = makeSVG(box, W, H);
+    const xmax = 27, ymax = 25;
+    const X = v => M.l + (v / xmax) * (W - M.l - M.r);
+    const Y = v => H - M.b - (v / ymax) * (H - M.t - M.b);
+    for (let g = 0; g <= 25; g += 5) {
+      el("line", { x1: M.l, x2: W - M.r, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: M.l - 8, y: Y(g) + 4, "text-anchor": "end", class: "tick" }, svg).textContent = g;
+    }
+    for (let g = 0; g <= 25; g += 5) {
+      el("text", { x: X(g), y: H - M.b + 18, "text-anchor": "middle", class: "tick" }, svg).textContent = g;
+    }
+    el("line", { x1: M.l, x2: W - M.r, y1: Y(0), y2: Y(0), stroke: "var(--baseline)", "stroke-width": 1 }, svg);
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "Tijuana surplus over walk-away (€m EV) →";
+    const yl = el("text", { x: 14, y: (H - M.b + M.t) / 2, class: "axis-label",
+      transform: `rotate(-90 14 ${(H - M.b + M.t) / 2})`, "text-anchor": "middle" }, svg);
+    yl.textContent = "Buyer surplus (€m EV) →";
+
+    DATA.cloud.forEach(p => el("circle", { cx: X(p[0]), cy: Y(p[1]), r: 2.4, fill: "var(--cloud)" }, svg));
+    const path = DATA.frontier.map((p, i) => `${i ? "L" : "M"}${X(p[0])},${Y(p[1])}`).join("");
+    el("path", { d: path, fill: "none", stroke: "var(--s-1)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    DATA.frontier.forEach((p, i) => {
+      const dot = el("circle", { cx: X(p[0]), cy: Y(p[1]), r: 4, fill: "var(--s-1)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+      bindTip(dot, tip, box, `<b>${DATA.frontierPkgs[i]}</b><br>TIJ +€${p[0]}m · buyer +€${p[1]}m`);
+    });
+    const nash = el("circle", { cx: X(DATA.nash.x), cy: Y(DATA.nash.y), r: 7, fill: "var(--s-3)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+    bindTip(nash, tip, box, "<b>Nash: €25m + 25% sell-on + €15m adds, loan 6mo</b><br>TIJ +€13.5m · buyer +€11.95m");
+    el("line", { x1: X(DATA.nash.x) + 8, y1: Y(DATA.nash.y) - 8, x2: X(DATA.nash.x) + 34, y2: Y(DATA.nash.y) - 26, stroke: "var(--baseline)", "stroke-width": 1 }, svg);
+    el("text", { x: X(DATA.nash.x) + 38, y: Y(DATA.nash.y) - 28, class: "dlabel" }, svg).textContent = "Nash: €25m + 25% sell-on + adds + loan-back";
+    const plain = el("circle", { cx: X(DATA.plain.x), cy: Y(DATA.plain.y), r: 7, fill: "var(--s-2)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+    bindTip(plain, tip, box, "<b>Flat €30m clause-only sale</b><br>TIJ +€2m · buyer +€18m");
+    el("line", { x1: X(DATA.plain.x) + 8, y1: Y(DATA.plain.y) + 8, x2: X(DATA.plain.x) + 30, y2: Y(DATA.plain.y) + 30, stroke: "var(--baseline)", "stroke-width": 1 }, svg);
+    el("text", { x: X(DATA.plain.x) + 34, y: Y(DATA.plain.y) + 34, class: "dlabel" }, svg).textContent = "flat €30m clause-only sale";
+  })();
+
+  /* ---------- Chart 4: MC histogram ---------- */
+  (function () {
+    const box = document.getElementById("c4"), tip = tooltipFor(box);
+    const W = 780, H = 320, M = { l: 52, r: 20, t: 30, b: 48 };
+    const svg = makeSVG(box, W, H);
+    const ymax = 22;
+    const n = DATA.hist.length;
+    const band = (W - M.l - M.r) / n;
+    const bw = Math.min(48, band - 14);
+    const Y = v => H - M.b - (v / ymax) * (H - M.t - M.b);
+    for (let g = 0; g <= 20; g += 5) {
+      el("line", { x1: M.l, x2: W - M.r, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: M.l - 8, y: Y(g) + 4, "text-anchor": "end", class: "tick" }, svg).textContent = g + "%";
+    }
+    DATA.hist.forEach((d, i) => {
+      const cx = M.l + band * i + band / 2;
+      const h = (d.pct / ymax) * (H - M.t - M.b);
+      const bar = el("path", {
+        d: `M${cx - bw / 2},${Y(0)} v${-Math.max(h - 4, 0)} q0,-4 4,-4 h${bw - 8} q4,0 4,4 v${Math.max(h - 4, 0)} z`,
+        fill: "var(--s-1)"
+      }, svg);
+      bindTip(bar, tip, box, `<b>€${d.bin}m</b> forgone<br>${d.pct}% of simulated worlds`);
+      el("text", { x: cx, y: Y(d.pct) - 6, "text-anchor": "middle", class: "dlabel-2" }, svg).textContent = d.pct + "%";
+      el("text", { x: cx, y: H - M.b + 18, "text-anchor": "middle", class: "tick" }, svg).textContent = d.bin;
+    });
+    el("line", { x1: M.l, x2: W - M.r, y1: Y(0), y2: Y(0), stroke: "var(--baseline)", "stroke-width": 1 }, svg);
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "auction expected price minus €30m-clause value (€m)";
+    el("text", { x: M.l + band * 3 + band / 2, y: M.t - 8, "text-anchor": "middle", class: "dlabel" }, svg)
+      .textContent = "median €16.4m";
+  })();
+})();
+</script>
+
+</body>
+</html>

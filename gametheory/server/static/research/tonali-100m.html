@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Who won the £100m Tonali deal?</title>
+<meta name="description" content="Newcastle won the split, and both clubs left money in the structure. Tottenham's club-record signing, replayed through a game-theory engine — Pareto frontier, Nash package, 10,000 simulated worlds.">
+<link rel="canonical" href="https://snhp.dev/research/tonali-100m">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="SNHP Research">
+<meta property="og:title" content="Who won the £100m Tonali deal?">
+<meta property="og:description" content="Newcastle won the split, and both clubs left money in the structure. Tottenham's club-record signing, replayed through a game-theory engine — Pareto frontier, Nash package, 10,000 simulated worlds.">
+<meta property="og:url" content="https://snhp.dev/research/tonali-100m">
+<meta property="og:image" content="https://snhp.dev/static/research/img/tonali-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Who won the £100m Tonali deal?">
+<meta name="twitter:description" content="Newcastle won the split, and both clubs left money in the structure. Tottenham's club-record signing, replayed through a game-theory engine — Pareto frontier, Nash package, 10,000 simulated worlds.">
+<meta name="twitter:image" content="https://snhp.dev/static/research/img/tonali-card.png">
+</head>
+<body>
+<style>
+  :root {
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --hairline: rgba(11,11,11,0.10);
+    --accent: #2a78d6;
+    --s-frontier: #2a78d6;  /* blue: the frontier / NUFC */
+    --s-actual:   #eb6834;  /* orange: the actual deal / THFC */
+    --s-nash:     #1baf7a;  /* aqua: the Nash package */
+    --cloud: #c9c8c0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --hairline: rgba(255,255,255,0.10);
+      --accent: #3987e5;
+      --s-frontier: #3987e5;
+      --s-actual:   #d95926;
+      --s-nash:     #199e70;
+      --cloud: #3c3c39;
+    }
+  }
+  :root[data-theme="light"] {
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+    --muted: #898781; --grid: #e1e0d9; --baseline: #c3c2b7;
+    --hairline: rgba(11,11,11,0.10); --accent: #2a78d6;
+    --s-frontier: #2a78d6; --s-actual: #eb6834; --s-nash: #1baf7a; --cloud: #c9c8c0;
+  }
+  :root[data-theme="dark"] {
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+    --muted: #898781; --grid: #2c2c2a; --baseline: #383835;
+    --hairline: rgba(255,255,255,0.10); --accent: #3987e5;
+    --s-frontier: #3987e5; --s-actual: #d95926; --s-nash: #199e70; --cloud: #3c3c39;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--page); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.65; margin: 0; padding: 0 20px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+
+  .wrap { max-width: 860px; margin: 0 auto; padding: 56px 0 96px; }
+  .prose { max-width: 66ch; }
+
+  .eyebrow {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin: 64px 0 10px;
+  }
+  header .eyebrow { margin-top: 0; }
+  h1 {
+    font-size: clamp(30px, 5vw, 44px); line-height: 1.12; letter-spacing: -0.02em;
+    font-weight: 750; margin: 0 0 18px; text-wrap: balance; max-width: 20ch;
+  }
+  .standfirst {
+    font-size: 18px; color: var(--ink-2); max-width: 58ch; margin: 0 0 8px;
+  }
+  .byline { font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .byline .draft {
+    display: inline-block; border: 1px solid var(--hairline); border-radius: 3px;
+    padding: 1px 7px; margin-left: 8px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-size: 11px;
+  }
+
+  h2 { font-size: 22px; letter-spacing: -0.01em; font-weight: 700; margin: 6px 0 14px; text-wrap: balance; }
+  p { margin: 0 0 16px; }
+  .prose strong { font-weight: 650; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  /* stat tiles */
+  .tiles {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px; margin: 36px 0 8px;
+  }
+  .tile {
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .tile .label { font-size: 12.5px; color: var(--ink-2); margin-bottom: 6px; line-height: 1.35; }
+  .tile .value { font-size: 30px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.1; }
+  .tile .note { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.35; }
+
+  /* figures */
+  figure {
+    margin: 26px 0 8px; background: var(--surface);
+    border: 1px solid var(--hairline); border-radius: 6px; padding: 18px 18px 10px;
+  }
+  figure .fig-title { font-size: 14.5px; font-weight: 650; margin: 0 0 2px; }
+  figure .fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+  figcaption { font-size: 12.5px; color: var(--ink-2); padding: 10px 2px 6px; line-height: 1.5; max-width: 70ch; }
+  .chart-box { position: relative; width: 100%; overflow-x: auto; }
+  .chart-box svg { display: block; width: 100%; min-width: 640px; height: auto; }
+  .tile:first-child .value { font-size: 36px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12.5px; color: var(--ink-2); padding: 4px 2px 2px; }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .legend .sw.line { width: 16px; height: 2px; border-radius: 1px; }
+
+  .tooltip {
+    position: absolute; pointer-events: none; z-index: 5; display: none;
+    background: var(--ink); color: var(--page);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11.5px; line-height: 1.45; padding: 7px 9px; border-radius: 4px;
+    max-width: 240px; white-space: nowrap;
+  }
+
+  /* tables */
+  .tablewrap { overflow-x: auto; margin: 20px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; background: var(--surface); }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  td.num, th.num { font-variant-numeric: tabular-nums; }
+  td:first-child { font-weight: 600; }
+
+  .callout {
+    border-left: 3px solid var(--accent); background: var(--surface);
+    padding: 14px 18px; margin: 22px 0; max-width: 66ch; border-radius: 0 6px 6px 0;
+  }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .facts { list-style: none; padding: 0; margin: 0 0 16px; max-width: 66ch; }
+  .facts li { padding: 8px 0 8px 0; border-bottom: 1px solid var(--grid); font-size: 15px; }
+  .facts li:first-child { border-top: 1px solid var(--grid); }
+  .facts .mono { color: var(--muted); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; margin-right: 10px; }
+
+  ol.sources { font-size: 13.5px; color: var(--ink-2); padding-left: 20px; }
+  ol.sources li { margin-bottom: 6px; }
+  .footnote { font-size: 13px; color: var(--muted); border-top: 1px solid var(--grid); margin-top: 48px; padding-top: 16px; max-width: 66ch; }
+  .footnote code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+
+  svg text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  svg .axis-label, svg .tick { font-size: 11px; fill: var(--muted); }
+  svg .dlabel { font-size: 11.5px; font-weight: 600; fill: var(--ink); }
+  svg .dlabel-2 { font-size: 11px; fill: var(--ink-2); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .tile, figure { transition: border-color 160ms ease; }
+  }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Transfer market mechanics · No. 1</div>
+  <h1>Who won the £100m Tonali deal?</h1>
+  <p class="standfirst">Tottenham's club-record signing of Sandro Tonali has a structure — £92.5m guaranteed, £7.5m if Spurs reach Europe. I rebuilt the negotiation as a formal bargaining problem and ran it through a game-theory engine. The answer: Newcastle won the split, both clubs left money in the structure — and the conditional add-on isn't a footnote, it's the whole logic of the deal. It was also probably too small.</p>
+  <p class="byline">Santiago Munoz · July 2026 <span class="draft mono">Draft 4</span></p>
+
+  <div class="tiles">
+    <div class="tile">
+      <div class="label">Newcastle's share of the realized surplus</div>
+      <div class="value">61%</div>
+      <div class="note">median across draws; 60% at base beliefs — the seller won</div>
+    </div>
+    <div class="tile">
+      <div class="label">Simulated worlds where a Europe-conditional add-on pays both clubs at once</div>
+      <div class="value">9 in 10</div>
+      <div class="note">90.4% of 10,000 Monte-Carlo draws over the belief assumptions</div>
+    </div>
+    <div class="tile">
+      <div class="label">Joint surplus left on the table vs the frontier</div>
+      <div class="value">£2.1m</div>
+      <div class="note">median; £0.7–3.8m across the 10–90th pct</div>
+    </div>
+    <div class="tile">
+      <div class="label">Engine-vs-engine settlement, single-issue replay</div>
+      <div class="value">£90.6m</div>
+      <div class="note">flat fee — Newcastle's real terms beat it by ~£7m EV</div>
+    </div>
+  </div>
+</header>
+
+<div class="eyebrow">§ 1 — The deal, as reported</div>
+<div class="prose">
+<h2>What actually happened</h2>
+<p>Tottenham and Newcastle agreed a club-record £100m package for Sandro Tonali on July 2; the move was completed on July 6. The facts on the record, from Sky Sports and ESPN reporting:</p>
+</div>
+<ul class="facts">
+  <li><span class="mono">Structure</span>£92.5m guaranteed, plus £7.5m in add-ons tied to European qualification</li>
+  <li><span class="mono">Path</span>Spurs' ~£75m opener was rejected on June 20; Newcastle also reportedly turned down ~£90m before the £100m package landed</li>
+  <li><span class="mono">Seller</span>Newcastle were willing sellers — a reported £45m profit on the £55m paid in 2023, with Tonali under contract to 2029 — who privately believe the full £100m is "very likely" to be achieved (Sky)</li>
+  <li><span class="mono">Buyer</span>Spurs narrowly avoided relegation last season, hired Roberto De Zerbi, and had already spent £85m on Mateus Fernandes</li>
+  <li><span class="mono">Backdrop</span>Manchester City interest in Tonali (a ~€110m bid was reportedly being prepared); the window runs to September 1 — terms were agreed 61 days early</li>
+</ul>
+<div class="prose">
+<p>Notice the tension in that third bullet. Newcastle believe the Europe add-on will <em>"very likely"</em> pay out — they're booking it at close to face value. Spurs, a team that just flirted with relegation, are underwriting a bonus that only costs them money in the world where they've succeeded — a world where European revenue covers it. Both sides think the conditional £7.5m is a good trade <em>at the same time</em>. That's not a contradiction. That's the deal working exactly the way bargaining theory says it should. The rest of this piece makes that precise.</p>
+</div>
+
+<div class="eyebrow">§ 2 — The model</div>
+<div class="prose">
+<h2>Four issues, two beliefs, one pie</h2>
+<p>A transfer negotiation isn't one number. I model the Tonali deal as a package over four issues — <strong>guaranteed fee</strong> (£80–100m), <strong>Europe-conditional add-on</strong> (£0–15m), <strong>payment schedule</strong> (upfront, two, or four instalments), and <strong>sell-on clause</strong> (0–15%) — 315 possible packages in all. Each club values a package in cash-equivalent £m, and the two valuations differ in exactly the places that make trades possible:</p>
+</div>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Parameter</th><th>Value</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td>Newcastle's P(add-on triggers)</td><td class="num">0.70</td><td>Sky reported the club believe it "very likely"; modeled just under that. Swept 0.50–0.85 in the Monte Carlo.</td></tr>
+    <tr><td>Spurs' effective cost per £1 of add-on</td><td class="num">£0.40</td><td>Their subjective P(Europe) × a self-financing discount — the bonus only pays in the world where European revenue exists. Swept 0.30–0.65.</td></tr>
+    <tr><td>Newcastle reservation (walk-away EV)</td><td class="num">£82m</td><td>Willing sellers, but with Man City as an outside option and no pressure to sell. Swept £76–88m.</td></tr>
+    <tr><td>Spurs ceiling (max total EV cost)</td><td class="num">£106m</td><td>Implied by paying £100m headline and stretching past a £75m opener. Swept £100–112m.</td></tr>
+    <tr><td>Schedule premium</td><td class="num">£2.5m vs £2.0m</td><td>Early cash is worth ~£2.5m to Newcastle (PV + post-PSR cash preference) and costs Spurs ~£2.0m in financing. Both swept.</td></tr>
+    <tr><td>Sell-on clause economics</td><td class="num">£1.0m per 10%, ×1.3 to buyer</td><td>Modest resale odds on a 26-year-old record signing; the buyer bears an extra flexibility penalty — which makes the clause jointly inefficient.</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="prose">
+<p><strong>What's fact and what's modeled:</strong> the fee structure, bid history, and timing are reported fact. Every belief parameter above is my assumption — that's why §6 sweeps all of them across 10,000 draws rather than defending any single number. The machinery is the <a href="https://snhp.dev">SNHP</a> negotiation engine: the same Pareto-frontier, Nash-bargaining, and Bayesian-inference code that powers its agent-to-agent commerce tools, pointed at a transfer instead of a SaaS contract. Nothing football-specific was added to the math.</p>
+</div>
+
+<div class="eyebrow">§ 3 — The frontier</div>
+<div class="prose">
+<h2>The add-on is the logroll — but it should have been bigger</h2>
+<p>Plot every feasible package by the surplus it gives each club and the efficient deals trace the Pareto frontier — packages where neither club can do better without the other doing worse. The structure the clubs actually chose sits <em>close</em> to that frontier, and its distinctive feature — the conditional add-on — is exactly what the frontier is made of. Because £1 of Europe-conditional money is worth ~£0.70 to Newcastle but costs Spurs only ~£0.40, every conditional pound manufactures ~£0.30 of joint surplus out of pure belief disagreement.</p>
+</div>
+
+<figure>
+  <p class="fig-title">Right shape, wrong size — the deal sits £2.75m inside the frontier</p>
+  <p class="fig-sub">All 297 feasible packages; surplus in £m of expected value over each club's walk-away, base-case beliefs</p>
+  <div class="chart-box" id="c1"></div>
+  <div class="legend">
+    <span class="key"><span class="sw line" style="background:var(--s-frontier)"></span>Pareto frontier (40 packages)</span>
+    <span class="key"><span class="sw" style="background:var(--s-actual)"></span>Actual deal — £92.5m + £7.5m cond.</span>
+    <span class="key"><span class="sw" style="background:var(--s-nash)"></span>Nash package — £85m + £15m cond.</span>
+    <span class="key"><span class="sw" style="background:var(--cloud)"></span>other feasible packages</span>
+  </div>
+  <figcaption>The actual deal (orange) sits £2.75m inside the frontier at base beliefs. The Nash bargaining solution (aqua) — the package both sides would sign rather than keep haggling — is £85m guaranteed, £15m Europe-conditional, paid upfront: essentially identical surplus for Newcastle (£16.0m vs £15.75m) and £2.5m more for Spurs. Hover any frontier point for its package.</figcaption>
+</figure>
+
+<div class="prose">
+<p>Read the aqua point carefully, because it's the headline. The engine's Nash solution isn't a different <em>split</em> — it's a different <em>shape</em>. Cut the guarantee by £7.5m, double the conditional money to £15m, pay the guarantee upfront: Newcastle end up exactly as well off as they actually did, and Spurs keep an extra £2.5m of expected value. At base beliefs, the clubs stopped one round of structural creativity short. The direction of the actual deal was right; the dose was low.</p>
+<p>The model also predicts a dog that didn't bark: no sell-on clause. Because a sell-on costs the buyer more than it's worth to the seller here (low resale odds, high flexibility penalty), it's jointly inefficient, and the frontier zeroes it out almost everywhere. The reported deal has no sell-on. The engine wouldn't have written one either.</p>
+</div>
+
+<div class="eyebrow">§ 4 — The split</div>
+<div class="prose">
+<h2>Newcastle won the room</h2>
+<p>Efficiency says how big the pie is; the split says who ate it. To locate the split, I replayed the negotiation from Spurs' real £75m opener with the engine playing <em>both</em> seats — each side running the same concession-and-inference machinery against the other, single-issue, on the guaranteed fee.</p>
+</div>
+
+<figure>
+  <p class="fig-title">Two equally-patient negotiators settle at £90.6m — Newcastle beat that by ~£7m</p>
+  <p class="fig-sub">Alternating offers on the guaranteed fee, £m; both seats played by the SNHP engine</p>
+  <div class="chart-box" id="c2"></div>
+  <div class="legend">
+    <span class="key"><span class="sw line" style="background:var(--s-frontier)"></span>Newcastle counters</span>
+    <span class="key"><span class="sw line" style="background:var(--s-actual)"></span>Tottenham offers</span>
+  </div>
+  <figcaption>From the real £75m opener, two engines settle at £90.6m flat. The actual terms — £92.5m guaranteed plus the add-on, worth ≈£97.8m in expected value to Newcastle — beat the symmetric equilibrium by about £7m.</figcaption>
+</figure>
+
+<div class="prose">
+<p>Two symmetric, equally-patient negotiators land at <strong>£90.6m flat</strong>. Newcastle actually banked £92.5m guaranteed plus an add-on the model says they value near £5m — <strong>the model puts their haul at £97.8m of expected value, roughly £7m above the symmetric equilibrium</strong>. Across the Monte Carlo, Newcastle's median share of the realized joint surplus is 61%. The seller won, and not by a rounding error.</p>
+<p>Why? The two candidates are the same thing wearing different hats: <em>outside options and patience</em>. Manchester City's interest gave Newcastle a live alternative buyer; De Zerbi's rebuild gave Spurs a clock. In bargaining terms, Newcastle discounted the future at δ ≈ 0.93 per round, Spurs at δ ≈ 0.76 — and in the Rubinstein equilibrium (the standard model of offer-counteroffer bargaining, in which the more patient side simply gets more), that patience gap alone hands the seller <strong>roughly three-quarters of the £24m bargaining zone</strong> (76.5% with Spurs proposing first, as they did), implying a total around £100.4m. The actual deal sits between the symmetric replay (£90.6m) and the full patience-asymmetry solution (~£100.4m) — which is where you'd expect it, since City's interest was real but reportedly never reached a formal bid. One reported detail lands eerily close: Newcastle reportedly turned down an intermediate ~£90m bid — almost exactly what a symmetric negotiation is worth. They refused the equal-leverage price, and got paid for the difference.</p>
+</div>
+
+<figure>
+  <p class="fig-title">Urgency alone moves Newcastle's share from 61% to 83%</p>
+  <p class="fig-sub">Newcastle's equilibrium share of the bargaining zone vs Tottenham's urgency (Rubinstein, engine's discount model, 61 days to deadline; first-proposer share shown)</p>
+  <div class="chart-box" id="c4"></div>
+  <figcaption>Every step of buyer urgency moves millions across the table before a single offer is made. At Spurs' modeled urgency (0.75), Newcastle's equilibrium share is 77–82% depending on who proposes first.</figcaption>
+</figure>
+
+<div class="eyebrow">§ 5 — Stress test</div>
+<div class="prose">
+<h2>10,000 versions of this negotiation</h2>
+<p>Every belief number in §2 is an assumption, so the honest move is to stop defending point estimates and sweep them: 10,000 draws over Newcastle's add-on confidence (0.50–0.85), Spurs' effective add-on cost (0.30–0.65), both reservations (±£6m), and the schedule premiums. For each draw, recompute the full frontier and ask two questions — was the conditional structure right, and how much joint surplus did the actual deal leave unclaimed?</p>
+</div>
+
+<figure>
+  <p class="fig-title">The deal undershoots the frontier in almost every plausible world</p>
+  <p class="fig-sub">Gap between the actual deal and the frontier-best package, £m of joint EV — 10,000 draws</p>
+  <div class="chart-box" id="c3"></div>
+  <figcaption>Median £2.12m unclaimed (10th–90th pct: £0.7–3.8m). The actual deal gets within £1m of the frontier in only about 1 simulated world in 6. The structure was right; the sizing was conservative in almost every plausible world.</figcaption>
+</figure>
+
+<div class="prose">
+<p>Three results survive the sweep:</p>
+<p><strong>The conditional add-on pays both clubs at once in 9 of every 10 simulated worlds.</strong> Whenever Newcastle's confidence exceeds Spurs' effective cost — which is what the public record suggests — conditional money beats guaranteed money for both clubs simultaneously. This is the robust finding, and it's structural: it holds wherever the reported belief asymmetry does, and doesn't depend on any point estimate.</p>
+<p><strong>The deal consistently undershoots.</strong> Median £2.1m of joint surplus unclaimed, and in a linear model the frontier always wants the add-on maxed at £15m. Reality is concave — bigger add-ons invite conditionality disputes and measurement fights — so treat "£15m" as directional, not literal. But "bigger than £7.5m" holds across nearly every draw.</p>
+<p><strong>Newcastle beat Nash.</strong> The Nash-bargaining guaranteed fee is £85m at the median draw (£80–90m across the 10–90th percentile). Newcastle got £92.5m. Whatever Spurs' negotiators told their board, the symmetric-fairness benchmark says they paid a patience premium of roughly £5–10m.</p>
+</div>
+
+<div class="eyebrow">§ 6 — What this doesn't say</div>
+<div class="prose">
+<h2>Does the model tell the whole truth?</h2>
+<p><strong>The fees are journalism, not documents.</strong> "£92.5m + £7.5m" is well-sourced reporting, but installment schedules and add-on conditions beyond "European qualification" aren't public. The schedule dimension in the model is assumption end to end.</p>
+<p><strong>The utilities are modeled, not measured.</strong> No one outside the two boardrooms knows either club's true reservation or subjective probabilities. The Monte Carlo brackets that ignorance honestly, but a bracket is not knowledge — a club running this internally would replace priors with its own numbers, which is rather the point.</p>
+<p><strong>Linear surplus, one-shot deal.</strong> The model ignores relationship effects (these clubs will trade again), agent fees and player-side terms (Tonali's £275k+/week was its own negotiation), and treats add-on £s as linearly divisible. And the engine's head-to-head validation comes from commerce negotiations, not transfers — this piece is a demonstration of method, not a backtest.</p>
+</div>
+
+<div class="eyebrow">§ 7 — Why this matters</div>
+<div class="prose">
+<h2>The negotiation is a solvable layer</h2>
+<p>Football analytics has spent fifteen years pricing <em>players</em>. Almost nobody prices the <em>negotiation</em> — yet the gap between a well-structured and a lazily-structured deal on a single £100m transfer was worth £2–4m of joint value here, and the split moved £7m+ on patience alone. Those are recruitment-department-salary numbers, recovered not by scouting better but by structuring better.</p>
+<p>Everything in this piece ran on general-purpose bargaining machinery with football supplied as data. A club running it for real would hold enormous advantages over this outside view: it knows its own reservation, its actual cash constraints, its true belief about the add-on triggering. The interesting question isn't whether the model is right about Tonali. It's what the same machinery returns when someone who knows the real numbers feeds them in — before the call with the other sporting director, not after.</p>
+<p>That's the experiment I want to run next. If you work on the inside of these deals and the framing here is wrong somewhere, I'd genuinely like to know where — that's the fastest way this line of work gets better.</p>
+</div>
+
+<div class="eyebrow">Sources &amp; method</div>
+<div class="prose">
+<ol class="sources">
+  <li><a href="https://www.skysports.com/football/news/11675/13559533/sandro-tonali-tottenham-agree-club-record-lb100m-deal-to-sign-newcastle-midfielder">Sky Sports — Tottenham agree club-record £100m deal for Tonali</a> (fee structure, wages, Newcastle's stance)</li>
+  <li><a href="https://www.skysports.com/football/news/11095/13559730/sandro-tonali-tottenham-sign-italy-midfielder-in-club-record-lb100m-deal-from-newcastle">Sky Sports — Tonali completes club-record move</a></li>
+  <li><a href="https://www.espn.com/soccer/story/_/id/49246543/sandro-tonali-completes-record-transfer-tottenham-newcastle-united">ESPN — Tonali completes record transfer</a> (£75m rejected opener, guaranteed/bonus split)</li>
+  <li><a href="https://www.espn.com/soccer/story/_/id/49240006/tottenham-agree-deal-sign-tonali-newcastle-sources">ESPN — Tottenham agree potential £100m Tonali deal</a></li>
+  <li><a href="https://www.skysports.com/football/news/11095/13546618/transfer-news-summer-transfer-window-2026-premier-league-deals-ins-and-outs">Sky Sports — Summer 2026 window tracker</a> (September 1 deadline)</li>
+  <li><a href="https://www.espn.com/soccer/story/_/id/49129176/newcastle-reject-tottenham-sandro-tonali-transfer-bid-75-million">ESPN — Newcastle reject £75m Tonali bid</a> (June 20 opener)</li>
+  <li><a href="https://www.football365.com/news/newcastle-reach-decision-accepting-90m-tottenham-bid-sandro-tonali">Football365 — the intermediate ~£90m bid Newcastle refused</a></li>
+  <li><a href="https://www.skysports.com/football/news/11678/13455057/sandro-tonali-new-contract-newcastle-midfielder-signs-deal-until-summer-of-2029-with-option-of-further-12-months">Sky Sports — Tonali's contract extension to 2029</a> (January 2026)</li>
+</ol>
+</div>
+<div class="footnote">
+  <strong>Reproducibility.</strong> All computation runs on the open-source <code>snhp</code> engine (<code>pip install snhp</code>): the outcome-space and frontier via <code>snhp.nash_solver.filter_pareto_frontier</code> / <code>find_nash_bargaining_solution</code>, the replay via <code>gametheory.negotiation.plain_terms.negotiate_turn</code> (both seats), deadline dynamics via <code>snhp.core_math.rubinstein</code> with the engine's urgency-to-discount model. Monte Carlo: N = 10,000, seeded (<code>numpy</code> PCG64, seed 42), uniform priors as tabled in §2; 0 draws infeasible. Simulation script available on request — it's ~200 lines, and every number in this piece comes out of it. Companion piece: <a href="/research/mora-clause">the Gilberto Mora rumor market, priced as an auction</a> — where the sell-on clause this deal correctly zeroed out becomes the engine of the whole package.
+</div>
+</div>
+
+<script>
+(function () {
+  const DATA = {
+    frontier: [[1.5,24],[3.25,23],[5,22],[6.2,21],[6.5,20.05],[8.5,20],[9.7,19],[10,18.05],[11,18],[11.2,17.05],[12,16.7],[12.5,16.05],[13.5,15],[14.7,14],[15,13.05],[16,13],[16.2,12.05],[17,11.7],[17.2,11.5],[17.5,11.05],[18.5,10.5],[18.7,9.55],[19.5,9.2],[19.7,9],[20,8.55],[21,8],[21.2,7.05],[22,6.7],[22.2,6.5],[22.5,6.05],[23.5,5.5],[23.7,4.55],[24.5,4.2],[24.7,4],[25,3.55],[26,3],[26.2,2.05],[27,1.7],[27.5,1.05],[28.5,0]],
+    frontierPkgs: ["£80m+£5m cond, 4 inst","£80m+£7.5m, 4 inst","£80m+£10m, 4 inst","£80m+£10m, 2 inst","£80m+£10m, 2 inst +sell-on","£80m+£15m, 4 inst","£80m+£15m, 2 inst","£82.5m+£15m, 4 inst","£82.5m+£15m, 4 inst","£82.5m+£15m mix","£80m+£15m upfront","£85m+£15m, 4 inst","£85m+£15m, 2 inst","£85m+£15m, 2 inst","£87.5m+£15m, 4 inst","£85m+£15m upfront","£87.5m+£15m mix","£87.5m+£15m, 2 inst","£87.5m+£15m mix","£90m+£15m, 4 inst","£87.5m+£15m upfront","£90m+£15m mix","£90m+£15m, 2 inst","£90m+£15m, 2 inst","£92.5m+£15m, 4 inst","£90m+£15m upfront","£92.5m+£15m mix","£92.5m+£15m, 2 inst","£92.5m+£15m mix","£95m+£15m, 4 inst","£92.5m+£15m upfront","£95m+£15m mix","£95m+£15m, 2 inst","£95m+£15m, 2 inst","£97.5m eq., 4 inst","£95m+£15m upfront","£100m+£15m mix","£100m+£15m, 2 inst","£100m+£15m, 2 inst +","£100m+£15m, 4 inst"],
+    cloud: [[0.5,24],[1.5,22.7],[2,22],[0.2,23.7],[0.7,23],[4,22],[5,20.7],[5.5,20],[2.7,23],[3.7,21.7],[4.2,21],[2.5,22.7],[3,22],[5.8,21],[6.8,19.7],[7.2,19],[4.5,22],[5.5,20.7],[6,20],[3.2,23],[4.2,21.7],[4.8,21],[7.5,20],[8.5,18.7],[9,18],[6.2,21],[7.2,19.7],[7.7,19],[6,20.7],[6.5,20],[12,16.7],[12.5,16],[10.7,17.7],[11.2,17],[9.5,18.7],[10,18],[5.5,19],[6.5,17.7],[7,17],[4.2,20],[5.2,18.7],[5.7,18],[3,21],[4,19.7],[4.5,19],[9,17],[10,15.7],[10.5,15],[7.7,18],[8.7,16.7],[9.2,16],[6.5,19],[7.5,17.7],[8,17],[10.8,16],[11.8,14.7],[12.2,14],[9.5,17],[10.5,15.7],[11,15],[8.2,18],[9.2,16.7],[9.8,16],[12.5,15],[13.5,13.7],[14,13],[11.2,16],[12.2,14.7],[12.7,14],[10,17],[11,15.7],[11.5,15],[17,11.7],[17.5,11],[15.7,12.7],[16.2,12],[14.5,13.7],[15,13],[8,16.5],[9,15.2],[9.5,14.5],[6.7,17.5],[7.7,16.2],[8.2,15.5],[5.5,18.5],[6.5,17.2],[7,16.5],[11.5,14.5],[12.5,13.2],[13,12.5],[10.2,15.5],[11.2,14.2],[11.7,13.5],[9,16.5],[10,15.2],[10.5,14.5],[13.2,13.5],[14.2,12.2],[14.8,11.5],[12,14.5],[13,13.2],[13.5,12.5],[10.8,15.5],[11.8,14.2],[12.2,13.5],[15,12.5],[16,11.2],[16.5,10.5],[13.7,13.5],[14.7,12.2],[15.2,11.5],[12.5,14.5],[13.5,13.2],[14,12.5],[19.5,9.2],[20,8.5],[18.2,10.2],[18.7,9.5],[17,11.2],[17.5,10.5],[10.5,14],[11.5,12.7],[12,12],[9.2,15],[10.2,13.7],[10.7,13],[8,16],[9,14.7],[9.5,14],[14,12],[15,10.7],[15.5,10],[12.7,13],[13.7,11.7],[14.2,11],[11.5,14],[12.5,12.7],[13,12],[15.8,11],[16.8,9.7],[17.2,9],[14.5,12],[15.5,10.7],[16,10],[13.2,13],[14.2,11.7],[14.8,11],[17.5,10],[18.5,8.7],[19,8],[16.2,11],[17.2,9.7],[17.7,9],[15,12],[16,10.7],[16.5,10],[22,6.7],[22.5,6],[20.7,7.7],[21.2,7],[19.5,8.7],[20,8],[13,11.5],[14,10.2],[14.5,9.5],[11.7,12.5],[12.7,11.2],[13.2,10.5],[10.5,13.5],[11.5,12.2],[12,11.5],[16.5,9.5],[17.5,8.2],[18,7.5],[15.2,10.5],[16.2,9.2],[16.7,8.5],[14,11.5],[15,10.2],[15.5,9.5],[18.2,8.5],[19.2,7.2],[19.8,6.5],[17,9.5],[18,8.2],[18.5,7.5],[15.8,10.5],[16.8,9.2],[17.2,8.5],[20,7.5],[21,6.2],[21.5,5.5],[18.7,8.5],[19.7,7.2],[20.2,6.5],[17.5,9.5],[18.5,8.2],[19,7.5],[24.5,4.2],[25,3.5],[23.2,5.2],[23.7,4.5],[22,6.2],[22.5,5.5],[15.5,9],[16.5,7.7],[17,7],[14.2,10],[15.2,8.7],[15.7,8],[13,11],[14,9.7],[14.5,9],[19,7],[20,5.7],[20.5,5],[17.7,8],[18.7,6.7],[19.2,6],[16.5,9],[17.5,7.7],[18,7],[20.8,6],[21.8,4.7],[22.2,4],[19.5,7],[20.5,5.7],[21,5],[18.2,8],[19.2,6.7],[19.8,6],[22.5,5],[23.5,3.7],[24,3],[21.2,6],[22.2,4.7],[22.7,4],[20,7],[21,5.7],[21.5,5],[27,1.7],[27.5,1],[25.7,2.7],[26.2,2],[24.5,3.7],[25,3],[20.5,4],[21.5,2.7],[22,2],[19.2,5],[20.2,3.7],[20.7,3],[18,6],[19,4.7],[19.5,4],[24,2],[25,0.7],[25.5,0],[22.7,3],[23.7,1.7],[24.2,1],[21.5,4],[22.5,2.7],[23,2],[25.8,1],[24.5,2],[25.5,0.7],[26,0],[23.2,3],[24.2,1.7],[24.8,1],[26.2,1],[25,2],[26,0.7],[26.5,0]],
+    actual: { x: 15.75, y: 10.5, label: "Actual deal" },
+    nash:   { x: 16.0,  y: 13.0, label: "Nash package" },
+    ladder: [
+      { who: "THFC", ply: 1, v: 75.0 }, { who: "NUFC", ply: 2, v: 102.43 },
+      { who: "THFC", ply: 3, v: 82.1 }, { who: "NUFC", ply: 4, v: 100.86 },
+      { who: "THFC", ply: 5, v: 86.25 }, { who: "NUFC", ply: 6, v: 90.62 }
+    ],
+    settle: { ply: 6, v: 90.62 },
+    hist: [
+      { bin: "0–0.5", pct: 6.6 }, { bin: "0.5–1", pct: 10.0 }, { bin: "1–2", pct: 29.7 },
+      { bin: "2–3", pct: 29.0 }, { bin: "3–4", pct: 17.7 }, { bin: "4–5", pct: 6.0 },
+      { bin: "5–7", pct: 1.1 }
+    ],
+    sweep: [ [0.2, 61.0], [0.4, 71.3], [0.6, 78.2], [0.8, 83.2] ]
+  };
+
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent) {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+  function makeSVG(box, w, h) {
+    const svg = el("svg", { viewBox: `0 0 ${w} ${h}`, role: "img" });
+    box.appendChild(svg);
+    return svg;
+  }
+  function tooltipFor(box) {
+    const t = document.createElement("div");
+    t.className = "tooltip";
+    box.appendChild(t);
+    return t;
+  }
+  function bindTip(target, tip, box, html) {
+    target.addEventListener("mouseenter", () => { tip.innerHTML = html; tip.style.display = "block"; });
+    target.addEventListener("mousemove", (e) => {
+      const r = box.getBoundingClientRect();
+      let x = e.clientX - r.left + 12, y = e.clientY - r.top - 10;
+      if (x + tip.offsetWidth > r.width - 4) x = e.clientX - r.left - tip.offsetWidth - 12;
+      tip.style.left = x + "px"; tip.style.top = y + "px";
+    });
+    target.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+  }
+
+  /* ---------- Chart 1: frontier scatter ---------- */
+  (function () {
+    const box = document.getElementById("c1"), tip = tooltipFor(box);
+    const W = 780, H = 430, M = { l: 52, r: 20, t: 12, b: 44 };
+    const svg = makeSVG(box, W, H);
+    const xmax = 30, ymax = 26;
+    const X = v => M.l + (v / xmax) * (W - M.l - M.r);
+    const Y = v => H - M.b - (v / ymax) * (H - M.t - M.b);
+    for (let g = 0; g <= 25; g += 5) {
+      el("line", { x1: M.l, x2: W - M.r, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: M.l - 8, y: Y(g) + 4, "text-anchor": "end", class: "tick" }, svg).textContent = g;
+    }
+    for (let g = 0; g <= 30; g += 5) {
+      el("text", { x: X(g), y: H - M.b + 18, "text-anchor": "middle", class: "tick" }, svg).textContent = g;
+    }
+    el("line", { x1: M.l, x2: W - M.r, y1: Y(0), y2: Y(0), stroke: "var(--baseline)", "stroke-width": 1 }, svg);
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "Newcastle surplus over walk-away (£m EV) →";
+    const yl = el("text", { x: 14, y: (H - M.b + M.t) / 2, class: "axis-label",
+      transform: `rotate(-90 14 ${(H - M.b + M.t) / 2})`, "text-anchor": "middle" }, svg);
+    yl.textContent = "Tottenham surplus (£m EV) →";
+
+    DATA.cloud.forEach(p => el("circle", { cx: X(p[0]), cy: Y(p[1]), r: 2.4, fill: "var(--cloud)" }, svg));
+
+    const path = DATA.frontier.map((p, i) => `${i ? "L" : "M"}${X(p[0])},${Y(p[1])}`).join("");
+    el("path", { d: path, fill: "none", stroke: "var(--s-frontier)", "stroke-width": 2,
+      "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    DATA.frontier.forEach((p, i) => {
+      const dot = el("circle", { cx: X(p[0]), cy: Y(p[1]), r: 4.5, fill: "var(--s-frontier)",
+        stroke: "var(--surface)", "stroke-width": 2 }, svg);
+      bindTip(dot, tip, box,
+        `<b>${DATA.frontierPkgs[i]}</b><br>NUFC +£${p[0]}m · THFC +£${p[1]}m`);
+    });
+
+    [[DATA.nash, "var(--s-nash)", "Nash: £85m + £15m cond., upfront", -10, -14],
+     [DATA.actual, "var(--s-actual)", "Actual: £92.5m + £7.5m cond.", 12, 22]].forEach(([pt, color, lbl, dx, dy]) => {
+      const dot = el("circle", { cx: X(pt.x), cy: Y(pt.y), r: 7, fill: color,
+        stroke: "var(--surface)", "stroke-width": 2 }, svg);
+      bindTip(dot, tip, box, `<b>${lbl}</b><br>NUFC +£${pt.x}m · THFC +£${pt.y}m`);
+      const anchor = dx < 0 ? "end" : "start";
+      el("line", { x1: X(pt.x) + (dx < 0 ? -8 : 8), y1: Y(pt.y) + dy * 0.6,
+        x2: X(pt.x) + dx * 2.2, y2: Y(pt.y) + dy * 1.4,
+        stroke: "var(--baseline)", "stroke-width": 1 }, svg);
+      el("text", { x: X(pt.x) + dx * 2.2 + (dx < 0 ? -4 : 4), y: Y(pt.y) + dy * 1.4 + 4,
+        class: "dlabel", "text-anchor": anchor }, svg).textContent = lbl;
+    });
+  })();
+
+  /* ---------- Chart 2: offer ladder ---------- */
+  (function () {
+    const box = document.getElementById("c2"), tip = tooltipFor(box);
+    const W = 780, H = 340, M = { l: 52, r: 130, t: 16, b: 44 };
+    const svg = makeSVG(box, W, H);
+    const ymin = 70, ymax = 106;
+    const X = ply => M.l + ((ply - 1) / 5.6) * (W - M.l - M.r);
+    const Y = v => H - M.b - ((v - ymin) / (ymax - ymin)) * (H - M.t - M.b);
+    for (let g = 70; g <= 105; g += 5) {
+      el("line", { x1: M.l, x2: W - M.r, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: M.l - 8, y: Y(g) + 4, "text-anchor": "end", class: "tick" }, svg).textContent = "£" + g + "m";
+    }
+    // reference: actual guaranteed fee
+    el("line", { x1: M.l, x2: W - M.r, y1: Y(92.5), y2: Y(92.5), stroke: "var(--baseline)", "stroke-width": 1.5 }, svg);
+    el("text", { x: M.l + 10, y: Y(92.5) - 7, class: "dlabel-2" }, svg).textContent = "actual guaranteed fee £92.5m";
+
+    const series = { NUFC: { color: "var(--s-frontier)", pts: [] }, THFC: { color: "var(--s-actual)", pts: [] } };
+    DATA.ladder.forEach(o => series[o.who].pts.push(o));
+    for (const k in series) {
+      const s = series[k];
+      const d = s.pts.map((p, i) => `${i ? "L" : "M"}${X(p.ply)},${Y(p.v)}`).join("");
+      el("path", { d, fill: "none", stroke: s.color, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+      s.pts.forEach(p => {
+        const dot = el("circle", { cx: X(p.ply), cy: Y(p.v), r: 5, fill: s.color, stroke: "var(--surface)", "stroke-width": 2 }, svg);
+        bindTip(dot, tip, box, `<b>${p.who}</b> ${p.who === "THFC" ? "offers" : "counters"} £${p.v}m`);
+      });
+    }
+    const st = DATA.settle;
+    el("circle", { cx: X(st.ply), cy: Y(st.v), r: 9, fill: "none", stroke: "var(--ink)", "stroke-width": 1.5 }, svg);
+    el("text", { x: X(st.ply) + 14, y: Y(st.v) + 4, class: "dlabel" }, svg).textContent = "THFC accepts £90.6m";
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "offer sequence →";
+  })();
+
+  /* ---------- Chart 3: MC histogram ---------- */
+  (function () {
+    const box = document.getElementById("c3"), tip = tooltipFor(box);
+    const W = 780, H = 320, M = { l: 52, r: 20, t: 30, b: 48 };
+    const svg = makeSVG(box, W, H);
+    const ymax = 32;
+    const n = DATA.hist.length;
+    const band = (W - M.l - M.r) / n;
+    const bw = Math.min(24 * 2, band - 14); // wider allowed for histogram feel, capped
+    const Y = v => H - M.b - (v / ymax) * (H - M.t - M.b);
+    for (let g = 0; g <= 30; g += 10) {
+      el("line", { x1: M.l, x2: W - M.r, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: M.l - 8, y: Y(g) + 4, "text-anchor": "end", class: "tick" }, svg).textContent = g + "%";
+    }
+    DATA.hist.forEach((d, i) => {
+      const cx = M.l + band * i + band / 2;
+      const h = (d.pct / ymax) * (H - M.t - M.b);
+      const bar = el("path", {
+        d: `M${cx - bw / 2},${Y(0)} v${-Math.max(h - 4, 0)} q0,-4 4,-4 h${bw - 8} q4,0 4,4 v${Math.max(h - 4, 0)} z`,
+        fill: "var(--s-frontier)"
+      }, svg);
+      bindTip(bar, tip, box, `<b>£${d.bin}m</b> left on table<br>${d.pct}% of simulations`);
+      el("text", { x: cx, y: Y(d.pct) - 6, "text-anchor": "middle", class: "dlabel-2" }, svg).textContent = d.pct + "%";
+      el("text", { x: cx, y: H - M.b + 18, "text-anchor": "middle", class: "tick" }, svg).textContent = d.bin;
+    });
+    el("line", { x1: M.l, x2: W - M.r, y1: Y(0), y2: Y(0), stroke: "var(--baseline)", "stroke-width": 1 }, svg);
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "joint surplus unclaimed vs frontier-best package (£m)";
+    // median annotation over the bin containing 2.12
+    el("text", { x: M.l + band * 3 + band / 2, y: M.t - 8, "text-anchor": "middle", class: "dlabel" }, svg)
+      .textContent = "median £2.12m";
+  })();
+
+  /* ---------- Chart 4: Rubinstein sweep ---------- */
+  (function () {
+    const box = document.getElementById("c4"), tip = tooltipFor(box);
+    const W = 780, H = 280, M = { l: 52, r: 150, t: 16, b: 44 };
+    const svg = makeSVG(box, W, H);
+    const X = u => M.l + ((u - 0.15) / 0.7) * (W - M.l - M.r);
+    const Y = v => H - M.b - ((v - 50) / 40) * (H - M.t - M.b);
+    for (let g = 50; g <= 90; g += 10) {
+      el("line", { x1: M.l, x2: W - M.r, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: M.l - 8, y: Y(g) + 4, "text-anchor": "end", class: "tick" }, svg).textContent = g + "%";
+    }
+    [0.2, 0.4, 0.6, 0.8].forEach(u => {
+      el("text", { x: X(u), y: H - M.b + 18, "text-anchor": "middle", class: "tick" }, svg).textContent = u.toFixed(1);
+    });
+    const d = DATA.sweep.map((p, i) => `${i ? "L" : "M"}${X(p[0])},${Y(p[1])}`).join("");
+    el("path", { d, fill: "none", stroke: "var(--s-frontier)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    DATA.sweep.forEach(p => {
+      const dot = el("circle", { cx: X(p[0]), cy: Y(p[1]), r: 5, fill: "var(--s-frontier)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+      bindTip(dot, tip, box, `THFC urgency ${p[0]} → NUFC claims <b>${p[1]}%</b> of the £24m zone`);
+    });
+    const last = DATA.sweep[DATA.sweep.length - 1];
+    el("text", { x: X(last[0]) + 12, y: Y(last[1]) + 4, class: "dlabel" }, svg).textContent = "NUFC share 83%";
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "Tottenham's urgency (engine's discount model) →";
+  })();
+})();
+</script>
+
+</body>
+</html>

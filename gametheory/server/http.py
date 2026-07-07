@@ -19,7 +19,7 @@ import time
 from typing import Callable, Literal, Optional
 
 from fastapi import FastAPI, HTTPException, Request, Response
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -646,6 +646,44 @@ def for_builders_page():
     """Outreach landing tailored to AI agent builders — proof, who-it's-for,
     integration steps, FAQ, contact form."""
     return _serve_static_page("for-builders.html")
+
+
+# ─── Research: Transfer Market Mechanics ─────────────────────────────────────
+# Public analysis pieces that run real transfers through the engine. Pages are
+# self-contained HTML in static/research/; OG card images in static/research/img/
+# (served via the /static mount, which the pages' og:image URLs point at).
+
+# Canonical slugs, plus the short aliases used in tweets (/r/tonali → canonical).
+_RESEARCH_SLUGS = {"tonali-100m", "mora-clause"}
+_RESEARCH_ALIASES = {
+    "tonali": "tonali-100m",
+    "mora": "mora-clause",
+}
+
+
+@app.get("/research", include_in_schema=False)
+def research_index():
+    """Index of the Transfer Market Mechanics series."""
+    return _serve_static_page("research/index.html")
+
+
+@app.get("/research/{slug}", include_in_schema=False)
+def research_piece(slug: str):
+    """One research piece, by canonical slug."""
+    if slug in _RESEARCH_ALIASES:
+        return RedirectResponse(f"/research/{_RESEARCH_ALIASES[slug]}", status_code=301)
+    if slug not in _RESEARCH_SLUGS:
+        raise HTTPException(status_code=404, detail="no such research piece")
+    return _serve_static_page(f"research/{slug}.html")
+
+
+@app.get("/r/{slug}", include_in_schema=False)
+def research_short_link(slug: str):
+    """Short share links for tweets: /r/tonali, /r/mora."""
+    canonical = _RESEARCH_ALIASES.get(slug, slug if slug in _RESEARCH_SLUGS else None)
+    if canonical is None:
+        raise HTTPException(status_code=404, detail="no such research piece")
+    return RedirectResponse(f"/research/{canonical}", status_code=301)
 
 
 # ─── Tier 1: Negotiation ─────────────────────────────────────────────────────

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SNHP Research — Transfer Market Mechanics</title>
+<meta name="description" content="Real transfers, replayed as formal negotiation and auction problems on the open-source SNHP game-theory engine. Reproducible, sourced, falsifiable.">
+<link rel="canonical" href="https://snhp.dev/research">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SNHP Research">
+<meta property="og:title" content="Transfer Market Mechanics">
+<meta property="og:description" content="Real transfers, replayed as formal negotiation and auction problems on the SNHP game-theory engine.">
+<meta property="og:url" content="https://snhp.dev/research">
+<meta property="og:image" content="https://snhp.dev/static/research/img/mora-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Transfer Market Mechanics">
+<meta name="twitter:description" content="Real transfers, replayed as formal negotiation and auction problems on the SNHP game-theory engine.">
+<meta name="twitter:image" content="https://snhp.dev/static/research/img/mora-card.png">
+<style>
+  :root {
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+    --muted: #898781; --grid: #e1e0d9; --hairline: rgba(11,11,11,0.10); --accent: #2a78d6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+      --muted: #898781; --grid: #2c2c2a; --hairline: rgba(255,255,255,0.10); --accent: #3987e5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--page); color: var(--ink); margin: 0; padding: 0 20px;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 64px 0 96px; }
+  .eyebrow {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+  }
+  .eyebrow a { color: var(--accent); text-decoration: none; }
+  h1 { font-size: clamp(28px, 5vw, 40px); letter-spacing: -0.02em; font-weight: 750; margin: 10px 0 14px; }
+  .standfirst { font-size: 17px; color: var(--ink-2); max-width: 56ch; margin: 0 0 44px; }
+  .piece {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px;
+    padding: 20px 24px; margin-bottom: 14px;
+  }
+  .piece:hover { border-color: var(--accent); }
+  .piece .no {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11.5px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase;
+  }
+  .piece h2 { font-size: 21px; font-weight: 700; letter-spacing: -0.01em; margin: 6px 0 6px; }
+  .piece p { font-size: 14.5px; color: var(--ink-2); margin: 0; max-width: 60ch; }
+  .footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--grid); font-size: 13.5px; color: var(--muted); max-width: 60ch; }
+  .footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow"><a href="/">snhp.dev</a> · research</div>
+  <h1>Transfer Market Mechanics</h1>
+  <p class="standfirst">Real transfers, replayed as formal negotiation and auction problems on the open-source SNHP game-theory engine. Every number reproducible, every fact sourced, every prediction falsifiable.</p>
+
+  <a class="piece" href="/research/mora-clause">
+    <div class="no">№ 2 · July 2026 · rumor-stage</div>
+    <h2>Half of Europe wants Gilberto Mora. Why is his exit priced so low?</h2>
+    <p>One buyer is worth €29m, the queue is worth €51m, and the release clause is reportedly $25–27m. Auction theory prices what that mechanism gives away.</p>
+  </a>
+
+  <a class="piece" href="/research/tonali-100m">
+    <div class="no">№ 1 · July 2026</div>
+    <h2>Who won the £100m Tonali deal?</h2>
+    <p>Newcastle took 61% of the surplus, both clubs left millions in the structure — and the Europe-conditional add-on is the whole logic of the deal.</p>
+  </a>
+
+  <div class="footer">
+    The engine behind these pieces powers <a href="/">SNHP</a> — math-optimal negotiation moves for AI agents, single-price and multi-issue. <code>pip install snhp</code>, or <a href="/demo.html">watch it negotiate live</a>.
+  </div>
+</div>
+</body>
+</html>
