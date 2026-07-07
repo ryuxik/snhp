@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cruz Azul promised Erik Lira a cheap exit. What does a kept promise cost?</title>
+<meta name="description" content="A $12m captain, a $7.5m Europe-only release clause, written as a thank-you. Dynamic pricing on the SNHP engine puts the cost of the promise at ~$3m — and shows the timing was exactly right.">
+<link rel="canonical" href="https://snhp.dev/research/lira-promise">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="SNHP Research">
+<meta property="og:title" content="Cruz Azul promised Erik Lira a cheap exit. What does a kept promise cost?">
+<meta property="og:description" content="A $12m captain, a $7.5m Europe-only release clause, written as a thank-you. Dynamic pricing on the SNHP engine puts the cost of the promise at ~$3m — and shows the timing was exactly right.">
+<meta property="og:url" content="https://snhp.dev/research/lira-promise">
+<meta property="og:image" content="https://snhp.dev/static/research/img/lira-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Cruz Azul promised Erik Lira a cheap exit. What does a kept promise cost?">
+<meta name="twitter:description" content="A $12m captain, a $7.5m Europe-only release clause, written as a thank-you. Dynamic pricing on the SNHP engine puts the cost of the promise at ~$3m — and shows the timing was exactly right.">
+<meta name="twitter:image" content="https://snhp.dev/static/research/img/lira-card.png">
+</head>
+<body>
+<style>
+  :root {
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+    --muted: #898781; --grid: #e1e0d9; --baseline: #c3c2b7;
+    --hairline: rgba(11,11,11,0.10); --accent: #2a78d6;
+    --s-1: #2a78d6; --s-2: #eb6834; --s-3: #1baf7a; --cloud: #c9c8c0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+      --muted: #898781; --grid: #2c2c2a; --baseline: #383835;
+      --hairline: rgba(255,255,255,0.10); --accent: #3987e5;
+      --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --cloud: #3c3c39;
+    }
+  }
+  :root[data-theme="light"] {
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+    --muted: #898781; --grid: #e1e0d9; --baseline: #c3c2b7;
+    --hairline: rgba(11,11,11,0.10); --accent: #2a78d6;
+    --s-1: #2a78d6; --s-2: #eb6834; --s-3: #1baf7a; --cloud: #c9c8c0;
+  }
+  :root[data-theme="dark"] {
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+    --muted: #898781; --grid: #2c2c2a; --baseline: #383835;
+    --hairline: rgba(255,255,255,0.10); --accent: #3987e5;
+    --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --cloud: #3c3c39;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--page); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.65; margin: 0; padding: 0 20px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 56px 0 96px; }
+  .prose { max-width: 66ch; }
+  .eyebrow {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin: 64px 0 10px;
+  }
+  header .eyebrow { margin-top: 0; }
+  h1 {
+    font-size: clamp(30px, 5vw, 44px); line-height: 1.12; letter-spacing: -0.02em;
+    font-weight: 750; margin: 0 0 18px; text-wrap: balance; max-width: 24ch;
+  }
+  .standfirst { font-size: 18px; color: var(--ink-2); max-width: 58ch; margin: 0 0 8px; }
+  .byline { font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .byline .draft {
+    display: inline-block; border: 1px solid var(--hairline); border-radius: 3px;
+    padding: 1px 7px; margin-left: 8px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-size: 11px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  h2 { font-size: 22px; letter-spacing: -0.01em; font-weight: 700; margin: 6px 0 14px; text-wrap: balance; }
+  p { margin: 0 0 16px; }
+  .prose strong { font-weight: 650; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 36px 0 8px; }
+  .tile { background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; padding: 14px 16px; }
+  .tile .label { font-size: 12.5px; color: var(--ink-2); margin-bottom: 6px; line-height: 1.35; }
+  .tile .value { font-size: 30px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.1; }
+  .tile:first-child .value { font-size: 36px; }
+  .tile .note { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.35; }
+
+  figure { margin: 26px 0 8px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; padding: 18px 18px 10px; }
+  figure .fig-title { font-size: 14.5px; font-weight: 650; margin: 0 0 2px; }
+  figure .fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+  figcaption { font-size: 12.5px; color: var(--ink-2); padding: 10px 2px 6px; line-height: 1.5; max-width: 70ch; }
+  .chart-box { position: relative; width: 100%; overflow-x: auto; }
+  .chart-box svg { display: block; width: 100%; min-width: 640px; height: auto; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12.5px; color: var(--ink-2); padding: 4px 2px 2px; }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .legend .sw.line { width: 16px; height: 2px; border-radius: 1px; }
+  .tooltip {
+    position: absolute; pointer-events: none; z-index: 5; display: none;
+    background: var(--ink); color: var(--page);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11.5px; line-height: 1.45; padding: 7px 9px; border-radius: 4px;
+    max-width: 260px; white-space: nowrap;
+  }
+  .tablewrap { overflow-x: auto; margin: 20px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; background: var(--surface); }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  td.num, th.num { font-variant-numeric: tabular-nums; }
+  td:first-child { font-weight: 600; }
+  .facts { list-style: none; padding: 0; margin: 0 0 16px; max-width: 66ch; }
+  .facts li { padding: 8px 0; border-bottom: 1px solid var(--grid); font-size: 15px; }
+  .facts li:first-child { border-top: 1px solid var(--grid); }
+  .facts .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--muted); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; margin-right: 10px; }
+  .watchlist { list-style: none; padding: 0; margin: 0 0 16px; max-width: 66ch; counter-reset: watch; }
+  .watchlist li { padding: 10px 0 10px 42px; border-bottom: 1px solid var(--grid); position: relative; font-size: 15px; counter-increment: watch; }
+  .watchlist li:first-child { border-top: 1px solid var(--grid); }
+  .watchlist li::before {
+    content: counter(watch, decimal-leading-zero); position: absolute; left: 0; top: 12px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; color: var(--accent); font-weight: 600;
+  }
+  ol.sources { font-size: 13.5px; color: var(--ink-2); padding-left: 20px; }
+  ol.sources li { margin-bottom: 6px; }
+  .footnote { font-size: 13px; color: var(--muted); border-top: 1px solid var(--grid); margin-top: 48px; padding-top: 16px; max-width: 66ch; }
+  .footnote code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+  svg text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  svg .axis-label, svg .tick { font-size: 11px; fill: var(--muted); }
+  svg .dlabel { font-size: 11.5px; font-weight: 600; fill: var(--ink); }
+  svg .dlabel-2 { font-size: 11px; fill: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Transfer market mechanics · No. 3</div>
+  <h1>Cruz Azul promised Erik Lira a cheap exit. What does a kept promise cost?</h1>
+  <p class="standfirst">In May, Cruz Azul's captain delivered la Décima — against his old club, with a 95th-minute winner. In June he started every game of Mexico's perfect group stage at a home World Cup. In July, a dozen European clubs are circling, Roma have reportedly bid ~$13m — and the exit price his club promised him sits somewhere between $4m and $9m depending on the report, for a player the market values at $12m. The best-sourced version says there's no formal clause at all: just a handshake. This piece prices the handshake — and the window it was made for.</p>
+  <p class="byline">Santiago Munoz · July 2026 <span class="draft">Draft 2 · rumor-stage · fact-checked &amp; audited</span></p>
+
+  <div class="tiles">
+    <div class="tile">
+      <div class="label">The model's optimal opening ask this window</div>
+      <div class="value">$13.7m</div>
+      <div class="note">Roma's reported bid, tabled during the World Cup: ~$13m</div>
+    </div>
+    <div class="tile">
+      <div class="label">The promised exit price, as reported</div>
+      <div class="value">$4–9m</div>
+      <div class="note">best-sourced version: ~$4m, and no formal clause — a handshake</div>
+    </div>
+    <div class="tile">
+      <div class="label">What the promise costs, across that spread</div>
+      <div class="value">$2–7m</div>
+      <div class="note">median forgone vs the optimal sale; a real cost in 100% of 10,000 worlds even at $9m</div>
+    </div>
+    <div class="tile">
+      <div class="label">Selling now vs holding a year</div>
+      <div class="value">+$2.7m</div>
+      <div class="note">median, crediting the value of an unsold captain; selling now wins in 99.8% of worlds</div>
+    </div>
+  </div>
+</header>
+
+<div class="eyebrow">§ 1 — The situation, as reported</div>
+<div class="prose">
+<h2>A captain, a title, and a clause built to fire now</h2>
+<p>Erik Lira's summer is a sequence a scriptwriter would reject. What's on the record:</p>
+</div>
+<ul class="facts">
+  <li><span class="mono">The promise</span>"I want the Décima at Cruz Azul; I came to make history and I won't switch off until I get it" — Lira, October 2024. And after delivering it, to his directors: <em>"no me voy a ir libre, tranquilos"</em> — "I won't leave for free, relax"</li>
+  <li><span class="mono">The title</span>May 24: Cruz Azul beat Pumas — his old club — 2-1 with a 95th-minute winner to take la Décima, their first league title in five years</li>
+  <li><span class="mono">The showcase</span>Started through Mexico's first-ever perfect group stage (three wins, three clean sheets, an assist, 88% passing) and the round-of-16 loss to England</li>
+  <li><span class="mono">The handshake</span>His October 2025 extension (to June 2029) came with a commitment to let him go to Europe after the tournament. The reported exit price is a spread, not a number: Récord's director says there is <em>no formal clause</em> — an agreement at ~$4m, "even if they lose money"; other Mexican reporters put a clause at $7m or $8–9m</li>
+  <li><span class="mono">The market</span>Transfermarkt values him at €12m (May); Roma reportedly bid <strong>~$13m plus a 20% sell-on</strong> on July 2 (per TUDN's reporters — while ESPN reported days earlier that no offer had reached the club); Napoli, Girona, Sevilla, Betis, Lens, RB Leipzig, Ajax and AZ are linked, with Brentford and Bournemouth reportedly sending scouts</li>
+</ul>
+<div class="prose">
+<p>Unlike the <a href="/research/mora-clause">Gilberto Mora case</a> — where a below-market clause looks like something an agent extracted — this discount is <em>club policy</em>, agreed as part of the extension, in exchange for two more years of their captain's signature. The reporting can't settle whether the promise is $4m or $9m, so this piece prices the whole spread. Which makes it something rarer than a blunder: a promise with a price tag. The engine can read the tag — at every value it might hold.</p>
+</div>
+
+<div class="eyebrow">§ 2 — The model</div>
+<div class="prose">
+<h2>A 26-year-old is the opposite of a 17-year-old</h2>
+<p>Mora's value lives in disagreement — one club's academy report can double another's number, which is why an auction adds twenty million there. Lira is the reverse: a 26-year-old defensive midfielder with six seasons of Liga MX film, a continental trophy shelf and a World Cup on tape. Everyone knows what he is. I model serious buyers' valuations as lognormal with median <strong>$12m</strong> and <em>tight</em> spread (a skeptic sees ~$9m, a believer ~$16m), Cruz Azul's keep-value at $6m, and — because the reporting names a dozen clubs but tracking is cheap — a base case of <strong>three</strong> clubs that would actually move. When disagreement is small, competition adds less and <strong>timing adds more</strong>: the World Cup is a demand spike with a half-life, he ages out of "young enough to resell" during this contract, and that makes this a <em>when-and-at-what-price</em> problem — the engine's dynamic-pricing machinery, not its auction machinery, does the talking. Every parameter is swept in §6.</p>
+</div>
+
+<div class="eyebrow">§ 3 — The discount</div>
+<div class="prose">
+<h2>The whole reported range sits below every version of the market</h2>
+<p>First, the static picture. Even with tight agreement on his value, the entire $4–9m spread sits below what <em>any</em> configuration of real demand would produce:</p>
+</div>
+
+<figure>
+  <p class="fig-title">Every reading of the promise undercuts every version of the market</p>
+  <p class="fig-sub">Expected sale price vs number of credible bidders — $m, base beliefs (median valuation $12m); shaded band = the reported promise-price spread</p>
+  <div class="chart-box" id="c1"></div>
+  <figcaption>One buyer negotiating against Cruz Azul's keep-value lands at ~$9.2m — above even the top of the reported range. Three credible bidders: ~$12.2m. Roma's reported $13m bid sits above all of it. Hover the dots.</figcaption>
+</figure>
+
+<div class="prose">
+<p>Across the full sweep in §6, the profit-maximizing posted price is <strong>$12.2m at the median</strong>, and the promise forgoes — after crediting that a posted price only earns money when someone triggers it — a median <strong>$6.6m if the handshake is the best-sourced $4m</strong>, $3.2m at $7.5m, and $1.8m even at the most club-friendly $9m, where it is still a real cost in 100% of 10,000 simulated worlds. Mora's gap is an open question about a negotiation to come. Lira's is the invoice for a decision already made — we just don't yet know which line of the invoice.</p>
+</div>
+
+<div class="eyebrow">§ 4 — The window</div>
+<div class="prose">
+<h2>Even a ruthless seller would be at $9m by deadline day</h2>
+<p>Now the part the promise got <em>right</em>: the timing. Model Cruz Azul as a pure profit-maximizer posting a price for one player over the 56 days left in the window, with serious European buyers arriving at the World Cup-spiked rate of about four per window. The engine's dynamic-pricing solver returns the whole strategy — where to start, and how to mark down as the deadline approaches:</p>
+</div>
+
+<figure>
+  <p class="fig-title">The optimal markdown schedule — and where the promise sits</p>
+  <p class="fig-sub">Profit-maximizing asking price vs days into the window ($m); Gallego–van Ryzin policy, one player, ~4 serious buyers expected; shaded band = the reported promise-price spread</p>
+  <div class="chart-box" id="c2"></div>
+  <div class="legend">
+    <span class="key"><span class="sw line" style="background:var(--s-1)"></span>optimal asking price</span>
+    <span class="key"><span class="sw line" style="background:var(--s-2)"></span>reported promise range ($4–9m)</span>
+  </div>
+  <figcaption>A ruthless Cruz Azul would open at ~$13.7m and still be asking ~$9.1m on deadline day. The top of the reported promise range meets the schedule only at its final hour; the best-sourced $4m never appears on it at all — it is below anything a profit-maximizer would ever ask. Expected value of running the schedule: ~$10.7m. And the market has already spoken to the top line: Roma's reported bid of ~$13m lands within 5% of the model's opening ask.</figcaption>
+</figure>
+
+<div class="prose">
+<p>The same machinery prices the question every Liga MX fan asks: <em>why not keep the champion captain one more year?</em> Because the spike decays. Run the identical solver over the following twelve months — hype gone, a 27th birthday passed, arrival rate roughly halved, willingness-to-pay marked down — and the expected sale value falls from ~$10.7m to ~$8.2m. <strong>Selling into this window beats holding by ~$2.7m at the median (crediting the value of keeping an unsold captain), and wins in 99.8% of simulated worlds.</strong> The handshake got the <em>when</em> exactly right; only the <em>how much</em> was given away. And that giveaway compounds with the redirect this series keeps finding: at any price in the reported range, every serious club clears the bar, so fee competition dies at the promise-price — the queue competes on wages and speed, paid to the player, in a race to commit first.</p>
+</div>
+
+<div class="eyebrow">§ 5 — The rational gift</div>
+<div class="prose">
+<h2>Why a smart club sells its captain cheap</h2>
+<p>So Cruz Azul agreed to leave somewhere between $2m and $7m on the table, knowingly. Three reasons a profit-maximizer might still sign that:</p>
+<p><strong>It was deferred salary.</strong> The clause was the price of the extension. In late 2025, with his deal running down, Lira re-signed to 2029 — accepting Liga MX wages, delivering (as it turned out) a title and captaining through a home World Cup — in exchange for a guaranteed exit. Without that extension, Cruz Azul would be selling a 2027-expiring contract this summer with collapsing leverage. Some of the $3m isn't lost; it bought the very window they're now selling into.</p>
+<p><strong>It's a reputation asset.</strong> Cruz Azul recruits young Mexicans in a league where every talented player fears being priced into staying. "The club that lets you go, at a fair-to-you number, when you've earned it" is a pitch that lowers the cost of the <em>next</em> captain's signature. A repeated player pays for reputation once and collects on it every negotiation after.</p>
+<p><strong>The promise was mutual — and he paid first.</strong> He said he wanted the Décima and wouldn't switch off until he got it; then he got it, and told his directors <em>"no me voy a ir libre, tranquilos"</em> — I won't leave for free, relax. Each side pre-committed to not maximizing against the other. A club that then haggles over the last few million converts a legend's farewell into a hostage negotiation, on television. The model prices what the discount costs; it also, implicitly, prices what this club thinks a clean goodbye is worth — somewhere between $2m and $7m, the one number the reporting can't agree on.</p>
+</div>
+
+<div class="eyebrow">§ 6 — Stress test</div>
+<div class="prose">
+<h2>10,000 versions of this summer, at every reading of the promise</h2>
+<p>Sweep everything modeled — median valuation $10–14m, valuation spread, 2–6 credible bidders, arrival rates this window and next, decay if he stays — and price the promise at every level the reporting mentions:</p>
+</div>
+
+<figure>
+  <p class="fig-title">Whatever the promise turns out to be, it costs real money</p>
+  <p class="fig-sub">Median expected value forgone vs the optimal sale, by promise-price ($m) — 10,000 draws; band = 10th–90th percentile</p>
+  <div class="chart-box" id="c3"></div>
+  <figcaption>At Récord's ~$4m reading the promise forgoes a median $6.6m; at the most club-friendly $9m it still forgoes $1.8m — and remains a real cost in 100% of draws. Meanwhile sell-now beats hold-a-year in 99.8% of the same worlds: the timing was right at every price.</figcaption>
+</figure>
+
+<div class="eyebrow">§ 7 — What this doesn't say</div>
+<div class="prose">
+<h2>Does the model tell the whole truth?</h2>
+<p>The promise-price is a genuine unknown, which is why §6 prices every reading rather than betting on one — but the reporting itself conflicts in a deeper way: TUDN's reporters describe a formal ~$13m Roma offer while ESPN reported days earlier that nothing had reached the club, and Récord insists the "clause" is an informal commitment, which no tribunal enforces. An informal promise can also be renegotiated — if Cruz Azul sell at $13m rather than $4m, the handshake was a floor for the player, not a cap for the market, and the discount story collapses into a very good sale. The arrival rates and decay are modeled, not measured — though "post-tournament interest fades" is about as safe as football assumptions get. And Cruz Azul's keep-value may run higher than modeled: they are champions with a title to defend, and champions get to be sentimental. None of that changes the shape: every reading of the reported range has the club agreeing to sell below market, on purpose, at exactly the right time.</p>
+</div>
+
+<div class="eyebrow">§ 8 — Predictions</div>
+<div class="prose">
+<h2>What to watch — this piece is falsifiable</h2>
+</div>
+<ul class="watchlist">
+  <li><strong>The fee reveals which report was true.</strong> A sale at $4–5m means Récord's handshake was real and binding. A sale at $7–9m validates the clause reports. A sale near Roma's reported $13m means the promise was a floor for the player, not a cap for the market — the club negotiated up, and the "discount" was mostly ceremony. Whatever lands, the number adjudicates.</li>
+  <li><strong>It happens fast — he named the date himself.</strong> Lira said he doesn't want to hear anything until July 10, when FIFA's post-tournament rest days end. The timing model says every week after that only marks his value down: expect resolution within days of the 10th; a saga dragging toward September would count against this piece.</li>
+  <li><strong>If the fee lands inside the promise range, the player's package will be rich for it.</strong> Fee competition dies at the promise-price, so the queue competes on wages and role instead — the redirect, again. (A $13m negotiated sale would mute this: some competition would have been paid in the fee.)</li>
+  <li><strong>Watch who Cruz Azul signs next.</strong> The reputation theory §5 leans on is testable over time: if the promise policy is real strategy, it should show up as above-average success signing and extending coveted young Mexicans. That's the slow-burn prediction of the series.</li>
+</ul>
+
+<div class="eyebrow">Sources &amp; method</div>
+<div class="prose">
+<ol class="sources">
+  <li><a href="https://www.transfermarkt.us/erik-lira/profil/spieler/602324">Transfermarkt — Érik Lira</a> (DOB, €12m value, contract to June 2029, 29 caps, €4m Pumas fee)</li>
+  <li><a href="https://www.record.com.mx/historia/el-reporte-ponce-lira-y-cruz-azul-apuntan-europa-por-cuanto-2026012022511613588">Récord, "El Reporte Ponce"</a> (no formal clause; a commitment between the club, Lira and his agency at ~$4m, "even at a loss") and <a href="https://www.si.com/es-us/futbol/cual-es-el-precio-de-salida-a-europa-de-erik-lira">SI en español citing Récord</a> ("not exceeding $4m," UEFA clubs only)</li>
+  <li><a href="https://juanfutbol.com/liga-mx/cruz-azul-oficializa-renovacion-de-erik-lira-y-le-pone-blindaje-millonario-a-europa-detalles-de-su-contrato">juanfutbol / Fernando Esquivel</a> ($7m Europe clause) and <a href="https://vamoscruzazul.bolavip.com/noticias/revelan-la-millonaria-clausula-que-tendra-erik-lira-en-cruz-azul-para-salir-a-europa">Bolavip / Javier Alarcón</a> ($8–9m) — the competing clause figures</li>
+  <li><a href="https://espndeportes.espn.com/futbol/mexico/nota/_/id/15810043/cruz-azul-erik-lira-renovacion-contrato-clausula-europa">ESPN Deportes — the October 2025 renewal</a> (Europe-facilitation terms, no figure)</li>
+  <li><a href="https://juanfutbol.com/seleccion-mexicana/no-fue-israel-reyes-erik-lira-se-va-a-la-roma-y-cruz-azul-se-llevara-una-fortuna-por-el">juanfutbol citing TUDN — Roma's reported ~$13m + 20% sell-on bid</a> (July 2) vs <a href="https://vamoscruzazul.bolavip.com/mercado-de-pases/no-ha-habido-oferta-ni-sondeo-la-informacion-sobre-erik-lira-que-sorprende-a-todo-cruz-azul">ESPN via Bolavip — "no offer has arrived"</a> (June 29): the live contradiction</li>
+  <li><a href="https://www.milenio.com/futbol/liga-mx/erik-lira-advierte-que-cruz-azul-va-por-el-titulo-queremos-la-decima">Milenio, October 2024</a> (the Décima quote) and <a href="https://www.record.com.mx/futbol-liga-mx-cruz-azul/erik-lira-suena-con-europa-tras-coronarse-en-cu-tranquilos-no-me-voy-ir">Récord, post-final</a> ("no me voy a ir libre, tranquilos")</li>
+  <li><a href="https://www.record.com.mx/historia/llego-la-decima-cruz-azul-es-campeon-del-clausura-2026-tras-vencer-a-pumas-2026052503244779510">Récord — la Décima</a> (May 24, 2-1 vs Pumas) · <a href="https://www.espn.com/soccer/match/_/gameId/760505/england-mexico">ESPN — Mexico 2-3 England</a> · <a href="https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/mexico-lira-hope-future-england-reaction">FIFA — Lira's post-match reaction and the July 10 line</a></li>
+</ol>
+</div>
+<div class="footnote">
+  <strong>Reproducibility.</strong> All computation runs on the open-source <code>snhp</code> engine (<code>pip install snhp</code>): the markdown schedule and window values via <code>gametheory.mechanism.posted_price.posted_price_optimal</code> (Gallego–van Ryzin dynamic pricing), auction benchmarks by order-statistic Monte Carlo, sensitivity via 10,000 seeded draws over all §2/§6 parameters. Companion pieces: <a href="/research/tonali-100m">the Tonali £100m replay</a> and <a href="/research/mora-clause">the Mora clause auction</a> — three deals, three mechanisms, one engine.
+</div>
+</div>
+
+<script>
+(function () {
+  const DATA = {
+    curve: [[1, 9.2], [2, 10.64], [3, 12.16], [4, 13.07], [5, 13.72], [6, 14.21]],
+    bandLo: 4, bandHi: 9,
+    schedule: [[0, 13.65], [5.1, 13.4], [10.2, 13.12], [15.3, 12.81], [20.4, 12.47], [25.4, 12.09], [30.5, 11.68], [35.6, 11.22], [40.7, 10.72], [45.8, 10.19], [50.9, 9.64], [56, 9.1]],
+    promise: [[3, 7.55, 5.9, 9.35], [3.5, 7.06, 5.42, 8.85], [4, 6.57, 4.94, 8.35], [4.5, 6.08, 4.46, 7.85], [5, 5.59, 3.97, 7.36], [5.5, 5.11, 3.5, 6.86], [6, 4.62, 3.02, 6.36], [6.5, 4.14, 2.56, 5.87], [7, 3.65, 2.1, 5.37], [7.5, 3.17, 1.65, 4.88], [8, 2.7, 1.24, 4.39], [8.5, 2.24, 0.86, 3.9], [9, 1.79, 0.52, 3.41], [9.5, 1.37, 0.24, 2.94], [10, 0.97, 0.07, 2.47]]
+  };
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent) {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+  function makeSVG(box, w, h) {
+    const svg = el("svg", { viewBox: `0 0 ${w} ${h}`, role: "img" });
+    box.appendChild(svg);
+    return svg;
+  }
+  function tooltipFor(box) {
+    const t = document.createElement("div");
+    t.className = "tooltip";
+    box.appendChild(t);
+    return t;
+  }
+  function bindTip(target, tip, box, html) {
+    target.addEventListener("mouseenter", () => { tip.innerHTML = html; tip.style.display = "block"; });
+    target.addEventListener("mousemove", (e) => {
+      const r = box.getBoundingClientRect();
+      let x = e.clientX - r.left + 12, y = e.clientY - r.top - 10;
+      if (x + tip.offsetWidth > r.width - 4) x = e.clientX - r.left - tip.offsetWidth - 12;
+      tip.style.left = x + "px"; tip.style.top = y + "px";
+    });
+    target.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+  }
+
+  /* ---------- Chart 1: bidder curve + clause ---------- */
+  (function () {
+    const box = document.getElementById("c1"), tip = tooltipFor(box);
+    const W = 780, H = 340, M = { l: 52, r: 24, t: 20, b: 46 };
+    const svg = makeSVG(box, W, H);
+    const Y = v => H - M.b - ((v - 3) / 13) * (H - M.t - M.b);
+    const X = n => M.l + ((n - 1) / 5) * (W - M.l - M.r - 130);
+    for (let g = 4; g <= 16; g += 2) {
+      el("line", { x1: M.l, x2: W - M.r, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: M.l - 8, y: Y(g) + 4, "text-anchor": "end", class: "tick" }, svg).textContent = "$" + g + "m";
+    }
+    el("rect", { x: M.l, y: Y(DATA.bandHi), width: W - M.r - M.l, height: Y(DATA.bandLo) - Y(DATA.bandHi), fill: "var(--s-2)", opacity: 0.12 }, svg);
+    el("line", { x1: M.l, x2: W - M.r, y1: Y(DATA.bandHi), y2: Y(DATA.bandHi), stroke: "var(--s-2)", "stroke-width": 2 }, svg);
+    el("text", { x: M.l + 10, y: Y(DATA.bandHi) + 18, class: "dlabel-2" }, svg).textContent = "reported promise range $4–9m — below every dot";
+    const d = DATA.curve.map((p, i) => `${i ? "L" : "M"}${X(p[0])},${Y(p[1])}`).join("");
+    el("path", { d, fill: "none", stroke: "var(--s-1)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    DATA.curve.forEach(p => {
+      const dot = el("circle", { cx: X(p[0]), cy: Y(p[1]), r: 5.5, fill: "var(--s-1)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+      bindTip(dot, tip, box, `<b>${p[0]} credible bidder${p[0] > 1 ? "s" : ""}</b> → E[price] $${p[1]}m` +
+        (p[0] === 1 ? "<br>(bilateral vs keep-value $6m)" : "<br>(second-highest valuation)"));
+      el("text", { x: X(p[0]), y: H - M.b + 18, "text-anchor": "middle", class: "tick" }, svg).textContent = p[0];
+    });
+    el("text", { x: X(3), y: Y(12.16) - 14, "text-anchor": "middle", class: "dlabel" }, svg).textContent = "$12.2m — three bidders";
+    el("text", { x: X(6) + 12, y: Y(14.21) + 4, class: "dlabel-2" }, svg).textContent = "$14.2m — all six";
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "number of credible bidders →";
+  })();
+
+  /* ---------- Chart 2: markdown schedule ---------- */
+  (function () {
+    const box = document.getElementById("c2"), tip = tooltipFor(box);
+    const W = 780, H = 360, M = { l: 52, r: 24, t: 24, b: 46 };
+    const svg = makeSVG(box, W, H);
+    const X = t => M.l + (t / 56) * (W - M.l - M.r);
+    const Y = v => H - M.b - ((v - 3) / 12) * (H - M.t - M.b);
+    for (let g = 4; g <= 14; g += 2) {
+      el("line", { x1: M.l, x2: W - M.r, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: M.l - 8, y: Y(g) + 4, "text-anchor": "end", class: "tick" }, svg).textContent = "$" + g + "m";
+    }
+    [0, 14, 28, 42, 56].forEach(t => {
+      el("text", { x: X(t), y: H - M.b + 18, "text-anchor": "middle", class: "tick" }, svg).textContent = t === 0 ? "today" : "+" + t + "d";
+    });
+    // promise band
+    el("rect", { x: M.l, y: Y(DATA.bandHi), width: W - M.r - M.l, height: Y(DATA.bandLo) - Y(DATA.bandHi), fill: "var(--s-2)", opacity: 0.12 }, svg);
+    el("line", { x1: M.l, x2: W - M.r, y1: Y(DATA.bandHi), y2: Y(DATA.bandHi), stroke: "var(--s-2)", "stroke-width": 2 }, svg);
+    el("text", { x: M.l + 10, y: Y(DATA.bandLo) + 20, class: "dlabel-2" }, svg).textContent = "the reported promise range: off the schedule entirely at $4m";
+    // smooth markdown path
+    const d = DATA.schedule.map(([t, p], i) => `${i ? "L" : "M"}${X(t)},${Y(p)}`).join("");
+    el("path", { d, fill: "none", stroke: "var(--s-1)", "stroke-width": 2.5, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    DATA.schedule.forEach(([t, p]) => {
+      const hit = el("circle", { cx: X(t), cy: Y(p), r: 11, fill: "transparent" }, svg);
+      bindTip(hit, tip, box, `day ${Math.round(t)}: ask <b>$${p}m</b>`);
+    });
+    el("text", { x: X(1), y: Y(13.65) - 10, class: "dlabel" }, svg).textContent = "open at $13.7m";
+    el("text", { x: X(56) - 4, y: Y(9.1) - 10, "text-anchor": "end", class: "dlabel" }, svg).textContent = "deadline day: still $9.1m";
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "days into the window →";
+  })();
+
+  /* ---------- Chart 3: the promise-price curve ---------- */
+  (function () {
+    const box = document.getElementById("c3"), tip = tooltipFor(box);
+    const W = 780, H = 340, M = { l: 52, r: 24, t: 24, b: 48 };
+    const svg = makeSVG(box, W, H);
+    const X = c => M.l + ((c - 3) / 7) * (W - M.l - M.r);
+    const Y = v => H - M.b - (v / 10) * (H - M.t - M.b);
+    for (let g = 0; g <= 10; g += 2) {
+      el("line", { x1: M.l, x2: W - M.r, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: M.l - 8, y: Y(g) + 4, "text-anchor": "end", class: "tick" }, svg).textContent = "$" + g + "m";
+    }
+    for (let c = 3; c <= 10; c += 1) {
+      el("text", { x: X(c), y: H - M.b + 18, "text-anchor": "middle", class: "tick" }, svg).textContent = "$" + c + "m";
+    }
+    // 10-90 band
+    const up = DATA.promise.map(([c, m, lo, hi], i) => `${i ? "L" : "M"}${X(c)},${Y(hi)}`).join("");
+    const dn = [...DATA.promise].reverse().map(([c, m, lo, hi]) => `L${X(c)},${Y(lo)}`).join("");
+    el("path", { d: up + dn + "Z", fill: "var(--s-1)", opacity: 0.12 }, svg);
+    // median line
+    const d = DATA.promise.map(([c, m], i) => `${i ? "L" : "M"}${X(c)},${Y(m)}`).join("");
+    el("path", { d, fill: "none", stroke: "var(--s-1)", "stroke-width": 2.5, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    DATA.promise.forEach(([c, m, lo, hi]) => {
+      const hit = el("circle", { cx: X(c), cy: Y(m), r: 11, fill: "transparent" }, svg);
+      bindTip(hit, tip, box, `promise at <b>$${c}m</b> → forgoes $${m}m median<br>($${lo}–${hi}m, 10th–90th pct)`);
+    });
+    // annotate the two poles of the reporting
+    [[4, 6.57, "Récord's handshake: $6.6m forgone", -1], [9, 1.79, "most club-friendly report: $1.8m", 1]].forEach(([c, m, lbl, side]) => {
+      el("circle", { cx: X(c), cy: Y(m), r: 7, fill: "var(--s-2)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+      el("text", { x: X(c) + (side < 0 ? 14 : -14), y: Y(m) - 12, "text-anchor": side < 0 ? "start" : "end", class: "dlabel" }, svg).textContent = lbl;
+    });
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "if the promised exit price is... →";
+  })();
+})();
+</script>
+
+</body>
+</html>
