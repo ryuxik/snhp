@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The €116m bid for Yan Diomande never existed. The real numbers are stranger.</title>
+<meta name="description" content="One real bid, two fabricated rungs, a player who chose PSG, and a seller rationally refusing to sell. The engine's call: €130m if he moves this window — a Bundesliga record.">
+<link rel="canonical" href="https://snhp.dev/research/diomande-ladder">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="SNHP Research">
+<meta property="og:title" content="The €116m bid for Yan Diomande never existed. The real numbers are stranger.">
+<meta property="og:description" content="One real bid, two fabricated rungs, a player who chose PSG, and a seller rationally refusing to sell. The engine's call: €130m if he moves this window — a Bundesliga record.">
+<meta property="og:url" content="https://snhp.dev/research/diomande-ladder">
+<meta property="og:image" content="https://snhp.dev/static/research/img/diomande-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The €116m bid for Yan Diomande never existed. The real numbers are stranger.">
+<meta name="twitter:description" content="One real bid, two fabricated rungs, a player who chose PSG, and a seller rationally refusing to sell. The engine's call: €130m if he moves this window — a Bundesliga record.">
+<meta name="twitter:image" content="https://snhp.dev/static/research/img/diomande-card.png">
+</head>
+<body>
+<style>
+  :root {
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+    --muted: #898781; --grid: #e1e0d9; --baseline: #c3c2b7;
+    --hairline: rgba(11,11,11,0.10); --accent: #2a78d6;
+    --s-1: #2a78d6; --s-2: #eb6834; --s-3: #1baf7a; --cloud: #c9c8c0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+      --muted: #898781; --grid: #2c2c2a; --baseline: #383835;
+      --hairline: rgba(255,255,255,0.10); --accent: #3987e5;
+      --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --cloud: #3c3c39;
+    }
+  }
+  :root[data-theme="light"] {
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+    --muted: #898781; --grid: #e1e0d9; --baseline: #c3c2b7;
+    --hairline: rgba(11,11,11,0.10); --accent: #2a78d6;
+    --s-1: #2a78d6; --s-2: #eb6834; --s-3: #1baf7a; --cloud: #c9c8c0;
+  }
+  :root[data-theme="dark"] {
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+    --muted: #898781; --grid: #2c2c2a; --baseline: #383835;
+    --hairline: rgba(255,255,255,0.10); --accent: #3987e5;
+    --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --cloud: #3c3c39;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--page); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.65; margin: 0; padding: 0 20px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 56px 0 96px; }
+  .prose { max-width: 66ch; }
+  .eyebrow {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin: 64px 0 10px;
+  }
+  header .eyebrow { margin-top: 0; }
+  h1 {
+    font-size: clamp(30px, 5vw, 44px); line-height: 1.12; letter-spacing: -0.02em;
+    font-weight: 750; margin: 0 0 18px; text-wrap: balance; max-width: 24ch;
+  }
+  .standfirst { font-size: 18px; color: var(--ink-2); max-width: 58ch; margin: 0 0 8px; }
+  .byline { font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .byline .draft {
+    display: inline-block; border: 1px solid var(--hairline); border-radius: 3px;
+    padding: 1px 7px; margin-left: 8px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-size: 11px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  h2 { font-size: 22px; letter-spacing: -0.01em; font-weight: 700; margin: 6px 0 14px; text-wrap: balance; }
+  p { margin: 0 0 16px; }
+  .prose strong { font-weight: 650; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 36px 0 8px; }
+  .tile { background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; padding: 14px 16px; }
+  .tile .label { font-size: 12.5px; color: var(--ink-2); margin-bottom: 6px; line-height: 1.35; }
+  .tile .value { font-size: 30px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.1; }
+  .tile:first-child .value { font-size: 36px; }
+  .tile .note { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.35; }
+  figure { margin: 26px 0 8px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; padding: 18px 18px 10px; }
+  figure .fig-title { font-size: 14.5px; font-weight: 650; margin: 0 0 2px; }
+  figure .fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+  figcaption { font-size: 12.5px; color: var(--ink-2); padding: 10px 2px 6px; line-height: 1.5; max-width: 70ch; }
+  .chart-box { position: relative; width: 100%; overflow-x: auto; }
+  .chart-box svg { display: block; width: 100%; min-width: 640px; height: auto; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12.5px; color: var(--ink-2); padding: 4px 2px 2px; }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .legend .sw.line { width: 16px; height: 2px; border-radius: 1px; }
+  .tooltip {
+    position: absolute; pointer-events: none; z-index: 5; display: none;
+    background: var(--ink); color: var(--page);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11.5px; line-height: 1.45; padding: 7px 9px; border-radius: 4px;
+    max-width: 260px; white-space: nowrap;
+  }
+  .tablewrap { overflow-x: auto; margin: 20px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; background: var(--surface); }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  td.num, th.num { font-variant-numeric: tabular-nums; }
+  td:first-child { font-weight: 600; }
+  .facts { list-style: none; padding: 0; margin: 0 0 16px; max-width: 66ch; }
+  .facts li { padding: 8px 0; border-bottom: 1px solid var(--grid); font-size: 15px; }
+  .facts li:first-child { border-top: 1px solid var(--grid); }
+  .facts .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--muted); font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; margin-right: 10px; }
+  .watchlist { list-style: none; padding: 0; margin: 0 0 16px; max-width: 66ch; counter-reset: watch; }
+  .watchlist li { padding: 10px 0 10px 42px; border-bottom: 1px solid var(--grid); position: relative; font-size: 15px; counter-increment: watch; }
+  .watchlist li:first-child { border-top: 1px solid var(--grid); }
+  .watchlist li::before {
+    content: counter(watch, decimal-leading-zero); position: absolute; left: 0; top: 12px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; color: var(--accent); font-weight: 600;
+  }
+  ol.sources { font-size: 13.5px; color: var(--ink-2); padding-left: 20px; }
+  ol.sources li { margin-bottom: 6px; }
+  .footnote { font-size: 13px; color: var(--muted); border-top: 1px solid var(--grid); margin-top: 48px; padding-top: 16px; max-width: 66ch; }
+  .footnote code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+  svg text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  svg .axis-label, svg .tick { font-size: 11px; fill: var(--muted); }
+  svg .dlabel { font-size: 11.5px; font-weight: 600; fill: var(--ink); }
+  svg .dlabel-2 { font-size: 11px; fill: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Transfer market mechanics · No. 4</div>
+  <h1>The €116m bid for Yan Diomande never existed. The real numbers are stranger.</h1>
+  <p class="standfirst">The World Cup's most electric teenager is caught between one real bid, one fabricated one, a club that has already agreed his contract, and a seller publicly refusing to sell. Strip the saga down to what's actually confirmed and run it through a game-theory engine, and three things fall out: the player's choice of PSG made him <em>more</em> expensive, Leipzig's refusal to sell is a rational bet they've won before — and if he moves this window, the fee breaks the Bundesliga record.</p>
+  <p class="byline">Santiago Munoz · July 2026 <span class="draft">Draft 1 · rumor-stage</span></p>
+
+  <div class="tiles">
+    <div class="tile">
+      <div class="label">The model's fee if he moves this window</div>
+      <div class="value">€130m</div>
+      <div class="note">median; 88% of simulated deals land above €120m — a Bundesliga record either way</div>
+    </div>
+    <div class="tile">
+      <div class="label">What choosing PSG cost PSG</div>
+      <div class="value">~€10m</div>
+      <div class="note">the bilateral price vs the auction that died when Liverpool walked</div>
+    </div>
+    <div class="tile">
+      <div class="label">Growth Leipzig needs for holding him to pay</div>
+      <div class="value">25%</div>
+      <div class="note">his value rose 350%+ last season; Gvardiol grew ~125% in Leipzig's last hold</div>
+    </div>
+    <div class="tile">
+      <div class="label">Chance no deal happens this window</div>
+      <div class="value">4 in 10</div>
+      <div class="note">the model takes Schäfer's "he stays" more seriously than the aggregators do</div>
+    </div>
+  </div>
+</header>
+
+<div class="eyebrow">§ 1 — The saga, stripped to what's confirmed</div>
+<div class="prose">
+<h2>One real bid. Then the noise machine took over.</h2>
+<p>Yan Diomande is 19, cost Leipzig €20m from Leganés a year ago, and just produced a World Cup group stage Opta says no player this century has matched — 10+ dribbles <em>and</em> 10+ chances created in his first three games — plus an official Man of the Match against Ecuador, all without a single goal or assist. The confirmed record of his transfer saga:</p>
+</div>
+<ul class="facts">
+  <li><span class="mono">The bid</span>Liverpool offered ~€100m (€90m guaranteed + €10m add-ons) around June 17; Leipzig rejected it almost immediately (The Athletic's Ornstein; Sky Germany)</li>
+  <li><span class="mono">The threshold</span>Leipzig would need "a bid in excess of €130m" to change their stance (ESPN and Ornstein, independently) — a threshold, not a price tag</li>
+  <li><span class="mono">The choice</span>June 28: Diomande chose PSG and agreed a five-year contract to 2031, after talks with Luis Enrique and Luis Campos (RMC, ESPN, The Athletic, Romano). Liverpool moved on to Barcola and Minteh two days later (Sky)</li>
+  <li><span class="mono">The menu</span>Romano, June 29: Leipzig will take more than €100m for him <em>now</em> — or a lower price with a one-season loan-back. Their stated alternative: a new contract and a 2027 exit via a release clause</li>
+  <li><span class="mono">The wall</span>Sporting director Marcel Schäfer, on the record: "Our clear intention is that Yan plays for RB Leipzig next year. And we're not backing down from that." CEO Mintzlaff, in April: wouldn't sell "regardless of the price" — another season makes him "even more expensive"</li>
+  <li><span class="mono">The contract</span>Signed to June 2030. No release clause. No financial pressure to sell</li>
+</ul>
+<div class="prose">
+<p>And one thing that is <em>not</em> on that list, because it never happened: the "€116m second Liverpool bid" that went viral in late June. It originated with a fan account, was laundered through aggregators into a fake Bild attribution, and was flatly debunked by Sky Germany's Philipp Hinze: <em>"There has not yet been a second offer."</em> The €148m and €160m "asking prices" that circulated live in the same tier. In a market where an invented number can anchor real negotiations, step one of any analysis is deciding which rungs of the ladder exist.</p>
+</div>
+
+<div class="eyebrow">§ 2 — The ladder, sorted</div>
+<div class="prose">
+<h2>Which numbers are real?</h2>
+<p>Every figure that has circulated, sorted by what it is. Only the blue rungs constrain the model: a bid is a revealed valuation (Liverpool proved they value him at €100m+ by writing it down), and a rejection is a revealed reservation (Leipzig proved continuing is worth more than €100m to them). An ask is cheap talk — and a fabricated bid is worse than nothing, because someone at the table might believe it.</p>
+</div>
+
+<figure>
+  <p class="fig-title">Two of the five rungs on the public ladder never existed</p>
+  <p class="fig-sub">Every fee figure that circulated in the Diomande saga, June–July 2026 — €m, classified by sourcing</p>
+  <div class="chart-box" id="c1"></div>
+  <div class="legend">
+    <span class="key"><span class="sw" style="background:var(--s-1)"></span>confirmed (bid, rejection, or mainstream threshold)</span>
+    <span class="key"><span class="sw" style="background:var(--cloud)"></span>fabricated or aggregator-only</span>
+  </div>
+  <figcaption>The €100m bid and rejection are multi-source facts; €130m is ESPN/Ornstein's reported threshold. The €116m "second bid" was invented by a fan account and denied on the record by Sky Germany; €148m and €160m appear only in the aggregator tier. Hover the bars.</figcaption>
+</figure>
+
+<div class="eyebrow">§ 3 — What the player's choice did</div>
+<div class="prose">
+<h2>Choosing PSG made him more expensive — for PSG</h2>
+<p>In the <a href="/research/mora-clause">Mora</a> and <a href="/research/lira-promise">Lira</a> pieces, the player pre-committing to a destination gutted the <em>selling club's</em> price — because those clubs had promised to sell cheap. Diomande's case runs the same move through the opposite seller, and the sign flips. In an open auction, the winner pays just above the <em>second</em>-keenest bidder — Liverpool's ceiling, somewhere near €100–110m. When Diomande agreed terms with PSG and Liverpool walked, that cap left with them. What remains is a one-on-one negotiation between a club that must have him and a club that genuinely doesn't need to sell — and one-on-one, the price is set by splitting the gap between Leipzig's reservation and <em>PSG's</em> valuation, not Liverpool's.</p>
+<p>The model prices both worlds. The auction that died: median <strong>€120m</strong>. The bilateral that replaced it, with Leipzig's patience advantage (a 2030 contract, no clause, a public "no"): median <strong>€130m</strong> — the player's handshake handed Leipzig roughly <strong>€10m</strong>. A star's early commitment is a tax on whichever side of the table needs the deal more, and this time that's the buyer.</p>
+</div>
+
+<div class="eyebrow">§ 4 — Mintzlaff's bet</div>
+<div class="prose">
+<h2>"Another season makes him more expensive" — is that true?</h2>
+<p>Leipzig's CEO isn't bluffing about walking away; he's making an investment claim: hold a 19-year-old through one more Bundesliga season and sell for more in 2027. That's an optimal-stopping problem, and the engine can price it. Selling now is worth ~€130m in the model. Holding is worth the expected 2027 sale plus a season of a Rookie-of-the-Year winger, minus the risk that teenagers regress, get hurt, or sulk:</p>
+</div>
+
+<figure>
+  <p class="fig-title">Leipzig's hold pays if he grows just 25% — his value grew 350%+ last season</p>
+  <p class="fig-sub">Expected value of holding to 2027 vs assumed one-year value growth (€m); hairline = selling now (€130m median)</p>
+  <div class="chart-box" id="c2"></div>
+  <figcaption>The break-even growth rate for holding is ~25%/year — modest against this player's own trajectory (Transfermarkt €20m → €90m in one season) and against Leipzig's own precedent: they held Joško Gvardiol for a year after his breakout 2022 World Cup and sold at a then-record €90m, roughly 125% above his pre-hold value. The engine's verdict: Schäfer's "no" is not posturing. It's a trade with positive expected value.</figcaption>
+</figure>
+
+<div class="prose">
+<p>This is the same arithmetic that told Cruz Azul to sell Erik Lira <em>immediately</em> — run on a different age. A 26-year-old's post-tournament spike decays; a 19-year-old's compounds. The window premium and the hold premium are one formula with the sign set by the birth certificate.</p>
+<p>The menu Romano reported is the same logic converted into prices: "more than €100m now, or less with a loan-back" is Leipzig selling <em>two different products</em> — Diomande-now and Diomande-in-2027 — and the model prices the gap between them at roughly <strong>€16m</strong>: what a season of delivery is worth between these two clubs. PSG reportedly dislikes the loan-back. They should: it's priced.</p>
+</div>
+
+<div class="eyebrow">§ 5 — Stress test &amp; the call</div>
+<div class="prose">
+<h2>10,000 versions of this standoff</h2>
+<p>Sweep PSG's valuation (€110–145m), Leipzig's now-reservation (€110–140m), and the patience parameters. Three outcomes carve up the probability: in <strong>~57% of worlds a deal clears this window</strong>, at a median <strong>€130m</strong> — €120m+ in 88% of clearing worlds, past Wirtz's €125m Bundesliga record fixed fee in half of them, and a €110m+ profit on a €20m purchase in essentially all of them. In the remaining ~43%, PSG's number never reaches Leipzig's, and the Romano-reported fallback becomes the story: a new contract with a 2027 release clause — which would make Diomande the third player in this series to have his exit promised at a pre-agreed price, and the first where the promise would be <em>above</em> market.</p>
+</div>
+
+<div class="eyebrow">§ 6 — What this doesn't say</div>
+<div class="prose">
+<h2>Does the model tell the whole truth?</h2>
+<p>The parameter ranges are modeled, not leaked — PSG's true ceiling is the softest number, and if their internal cap really is the ~€100m framework Ben Jacobs describes, the no-deal branch grows well past 43%. The saga could resolve any hour, which is the nature of writing during the window rather than after it. And two frictions sit outside the model: Diomande's representation is contested (Roc Nation signed him in February; his previous agency claims exclusive rights into 2027 and has threatened legal action), which can stall exactly this kind of deal — and a 19-year-old who has now publicly said "I expect to leave" is a wasting asset in dressing-room terms in a way no valuation curve captures. Both cut toward a deal happening; neither moves the price bands much.</p>
+</div>
+
+<div class="eyebrow">§ 7 — Predictions</div>
+<div class="prose">
+<h2>What to watch — this piece is falsifiable</h2>
+</div>
+<ul class="watchlist">
+  <li><strong>If he moves this window: €120–138m.</strong> The model's central band, median €130m. A fee at PSG's reported ~€100m framework would mean Leipzig's public wall was theater; anything above €125m breaks the Bundesliga record for a fixed fee.</li>
+  <li><strong>If there's a loan-back, the fee drops by roughly €16m.</strong> That's the model's price of a season's delivery. A loan-back deal at close to full price would mean PSG negotiated badly twice.</li>
+  <li><strong>If no deal: a new Leipzig contract with a 2027 release clause.</strong> Romano has already reported the shape. Watch the clause level — Leipzig setting it near €150m would be Mintzlaff's growth bet written into a contract.</li>
+  <li><strong>The fabricated €116m never re-enters the record.</strong> Softest prediction, most likely to fail: fake rungs have a way of becoming anchors. If the final fee is reported as "beating Liverpool's €116m bid," this piece will have documented the laundering in advance.</li>
+</ul>
+
+<div class="eyebrow">Sources &amp; method</div>
+<div class="prose">
+<ol class="sources">
+  <li><a href="https://www.espn.com/soccer/story/_/id/48908879/rb-leipzig-want-130-million-yan-diomande-sources">ESPN — Leipzig want €130m+</a> (May 29) and <a href="https://www.espn.com/soccer/story/_/id/49211932/yan-diomande-close-move-paris-saint-germain">ESPN/Laurens — Diomande close to PSG, five-year deal agreed</a> (June 28)</li>
+  <li><a href="https://sports.yahoo.com/articles/rb-leipzig-reportedly-reject-100m-201156507.html">Sky Germany/Jacobs — €100m Liverpool bid rejected</a> (June 18) · <a href="https://www.skysports.com/football/news/11669/13558837/liverpool-transfer-news-bradley-barcola-among-alternative-targets-with-psg-in-talks-to-sign-yan-diomande">Sky Sports — Liverpool move to alternatives</a> (June 30)</li>
+  <li><a href="https://www.caughtoffside.com/2026/06/26/sky-reporter-refutes-latest-claim-diomande-liverpool/">Sky Germany's Hinze debunks the €116m "second bid"</a> (June 25–26): "there has not yet been a second offer"</li>
+  <li><a href="https://x.com/FabrizioRomano/status/2071504441748943211">Romano — Leipzig's menu: &gt;€100m now, or lower with a one-season loan-back</a> (June 29)</li>
+  <li><a href="https://www.bundesliga.com/en/bundesliga/news/yan-diomande-transfer-latest-rb-leipzig-38038">Bundesliga.com — Schäfer: "Yan will play for RB Leipzig next season"</a> (June 30) · <a href="https://www.kicker.de/egal-welcher-preis-aufgerufen-wird-mintzlaff-schliesst-diomande-verkauf-aus-1213491/artikel">kicker — Mintzlaff: no sale "regardless of the price"</a> (April 25)</li>
+  <li><a href="https://x.com/OptaJoe/status/2070267094415835545">OptaJoe — the 10+ dribbles / 10+ chances record</a> (June 26) · <a href="https://en.wikipedia.org/wiki/2026_FIFA_World_Cup_Group_E">Group E results; MOTM vs Ecuador</a></li>
+  <li><a href="https://www.transfermarkt.us/yan-diomande/profil/spieler/1390649">Transfermarkt — €90m value, contract to 2030, €20m fee from Leganés</a> · <a href="https://www.kicker.de/rekord-deal-perfekt-wirtz-wechselt-nach-liverpool-1122706/artikel">kicker — Wirtz €125m Bundesliga record</a> · Gvardiol €90m Leipzig record sale (Transfermarkt)</li>
+</ol>
+</div>
+<div class="footnote">
+  <strong>Reproducibility.</strong> All computation runs on the open-source <code>snhp</code> engine (<code>pip install snhp</code>): the auction-vs-bilateral comparison by order statistics and Rubinstein bargaining (<code>snhp.core_math.rubinstein</code>), the hold-vs-sell curve by seeded Monte Carlo over one-year value growth (N = 100,000 per point), sensitivity over all §5 parameter ranges. Companion pieces: <a href="/research/tonali-100m">Tonali</a>, <a href="/research/mora-clause">Mora</a>, <a href="/research/lira-promise">Lira</a> — four deals, four mechanisms, one engine.
+</div>
+</div>
+
+<script>
+(function () {
+  const DATA = {
+    ladder: [
+      { fee: 100, label: "Liverpool bid — rejected", real: true, note: "€90m + €10m add-ons, June 17–18 (Athletic/Sky DE)" },
+      { fee: 116, label: "“Second bid” — fabricated", real: false, note: "fan account → aggregators → fake Bild tag; denied by Sky DE" },
+      { fee: 130, label: "Leipzig threshold", real: true, note: "“in excess of €130m” — ESPN + Ornstein" },
+      { fee: 148, label: "“Record demand” — aggregator-only", real: false, note: "single aggregator; no mainstream source" },
+      { fee: 160, label: "“Unlock fee” — aggregator-only", real: false, note: "no credible source found at all" }
+    ],
+    hold: [[-10, 97.6], [-5, 102.2], [0, 107.1], [5, 111.6], [10, 116.3], [15, 121.4], [20, 125.7], [25, 130.8], [30, 135.4], [35, 140.2], [40, 145.1], [45, 149.9]],
+    sellNow: 130.3
+  };
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent) {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+  function makeSVG(box, w, h) {
+    const svg = el("svg", { viewBox: `0 0 ${w} ${h}`, role: "img" });
+    box.appendChild(svg);
+    return svg;
+  }
+  function tooltipFor(box) {
+    const t = document.createElement("div");
+    t.className = "tooltip";
+    box.appendChild(t);
+    return t;
+  }
+  function bindTip(target, tip, box, html) {
+    target.addEventListener("mouseenter", () => { tip.innerHTML = html; tip.style.display = "block"; });
+    target.addEventListener("mousemove", (e) => {
+      const r = box.getBoundingClientRect();
+      let x = e.clientX - r.left + 12, y = e.clientY - r.top - 10;
+      if (x + tip.offsetWidth > r.width - 4) x = e.clientX - r.left - tip.offsetWidth - 12;
+      tip.style.left = x + "px"; tip.style.top = y + "px";
+    });
+    target.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+  }
+
+  /* ---------- Chart 1: the ladder, real vs fabricated ---------- */
+  (function () {
+    const box = document.getElementById("c1"), tip = tooltipFor(box);
+    const W = 780, H = 330, M = { l: 52, r: 24, t: 16, b: 44 };
+    const svg = makeSVG(box, W, H);
+    const n = DATA.ladder.length;
+    const band = (W - M.l - M.r) / n;
+    const bw = Math.min(48, band - 18);
+    const Y = v => H - M.b - ((v - 80) / 90) * (H - M.t - M.b);
+    for (let g = 80; g <= 170; g += 20) {
+      el("line", { x1: M.l, x2: W - M.r, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: M.l - 8, y: Y(g) + 4, "text-anchor": "end", class: "tick" }, svg).textContent = "€" + g + "m";
+    }
+    DATA.ladder.forEach((d, i) => {
+      const cx = M.l + band * i + band / 2;
+      const h = Y(80) - Y(d.fee);
+      const bar = el("path", {
+        d: `M${cx - bw / 2},${Y(80)} v${-Math.max(h - 4, 0)} q0,-4 4,-4 h${bw - 8} q4,0 4,4 v${Math.max(h - 4, 0)} z`,
+        fill: d.real ? "var(--s-1)" : "var(--cloud)"
+      }, svg);
+      bindTip(bar, tip, box, `<b>€${d.fee}m — ${d.label}</b><br>${d.note}`);
+      el("text", { x: cx, y: Y(d.fee) - 8, "text-anchor": "middle", class: "dlabel" }, svg).textContent = "€" + d.fee + "m";
+      const words = d.label.split(" — ");
+      el("text", { x: cx, y: H - M.b + 17, "text-anchor": "middle", class: "tick" }, svg).textContent = words[0];
+      if (words[1]) el("text", { x: cx, y: H - M.b + 31, "text-anchor": "middle", class: "tick" }, svg).textContent = words[1];
+    });
+    el("line", { x1: M.l, x2: W - M.r, y1: Y(80), y2: Y(80), stroke: "var(--baseline)", "stroke-width": 1 }, svg);
+  })();
+
+  /* ---------- Chart 2: the hold curve ---------- */
+  (function () {
+    const box = document.getElementById("c2"), tip = tooltipFor(box);
+    const W = 780, H = 340, M = { l: 52, r: 24, t: 24, b: 48 };
+    const svg = makeSVG(box, W, H);
+    const X = g => M.l + ((g + 10) / 55) * (W - M.l - M.r);
+    const Y = v => H - M.b - ((v - 90) / 65) * (H - M.t - M.b);
+    for (let v = 90; v <= 150; v += 10) {
+      el("line", { x1: M.l, x2: W - M.r, y1: Y(v), y2: Y(v), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: M.l - 8, y: Y(v) + 4, "text-anchor": "end", class: "tick" }, svg).textContent = "€" + v + "m";
+    }
+    [-10, 0, 10, 20, 30, 40].forEach(g => {
+      el("text", { x: X(g), y: H - M.b + 18, "text-anchor": "middle", class: "tick" }, svg).textContent = (g > 0 ? "+" : "") + g + "%";
+    });
+    // sell-now hairline
+    el("line", { x1: M.l, x2: W - M.r, y1: Y(DATA.sellNow), y2: Y(DATA.sellNow), stroke: "var(--s-2)", "stroke-width": 2 }, svg);
+    el("text", { x: M.l + 10, y: Y(DATA.sellNow) - 8, class: "dlabel-2" }, svg).textContent = "sell now: €130m (model median)";
+    const d = DATA.hold.map(([g, v], i) => `${i ? "L" : "M"}${X(g)},${Y(v)}`).join("");
+    el("path", { d, fill: "none", stroke: "var(--s-1)", "stroke-width": 2.5, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    DATA.hold.forEach(([g, v]) => {
+      const hit = el("circle", { cx: X(g), cy: Y(v), r: 11, fill: "transparent" }, svg);
+      bindTip(hit, tip, box, `${g >= 0 ? "+" : ""}${g}% growth → hold worth <b>€${v}m</b>`);
+    });
+    // breakeven marker
+    el("circle", { cx: X(25), cy: Y(130.8), r: 7, fill: "var(--s-3)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+    el("text", { x: X(25) + 12, y: Y(130.8) + 20, class: "dlabel" }, svg).textContent = "break-even: +25%";
+    el("text", { x: X(40), y: Y(145.1) - 12, "text-anchor": "middle", class: "dlabel-2" }, svg).textContent = "Gvardiol's hold year: ~+125%";
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "assumed one-year value growth if Leipzig hold him →";
+  })();
+})();
+</script>
+</div>
+
+</body>
+</html>

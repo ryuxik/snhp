@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Should you buy the World Cup?</title>
+<meta name="description" content="A simulated World Cup where nobody improves still mints ten breakouts. Rational vs observed price moves for 16 tracked players, and history's receipts — from James Rodríguez to Amrabat.">
+<link rel="canonical" href="https://snhp.dev/research/wc-premium">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="SNHP Research">
+<meta property="og:title" content="Should you buy the World Cup?">
+<meta property="og:description" content="A simulated World Cup where nobody improves still mints ten breakouts. Rational vs observed price moves for 16 tracked players, and history's receipts — from James Rodríguez to Amrabat.">
+<meta property="og:url" content="https://snhp.dev/research/wc-premium">
+<meta property="og:image" content="https://snhp.dev/static/research/img/premium-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Should you buy the World Cup?">
+<meta name="twitter:description" content="A simulated World Cup where nobody improves still mints ten breakouts. Rational vs observed price moves for 16 tracked players, and history's receipts — from James Rodríguez to Amrabat.">
+<meta name="twitter:image" content="https://snhp.dev/static/research/img/premium-card.png">
+</head>
+<body>
+<style>
+  :root {
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+    --muted: #898781; --grid: #e1e0d9; --baseline: #c3c2b7;
+    --hairline: rgba(11,11,11,0.10); --accent: #2a78d6;
+    --s-1: #2a78d6; --s-2: #eb6834; --s-3: #1baf7a; --cloud: #c9c8c0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+      --muted: #898781; --grid: #2c2c2a; --baseline: #383835;
+      --hairline: rgba(255,255,255,0.10); --accent: #3987e5;
+      --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --cloud: #3c3c39;
+    }
+  }
+  :root[data-theme="light"] {
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e;
+    --muted: #898781; --grid: #e1e0d9; --baseline: #c3c2b7;
+    --hairline: rgba(11,11,11,0.10); --accent: #2a78d6;
+    --s-1: #2a78d6; --s-2: #eb6834; --s-3: #1baf7a; --cloud: #c9c8c0;
+  }
+  :root[data-theme="dark"] {
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+    --muted: #898781; --grid: #2c2c2a; --baseline: #383835;
+    --hairline: rgba(255,255,255,0.10); --accent: #3987e5;
+    --s-1: #3987e5; --s-2: #d95926; --s-3: #199e70; --cloud: #3c3c39;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--page); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.65; margin: 0; padding: 0 20px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 56px 0 96px; }
+  .prose { max-width: 66ch; }
+  .eyebrow {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin: 64px 0 10px;
+  }
+  header .eyebrow { margin-top: 0; }
+  h1 {
+    font-size: clamp(30px, 5vw, 44px); line-height: 1.12; letter-spacing: -0.02em;
+    font-weight: 750; margin: 0 0 18px; text-wrap: balance; max-width: 22ch;
+  }
+  .standfirst { font-size: 18px; color: var(--ink-2); max-width: 58ch; margin: 0 0 8px; }
+  .byline { font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .byline .draft {
+    display: inline-block; border: 1px solid var(--hairline); border-radius: 3px;
+    padding: 1px 7px; margin-left: 8px; letter-spacing: 0.08em; text-transform: uppercase;
+    font-size: 11px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  h2 { font-size: 22px; letter-spacing: -0.01em; font-weight: 700; margin: 6px 0 14px; text-wrap: balance; }
+  p { margin: 0 0 16px; }
+  .prose strong { font-weight: 650; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 36px 0 8px; }
+  .tile { background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; padding: 14px 16px; }
+  .tile .label { font-size: 12.5px; color: var(--ink-2); margin-bottom: 6px; line-height: 1.35; }
+  .tile .value { font-size: 30px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.1; }
+  .tile:first-child .value { font-size: 36px; }
+  .tile .note { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.35; }
+  figure { margin: 26px 0 8px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 6px; padding: 18px 18px 10px; }
+  figure .fig-title { font-size: 14.5px; font-weight: 650; margin: 0 0 2px; }
+  figure .fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+  figcaption { font-size: 12.5px; color: var(--ink-2); padding: 10px 2px 6px; line-height: 1.5; max-width: 70ch; }
+  .chart-box { position: relative; width: 100%; overflow-x: auto; }
+  .chart-box svg { display: block; width: 100%; min-width: 640px; height: auto; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12.5px; color: var(--ink-2); padding: 4px 2px 2px; }
+  .legend .key { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .tooltip {
+    position: absolute; pointer-events: none; z-index: 5; display: none;
+    background: var(--ink); color: var(--page);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 11.5px; line-height: 1.45; padding: 7px 9px; border-radius: 4px;
+    max-width: 280px; white-space: nowrap;
+  }
+  .tablewrap { overflow-x: auto; margin: 20px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; background: var(--surface); }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  td.num, th.num { font-variant-numeric: tabular-nums; }
+  td:first-child { font-weight: 600; }
+  .watchlist { list-style: none; padding: 0; margin: 0 0 16px; max-width: 66ch; counter-reset: watch; }
+  .watchlist li { padding: 10px 0 10px 42px; border-bottom: 1px solid var(--grid); position: relative; font-size: 15px; counter-increment: watch; }
+  .watchlist li:first-child { border-top: 1px solid var(--grid); }
+  .watchlist li::before {
+    content: counter(watch, decimal-leading-zero); position: absolute; left: 0; top: 12px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px; color: var(--accent); font-weight: 600;
+  }
+  ol.sources { font-size: 13.5px; color: var(--ink-2); padding-left: 20px; }
+  ol.sources li { margin-bottom: 6px; }
+  .footnote { font-size: 13px; color: var(--muted); border-top: 1px solid var(--grid); margin-top: 48px; padding-top: 16px; max-width: 66ch; }
+  .footnote code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+  svg text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  svg .axis-label, svg .tick { font-size: 11px; fill: var(--muted); }
+  svg .dlabel { font-size: 11.5px; font-weight: 600; fill: var(--ink); }
+  svg .dlabel-2 { font-size: 11px; fill: var(--ink-2); }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Transfer market mechanics · No. 5</div>
+  <h1>Should you buy the World Cup?</h1>
+  <p class="standfirst">Value trackers say this tournament has minted hundreds of millions in new transfer value — £25m for five Olise assists, a quadrupled price for a Motherwell forward, £20m for 133 minutes of Summerville. The arithmetic of a 300-minute sample says most of that is noise. The interesting part is which moves aren't — because the tournament isn't lying uniformly, and telling the two apart is a solvable problem.</p>
+  <p class="byline">Santiago Munoz · July 2026 <span class="draft">Draft 1</span></p>
+
+  <div class="tiles">
+    <div class="tile">
+      <div class="label">Apparent improvement of the top-10 "risers" in a simulated World Cup where nobody improved</div>
+      <div class="value">4.9×</div>
+      <div class="note">selection plus small samples manufactures breakouts from pure noise</div>
+    </div>
+    <div class="tile">
+      <div class="label">How much the real 2026 price moves exceed the rational update</div>
+      <div class="value">2.3×</div>
+      <div class="note">median across 16 tracked movers; 1.1–3.8× across model calibrations</div>
+    </div>
+    <div class="tile">
+      <div class="label">Weight a rational buyer gives 300 WC minutes vs a full club season</div>
+      <div class="value">~10%</div>
+      <div class="note">the sample-size arithmetic nobody at a deadline-day negotiation is doing</div>
+    </div>
+    <div class="tile">
+      <div class="label">What Real Madrid recovered of James Rodríguez's €75m</div>
+      <div class="value">€0</div>
+      <div class="note">the 2014 Golden Boot winner left on a free — history's canonical warning</div>
+    </div>
+  </div>
+</header>
+
+<div class="eyebrow">§ 1 — The movers</div>
+<div class="prose">
+<h2>The tournament is repricing players in real time</h2>
+<p>Goal's eToro-branded value tracker, Football Whispers' market movers, and club asking prices reported mid-tournament give an unusually public record of the World Cup premium forming. Olise £125m→£150m on five assists. Bouaddi £45m→£65m. Summerville: Transfermarkt said £25m in May; West Ham now reportedly wants £50m after 133 minutes and two goals. Freiburg raised Manzambi's price ~£9m mid-group-stage. Motherwell's Elijah Just: £2.5m to "at least £10m" on three goals. And the same trackers cut Julián Álvarez £15m for a bad month and marked down Elliot Anderson and Morgan Rogers for quiet ones. The question a buying club should ask isn't whether these numbers moved — it's how much they <em>should</em> have.</p>
+</div>
+
+<div class="eyebrow">§ 2 — The null tournament</div>
+<div class="prose">
+<h2>A World Cup where nobody improves still produces ten breakouts</h2>
+<p>Here is the whole problem in one simulation. Take 700 players whose true ability is <em>fixed</em> — nobody improves, nobody declines. Give each 120–480 tournament minutes and let goals arrive with normal statistical randomness. Then do what the trackers do: rank everyone by how much they beat their baseline, and celebrate the top ten.</p>
+</div>
+
+<figure>
+  <p class="fig-title">The top-10 "risers" of a null World Cup look five times better than they are</p>
+  <p class="fig-sub">Apparent improvement of each simulated tournament's ten biggest over-performers, when true ability never changed — 2,000 simulated World Cups</p>
+  <div class="chart-box" id="c1"></div>
+  <figcaption>In the median simulated tournament, the ten biggest "breakouts" post output ~4.9× their true rate — from luck and small samples alone. A tournament of 700 players will always deliver someone a Summerville month. The existence of breakout performances is not evidence that anyone broke out.</figcaption>
+</figure>
+
+<div class="prose">
+<p>This is selection plus sample size, the same mechanism that fills every "hot fund managers" list. The tracker doesn't lie about what happened on the pitch; it lies — structurally, innocently — about what it means.</p>
+</div>
+
+<div class="eyebrow">§ 3 — The rational update</div>
+<div class="prose">
+<h2>What 300 minutes is actually worth</h2>
+<p>None of which means the right update is zero. A World Cup is real information: better opponents, higher stakes, new tactical contexts. The question is weight. A player arrives with a prior — roughly a full club season, call it 2,800 minutes of evidence. The tournament adds 130–450. Basic Bayesian arithmetic says the new sample deserves about <strong>a tenth</strong> of the weight of what you already knew, before any allowance for the selection effect above. Run every tracked mover through that arithmetic — their observed move against the move their tournament actually justified:</p>
+</div>
+
+<figure>
+  <p class="fig-title">Most moves overshoot the evidence — but not all of them</p>
+  <p class="fig-sub">Observed value/ask change vs the model's rational update, % — 16 tracked players, risers and fallers</p>
+  <div class="chart-box" id="c2"></div>
+  <div class="legend">
+    <span class="key"><span class="sw" style="background:var(--s-1)"></span>rational update (shrinkage model)</span>
+    <span class="key"><span class="sw" style="background:var(--s-2)"></span>observed move (tracker or reported ask)</span>
+  </div>
+  <figcaption>Where the dots nearly touch, the market updated like a Bayesian: Olise (a £25m move on five assists is <em>justified</em> for a player with his prior), Manzambi, Yamal, Mbappé. Where the orange dot runs far ahead — Summerville, Oulaï, Brobbey, Just — the price is mostly tournament theater. The fallers get over-punished by the same arithmetic: Álvarez's −12% is three times the mark-down his 160 bad minutes justify. Hover for each player's numbers.</figcaption>
+</figure>
+
+<div class="prose">
+<p>The pattern in that chart is the piece's finding: <strong>hype concentrates where the prior is thin.</strong> Big players with long track records get priced almost rationally — their World Cup barely moves a five-season prior. The 5–10× overshoots belong to players from smaller leagues, relegated clubs and short careers, where the tournament is the only high-visibility evidence anyone has — and where the buying clubs know the least. The World Cup premium is an information tax on scouting departments that outsourced their priors to television.</p>
+</div>
+
+<div class="eyebrow">§ 4 — The receipts</div>
+<div class="prose">
+<h2>History has run this experiment eleven times</h2>
+<p>The canonical case is exact: James Rodríguez won the 2014 Golden Boot on six goals, Real Madrid paid Monaco ~€75m within three weeks, and six years later he left on a free — the fee recovered in full: zero. The pattern around him is remarkably consistent:</p>
+</div>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>The tournament buy</th><th>Fee</th><th>Outcome</th></tr></thead>
+  <tbody>
+    <tr><td>James Rodríguez, 2014</td><td class="num">~€75m</td><td>Golden Boot → decline, Bayern declined a €42m option, left on a free</td></tr>
+    <tr><td>El Hadji Diouf, 2002</td><td class="num">€15m</td><td>Senegal's star → zero league goals in season two at Liverpool</td></tr>
+    <tr><td>Denílson, 1998</td><td class="num">world-record £21.5m</td><td>~14 goals in 200 Betis games; relegated in year two</td></tr>
+    <tr><td>Kléberson, 2003</td><td class="num">£6.5m</td><td>WC winner → 20 United appearances, sold at half price</td></tr>
+    <tr><td>Yerry Mina, 2018</td><td class="num">£28.5m</td><td>3 WC goals → five injury-ruined seasons, left on a free</td></tr>
+    <tr><td>Enner Valencia, 2014</td><td class="num">€15m</td><td>3 WC goals in two games → 10 goals in 68 West Ham games</td></tr>
+    <tr><td>Sofyan Amrabat, 2023</td><td class="num">£8.5m loan</td><td>Morocco's engine → United declined the £21.4m option</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="prose">
+<p>And the counterexamples prove the rule rather than breaking it. Kroos (€25m, weeks after lifting the trophy) was cheap <em>because of contract leverage</em>, not expensive because of the tournament. Suárez was bought at a bite-suppressed price. Gakpo was signed mid-tournament in 2022 at a fee Liverpool had scouted him to <em>before</em> Qatar. The buys that worked were purchases of a body of work where the World Cup was incidental — or an active discount. The buys that failed were purchases of the tournament itself. Buyers who got a trial period consistently declined the World Cup price: Bayern on James, United on Amrabat. When someone gets to see the goods after the tournament glow fades, they don't pay the glow.</p>
+</div>
+
+<div class="eyebrow">§ 5 — What this doesn't say</div>
+<div class="prose">
+<h2>Does the model tell the whole truth?</h2>
+<p>The performance multiples behind the rational updates are modeled from reported stats and minutes, not from event data — the sensitivity sweep (hype median 1.1–3.8× across calibrations) brackets that honestly, and the direction survives every calibration. The tracker numbers themselves are a mix of editorial valuations (the eToro tracker is sponsored content), database values, and club asking prices — asks especially are negotiating positions, not beliefs; §3 treats them identically, which flatters nobody. And a World Cup can carry real, non-statistical information the shrinkage model can't see: a player proving a new position, a temperament revealed on the biggest stage, availability signals. Scouts are right that tournaments matter. The model only insists they matter about a tenth as much as the market prices them — and that the tenth is worth paying for.</p>
+</div>
+
+<div class="eyebrow">§ 6 — Predictions</div>
+<div class="prose">
+<h2>On the record, for July 2027</h2>
+</div>
+<ul class="watchlist">
+  <li><strong>The high-hype class underperforms its fees.</strong> If Summerville moves near £50m, Oulaï near €45m, or Brobbey near £50m, this model expects them — as a group — to return materially less value than matched signings bought on club form. Checkable in twelve months.</li>
+  <li><strong>The rational movers hold up.</strong> Olise, Manzambi and the other near-1× updates should perform to their new prices. If the <em>whole</em> class fails uniformly, the shrinkage model is too generous; if the high-hype names fail selectively, it's calibrated.</li>
+  <li><strong>The fallers outperform.</strong> Álvarez at a £15m markdown is this window's clearest buy signal by the same arithmetic that flags the overpriced. Over-punished bad months revert.</li>
+  <li><strong>Sellers keep winning the window.</strong> Every club in this series selling into the spike — Tijuana, Cruz Azul, Leipzig holding for more — is playing the correct side of the premium. The clubs to feel sorry for in July 2027 will be the ones that bought it.</li>
+</ul>
+
+<div class="eyebrow">Sources &amp; method</div>
+<div class="prose">
+<ol class="sources">
+  <li><a href="https://www.goal.com/en/lists/world-cup-player-value-tracker-etoro/blt86c41874a5fe8ecb">Goal × eToro World Cup value tracker</a> (July 4 update; risers and fallers) · <a href="https://footballwhispers.com/blog/world-cup-2026-market-movers/">Football Whispers market movers</a> (June 29) · <a href="https://ingenuityfantasy.com/world-cup-2026/10-players-who-have-added-20m-to-their-transfer-value-at-the-world-cup/">Ingenuity +£20m list</a> (July 6)</li>
+  <li><a href="https://www.footballtransfers.com/en/transfer-news/world-world-cup/2022/11/world-cup-worst-transfers-all-time">FootballTransfers — the worst World Cup transfers of all time</a> · <a href="https://www.goal.com/en/news/everton-signed-james-rodriguez-on-a-free-confirmed/1hrxwqiv4vvpi11fjus40c67yq">Goal — James to Everton on a free</a> · <a href="https://global.espn.com/football/soccer-transfers/story/4796981/how-the-2022-world-cup-impacts-the-january-transfer-market">ESPN — "beware the next James Rodríguez"</a></li>
+  <li><a href="https://www.skysports.com/football/news/11671/11467308/everton-agree-to-sign-yerry-mina-from-barcelona">Sky — Mina £28.5m</a> · <a href="https://www.si.com/soccer/andre-onana-loan-confirmed-what-man-utd-gain-new-deal">SI — Amrabat option declined</a> (via United's loan record) · <a href="https://www.espn.com/soccer/story/_/id/37532799/real-madrid-signing-toni-kroos-bayern-was-steal-century-agent">ESPN — Kroos, "steal of the century"</a></li>
+  <li><a href="https://manutdnews.com/man-united-could-sign-swiss-sensation-johan-manzambi-for-51-2m-several-clubs-interested-in-20yo">Plettenberg via aggregator — Freiburg's Manzambi ask raised mid-tournament</a> · <a href="https://thehardtackle.com/transfer-news/2026/07/07/tottenham-want-to-encourage-lucas-bergvall-bidding-war/">and the window's re-anchoring wave</a></li>
+</ol>
+</div>
+<div class="footnote">
+  <strong>Reproducibility.</strong> The null tournament: 700 players, gamma-distributed true rates, Poisson goals over 120–480 minutes, 2,000 simulated tournaments, seeded. Rational updates: normal-normal shrinkage with a 2,800-effective-minute prior and value elasticity 1.6 (both swept; the hype median ranges 1.1–3.8×). ~40 lines of numpy; script available on request. Companion pieces: <a href="/research/diomande-ladder">Diomande</a>, <a href="/research/tonali-100m">Tonali</a>, <a href="/research/mora-clause">Mora</a>, <a href="/research/lira-promise">Lira</a>.
+</div>
+</div>
+
+<script>
+(function () {
+  const DATA = {
+    hist: { bins: ["3.5–4", "4–4.5", "4.5–5", "5–5.5", "5.5–6", "6–6.5", "6.5–7"], counts: [34, 364, 779, 588, 174, 50, 10] },
+    movers: [
+      ["Elijah Just", 300, 30, 10.1, "ask"],
+      ["Summerville", 100, 19, 5.3, "ask"],
+      ["Oulaï", 80, 16, 5.0, "ask"],
+      ["Brobbey", 100, 25, 4.1, "ask"],
+      ["Bouaddi", 44, 14, 3.2, "value"],
+      ["Undav", 33, 12, 2.7, "value"],
+      ["Tillman", 62, 23, 2.7, "value"],
+      ["Diomande", 16, 8, 1.9, "value"],
+      ["Barcola", 8, 4, 1.9, "value"],
+      ["Mbappé", 29, 21, 1.4, "value"],
+      ["Yamal", 2, 2, 1.2, "value"],
+      ["Manzambi", 22, 22, 1.0, "ask"],
+      ["Olise", 20, 22, 0.9, "value"],
+      ["Álvarez", -12, -4, 2.9, "value"],
+      ["Rogers", -6, -3, 1.7, "value"],
+      ["Anderson", -7, -6, 1.3, "value"]
+    ]
+  };
+  const NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent) {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+  function makeSVG(box, w, h) {
+    const svg = el("svg", { viewBox: `0 0 ${w} ${h}`, role: "img" });
+    box.appendChild(svg);
+    return svg;
+  }
+  function tooltipFor(box) {
+    const t = document.createElement("div");
+    t.className = "tooltip";
+    box.appendChild(t);
+    return t;
+  }
+  function bindTip(target, tip, box, html) {
+    target.addEventListener("mouseenter", () => { tip.innerHTML = html; tip.style.display = "block"; });
+    target.addEventListener("mousemove", (e) => {
+      const r = box.getBoundingClientRect();
+      let x = e.clientX - r.left + 12, y = e.clientY - r.top - 10;
+      if (x + tip.offsetWidth > r.width - 4) x = e.clientX - r.left - tip.offsetWidth - 12;
+      tip.style.left = x + "px"; tip.style.top = y + "px";
+    });
+    target.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+  }
+
+  /* ---------- Chart 1: null tournament histogram ---------- */
+  (function () {
+    const box = document.getElementById("c1"), tip = tooltipFor(box);
+    const W = 780, H = 320, M = { l: 52, r: 20, t: 30, b: 48 };
+    const svg = makeSVG(box, W, H);
+    const total = DATA.hist.counts.reduce((a, b) => a + b, 0);
+    const pcts = DATA.hist.counts.map(c => 100 * c / total);
+    const ymax = 45;
+    const n = pcts.length;
+    const band = (W - M.l - M.r) / n;
+    const bw = Math.min(52, band - 14);
+    const Y = v => H - M.b - (v / ymax) * (H - M.t - M.b);
+    for (let g = 0; g <= 40; g += 10) {
+      el("line", { x1: M.l, x2: W - M.r, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: M.l - 8, y: Y(g) + 4, "text-anchor": "end", class: "tick" }, svg).textContent = g + "%";
+    }
+    pcts.forEach((p, i) => {
+      const cx = M.l + band * i + band / 2;
+      const h = (p / ymax) * (H - M.t - M.b);
+      const bar = el("path", {
+        d: `M${cx - bw / 2},${Y(0)} v${-Math.max(h - 4, 0)} q0,-4 4,-4 h${bw - 8} q4,0 4,4 v${Math.max(h - 4, 0)} z`,
+        fill: "var(--s-1)"
+      }, svg);
+      bindTip(bar, tip, box, `top-10 look <b>${DATA.hist.bins[i]}×</b> better than reality<br>${p.toFixed(1)}% of simulated tournaments`);
+      el("text", { x: cx, y: Y(p) - 6, "text-anchor": "middle", class: "dlabel-2" }, svg).textContent = p.toFixed(0) + "%";
+      el("text", { x: cx, y: H - M.b + 18, "text-anchor": "middle", class: "tick" }, svg).textContent = DATA.hist.bins[i] + "×";
+    });
+    el("line", { x1: M.l, x2: W - M.r, y1: Y(0), y2: Y(0), stroke: "var(--baseline)", "stroke-width": 1 }, svg);
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "how much better the tournament's top-10 'breakouts' look than their true level →";
+    el("text", { x: M.l + band * 2 + band / 2, y: M.t - 8, "text-anchor": "middle", class: "dlabel" }, svg)
+      .textContent = "median 4.9× — with zero real improvement";
+  })();
+
+  /* ---------- Chart 2: observed vs rational dumbbells ---------- */
+  (function () {
+    const box = document.getElementById("c2"), tip = tooltipFor(box);
+    const W = 780, rowH = 26, M = { l: 118, r: 60, t: 26, b: 46 };
+    const H = M.t + M.b + DATA.movers.length * rowH;
+    const svg = makeSVG(box, W, H);
+    const X = v => M.l + ((v + 30) / 340) * (W - M.l - M.r);
+    [0, 100, 200, 300].forEach(v => {
+      el("line", { x1: X(v), x2: X(v), y1: M.t - 6, y2: H - M.b, stroke: v === 0 ? "var(--baseline)" : "var(--grid)", "stroke-width": 1 }, svg);
+      el("text", { x: X(v), y: H - M.b + 18, "text-anchor": "middle", class: "tick" }, svg).textContent = (v > 0 ? "+" : "") + v + "%";
+    });
+    DATA.movers.forEach((m, i) => {
+      const [name, obs, rat, hype, kind] = m;
+      const y = M.t + i * rowH + rowH / 2;
+      el("text", { x: M.l - 10, y: y + 4, "text-anchor": "end", class: "dlabel-2" }, svg).textContent = name;
+      el("line", { x1: X(Math.min(obs, rat)), x2: X(Math.max(obs, rat)), y1: y, y2: y, stroke: "var(--baseline)", "stroke-width": 1.5 }, svg);
+      const r1 = el("circle", { cx: X(rat), cy: y, r: 5.5, fill: "var(--s-1)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+      const o1 = el("circle", { cx: X(obs), cy: y, r: 5.5, fill: "var(--s-2)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+      const html = `<b>${name}</b> (${kind})<br>observed ${obs > 0 ? "+" : ""}${obs}% · rational ${rat > 0 ? "+" : ""}${rat}%<br>hype multiple: ${hype}×`;
+      bindTip(r1, tip, box, html); bindTip(o1, tip, box, html);
+      el("text", { x: X(Math.max(obs, rat)) + 10, y: y + 4, class: "dlabel-2" }, svg).textContent = hype + "×";
+    });
+    el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
+      .textContent = "value / asking-price change during the tournament → (hype multiple at right)";
+  })();
+})();
+</script>
+
+</body>
+</html>
