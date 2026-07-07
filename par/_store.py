@@ -39,7 +39,22 @@ PAR_SCHEMA = (
     "CREATE TABLE IF NOT EXISTS waitlist ("
     "  user_id TEXT PRIMARY KEY, scenario TEXT NOT NULL, contact TEXT)",
     "CREATE TABLE IF NOT EXISTS events ("
-    "  user_id TEXT NOT NULL, name TEXT NOT NULL, meta TEXT NOT NULL DEFAULT '{}')",
+    "  user_id TEXT NOT NULL, name TEXT NOT NULL, meta TEXT NOT NULL DEFAULT '{}',"
+    "  ts TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+    # the DATA MOAT: one row per finished game with the full move sequence — what the
+    # strategy actually needs ("every play is a labeled datapoint of how humans negotiate").
+    # results holds the scalar for boards; plays holds the negotiation itself.
+    "CREATE TABLE IF NOT EXISTS plays ("
+    "  day INTEGER NOT NULL, user_id TEXT NOT NULL, side TEXT NOT NULL,"
+    "  scenario TEXT NOT NULL, close REAL, pct_of_par REAL NOT NULL,"
+    "  walked INTEGER NOT NULL DEFAULT 0,"
+    "  your_offers TEXT NOT NULL DEFAULT '[]', house_offers TEXT NOT NULL DEFAULT '[]',"
+    "  ts TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+    # every advise call + inputs — the paid endpoint's usage log (billing/eval later)
+    "CREATE TABLE IF NOT EXISTS advice ("
+    "  side TEXT NOT NULL, walk_away REAL NOT NULL, target REAL NOT NULL,"
+    "  offers TEXT NOT NULL DEFAULT '[]', action TEXT NOT NULL, price REAL,"
+    "  ts TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)",
 )
 
 

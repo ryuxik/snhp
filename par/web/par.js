@@ -207,7 +207,10 @@ async function fetchBoards(close) {
   const user = myUser(), name = myName(), group = myGroup(), day = DAY.no;
   const post = (path, body) => fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   await post("/par/group/join", { group, user_id: user, name });
-  const board = await post("/par/submit", { day, user_id: user, close }).then((r) => r.json());
+  // the submit carries the full move sequence — the transcript is the data the engine
+  // learns from, and the server checks the close against it (anti-forgery).
+  const board = await post("/par/submit", { day, user_id: user, close,
+    your_offers: g.asks.filter((x) => x != null), house_offers: g.houseOffers }).then((r) => { if (!r.ok) throw 0; return r.json(); });
   const grp = await fetch(API + "/par/group?group=" + encodeURIComponent(group) + "&day=" + day).then((r) => r.json());
   const friends = grp.board.map((r) => ({ name: r.name, pct: r.pct, rank: r.rank, you: r.user === user }));
   return { board, friends };
@@ -219,8 +222,16 @@ function track(name, meta) {
   try { fetch(API + "/par/event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: myUser(), name: name, meta: meta || {} }) }); } catch (e) { }
 }
 async function joinWaitlist() {                          // the CTA's real destination
-  const b = $("ag-join"); b.textContent = "on the list ✓"; b.disabled = true;
-  try { await fetch(API + "/par/waitlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: myUser(), scenario: DAY.title }) }); } catch (e) { }
+  // the email IS the asset — without it "notify me" notifies no one. Nudge once if empty.
+  const em = ($("ag-email") && $("ag-email").value || "").trim().slice(0, 128);
+  const b = $("ag-join");
+  if (!em && !b.dataset.nudged) {
+    b.dataset.nudged = "1"; b.textContent = "add an email so we can reach you";
+    $("ag-email") && $("ag-email").focus(); return;
+  }
+  if (em) localStorage.setItem("par-email", em);
+  b.textContent = "on the list ✓"; b.disabled = true;
+  try { await fetch(API + "/par/waitlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: myUser(), scenario: DAY.title, contact: em || null }) }); } catch (e) { }
 }
 
 function boardHTML(b, friends) {
@@ -249,17 +260,32 @@ function wireTabs() {
   if (f) f.onchange = () => setMyName(f.value);
 }
 
-function finish() {
-  g.over = true; $("play-house").style.display = "none"; show("s-reveal"); drawReveal();
-  const won = g.deal != null, p = won ? pctOf(g.deal) : 0;
-  // render the offline stand-in instantly, then upgrade to the live board if a backend answers
-  const board = '<div id="board-slot">' + boardHTML(localBoard(p), localFriends(p)) + '</div>';
+async function finish() {
+  g.over = true; $("play-house").style.display = "none"; show("s-reveal");
+  $("rev-body").innerHTML = '<div style="padding:14px 0;font-size:13px;color:var(--muted)">scoring against par…</div>';
+  const won = g.deal != null;
+  // the server scores first: par stays hidden until this moment, the transcript lands in
+  // the plays table, and the board comes back in the same response. Offline: stand-in par.
+  let real = null;
+  try { real = await fetchBoards(won ? g.deal : null); } catch (e) { }
+  if (real && real.board.par != null) DAY.par = real.board.par;
+  if (DAY.par == null) {                                 // live day, score didn't land — retry
+    $("rev-body").innerHTML = '<div style="padding:14px 0;font-size:13px;color:var(--muted)">can’t reach the House to score this. <button class="pri" id="rev-retry" style="margin-left:10px">retry</button></div>';
+    $("rev-retry").onclick = finish;
+    return;
+  }
+  drawReveal();
+  const p = won ? (real ? Math.round(real.board.pct_of_par) : pctOf(g.deal)) : 0;
+  const board = '<div id="board-slot">' + boardHTML(real ? real.board : localBoard(p), real ? real.friends : localFriends(p)) + '</div>';
   const btns = '<div style="display:flex;gap:10px;margin-top:16px"><button class="pri" id="rev-share">share result</button><button id="rev-again">play tomorrow</button></div>';
   let head;
   if (won) {
-    const ag = Math.round(DAY.par * (isSell() ? 0.975 : 1.025) / DAY.step) * DAY.step, ap = pctOf(ag);
+    // the benchmark is the ENGINE'S line (a stated target close, from the server when live)
+    // — framed as a benchmark, not a promise about what "your agent would have" done.
+    const ag = real ? real.board.agent_close : Math.round(DAY.par * (isSell() ? 0.975 : 1.025) / DAY.step) * DAY.step;
+    const ap = real ? Math.round(real.board.agent_pct) : pctOf(ag);
     // reward mastery, not just show a gap: a personal best (fires even on a loss), and the
-    // rare "beat the agent" / "at par" wins — so the game isn't only ever "you're bad".
+    // rare "beat the engine" / "at par" wins — so the game isn't only ever "you're bad".
     const prevBest = +(localStorage.getItem("par-best") || 0);
     const isBest = p > prevBest; if (isBest) localStorage.setItem("par-best", p);
     const pb = isBest ? '<div style="margin-top:9px;font-size:13px;color:var(--violet-bright)">★ new personal best</div>' : '';
@@ -267,29 +293,24 @@ function finish() {
     let line;
     if (p >= 100)                                        // matched a perfect negotiator
       line = 'you closed at <b style="color:var(--violet-bright)">par</b>. you matched a perfect negotiator — almost nobody does.';
-    else if (p >= ap)                                    // closer to par than our own agent — the rare win
-      line = 'you <b style="color:var(--violet-bright)">beat the agent</b> — it lands ' + ap + '% of par, and you got past it.';
+    else if (p >= ap)                                    // past the engine's own line — the rare win
+      line = 'you <b style="color:var(--violet-bright)">beat the engine’s line</b> — it plays for ' + ap + '% of par, and you got past it.';
     else                                                 // the default gut-punch
-      line = 'your agent would have closed <span style="color:var(--violet-bright)">' + fmt(ag) + '</span> · ' + ap + '% — sat ' + fmt(Math.round(Math.abs(g.deal - ag) / DAY.step) * DAY.step) + ' closer than you';
+      line = 'the engine’s line: <span style="color:var(--violet-bright)">' + fmt(ag) + '</span> · ' + ap + '% — ' + fmt(Math.abs(g.deal - ag)) + ' closer than you';
     head = '<div style="display:flex;align-items:baseline;gap:12px"><span style="font-size:34px;color:var(--violet);line-height:1">' + bigWord + '</span><span style="font-size:13px;color:var(--muted)">' + (p >= 100 ? "" : "of par · ") + 'closed ' + fmt(g.deal) + '</span></div><div style="margin-top:11px;font-size:14px;color:var(--ink-dim)">' + line + '</div>' + pb;
   } else {
     const missed = isSell() ? ("the House would have paid up to " + fmt(DAY.par) + ". you left all of it.")
                             : ("the House would have sold for as low as " + fmt(DAY.par) + ". you walked from all of it.");
     head = '<div style="font-size:30px;color:#B05A55;line-height:1">no deal · 0%</div><div style="margin-top:9px;font-size:13px;color:var(--muted)">' + missed + '</div>';
   }
-  // the conversion CTA — rides the "the agent beat you" moment. But NOT on the first game:
-  // the panel read a day-1 upsell as "farmed", so earn it (show from the 2nd play on).
+  // the conversion CTA — rides the reveal. But NOT on the first game: the panel read a
+  // day-1 upsell as "farmed", so earn it (show from the 2nd play on).
   const plays = +(localStorage.getItem("par-plays") || 0) + 1;
   localStorage.setItem("par-plays", plays);
   const cta = plays < 2 ? "" : '<div class="cta"><div class="hook">' + DAY.cta.hook + '</div><button class="cta-go" id="rev-cta">' + DAY.cta.verb + ' →</button></div>';
   $("rev-body").innerHTML = '<div style="border-top:0.5px solid var(--line);margin-top:8px;padding-top:14px">' + head + board + cta + btns + '</div>';
   if ($("rev-cta")) { $("rev-cta").onclick = openAgent; track("cta_view"); }
   wireTabs();
-  fetchBoards(won ? g.deal : null).then((real) => {   // progressive: swap in the live board
-    if (!real || !$("board-slot")) return;
-    $("board-slot").innerHTML = boardHTML(real.board, real.friends);
-    wireTabs();
-  }).catch(() => { });                                 // offline → keep the stand-in
   $("rev-again").onclick = () => { resetPlay(); show("s-landing"); };
   $("rev-share").onclick = shareResult;
 }
@@ -376,7 +397,7 @@ function shareResult() {
   // my "left on the table" (?c=). The brag flips to a flex when you win.
   const brag = !won ? "i walked it. beat me:"
     : p >= 100 ? "i hit PAR — matched a perfect negotiator. beat me:"
-    : p >= ap ? "i beat the agent (" + p + "% of par). beat me:"
+    : p >= ap ? "i beat the engine’s line (" + p + "% of par). beat me:"
     : "i left " + fmt(leftOf(g.deal)) + " on the table (" + p + "% of par). beat me:";
   const link = "par.game/?g=" + myGroup() + (won ? "&c=" + Math.round(leftOf(g.deal)) : "");
   const txt = "PAR no." + DAY.no + " — " + brag + "\n" + link;
@@ -396,6 +417,7 @@ function openAgent() {
     ? ('you just left <b>' + fmt(leftOf(g.deal)) + '</b> on the table against a perfect negotiator. it can coach your real ones — a raise, rent, an offer — so you don’t.')
     : ('you walked from the whole room. a perfect negotiator would have closed it — and it can coach your real ones so you don’t.');
   $("ag-fee").innerHTML = '<b>you set the floor; the fee is capped.</b> it takes a cut only of what it wins above your number — never pay to lose, never a surprise bill.';
+  if ($("ag-email")) $("ag-email").value = localStorage.getItem("par-email") || "";
   $("agent-ov").classList.add("on");
 }
 
@@ -408,11 +430,36 @@ function startOnboard() {
 }
 
 /* ---- boot ----------------------------------------------------------------- */
+/* THE REAL ROTATION: the day comes from GET /par/today — puzzle number, side, numbers, and
+   the countdown. Without this the "daily" game never rotates and streaks can never advance.
+   The hardcoded SCENARIOS become the offline fallback (par stays known only offline). */
+function applyToday(t) {
+  const base = SCENARIOS[t.side] || SCENARIOS.sell;      // visual template for that side
+  if (DAY !== base) Object.assign(DAY, base);            // msgs/willing stay: offline-only
+  const lo = Math.min(t.walk_away, t.target), hi = Math.max(t.walk_away, t.target), r = hi - lo;
+  Object.assign(DAY, {
+    no: t.no, side: t.side, title: t.title, floor: t.walk_away, target: t.target,
+    rounds: t.rounds, par: null,                         // par is the server's secret until the grade
+    unit: hi >= 1000 ? "" : "k", axisMin: lo, axisMax: hi, gapK: 150 / r,
+    step: r <= 60 ? 1 : r <= 600 ? 10 : r <= 6000 ? 100 : 1000,
+  });
+  // countdown to the next deal, ticking (was a hardcoded "5h left")
+  const end = Date.now() + t.seconds_left * 1000;
+  const tick = () => {
+    const s = Math.max(0, Math.round((end - Date.now()) / 1000));
+    const left = s >= 3600 ? Math.round(s / 3600) + "h left" : Math.max(1, Math.round(s / 60)) + "m left";
+    $("land-daily").textContent = "no. " + DAY.no + " · " + DAY.title + " · " + left;
+  };
+  tick(); setInterval(tick, 30000);
+}
 landCanyon();
 const _params = new URLSearchParams(location.search);
 // arriving on a friend's share link joins their group. prod: POST /par/group/join
 const _gArg = _params.get("g"); if (_gArg) localStorage.setItem("par-group", _gArg);
-$("land-daily").textContent = "no. " + DAY.no + " · " + DAY.title + " · 5h left";
+$("land-daily").textContent = "no. " + DAY.no + " · " + DAY.title;
+const TODAY_READY = fetch(API + "/par/today").then((r) => { if (!r.ok) throw 0; return r.json(); })
+  .then((t) => { applyToday(t); return true; })
+  .catch(() => false);                                   // offline → the stand-in day
 // live social proof (GET /par/stats); the seeded stand-in is the offline fallback.
 $("land-soc").textContent = BOARD_BASE[5].n + " of " + BOARD_TOTAL + " hit par today";
 fetch(API + "/par/stats").then((r) => r.json()).then((s) => {
@@ -421,7 +468,10 @@ fetch(API + "/par/stats").then((r) => r.json()).then((s) => {
 // arrived via a friend's challenge link (?c=<left>): reframe the hook as a gauntlet.
 const _c = _params.get("c");
 if (_c) { const h = document.querySelector(".land .hook"); if (h) h.textContent = "a friend left " + fmt(+_c) + " on the table today. your move →"; }
-$("land-play").onclick = () => { localStorage.getItem("par-played") ? startPlay() : (localStorage.setItem("par-played", "1"), startOnboard()); };
+$("land-play").onclick = async () => {
+  await TODAY_READY;                                     // play the REAL day (or the fallback)
+  localStorage.getItem("par-played") ? startPlay() : (localStorage.setItem("par-played", "1"), startOnboard());
+};
 $("play-ask").oninput = function () { const v = +this.value; $("play-askv").textContent = fmt(v); $("play-cv-amt").textContent = fmt(v); drawPlay(v); };
 $("play-counter").onclick = counter; $("play-accept").onclick = accept; $("play-walk").onclick = walk;
 $("share-close").onclick = () => $("share-ov").classList.remove("on");

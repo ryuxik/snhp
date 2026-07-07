@@ -57,6 +57,18 @@ whichever side the player is on, so a "120%" or negative table is always a deck 
 | `/par/bundle_move` | POST | `{issues[], their_offers?, my_priorities?}` | full `negotiate_bundle` dict | n/a (multi-issue) |
 
 Notes:
+- **Anti-forgery**: `/par/submit` and `/par/grade` REJECT (400) a close that beats the
+  House's reservation (it could never have agreed), and `/par/submit` requires the close to
+  appear in the submitted transcript. Forged scores can't reach the board — validated, not
+  clamped (clamping rewarded a forged `close=99999` with a perfect 100%).
+- **The data moat is the `plays` table**: every submit stores the full move sequence
+  (`your_offers`, `house_offers`), close, side, scenario, and timestamp — the labeled
+  "how humans negotiate" data the agent trains and evals on. `results` keeps the scalar
+  for boards. `/par/advise` calls are logged to `advice` the same way.
+- **The client is live-first**: the SPA boots off `GET /par/today` (real rotation, real
+  countdown; par stays server-side until the grade) and falls back to the built-in
+  stand-in day offline. Rate limiting: 120 writes/min/IP in-app (swap for a shared
+  limiter when scaling out).
 - `/par/grade` returns the **same shape on a walk**: `deal` is `null`, `pct_of_par` is
   `0.0`, and `agent_close`/`agent_pct` are still present — so a client never branches on
   presence-of-field.

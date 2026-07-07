@@ -7,6 +7,7 @@ server-side from the close (never trusted from the client), so the board can't b
 """
 from __future__ import annotations
 
+import json
 import random
 from typing import Optional
 
@@ -17,24 +18,45 @@ _BUCKETS = [(0, 60, "<60"), (60, 70, "60s"), (70, 80, "70s"),
             (80, 90, "80s"), (90, 100, "90s"), (100, None, "par")]
 
 
-def _bucketize(pcts: list[float], mine: Optional[float] = None) -> list[dict]:
-    out = []
-    for lo, hi, label in _BUCKETS:
-        n = sum(1 for p in pcts if (p >= lo if hi is None else lo <= p < hi))
+def _day_aggregates(c, day: int, mine: Optional[float] = None) -> dict:
+    """One aggregate query over today's results — O(1) rows transferred, not O(N). The
+    distribution is six SUM(CASE...) columns; percentile is a COUNT below `mine`."""
+    cases = ", ".join(
+        ("SUM(CASE WHEN pct_of_par >= %d THEN 1 ELSE 0 END)" % lo) if hi is None else
+        ("SUM(CASE WHEN pct_of_par >= %d AND pct_of_par < %d THEN 1 ELSE 0 END)" % (lo, hi))
+        for lo, hi, _ in _BUCKETS)
+    row = c.execute(
+        "SELECT COUNT(*), SUM(CASE WHEN pct_of_par >= 100 THEN 1 ELSE 0 END), "
+        "MAX(pct_of_par), " + cases + " FROM results WHERE day=?", (day,)).fetchone()
+    played, par_hits, top = int(row[0] or 0), int(row[1] or 0), row[2]
+    dist = []
+    for i, (lo, hi, label) in enumerate(_BUCKETS):
         here = mine is not None and (mine >= lo if hi is None else lo <= mine < hi)
-        out.append({"label": label, "count": n, "you": here})
-    return out
+        dist.append({"label": label, "count": int(row[3 + i] or 0), "you": here})
+    beat = 0
+    if mine is not None and played > 1:
+        beat = c.execute("SELECT COUNT(*) FROM results WHERE day=? AND pct_of_par < ?",
+                         (day, mine)).fetchone()[0]
+    return {"played": played, "par_hits": par_hits, "top_pct": top,
+            "percentile": round(beat / played * 100) if (mine is not None and played > 1) else 100,
+            "distribution": dist}
 
 
-def record(day: int, user_id: str, pct: float, walked: bool) -> dict:
-    """Record one play (idempotent per (day, user)); advance the streak only on the first
-    play of a day. Returns the streak + how the player placed against everyone today."""
+def record(day: int, user_id: str, pct: float, walked: bool, *, side: str = "",
+           scenario: str = "", close: Optional[float] = None,
+           your_offers: Optional[list] = None, house_offers: Optional[list] = None) -> dict:
+    """Record one play (idempotent per (day, user) on the board); advance the streak only on
+    the first play of a day; and log the full move sequence to `plays` — the data moat."""
     with conn() as c:
         first = c.execute("SELECT 1 FROM results WHERE day=? AND user_id=?",
                           (day, user_id)).fetchone() is None
         c.execute("INSERT INTO results (day, user_id, pct_of_par, walked) VALUES (?,?,?,?) "
                   "ON CONFLICT (day, user_id) DO UPDATE SET pct_of_par=excluded.pct_of_par, "
                   "walked=excluded.walked", (day, user_id, pct, 1 if walked else 0))
+        c.execute("INSERT INTO plays (day, user_id, side, scenario, close, pct_of_par, walked, "
+                  "your_offers, house_offers) VALUES (?,?,?,?,?,?,?,?,?)",
+                  (day, user_id, side, scenario, close, pct, 1 if walked else 0,
+                   json.dumps(your_offers or []), json.dumps(house_offers or [])))
         row = c.execute("SELECT cur, mx, last_day FROM streaks WHERE user_id=?",
                         (user_id,)).fetchone()
         cur, mx, last = row if row else (0, 0, None)
@@ -44,26 +66,17 @@ def record(day: int, user_id: str, pct: float, walked: bool) -> dict:
             c.execute("INSERT INTO streaks (user_id, cur, mx, last_day) VALUES (?,?,?,?) "
                       "ON CONFLICT (user_id) DO UPDATE SET cur=excluded.cur, mx=excluded.mx, "
                       "last_day=excluded.last_day", (user_id, cur, mx, day))
-        pcts = [r[0] for r in c.execute("SELECT pct_of_par FROM results WHERE day=?",
-                                        (day,)).fetchall()]
+        agg = _day_aggregates(c, day, pct)
         c.commit()
-    played = len(pcts)
-    beat = sum(1 for p in pcts if p < pct)
-    return {
-        "streak": cur, "max_streak": mx, "played": played,
-        "percentile": round(beat / played * 100) if played > 1 else 100,
-        "par_hits": sum(1 for p in pcts if p >= 100),
-        "distribution": _bucketize(pcts, pct),
-    }
+    return {"streak": cur, "max_streak": mx, **{k: agg[k] for k in
+            ("played", "percentile", "par_hits", "distribution")}}
 
 
 def stats(day: int) -> dict:
     """Anonymous day rollup — powers the landing's live social proof."""
     with conn() as c:
-        pcts = [r[0] for r in c.execute("SELECT pct_of_par FROM results WHERE day=?",
-                                        (day,)).fetchall()]
-    return {"played": len(pcts), "par_hits": sum(1 for p in pcts if p >= 100),
-            "top_pct": max(pcts) if pcts else None, "distribution": _bucketize(pcts)}
+        agg = _day_aggregates(c, day)
+    return {k: agg[k] for k in ("played", "par_hits", "top_pct", "distribution")}
 
 
 def join_group(group_id: str, user_id: str, name: str) -> None:

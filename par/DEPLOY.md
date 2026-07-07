@@ -43,8 +43,23 @@ So scaling is now a config choice:
 - **Without `DATABASE_URL`**: SQLite is per-machine and lives on the container FS — fine for
   one machine, but mount a volume (or keep Postgres) before scaling out.
 
-The only prod-seeding TODO: drop the `seed_demo` / `seed_group_demo` calls in `api.py` and
-seed a real `scenarios` table from the audited deck instead of the demo spread.
+Demo seeds are **local-only automatically**: they run on a startup hook (never at import — a
+slow DB can't crash-loop the app before `/health`) and only when `DATABASE_URL` is absent or
+`PAR_DEMO=1` is set. Production tables start clean; social proof is real from play one.
+
+## Scale + launch checklist (from the CTO/CEO review)
+
+- [ ] **Connection pooling** before real traffic: put pgbouncer in front of Postgres (Fly:
+      `fly pg` supports it) — `par/_store.py` opens a connection per request by design.
+- [ ] **Signed device token** if boards ever go public/paid (today `user_id` is honor-system;
+      closes are validated against par + the transcript, which stops score forgery but not
+      impersonation inside a friend group).
+- [ ] **Asset cache-busting**: bump the `?v=` on `styles.css` / `par.js` in `index.html` with
+      every front-end deploy.
+- [ ] **The business sequence** (CEO): deploy → collect emails (the waitlist now captures
+      contact) → creator-seeded launch week → 50 concierge advisory negotiations with
+      documented before/after outcomes (the agent's proof, and the success-fee legal test)
+      before any paid-agent marketing.
 
 ## After it's live
 
