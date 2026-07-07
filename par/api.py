@@ -25,7 +25,7 @@ from pydantic import BaseModel, Field
 
 from par._store import conn as store_conn
 
-from gametheory.negotiation.par_game import Scenario, house_move, score, agent_close
+from gametheory.negotiation.par_game import Scenario, house_move, score, agent_close, forensics
 from gametheory.negotiation.bundle import negotiate_bundle
 from gametheory.negotiation.plain_terms import negotiate_turn, NegotiationInputError
 from par import scoreboard, funnel
@@ -179,6 +179,8 @@ def submit(req: SubmitReq) -> dict:
     sc = DECK[req.day % len(DECK)]
     _validate_close(sc, req)
     s = _with_agent(sc, score(sc, req.close))
+    # the mistake, named — the reveal's forensic line (and the coach pitch's proof)
+    s["forensic"] = forensics(sc, req.close, req.your_offers, req.house_offers)
     board = scoreboard.record(req.day, req.user_id, s["pct_of_par"], req.close is None,
                               side=sc.player_side, scenario=sc.title, close=req.close,
                               your_offers=req.your_offers, house_offers=req.house_offers)

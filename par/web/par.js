@@ -234,6 +234,43 @@ async function joinWaitlist() {                          // the CTA's real desti
   try { await fetch(API + "/par/waitlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: myUser(), scenario: DAY.title, contact: em || null }) }); } catch (e) { }
 }
 
+/* ---- forensics: the mistake, named ----------------------------------------- */
+/* One sentence that shows the exact moment you blinked. Live: from /par/submit. This is
+   the offline mirror of gametheory/negotiation/par_game.forensics(). */
+function localForensics(close, Y, H) {
+  const p = DAY.par, sgn = isSell() ? 1 : -1;
+  if (close == null) {
+    if (!H.length) return null;
+    const room = Math.abs(p - H[H.length - 1]);
+    return room > 0.01 ? { kind: "walk", cost: room } : null;
+  }
+  const left = isSell() ? p - close : close - p;
+  if (left <= 0.01) return null;
+  if (H.length >= 2 && Math.abs(close - H[H.length - 1]) < 0.01 && Y.length < DAY.rounds) {
+    const step = Math.abs(H[H.length - 1] - H[H.length - 2]);
+    if (step > 0.01) return { kind: "early_accept", house_gave: step, cost: left };
+  }
+  let best = null;
+  for (let i = 1; i < Math.min(Y.length, H.length); i++) {
+    const you = sgn * (Y[i - 1] - Y[i]), house = Math.max(sgn * (H[i] - H[i - 1]), 0);
+    const excess = you - house;
+    if (you > 0.01 && excess > 0.01 && (!best || excess > best.excess))
+      best = { excess, move: i + 1, you_gave: you, house_gave: house };
+  }
+  if (best) return { kind: "overconcede", move: best.move, you_gave: best.you_gave,
+    house_gave: best.house_gave, cost: Math.min(best.excess, left) };
+  return { kind: "pace", cost: left };
+}
+function renderForensic(f) {
+  const B = (v) => '<span style="color:var(--violet-bright)">' + fmt(v) + '</span>';
+  if (f.kind === "overconcede") return 'move ' + f.move + ' — you gave ' + B(f.you_gave) +
+    ', the House gave ' + (f.house_gave > 0.01 ? fmt(f.house_gave) : 'nothing') + '. that blink cost ~' + B(f.cost) + '.';
+  if (f.kind === "early_accept") return 'you took the House’s number while it was still moving — its last step was ' +
+    fmt(f.house_gave) + '. there was ' + B(f.cost) + ' more in the room.';
+  if (f.kind === "walk") return 'you walked while the House still had ' + B(f.cost) + ' in the room.';
+  return 'no single blink — just soft pace. ' + B(f.cost) + ' short of par.';
+}
+
 function boardHTML(b, friends) {
   const max = Math.max(...b.distribution.map((d) => d.count));
   const dist = b.distribution.map((d) =>
@@ -242,17 +279,27 @@ function boardHTML(b, friends) {
   const fl = friends.map((r) =>
     '<div class="frow' + (r.you ? ' me' : '') + '"><span class="fr-rank">' + r.rank + '</span><span class="fr-name">' + r.name +
     '</span><span class="fr-pct">' + (r.pct == null ? "—" : r.pct + "%") + '</span></div>').join("");
+  // the moment of truth stays clean: streak + percentile visible; the histogram and the
+  // friends board are trophy-case material — one tap away, not competing with the number.
   return '<div class="board"><div class="brow"><span>streak <b>' + b.streak + '</b> ' + (b.streak === 1 ? "day" : "days") +
     '</span><span>you beat <b>' + b.percentile + '%</b> today</span></div>' +
+    '<button class="bexp" id="bexp">where everyone landed ↓</button>' +
+    '<div id="board-detail" style="display:none">' +
     '<div class="tabs"><button class="tab on" data-v="everyone">everyone</button><button class="tab" data-v="friends">friends</button></div>' +
     '<div id="bv-everyone" class="bview"><div class="dist">' + dist + '</div></div>' +
     '<div id="bv-friends" class="bview" style="display:none">' +
     '<input id="fname" class="fname" maxlength="16" placeholder="your name — appears on the board" value="' +
-    (localStorage.getItem("par-name") || "") + '"><div class="flist">' + fl + '</div></div></div>';
+    (localStorage.getItem("par-name") || "") + '"><div class="flist">' + fl + '</div></div></div></div>';
 }
 function wireTabs() {
+  const x = $("bexp");
+  if (x) x.onclick = () => {
+    const d = $("board-detail"), open = d.style.display === "none";
+    d.style.display = open ? "block" : "none";
+    x.textContent = open ? "where everyone landed ↑" : "where everyone landed ↓";
+  };
   document.querySelectorAll(".tab").forEach((t) => t.onclick = () => {
-    document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x === t));
+    document.querySelectorAll(".tab").forEach((y) => y.classList.toggle("on", y === t));
     $("bv-everyone").style.display = t.dataset.v === "everyone" ? "block" : "none";
     $("bv-friends").style.display = t.dataset.v === "friends" ? "block" : "none";
   });
@@ -276,16 +323,18 @@ async function finish() {
   }
   drawReveal();
   const p = won ? (real ? Math.round(real.board.pct_of_par) : pctOf(g.deal)) : 0;
+  // the mistake, named — from the server when live, mirrored locally offline
+  g.forensic = real ? real.board.forensic
+    : localForensics(won ? g.deal : null, g.asks.filter((x) => x != null), g.houseOffers);
   const board = '<div id="board-slot">' + boardHTML(real ? real.board : localBoard(p), real ? real.friends : localFriends(p)) + '</div>';
   const btns = '<div style="display:flex;gap:10px;margin-top:16px"><button class="pri" id="rev-share">share result</button><button id="rev-again">play tomorrow</button></div>';
+  // the engine's line stays INTERNAL — one opponent, one yardstick on screen; it only
+  // decides the rare "beat the engine" win tier.
+  const ag = won ? (real ? real.board.agent_close : Math.round(DAY.par * (isSell() ? 0.975 : 1.025) / DAY.step) * DAY.step) : 0;
+  const ap = won ? (real ? Math.round(real.board.agent_pct) : pctOf(ag)) : 0;
+  const isWin = won && (p >= 100 || p >= ap);
   let head;
   if (won) {
-    // the benchmark is the ENGINE'S line (a stated target close, from the server when live)
-    // — framed as a benchmark, not a promise about what "your agent would have" done.
-    const ag = real ? real.board.agent_close : Math.round(DAY.par * (isSell() ? 0.975 : 1.025) / DAY.step) * DAY.step;
-    const ap = real ? Math.round(real.board.agent_pct) : pctOf(ag);
-    // reward mastery, not just show a gap: a personal best (fires even on a loss), and the
-    // rare "beat the engine" / "at par" wins — so the game isn't only ever "you're bad".
     const prevBest = +(localStorage.getItem("par-best") || 0);
     const isBest = p > prevBest; if (isBest) localStorage.setItem("par-best", p);
     const pb = isBest ? '<div style="margin-top:9px;font-size:13px;color:var(--violet-bright)">★ new personal best</div>' : '';
@@ -293,21 +342,28 @@ async function finish() {
     let line;
     if (p >= 100)                                        // matched a perfect negotiator
       line = 'you closed at <b style="color:var(--violet-bright)">par</b>. you matched a perfect negotiator — almost nobody does.';
-    else if (p >= ap)                                    // past the engine's own line — the rare win
-      line = 'you <b style="color:var(--violet-bright)">beat the engine’s line</b> — it plays for ' + ap + '% of par, and you got past it.';
-    else                                                 // the default gut-punch
-      line = 'the engine’s line: <span style="color:var(--violet-bright)">' + fmt(ag) + '</span> · ' + ap + '% — ' + fmt(Math.abs(g.deal - ag)) + ' closer than you';
+    else if (isWin)                                      // past the engine's own line — the rare win
+      line = 'you <b style="color:var(--violet-bright)">beat the engine’s line</b> — a top-tier close.';
+    else                                                 // the mistake, named — not a second score
+      line = g.forensic ? renderForensic(g.forensic)
+        : 'par was ' + fmt(DAY.par) + ' — ' + fmt(DAY.par && Math.abs(DAY.par - g.deal)) + ' above your close.';
     head = '<div style="display:flex;align-items:baseline;gap:12px"><span style="font-size:34px;color:var(--violet);line-height:1">' + bigWord + '</span><span style="font-size:13px;color:var(--muted)">' + (p >= 100 ? "" : "of par · ") + 'closed ' + fmt(g.deal) + '</span></div><div style="margin-top:11px;font-size:14px;color:var(--ink-dim)">' + line + '</div>' + pb;
   } else {
-    const missed = isSell() ? ("the House would have paid up to " + fmt(DAY.par) + ". you left all of it.")
-                            : ("the House would have sold for as low as " + fmt(DAY.par) + ". you walked from all of it.");
-    head = '<div style="font-size:30px;color:#B05A55;line-height:1">no deal · 0%</div><div style="margin-top:9px;font-size:13px;color:var(--muted)">' + missed + '</div>';
+    const line = g.forensic ? renderForensic(g.forensic)
+      : 'the House had ' + fmt(DAY.par) + ' in the room. you left all of it.';
+    head = '<div style="font-size:30px;color:#B05A55;line-height:1">no deal · 0%</div><div style="margin-top:9px;font-size:14px;color:var(--ink-dim)">' + line + '</div>';
   }
-  // the conversion CTA — rides the reveal. But NOT on the first game: the panel read a
-  // day-1 upsell as "farmed", so earn it (show from the 2nd play on).
+  // the coach CTA answers the forensic — and only once the loss is HEAVY: not on the first
+  // game, not on a win day, and only after the cumulative gap crosses a threshold.
   const plays = +(localStorage.getItem("par-plays") || 0) + 1;
   localStorage.setItem("par-plays", plays);
-  const cta = plays < 2 ? "" : '<div class="cta"><div class="hook">' + DAY.cta.hook + '</div><button class="cta-go" id="rev-cta">' + DAY.cta.verb + ' →</button></div>';
+  const cumGap = +(localStorage.getItem("par-gap") || 0) + (won ? Math.max(0, 100 - p) : 100);
+  localStorage.setItem("par-gap", cumGap);
+  const hook = (g.forensic && g.forensic.kind !== "pace")
+    ? "the coach catches that move before you send it — in your real negotiations."
+    : DAY.cta.hook;
+  const showCta = plays >= 2 && cumGap >= 12 && !isWin;
+  const cta = !showCta ? "" : '<div class="cta"><div class="hook">' + hook + '</div><button class="cta-go" id="rev-cta">' + DAY.cta.verb + ' →</button></div>';
   $("rev-body").innerHTML = '<div style="border-top:0.5px solid var(--line);margin-top:8px;padding-top:14px">' + head + board + cta + btns + '</div>';
   if ($("rev-cta")) { $("rev-cta").onclick = openAgent; track("cta_view"); }
   wireTabs();
@@ -413,7 +469,9 @@ function shareResult() {
 function openAgent() {
   track("cta_click");
   const won = g.deal != null;
-  $("ag-lede").innerHTML = won
+  $("ag-lede").innerHTML = (won && g.forensic && g.forensic.kind !== "pace")
+    ? ('that one blink cost <b>' + fmt(g.forensic.cost) + '</b> today. in a real negotiation — a raise, rent, an offer — the coach catches it before you send it.')
+    : won
     ? ('you just left <b>' + fmt(leftOf(g.deal)) + '</b> on the table against a perfect negotiator. it can coach your real ones — a raise, rent, an offer — so you don’t.')
     : ('you walked from the whole room. a perfect negotiator would have closed it — and it can coach your real ones so you don’t.');
   $("ag-fee").innerHTML = '<b>you set the floor; the fee is capped.</b> it takes a cut only of what it wins above your number — never pay to lose, never a surprise bill.';
@@ -460,10 +518,12 @@ $("land-daily").textContent = "no. " + DAY.no + " · " + DAY.title;
 const TODAY_READY = fetch(API + "/par/today").then((r) => { if (!r.ok) throw 0; return r.json(); })
   .then((t) => { applyToday(t); return true; })
   .catch(() => false);                                   // offline → the stand-in day
-// live social proof (GET /par/stats); the seeded stand-in is the offline fallback.
+// live social proof (GET /par/stats) — but never show an empty room: below 20 players the
+// counter is anti-proof, so say nothing. The seeded stand-in only survives offline.
 $("land-soc").textContent = BOARD_BASE[5].n + " of " + BOARD_TOTAL + " hit par today";
 fetch(API + "/par/stats").then((r) => r.json()).then((s) => {
-  if (s && s.played != null) $("land-soc").textContent = s.par_hits + " of " + s.played + " hit par today";
+  if (s && s.played != null)
+    $("land-soc").textContent = s.played >= 20 ? (s.par_hits + " of " + s.played + " hit par today") : "";
 }).catch(() => { });
 // arrived via a friend's challenge link (?c=<left>): reframe the hook as a gauntlet.
 const _c = _params.get("c");

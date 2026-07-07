@@ -64,6 +64,10 @@ input[type=range]{accent-color:var(--violet);height:4px;width:100%}
 .dbar{height:5px;min-width:8px;border-radius:2px;background:#2C2D34;font-size:0;padding:0;transition:width .4s}
 .dbar.me{height:auto;min-width:24px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:3px;background:var(--violet);color:var(--violet-deep);text-align:right}
 
+/* the trophy-case expander — the histogram/friends live one tap away from the reveal */
+.bexp{display:block;background:none;border:none;padding:2px 0 10px;font-size:12px;color:var(--muted);text-align:left;cursor:pointer}
+.bexp:hover{background:none;color:var(--ink-dim)}
+
 /* everyone | friends tabs + the friends leaderboard (the spread loop) */
 .tabs{display:flex;gap:8px;margin:2px 0 13px}
 .tab{font-size:12px;padding:5px 13px;border-radius:7px;background:transparent;border:0.5px solid var(--line);color:var(--muted)}

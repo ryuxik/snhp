@@ -19,7 +19,7 @@ os.environ.pop("DATABASE_URL", None)
 from fastapi.testclient import TestClient  # noqa: E402
 
 import par.api as api  # noqa: E402
-from gametheory.negotiation.par_game import par as par_of, play_out, score  # noqa: E402
+from gametheory.negotiation.par_game import par as par_of, play_out, score, forensics  # noqa: E402
 
 client = TestClient(api.app)
 
@@ -87,6 +87,37 @@ def test_submit_records_the_play_transcript():
 def test_grade_rejects_impossible_close_too():
     r = client.post("/par/grade", json={"day": 2, "close": 1})   # buy day: below the floor
     assert r.status_code == 400
+
+
+# ── forensics: the mistake is named, both directions ──────────────────────────
+def test_forensics_overconcede_sell():
+    f = forensics(api.DECK[0], 110, [130, 110], [95, 103])
+    assert f["kind"] == "overconcede" and f["move"] == 2
+    assert f["you_gave"] == 20.0 and f["house_gave"] == 8.0
+    assert 0 < f["cost"] <= 8                            # capped by what was actually left
+
+
+def test_forensics_early_accept():
+    f = forensics(api.DECK[0], 103, [130], [95, 103])    # took the standing offer, rounds left
+    assert f["kind"] == "early_accept" and f["house_gave"] == 8.0 and f["cost"] == 15
+
+
+def test_forensics_walk_and_at_par():
+    assert forensics(api.DECK[0], None, [130, 125], [95, 103])["kind"] == "walk"
+    assert forensics(api.DECK[0], 118, [130, 118], [95, 103]) is None   # at par: no fault
+
+
+def test_forensics_buy_direction():
+    f = forensics(api.DECK[2], 12500, [9000, 12500], [13000, 12800])
+    assert f["kind"] == "overconcede" and f["you_gave"] == 3500.0 and f["cost"] == 1300
+
+
+def test_submit_returns_forensic():
+    r = client.post("/par/submit", json={"day": 0, "user_id": "t_forensic", "close": 110,
+                                         "your_offers": [130, 110], "house_offers": [95, 103]})
+    assert r.status_code == 200
+    f = r.json()["forensic"]
+    assert f and f["kind"] == "overconcede" and f["move"] == 2
 
 
 # ── the funnel + waitlist capture what the business needs ──────────────────────

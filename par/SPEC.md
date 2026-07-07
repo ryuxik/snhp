@@ -61,6 +61,14 @@ Notes:
   House's reservation (it could never have agreed), and `/par/submit` requires the close to
   appear in the submitted transcript. Forged scores can't reach the board — validated, not
   clamped (clamping rewarded a forged `close=99999` with a perfect 100%).
+- **Forensics — the mistake, named**: `/par/submit` returns a structured `forensic`
+  finding computed from the transcript (`overconcede` — the move where you out-conceded
+  the House; `early_accept` — you took its number while it was still moving; `walk`;
+  `pace`). The reveal shows it as ONE sentence in place of any second score (the engine's
+  line is internal, deciding only the "beat the engine" win tier), and the coach CTA
+  answers it. The histogram/friends board sit behind a "where everyone landed" tap. The
+  CTA itself is gated: never on the first play, never on a win day, and only once the
+  cumulative pct-gap crosses a threshold — pitch when the number gets heavy.
 - **The data moat is the `plays` table**: every submit stores the full move sequence
   (`your_offers`, `house_offers`), close, side, scenario, and timestamp — the labeled
   "how humans negotiate" data the agent trains and evals on. `results` keeps the scalar

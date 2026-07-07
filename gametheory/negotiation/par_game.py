@@ -67,6 +67,53 @@ def agent_close(sc: Scenario) -> float:
     return round(par(sc) * (0.975 if sc.player_side == "sell" else 1.025), 2)
 
 
+def forensics(sc: Scenario, close: Optional[float], your_offers: list,
+              house_offers: list) -> Optional[dict]:
+    """Name the MISTAKE, not just the gap: one structured finding from the transcript —
+    the move that lost the money. This is the bridge from scoreboard to coach (the whole
+    product thesis): the reveal shows the exact moment you blinked. Returns None when
+    there's nothing to fault (at/above par, or no usable transcript).
+
+    Kinds (numbers in scenario units; the client formats):
+      overconcede  — move i: you conceded `you_gave` while the House moved `house_gave`;
+                     the excess cost ~`cost`.
+      early_accept — you took the House's standing number while it was still moving
+                     (its last step was `house_gave`); `cost` was still in the room.
+      walk         — you walked while the House still had `cost` in the room.
+      pace         — no single blink; the whole line drifted `cost` short of par.
+    """
+    Y = [float(x) for x in (your_offers or [])]
+    H = [float(x) for x in (house_offers or [])]
+    p = par(sc)
+    sgn = 1.0 if sc.player_side == "sell" else -1.0      # player concession direction
+    if close is None:                                    # walked
+        if not H:
+            return None
+        room = round(abs(p - H[-1]), 2)
+        return {"kind": "walk", "cost": room} if room > 0.01 else None
+    left = round((p - close) if sc.player_side == "sell" else (close - p), 2)
+    if left <= 0.01:
+        return None                                      # at par — nothing to fault
+    # early accept: took the House's standing offer while it was still conceding
+    if H and abs(close - H[-1]) < 0.01 and len(H) >= 2 and len(Y) < sc.rounds:
+        last_step = round(abs(H[-1] - H[-2]), 2)
+        if last_step > 0.01:
+            return {"kind": "early_accept", "house_gave": last_step, "cost": left}
+    # over-concession: the round where you moved furthest past the House's answer.
+    # Your step Y[i-1]→Y[i] answers the House's H[i-1]→H[i] (sequence H0,Y0,H1,Y1,…).
+    best = None
+    for i in range(1, min(len(Y), len(H))):
+        you = sgn * (Y[i - 1] - Y[i])
+        house = max(sgn * (H[i] - H[i - 1]), 0.0)
+        excess = you - house
+        if you > 0.01 and excess > 0.01 and (best is None or excess > best[0]):
+            best = (excess, i + 1, round(you, 2), round(house, 2))
+    if best:
+        return {"kind": "overconcede", "move": best[1], "you_gave": best[2],
+                "house_gave": best[3], "cost": round(min(best[0], left), 2)}
+    return {"kind": "pace", "cost": left}
+
+
 def score(sc: Scenario, deal: Optional[float]) -> dict:
     """Grade a close against par with the direction baked in. Selling: higher is better
     (pct = close/par). Buying: lower is better (pct = par/close). `left_on_table` is
