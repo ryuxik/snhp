@@ -6,7 +6,7 @@ the issues parents logroll over when they make a child (see courtship.py).
 
     B1 bargain     : pareto_knob, open_aggression      (continuous, blend+extrap)
     B2 risk        : walk_margin, patience             (continuous, blend+extrap)
-    B3 bundle      : bundle_focus[4] simplex           (continuous, blend)
+    B3 bundle      : bundle_focus[4] + bundle_tactic[3] (continuous, blend)
     B4 mating      : mate_w[4] + truncation            (continuous, blend)
     B5 attestation : staked (bool)                     (discrete)
     B6 tactic      : tactic_family (categorical)       (discrete)
@@ -24,10 +24,10 @@ import numpy as np
 TACTIC_FAMILIES = ("anchorer", "boulware", "conceder", "mirror", "patient", "closer")
 
 # The crossover block names, in the fixed order used everywhere (issues, events).
-BLOCKS = ("bargain", "risk", "bundle", "mating", "attestation", "tactic")
+BLOCKS = ("bargain", "risk", "bundle", "mating", "attestation", "tactic", "concession")
 # Blocks that get a BLX-alpha extrapolation option in the logroll (most-continuous).
-EXTRAP_BLOCKS = ("bargain", "risk")
-CONTINUOUS_BLOCKS = ("bargain", "risk", "bundle", "mating")
+EXTRAP_BLOCKS = ("bargain", "risk", "concession")
+CONTINUOUS_BLOCKS = ("bargain", "risk", "bundle", "mating", "concession")
 DISCRETE_BLOCKS = ("attestation", "tactic")
 
 
@@ -43,7 +43,9 @@ class Genome:
     # B2 risk
     walk_margin: float = 0.3        # [0,1] fraction of 0.15*span to bluff the declared floor
     patience: float = 0.5           # [0,1] inflates perceived deadline to own advisor
-    # B3 bundle (4-simplex over price/delivery/quality/terms)
+    # B3 bundle (4-simplex over price/delivery/quality/terms) — the agent's
+    # private issue PRIORITIES (realized multi-issue payoff is priority-weighted,
+    # so gains from trade exist whenever two agents weight issues differently).
     bundle_focus: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25)
     # B4 mating: weights over {reputation, energy, similarity, staked} in [-1,1], + truncation
     mate_w: tuple[float, float, float, float] = (0.6, 0.2, 0.0, 0.2)
@@ -52,6 +54,21 @@ class Genome:
     staked: bool = False
     # B6 tactic
     tactic_family: str = "conceder"
+    # B7 concession — an EVOLVABLE schedule ON TOP of the SNHP advisor: a small
+    # learned function the fixed engine does NOT parameterize, so evolution has
+    # room to discover strategies the recommender can't express. Coefficients in
+    # [-1,1] over features [bias, hold-early(1-t), reactivity(opp_step),
+    # era-signal]; all-zero = neutral (identical to the raw advisor).
+    concession: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
+    # B3 (cont.) bundle_tactic — the EVOLVABLE multi-issue ceiling, the logrolling
+    # analog of `concession`. (sharpness, cooperation, concession), each in
+    # [-1,1]: sharpness sharpens declared priorities toward your top issues;
+    # cooperation dials the engine's joint-welfare tilt on VERIFIED-PEER deals
+    # (attestation's logrolling payoff); concession shifts the bundle
+    # accept-timing. All-zero = the raw recommender. Co-inherits with bundle_focus
+    # as the single B3 "bundle" crossover block (keeps the logroll under the
+    # engine's 4000-outcome cap).
+    bundle_tactic: tuple[float, float, float] = (0.0, 0.0, 0.0)
 
     # ── Block accessors (for crossover) ─────────────────────────────────────
     def block_values(self, block: str) -> Any:
@@ -60,13 +77,15 @@ class Genome:
         if block == "risk":
             return (self.walk_margin, self.patience)
         if block == "bundle":
-            return tuple(self.bundle_focus)
+            return tuple(self.bundle_focus) + tuple(self.bundle_tactic)
         if block == "mating":
             return tuple(self.mate_w) + (self.truncation,)
         if block == "attestation":
             return self.staked
         if block == "tactic":
             return self.tactic_family
+        if block == "concession":
+            return tuple(self.concession)
         raise KeyError(block)
 
     def with_block(self, block: str, value: Any) -> "Genome":
@@ -75,7 +94,9 @@ class Genome:
         if block == "risk":
             return replace(self, walk_margin=_clip01(value[0]), patience=_clip01(value[1]))
         if block == "bundle":
-            return replace(self, bundle_focus=_normalize_simplex(value))
+            bt = value[4:7] if len(value) >= 7 else (0.0, 0.0, 0.0)
+            return replace(self, bundle_focus=_normalize_simplex(value[:4]),
+                           bundle_tactic=tuple(float(np.clip(v, -1.0, 1.0)) for v in bt))
         if block == "mating":
             w = tuple(float(np.clip(v, -1.0, 1.0)) for v in value[:4])
             return replace(self, mate_w=w, truncation=_clip01(value[4]))
@@ -84,6 +105,8 @@ class Genome:
         if block == "tactic":
             fam = value if value in TACTIC_FAMILIES else "conceder"
             return replace(self, tactic_family=fam)
+        if block == "concession":
+            return replace(self, concession=tuple(float(np.clip(v, -1.0, 1.0)) for v in value[:4]))
         raise KeyError(block)
 
     # ── Feature vector for clustering / similarity ──────────────────────────
@@ -93,6 +116,8 @@ class Genome:
             self.pareto_knob, self.open_aggression, self.walk_margin, self.patience,
             *self.bundle_focus, *[(w + 1) / 2 for w in self.mate_w], self.truncation,
             1.0 if self.staked else 0.0, tac,
+            *[(c + 1) / 2 for c in self.concession],
+            *[(c + 1) / 2 for c in self.bundle_tactic],
         ], dtype=np.float64)
 
     def to_dict(self) -> dict[str, Any]:
@@ -106,6 +131,8 @@ class Genome:
             "truncation": round(self.truncation, 4),
             "staked": self.staked,
             "tactic_family": self.tactic_family,
+            "concession": [round(x, 4) for x in self.concession],
+            "bundle_tactic": [round(x, 4) for x in self.bundle_tactic],
         }
 
     @staticmethod
@@ -120,6 +147,8 @@ class Genome:
             truncation=float(d["truncation"]),
             staked=bool(d["staked"]),
             tactic_family=str(d["tactic_family"]),
+            concession=tuple(d.get("concession", (0.0, 0.0, 0.0, 0.0))),
+            bundle_tactic=tuple(d.get("bundle_tactic", (0.0, 0.0, 0.0))),
         )
 
 
@@ -141,6 +170,8 @@ def mutate(g: Genome, sigma: float, rng: np.random.Generator,
 
     bundle = _normalize_simplex([max(0.0, v + rng.normal(0.0, sigma)) for v in g.bundle_focus])
     mate_w = tuple(float(np.clip(w + rng.normal(0.0, sigma), -1.0, 1.0)) for w in g.mate_w)
+    concession = tuple(float(np.clip(c + rng.normal(0.0, sigma), -1.0, 1.0)) for c in g.concession)
+    bundle_tactic = tuple(float(np.clip(c + rng.normal(0.0, sigma), -1.0, 1.0)) for c in g.bundle_tactic)
     staked = (not g.staked) if rng.random() < staked_flip_p else g.staked
     if rng.random() < tactic_flip_p:
         tactic = TACTIC_FAMILIES[int(rng.integers(len(TACTIC_FAMILIES)))]
@@ -156,6 +187,8 @@ def mutate(g: Genome, sigma: float, rng: np.random.Generator,
         truncation=jitter(g.truncation),
         staked=staked,
         tactic_family=tactic,
+        concession=concession,
+        bundle_tactic=bundle_tactic,
     )
 
 

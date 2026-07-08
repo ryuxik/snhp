@@ -34,6 +34,10 @@ ERA_LABELS = {
 }
 _ERA_CENTER = {"symmetric": 0.50, "buyers": 0.36, "sellers": 0.64, "contract": 0.50}
 _ERA_BUNDLE_FRAC = {"symmetric": 0.30, "buyers": 0.25, "sellers": 0.25, "contract": 0.65}
+# Options-per-issue ceiling by era. Contract Season is a logrolling festival: finer
+# option granularity (more room to trade a low-priority issue for a high one)
+# while staying under negotiate_bundle's 4000-outcome cap (4 issues x 6 = 1296).
+_ERA_BUNDLE_OPTIONS = {"symmetric": 4, "buyers": 4, "sellers": 4, "contract": 6}
 
 _BUNDLE_ISSUES = ("price", "delivery", "quality", "terms")
 
@@ -86,16 +90,20 @@ def gen_price_scenario(cfg: ArenaConfig, era: str, center: float,
 
 
 def gen_bundle_scenario(cfg: ArenaConfig, era: str, rng: np.random.Generator,
-                        n_issues: int = 4, n_options: int = 4) -> BundleScenario:
+                        n_issues: int = 4, n_options: int | None = None) -> BundleScenario:
     """Each issue gets a monotone-but-shuffled per-option seller-utility vector
-    in [0,1]; buyer sees the opposite direction. Different issues have different
-    'spread' so logrolling (trade the issue you weight low for the one you weight
-    high) has real value."""
+    in [0,1]; buyer sees the opposite direction (common knowledge). Agents bring
+    their own PRIORITIES (genome bundle_focus), so the gain from trade is real
+    whenever two agents weight the four issues differently — logrolling gives each
+    party its high-priority issues. Contract Season uses finer option granularity
+    (`_ERA_BUNDLE_OPTIONS`) for a bigger logrolling surface."""
+    if n_options is None:
+        n_options = _ERA_BUNDLE_OPTIONS.get(era, 4)
     names = list(_BUNDLE_ISSUES[:n_issues])
     issues = []
     seller_dirs = []
     for name in names:
-        k = int(rng.integers(3, n_options + 1))  # 3–4 options
+        k = int(rng.integers(3, n_options + 1))  # 3..n_options options
         # A monotone ramp of seller utilities, jittered, normalized to [0,1].
         base = np.linspace(0.0, 1.0, k) + rng.normal(0.0, 0.06, size=k)
         base = np.clip(base, 0.0, 1.0)
@@ -104,6 +112,36 @@ def gen_bundle_scenario(cfg: ArenaConfig, era: str, rng: np.random.Generator,
         issues.append((name, labels))
         seller_dirs.append([round(float(x), 4) for x in base])
     return BundleScenario(issues=issues, seller_dirs=seller_dirs, era=era)
+
+
+def _norm_weights(w, n: int) -> np.ndarray:
+    a = np.asarray([max(0.0, float(x)) for x in list(w)[:n]], dtype=float)
+    if a.size < n:
+        a = np.concatenate([a, np.zeros(n - a.size)])
+    s = a.sum()
+    return a / s if s > 1e-9 else np.ones(n) / n
+
+
+def bundle_frontier(sc: BundleScenario, w_seller, w_buyer) -> tuple[float, float]:
+    """Given the two agents' TRUE priority weights, return
+    (max_joint_welfare, naive_split_welfare) over the outcome space — the
+    efficient-logroll peak vs splitting every issue at its middle option. The
+    denominator + floor for the science 'frontier capture %' metric: how much of
+    the achievable joint surplus a settled package actually captured."""
+    import itertools
+    n = len(sc.issues)
+    ws = _norm_weights(w_seller, n)
+    wb = _norm_weights(w_buyer, n)
+    dirs = sc.seller_dirs
+    best = -np.inf
+    for combo in itertools.product(*[range(len(d)) for d in dirs]):
+        us = float(sum(ws[i] * dirs[i][combo[i]] for i in range(n)))
+        ub = float(sum(wb[i] * (1.0 - dirs[i][combo[i]]) for i in range(n)))
+        best = max(best, us + ub)
+    mid = [len(d) // 2 for d in dirs]
+    us_m = float(sum(ws[i] * dirs[i][mid[i]] for i in range(n)))
+    ub_m = float(sum(wb[i] * (1.0 - dirs[i][mid[i]]) for i in range(n)))
+    return float(best), float(us_m + ub_m)
 
 
 def era_optimal_knob(era: str) -> float:

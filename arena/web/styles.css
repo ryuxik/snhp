@@ -62,6 +62,13 @@ body { font-family: var(--mono); color: var(--ink); -webkit-font-smoothing: none
 .cs-bar { height: 8px; border-radius: 3px; margin: 3px 0; transition: width 0.6s ease; }
 .cs-stat { display: flex; justify-content: space-between; color: var(--ink-dim); font-size: 11px; }
 .cs-stat b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.cs-soften {
+  margin-top: 6px; font-size: 10px; letter-spacing: 0.04em; color: #f0c674;
+  background: rgba(240,198,116,0.10); border: 1px solid rgba(240,198,116,0.35);
+  border-radius: 5px; padding: 4px 6px; animation: softpulse 1.6s ease-in-out infinite;
+}
+@keyframes softpulse { 0%,100% { opacity: 0.65; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .cs-soften { animation: none; } }
 
 #science { bottom: 16px; right: 16px; width: 214px; }
 #sci-chart { width: 100%; height: 60px; display: block; margin-top: 4px; }

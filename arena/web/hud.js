@@ -82,6 +82,11 @@
         + `<b style="color:${lift >= 0 ? "#ffe08a" : "#e8734a"}">${lift >= 0 ? "+" : ""}${lift.toFixed(0)}% <span style="opacity:.55">n=${c.attest_n}</span></b></div>`;
     }
     ch += `<div class="cs-stat"><span>matching</span><b>${w.assortative ? "guild gate" : "open gate"}</b></div>`;
+    // Koza's honesty light: rising wealth + falling aggression + everyone
+    // closing is strategic COLLAPSE dressed as prosperity, not skill.
+    if (c.softening) {
+      ch += `<div class="cs-soften">⚠ STRATEGIC SOFTENING — wealth up, spines down</div>`;
+    }
     cs.innerHTML = ch;
 
     _strategies();
@@ -155,6 +160,14 @@
           + `<span class="strat-name">${name} <span style="opacity:.6">· ${v.n}</span></span>`
           + `<span class="strat-e">${inc(v).toFixed(1)}</span>${trend}</div>`;
       }
+    }
+    // the honest selection number (Price equation): Cov(boldness, income) — is
+    // the SNHP knob actually under selection this gen, or just drifting?
+    const cov = W.census.price_cov;
+    if (cov != null) {
+      const sel = Math.abs(cov) < 0.15 ? "drifting" : (cov > 0 ? "bolder pays ▲" : "cannier pays ▼");
+      html += `<div class="strat-row" style="margin-top:5px"><span class="strat-name" style="color:#7c7790">selection on boldness</span>`
+        + `<span class="strat-e" style="color:${Math.abs(cov) < 0.15 ? "#7c7790" : "#a78bfa"}">${cov >= 0 ? "+" : ""}${cov.toFixed(2)} ${sel}</span></div>`;
     }
     html += '<canvas id="sci-chart" width="200" height="34"></canvas>'
       + '<div style="font-size:9px;color:#7c7790;margin-top:2px">population boldness drift · every move computed by SNHP</div>';

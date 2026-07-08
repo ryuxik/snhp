@@ -39,6 +39,8 @@ def _block_scalars(g: Genome, block: str):
         return g.bundle_focus
     if block == "mating":
         return tuple((w + 1) / 2 for w in g.mate_w) + (g.truncation,)
+    if block == "concession":
+        return tuple((c + 1) / 2 for c in g.concession)
     return (0.5,)
 
 
@@ -59,12 +61,24 @@ class Scorecard:
         return sc
 
     def update(self, g: Genome, surplus_norm: float) -> None:
-        """surplus_norm in [0,1] (0 = walked/bad, ~1 = captured the whole span)."""
+        """Weak fallback prior (walks, and the cold-start baseline): distinctiveness-
+        weighted win-rate. Confounded in an epistatic game — the credit_block
+        counterfactual below is the real, per-block marginal signal."""
         s = float(min(1.0, max(0.0, surplus_norm)))
         for b in BLOCKS:
-            d = _distinctiveness(g, b)
+            d = 0.3 * _distinctiveness(g, b)   # down-weighted vs the counterfactual
             self.alpha[b] += d * s + _BASELINE
             self.beta[b] += d * (1.0 - s) + _BASELINE
+
+    def credit_block(self, block: str, marginal: float) -> None:
+        """Leave-one-block-out CAUSAL credit (Koza): `marginal` is the surplus
+        THIS block earned versus a neutral allele in the same matchup+scenario,
+        mapped to [0,1] (0.5 = the block was neutral, >0.5 = it helped). Updates
+        only this block's Beta, strongly — this is the un-confounded signal."""
+        m = float(min(1.0, max(0.0, marginal)))
+        w = 2.0                                # weight: dominates the fallback
+        self.alpha[block] += w * m
+        self.beta[block] += w * (1.0 - m)
 
     def mean(self, block: str) -> float:
         a, b = self.alpha[block], self.beta[block]

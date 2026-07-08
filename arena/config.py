@@ -114,6 +114,13 @@ class ArenaConfig:
     assortative: int = _i("ARENA_ASSORTATIVE", 0)             # Act II toggle (0/1)
     assortative_q: float = _f("ARENA_ASSORTATIVE_Q", 0.75)
 
+    # ── Credit assignment ──
+    # Leave-one-block-out counterfactual credit for the crossover operator: on
+    # each closed deal, replay it with one gene block reset to neutral and credit
+    # that block by the surplus delta (causal marginal, not confounded win-rate).
+    # ~1 extra negotiation per close; off => the weak Beta win-rate fallback only.
+    credit_counterfactual: int = _i("ARENA_CREDIT_COUNTERFACTUAL", 1)
+
     # ── Sexual selection / flora ──
     # Weight of the bloom's aesthetic pull in the mating-market preference score.
     # Beauty = pollinator-aligned AND affordable (costly signal). Drives the

@@ -117,6 +117,21 @@ def _tactic_no_walk(g: Genome, t: float) -> bool:
     return g.tactic_family == "patient" and t < 0.9
 
 
+_CONCESSION_SPAN = 0.15  # max utility the evolvable schedule can shift an offer
+
+
+def _concession_mod(g: Genome, t: float, opp_step: float, era_signal: float) -> float:
+    """The EVOLVABLE layer: a learned utility offset on top of the advisor's
+    recommendation, a small function of (hold-early, reactivity, era). All-zero
+    coefficients => 0 (raw advisor). This is the room evolution has to find a
+    schedule the fixed recommender does not express. tanh-bounded."""
+    c = g.concession
+    if c[0] == 0.0 and c[1] == 0.0 and c[2] == 0.0 and c[3] == 0.0:
+        return 0.0
+    z = c[0] + c[1] * (1.0 - t) + c[2] * float(np.clip(opp_step * 4.0, -1, 1)) + c[3] * era_signal
+    return _CONCESSION_SPAN * float(np.tanh(z))
+
+
 @dataclass
 class Side:
     genome: Genome
@@ -141,6 +156,10 @@ def run_price_negotiation(seller: Side, buyer: Side, sc: PriceScenario,
     final yielded event is 'neg.accept' or 'neg.walk' and carries the outcome.
     Also returns a NegOutcome via StopIteration.value for the world."""
     peer = bool(seller.genome.staked and buyer.genome.staked)
+    # era signal the evolvable concession schedule can key off (+1 sellers' market
+    # rewards holding, -1 buyers'), so a strategy can be market-conditional
+    _ERA_SIG = {"sellers": 1.0, "buyers": -1.0, "contract": 0.4, "symmetric": 0.0}
+    era_sig = _ERA_SIG.get(getattr(sc, "era", "symmetric"), 0.0)
 
     # Declared (possibly bluffed) reservations; ignored for staked pairs' bluff.
     s_decl = _declared_reservation(seller.true_r, seller.genome.walk_margin,
@@ -216,6 +235,7 @@ def run_price_negotiation(seller: Side, buyer: Side, sc: PriceScenario,
                 yield {"type": "neg.walk", "actor": "seller", "reason": "below_floor"}
                 return _walk_outcome(turn, cfg, peer)
             pos = _tactic_offer(seller.genome, target, turn, t_frac, s_opp_step)
+            pos = float(np.clip(pos + _concession_mod(seller.genome, t_frac, s_opp_step, era_sig), 0.02, 0.99))
             s_offers.append(pos)
             s_offers_as_b.append(1.0 - pos)
             last_to_buyer = pos
@@ -240,6 +260,7 @@ def run_price_negotiation(seller: Side, buyer: Side, sc: PriceScenario,
                 yield {"type": "neg.walk", "actor": "buyer", "reason": "below_floor"}
                 return _walk_outcome(turn, cfg, peer)
             offer_u = _tactic_offer(buyer.genome, u_b, turn, t_frac, b_opp_step)
+            offer_u = float(np.clip(offer_u + _concession_mod(buyer.genome, t_frac, b_opp_step, era_sig), 0.02, 0.99))
             pos = 1.0 - offer_u                      # position buyer proposes
             b_offers.append(pos)
             b_offers_as_s.append(pos)
@@ -294,11 +315,18 @@ def _walk_outcome(turn: int, cfg: ArenaConfig, peer: bool) -> NegOutcome:
 
 
 # ─── Bundle (multi-issue) market negotiation ────────────────────────────────
+# The evolvable multi-issue CEILING (genome.bundle_tactic = sharpness, cooperation,
+# concession), the logrolling analog of the price concession layer. All-zero =
+# the raw recommender with honest, unsharpened priorities.
+_BUNDLE_SHARP_BASE = 1.3     # sharpness gene -> priority exponent 2**(base*gene)
+_BUNDLE_COOP_BASE = 0.6      # neutral peer cooperation (== bundle_peer_cooperation)
+_BUNDLE_COOP_SPAN = 0.4      # cooperation gene shifts the peer dial by +-this
+_BUNDLE_CONCEDE_SPAN = 0.25  # concession gene shifts the accept time-gate by +-this
 
-def _bundle_view(genome: Genome, sc: BundleScenario, role: str):
-    """Build the negotiate_bundle `issues` list from this agent's frame + its
-    genome priorities. Directions are common knowledge (seller-favorable dir vs
-    its complement); only priority weights are private."""
+
+def _bundle_issues(sc: BundleScenario, role: str) -> list:
+    """The negotiate_bundle `issues` list (per-option utility structure) from a
+    role's frame. Directions are common knowledge; only priorities are private."""
     issues = []
     for (name, labels), dirs in zip(sc.issues, sc.seller_dirs):
         if role == "seller":
@@ -309,19 +337,44 @@ def _bundle_view(genome: Genome, sc: BundleScenario, role: str):
             their_u = list(dirs)
         issues.append({"name": name, "options": list(labels),
                        "my_utility": my_u, "their_utility": their_u})
-    focus = genome.bundle_focus[:len(sc.issues)]
-    priorities = {name: float(w) for (name, _), w in zip(sc.issues, focus)}
-    return issues, priorities
+    return issues
+
+
+def _true_weights(genome: Genome, n: int) -> np.ndarray:
+    """The agent's HONEST priority weights (what its realized payoff is measured
+    on) — raw normalized bundle_focus."""
+    w = np.array([max(0.0, x) for x in genome.bundle_focus[:n]], dtype=float)
+    return w / w.sum() if w.sum() > 0 else np.ones(n) / n
+
+
+def _declared_priorities(genome: Genome, sc: BundleScenario) -> dict:
+    """The priorities the agent DECLARES to the engine — its true weights sharpened
+    by the evolvable `sharpness` gene. Declaring sharper than you truly are presses
+    the engine's logroll to win your top issues; over-sharpening concedes mid-value
+    issues too cheaply. Gene 0 -> exponent 1 -> honest weights."""
+    n = len(sc.issues)
+    w = np.clip(_true_weights(genome, n), 1e-6, None)
+    exp = 2.0 ** (_BUNDLE_SHARP_BASE * float(genome.bundle_tactic[0]))
+    w = w ** exp
+    w = w / w.sum()
+    return {name: float(wi) for (name, _), wi in zip(sc.issues, w)}
+
+
+def _peer_cooperation(genome: Genome) -> float:
+    """This agent's cooperation dial for VERIFIED-PEER bundle deals — the tuned
+    default shifted by the evolvable `cooperation` gene. This is where attestation
+    pays on multi-issue: two staked cooperators grow the joint pie via logrolling
+    (validated: bundle_validation --cooperation). Gene 0 -> 0.6 (the shipped
+    peer default), so a neutral genome reproduces current peer behavior exactly."""
+    return float(np.clip(_BUNDLE_COOP_BASE + _BUNDLE_COOP_SPAN * genome.bundle_tactic[1],
+                         0.0, 1.0))
 
 
 def _bundle_realized(genome: Genome, sc: BundleScenario, role: str, package: dict) -> float:
-    """Weighted-average utility this agent gets from a settled package (matches
-    the engine's u_self = my_per_dim @ normalized_weights)."""
-    issues, priorities = _bundle_view(genome, sc, role)
-    w = np.array([max(0.0, priorities[i["name"]]) for i in issues], dtype=float)
-    if w.sum() <= 0:
-        w = np.ones(len(issues))
-    w = w / w.sum()
+    """Utility this agent TRULY gets from a settled package — measured on its
+    honest weights (not the possibly-sharpened declaration)."""
+    issues = _bundle_issues(sc, role)
+    w = _true_weights(genome, len(issues))
     total = 0.0
     for wi, iss in zip(w, issues):
         opt = package.get(iss["name"])
@@ -335,14 +388,20 @@ def run_bundle_negotiation(seller: Side, buyer: Side, sc: BundleScenario,
     """Generator over a multi-issue logrolling negotiation using negotiate_bundle
     on each side. Staked pairs exchange TRUE BATNAs (widening the feasible set)."""
     peer = bool(seller.genome.staked and buyer.genome.staked)
-    s_issues, s_pri = _bundle_view(seller.genome, sc, "seller")
-    b_issues, b_pri = _bundle_view(buyer.genome, sc, "buyer")
+    s_issues = _bundle_issues(sc, "seller")
+    b_issues = _bundle_issues(sc, "buyer")
+    s_pri = _declared_priorities(seller.genome, sc)   # sharpened by the ceiling gene
+    b_pri = _declared_priorities(buyer.genome, sc)
 
     # BATNAs: default blind 0.40; staked pairs pass each other's true 0.30.
     s_batna = 0.30
     b_batna = 0.30
     s_their_est = b_batna if peer else 0.40
     b_their_est = s_batna if peer else 0.40
+    # Cooperation dial: the peer logrolling payoff, set per-side by the evolvable
+    # gene, ONLY among verified peers. Adversarial deals stay pure Nash (None).
+    s_coop = _peer_cooperation(seller.genome) if peer else None
+    b_coop = _peer_cooperation(buyer.genome) if peer else None
 
     s_offers: list[dict] = []
     b_offers: list[dict] = []
@@ -352,14 +411,17 @@ def run_bundle_negotiation(seller: Side, buyer: Side, sc: BundleScenario,
 
     def _tactic_bundle_accept(g: Genome, t: float, n_opp_offers: int) -> bool:
         """Acceptance discipline on bundle deals: may the tactic take the engine's
-        'accept' now? (Closers snub early; mirrors want to see movement first.)"""
+        'accept' now? (Closers snub early; mirrors want to see movement first.)
+        The evolvable `concession` gene shifts the time-gate: >0 accept earlier,
+        <0 hold out longer."""
         fam = g.tactic_family
+        shift = _BUNDLE_CONCEDE_SPAN * g.bundle_tactic[2]
         if fam == "closer":
-            return t >= 0.55 + 0.2 * g.open_aggression
+            return t >= (0.55 + 0.2 * g.open_aggression) - shift
         if fam == "mirror":
-            return n_opp_offers >= 2
+            return n_opp_offers >= (1 if shift > 0.12 else 2)
         if fam == "boulware" or fam == "patient":
-            return t >= 0.4
+            return t >= 0.4 - shift
         return True  # conceder / anchorer take the engine's accept as-is
 
     while turn < deadline and close_pkg is None:
@@ -372,7 +434,8 @@ def run_bundle_negotiation(seller: Side, buyer: Side, sc: BundleScenario,
             # lives now, on the multi-issue frontier where it is valid.
             adv = negotiate_bundle(issues=s_issues, their_offers=b_offers or None,
                                    my_priorities=s_pri, my_batna=s_batna,
-                                   their_batna_estimate=s_their_est, peer_mode=peer)
+                                   their_batna_estimate=s_their_est, peer_mode=peer,
+                                   cooperation=s_coop)
             if adv["action"] == "accept" and b_offers and \
                     _tactic_bundle_accept(seller.genome, t_frac, len(b_offers)):
                 close_pkg, close_by = b_offers[-1], "seller"
@@ -389,7 +452,8 @@ def run_bundle_negotiation(seller: Side, buyer: Side, sc: BundleScenario,
             _seed(neg_seed, turn)
             adv = negotiate_bundle(issues=b_issues, their_offers=s_offers or None,
                                    my_priorities=b_pri, my_batna=b_batna,
-                                   their_batna_estimate=b_their_est, peer_mode=peer)
+                                   their_batna_estimate=b_their_est, peer_mode=peer,
+                                   cooperation=b_coop)
             if adv["action"] == "accept" and s_offers and \
                     _tactic_bundle_accept(buyer.genome, t_frac, len(s_offers)):
                 close_pkg, close_by = s_offers[-1], "buyer"

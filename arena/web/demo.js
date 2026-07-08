@@ -108,7 +108,9 @@
           tactics[f].income = Math.round((15 + Math.random() * 25) * 10) / 10;
         }
         cb(ev({ type: "census", pop: agents.length, era: era, staked_frac: 0.14, mean_knob: 0.5 + Math.sin(step / 30) * 0.15, era_optimal_knob: 0.7, mean_energy: 180, n_species: 5, deal_rate: 0.6, tactics,
-          attest_lift: 0.1 + Math.random() * 0.1, attest_n: 20 + ((Math.random() * 30) | 0) }));
+          attest_lift: 0.1 + Math.random() * 0.1, attest_n: 20 + ((Math.random() * 30) | 0),
+          price_cov: (Math.random() - 0.5) * 0.6, mean_aggression: 0.4 + Math.random() * 0.2,
+          softening: (step % 200) > 160 }));
         cb(ev({ type: "species.update", species: [0, 1, 2, 3, 4].map(id => ({ id, count: 2 + ((Math.random() * 5) | 0), centroid: [], exemplar: id })) }));
       }
     }, 850);

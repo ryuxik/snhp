@@ -172,7 +172,7 @@ def _true_util(names, dirs, w, role, pkg):
     return float(tot)
 
 
-def _run_bilateral(rng, peer, rounds=6, batna=0.30):
+def _run_bilateral(rng, peer, rounds=6, batna=0.30, cooperation=None):
     names, dirs, wa, wb = _bilateral_profile(rng)
     a_iss, b_iss = _side_issues(names, dirs, "a"), _side_issues(names, dirs, "b")
     wa_d = dict(zip(names, wa)); wb_d = dict(zip(names, wb))
@@ -184,7 +184,8 @@ def _run_bilateral(rng, peer, rounds=6, batna=0.30):
         if t % 2 == 0:
             adv = negotiate_bundle(issues=a_iss, their_offers=b_off or None,
                                    my_priorities=wa_d, my_batna=batna,
-                                   their_batna_estimate=a_est, peer_mode=peer)
+                                   their_batna_estimate=a_est, peer_mode=peer,
+                                   cooperation=cooperation)
             if adv["action"] == "accept" and b_off:
                 settled = b_off[-1]; break
             if adv["recommended_offer"] is None:
@@ -193,7 +194,8 @@ def _run_bilateral(rng, peer, rounds=6, batna=0.30):
         else:
             adv = negotiate_bundle(issues=b_iss, their_offers=a_off or None,
                                    my_priorities=wb_d, my_batna=batna,
-                                   their_batna_estimate=b_est, peer_mode=peer)
+                                   their_batna_estimate=b_est, peer_mode=peer,
+                                   cooperation=cooperation)
             if adv["action"] == "accept" and a_off:
                 settled = a_off[-1]; break
             if adv["recommended_offer"] is None:
@@ -244,9 +246,49 @@ def run_peer(n_profiles=400, seed=11):
     return dict(n=n, peer_joint=pj, adv_joint=aj, lift=lift, wins=wins)
 
 
+def run_cooperation(n_profiles=400, seed=13):
+    """Isolate the standalone `cooperation` dial: adversarial BATNAs (blind 0.40,
+    NO peer trust, NO signaling) on both sides, sweeping only the cooperation tilt.
+    Answers: does dialing cooperation raise joint welfare on its own — and what
+    does the worse-off party pay for it?"""
+    print("=" * 74)
+    print("  MULTI-ISSUE COOPERATION DIAL — VALIDATION (no peer trust, sweep only)")
+    print("=" * 74)
+    grid = (0.0, 0.3, 0.6, 1.0)
+    base_joint = None
+    out = {}
+    for coop in grid:
+        joints, fairs, base_pairs, wins = [], [], [], 0
+        for i in range(n_profiles):
+            rc = np.random.default_rng(seed + i)
+            r = _run_bilateral(rc, peer=False, cooperation=coop)
+            rb = np.random.default_rng(seed + i)
+            b = _run_bilateral(rb, peer=False, cooperation=0.0)  # paired baseline
+            if not r or not b:
+                continue
+            joints.append(r[0]); fairs.append(r[1]); base_pairs.append(b[0])
+            wins += (r[0] >= b[0] - 1e-9)
+        n = len(joints)
+        jw, fair = float(np.mean(joints)), float(np.mean(fairs))
+        lift = jw / float(np.mean(base_pairs)) - 1.0 if base_pairs else 0.0
+        out[coop] = dict(n=n, joint=jw, worse_off=fair, lift_vs_nash=lift, wins=wins)
+        tag = "  (Nash baseline)" if coop == 0.0 else f"  -> vs Nash {lift:+.1%}, wins {wins}/{n}"
+        print(f"\n  cooperation = {coop:.1f}  ({n} contracts)")
+        print(f"    joint welfare {jw:.3f}   worse-off party {fair:.3f}{tag}")
+    print("-" * 74)
+    print("  HONEST READ: cooperation raises JOINT welfare even with adversarial")
+    print("  (blind) BATNAs — the tilt selects the efficient package among those")
+    print("  clearing both walk-aways. Watch the worse-off column: past the knee")
+    print("  the extra joint welfare starts coming out of one party's share, which")
+    print("  is why the shipped peer default is 0.6, not 1.0.")
+    return out
+
+
 if __name__ == "__main__":
     import sys
     if "--peer" in sys.argv:
         run_peer()
+    elif "--cooperation" in sys.argv:
+        run_cooperation()
     else:
         run()

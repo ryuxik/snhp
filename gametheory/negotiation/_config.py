@@ -270,7 +270,11 @@ _BUNDLE = {
               "BATNAs. The engine analog of the single-issue PEER playbook's "
               "'descend to the asymmetric Pareto outcome': two peers who exchange "
               "truthful BATNAs both select the efficient package and grow the pie "
-              "without starving either side. Validated: bundle_validation --peer.",
+              "without starving either side. Validated: bundle_validation --peer. "
+              "This value is the DEFAULT tilt under peer_mode; callers can also pass "
+              "negotiate_bundle(cooperation=...) directly (any [0,1], independent of "
+              "peer_mode) to dial logrolling generosity — validated standalone in "
+              "bundle_validation --cooperation.",
     ),
     "bundle_peer_signal_boost": ParamMeta(
         default=1.6,

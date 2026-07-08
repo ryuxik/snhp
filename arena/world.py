@@ -49,8 +49,12 @@ class Agent:
 
 
 class World:
-    def __init__(self, cfg: ArenaConfig = CONFIG, clock_ms: Optional[Callable[[], int]] = None):
+    def __init__(self, cfg: ArenaConfig = CONFIG, clock_ms: Optional[Callable[[], int]] = None,
+                 neutral: bool = False):
         self.cfg = cfg
+        # neutral null (science): reproduction + death decoupled from energy, so
+        # any surviving trait movement is drift, not selection (Koza's baseline).
+        self.neutral = neutral
         self.rng = np.random.default_rng(cfg.seed)
         self.names = NameForge(self.rng)
         self.species = sp.SpeciesTracker(cfg)
@@ -77,6 +81,9 @@ class World:
         # per-generation income by tactic — the REAL "who's winning" scoreboard
         # (wealth is cumulative and luck-confounded; income/gen is the signal)
         self._gen_income: dict[str, float] = {}
+        self._gen_income_agent: dict[int, float] = {}   # per-agent, for Price eq
+        self._prev_aggr: float = 0.5                     # softening detector state
+        self._prev_energy: float = cfg.energy_start
         # attestation probe: paired-seed counterfactuals (same pair, same
         # scenario, staked forced on vs off). The observational peer-vs-ordinary
         # comparison is confounded by genome composition; this is the causal
@@ -150,6 +157,7 @@ class World:
         cfg = self.cfg
         self.gen += 1
         self._gen_income = {}
+        self._gen_income_agent = {}
         for a in self.agents.values():
             a.age += 1
 
@@ -268,14 +276,18 @@ class World:
         meta = {"neg": k, "sid": sid, "bid": bid, "kind": kind, "house": is_house,
                 # a PACT: both sides attested — truthful reservations (price) /
                 # true-BATNA exchange (bundle); the renderer marks these deals
-                "peer": bool(seller_g.staked and buyer_g.staked)}
+                "peer": bool(seller_g.staked and buyer_g.staked),
+                # stashed for leave-one-block-out counterfactual credit
+                "seed": neg_seed, "dl": dl, "s_g": seller_g, "b_g": buyer_g}
         if kind == "bundle":
             bs = sc.gen_bundle_scenario(cfg, self.era, self.rng)
+            meta["scn"] = bs
             s_side = ex.Side(seller_g, "seller", 0.0, sid)
             b_side = ex.Side(buyer_g, "buyer", 0.0, bid)
             return meta, ex.run_bundle_negotiation(s_side, b_side, bs, dl, neg_seed, cfg)
         center = sc.era_center(self.era, self.era_interp, self.prev_era)
         ps = sc.gen_price_scenario(cfg, self.era, center, self.rng)
+        meta["scn"] = ps
         if not is_house and k % 4 == 0:
             self._probe_attestation(seller_g, buyer_g, ps, dl, neg_seed)
         s_side = ex.Side(seller_g, "seller", ps.r_s, sid)
@@ -302,6 +314,47 @@ class World:
                 out = e.value
             joints.append((out.surplus_seller + out.surplus_buyer) if out.deal else 0.0)
         self._attest_pairs.append((joints[0], joints[1]))
+
+    _NEUTRAL = None  # a fixed neutral baseline genome (built lazily)
+
+    def _counterfactual_credit(self, a, meta, role: str, actual_surplus: float) -> None:
+        """Leave-ONE-block-out causal credit for agent `a` on the deal it just
+        closed (Koza's fix for the confounded win-rate scorecard). Reset one
+        block to a neutral allele, replay the SAME scenario+opponent+seed, and
+        the surplus DELTA is that block's marginal contribution — the un-confounded
+        signal the courtship logroll then bargains with. One block per deal
+        (round-robin), so cost is ~1 extra negotiation per close."""
+        scn = meta.get("scn")
+        if scn is None or a.genome.tactic_family is None:
+            return
+        if World._NEUTRAL is None:
+            World._NEUTRAL = Genome()  # mid/neutral alleles, unstaked, no schedule
+        neutral = World._NEUTRAL
+        from arena.genome import BLOCKS as _BLK
+        block = _BLK[a.deals_closed % len(_BLK)]
+        cf_g = a.genome.with_block(block, neutral.block_values(block))
+        # reconstruct both sides in original roles, a's genome -> counterfactual
+        seller_g = cf_g if role == "seller" else meta["s_g"]
+        buyer_g = cf_g if role == "buyer" else meta["b_g"]
+        if meta["kind"] == "price":
+            g = ex.run_price_negotiation(ex.Side(seller_g, "seller", scn.r_s, -4),
+                                         ex.Side(buyer_g, "buyer", scn.r_b, -5),
+                                         scn, meta["dl"], meta["seed"] ^ 0x1EAF, self.cfg)
+        else:
+            g = ex.run_bundle_negotiation(ex.Side(seller_g, "seller", 0.0, -4),
+                                          ex.Side(buyer_g, "buyer", 0.0, -5),
+                                          scn, meta["dl"], meta["seed"] ^ 0x1EAF, self.cfg)
+        out = None
+        try:
+            while True:
+                next(g)
+        except StopIteration as e:
+            out = e.value
+        cf_surplus = (out.surplus_seller if role == "seller" else out.surplus_buyer) if out.deal else 0.0
+        # marginal in [0,1]: 0.5 = neutral block, >0.5 = the allele helped
+        span = max(self.cfg.scenario_span, 1e-6)
+        marginal = 0.5 + 0.5 * float(np.clip((actual_surplus - cf_surplus) / span * 4.0, -1, 1))
+        a.scorecard.credit_block(block, marginal)
 
     def _build_schedule(self, agents):
         """deals_per_gen per agent as seller/buyer split; pairing random (or
@@ -380,9 +433,13 @@ class World:
             if seller is not None:
                 self._credit_deal(seller, out.surplus_seller,
                                   counterparty_surplus=out.surplus_buyer)
+                if not house and self.cfg.credit_counterfactual and "scn" in m:
+                    self._counterfactual_credit(seller, m, "seller", out.surplus_seller)
             if buyer is not None:
                 self._credit_deal(buyer, out.surplus_buyer,
                                   counterparty_surplus=out.surplus_seller)
+                if not house and self.cfg.credit_counterfactual and "scn" in m:
+                    self._counterfactual_credit(buyer, m, "buyer", out.surplus_buyer)
             joint = out.surplus_seller + out.surplus_buyer
             if joint > self.record_surplus:
                 self.record_surplus = joint
@@ -407,6 +464,7 @@ class World:
         a.total_earned += income
         fam = a.genome.tactic_family
         self._gen_income[fam] = self._gen_income.get(fam, 0.0) + income
+        self._gen_income_agent[a.id] = self._gen_income_agent.get(a.id, 0.0) + income
         a.deals_closed += 1
         a.scorecard.update(a.genome, min(1.0, surplus / max(cfg.scenario_span, 1e-6)))
         # reputation = EWMA of counterparty surplus (what partners walk away with)
@@ -458,10 +516,14 @@ class World:
         yield self._ev("energy.tick", deltas=deltas)
         for aid in critical:
             yield self._ev("agent.critical", id=aid, energy=round(self.agents[aid].energy, 1))
-        # deaths: starvation + senescence
+        # deaths: starvation + senescence (neutral null: random death at a
+        # matched base rate, independent of energy/genome — drift only)
         for a in list(self.agents.values()):
             cause = None
-            if a.energy <= 0:
+            if self.neutral:
+                if self.rng.random() < 0.06 or self._senescence_roll(a):
+                    cause = "starvation" if self.rng.random() < 0.5 else "senescence"
+            elif a.energy <= 0:
                 cause = "starvation"
             elif self._senescence_roll(a):
                 cause = "senescence"
@@ -503,9 +565,15 @@ class World:
     # ── mating ──
     def _mating_phase(self):
         cfg = self.cfg
-        eligible = [a for a in self.agents.values()
-                    if a.energy >= cfg.mate_threshold
-                    and self.gen - a.last_mated >= cfg.mate_refractory_gens]
+        ready = [a for a in self.agents.values()
+                 if self.gen - a.last_mated >= cfg.mate_refractory_gens]
+        if self.neutral:
+            # eligibility independent of energy — a random slice (drift null)
+            k = max(0, int(0.4 * len(ready)))
+            idx = list(range(len(ready))); self.rng.shuffle(idx)
+            eligible = [ready[i] for i in idx[:k]]
+        else:
+            eligible = [a for a in ready if a.energy >= cfg.mate_threshold]
         births_available = cfg.pop_cap - len(self.agents)
         if len(eligible) < 2 or births_available <= 0:
             return
@@ -653,6 +721,18 @@ class World:
                    for k, v in fam.items()}
         peer_prem = float(np.mean(self._peer_surplus_samples)) if self._peer_surplus_samples else None
         adv_prem = float(np.mean(self._adv_surplus_samples)) if self._adv_surplus_samples else None
+        # Price equation (Koza): Cov(trait, this-gen income) — the un-cherry-picked
+        # selection differential on the SNHP knob. And the strategic-softening
+        # detector: energy rising while aggression falls + everyone closing is
+        # collapse dressed as prosperity, not skill.
+        inc = np.array([self._gen_income_agent.get(a.id, 0.0) for a in agents])
+        knobs = np.array([a.genome.pareto_knob for a in agents])
+        aggr = float(np.mean([(a.genome.walk_margin + a.genome.open_aggression) / 2 for a in agents]))
+        mean_e = float(np.mean([a.energy for a in agents]))
+        price_cov = float(np.cov(knobs, inc)[0, 1]) if len(agents) > 3 and np.std(inc) > 1e-9 else 0.0
+        softening = bool(mean_e > self._prev_energy + 0.5 and aggr < self._prev_aggr - 0.002)
+        self._prev_aggr = aggr
+        self._prev_energy = mean_e
         # causal attestation lift from the paired probe (rolling window)
         attest_lift = attest_n = None
         if len(self._attest_pairs) >= 8:
@@ -671,6 +751,8 @@ class World:
                        adv_premium=(round(adv_prem, 4) if adv_prem is not None else None),
                        peer_n=len(self._peer_surplus_samples),
                        attest_lift=attest_lift, attest_n=attest_n,
+                       price_cov=round(price_cov, 4), mean_aggression=round(aggr, 3),
+                       softening=softening,
                        tactics=tactics,
                        genes=self._mean_genes(agents))
         self._peer_surplus_samples.clear()

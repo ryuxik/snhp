@@ -113,6 +113,43 @@ def test_population_bounded():
     assert CONFIG.pop_floor <= len(w.agents) <= CONFIG.pop_cap
 
 
+# ── the research instrument runs (tiny sizes; correctness, not the numbers) ─
+def test_science_instrument_runs():
+    from arena import science as sci
+    a = sci.assembly(trials=3, gens=8)
+    assert set(a) == {"negotiated", "uniform", "blend"}
+    d = sci.decompose(gens=8, seed=3)
+    assert 0.0 <= d["surplus_frac"] <= 1.0
+    # neutral null: the null truly decouples selection (both modes run)
+    from arena.world import World
+    import dataclasses as _dc
+    wn = World(_dc.replace(CONFIG, seed=1), neutral=True)
+    for _ in range(3):
+        list(wn.generation_events())
+    assert wn.neutral is True
+
+
+def test_concession_layer_evolvable_and_neutral_default():
+    from arena.genome import Genome, mutate
+    import numpy as np
+    # default is neutral (all-zero) so balance is preserved
+    assert Genome().concession == (0.0, 0.0, 0.0, 0.0)
+    # mutation reaches it
+    g = Genome()
+    rng = np.random.default_rng(0)
+    for _ in range(30):
+        g = mutate(g, 0.2, rng, 0.05, 0.05)
+    assert any(abs(c) > 1e-6 for c in g.concession)
+    # round-trips through the event dict (to_dict serializes at 4 decimals)
+    rt = Genome.from_dict(g.to_dict())
+    assert all(abs(a - b) < 1e-4 for a, b in zip(rt.concession, g.concession))
+    # the multi-issue ceiling (bundle_tactic) is likewise neutral-by-default,
+    # evolvable, and round-trips
+    assert Genome().bundle_tactic == (0.0, 0.0, 0.0)
+    assert any(abs(c) > 1e-6 for c in g.bundle_tactic)
+    assert all(abs(a - b) < 1e-4 for a, b in zip(rt.bundle_tactic, g.bundle_tactic))
+
+
 # ── the forge loop: a viewer champion becomes a real agent ────────────────
 def test_champion_pipeline(monkeypatch):
     monkeypatch.setenv("ARENA_NO_RUN", "1")

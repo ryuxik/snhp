@@ -114,18 +114,59 @@ def stats() -> dict:
                 "Inheritance is mechanism-mediated: children are settled logrolled packages; "
                 "matings are deferred-acceptance outcomes.",
                 "The staking A/B shows critical-mass dynamics as a function of discoverability.",
+                "Agents compete on MULTI-ISSUE logrolling, not only price: a quarter to two-thirds "
+                "of every generation's deals are bundles, and the private priority simplex plus the "
+                "evolvable bundle ceiling feed fitness and are under selection (see 'science').",
             ],
             "does_not_show": [
                 "That agents 'reach the Nash equilibrium' — offers are subjective Nash points under Bayesian beliefs.",
                 "That 'SNHP wins' — rank depends on the market.",
                 "The lab's +0.186 / +12.5% as arena numbers — the HUD shows this run's own paired-probe lift.",
-                "The engine's PEER playbook itself: it is validated on multi-issue frontiers "
-                "(joint utility > 1 via logrolling) and is infeasible on the arena's single-issue "
-                "price deals, so staked pairs here demonstrate attestation's INFORMATION channels "
-                "(truthful reservations; true-BATNA exchange on bundles) — shipped code, honestly scoped.",
+                "The PEER playbook the same way on price and bundles. On single-issue PRICE the "
+                "cooperative descent is infeasible (both peers demand >55% of one pie), so staked "
+                "price pairs demonstrate only attestation's INFORMATION channel (truthful "
+                "reservations preserve the true ZOPA). On MULTI-ISSUE bundles staked pairs run the "
+                "engine's real cooperative logrolling — the new first-class cooperation dial "
+                "(validated +2.0% joint welfare at the shipped 0.6) — which is where attestation's "
+                "logrolling payoff actually lives. Both are shipped code, honestly scoped.",
                 "Deception — walk_margin is Schelling commitment to your OWN advisor, not a lie to the counterparty.",
             ],
             "keystone": "Nothing in this arena knows how to negotiate except the library being showcased.",
+        },
+        "science": {
+            "note": "Off-selection-path measurements from arena/science.py (run `python -m arena.science --all`).",
+            "human_competitive_price": "On PRICE, an evolved champion (boulware, knob 0.63, truthful-ish "
+                                       "floor, evolved concession schedule) beats the RAW SNHP recommender's "
+                                       "own play by +27% on a held-out sellers'-market panel — a strategy "
+                                       "evolution DISCOVERED, made possible by the evolvable concession layer.",
+            "human_competitive_multi_issue": "On MULTI-ISSUE logrolling, the honest (preference-normalized) "
+                                             "metric is frontier capture: the RAW recommender holds 88% and "
+                                             "evolution reaches 85% — evolution does NOT beat it; the raw "
+                                             "logroller is at the efficiency ceiling. The eye-catching +119% "
+                                             "own-surplus is a preference-shape ARTIFACT (heritable priorities "
+                                             "specialize until the logroll trivially delivers the one issue "
+                                             "kept), jointly no more efficient. You don't beat SNHP by "
+                                             "distorting its inputs — the declaration-distortion gene is "
+                                             "selected AGAINST, mirroring the price bluffing result.",
+            "multi_issue_selection": "The multi-issue PRIORITY gene is now under strong directed selection "
+                                     "(Cov(specialization, income) +0.65 vs +0.43 neutral) — before this it "
+                                     "sat frozen near uniform. A quarter to two-thirds of deals are bundles.",
+            "peer_cooperation": "The multi-issue payoff that is REAL is JOINT and attestation-gated: the "
+                                "engine's new cooperation dial lifts joint welfare +2.0% at the shipped 0.6 "
+                                "(validated), captured only when both sides cooperate — which is why verified "
+                                "peers (staking) are the vehicle. It is not individually selected (mutualistic).",
+            "absolute_fitness": "The population MEAN does not improve against a frozen reference panel "
+                                "(a co-evolutionary Red Queen treadmill) — reported honestly. The gains "
+                                "live in the tail of the search, not the average.",
+            "honest_negatives": [
+                "Negotiated crossover (9.0 gens to assemble a split block) does NOT beat uniform (3.6) "
+                "— does no special linkage work; kept for the story, said so.",
+                "Courtship impasse is independent of parent genetic distance — no emergent "
+                "reproductive isolation; impasse is a flat fecundity cost.",
+                "Negotiated surplus is only ~1/3 of fitness variance; the rest is demographic.",
+                "The multi-issue own-surplus 'win' is a preference-specialization artifact; the honest "
+                "efficiency metric shows the raw logroller at the ceiling.",
+            ],
         },
     }
 

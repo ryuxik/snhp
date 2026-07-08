@@ -106,6 +106,17 @@ class _BundleModel:
     best_idx: Optional[int]
 
 
+def _resolve_cooperation(cooperation, peer_mode):
+    """Resolve the selection tilt in [0,1]. An explicit caller value always wins;
+    otherwise default to the tuned peer cooperation under peer_mode, or pure Nash
+    (0.0) on the adversarial path. Exposing `cooperation` as a first-class dial
+    (independent of peer_mode) lets a caller ask for more joint-welfare-tilted
+    logrolling without also asserting a trusted-BATNA verified peer."""
+    if cooperation is not None:
+        return float(np.clip(cooperation, 0.0, 1.0))
+    return get_param("bundle_peer_cooperation") if peer_mode else 0.0
+
+
 def _cooperative_solution(pareto_indices, u_self, u_opp, batna_self, batna_opp,
                           cooperation):
     """Verified-peer package selection over the Pareto frontier. Both BATNAs are
@@ -132,11 +143,12 @@ def _cooperative_solution(pareto_indices, u_self, u_opp, batna_self, batna_opp,
 
 
 def _build_model(issues, their_offers, my_priorities, my_batna, their_batna_estimate,
-                 peer_mode=False):
+                 peer_mode=False, cooperation=None):
     """Build the outcome space, infer their priorities, and pick the package.
     In peer_mode the counterparty is a verified peer: BATNAs are treated as true
-    and the cooperative (efficient) point is chosen. Assumes `issues` is validated
-    and has >= 2 issues."""
+    and the cooperative (efficient) point is chosen. `cooperation` overrides the
+    selection tilt (see _resolve_cooperation). Assumes `issues` is validated and
+    has >= 2 issues."""
     n_issues = len(issues)
     names = [iss["name"] for iss in issues]
     options = [list(iss["options"]) for iss in issues]
@@ -204,11 +216,19 @@ def _build_model(issues, their_offers, my_priorities, my_batna, their_batna_esti
 
     u_opp = their_per_dim @ their_w
     pareto_idx = filter_pareto_frontier(idx_grid.astype(np.float64), u_self, u_opp)
-    if peer_mode:
-        # verified peer: true BATNAs, cooperative efficient selection
+    coop = _resolve_cooperation(cooperation, peer_mode)
+    if peer_mode or coop > 0.0:
+        # Cooperative EFFICIENT selection over frontier points clearing both
+        # BATNAs. peer_mode trusts the exchanged BATNAs and signals priorities;
+        # a bare cooperation dial tilts the SAME selection toward joint welfare
+        # without asserting a verified peer. Fall back to the adversarial Nash
+        # point if no frontier package clears both BATNAs, so a cooperation
+        # request never spuriously walks a deal the Nash path would have taken.
         best_idx = _cooperative_solution(
-            pareto_idx, u_self, u_opp, my_batna, their_batna_estimate,
-            get_param("bundle_peer_cooperation"))
+            pareto_idx, u_self, u_opp, my_batna, their_batna_estimate, coop)
+        if best_idx is None and not peer_mode:
+            best_idx = find_nash_bargaining_solution(
+                pareto_idx, u_self, u_opp, my_batna, their_batna_estimate, batna_b_inferred=True)
     else:
         best_idx = find_nash_bargaining_solution(
             pareto_idx, u_self, u_opp, my_batna, their_batna_estimate, batna_b_inferred=True)
@@ -229,6 +249,7 @@ def negotiate_bundle(
     my_batna: float = 0.40,
     their_batna_estimate: float = 0.40,
     peer_mode: bool = False,
+    cooperation: Optional[float] = None,
 ) -> dict:
     """
     Recommend a multi-issue package by logrolling. See module docstring.
@@ -249,6 +270,13 @@ def negotiate_bundle(
         both BATNAs) is chosen instead of the adversarial Bayesian-Nash point.
         Two peers who both run this grow the joint surplus (validated:
         `python -m gametheory.negotiation.bundle_validation --peer`).
+    cooperation: optional selection tilt in [0,1], INDEPENDENT of peer_mode. 0 =
+        the adversarial Bayesian-Nash point; 1 = the joint-welfare-maximizing
+        Pareto point that still clears both BATNAs; intermediate = a blend. Omit
+        (None) for the defaults: the tuned peer cooperation under peer_mode, else
+        pure Nash. Set it explicitly to dial logrolling generosity — e.g. a market
+        that rewards durable relationships over squeezing each deal — without
+        asserting a verified peer. Validated: `bundle_validation --cooperation`.
 
     Returns {action, recommended_offer (issue->option), message, my_utility,
     their_expected_utility, inferred_their_priorities, trade_logic, fit,
@@ -271,7 +299,7 @@ def negotiate_bundle(
             "acceptance_probability": None,
         }
     m = _build_model(issues, their_offers, my_priorities, my_batna,
-                     their_batna_estimate, peer_mode=peer_mode)
+                     their_batna_estimate, peer_mode=peer_mode, cooperation=cooperation)
     names, options = m.names, m.options
     my_w, my_u, their_u = m.my_w, m.my_u, m.their_u
     idx_grid, my_per_dim = m.idx_grid, m.my_per_dim
