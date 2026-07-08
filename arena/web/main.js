@@ -94,8 +94,20 @@
       dynasty_founded: ["A DYNASTY RISES", ev.blurb || ""],
       era_flip: ["THE MARKET TURNS", ev.blurb || ""],
       grand_auction: ["GRAND AUCTION", ev.blurb || ""],
+      challenger: ["A CHALLENGER ENTERS", ev.blurb || ""],
     };
     const tt = titles[ev.kind]; if (tt) FX.cutIn(tt[0], tt[1].toUpperCase());
+  };
+  // YOUR champion's arrival and fall are always worth the fanfare — the whole
+  // forge loop hinges on these two beats landing (rate limit bypassed).
+  W.onChampion = (kind, x) => {
+    if (kind === "arrived") { FX.cutIn("YOUR CHAMPION ENTERS", (x.name || "").toUpperCase()); A.sound.play("bell"); }
+    else if (kind === "fallen") {
+      FX.cutIn("YOUR CHAMPION FALLS",
+        x.heirs ? (x.heirs + " OF THE LINE CARRY ON") : "THE LINE IS ENDED");
+      A.sound.play("gutter");
+    }
+    lastCut = performance.now();
   };
   // duel sounds
   const origClose = W.onDuelClose;

@@ -152,12 +152,15 @@
             h.wealth += r.energy; houses.set(r.house, h);
           }
           const SP2 = A.sprites;
-          const top = [...houses.values()].sort((p, q) => q.wealth - p.wealth).slice(0, 4)
+          const top = [...houses.values()].sort((p, q) => q.wealth - p.wealth)
             .map(h => {
               const ag = [...this.agents.values()].find(a => a.house === h.house);
-              return { ...h, ramp: ag ? SP2.rampFor(ag.g) : SP2.rampForHouse(h.house) };
+              const lead = this.leaderboard.find(r => r.house === h.house);
+              return { ...h, ramp: ag ? SP2.rampFor(ag.g) : SP2.rampForHouse(h.house),
+                       lead: lead ? lead.name : "" };
             });
-          S.setBanners(top);
+          this.houseWealth = top;          // the DYNASTIES panel ranks HOUSES
+          S.setBanners(top.slice(0, 4));   // and the hall hangs the top four
           break;
         }
         case "species.update": this.species = ev.species || []; break;
@@ -232,9 +235,9 @@
       this.dealHeat.push({ x: z.x, y: z.y + 8, life: 60 });
       // credit the two duelists' energy (≈ engine's energy_per_surplus) so the
       // client tracks deal income, not just the upkeep decrements
-      const seller = this.agents.get(d.a), buyer = d.house ? null : this.agents.get(d.b);
-      if (seller) seller.energy += (d.surplus.seller || 0) * 34;
-      if (buyer) buyer.energy += (d.surplus.buyer || 0) * 34;
+      const seller = this.agents.get(d.a), buyer = this.agents.get(d.b);
+      if (seller) { seller.energy += (d.surplus.seller || 0) * 34; seller.deals = (seller.deals || 0) + 1; }
+      if (buyer) { buyer.energy += (d.surplus.buyer || 0) * 34; buyer.deals = (buyer.deals || 0) + 1; }
     },
 
     _walk(ev) {

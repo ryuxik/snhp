@@ -31,9 +31,14 @@
     vc.drawImage(_low, 0, 0, SIZE * scale, SIZE * scale);
 
     $("bloom-house").textContent = "House " + ev.house;
-    const f = ev.flower || {};
+    const f = ev.flower || {}, g = ev.genome || {};
+    // beauty IS strategy: name the negotiation genome this flower renders
+    const strat = g.tactic_family
+      ? `a ${g.tactic_family}'s ${f.species || "flower"} · boldness ${Math.round((g.pareto_knob || 0) * 100)}`
+        + (g.staked ? " · staked" : "")
+      : (f.species || "flower");
     $("bloom-meta").innerHTML =
-      `${f.species || "flower"} · judged fairest by ${ev.pollinator ? ev.pollinator.glyph + " " + ev.pollinator.name : "the season"}`
+      `${strat}<br>judged fairest by ${ev.pollinator ? ev.pollinator.glyph + " " + ev.pollinator.name : "the season"}`
       + ` · beauty <b>${Math.round((ev.beauty || 0) * 100)}</b>`;
 
     overlay.classList.remove("hidden");

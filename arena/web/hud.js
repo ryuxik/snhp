@@ -48,25 +48,27 @@
 
     _myHouse();
 
-    // dynasty leaderboard
+    // dynasty leaderboard — HOUSES ranked by combined wealth (what "dynasty"
+    // means), each with its leading soul; matches the banners in the hall
     const lb = $("leaderboard");
-    let html = '<div class="lb-title">dynasties</div>';
-    for (const r of (w.leaderboard || []).slice(0, 6)) {
-      const ag = w.agents.get(r.id);
-      const ramp = ag ? SP.rampFor(ag.g) : SP.rampForHouse(r.house || "");
-      const star = w.myHouse && r.house === w.myHouse ? "★" : "";
-      html += `<div class="lb-row"><span class="lb-swatch" style="background:${ramp[3]}"></span>`
-        + `<span class="lb-name">${star}${_esc(r.house)} · ${_esc(shortName(r.name))}</span>`
-        + `<span class="lb-energy">${Math.round(r.energy)}</span></div>`;
+    let html = '<div class="lb-title">dynasties · house wealth</div>';
+    for (const h of (w.houseWealth || []).slice(0, 6)) {
+      const star = w.myHouse && h.house === w.myHouse ? "★" : "";
+      html += `<div class="lb-row"><span class="lb-swatch" style="background:${h.ramp[3]}"></span>`
+        + `<span class="lb-name">${star}${_esc(h.house)}`
+        + (h.lead ? ` <span style="opacity:.55">· ${_esc(shortName(h.lead))}</span>` : "")
+        + `</span><span class="lb-energy">${Math.round(h.wealth)}</span></div>`;
     }
     lb.innerHTML = html;
 
-    // census
+    // census — bars wear the ACTUAL color of each species' exemplar sprite, so
+    // the bars match the crowd you're looking at (not an unrelated palette)
     const cs = $("census");
     let ch = '<div class="cs-title">census · ' + (w.census.pop || w.agents.size) + " souls</div>";
     const tot = (w.species || []).reduce((s, sp) => s + sp.count, 0) || 1;
     for (const sp of (w.species || []).slice(0, 6)) {
-      const ramp = SP.RAMPS[sp.id % SP.RAMPS.length];
+      const ex = w.agents.get(sp.exemplar);
+      const ramp = ex ? SP.rampFor(ex.g) : SP.RAMPS[sp.id % SP.RAMPS.length];
       ch += `<div class="cs-bar" style="width:${(100 * sp.count / tot).toFixed(0)}%;background:${ramp[3]}"></div>`;
     }
     const c = w.census;
