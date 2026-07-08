@@ -201,6 +201,7 @@
       const zone = this._freeZone();
       const d = {
         neg: ev.neg, a: ev.a, b: ev.b, house: ev.house, kind: ev.kind, zone,
+        peer: !!ev.peer,
         spread: 1, prevSpread: 1, sellerPos: 0.8, buyerPos: 0.2,
         phase: "approach", flash: 0, shake: 0, dead: 0,
         stakes: ev.stakes || {}, overflow: zone < 0, runes: [], t: 0,

@@ -36,7 +36,7 @@ Every event is a JSON object with a common envelope:
 
 | type | key fields |
 |---|---|
-| `neg.start` | `neg, kind("price"\|"bundle"), a, b, house, roles{seller,buyer}, stakes{rivalry{meetings,series},last_stand}` |
+| `neg.start` | `neg, kind("price"\|"bundle"), a, b, house, peer(bool — a PACT: both sides attested), roles{seller,buyer}, stakes{rivalry{meetings,series},last_stand}` |
 | `neg.offer` | `neg, turn, actor("seller"\|"buyer"), pos` (price) or `package` (bundle), `action`, `spread` |
 | `neg.accept` | `neg, pos`/`package`, `surplus{seller,buyer}`, `rounds`, `kind` |
 | `neg.walk` | `neg, actor, reason("below_floor"\|"timeout"\|"no_package")` |
@@ -71,7 +71,7 @@ assembled from parent parts on screen.
 | `energy.tick` | `deltas{id→ΔmilliE}` (batched once per upkeep) |
 | `era.change` | `era, label, optimal_knob` |
 | `species.update` | `species[{id,count,centroid[8],exemplar}]` |
-| `census` | `pop, era, staked_frac, mean_knob, era_optimal_knob, mean_energy, n_species, peer_premium, adv_premium, peer_n, tactics{fam→{n,mean_e}}, genes{...}` |
+| `census` | `pop, era, staked_frac, mean_knob, era_optimal_knob, mean_energy, n_species, peer_premium, adv_premium, peer_n, attest_lift, attest_n (paired-seed causal probe: same matchup, attestation on vs off), tactics{fam→{n,mean_e,income}}, genes{...}` |
 | `leaderboard` | `top[{id,name,house,energy,species,lineage}]` |
 | `bloom` | `id, name, house, genome, flower{species,warmth,showiness,height,luminance,layering,staked}, beauty, rarity, pollinator{name,glyph}` — the Bloom of the Generation (full-screen payoff) |
 | `highlight` | `kind, refs{...}, blurb` — the director / cut-in triggers |

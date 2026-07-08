@@ -74,6 +74,14 @@
     const c = w.census;
     ch += `<div class="cs-stat"><span>deal rate</span><b>${c.deal_rate != null ? Math.round(100 * c.deal_rate) + "%" : "—"}</b></div>`;
     ch += `<div class="cs-stat"><span>staked</span><b>${c.staked_frac != null ? Math.round(100 * c.staked_frac) + "%" : "—"}</b></div>`;
+    // the network effect, measured LIVE and CAUSALLY: paired-seed probe (same
+    // pair, same scenario, attestation forced on vs off) — never the lab number
+    if (c.attest_lift != null && c.attest_n) {
+      const lift = 100 * c.attest_lift;
+      ch += `<div class="cs-stat" title="paired probe: same matchup replayed with attestation on vs off"><span>attestation lift</span>`
+        + `<b style="color:${lift >= 0 ? "#ffe08a" : "#e8734a"}">${lift >= 0 ? "+" : ""}${lift.toFixed(0)}% <span style="opacity:.55">n=${c.attest_n}</span></b></div>`;
+    }
+    ch += `<div class="cs-stat"><span>matching</span><b>${w.assortative ? "guild gate" : "open gate"}</b></div>`;
     cs.innerHTML = ch;
 
     _strategies();

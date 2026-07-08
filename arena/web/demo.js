@@ -61,8 +61,9 @@
       const neg = negId++;
       const rivalry = Math.random() < 0.25 ? { meetings: 3 + ((Math.random() * 4) | 0), series: [2, 1] } : null;
       const last = Math.random() < 0.12;
+      const peer = !!(agents[a].staked && agents[b].staked);
       active.push({ neg, a: agents[a].id, b: agents[b].id, kind, spread: 0.9, turns: 3 + ((Math.random() * 6) | 0), n: 0 });
-      cb(ev({ type: "neg.start", neg, kind, a: agents[a].id, b: agents[b].id, house: false,
+      cb(ev({ type: "neg.start", neg, kind, a: agents[a].id, b: agents[b].id, house: false, peer,
         roles: { seller: agents[a].id, buyer: agents[b].id }, stakes: { rivalry, last_stand: last } }));
     }
     const timer = setInterval(() => {
@@ -106,7 +107,8 @@
           tactics[f].n++; tactics[f].mean_e = Math.round(100 + Math.random() * 150);
           tactics[f].income = Math.round((15 + Math.random() * 25) * 10) / 10;
         }
-        cb(ev({ type: "census", pop: agents.length, era: era, staked_frac: 0.14, mean_knob: 0.5 + Math.sin(step / 30) * 0.15, era_optimal_knob: 0.7, mean_energy: 180, n_species: 5, deal_rate: 0.6, tactics }));
+        cb(ev({ type: "census", pop: agents.length, era: era, staked_frac: 0.14, mean_knob: 0.5 + Math.sin(step / 30) * 0.15, era_optimal_knob: 0.7, mean_energy: 180, n_species: 5, deal_rate: 0.6, tactics,
+          attest_lift: 0.1 + Math.random() * 0.1, attest_n: 20 + ((Math.random() * 30) | 0) }));
         cb(ev({ type: "species.update", species: [0, 1, 2, 3, 4].map(id => ({ id, count: 2 + ((Math.random() * 5) | 0), centroid: [], exemplar: id })) }));
       }
     }, 850);

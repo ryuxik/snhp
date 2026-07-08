@@ -107,7 +107,9 @@ def stats() -> dict:
         "honest_claims": {
             "shows": [
                 "Every deal is computed by the shipped SNHP engine — zero arena-side strategy code.",
-                "The cooperation premium is reproduced qualitatively and measured live (this run's n).",
+                "Attestation's lift is measured CAUSALLY: a paired-seed probe replays the same "
+                "matchup and scenario with attestation forced on vs off (the observational "
+                "pact-vs-ordinary comparison is genome-confounded and is not displayed).",
                 "Strategy rank is market-dependent — watch it change when the era flips.",
                 "Inheritance is mechanism-mediated: children are settled logrolled packages; "
                 "matings are deferred-acceptance outcomes.",
@@ -116,7 +118,11 @@ def stats() -> dict:
             "does_not_show": [
                 "That agents 'reach the Nash equilibrium' — offers are subjective Nash points under Bayesian beliefs.",
                 "That 'SNHP wins' — rank depends on the market.",
-                "The lab's +0.186 / +12.5% as arena numbers — the HUD shows this run's own measured premium.",
+                "The lab's +0.186 / +12.5% as arena numbers — the HUD shows this run's own paired-probe lift.",
+                "The engine's PEER playbook itself: it is validated on multi-issue frontiers "
+                "(joint utility > 1 via logrolling) and is infeasible on the arena's single-issue "
+                "price deals, so staked pairs here demonstrate attestation's INFORMATION channels "
+                "(truthful reservations; true-BATNA exchange on bundles) — shipped code, honestly scoped.",
                 "Deception — walk_margin is Schelling commitment to your OWN advisor, not a lie to the counterparty.",
             ],
             "keystone": "Nothing in this arena knows how to negotiate except the library being showcased.",

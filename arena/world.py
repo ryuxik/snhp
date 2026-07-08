@@ -77,6 +77,12 @@ class World:
         # per-generation income by tactic — the REAL "who's winning" scoreboard
         # (wealth is cumulative and luck-confounded; income/gen is the signal)
         self._gen_income: dict[str, float] = {}
+        # attestation probe: paired-seed counterfactuals (same pair, same
+        # scenario, staked forced on vs off). The observational peer-vs-ordinary
+        # comparison is confounded by genome composition; this is the causal
+        # lift, measured the way the repo measures everything (paired seeds).
+        from collections import deque as _deque
+        self._attest_pairs = _deque(maxlen=60)
         # viewer-forged champions, queued by the API thread (list.append is
         # atomic under the GIL) and consumed at each generation boundary
         self._champion_queue: list[dict] = []
@@ -214,7 +220,7 @@ class World:
                 starts.append(self._ev(
                     "neg.start", neg=k, kind=meta["kind"], a=meta["sid"],
                     b=(meta["bid"] if not meta["house"] else -1),
-                    house=meta["house"],
+                    house=meta["house"], peer=meta.get("peer", False),
                     roles={"seller": meta["sid"], "buyer": meta["bid"]},
                     stakes={"rivalry": rv, "last_stand": self._is_last_stand(meta["sid"])}))
             return starts
@@ -259,7 +265,10 @@ class World:
             buyer_g = b.genome
         neg_seed = cfg.seed * 1_000_003 + self.gen * 9973 + k
         dl = self._horizon(seller_g, buyer_g)  # house bot is unstaked -> peer=False
-        meta = {"neg": k, "sid": sid, "bid": bid, "kind": kind, "house": is_house}
+        meta = {"neg": k, "sid": sid, "bid": bid, "kind": kind, "house": is_house,
+                # a PACT: both sides attested — truthful reservations (price) /
+                # true-BATNA exchange (bundle); the renderer marks these deals
+                "peer": bool(seller_g.staked and buyer_g.staked)}
         if kind == "bundle":
             bs = sc.gen_bundle_scenario(cfg, self.era, self.rng)
             s_side = ex.Side(seller_g, "seller", 0.0, sid)
@@ -267,9 +276,32 @@ class World:
             return meta, ex.run_bundle_negotiation(s_side, b_side, bs, dl, neg_seed, cfg)
         center = sc.era_center(self.era, self.era_interp, self.prev_era)
         ps = sc.gen_price_scenario(cfg, self.era, center, self.rng)
+        if not is_house and k % 4 == 0:
+            self._probe_attestation(seller_g, buyer_g, ps, dl, neg_seed)
         s_side = ex.Side(seller_g, "seller", ps.r_s, sid)
         b_side = ex.Side(buyer_g, "buyer", ps.r_b, bid)
         return meta, ex.run_price_negotiation(s_side, b_side, ps, dl, neg_seed, cfg)
+
+    def _probe_attestation(self, sg: Genome, bg: Genome, ps, dl: int, seed: int) -> None:
+        """Off-log counterfactual pair: this exact matchup and scenario played
+        twice, staked forced ON then OFF, same seed. The paired difference is
+        the causal attestation lift the census reports (no events, no energy —
+        a measurement, not a deal)."""
+        from dataclasses import replace as _rp
+        joints = []
+        for staked in (True, False):
+            s2, b2 = _rp(sg, staked=staked), _rp(bg, staked=staked)
+            g = ex.run_price_negotiation(ex.Side(s2, "seller", ps.r_s, -2),
+                                         ex.Side(b2, "buyer", ps.r_b, -3),
+                                         ps, dl, seed ^ 0x5A17E, self.cfg)
+            out = None
+            try:
+                while True:
+                    next(g)
+            except StopIteration as e:
+                out = e.value
+            joints.append((out.surplus_seller + out.surplus_buyer) if out.deal else 0.0)
+        self._attest_pairs.append((joints[0], joints[1]))
 
     def _build_schedule(self, agents):
         """deals_per_gen per agent as seller/buyer split; pairing random (or
@@ -336,14 +368,15 @@ class World:
         sid, bid, house = m["sid"], m["bid"], m["house"]
         seller = self.agents.get(sid)   # None when the house is the seller (-1)
         buyer = self.agents.get(bid)    # None when the house is the buyer (-1)
+        # premium metric: joint surplus per ATTEMPT (walks count as zero) for
+        # intra-population pacts vs ordinary pairs. Per-closed-deal would hide
+        # attestation's actual benefit — truthful reservations close the thin
+        # deals bluffers kill, so the lift is volume, not fatter closes.
+        if not house:
+            joint = (out.surplus_seller + out.surplus_buyer) if out.deal else 0.0
+            (self._peer_surplus_samples if out.peer
+             else self._adv_surplus_samples).append(joint)
         if out.deal:
-            # premium metrics compare INTRA-population staked vs unstaked pairs;
-            # house-bot deals belong to neither sample.
-            if not house:
-                if out.peer:
-                    self._peer_surplus_samples.append(out.surplus_seller + out.surplus_buyer)
-                else:
-                    self._adv_surplus_samples.append(out.surplus_seller + out.surplus_buyer)
             if seller is not None:
                 self._credit_deal(seller, out.surplus_seller,
                                   counterparty_surplus=out.surplus_buyer)
@@ -620,6 +653,14 @@ class World:
                    for k, v in fam.items()}
         peer_prem = float(np.mean(self._peer_surplus_samples)) if self._peer_surplus_samples else None
         adv_prem = float(np.mean(self._adv_surplus_samples)) if self._adv_surplus_samples else None
+        # causal attestation lift from the paired probe (rolling window)
+        attest_lift = attest_n = None
+        if len(self._attest_pairs) >= 8:
+            on = float(np.mean([p[0] for p in self._attest_pairs]))
+            off = float(np.mean([p[1] for p in self._attest_pairs]))
+            if off > 1e-6:
+                attest_lift = round((on - off) / off, 3)
+                attest_n = len(self._attest_pairs)
         yield self._ev("census", pop=len(agents), era=self.era,
                        staked_frac=round(float(staked_frac), 3),
                        mean_knob=round(mean_knob, 3),
@@ -629,6 +670,7 @@ class World:
                        peer_premium=(round(peer_prem, 4) if peer_prem is not None else None),
                        adv_premium=(round(adv_prem, 4) if adv_prem is not None else None),
                        peer_n=len(self._peer_surplus_samples),
+                       attest_lift=attest_lift, attest_n=attest_n,
                        tactics=tactics,
                        genes=self._mean_genes(agents))
         self._peer_surplus_samples.clear()

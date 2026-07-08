@@ -313,9 +313,12 @@
     ctx.globalAlpha = focal ? 0.35 : 0.2; ctx.fillStyle = "#7c7790";
     ctx.fillRect(bx - pw / 2, by, pw, 2); ctx.globalAlpha = 1;
     if (!focal) ctx.globalAlpha = 0.55;
-    ctx.fillStyle = narrowing ? (focal ? "#d8c8ff" : "#bba6ff") : "#e8734a";
+    // a PACT (both sides attested) negotiates in gold — cooperation is visible
+    ctx.fillStyle = d.peer ? (narrowing ? "#ffe08a" : "#e8a33d")
+      : narrowing ? (focal ? "#d8c8ff" : "#bba6ff") : "#e8734a";
     ctx.fillRect(bx - w / 2, by, w, h);
     ctx.globalAlpha = 1;
+    if (d.peer) FX.text(ctx, "PACT", bx - 8, by - 7, "#ffe08a", 1);
     if (d.kind === "bundle" && d.runeCount) {
       for (let i = 0; i < d.runeCount; i++) { ctx.fillStyle = i < (d.t > 0 ? d.runeCount : 0) ? "#a78bfa" : "#2a2438"; ctx.fillRect(bx - d.runeCount * 3 + i * 6, by - 8, 4, 4); }
     }
