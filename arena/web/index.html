@@ -1,13 +1,15 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>SNHP Evolution Arena — watch negotiators evolve, live</title>
-<meta name="description" content="A live, always-on world where pixel-art AI agents negotiate real deals with the SNHP engine, earn, court, bargain over their children's genes, and evolve." />
+<title>SNHP Evolution Arena — the AI that taught itself to out-negotiate us</title>
+<meta name="description" content="A live, always-on world where pixel-art AI knights negotiate real deals to survive and breed. It evolved a strategy that beats the recommender we shipped by +27% — every move computed by one library." />
 <meta name="theme-color" content="#0B0A12" />
-<meta property="og:title" content="SNHP Evolution Arena" />
-<meta property="og:description" content="Watch AI negotiators evolve, live. Every deal is computed by the shipped SNHP engine." />
+<meta property="og:title" content="The AI taught itself to out-negotiate the people who built it" />
+<meta property="og:description" content="A live world where AI knights negotiate to survive, breed, and pass on the winning moves. It evolved a strategy that beats the recommender we shipped by +27%. Nothing here knows how to haggle except the library." />
 <meta property="og:type" content="website" />
 <meta property="og:image" content="https://arena.snhp.dev/og.png" />
 <meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="The AI taught itself to out-negotiate the people who built it" />
+<meta name="twitter:description" content="A live world where AI knights negotiate to survive and breed. It evolved a strategy that beats our shipped recommender by +27%." />
 <meta name="twitter:image" content="https://arena.snhp.dev/og.png" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230B0A12'/%3E%3Crect x='6' y='3' width='4' height='10' fill='%23A78BFA'/%3E%3C/svg%3E" />
 <link rel="stylesheet" href="styles.css?v=1" />
@@ -31,6 +33,7 @@
     <div id="science" class="hud-panel"></div>
     <div id="conn-chip"></div>
     <button id="sound-btn" title="sound">♪</button>
+    <button id="honest-btn" title="what's real — and what's not, even our own hype">✓?</button>
     <button id="help-btn" title="what am I looking at?">?</button>
   </div>
 
@@ -46,13 +49,14 @@
   <div id="onboard" class="overlay hidden">
     <div class="onboard-card">
       <h1>The Bazaar in the Castle</h1>
+      <p class="onboard-stake">Eight houses of AI knights, negotiating for their lives. Win deals → they eat and breed. Lose → they starve. Nobody taught them how to haggle — <b>that part is the library.</b></p>
       <ol>
         <li><b>Every knight negotiates with SNHP at its ear</b> — its tactic is how boldly it follows the advice, and its look <i>is</i> its strategy.</li>
         <li>When two meet, the <b>shrinking bar</b> is the deal closing. <b>Gold flash</b> = agreement; earnings are life.</li>
         <li>The rich <b>bloom</b> — a flower only winners can afford — <b>court</b>, and haggle over which traits their <b>children</b> inherit.</li>
         <li>When the <b>stained glass turns</b>, the market turns, and a new pollinator decides what is beautiful. Strategies rise and fall with the season.</li>
       </ol>
-      <p class="fine">Every deal is computed by the shipped <b>SNHP</b> engine — nothing here knows how to negotiate except the library being shown off.</p>
+      <p class="fine">Every deal is computed by the shipped <b>SNHP</b> engine — nothing here knows how to negotiate except the library being shown off. <a href="#" id="onboard-honest-link">▸ what's real, and what's not (even our own hype)</a></p>
       <div class="pick-title">FORGE A CHAMPION — a real SNHP strategy, sent into the world:</div>
       <div id="house-grid"></div>
       <div id="forge-dials">
@@ -67,6 +71,48 @@
         <button id="forge-send" disabled>pick a house first</button>
         <button id="onboard-dismiss" class="ghost">just watch →</button>
       </div>
+    </div>
+  </div>
+
+  <div id="honest" class="overlay hidden">
+    <div class="honest-card">
+      <button id="honest-close" class="ghost hx" title="close">✕</button>
+      <div class="honest-eyebrow">THE HONEST PAGE</div>
+      <h1>We published the results that make us look bad.</h1>
+      <p class="honest-sub">Exactly how this world works — and what's real, what's not, even when the “not” is our own hype.</p>
+
+      <div class="honest-live" id="honest-live"></div>
+
+      <section class="honest-sec">
+        <h2>How they live or die</h2>
+        <p>Nobody scores their negotiating. It's a <b>town, not an exam.</b></p>
+        <ul>
+          <li>A knight <b>earns energy</b> from the surplus it wins in a deal.</li>
+          <li>Every round it <b>pays rent</b> — more if its strategy is crowded. Broke, it dies.</li>
+          <li><b>Bank enough and it breeds</b> — the two parents haggle over which genes the child gets.</li>
+        </ul>
+        <p class="honest-punch">Good dealmakers eat and multiply. Bad ones starve. Fitness is money, not a score we hand out.</p>
+      </section>
+
+      <div class="honest-cols">
+        <section class="honest-col real">
+          <h3>What's real</h3>
+          <ul>
+            <li><b>Students beat the textbook.</b> Evolution found a price strategy that out-earns SNHP's own default advice by <b>+27%</b>.</li>
+            <li><b>Trust grows the pie.</b> Two verified partners who cooperate both do better (+2% together). A lone cooperator gains nothing — that's why you stake.</li>
+            <li><b>Every move is SNHP.</b> There is zero negotiation code in the arena itself.</li>
+          </ul>
+        </section>
+        <section class="honest-col hype">
+          <h3>What's hype — even ours</h3>
+          <ul>
+            <li><b>“+119% on multi-issue”</b> is an artifact — agents evolved to <i>want less</i>, so every deal looks like a win. On the fair metric, our recommender is already at the ceiling.</li>
+            <li><b>“Fitness always rises”</b> is false. The average runs to stay in place (a Red Queen race). The winners are rare.</li>
+            <li><b>“Emergent species, clever gene-bargaining”</b> — no. Those tie a coin flip. We say so.</li>
+          </ul>
+        </section>
+      </div>
+      <p class="honest-repro">Every number reproducible → <code>python -m arena.science --all</code></p>
     </div>
   </div>
 </div>

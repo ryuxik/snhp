@@ -250,14 +250,36 @@
     }
   }
 
+  // The Honest Page: live proof strip on top of the durable plain-language copy
+  // (the findings are static in index.html so they hold offline / in demo).
+  function _renderHonestLive() {
+    const el = $("honest-live"); if (!el) return;
+    const c = W.census || {}, cell = (label, val) =>
+      `<div class="hl-cell"><span class="hl-v">${val}</span><span class="hl-k">${label}</span></div>`;
+    const lift = c.attest_lift != null ? (c.attest_lift >= 0 ? "+" : "") + Math.round(100 * c.attest_lift) + "%" : "—";
+    el.innerHTML =
+      cell("generation", "#" + (W.gen || 0)) +
+      cell("deal rate", c.deal_rate != null ? Math.round(100 * c.deal_rate) + "%" : "—") +
+      cell("staked", c.staked_frac != null ? Math.round(100 * c.staked_frac) + "%" : "—") +
+      cell("trust lift (live)", lift);
+  }
+
   function initControls() {
     const help = $("help-btn"), onb = $("onboard"), dismiss = $("onboard-dismiss");
+    const honest = $("honest");
     _buildHouseGrid();
     $("forge-send").onclick = _forgeSend;
     const seen = (function () { try { return localStorage.getItem("arena-seen"); } catch (e) { return 1; } })();
     if (!seen) onb.classList.remove("hidden");
     dismiss.onclick = () => { onb.classList.add("hidden"); try { localStorage.setItem("arena-seen", "1"); } catch (e) { } };
     help.onclick = () => onb.classList.remove("hidden");
+    // Honest Page: openable from the HUD chip, the onboarding link, or the
+    // live strategies panel title (the natural "tell me more" click).
+    const openHonest = (e) => { if (e) e.preventDefault(); _renderHonestLive(); honest.classList.remove("hidden"); };
+    $("honest-btn").onclick = openHonest;
+    $("honest-close").onclick = () => honest.classList.add("hidden");
+    honest.onclick = (e) => { if (e.target === honest) honest.classList.add("hidden"); };
+    const ol = $("onboard-honest-link"); if (ol) ol.onclick = openHonest;
     const sb = $("sound-btn");
     sb.onclick = () => { const on = A.sound.toggle(); sb.classList.toggle("on", on); };
     W.onTicker = () => pushTicker();

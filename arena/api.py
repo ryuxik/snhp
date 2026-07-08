@@ -104,6 +104,36 @@ def stats() -> dict:
     return {
         "gen": w.gen, "era": w.era,
         "config": w.cfg.to_public_dict(),
+        # Plain-language lead — the same explanation the on-page "Honest Page"
+        # shows. If you can't say it simply, it isn't a shareable artifact.
+        "plain": {
+            "how_they_live_or_die": [
+                "Nobody scores their negotiating. It's a town, not an exam.",
+                "A knight earns energy from the surplus it wins in a deal. Every round it "
+                "pays rent — more if lots of others use its strategy. Broke, it dies.",
+                "Bank enough and it breeds — and the two parents haggle over which genes "
+                "the child gets. Good dealmakers eat and multiply; bad ones starve.",
+                "That's the whole rule. The market is the only judge — fitness is money, "
+                "not a score we hand out.",
+            ],
+            "whats_real": [
+                "Students beat the textbook: evolution found a price strategy that "
+                "out-earns SNHP's own default advice by +27%.",
+                "Trust grows the pie: two verified partners who cooperate both do better "
+                "(+2% together); a lone cooperator gains nothing — why you need peers.",
+                "Every move is SNHP. There is zero negotiation code in the arena itself.",
+            ],
+            "whats_hype_even_ours": [
+                "'+119% on multi-issue' is an ARTIFACT: agents evolved to want less, so "
+                "every deal looks like a win. On the fair metric our recommender is already "
+                "at the ceiling — evolution can't beat it.",
+                "'Fitness always rises' is false: the average runs to stay in place (a Red "
+                "Queen race). The winners are rare, not typical.",
+                "'Emergent species / clever gene-bargaining' — no. Those tie a coin flip. "
+                "We say so.",
+            ],
+            "reproduce": "Every number is reproducible: python -m arena.science --all",
+        },
         "honest_claims": {
             "shows": [
                 "Every deal is computed by the shipped SNHP engine — zero arena-side strategy code.",
