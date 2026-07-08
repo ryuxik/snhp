@@ -33,6 +33,7 @@ from typing import Optional
 import numpy as np
 
 from gametheory._internal import ensure_snhp_path  # noqa: F401  (side-effect import)
+from gametheory.negotiation._config import get_param, get_int_param
 
 from bayesian_agent import BayesianParticleFilter  # noqa: E402
 from nash_solver import filter_pareto_frontier, find_nash_bargaining_solution  # noqa: E402
@@ -41,6 +42,8 @@ from nash_solver import filter_pareto_frontier, find_nash_bargaining_solution  #
 # The Pareto filter is O(n^2); keep the outcome space sane. 4 issues x 7 options
 # = 2401; a job offer (7x5x4) = 140. Real contracts live well under this.
 _MAX_OUTCOMES = 4000
+# Filter knobs live in _config.py (env-overridable via SNHP_BUNDLE_*); these
+# module constants are the fallback defaults and match the registry defaults.
 _N_PARTICLES = 500
 _PRIOR_UNCERTAINTY = 0.2
 
@@ -141,7 +144,9 @@ def _build_model(issues, their_offers, my_priorities, my_batna, their_batna_esti
     # estimate when they've actually made offers — cold-start their_w stays the
     # validated uniform default, leaving the closed-form package unchanged.
     bf = BayesianParticleFilter(
-        num_variables=n_issues, num_particles=_N_PARTICLES, uncertainty=_PRIOR_UNCERTAINTY)
+        num_variables=n_issues,
+        num_particles=get_int_param("bundle_n_particles"),
+        uncertainty=get_param("bundle_prior_uncertainty"))
     if their_offers:
         for offer in their_offers:
             missing = [names[i] for i in range(n_issues) if offer.get(names[i]) is None]

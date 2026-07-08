@@ -1,0 +1,183 @@
+/* DOM HUD: era banner, YOUR HOUSE fortunes, dynasty leaderboard, species
+   census, the STRATEGIES panel (who's winning, by tactic — evolution made
+   watchable), lineage ticker, and the back-a-house onboarding. Clips crop to
+   canvas, so nothing here is story-load-bearing — it's the live-page chrome. */
+(function () {
+  "use strict";
+  const A = (window.Arena = window.Arena || {});
+  const W = A.world, SP = A.sprites;
+  const $ = (id) => document.getElementById(id);
+  const ERA_GLYPH = { symmetric: "⚖", buyers: "▼", sellers: "▲", contract: "❖" };
+
+  // The eight founding houses — each an honest corner of the strategy space.
+  const HOUSES = [
+    { name: "Monk", tactic: "boulware", aggr: 0.4, walk: 0.1, knob: 1.0, line: "concedes nothing until the deadline" },
+    { name: "Berserker", tactic: "anchorer", aggr: 0.95, walk: 0.8, knob: 0.9, line: "opens outrageous, bluffs the floor" },
+    { name: "Merchant", tactic: "conceder", aggr: 0.5, walk: 0.25, knob: 0.6, line: "closes fast, wins on volume" },
+    { name: "Mirror", tactic: "mirror", aggr: 0.6, walk: 0.4, knob: 0.6, line: "reflects whatever you concede" },
+    { name: "Gambler", tactic: "closer", aggr: 0.8, walk: 0.9, knob: 0.8, line: "loose floor, strikes at the bell" },
+    { name: "Diplomat", tactic: "conceder", aggr: 0.45, walk: 0.15, knob: 0.5, staked: true, line: "staked & truthful — the network bet" },
+    { name: "Vulture", tactic: "closer", aggr: 0.7, walk: 0.7, knob: 0.85, line: "preys on the desperate" },
+    { name: "Hermit", tactic: "patient", aggr: 0.5, walk: 0.5, knob: 1.0, line: "deals rarely, hoards, outlasts" },
+  ];
+  function houseGenome(h) {
+    return { pareto_knob: h.knob, open_aggression: h.aggr, walk_margin: h.walk,
+      patience: 0.5, bundle_focus: [0.25, 0.25, 0.25, 0.25], mate_w: [0.5, 0.2, 0.1, 0.2],
+      truncation: 0.2, staked: !!h.staked, tactic_family: h.tactic };
+  }
+  const TACTIC_LINE = {
+    anchorer: "anchors huge", boulware: "stone wall", conceder: "deal-maker",
+    mirror: "tit-for-tat", patient: "outlasts", closer: "deadline sniper",
+  };
+
+  function _thumb(g, scale) {
+    const s = SP.build(g), cv = document.createElement("canvas");
+    cv.width = s.w; cv.height = s.h + 2;
+    const c = cv.getContext("2d");
+    c.imageSmoothingEnabled = false; c.drawImage(s.f[0], 0, 0);
+    return cv;
+  }
+
+  function update() {
+    const w = W;
+    $("era-name").textContent = w.eraLabel || "—";
+    $("era-glyph").textContent = ERA_GLYPH[w.era] || "◆";
+    $("gen-counter").textContent = "gen " + w.gen;
+    const poll = $("era-poll");
+    if (poll) poll.textContent = w.pollinator ? w.pollinator.glyph : "";
+
+    _myHouse();
+
+    // dynasty leaderboard
+    const lb = $("leaderboard");
+    let html = '<div class="lb-title">dynasties</div>';
+    for (const r of (w.leaderboard || []).slice(0, 6)) {
+      const ag = w.agents.get(r.id);
+      const ramp = ag ? SP.rampFor(ag.g) : SP.rampForHouse(r.house || "");
+      const star = w.myHouse && r.house === w.myHouse ? "★" : "";
+      html += `<div class="lb-row"><span class="lb-swatch" style="background:${ramp[3]}"></span>`
+        + `<span class="lb-name">${star}${_esc(r.house)} · ${_esc(shortName(r.name))}</span>`
+        + `<span class="lb-energy">${Math.round(r.energy)}</span></div>`;
+    }
+    lb.innerHTML = html;
+
+    // census
+    const cs = $("census");
+    let ch = '<div class="cs-title">census · ' + (w.census.pop || w.agents.size) + " souls</div>";
+    const tot = (w.species || []).reduce((s, sp) => s + sp.count, 0) || 1;
+    for (const sp of (w.species || []).slice(0, 6)) {
+      const ramp = SP.RAMPS[sp.id % SP.RAMPS.length];
+      ch += `<div class="cs-bar" style="width:${(100 * sp.count / tot).toFixed(0)}%;background:${ramp[3]}"></div>`;
+    }
+    const c = w.census;
+    ch += `<div class="cs-stat"><span>deal rate</span><b>${c.deal_rate != null ? Math.round(100 * c.deal_rate) + "%" : "—"}</b></div>`;
+    ch += `<div class="cs-stat"><span>staked</span><b>${c.staked_frac != null ? Math.round(100 * c.staked_frac) + "%" : "—"}</b></div>`;
+    cs.innerHTML = ch;
+
+    _strategies();
+  }
+
+  function _myHouse() {
+    const box = $("myhouse");
+    if (!W.myHouse) { box.classList.add("hidden"); return; }
+    box.classList.remove("hidden");
+    const members = [...W.agents.values()].filter(a => a.house === W.myHouse);
+    // rank among houses by total energy
+    const totals = new Map();
+    for (const a of W.agents.values()) totals.set(a.house, (totals.get(a.house) || 0) + a.energy);
+    const ranked = [...totals.entries()].sort((p, q) => q[1] - p[1]);
+    const rank = ranked.findIndex(([h]) => h === W.myHouse) + 1;
+    const best = members.slice().sort((p, q) => q.energy - p.energy)[0];
+    const ramp = members[0] ? SP.rampFor(members[0].g) : SP.rampForHouse(W.myHouse);
+    box.innerHTML =
+      `<div class="mh-title">your house</div>` +
+      `<div class="mh-name" style="color:${ramp[3]}">★ ${_esc(W.myHouse)}</div>` +
+      (members.length
+        ? `<div class="mh-row"><span>souls</span><b>${members.length}</b></div>` +
+          `<div class="mh-row"><span>rank</span><b>${rank > 0 ? "#" + rank : "—"} of ${ranked.length}</b></div>` +
+          `<div class="mh-row"><span>hoard</span><b>${Math.round(totals.get(W.myHouse) || 0)}</b></div>` +
+          (best ? `<div class="mh-row"><span>champion</span><b>${_esc(shortName(best.name))}</b></div>` : "")
+        : `<div class="mh-row"><span style="color:#8a5a5e">extinct — a candle burns for them</span></div>`);
+  }
+
+  // WHO'S WINNING, by strategy — the evolution you came to watch.
+  function _strategies() {
+    const box = $("science");
+    const tac = W.census.tactics;
+    let html = '<div class="sci-title">strategies · who\'s winning</div>';
+    if (tac) {
+      const rows = Object.entries(tac).sort((p, q) => q[1].mean_e - p[1].mean_e);
+      const prev = W.prevTactics || {};
+      for (const [name, v] of rows) {
+        const ti = SP.TACTICS.indexOf(name);
+        const ramp = SP.RAMPS[(ti >= 0 ? ti : 0) % SP.RAMPS.length];
+        const was = prev[name] ? prev[name].mean_e : v.mean_e;
+        const trend = v.mean_e > was + 1 ? '<span class="strat-up">▲</span>'
+          : v.mean_e < was - 1 ? '<span class="strat-dn">▼</span>' : "·";
+        html += `<div class="strat-row"><span class="strat-chip" style="background:${ramp[3]}"></span>`
+          + `<span class="strat-name">${name} <span style="opacity:.6">· ${v.n}</span></span>`
+          + `<span class="strat-e">${Math.round(v.mean_e)}</span>${trend}</div>`;
+      }
+    }
+    html += '<canvas id="sci-chart" width="200" height="34"></canvas>';
+    box.innerHTML = html;
+    const cv = $("sci-chart");
+    if (cv && W.knobHistory.length) {
+      const c2 = cv.getContext("2d");
+      const plot = (key, col) => {
+        c2.strokeStyle = col; c2.lineWidth = 1.5; c2.beginPath();
+        W.knobHistory.forEach((p, i) => {
+          const x = i / Math.max(1, W.knobHistory.length - 1) * 200, y = 34 - p[key] * 30 - 2;
+          i ? c2.lineTo(x, y) : c2.moveTo(x, y);
+        });
+        c2.stroke();
+      };
+      plot("o", "rgba(154,149,176,0.65)");
+      plot("m", "#a78bfa");
+    }
+  }
+
+  function pushTicker() {
+    const inner = $("ticker-inner");
+    inner.innerHTML = (W.ticker.slice(-14).join("  ·  ")) || "the hall stirs …";
+  }
+
+  function shortName(n) { return (n || "").split(" of ")[0]; }
+  function _esc(s) { return String(s || "").replace(/[<>&]/g, (m) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[m])); }
+
+  function _buildHouseGrid() {
+    const grid = $("house-grid");
+    grid.innerHTML = "";
+    for (const h of HOUSES) {
+      const card = document.createElement("div");
+      card.className = "house-card";
+      const ramp = SP.rampFor(houseGenome(h));
+      card.appendChild(_thumb(houseGenome(h)));
+      const nm = document.createElement("div"); nm.className = "hc-name";
+      nm.textContent = h.name; nm.style.color = ramp[3]; card.appendChild(nm);
+      const ln = document.createElement("div"); ln.className = "hc-line";
+      ln.textContent = h.line; card.appendChild(ln);
+      card.onclick = () => {
+        W.myHouse = h.name;
+        try { localStorage.setItem("arena-house", h.name); } catch (e) { }
+        $("onboard").classList.add("hidden");
+        try { localStorage.setItem("arena-seen", "1"); } catch (e) { }
+      };
+      grid.appendChild(card);
+    }
+  }
+
+  function initControls() {
+    const help = $("help-btn"), onb = $("onboard"), dismiss = $("onboard-dismiss");
+    _buildHouseGrid();
+    const seen = (function () { try { return localStorage.getItem("arena-seen"); } catch (e) { return 1; } })();
+    if (!seen) onb.classList.remove("hidden");
+    dismiss.onclick = () => { onb.classList.add("hidden"); try { localStorage.setItem("arena-seen", "1"); } catch (e) { } };
+    help.onclick = () => onb.classList.remove("hidden");
+    const sb = $("sound-btn");
+    sb.onclick = () => { const on = A.sound.toggle(); sb.classList.toggle("on", on); };
+    W.onTicker = () => pushTicker();
+  }
+
+  A.hud = { update, pushTicker, initControls, HOUSES };
+})();

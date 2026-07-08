@@ -48,6 +48,10 @@ prod = [
     "python-dotenv>=1.0",
     "anthropic>=0.97",
 ]
+# Evolution Arena (arena.snhp.dev): the live WebSocket sim + renderer. FastAPI's
+# WebSocket support needs a protocol library — plain `uvicorn` in `dependencies`
+# ships without one. The arena Dockerfile installs `.[prod,arena]`.
+arena = ["websockets>=12"]
 
 [project.scripts]
 # `uvx snhp` (or `gametheory-mcp`) runs the stdio MCP server.

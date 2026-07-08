@@ -1,0 +1,180 @@
+/* SNHP Evolution Arena — page chrome. The world is all canvas; the HUD is DOM
+   over the letterboxed canvas. Kin to the PAR dark+violet brand. */
+:root {
+  --bg: #07060d;
+  --ink: #e8e8e3;
+  --ink-dim: #9a95b0;
+  --violet: #a78bfa;
+  --violet-bright: #bba6ff;
+  --violet-deep: #16102c;
+  --gold: #ffe08a;
+  --panel: rgba(11, 10, 20, 0.55);
+  --line: rgba(167, 139, 250, 0.14);
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; background: var(--bg); overflow: hidden; }
+body { font-family: var(--mono); color: var(--ink); -webkit-font-smoothing: none; }
+
+#stage {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(120% 100% at 50% 40%, #0f0c1a 0%, #07060d 75%);
+}
+#view, #scanlines {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  image-rendering: pixelated; image-rendering: crisp-edges;
+}
+#scanlines { pointer-events: none; opacity: 0.12; mix-blend-mode: multiply; }
+#vignette {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(130% 120% at 50% 45%, transparent 55%, rgba(0,0,0,0.55) 100%);
+}
+
+#hud { position: absolute; inset: 0; pointer-events: none; }
+.hud-panel {
+  position: absolute; background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px 11px; backdrop-filter: blur(6px);
+  font-size: 12px; line-height: 1.5; pointer-events: auto;
+  color: var(--ink-dim); opacity: 0.86; transition: opacity 0.3s;
+}
+.hud-panel:hover { opacity: 1; }
+#era-banner {
+  top: 16px; left: 16px; display: flex; gap: 9px; align-items: center;
+  font-size: 13px; letter-spacing: 0.02em;
+}
+#era-glyph { font-size: 15px; filter: drop-shadow(0 0 6px currentColor); }
+#era-name { font-weight: 600; color: var(--violet-bright); }
+#gen-counter { color: var(--ink-dim); text-transform: uppercase; font-size: 11px; }
+
+#leaderboard { top: 16px; right: 16px; width: 214px; }
+#leaderboard .lb-title, #census .cs-title, #science .sci-title {
+  text-transform: uppercase; font-size: 10px; letter-spacing: 0.12em;
+  color: var(--ink-dim); margin-bottom: 6px;
+}
+.lb-row { display: flex; align-items: center; gap: 7px; margin: 3px 0; }
+.lb-swatch { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 auto; }
+.lb-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-energy { color: var(--gold); font-variant-numeric: tabular-nums; }
+
+#census { bottom: 16px; left: 16px; width: 230px; }
+.cs-bar { height: 8px; border-radius: 3px; margin: 3px 0; transition: width 0.6s ease; }
+.cs-stat { display: flex; justify-content: space-between; color: var(--ink-dim); font-size: 11px; }
+.cs-stat b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+#science { bottom: 16px; right: 16px; width: 214px; }
+#sci-chart { width: 100%; height: 60px; display: block; margin-top: 4px; }
+
+#ticker {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 26px;
+  background: linear-gradient(180deg, transparent, rgba(7,6,13,0.85));
+  overflow: hidden; pointer-events: none; display: flex; align-items: center;
+}
+#ticker-inner {
+  white-space: nowrap; font-size: 11px; color: var(--ink-dim);
+  will-change: transform; padding-left: 100%;
+  animation: ticker 46s linear infinite;
+}
+#ticker-inner b { color: var(--violet-bright); }
+@keyframes ticker { to { transform: translateX(-100%); } }
+
+#conn-chip {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink-dim); background: var(--panel); border: 1px solid var(--line);
+  padding: 3px 10px; border-radius: 20px; pointer-events: none; opacity: 0;
+  transition: opacity 0.4s;
+}
+#conn-chip.show { opacity: 1; }
+#conn-chip.demo { color: var(--gold); border-color: rgba(255,224,138,0.4); }
+
+#sound-btn, #help-btn {
+  position: absolute; bottom: 34px; width: 30px; height: 30px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 50%;
+  color: var(--ink-dim); font-size: 14px; cursor: pointer; pointer-events: auto;
+}
+#sound-btn { right: 54px; }
+#help-btn { right: 16px; }
+#sound-btn:hover, #help-btn:hover { color: var(--violet-bright); }
+#sound-btn.on { color: var(--gold); border-color: rgba(255,224,138,0.4); }
+
+.overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(7,6,13,0.82); backdrop-filter: blur(3px); pointer-events: auto; z-index: 30;
+}
+.overlay.hidden { display: none; }
+
+/* Bloom of the Generation — the full-screen payoff, stained-glass style */
+#bloom-overlay {
+  position: absolute; inset: 0; z-index: 16; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(120% 100% at 50% 42%, rgba(22,16,44,0.5), rgba(7,6,13,0.92));
+  opacity: 0; transition: opacity 0.6s ease;
+}
+#bloom-overlay.show { opacity: 1; }
+#bloom-overlay.hidden { display: none; }
+#bloom-canvas { image-rendering: pixelated; filter: drop-shadow(0 0 40px rgba(167,139,250,0.35)); }
+#bloom-caption { text-align: center; margin-top: 10px; }
+#bloom-title {
+  font-size: 12px; letter-spacing: 0.36em; color: var(--ink-dim); text-transform: uppercase;
+}
+#bloom-house { font-size: 30px; font-weight: 600; color: var(--violet-bright); margin: 6px 0 4px; letter-spacing: 0.02em; }
+#bloom-meta { font-size: 12px; color: var(--ink-dim); letter-spacing: 0.05em; }
+#bloom-meta b { color: var(--gold); }
+
+#era-poll { font-size: 13px; margin-left: 2px; filter: drop-shadow(0 0 5px rgba(167,139,250,0.5)); }
+.onboard-card {
+  max-width: 440px; padding: 30px 34px; background: var(--violet-deep);
+  border: 1px solid var(--line); border-radius: 14px; text-align: left;
+}
+.onboard-card h1 {
+  font-size: 22px; color: var(--violet-bright); margin-bottom: 16px;
+  letter-spacing: 0.01em; font-weight: 600;
+}
+.onboard-card ol { margin: 0 0 16px 18px; }
+.onboard-card li { margin: 9px 0; font-size: 13px; line-height: 1.6; }
+.onboard-card b { color: var(--ink); }
+.onboard-card .fine { font-size: 11px; color: var(--ink-dim); line-height: 1.6; margin-bottom: 18px; }
+.onboard-card button {
+  background: var(--violet); color: #17102c; border: none; border-radius: 8px;
+  padding: 10px 20px; font-family: var(--mono); font-weight: 600; font-size: 13px; cursor: pointer;
+}
+.onboard-card button:hover { background: var(--violet-bright); }
+
+.pick-title {
+  font-size: 10px; letter-spacing: 0.12em; color: var(--ink-dim);
+  margin: 4px 0 8px; text-transform: uppercase;
+}
+#house-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 16px; }
+.house-card {
+  background: rgba(7,6,13,0.6); border: 1px solid var(--line); border-radius: 8px;
+  padding: 7px 5px 6px; text-align: center; cursor: pointer; transition: border-color .15s, transform .1s;
+}
+.house-card:hover { border-color: var(--violet); transform: translateY(-2px); }
+.house-card canvas { image-rendering: pixelated; width: 36px; height: 52px; }
+.house-card .hc-name { font-size: 11px; color: var(--ink); font-weight: 600; margin-top: 2px; }
+.house-card .hc-line { font-size: 8.5px; color: var(--ink-dim); line-height: 1.35; margin-top: 3px; min-height: 22px; }
+
+#myhouse { top: 64px; left: 16px; min-width: 172px; }
+#myhouse .mh-title { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); }
+#myhouse .mh-name { font-size: 13px; font-weight: 600; margin: 2px 0 4px; }
+#myhouse .mh-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-dim); }
+#myhouse .mh-row b { color: var(--gold); font-variant-numeric: tabular-nums; }
+#myhouse.hidden { display: none; }
+.strat-row { display: flex; align-items: center; gap: 6px; margin: 2px 0; font-size: 10.5px; }
+.strat-chip { width: 8px; height: 8px; border-radius: 2px; flex: 0 0 auto; }
+.strat-name { flex: 1; color: var(--ink-dim); }
+.strat-e { color: var(--ink); font-variant-numeric: tabular-nums; }
+.strat-up { color: #7fc48f; } .strat-dn { color: #e8734a; }
+
+/* clip mode: pure canvas, no DOM chrome (clips crop to canvas) */
+body.clip #hud, body.clip #vignette { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  #ticker-inner { animation: none; }
+}
+@media (max-width: 640px) {
+  #leaderboard, #science { width: 150px; font-size: 10px; }
+  #census { width: 160px; }
+}

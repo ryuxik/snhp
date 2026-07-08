@@ -1,0 +1,51 @@
+# Fly.io app config for the SNHP Evolution Arena (arena.snhp.dev) — the live sim
+# + renderer. A separate app from "snhp" (toolkit API) and "par-game" (the daily
+# game), sharing the gametheory engine.
+#
+# One-time setup (from the repo root):
+#   fly launch --no-deploy --name snhp-arena --dockerfile arena/Dockerfile
+#   fly volumes create arena_data --size 3 -a snhp-arena --region sjc
+#   fly certs add arena.snhp.dev -a snhp-arena
+#   fly deploy -c arena/fly.toml
+#
+# The world is ALWAYS ON (one persistent arena everyone watches), so unlike par
+# it does not idle to zero: min_machines_running = 1, auto_stop = off.
+
+app = "snhp-arena"
+primary_region = "sjc"
+
+[build]
+  # resolved relative to THIS file's dir; build context is the repo root
+  # (deploy with:  fly deploy -c arena/fly.toml  — from the repo root)
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  LOG_LEVEL = "info"
+  ARENA_DATA_DIR = "/data"
+  ARENA_PERSIST = "1"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_start_machines = true
+  auto_stop_machines = "off"          # always-on world
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "40s"              # numba JIT warmup before healthy
+    method = "GET"
+    path = "/health"
+
+[[mounts]]
+  source = "arena_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "1gb"                      # numpy+scipy+numba baseline + compile spikes
+  cpu_kind = "shared"
+  cpus = 2

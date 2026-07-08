@@ -1,0 +1,73 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>SNHP Evolution Arena — watch negotiators evolve, live</title>
+<meta name="description" content="A live, always-on world where pixel-art AI agents negotiate real deals with the SNHP engine, earn, court, bargain over their children's genes, and evolve." />
+<meta name="theme-color" content="#0B0A12" />
+<meta property="og:title" content="SNHP Evolution Arena" />
+<meta property="og:description" content="Watch AI negotiators evolve, live. Every deal is computed by the shipped SNHP engine." />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="https://arena.snhp.dev/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://arena.snhp.dev/og.png" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230B0A12'/%3E%3Crect x='6' y='3' width='4' height='10' fill='%23A78BFA'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="styles.css?v=1" />
+
+<div id="stage">
+  <canvas id="view"></canvas>
+  <canvas id="scanlines"></canvas>
+  <div id="vignette"></div>
+
+  <div id="hud">
+    <div id="era-banner" class="hud-panel">
+      <span id="era-glyph"></span>
+      <span id="era-name">—</span>
+      <span id="era-poll" title="the season's pollinator"></span>
+      <span id="gen-counter">gen 0</span>
+    </div>
+    <div id="myhouse" class="hud-panel hidden"></div>
+    <div id="leaderboard" class="hud-panel"></div>
+    <div id="census" class="hud-panel"></div>
+    <div id="ticker"><div id="ticker-inner"></div></div>
+    <div id="science" class="hud-panel"></div>
+    <div id="conn-chip"></div>
+    <button id="sound-btn" title="sound">♪</button>
+    <button id="help-btn" title="what am I looking at?">?</button>
+  </div>
+
+  <div id="bloom-overlay" class="hidden">
+    <canvas id="bloom-canvas"></canvas>
+    <div id="bloom-caption">
+      <div id="bloom-title">BLOOM OF THE GENERATION</div>
+      <div id="bloom-house">—</div>
+      <div id="bloom-meta">—</div>
+    </div>
+  </div>
+
+  <div id="onboard" class="overlay hidden">
+    <div class="onboard-card">
+      <h1>The Bazaar in the Castle</h1>
+      <ol>
+        <li><b>Every knight is an AI negotiator</b> — its look <i>is</i> its genome.</li>
+        <li>When two meet, the <b>shrinking bar</b> is the deal closing. A <b>gold flash</b> = agreement.</li>
+        <li>Winners earn, <b>court</b>, and pass their parts on to <b>children</b>. The board tracks dynasties.</li>
+      </ol>
+      <p class="fine">Every deal is computed by the shipped <b>SNHP</b> engine — nothing here knows how to negotiate except the library being shown off.</p>
+      <div class="pick-title">BACK A HOUSE — watch its strategy live or die:</div>
+      <div id="house-grid"></div>
+      <button id="onboard-dismiss">just watch →</button>
+    </div>
+  </div>
+</div>
+
+<script src="sprites.js?v=1"></script>
+<script src="flora.js?v=1"></script>
+<script src="stage.js?v=1"></script>
+<script src="fx.js?v=1"></script>
+<script src="world.js?v=1"></script>
+<script src="choreo.js?v=1"></script>
+<script src="bloom.js?v=1"></script>
+<script src="hud.js?v=1"></script>
+<script src="sound.js?v=1"></script>
+<script src="net.js?v=1"></script>
+<script src="demo.js?v=1"></script>
+<script src="main.js?v=1"></script>

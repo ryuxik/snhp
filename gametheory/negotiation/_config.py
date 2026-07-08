@@ -230,6 +230,33 @@ _ADVERSARIAL = {
 }
 
 
+# ─── Multi-issue bundle parameters (bundle.py) ─────────────────────────────
+
+
+_BUNDLE = {
+    "bundle_n_particles": ParamMeta(
+        default=500,
+        rationale="heuristic",
+        source="convention",
+        search_low=100, search_high=2000,
+        importance="low",
+        notes="Particle count for the multi-issue priority-inference filter. Performance, "
+              "not behavior. Promoted from a bundle.py module constant so callers that run "
+              "many bundle negotiations per second (the Evolution Arena) can trade a little "
+              "posterior resolution for throughput via SNHP_BUNDLE_N_PARTICLES.",
+    ),
+    "bundle_prior_uncertainty": ParamMeta(
+        default=0.20,
+        rationale="magic-tunable",
+        source="magic",
+        search_low=0.05, search_high=0.50,
+        importance="medium",
+        notes="Prior std of the bundle priority-inference filter (was bundle.py "
+              "_PRIOR_UNCERTAINTY). Higher = wider posterior, offers update priorities more.",
+    ),
+}
+
+
 # ─── Peer-mode parameters (_peer.py) ───────────────────────────────────────
 
 
@@ -370,7 +397,7 @@ _SCAFFOLD = {
 # ─── Combined config ───────────────────────────────────────────────────────
 
 
-_REGISTRY: dict[str, ParamMeta] = {**_ADVERSARIAL, **_PEER, **_SCAFFOLD}
+_REGISTRY: dict[str, ParamMeta] = {**_ADVERSARIAL, **_BUNDLE, **_PEER, **_SCAFFOLD}
 
 
 def get_param(name: str) -> float:
