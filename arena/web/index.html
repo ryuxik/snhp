@@ -48,16 +48,9 @@
 
   <div id="onboard" class="overlay hidden">
     <div class="onboard-card">
-      <h1>The Bazaar in the Castle</h1>
-      <p class="onboard-stake">Eight houses of AI knights, negotiating for their lives. Win deals → they eat and breed. Lose → they starve. Nobody taught them how to haggle — <b>that part is the library.</b></p>
-      <ol>
-        <li><b>Every knight negotiates with SNHP at its ear</b> — its tactic is how boldly it follows the advice, and its look <i>is</i> its strategy.</li>
-        <li>When two meet, the <b>shrinking bar</b> is the deal closing. <b>Gold flash</b> = agreement; earnings are life.</li>
-        <li>The rich <b>bloom</b> — a flower only winners can afford — <b>court</b>, and haggle over which traits their <b>children</b> inherit.</li>
-        <li>When the <b>stained glass turns</b>, the market turns, and a new pollinator decides what is beautiful. Strategies rise and fall with the season.</li>
-      </ol>
-      <p class="fine">Every deal is computed by the shipped <b>SNHP</b> engine — nothing here knows how to negotiate except the library being shown off. <a href="#" id="onboard-honest-link">▸ what's real, and what's not (even our own hype)</a></p>
-      <div class="pick-title">FORGE A CHAMPION — a real SNHP strategy, sent into the world:</div>
+      <h1>Send a fighter in.</h1>
+      <p class="onboard-stake">Eight houses of AI knights negotiate for their lives — win deals and they eat and breed, lose and they starve. Nobody taught them to haggle; <b>that part is the library.</b> Pick one and drop it into the live world.</p>
+      <div class="pick-title">CHOOSE A HOUSE — each a real SNHP strategy:</div>
       <div id="house-grid"></div>
       <div id="forge-dials">
         <label>boldness <input type="range" id="dial-bold" min="0" max="100" value="60" />
@@ -71,6 +64,22 @@
         <button id="forge-send" disabled>pick a house first</button>
         <button id="onboard-dismiss" class="ghost">just watch →</button>
       </div>
+      <p class="fine"><a href="#" id="onboard-legend-link">▸ how to read the hall</a> &nbsp;·&nbsp; <a href="#" id="onboard-honest-link">what's real, and what's not</a></p>
+    </div>
+  </div>
+
+  <div id="legend" class="overlay hidden">
+    <div class="onboard-card">
+      <button id="legend-close" class="ghost hx" title="close">✕</button>
+      <h1>How to read the hall</h1>
+      <ol>
+        <li><b>Every knight negotiates with SNHP at its ear</b> — its tactic is how boldly it follows the advice, and its look <i>is</i> its strategy.</li>
+        <li>When two meet, the <b>shrinking bar</b> is the deal closing. <b>Gold flash</b> = agreement; earnings are life.</li>
+        <li>The rich <b>bloom</b> — a flower only winners can afford — <b>court</b>, and haggle over which traits their <b>children</b> inherit.</li>
+        <li>When the <b>stained glass turns</b>, the market turns, and a new pollinator decides what is beautiful. Strategies rise and fall with the season.</li>
+      </ol>
+      <p class="fine">Every deal is computed by the shipped <b>SNHP</b> engine — nothing here knows how to negotiate except the library being shown off. <a href="#" id="legend-honest-link">▸ what's real, and what's not (even our own hype)</a></p>
+      <div class="forge-row"><button id="legend-forge">⚒ send a fighter in</button></div>
     </div>
   </div>
 

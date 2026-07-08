@@ -345,13 +345,15 @@
 
   function initControls() {
     const help = $("help-btn"), onb = $("onboard"), dismiss = $("onboard-dismiss");
-    const honest = $("honest");
+    const honest = $("honest"), legend = $("legend");
     _buildHouseGrid();
     $("forge-send").onclick = _forgeSend;
     const seen = (function () { try { return localStorage.getItem("arena-seen"); } catch (e) { return 1; } })();
     if (!seen) onb.classList.remove("hidden");
     dismiss.onclick = () => { onb.classList.add("hidden"); try { localStorage.setItem("arena-seen", "1"); } catch (e) { } };
-    help.onclick = () => onb.classList.remove("hidden");
+    // "?" opens the LEGEND (the manual), kept off the first-visit path so a
+    // newcomer acts (forges) first and learns the rules by watching.
+    help.onclick = () => legend.classList.remove("hidden");
     // Honest Page: openable from the HUD chip, the onboarding link, or the
     // live strategies panel title (the natural "tell me more" click).
     const openHonest = (e) => { if (e) e.preventDefault(); _renderHonestLive(); honest.classList.remove("hidden"); };
@@ -359,6 +361,14 @@
     $("honest-close").onclick = () => honest.classList.add("hidden");
     honest.onclick = (e) => { if (e.target === honest) honest.classList.add("hidden"); };
     const ol = $("onboard-honest-link"); if (ol) ol.onclick = openHonest;
+    // Legend ("how to read the hall"): close, backdrop-dismiss, a forge CTA, and
+    // the cross-links from the forge card and into the Honest Page.
+    $("legend-close").onclick = () => legend.classList.add("hidden");
+    legend.onclick = (e) => { if (e.target === legend) legend.classList.add("hidden"); };
+    $("legend-forge").onclick = () => { legend.classList.add("hidden"); onb.classList.remove("hidden"); };
+    const ll = $("onboard-legend-link");
+    if (ll) ll.onclick = (e) => { e.preventDefault(); onb.classList.add("hidden"); legend.classList.remove("hidden"); };
+    const lh = $("legend-honest-link"); if (lh) lh.onclick = openHonest;
     // saga card: close, backdrop-dismiss, save PNG, copy the challenge; the
     // trigger buttons live inside #myhouse (re-rendered), so delegate their click
     const saga = $("saga");
