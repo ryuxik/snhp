@@ -102,8 +102,9 @@
         const tactics = {};
         for (const a of agents) {
           const f = a.genome.tactic_family;
-          tactics[f] = tactics[f] || { n: 0, mean_e: 0 };
+          tactics[f] = tactics[f] || { n: 0, mean_e: 0, income: 0 };
           tactics[f].n++; tactics[f].mean_e = Math.round(100 + Math.random() * 150);
+          tactics[f].income = Math.round((15 + Math.random() * 25) * 10) / 10;
         }
         cb(ev({ type: "census", pop: agents.length, era: era, staked_frac: 0.14, mean_knob: 0.5 + Math.sin(step / 30) * 0.15, era_optimal_knob: 0.7, mean_energy: 180, n_species: 5, deal_rate: 0.6, tactics }));
         cb(ev({ type: "species.update", species: [0, 1, 2, 3, 4].map(id => ({ id, count: 2 + ((Math.random() * 5) | 0), centroid: [], exemplar: id })) }));
@@ -112,5 +113,22 @@
     return timer;
   }
 
-  A.demo = { snapshot, stream };
+  // demo-mode forge: your champion joins the local world through the gate,
+  // same event shape the live backend emits
+  let _nextChampId = 500;
+  function injectChampion(spec) {
+    const id = _nextChampId++;
+    const g = { pareto_knob: spec.boldness, open_aggression: spec.boldness,
+      walk_margin: spec.bluff, patience: spec.patience,
+      bundle_focus: [0.25, 0.25, 0.25, 0.25], mate_w: [0.5, 0.2, 0.1, 0.2],
+      truncation: 0.2, staked: !!spec.staked, tactic_family: spec.tactic };
+    const name = "Champion of House " + spec.house;
+    agents.push({ id, name, house: spec.house, genome: g, staked: g.staked,
+      species: 1, energy: 100, age: 0, lineage: 0, reputation: 0.5, deals: 0 });
+    if (A.net && A.net.onEvent) A.net.onEvent(ev({ type: "immigration", id, name,
+      house: spec.house, genome: g, reason: "challenger", challenger: true,
+      sponsor_token: spec.token }));
+  }
+
+  A.demo = { snapshot, stream, injectChampion };
 })();

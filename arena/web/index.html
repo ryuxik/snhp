@@ -52,9 +52,20 @@
         <li>Winners earn, <b>court</b>, and pass their parts on to <b>children</b>. The board tracks dynasties.</li>
       </ol>
       <p class="fine">Every deal is computed by the shipped <b>SNHP</b> engine — nothing here knows how to negotiate except the library being shown off.</p>
-      <div class="pick-title">BACK A HOUSE — watch its strategy live or die:</div>
+      <div class="pick-title">FORGE A CHAMPION — a real SNHP strategy, sent into the world:</div>
       <div id="house-grid"></div>
-      <button id="onboard-dismiss">just watch →</button>
+      <div id="forge-dials">
+        <label>boldness <input type="range" id="dial-bold" min="0" max="100" value="60" />
+          <span class="dial-hint">how high it aims (the SNHP pareto knob + anchor)</span></label>
+        <label>bluff <input type="range" id="dial-bluff" min="0" max="100" value="30" />
+          <span class="dial-hint">how hard it overstates its walk-away</span></label>
+        <label>patience <input type="range" id="dial-pat" min="0" max="100" value="50" />
+          <span class="dial-hint">how long it holds before conceding</span></label>
+      </div>
+      <div class="forge-row">
+        <button id="forge-send" disabled>pick a house first</button>
+        <button id="onboard-dismiss" class="ghost">just watch →</button>
+      </div>
     </div>
   </div>
 </div>

@@ -54,6 +54,69 @@ def _declared_reservation(true_r: float, walk_margin: float, staked: bool,
     return float(np.clip(true_r + delta, 0.02, 0.98))
 
 
+# ─── The tactic layer: how an agent FOLLOWS its SNHP advisor ────────────────
+# SNHP computes every offer; the tactic_family gene is the agent's DISCIPLINE
+# in following that advice — opening anchors and acceptance thresholds — the
+# same architecture as the shipped product, where an LLM compliance layer sits
+# between the advisor and the table (gametheory/negotiation/_sim.py). This is
+# what makes "strategy" a real, selected trait rather than a cosmetic label:
+# a Closer that snubs early deals impasses more in thin markets; a Conceder
+# banks volume; an Anchorer squeezes wide ones. `open_aggression` scales the
+# whole disposition, so the continuous gene evolves WITHIN a tactic.
+
+def _tactic_offer(g: Genome, advisor_u: float, turn: int, t: float,
+                  opp_step: float = 0.0) -> float:
+    """Possibly override the advisor's recommended offer (own-utility frame).
+    Holds are SUSTAINED (decay toward the advisor over the whole horizon), so a
+    bold agent's standing offer is still high when the counterparty's
+    late-deadline acceptance fires — brinkmanship that pays when it closes and
+    walks when it doesn't. That's the real margin-vs-volume trade."""
+    a = g.open_aggression
+    fam = g.tactic_family
+    if fam == "anchorer":
+        anchor = 0.80 + 0.17 * a
+        w = (1.0 - t) ** 0.7                      # slow decay: still holding late
+        return max(advisor_u, min(0.97, w * anchor + (1 - w) * advisor_u))
+    if fam == "boulware":
+        lift = (0.10 + 0.14 * a) * (1.0 - t ** 2)  # concede only near the end
+        return max(advisor_u, min(0.97, advisor_u + lift))
+    if fam == "mirror":
+        # reactive: give ground in proportion to the opponent's last concession
+        lift = max(0.0, (0.08 + 0.06 * a) - 1.5 * max(0.0, opp_step))
+        return max(advisor_u, min(0.97, advisor_u + lift * (1.0 - t)))
+    if fam == "conceder":
+        # shade slightly under the advisor: closes even faster, thinner split
+        return max(0.05, advisor_u - (0.02 + 0.03 * a) * (1.0 - t))
+    return advisor_u  # patient / closer: the advisor's own curve, verbatim
+
+
+def _tactic_accept_bar(g: Genome, advisor_u: float, t: float,
+                       opp_conceded: bool) -> float:
+    """The utility bar an incoming offer must clear (fed to snhp_accept as the
+    advisor target). Offsets shift how eagerly the agent takes the deal."""
+    a = g.open_aggression
+    fam = g.tactic_family
+    if fam == "conceder":
+        return advisor_u - (0.03 + 0.04 * a)          # takes deals readily
+    if fam == "boulware":
+        return advisor_u + (0.03 + 0.06 * a) * (1.0 - t)  # hard to please early
+    if fam == "closer":
+        if t < 0.55 + 0.2 * a:
+            return 1.5                                 # snubs everything early...
+        return advisor_u - 0.04                        # ...then snipes the deadline
+    if fam == "mirror":
+        # tit-for-tat acceptance: only warms up if the opponent gave ground
+        return advisor_u if opp_conceded else advisor_u + 0.06 + 0.04 * a
+    if fam == "patient":
+        return advisor_u + (0.02 + 0.03 * a) if t < 0.85 else advisor_u
+    return advisor_u  # anchorer: normal acceptance; its edge is the opening
+
+
+def _tactic_no_walk(g: Genome, t: float) -> bool:
+    """Patient agents refuse to walk early — outlasting IS the strategy."""
+    return g.tactic_family == "patient" and t < 0.9
+
+
 @dataclass
 class Side:
     genome: Genome
@@ -137,40 +200,52 @@ def run_price_negotiation(seller: Side, buyer: Side, sc: PriceScenario,
             # Seller's turn: maybe accept buyer's standing offer, else propose.
             adv = s_advice()
             target = float(adv["recommended_offer"])
+            # has the buyer given ground since their previous offer? (for mirror)
+            s_opp_step = (b_offers_as_s[-1] - b_offers_as_s[-2]) if len(b_offers_as_s) >= 2 else 0.0
+            s_opp_conc = s_opp_step > 0.005
             if last_to_seller is not None:
                 recv_u = last_to_seller  # seller utility from buyer's position
-                if snhp_accept(recv_u, target, s_res_u, t_frac):
+                bar = _tactic_accept_bar(seller.genome, target, t_frac, s_opp_conc)
+                if snhp_accept(recv_u, bar, s_res_u, t_frac):
                     close_pos = last_to_seller
                     turn += 1
                     break
-            if _should_walk(adv, target, s_res_u, last_to_seller, turn):
+            if not _tactic_no_walk(seller.genome, t_frac) and \
+                    _should_walk(adv, target, s_res_u, last_to_seller, turn):
                 yield {"type": "neg.walk", "actor": "seller", "reason": "below_floor"}
                 return _walk_outcome(turn, cfg, peer)
-            pos = target
+            pos = _tactic_offer(seller.genome, target, turn, t_frac, s_opp_step)
             s_offers.append(pos)
             s_offers_as_b.append(1.0 - pos)
             last_to_buyer = pos
             yield {"type": "neg.offer", "turn": turn, "actor": "seller",
-                   "pos": round(pos, 4), "action": "counter",
+                   "pos": round(pos, 4), "adv_pos": round(target, 4),
+                   "action": "counter",
                    "spread": round(_spread(last_to_buyer, last_to_seller), 4)}
         else:
             adv = b_advice()
             u_b = float(adv["recommended_offer"])   # buyer utility
-            pos = 1.0 - u_b                          # position buyer proposes
+            b_opp_step = (s_offers_as_b[-1] - s_offers_as_b[-2]) if len(s_offers_as_b) >= 2 else 0.0
+            b_opp_conc = b_opp_step > 0.005
             if last_to_buyer is not None:
                 recv_u = 1.0 - last_to_buyer         # buyer utility from seller's position
-                if snhp_accept(recv_u, u_b, b_res_u, t_frac):
+                bar = _tactic_accept_bar(buyer.genome, u_b, t_frac, b_opp_conc)
+                if snhp_accept(recv_u, bar, b_res_u, t_frac):
                     close_pos = last_to_buyer
                     turn += 1
                     break
-            if _should_walk(adv, u_b, b_res_u, (1.0 - last_to_buyer) if last_to_buyer is not None else None, turn):
+            if not _tactic_no_walk(buyer.genome, t_frac) and \
+                    _should_walk(adv, u_b, b_res_u, (1.0 - last_to_buyer) if last_to_buyer is not None else None, turn):
                 yield {"type": "neg.walk", "actor": "buyer", "reason": "below_floor"}
                 return _walk_outcome(turn, cfg, peer)
+            offer_u = _tactic_offer(buyer.genome, u_b, turn, t_frac, b_opp_step)
+            pos = 1.0 - offer_u                      # position buyer proposes
             b_offers.append(pos)
             b_offers_as_s.append(pos)
             last_to_seller = pos
             yield {"type": "neg.offer", "turn": turn, "actor": "buyer",
-                   "pos": round(pos, 4), "action": "counter",
+                   "pos": round(pos, 4), "adv_pos": round(1.0 - u_b, 4),
+                   "action": "counter",
                    "spread": round(_spread(last_to_buyer, last_to_seller), 4)}
         turn += 1
 
@@ -274,13 +349,27 @@ def run_bundle_negotiation(seller: Side, buyer: Side, sc: BundleScenario,
     close_by: Optional[str] = None
     turn = 0
 
+    def _tactic_bundle_accept(g: Genome, t: float, n_opp_offers: int) -> bool:
+        """Acceptance discipline on bundle deals: may the tactic take the engine's
+        'accept' now? (Closers snub early; mirrors want to see movement first.)"""
+        fam = g.tactic_family
+        if fam == "closer":
+            return t >= 0.55 + 0.2 * g.open_aggression
+        if fam == "mirror":
+            return n_opp_offers >= 2
+        if fam == "boulware" or fam == "patient":
+            return t >= 0.4
+        return True  # conceder / anchorer take the engine's accept as-is
+
     while turn < deadline and close_pkg is None:
+        t_frac = min(1.0, (turn + 1) / max(deadline, 1))
         if turn % 2 == 0:
             _seed(neg_seed, turn)
             adv = negotiate_bundle(issues=s_issues, their_offers=b_offers or None,
                                    my_priorities=s_pri, my_batna=s_batna,
                                    their_batna_estimate=s_their_est)
-            if adv["action"] == "accept" and b_offers:
+            if adv["action"] == "accept" and b_offers and \
+                    _tactic_bundle_accept(seller.genome, t_frac, len(b_offers)):
                 close_pkg, close_by = b_offers[-1], "seller"
                 turn += 1
                 break
@@ -296,7 +385,8 @@ def run_bundle_negotiation(seller: Side, buyer: Side, sc: BundleScenario,
             adv = negotiate_bundle(issues=b_issues, their_offers=s_offers or None,
                                    my_priorities=b_pri, my_batna=b_batna,
                                    their_batna_estimate=b_their_est)
-            if adv["action"] == "accept" and s_offers:
+            if adv["action"] == "accept" and s_offers and \
+                    _tactic_bundle_accept(buyer.genome, t_frac, len(s_offers)):
                 close_pkg, close_by = s_offers[-1], "buyer"
                 turn += 1
                 break

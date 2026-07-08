@@ -16,6 +16,15 @@
     dealHeat: [], // {x,y,life}
     memorials: [],
     myHouse: (function () { try { return localStorage.getItem("arena-house") || null; } catch (e) { return null; } })(),
+    // the forge loop: your token marks your champion; we track its line
+    myToken: (function () {
+      try {
+        let t = localStorage.getItem("arena-token");
+        if (!t) { t = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem("arena-token", t); }
+        return t;
+      } catch (e) { return "anon"; }
+    })(),
+    myChampion: null, myLine: new Set(), championFallen: null, onChampion: null,
     onHighlight: null, // set by main -> director/cut-in
     knobHistory: [],   // {mean, opt} for science chart
 
@@ -61,7 +70,16 @@
           a.hx0 = 70 + rnd(0, 1) * (S.WORLD_W - 150);  // their place in the hall
           a.hy0 = rnd(S.FLOOR_Y + 12, S.WORLD_H - 14);
           a.facing = 1;
-          this._tick(`<b>${ev.house}</b> arrives through the gate`);
+          if (ev.challenger && ev.sponsor_token === this.myToken) {
+            // that's YOURS — the strategy you forged, walking in
+            this.myChampion = ev.id;
+            this.myLine = new Set([ev.id]);
+            this.championFallen = null;
+            this._tick(`★ <b>your champion ${ev.name}</b> enters the hall`);
+            if (this.onChampion) this.onChampion("arrived", a);
+          } else {
+            this._tick(`<b>${ev.house}</b> ${ev.challenger ? "— a challenger —" : ""} arrives through the gate`);
+          }
           break;
         }
         case "agent.birth": {
@@ -78,12 +96,30 @@
           a.assembling = (pa && pb) ? { t: 0, pa: parents[0], pb: parents[1],
             crossover: (court && court.crossover) || null } : null;
           a.born = a.assembling ? 0 : 1;
-          const star = this.myHouse && ev.house === this.myHouse ? "★ " : "";
-          this._tick(`${star}child born of ${pa ? pa.house : "?"}×${pb ? pb.house : "?"} · <b>${ev.house}</b>`);
+          // your champion's bloodline: any child with a parent in the line joins it
+          if (this.myLine.size && parents.some(p => this.myLine.has(p))) {
+            this.myLine.add(ev.id);
+            this._tick(`★ <b>your line grows</b> — ${ev.name}`);
+          } else {
+            const star = this.myHouse && ev.house === this.myHouse ? "★ " : "";
+            this._tick(`${star}child born of ${pa ? pa.house : "?"}×${pb ? pb.house : "?"} · <b>${ev.house}</b>`);
+          }
           break;
         }
         case "agent.critical": { const a = this.agents.get(ev.id); if (a) a.critical = true; break; }
-        case "agent.death": { const a = this.agents.get(ev.id); if (a) { a.mode = "dying"; a.dying = 1; a.deathCause = ev.cause; a.heirs = ev.heirs; } break; }
+        case "agent.death": {
+          const a = this.agents.get(ev.id);
+          if (a) { a.mode = "dying"; a.dying = 1; a.deathCause = ev.cause; a.heirs = ev.heirs; }
+          if (ev.id === this.myChampion) {
+            const heirs = [...this.myLine].filter(id => id !== ev.id && this.agents.has(id));
+            this.championFallen = { heirs: heirs.length, cause: ev.cause };
+            this._tick(`★ <b>your champion has fallen</b>` +
+              (heirs.length ? ` — ${heirs.length} of the line carry on` : " — the line is ended"));
+            if (this.onChampion) this.onChampion("fallen", this.championFallen);
+          }
+          this.myLine.delete(ev.id);
+          break;
+        }
         case "neg.start": this._startDuel(ev); break;
         case "neg.offer": this._offer(ev); break;
         case "neg.accept": this._accept(ev); break;
@@ -156,7 +192,9 @@
     },
 
     _startDuel(ev) {
-      const a = this.agents.get(ev.a), b = ev.house ? null : this.agents.get(ev.b);
+      // either side may be the house bot (id -1, no on-screen agent) — move
+      // each real participant to the table independently
+      const a = this.agents.get(ev.a), b = this.agents.get(ev.b);
       const zone = this._freeZone();
       const d = {
         neg: ev.neg, a: ev.a, b: ev.b, house: ev.house, kind: ev.kind, zone,
@@ -164,7 +202,11 @@
         phase: "approach", flash: 0, shake: 0, dead: 0,
         stakes: ev.stakes || {}, overflow: zone < 0, runes: [], t: 0,
       };
-      if (zone >= 0 && a) { const z = S.ZONES[zone]; a.mode = "duel"; a.tx = z.x - 10; a.ty = z.y; a.facing = 1; if (b) { b.mode = "duel"; b.tx = z.x + 10; b.ty = z.y; b.facing = -1; } }
+      if (zone >= 0) {
+        const z = S.ZONES[zone];
+        if (a) { a.mode = "duel"; a.tx = z.x - 10; a.ty = z.y; a.facing = 1; }
+        if (b) { b.mode = "duel"; b.tx = z.x + 10; b.ty = z.y; b.facing = -1; }
+      }
       this.duels.set(ev.neg, d);
     },
 

@@ -113,6 +113,59 @@ def test_population_bounded():
     assert CONFIG.pop_floor <= len(w.agents) <= CONFIG.pop_cap
 
 
+# ── the forge loop: a viewer champion becomes a real agent ────────────────
+def test_champion_pipeline(monkeypatch):
+    monkeypatch.setenv("ARENA_NO_RUN", "1")
+    from fastapi.testclient import TestClient
+    import importlib
+    import arena.api as api
+    importlib.reload(api)
+    with TestClient(api.app) as client:
+        r = client.post("/arena/champion", json={
+            "token": "t1", "house": "Ryu", "tactic": "closer",
+            "boldness": 0.8, "bluff": 0.6, "patience": 0.4})
+        assert r.status_code == 200 and r.json()["queued"] is True
+        assert client.post("/arena/champion", json={
+            "token": "t2", "tactic": "nonsense"}).status_code == 400
+        # the queued spec becomes a live agent at the generation boundary
+        w = api.RUNNER.world
+        evs = list(w.generation_events())
+        imm = [e for e in evs if e["type"] == "immigration" and e.get("challenger")]
+        assert imm and imm[0]["sponsor_token"] == "t1"
+        assert w.agents[imm[0]["id"]].genome.tactic_family == "closer"
+
+
+def test_tactics_are_load_bearing():
+    """The same advisor, different follow-discipline: tactics must produce a
+    real income/deal-rate spread (strategy is not a cosmetic label)."""
+    import dataclasses
+    from arena.genome import ARCHETYPES, TACTIC_FAMILIES
+    from arena.scenarios import gen_price_scenario, era_center
+    from arena.executor import Side, run_price_negotiation
+    rng = np.random.default_rng(3)
+    base = ARCHETYPES["Merchant"]
+    income = {}
+    for tactic in ("anchorer", "conceder"):
+        r = np.random.default_rng(3)
+        tot = 0.0
+        for i in range(80):
+            scn = gen_price_scenario(CONFIG, "symmetric", 0.5, r)
+            focal = dataclasses.replace(base, tactic_family=tactic,
+                                        open_aggression=0.6, pareto_knob=0.6)
+            opp = dataclasses.replace(base, tactic_family=TACTIC_FAMILIES[i % 6])
+            g = run_price_negotiation(Side(focal, "seller", scn.r_s, 1),
+                                      Side(opp, "buyer", scn.r_b, 2), scn, 11, 9000 + i, CONFIG)
+            try:
+                while True:
+                    next(g)
+            except StopIteration as e:
+                if e.value.deal:
+                    tot += e.value.surplus_seller
+        income[tactic] = tot
+    # the brinkman must out-earn the volume-dealer per deal by a real margin
+    assert income["anchorer"] > income["conceder"] * 1.05, income
+
+
 # ── HTTP surface ─────────────────────────────────────────────────────────
 def test_http_endpoints(monkeypatch):
     monkeypatch.setenv("ARENA_NO_RUN", "1")

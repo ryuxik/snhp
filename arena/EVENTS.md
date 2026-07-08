@@ -30,7 +30,7 @@ Every event is a JSON object with a common envelope:
 | `agent.birth` | `id, name, house, parents[2], genome, endowment, species, lineage` |
 | `agent.critical` | `id, energy` — candle gutters (foreshadow death) |
 | `agent.death` | `id, cause("starvation"\|"senescence"), age, lineage, deals, heirs[], house` |
-| `immigration` | `id, name, house, genome, reason("population_floor")` — hall-of-fame reseed, flagged |
+| `immigration` | `id, name, house, genome, reason("population_floor"\|"challenger"), challenger?, sponsor_token?` — hall-of-fame reseed or a viewer-forged champion (the token lets the forging client recognize its agent) |
 
 ## Market negotiations (duels)
 

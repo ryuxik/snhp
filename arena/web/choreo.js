@@ -338,11 +338,18 @@
     let d = null; for (const dd of W.duels.values()) if (dd.zone >= 0 && S.ZONES[dd.zone] === z) { d = dd; break; }
     if (!d) return;
     const a = W.agents.get(d.a), b = d.house ? null : W.agents.get(d.b);
-    if (!a) return;
-    let label = b ? (a.house + " v " + b.house) : a.name;
+    if (!a && !b) return;
+    const lead = a || b;
+    let label = (a && b) ? (a.house + " v " + b.house) : (lead.name + " V THE HOUSE");
     if (d.stakes && d.stakes.rivalry) label += "  MEETING " + d.stakes.rivalry.meetings;
-    else if (d.stakes && d.stakes.last_stand) label = a.house + "  LAST STAND";
-    FX.text(ctx, label, Math.round((480 - FX.textW(label, 1)) / 2), 270 - 40, "#c8c4d8", 1);
+    else if (d.stakes && d.stakes.last_stand) label = lead.house + "  LAST STAND";
+    FX.text(ctx, label, Math.round((480 - FX.textW(label, 1)) / 2), 270 - 44, "#c8c4d8", 1);
+    // the strategies at the table — and the honest byline: SNHP computes every
+    // move; the tactic is how boldly each side follows its advisor
+    const sub = (a && b)
+      ? (a.g.tactic_family + " v " + b.g.tactic_family + " · SNHP AT BOTH EARS")
+      : ((lead.g ? lead.g.tactic_family : "") + " · SNHP AT BOTH EARS");
+    FX.text(ctx, sub.toUpperCase(), Math.round((480 - FX.textW(sub, 1)) / 2), 270 - 36, "#7c7790", 1);
   }
 
   A.choreo = { init, update, draw, focusX };

@@ -11,7 +11,7 @@ import asyncio
 import os
 from typing import Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -122,6 +122,49 @@ def stats() -> dict:
             "keystone": "Nothing in this arena knows how to negotiate except the library being showcased.",
         },
     }
+
+
+# ── forge your champion: a viewer's strategy enters the world ──
+from collections import defaultdict, deque
+import time as _time
+
+from pydantic import BaseModel, Field
+
+from arena.genome import TACTIC_FAMILIES
+
+_CH_LIMIT, _CH_WINDOW = 3, 300.0   # 3 champions / 5 min / IP
+_ch_rl: "defaultdict[str, deque]" = defaultdict(deque)
+
+
+class ChampionReq(BaseModel):
+    token: str = Field(..., max_length=64)      # client-generated; echoed on the
+    house: str = Field("Challenger", max_length=24)  # immigration event so the
+    tactic: str = Field(..., max_length=16)          # forger can find its agent
+    boldness: float = Field(0.6, ge=0.0, le=1.0)
+    bluff: float = Field(0.3, ge=0.0, le=1.0)
+    patience: float = Field(0.5, ge=0.0, le=1.0)
+    staked: bool = False
+
+
+@app.post("/arena/champion")
+def champion(req: ChampionReq, request: Request) -> dict:
+    """Queue a viewer-forged champion. It enters through the gate at the next
+    generation boundary as a real agent running the viewer's SNHP parameters."""
+    if req.tactic not in TACTIC_FAMILIES:
+        raise HTTPException(status_code=400, detail=f"tactic must be one of {sorted(TACTIC_FAMILIES)}")
+    ip = request.client.host if request.client else "?"
+    q, now = _ch_rl[ip], _time.monotonic()
+    while q and now - q[0] > _CH_WINDOW:
+        q.popleft()
+    if len(q) >= _CH_LIMIT:
+        raise HTTPException(status_code=429, detail="the gate is barred — try again soon")
+    q.append(now)
+    RUNNER.world.queue_champion({
+        "token": req.token, "house": "".join(c for c in req.house if c.isalnum())[:24],
+        "tactic": req.tactic, "boldness": req.boldness, "bluff": req.bluff,
+        "patience": req.patience, "staked": req.staked,
+    })
+    return {"queued": True, "note": "your champion enters at the next generation"}
 
 
 # ── admin (token-gated) ──

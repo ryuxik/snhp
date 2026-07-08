@@ -79,61 +79,85 @@
 
   function _myHouse() {
     const box = $("myhouse");
+    // The forge loop's scoreboard: YOUR champion (the strategy you sent in),
+    // its energy, deals, and bloodline — then the reforge prompt when it falls.
+    if (W.myChampion != null) {
+      box.classList.remove("hidden");
+      const c = W.agents.get(W.myChampion);
+      const line = [...W.myLine].filter(id => W.agents.has(id)).length;
+      if (c) {
+        const ramp = SP.rampFor(c.g);
+        const pct = Math.min(100, Math.round(100 * c.energy / 300));
+        box.innerHTML =
+          `<div class="mh-title">your champion</div>` +
+          `<div class="mh-name" style="color:${ramp[3]}">★ ${_esc(shortName(c.name))} <span style="opacity:.6;font-size:10px">${_esc(c.g.tactic_family)}</span></div>` +
+          `<div class="mh-bar"><i style="width:${pct}%"></i></div>` +
+          `<div class="mh-row"><span>energy</span><b>${Math.round(c.energy)}</b></div>` +
+          `<div class="mh-row"><span>deals</span><b>${c.deals || 0}</b></div>` +
+          `<div class="mh-row"><span>bloodline</span><b>${line}</b></div>`;
+      } else if (W.championFallen) {
+        const f = W.championFallen;
+        box.innerHTML =
+          `<div class="mh-title">your champion</div>` +
+          `<div class="mh-name" style="color:#8a5a5e">has fallen</div>` +
+          `<div class="mh-row"><span>${f.cause === "starvation" ? "went broke" : "grew old"}</span>` +
+          `<b>${f.heirs ? f.heirs + " heirs live" : "line ended"}</b></div>` +
+          `<button class="reforge" id="reforge-btn">⚒ reforge a strategy</button>`;
+        const rb = $("reforge-btn");
+        if (rb) rb.onclick = () => $("onboard").classList.remove("hidden");
+      }
+      return;
+    }
     if (!W.myHouse) { box.classList.add("hidden"); return; }
     box.classList.remove("hidden");
     const members = [...W.agents.values()].filter(a => a.house === W.myHouse);
-    // rank among houses by total energy
     const totals = new Map();
     for (const a of W.agents.values()) totals.set(a.house, (totals.get(a.house) || 0) + a.energy);
     const ranked = [...totals.entries()].sort((p, q) => q[1] - p[1]);
     const rank = ranked.findIndex(([h]) => h === W.myHouse) + 1;
-    const best = members.slice().sort((p, q) => q.energy - p.energy)[0];
     const ramp = members[0] ? SP.rampFor(members[0].g) : SP.rampForHouse(W.myHouse);
     box.innerHTML =
       `<div class="mh-title">your house</div>` +
       `<div class="mh-name" style="color:${ramp[3]}">★ ${_esc(W.myHouse)}</div>` +
       (members.length
         ? `<div class="mh-row"><span>souls</span><b>${members.length}</b></div>` +
-          `<div class="mh-row"><span>rank</span><b>${rank > 0 ? "#" + rank : "—"} of ${ranked.length}</b></div>` +
-          `<div class="mh-row"><span>hoard</span><b>${Math.round(totals.get(W.myHouse) || 0)}</b></div>` +
-          (best ? `<div class="mh-row"><span>champion</span><b>${_esc(shortName(best.name))}</b></div>` : "")
+          `<div class="mh-row"><span>rank</span><b>${rank > 0 ? "#" + rank : "—"} of ${ranked.length}</b></div>`
         : `<div class="mh-row"><span style="color:#8a5a5e">extinct — a candle burns for them</span></div>`);
   }
 
-  // WHO'S WINNING, by strategy — the evolution you came to watch.
+  // WHO'S WINNING, by strategy — ranked by THIS generation's income per capita
+  // (wealth is cumulative luck; income/gen is the real selection signal).
   function _strategies() {
     const box = $("science");
     const tac = W.census.tactics;
-    let html = '<div class="sci-title">strategies · who\'s winning</div>';
+    let html = '<div class="sci-title">strategies · income this gen</div>';
     if (tac) {
-      const rows = Object.entries(tac).sort((p, q) => q[1].mean_e - p[1].mean_e);
+      const inc = (v) => (v.income != null ? v.income : 0);
+      const rows = Object.entries(tac).sort((p, q) => inc(q[1]) - inc(p[1]));
       const prev = W.prevTactics || {};
       for (const [name, v] of rows) {
         const ti = SP.TACTICS.indexOf(name);
         const ramp = SP.RAMPS[(ti >= 0 ? ti : 0) % SP.RAMPS.length];
-        const was = prev[name] ? prev[name].mean_e : v.mean_e;
-        const trend = v.mean_e > was + 1 ? '<span class="strat-up">▲</span>'
-          : v.mean_e < was - 1 ? '<span class="strat-dn">▼</span>' : "·";
+        const was = prev[name] && prev[name].income != null ? prev[name].income : inc(v);
+        const trend = inc(v) > was + 0.5 ? '<span class="strat-up">▲</span>'
+          : inc(v) < was - 0.5 ? '<span class="strat-dn">▼</span>' : "·";
         html += `<div class="strat-row"><span class="strat-chip" style="background:${ramp[3]}"></span>`
           + `<span class="strat-name">${name} <span style="opacity:.6">· ${v.n}</span></span>`
-          + `<span class="strat-e">${Math.round(v.mean_e)}</span>${trend}</div>`;
+          + `<span class="strat-e">${inc(v).toFixed(1)}</span>${trend}</div>`;
       }
     }
-    html += '<canvas id="sci-chart" width="200" height="34"></canvas>';
+    html += '<canvas id="sci-chart" width="200" height="34"></canvas>'
+      + '<div style="font-size:9px;color:#7c7790;margin-top:2px">population boldness drift · every move computed by SNHP</div>';
     box.innerHTML = html;
     const cv = $("sci-chart");
     if (cv && W.knobHistory.length) {
       const c2 = cv.getContext("2d");
-      const plot = (key, col) => {
-        c2.strokeStyle = col; c2.lineWidth = 1.5; c2.beginPath();
-        W.knobHistory.forEach((p, i) => {
-          const x = i / Math.max(1, W.knobHistory.length - 1) * 200, y = 34 - p[key] * 30 - 2;
-          i ? c2.lineTo(x, y) : c2.moveTo(x, y);
-        });
-        c2.stroke();
-      };
-      plot("o", "rgba(154,149,176,0.65)");
-      plot("m", "#a78bfa");
+      c2.strokeStyle = "#a78bfa"; c2.lineWidth = 1.5; c2.beginPath();
+      W.knobHistory.forEach((p, i) => {
+        const x = i / Math.max(1, W.knobHistory.length - 1) * 200, y = 34 - p.m * 30 - 2;
+        i ? c2.lineTo(x, y) : c2.moveTo(x, y);
+      });
+      c2.stroke();
     }
   }
 
@@ -145,6 +169,7 @@
   function shortName(n) { return (n || "").split(" of ")[0]; }
   function _esc(s) { return String(s || "").replace(/[<>&]/g, (m) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[m])); }
 
+  let _forgePick = null;
   function _buildHouseGrid() {
     const grid = $("house-grid");
     grid.innerHTML = "";
@@ -158,18 +183,54 @@
       const ln = document.createElement("div"); ln.className = "hc-line";
       ln.textContent = h.line; card.appendChild(ln);
       card.onclick = () => {
+        // selecting a house = choosing your tactic + default dials; then you
+        // tune the dials and send your champion through the gate
+        _forgePick = h;
+        [...grid.children].forEach(c => c.style.borderColor = "");
+        card.style.borderColor = ramp[3];
+        $("dial-bold").value = Math.round(h.knob * 100);
+        $("dial-bluff").value = Math.round(h.walk * 100);
+        $("dial-pat").value = Math.round((h.name === "Hermit" ? 0.9 : 0.5) * 100);
+        const send = $("forge-send");
+        send.disabled = false;
+        send.textContent = `⚒ send a ${h.tactic} through the gate`;
         W.myHouse = h.name;
         try { localStorage.setItem("arena-house", h.name); } catch (e) { }
-        $("onboard").classList.add("hidden");
-        try { localStorage.setItem("arena-seen", "1"); } catch (e) { }
       };
       grid.appendChild(card);
+    }
+  }
+
+  async function _forgeSend() {
+    if (!_forgePick) return;
+    const spec = {
+      token: W.myToken, house: _forgePick.name, tactic: _forgePick.tactic,
+      boldness: (+$("dial-bold").value) / 100,
+      bluff: (+$("dial-bluff").value) / 100,
+      patience: (+$("dial-pat").value) / 100,
+      staked: !!_forgePick.staked,
+    };
+    const send = $("forge-send");
+    send.disabled = true; send.textContent = "the gate opens…";
+    try {
+      if (A.net.state === "demo") {
+        A.demo.injectChampion(spec);
+      } else {
+        await A.net.post("/arena/champion", spec);
+      }
+      $("onboard").classList.add("hidden");
+      try { localStorage.setItem("arena-seen", "1"); } catch (e) { }
+    } catch (e) {
+      send.textContent = "the gate is barred — " + (e.message || "try again");
+    } finally {
+      setTimeout(() => { send.disabled = false; if (_forgePick) send.textContent = `⚒ send a ${_forgePick.tactic} through the gate`; }, 1200);
     }
   }
 
   function initControls() {
     const help = $("help-btn"), onb = $("onboard"), dismiss = $("onboard-dismiss");
     _buildHouseGrid();
+    $("forge-send").onclick = _forgeSend;
     const seen = (function () { try { return localStorage.getItem("arena-seen"); } catch (e) { return 1; } })();
     if (!seen) onb.classList.remove("hidden");
     dismiss.onclick = () => { onb.classList.add("hidden"); try { localStorage.setItem("arena-seen", "1"); } catch (e) { } };

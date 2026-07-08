@@ -74,7 +74,17 @@ class World:
         self.record_surplus = 0.0
         self._peer_surplus_samples: list[float] = []
         self._adv_surplus_samples: list[float] = []
+        # per-generation income by tactic — the REAL "who's winning" scoreboard
+        # (wealth is cumulative and luck-confounded; income/gen is the signal)
+        self._gen_income: dict[str, float] = {}
+        # viewer-forged champions, queued by the API thread (list.append is
+        # atomic under the GIL) and consumed at each generation boundary
+        self._champion_queue: list[dict] = []
         self._seed_population()
+
+    # ── viewer champions: forge → through the gate ──
+    def queue_champion(self, spec: dict) -> None:
+        self._champion_queue.append(spec)
 
     # ── energy plumbing (all mutations go through here for the ledger) ──
     def _add_energy(self, a: Agent, delta: float, key: str) -> None:
@@ -133,9 +143,11 @@ class World:
     def generation_events(self):
         cfg = self.cfg
         self.gen += 1
+        self._gen_income = {}
         for a in self.agents.values():
             a.age += 1
 
+        yield from self._admit_champions()
         yield from self._market_phase()
         yield from self._upkeep_phase()
         yield from self._mating_phase()
@@ -144,6 +156,35 @@ class World:
         yield from self._era_phase()
         yield from self._census_phase()
         yield from self._floor_phase()
+
+    # ── champions: viewer-forged strategies enter through the gate ──
+    def _admit_champions(self):
+        """Consume queued viewer champions (max 4/gen, capacity permitting).
+        A challenger is a REAL agent built from the viewer's chosen tactic and
+        dials — diegetic immigration, flagged honestly as a challenger. The
+        sponsor_token lets the forging client recognize its own champion."""
+        admitted = 0
+        while self._champion_queue and admitted < 4 and len(self.agents) < self.cfg.pop_cap:
+            spec = self._champion_queue.pop(0)
+            g = Genome(
+                pareto_knob=float(np.clip(spec.get("boldness", 0.6), 0.0, 1.0)),
+                open_aggression=float(np.clip(spec.get("boldness", 0.6), 0.0, 1.0)),
+                walk_margin=float(np.clip(spec.get("bluff", 0.3), 0.0, 1.0)),
+                patience=float(np.clip(spec.get("patience", 0.5), 0.0, 1.0)),
+                staked=bool(spec.get("staked", False)),
+                tactic_family=spec.get("tactic", "conceder"),
+            )
+            house = str(spec.get("house", "Challenger"))[:24] or "Challenger"
+            a = self._spawn(g, house=house, parents=(), lineage=0)
+            self.ledger["immigration"] += a.energy
+            admitted += 1
+            yield self._ev("immigration", id=a.id, name=a.name, house=house,
+                           genome=g.to_dict(), reason="challenger",
+                           challenger=True,
+                           sponsor_token=str(spec.get("token", ""))[:64])
+            yield self._ev("highlight", kind="challenger",
+                           refs={"id": a.id, "house": house},
+                           blurb=f"a challenger enters: {a.name}")
 
     # ── market ──
     def _market_phase(self):
@@ -331,6 +372,8 @@ class World:
         self._add_energy(a, income, "income")
         self._cap(a)
         a.total_earned += income
+        fam = a.genome.tactic_family
+        self._gen_income[fam] = self._gen_income.get(fam, 0.0) + income
         a.deals_closed += 1
         a.scorecard.update(a.genome, min(1.0, surplus / max(cfg.scenario_span, 1e-6)))
         # reputation = EWMA of counterparty surplus (what partners walk away with)
@@ -570,7 +613,10 @@ class World:
             f = fam.setdefault(a.genome.tactic_family, {"n": 0, "e": 0.0})
             f["n"] += 1
             f["e"] += a.energy
-        tactics = {k: {"n": v["n"], "mean_e": round(v["e"] / v["n"], 1)}
+        # income = THIS generation's per-capita earnings by tactic — the honest
+        # "who's winning" number (mean_e is cumulative wealth, luck-confounded)
+        tactics = {k: {"n": v["n"], "mean_e": round(v["e"] / v["n"], 1),
+                       "income": round(self._gen_income.get(k, 0.0) / v["n"], 2)}
                    for k, v in fam.items()}
         peer_prem = float(np.mean(self._peer_surplus_samples)) if self._peer_surplus_samples else None
         adv_prem = float(np.mean(self._adv_surplus_samples)) if self._adv_surplus_samples else None

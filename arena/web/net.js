@@ -67,6 +67,17 @@
     },
 
     _setState(s) { this.state = s; if (this.onState) this.onState(s); },
+
+    async post(path, body) {
+      if (this.state === "demo") return { demo: true };
+      const base = new URLSearchParams(location.search).get("api") || "";
+      const r = await fetch(base + path, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.status);
+      return r.json();
+    },
   };
 
   A.net = net;

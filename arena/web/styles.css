@@ -156,7 +156,34 @@ body { font-family: var(--mono); color: var(--ink); -webkit-font-smoothing: none
 .house-card .hc-name { font-size: 11px; color: var(--ink); font-weight: 600; margin-top: 2px; }
 .house-card .hc-line { font-size: 8.5px; color: var(--ink-dim); line-height: 1.35; margin-top: 3px; min-height: 22px; }
 
+#forge-dials { margin: 4px 0 12px; }
+#forge-dials label {
+  display: block; font-size: 10.5px; color: var(--ink-dim); text-transform: uppercase;
+  letter-spacing: 0.08em; margin: 7px 0;
+}
+#forge-dials input[type="range"] {
+  width: 100%; accent-color: var(--violet); height: 3px; margin-top: 3px;
+}
+#forge-dials .dial-hint {
+  display: block; font-size: 9px; color: var(--muted, #7c7790);
+  text-transform: none; letter-spacing: 0; margin-top: 1px;
+}
+.forge-row { display: flex; gap: 10px; align-items: center; }
+.forge-row button.ghost {
+  background: transparent; color: var(--ink-dim); border: 1px solid var(--line);
+}
+#forge-send:disabled { opacity: 0.45; cursor: default; }
+
 #myhouse { top: 64px; left: 16px; min-width: 172px; }
+#myhouse .mh-bar {
+  height: 6px; border-radius: 3px; background: #2a2438; margin: 4px 0 2px; overflow: hidden;
+}
+#myhouse .mh-bar i { display: block; height: 100%; background: var(--gold); transition: width 0.5s; }
+#myhouse button.reforge {
+  margin-top: 7px; width: 100%; background: var(--violet-deep); color: var(--violet-bright);
+  border: 1px solid var(--line); border-radius: 6px; padding: 5px; font-family: var(--mono);
+  font-size: 11px; cursor: pointer;
+}
 #myhouse .mh-title { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); }
 #myhouse .mh-name { font-size: 13px; font-weight: 600; margin: 2px 0 4px; }
 #myhouse .mh-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-dim); }
