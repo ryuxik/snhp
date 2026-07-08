@@ -135,5 +135,118 @@ def run(n_profiles=300, seed=7):
     return out
 
 
+# ─── PEER path validation: two SNHP agents negotiate a full contract ──────
+# The honest question: does peer_mode (truthful BATNA + cooperative efficient
+# selection) grow JOINT welfare vs two adversarial SNHP agents, on the SAME
+# profiles? We run a real bilateral negotiation both ways, paired per seed.
+
+def _bilateral_profile(rng, n_issues=4, n_opts=4):
+    """A two-sided contract: per-issue seller-favourable directions, and each
+    side's own TRUE priority weights (private)."""
+    names = [f"issue{i}" for i in range(n_issues)]
+    dirs = [np.clip(np.linspace(0, 1, n_opts) + rng.normal(0, 0.06, n_opts), 0, 1)
+            for _ in range(n_issues)]
+    wa = rng.dirichlet(np.ones(n_issues))
+    wb = rng.dirichlet(np.ones(n_issues))
+    return names, dirs, wa, wb
+
+
+def _side_issues(names, dirs, role):
+    """role 'a' favours high options (dir), 'b' favours low (1-dir)."""
+    out = []
+    for name, d in zip(names, dirs):
+        my = list(d) if role == "a" else [1 - x for x in d]
+        their = [1 - x for x in d] if role == "a" else list(d)
+        out.append({"name": name, "options": list(range(len(d))),
+                    "my_utility": my, "their_utility": their})
+    return out
+
+
+def _true_util(names, dirs, w, role, pkg):
+    w = np.asarray(w) / np.sum(w)
+    tot = 0.0
+    for i, name in enumerate(names):
+        opt = pkg[name]
+        val = dirs[i][opt] if role == "a" else (1 - dirs[i][opt])
+        tot += w[i] * val
+    return float(tot)
+
+
+def _run_bilateral(rng, peer, rounds=6, batna=0.30):
+    names, dirs, wa, wb = _bilateral_profile(rng)
+    a_iss, b_iss = _side_issues(names, dirs, "a"), _side_issues(names, dirs, "b")
+    wa_d = dict(zip(names, wa)); wb_d = dict(zip(names, wb))
+    # peers exchange truthful BATNAs; adversaries use the blind default
+    a_est = batna if peer else 0.40
+    b_est = batna if peer else 0.40
+    a_off, b_off, settled = [], [], None
+    for t in range(rounds):
+        if t % 2 == 0:
+            adv = negotiate_bundle(issues=a_iss, their_offers=b_off or None,
+                                   my_priorities=wa_d, my_batna=batna,
+                                   their_batna_estimate=a_est, peer_mode=peer)
+            if adv["action"] == "accept" and b_off:
+                settled = b_off[-1]; break
+            if adv["recommended_offer"] is None:
+                break
+            a_off.append(adv["recommended_offer"])
+        else:
+            adv = negotiate_bundle(issues=b_iss, their_offers=a_off or None,
+                                   my_priorities=wb_d, my_batna=batna,
+                                   their_batna_estimate=b_est, peer_mode=peer)
+            if adv["action"] == "accept" and a_off:
+                settled = a_off[-1]; break
+            if adv["recommended_offer"] is None:
+                break
+            b_off.append(adv["recommended_offer"])
+    if settled is None:
+        settled = (a_off or b_off or [None])[-1]
+    if settled is None:
+        return None
+    ua = _true_util(names, dirs, wa, "a", settled)
+    ub = _true_util(names, dirs, wb, "b", settled)
+    return ua + ub, min(ua, ub)
+
+
+def run_peer(n_profiles=400, seed=11):
+    print("=" * 74)
+    print("  MULTI-ISSUE PEER PATH — VALIDATION (paired, two SNHP agents)")
+    print("=" * 74)
+    peer_j, adv_j, peer_fair, adv_fair, wins = [], [], [], [], 0
+    for i in range(n_profiles):
+        rp = np.random.default_rng(seed + i)
+        p = _run_bilateral(rp, peer=True)
+        ra = np.random.default_rng(seed + i)
+        a = _run_bilateral(ra, peer=False)
+        if not p or not a:
+            continue
+        peer_j.append(p[0]); adv_j.append(a[0])
+        peer_fair.append(p[1]); adv_fair.append(a[1])
+        wins += (p[0] >= a[0])
+    n = len(peer_j)
+    pj, aj = np.mean(peer_j), np.mean(adv_j)
+    lift = pj / aj - 1.0
+    # paired sign test
+    diffs = np.array(peer_j) - np.array(adv_j)
+    pos = int(np.sum(diffs > 1e-9))
+    print(f"\n  {n} paired contracts (4 issues x 4 options), same profile both ways")
+    print(f"    joint welfare  PEER-vs-PEER:  {pj:.3f}")
+    print(f"                   adversarial:   {aj:.3f}   -> peer lift {lift:+.1%}")
+    print(f"    worse-off party (fairness)  peer {np.mean(peer_fair):.3f}  vs adv {np.mean(adv_fair):.3f}")
+    print(f"    paired sign test: peer >= adversarial in {wins}/{n} ({wins/n:.0%}); "
+          f"strictly greater {pos}/{n}")
+    print("-" * 74)
+    print("  HONEST READ: peer_mode's lift comes from truthful BATNAs (no feasible")
+    print("  package wrongly excluded) + cooperative EFFICIENT selection. Both peers")
+    print("  choosing the efficient point grows the pie; the worse-off party column")
+    print("  shows it isn't achieved by starving one side. It is NOT the lab's")
+    print("  +0.186 (LLM self-play, different setup) — it is this engine's own number.")
+    return dict(n=n, peer_joint=pj, adv_joint=aj, lift=lift, wins=wins)
+
+
 if __name__ == "__main__":
-    run()
+    import sys
+    if "--peer" in sys.argv:
+        run_peer()
+    else:
+        run()

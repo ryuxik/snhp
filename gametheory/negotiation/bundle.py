@@ -106,10 +106,37 @@ class _BundleModel:
     best_idx: Optional[int]
 
 
-def _build_model(issues, their_offers, my_priorities, my_batna, their_batna_estimate):
-    """Build the outcome space, infer their priorities, and pick the Nash package.
-    Assumes `issues` is validated and has >= 2 issues. Raises BundleInputError on a
-    too-large outcome space or malformed counter-offers."""
+def _cooperative_solution(pareto_indices, u_self, u_opp, batna_self, batna_opp,
+                          cooperation):
+    """Verified-peer package selection over the Pareto frontier. Both BATNAs are
+    TRUE (peers exchanged them), so this is the classical, IIA-respecting regime.
+
+    Returns the index maximizing a tilt between the Nash product and the
+    joint-welfare (utilitarian) sum, among frontier points that clear BOTH true
+    BATNAs. cooperation=0 -> Nash product; 1 -> joint-welfare max. Two peers who
+    both run this converge on the same efficient package, which is why joint
+    welfare rises versus adversarial inference-and-Nash-product play.
+    """
+    best_idx, best_score = None, -np.inf
+    for idx in pareto_indices:
+        sa = u_self[idx] - batna_self
+        sb = u_opp[idx] - batna_opp
+        if sa <= 0 or sb <= 0:
+            continue
+        nash = sa * sb                       # fair (equal-power Nash bargaining)
+        joint = sa + sb                      # efficient (grow the pie)
+        score = (1.0 - cooperation) * nash + cooperation * joint
+        if score > best_score:
+            best_score, best_idx = score, idx
+    return best_idx
+
+
+def _build_model(issues, their_offers, my_priorities, my_batna, their_batna_estimate,
+                 peer_mode=False):
+    """Build the outcome space, infer their priorities, and pick the package.
+    In peer_mode the counterparty is a verified peer: BATNAs are treated as true
+    and the cooperative (efficient) point is chosen. Assumes `issues` is validated
+    and has >= 2 issues."""
     n_issues = len(issues)
     names = [iss["name"] for iss in issues]
     options = [list(iss["options"]) for iss in issues]
@@ -167,10 +194,24 @@ def _build_model(issues, their_offers, my_priorities, my_batna, their_batna_esti
         their_w = np.ones(n_issues) / n_issues
         confidence = 0.30
 
+    # Peer signaling: on the opener, sharpen toward our own priorities so the
+    # verified peer infers our weights fast from the first offer (multi-issue
+    # analog of the PEER signaling phase). Only affects our OWN scoring tilt.
+    if peer_mode and not their_offers:
+        boost = get_param("bundle_peer_signal_boost")
+        sig_w = my_w ** boost
+        u_self = my_per_dim @ (sig_w / sig_w.sum())
+
     u_opp = their_per_dim @ their_w
     pareto_idx = filter_pareto_frontier(idx_grid.astype(np.float64), u_self, u_opp)
-    best_idx = find_nash_bargaining_solution(
-        pareto_idx, u_self, u_opp, my_batna, their_batna_estimate, batna_b_inferred=True)
+    if peer_mode:
+        # verified peer: true BATNAs, cooperative efficient selection
+        best_idx = _cooperative_solution(
+            pareto_idx, u_self, u_opp, my_batna, their_batna_estimate,
+            get_param("bundle_peer_cooperation"))
+    else:
+        best_idx = find_nash_bargaining_solution(
+            pareto_idx, u_self, u_opp, my_batna, their_batna_estimate, batna_b_inferred=True)
 
     return _BundleModel(
         names=names, options=options, my_w=my_w, my_u=my_u, their_u=their_u,
@@ -187,6 +228,7 @@ def negotiate_bundle(
     my_priorities: Optional[dict] = None,
     my_batna: float = 0.40,
     their_batna_estimate: float = 0.40,
+    peer_mode: bool = False,
 ) -> dict:
     """
     Recommend a multi-issue package by logrolling. See module docstring.
@@ -199,6 +241,14 @@ def negotiate_bundle(
         table, oldest first. Drives the priority inference. Omit on your opener.
     my_priorities: optional {issue_name: weight} — how much each issue matters to
         you (any scale, normalized). Omitted -> all issues weighted equally.
+    peer_mode: set True only when the counterparty is a VERIFIED SNHP peer
+        (cryptographic attestation) whose BATNA you have exchanged truthfully.
+        The multi-issue analog of the single-issue PEER playbook: `their_batna_
+        estimate` is trusted as the true BATNA, the opener signals priorities, and
+        the cooperative EFFICIENT package (joint-welfare-tilted, still clearing
+        both BATNAs) is chosen instead of the adversarial Bayesian-Nash point.
+        Two peers who both run this grow the joint surplus (validated:
+        `python -m gametheory.negotiation.bundle_validation --peer`).
 
     Returns {action, recommended_offer (issue->option), message, my_utility,
     their_expected_utility, inferred_their_priorities, trade_logic, fit,
@@ -220,7 +270,8 @@ def negotiate_bundle(
             "confidence": 0.0,
             "acceptance_probability": None,
         }
-    m = _build_model(issues, their_offers, my_priorities, my_batna, their_batna_estimate)
+    m = _build_model(issues, their_offers, my_priorities, my_batna,
+                     their_batna_estimate, peer_mode=peer_mode)
     names, options = m.names, m.options
     my_w, my_u, their_u = m.my_w, m.my_u, m.their_u
     idx_grid, my_per_dim = m.idx_grid, m.my_per_dim

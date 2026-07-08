@@ -254,6 +254,35 @@ _BUNDLE = {
         notes="Prior std of the bundle priority-inference filter (was bundle.py "
               "_PRIOR_UNCERTAINTY). Higher = wider posterior, offers update priorities more.",
     ),
+    # ── Multi-issue PEER path (negotiate_bundle peer_mode) ──────────────
+    "bundle_peer_cooperation": ParamMeta(
+        default=0.6,
+        rationale="empirical",
+        source="bundle_validation --peer paired sweep, 300 profiles (2026-07): "
+               "coop 0.6 -> +1.9% joint welfare, 84% paired-win, fairness cost "
+               "-0.006 (negligible); 1.0 lifts +2.1% but costs the worse-off "
+               "party -0.024, so 0.6 is the lift/fairness knee.",
+        search_low=0.0, search_high=1.0,
+        importance="high",
+        notes="Selection tilt for verified-peer multi-issue deals, in [0,1]. 0 = "
+              "the adversarial Bayesian-Nash-product point; 1 = the joint-welfare-"
+              "maximizing (utilitarian) Pareto point that still clears both TRUE "
+              "BATNAs. The engine analog of the single-issue PEER playbook's "
+              "'descend to the asymmetric Pareto outcome': two peers who exchange "
+              "truthful BATNAs both select the efficient package and grow the pie "
+              "without starving either side. Validated: bundle_validation --peer.",
+    ),
+    "bundle_peer_signal_boost": ParamMeta(
+        default=1.6,
+        rationale="heuristic",
+        source="mirrors _peer.py signaling (peer_max_self_target reveals priorities)",
+        search_low=1.0, search_high=3.0,
+        importance="medium",
+        notes="On a peer opener (no counter-offers yet), the recommended package "
+              "sharpens toward this side's top priorities by this factor, so the "
+              "verified peer infers weights faster from the first offer — the "
+              "multi-issue form of the PEER signaling phase.",
+    ),
 }
 
 

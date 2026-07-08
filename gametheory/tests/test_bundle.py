@@ -162,3 +162,33 @@ def test_mcp_exposes_bundle_tool():
                 {"name": "B", "options": ["lo", "hi"], "my_utility": [0, 1], "their_utility": [1, 0]}],
         my_priorities={"A": 0.8, "B": 0.2})
     assert out["recommended_offer"]["A"] == "hi"
+
+
+# ─── verified-peer multi-issue path ──────────────────────────────────────────
+def test_peer_mode_backward_compatible():
+    """Default (peer_mode=False) is unchanged."""
+    base = negotiate_bundle(issues=TWO_ISSUES, my_priorities={"A": 0.8, "B": 0.2})
+    explicit = negotiate_bundle(issues=TWO_ISSUES, my_priorities={"A": 0.8, "B": 0.2},
+                                peer_mode=False)
+    assert base["recommended_offer"] == explicit["recommended_offer"]
+
+
+def test_peer_mode_returns_valid_package():
+    out = negotiate_bundle(issues=TWO_ISSUES, my_priorities={"A": 0.8, "B": 0.2},
+                           my_batna=0.3, their_batna_estimate=0.3, peer_mode=True)
+    assert out["action"] in ("counter", "accept")
+    assert set(out["recommended_offer"]) == {"A", "B"}
+
+
+def test_peer_mode_lifts_joint_welfare():
+    """Two peers grow the joint pie vs two adversaries, on the same profiles."""
+    import numpy as np
+    from gametheory.negotiation import bundle_validation as bv
+    peer_j, adv_j = [], []
+    for i in range(120):
+        p = bv._run_bilateral(np.random.default_rng(11 + i), peer=True)
+        a = bv._run_bilateral(np.random.default_rng(11 + i), peer=False)
+        if p and a:
+            peer_j.append(p[0]); adv_j.append(a[0])
+    assert np.mean(peer_j) > np.mean(adv_j)                 # positive lift
+    assert np.mean(np.array(peer_j) >= np.array(adv_j)) > 0.6  # robust across profiles

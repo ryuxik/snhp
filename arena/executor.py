@@ -176,8 +176,9 @@ def run_price_negotiation(seller: Side, buyer: Side, sc: PriceScenario,
     # staking benefit on PRICE deals is the *truthful reservation* channel:
     # staked agents don't bluff (see s_decl/b_decl above), which preserves the
     # true ZOPA and closes more deals. That is attestation's actual causal
-    # mechanism ("a credible declaration channel"). peer_mode stays off here;
-    # bundle deals get the true-BATNA-exchange benefit instead.
+    # mechanism ("a credible declaration channel"). peer_mode stays off for PRICE
+    # (its cooperative descent is infeasible on single-issue divide-the-dollar);
+    # BUNDLE pacts run the engine's real multi-issue peer_mode instead.
     def s_advice():
         _seed(neg_seed, turn)
         return sell_next_offer(
@@ -365,9 +366,13 @@ def run_bundle_negotiation(seller: Side, buyer: Side, sc: BundleScenario,
         t_frac = min(1.0, (turn + 1) / max(deadline, 1))
         if turn % 2 == 0:
             _seed(neg_seed, turn)
+            # verified pact (both staked): run the engine's multi-issue PEER path
+            # — truthful BATNA (already exchanged above) + cooperative efficient
+            # selection. THIS is where the +0.186-lineage cooperation actually
+            # lives now, on the multi-issue frontier where it is valid.
             adv = negotiate_bundle(issues=s_issues, their_offers=b_offers or None,
                                    my_priorities=s_pri, my_batna=s_batna,
-                                   their_batna_estimate=s_their_est)
+                                   their_batna_estimate=s_their_est, peer_mode=peer)
             if adv["action"] == "accept" and b_offers and \
                     _tactic_bundle_accept(seller.genome, t_frac, len(b_offers)):
                 close_pkg, close_by = b_offers[-1], "seller"
@@ -384,7 +389,7 @@ def run_bundle_negotiation(seller: Side, buyer: Side, sc: BundleScenario,
             _seed(neg_seed, turn)
             adv = negotiate_bundle(issues=b_issues, their_offers=s_offers or None,
                                    my_priorities=b_pri, my_batna=b_batna,
-                                   their_batna_estimate=b_their_est)
+                                   their_batna_estimate=b_their_est, peer_mode=peer)
             if adv["action"] == "accept" and s_offers and \
                     _tactic_bundle_accept(buyer.genome, t_frac, len(s_offers)):
                 close_pkg, close_by = s_offers[-1], "buyer"
