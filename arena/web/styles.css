@@ -260,6 +260,31 @@ body { font-family: var(--mono); color: var(--ink); -webkit-font-smoothing: none
 .honest-repro { font-size: 10.5px; color: var(--ink-dim); letter-spacing: 0.02em; }
 .honest-repro code { color: var(--gold); }
 
+/* the shareable saga card — the distribution engine (player is the hero) */
+.saga-card {
+  width: min(760px, 94vw); text-align: center;
+  background: var(--violet-deep); border: 1px solid var(--line);
+  border-radius: 14px; padding: 16px;
+}
+#saga-canvas { width: 100%; height: auto; display: block; border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.saga-actions { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+.saga-actions button {
+  background: var(--violet); color: #17102c; border: none; border-radius: 8px;
+  padding: 9px 18px; font-family: var(--mono); font-weight: 600; font-size: 13px; cursor: pointer;
+}
+.saga-actions button:hover { background: var(--violet-bright); }
+.saga-actions button.ghost { background: transparent; color: var(--ink-dim); border: 1px solid var(--line); }
+.saga-actions button.ghost:hover { color: var(--ink); }
+.saga-hint { margin-top: 10px; font-size: 11px; color: var(--ink-dim); letter-spacing: .02em; }
+/* the in-HUD trigger in the champion box */
+.saga-btn {
+  margin-top: 7px; width: 100%; background: var(--gold); color: #17102c; border: none;
+  border-radius: 6px; padding: 6px; font-family: var(--mono); font-weight: 600; font-size: 11px;
+  cursor: pointer;
+}
+.saga-btn:hover { filter: brightness(1.08); }
+
 /* clip mode: pure canvas, no DOM chrome (clips crop to canvas) */
 body.clip #hud, body.clip #vignette { display: none; }
 

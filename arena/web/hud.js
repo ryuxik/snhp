@@ -109,7 +109,8 @@
           `<div class="mh-bar"><i style="width:${pct}%"></i></div>` +
           `<div class="mh-row"><span>energy</span><b>${Math.round(c.energy)}</b></div>` +
           `<div class="mh-row"><span>deals</span><b>${c.deals || 0}</b></div>` +
-          `<div class="mh-row"><span>bloodline</span><b>${line}</b></div>`;
+          `<div class="mh-row"><span>bloodline</span><b>${line}</b></div>` +
+          `<button class="saga-btn" id="saga-btn-live">⚑ share the saga</button>`;
       } else if (W.championFallen) {
         const f = W.championFallen;
         box.innerHTML =
@@ -117,6 +118,7 @@
           `<div class="mh-name" style="color:#8a5a5e">has fallen</div>` +
           `<div class="mh-row"><span>${f.cause === "starvation" ? "went broke" : "grew old"}</span>` +
           `<b>${f.heirs ? f.heirs + " heirs live" : "line ended"}</b></div>` +
+          `<button class="saga-btn" id="saga-btn">⚑ share the saga</button>` +
           `<button class="reforge" id="reforge-btn">⚒ reforge a strategy</button>`;
         const rb = $("reforge-btn");
         if (rb) rb.onclick = () => $("onboard").classList.remove("hidden");
@@ -264,6 +266,83 @@
       cell("trust lift (live)", lift);
   }
 
+  // ── The shareable saga card: your champion's story as a downloadable image.
+  // The distribution engine — people share THEIR outcome, not our poster. The
+  // player is the hero; one beautiful card, one tap.
+  function _sagaData() {
+    if (W.myChampion != null && W.agents.has(W.myChampion)) {
+      const c = W.agents.get(W.myChampion);
+      const heirs = [...W.myLine].filter(id => id !== c.id && W.agents.has(id)).length;
+      return { name: c.name, house: c.house, tactic: c.g.tactic_family, deals: c.deals || 0,
+               gens: c.age || 0, heirs, genome: c.g, alive: true, cause: null };
+    }
+    const f = W.championFallen;
+    if (f) return { name: f.name, house: f.house, tactic: (f.genome && f.genome.tactic_family) || "",
+                    deals: f.deals || 0, gens: f.gens || 0, heirs: f.heirs || 0,
+                    genome: f.genome, alive: false, cause: f.cause };
+    return null;
+  }
+  function _epitaph(d) {
+    if (d.alive) return "still fighting — the line holds.";
+    if (d.cause === "starvation") return "went broke at the gate, spine unbent.";
+    return "grew old — rich, feared, and finally still.";
+  }
+  function _sagaChallenge(d) {
+    const fate = d.alive ? `has survived ${d.gens} generations and counting`
+                         : `survived ${d.gens} generations`;
+    const line = d.heirs ? `, leaving ${d.heirs} heir${d.heirs > 1 ? "s" : ""} to carry the line`
+                         : `, the last of the line`;
+    return `${shortName(d.name)} of House ${d.house} ${fate}${line} in the SNHP Evolution `
+      + `Arena — every deal computed by the library.\n\nThink your strategy outlasts mine? `
+      + `Forge one, free: arena.snhp.dev`;
+  }
+  function drawSaga(d) {
+    const cv = $("saga-canvas"), g = cv.getContext("2d");
+    const CW = cv.width, CH = cv.height;
+    const ramp = d.genome ? SP.rampFor(d.genome) : SP.RAMPS[0];
+    const bg = g.createRadialGradient(CW * 0.5, CH * 0.36, 80, CW * 0.5, CH * 0.42, CW * 0.72);
+    bg.addColorStop(0, "#16102c"); bg.addColorStop(0.6, "#0a0813"); bg.addColorStop(1, "#060510");
+    g.fillStyle = bg; g.fillRect(0, 0, CW, CH);
+    g.strokeStyle = "rgba(167,139,250,0.22)"; g.lineWidth = 2; g.strokeRect(1, 1, CW - 2, CH - 2);
+    g.imageSmoothingEnabled = false;
+    // champion portrait, left
+    const sx = 250, sy = CH * 0.5;
+    try {
+      const s = SP.build(d.genome || {}), sc = 11, dw = s.w * sc, dh = s.h * sc;
+      const gl = g.createRadialGradient(sx, sy, 12, sx, sy, dw);
+      gl.addColorStop(0, "rgba(255,224,138,0.16)"); gl.addColorStop(1, "transparent");
+      g.fillStyle = gl; g.fillRect(sx - dw, sy - dh, dw * 2, dh * 2);
+      g.drawImage(s.f[0], Math.round(sx - dw / 2), Math.round(sy - dh / 2), dw, dh);
+    } catch (e) { /* sprite optional */ }
+    // text column
+    const x0 = 470;
+    g.textAlign = "left";
+    g.fillStyle = "#ffe08a"; g.font = "600 22px ui-monospace, Menlo, monospace";
+    g.fillText("T H E   S A G A   O F", x0, 148);
+    g.fillStyle = ramp[3]; g.font = "700 60px 'Helvetica Neue', Arial, sans-serif";
+    g.fillText(shortName(d.name) || "your champion", x0, 212);
+    g.fillStyle = "#9a95b0"; g.font = "400 24px ui-monospace, Menlo, monospace";
+    g.fillText(`House ${d.house}${d.tactic ? "  ·  " + d.tactic : ""}`, x0, 248);
+    g.fillStyle = "#ffe08a"; g.font = "800 94px 'Helvetica Neue', Arial, sans-serif";
+    g.fillText(String(d.gens), x0, 368);
+    g.fillStyle = "#9a95b0"; g.font = "600 19px ui-monospace, Menlo, monospace";
+    g.fillText("GENERATIONS " + (d.alive ? "AND COUNTING" : "SURVIVED"), x0, 398);
+    g.font = "400 26px ui-monospace, Menlo, monospace"; g.fillStyle = "#e8e8e3";
+    g.fillText(`${d.deals} deals closed`, x0, 452);
+    g.fillText(`${d.heirs} ${d.heirs === 1 ? "heir carries" : "heirs carry"} the line`, x0, 490);
+    g.font = "italic 400 22px ui-monospace, Menlo, monospace"; g.fillStyle = "#bba6ff";
+    g.fillText(_epitaph(d), x0, 544);
+    g.textAlign = "center"; g.fillStyle = "#7c7790";
+    g.font = "400 20px ui-monospace, Menlo, monospace";
+    g.fillText("forge your own, free  ·  arena.snhp.dev  ·  every deal computed by SNHP", CW / 2, CH - 32);
+  }
+  let _sagaText = "";
+  function showSaga() {
+    const d = _sagaData(); if (!d) return;
+    drawSaga(d); _sagaText = _sagaChallenge(d);
+    $("saga").classList.remove("hidden");
+  }
+
   function initControls() {
     const help = $("help-btn"), onb = $("onboard"), dismiss = $("onboard-dismiss");
     const honest = $("honest");
@@ -280,10 +359,32 @@
     $("honest-close").onclick = () => honest.classList.add("hidden");
     honest.onclick = (e) => { if (e.target === honest) honest.classList.add("hidden"); };
     const ol = $("onboard-honest-link"); if (ol) ol.onclick = openHonest;
+    // saga card: close, backdrop-dismiss, save PNG, copy the challenge; the
+    // trigger buttons live inside #myhouse (re-rendered), so delegate their click
+    const saga = $("saga");
+    $("saga-close").onclick = () => saga.classList.add("hidden");
+    saga.onclick = (e) => { if (e.target === saga) saga.classList.add("hidden"); };
+    $("saga-dl").onclick = () => {
+      $("saga-canvas").toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob), a = document.createElement("a");
+        a.href = url; a.download = "snhp-arena-saga.png"; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      }, "image/png");
+    };
+    $("saga-copy").onclick = () => {
+      const btn = $("saga-copy"), label = btn.textContent;
+      (navigator.clipboard ? navigator.clipboard.writeText(_sagaText) : Promise.reject())
+        .then(() => { btn.textContent = "copied ✓"; setTimeout(() => btn.textContent = label, 1500); })
+        .catch(() => { btn.textContent = "select + copy"; });
+    };
+    $("myhouse").addEventListener("click", (e) => {
+      if (e.target && (e.target.id === "saga-btn" || e.target.id === "saga-btn-live")) showSaga();
+    });
     const sb = $("sound-btn");
     sb.onclick = () => { const on = A.sound.toggle(); sb.classList.toggle("on", on); };
     W.onTicker = () => pushTicker();
   }
 
-  A.hud = { update, pushTicker, initControls, HOUSES };
+  A.hud = { update, pushTicker, initControls, showSaga, HOUSES };
 })();

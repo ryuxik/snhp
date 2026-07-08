@@ -112,7 +112,15 @@
           if (a) { a.mode = "dying"; a.dying = 1; a.deathCause = ev.cause; a.heirs = ev.heirs; }
           if (ev.id === this.myChampion) {
             const heirs = [...this.myLine].filter(id => id !== ev.id && this.agents.has(id));
-            this.championFallen = { heirs: heirs.length, cause: ev.cause };
+            // enrich for the shareable saga card (the agent is still in hand here)
+            this.championFallen = {
+              heirs: heirs.length, cause: ev.cause,
+              name: a ? a.name : (ev.name || "your champion"),
+              house: (a && a.house) || ev.house || "—",
+              deals: ev.deals != null ? ev.deals : (a && a.deals) || 0,
+              gens: ev.age != null ? ev.age : (a && a.age) || 0,
+              genome: a ? a.g : null,
+            };
             this._tick(`★ <b>your champion has fallen</b>` +
               (heirs.length ? ` — ${heirs.length} of the line carry on` : " — the line is ended"));
             if (this.onChampion) this.onChampion("fallen", this.championFallen);
