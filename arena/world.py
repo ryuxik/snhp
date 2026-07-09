@@ -177,8 +177,15 @@ class World:
         A challenger is a REAL agent built from the viewer's chosen tactic and
         dials — diegetic immigration, flagged honestly as a challenger. The
         sponsor_token lets the forging client recognize its own champion."""
+        # A viewer's champion MUST enter promptly — the API promises "enters at
+        # the next generation". On a full world (the live arena runs pinned at
+        # pop_cap) a champion would otherwise sit in the queue forever. So admit
+        # up to 4/gen even at cap, allowing a small bounded overflow; the
+        # champion simply displaces that generation's births (births_available
+        # clamps at 0), and crowding tax + deaths rebalance within a gen or two.
         admitted = 0
-        while self._champion_queue and admitted < 4 and len(self.agents) < self.cfg.pop_cap:
+        hard_cap = self.cfg.pop_cap + 6
+        while self._champion_queue and admitted < 4 and len(self.agents) < hard_cap:
             spec = self._champion_queue.pop(0)
             g = Genome(
                 pareto_knob=float(np.clip(spec.get("boldness", 0.6), 0.0, 1.0)),
