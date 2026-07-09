@@ -12,7 +12,7 @@
 <meta name="twitter:description" content="A live world where AI knights negotiate to survive and breed. It evolved a strategy that beats our shipped recommender by +27%." />
 <meta name="twitter:image" content="https://arena.snhp.dev/og.png" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230B0A12'/%3E%3Crect x='6' y='3' width='4' height='10' fill='%23A78BFA'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="styles.css?v=1" />
+<link rel="stylesheet" href="styles.css?v=2" />
 
 <div id="stage">
   <canvas id="view"></canvas>
@@ -26,15 +26,25 @@
       <span id="era-poll" title="the season's pollinator"></span>
       <span id="gen-counter">gen 0</span>
     </div>
-    <div id="myhouse" class="hud-panel hidden"></div>
-    <div id="leaderboard" class="hud-panel"></div>
-    <div id="census" class="hud-panel"></div>
-    <div id="ticker"><div id="ticker-inner"></div></div>
-    <div id="science" class="hud-panel"></div>
     <div id="conn-chip"></div>
-    <button id="sound-btn" title="sound">♪</button>
-    <button id="honest-btn" title="what's real — and what's not, even our own hype">✓?</button>
-    <button id="help-btn" title="what am I looking at?">?</button>
+
+    <!-- the four data panels: absolute corner docks on desktop, a single
+         toggle-able bottom drawer on mobile (#panels becomes the sheet) -->
+    <div id="panels">
+      <div id="myhouse" class="hud-panel hidden"></div>
+      <div id="leaderboard" class="hud-panel"></div>
+      <div id="census" class="hud-panel"></div>
+      <div id="science" class="hud-panel"></div>
+    </div>
+
+    <div id="ticker"><div id="ticker-inner"></div></div>
+
+    <div id="hud-controls">
+      <button id="stats-btn" class="hud-btn" aria-label="show stats" title="stats" aria-expanded="false">▤</button>
+      <button id="honest-btn" class="hud-btn" aria-label="what's real — and what's not, even our own hype" title="what's real — and what's not">✓?</button>
+      <button id="help-btn" class="hud-btn" aria-label="what am I looking at?" title="what am I looking at?">?</button>
+      <button id="sound-btn" class="hud-btn" aria-label="toggle sound" title="sound">♪</button>
+    </div>
   </div>
 
   <div id="bloom-overlay" class="hidden">
@@ -138,15 +148,15 @@
   </div>
 </div>
 
-<script src="sprites.js?v=1"></script>
-<script src="flora.js?v=1"></script>
-<script src="stage.js?v=1"></script>
-<script src="fx.js?v=1"></script>
-<script src="world.js?v=1"></script>
-<script src="choreo.js?v=1"></script>
-<script src="bloom.js?v=1"></script>
-<script src="hud.js?v=1"></script>
-<script src="sound.js?v=1"></script>
-<script src="net.js?v=1"></script>
-<script src="demo.js?v=1"></script>
-<script src="main.js?v=1"></script>
+<script src="sprites.js?v=2"></script>
+<script src="flora.js?v=2"></script>
+<script src="stage.js?v=2"></script>
+<script src="fx.js?v=2"></script>
+<script src="world.js?v=2"></script>
+<script src="choreo.js?v=2"></script>
+<script src="bloom.js?v=2"></script>
+<script src="hud.js?v=2"></script>
+<script src="sound.js?v=2"></script>
+<script src="net.js?v=2"></script>
+<script src="demo.js?v=2"></script>
+<script src="main.js?v=2"></script>

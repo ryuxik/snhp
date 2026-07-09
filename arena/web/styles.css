@@ -2,14 +2,16 @@
    over the letterboxed canvas. Kin to the PAR dark+violet brand. */
 :root {
   --bg: #07060d;
-  --ink: #e8e8e3;
-  --ink-dim: #9a95b0;
+  --ink: #f0eff5;                       /* raised for AA on the panel ground */
+  --ink-dim: #aca6c2;                   /* brighter dim: legible small text */
   --violet: #a78bfa;
-  --violet-bright: #bba6ff;
+  --violet-bright: #c4b1ff;
   --violet-deep: #16102c;
   --gold: #ffe08a;
-  --panel: rgba(11, 10, 20, 0.55);
-  --line: rgba(167, 139, 250, 0.14);
+  --panel: rgba(12, 11, 22, 0.9);       /* opaque enough to read over the world */
+  --line: rgba(167, 139, 250, 0.22);
+  --gutter: 16px;
+  --ticker-h: 26px;
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -32,23 +34,26 @@ body { font-family: var(--mono); color: var(--ink); -webkit-font-smoothing: none
 }
 
 #hud { position: absolute; inset: 0; pointer-events: none; }
+/* desktop: the wrapper is transparent so its children keep their corner docks */
+#panels { display: contents; }
 .hud-panel {
   position: absolute; background: var(--panel);
-  border: 1px solid var(--line); border-radius: 8px;
-  padding: 8px 11px; backdrop-filter: blur(6px);
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 9px 12px; backdrop-filter: blur(12px);
   font-size: 12px; line-height: 1.5; pointer-events: auto;
-  color: var(--ink-dim); opacity: 0.86; transition: opacity 0.3s;
+  color: var(--ink-dim); box-shadow: 0 8px 28px rgba(0,0,0,0.42);
+  overflow: hidden;
 }
-.hud-panel:hover { opacity: 1; }
 #era-banner {
-  top: 16px; left: 16px; display: flex; gap: 9px; align-items: center;
-  font-size: 13px; letter-spacing: 0.02em;
+  top: var(--gutter); left: var(--gutter); display: flex; gap: 9px; align-items: center;
+  font-size: 13px; letter-spacing: 0.02em; max-width: min(56vw, 340px);
 }
 #era-glyph { font-size: 15px; filter: drop-shadow(0 0 6px currentColor); }
-#era-name { font-weight: 600; color: var(--violet-bright); }
-#gen-counter { color: var(--ink-dim); text-transform: uppercase; font-size: 11px; }
+#era-name { font-weight: 600; color: var(--violet-bright); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#gen-counter { color: var(--ink-dim); text-transform: uppercase; font-size: 11px; margin-left: auto; }
 
-#leaderboard { top: 16px; right: 16px; width: 214px; }
+/* corner docks with hard bounds so no panel grows into another or the ticker */
+#leaderboard { top: var(--gutter); right: var(--gutter); width: 214px; max-height: 42vh; }
 #leaderboard .lb-title, #census .cs-title, #science .sci-title {
   text-transform: uppercase; font-size: 10px; letter-spacing: 0.12em;
   color: var(--ink-dim); margin-bottom: 6px;
@@ -58,7 +63,7 @@ body { font-family: var(--mono); color: var(--ink); -webkit-font-smoothing: none
 .lb-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lb-energy { color: var(--gold); font-variant-numeric: tabular-nums; }
 
-#census { bottom: 16px; left: 16px; width: 230px; }
+#census { bottom: calc(var(--ticker-h) + var(--gutter)); left: var(--gutter); width: 230px; max-height: 46vh; }
 .cs-bar { height: 8px; border-radius: 3px; margin: 3px 0; transition: width 0.6s ease; }
 .cs-stat { display: flex; justify-content: space-between; color: var(--ink-dim); font-size: 11px; }
 .cs-stat b { color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -70,7 +75,7 @@ body { font-family: var(--mono); color: var(--ink); -webkit-font-smoothing: none
 @keyframes softpulse { 0%,100% { opacity: 0.65; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .cs-soften { animation: none; } }
 
-#science { bottom: 16px; right: 16px; width: 214px; }
+#science { bottom: calc(var(--ticker-h) + var(--gutter)); right: var(--gutter); width: 214px; max-height: 46vh; }
 #sci-chart { width: 100%; height: 60px; display: block; margin-top: 4px; }
 
 #ticker {
@@ -87,24 +92,34 @@ body { font-family: var(--mono); color: var(--ink); -webkit-font-smoothing: none
 @keyframes ticker { to { transform: translateX(-100%); } }
 
 #conn-chip {
-  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  position: absolute; top: var(--gutter); left: 50%; transform: translateX(-50%);
   font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--ink-dim); background: var(--panel); border: 1px solid var(--line);
-  padding: 3px 10px; border-radius: 20px; pointer-events: none; opacity: 0;
-  transition: opacity 0.4s;
+  padding: 4px 11px; border-radius: 20px; pointer-events: none; opacity: 0;
+  transition: opacity 0.4s; max-width: 44vw; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
 }
 #conn-chip.show { opacity: 1; }
 #conn-chip.demo { color: var(--gold); border-color: rgba(255,224,138,0.4); }
 
-#sound-btn, #help-btn {
-  position: absolute; bottom: 34px; width: 30px; height: 30px;
-  background: var(--panel); border: 1px solid var(--line); border-radius: 50%;
-  color: var(--ink-dim); font-size: 14px; cursor: pointer; pointer-events: auto;
+/* one control cluster, bottom-centre, clear of every panel and the ticker */
+#hud-controls {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--ticker-h) + 8px); display: flex; gap: 8px;
+  pointer-events: auto; z-index: 22;
 }
-#sound-btn { right: 54px; }
-#help-btn { right: 16px; }
-#sound-btn:hover, #help-btn:hover { color: var(--violet-bright); }
-#sound-btn.on { color: var(--gold); border-color: rgba(255,224,138,0.4); }
+.hud-btn {
+  width: 34px; height: 34px; flex: 0 0 auto;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 50%;
+  color: var(--ink-dim); font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(12px); transition: color .15s, border-color .15s;
+}
+.hud-btn:hover { color: var(--violet-bright); border-color: var(--violet); }
+.hud-btn:focus-visible { outline: 2px solid var(--violet-bright); outline-offset: 2px; }
+#sound-btn.on { color: var(--gold); border-color: rgba(255,224,138,0.5); }
+#honest-btn:hover { color: var(--gold); border-color: rgba(255,224,138,0.5); }
+#stats-btn { display: none; }   /* mobile-only affordance */
 
 .overlay {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -181,7 +196,7 @@ body { font-family: var(--mono); color: var(--ink); -webkit-font-smoothing: none
 }
 #forge-send:disabled { opacity: 0.45; cursor: default; }
 
-#myhouse { top: 64px; left: 16px; min-width: 172px; }
+#myhouse { top: calc(var(--gutter) + 46px); left: var(--gutter); width: 200px; max-height: 40vh; }
 #myhouse .mh-bar {
   height: 6px; border-radius: 3px; background: #2a2438; margin: 4px 0 2px; overflow: hidden;
 }
@@ -210,14 +225,6 @@ body { font-family: var(--mono); color: var(--ink); -webkit-font-smoothing: none
 .onboard-card .onboard-stake b { color: var(--violet-bright); }
 .onboard-card .fine a { color: var(--violet); text-decoration: none; border-bottom: 1px dotted var(--line); white-space: nowrap; }
 .onboard-card .fine a:hover { color: var(--violet-bright); }
-
-/* Honest Page trigger — sits left of sound/help in the button row */
-#honest-btn {
-  position: absolute; bottom: 34px; right: 92px; width: 30px; height: 30px;
-  background: var(--panel); border: 1px solid var(--line); border-radius: 50%;
-  color: var(--ink-dim); font-size: 11px; cursor: pointer; pointer-events: auto;
-}
-#honest-btn:hover { color: var(--gold); border-color: rgba(255,224,138,0.4); }
 
 /* THE HONEST PAGE — the skeptic's destination; honesty as the brand */
 .honest-card {
@@ -291,9 +298,40 @@ body.clip #hud, body.clip #vignette { display: none; }
 @media (prefers-reduced-motion: reduce) {
   #ticker-inner { animation: none; }
 }
-@media (max-width: 640px) {
-  #leaderboard, #science { width: 150px; font-size: 10px; }
-  #census { width: 160px; }
+/* ── Mobile: the world gets the screen. The four data panels collapse into one
+   toggle-able bottom sheet (▤); only the top bar, ticker, and controls stay. ── */
+@media (max-width: 720px) {
+  #panels {
+    display: flex; flex-direction: column; gap: 12px;
+    position: fixed; left: 0; right: 0; bottom: 0; max-height: 68vh;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    background: rgba(9, 8, 16, 0.975); border-top: 1px solid var(--line);
+    border-radius: 16px 16px 0 0;
+    padding: 20px 14px calc(64px + env(safe-area-inset-bottom));
+    transform: translateY(102%); transition: transform .28s ease; z-index: 24;
+    box-shadow: 0 -12px 40px rgba(0,0,0,0.5);
+  }
+  #panels::before {
+    content: ""; position: sticky; top: -6px; display: block;
+    width: 42px; height: 4px; margin: -8px auto 4px; border-radius: 3px;
+    background: var(--line);
+  }
+  #panels.open { transform: translateY(0); }
+  #panels > .hud-panel {
+    position: static; width: auto; min-width: 0;
+    max-height: none; flex: none; overflow: visible;   /* don't shrink/clip in the sheet */
+    box-shadow: none; backdrop-filter: none; background: rgba(255,255,255,0.035);
+  }
+  #panels > .hud-panel.hidden { display: none; }
+
+  #stats-btn { display: flex; }
+  #stats-btn.on { color: var(--violet-bright); border-color: var(--violet); }
+  #hud-controls { z-index: 26; bottom: calc(var(--ticker-h) + 10px); }
+
+  #era-banner { max-width: calc(100vw - 2 * var(--gutter)); font-size: 12px; }
+  /* status pill drops below the top bar so it never sits on the era title */
+  #conn-chip { top: calc(var(--gutter) + 42px); max-width: 70vw; }
+
   .honest-cols { grid-template-columns: 1fr; }
   .honest-card { padding: 24px 20px; }
   .honest-card h1 { font-size: 20px; }

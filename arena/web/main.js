@@ -67,7 +67,7 @@
   const chip = document.getElementById("conn-chip");
   NET.onState = (s) => {
     chip.classList.toggle("demo", s === "demo");
-    chip.textContent = s === "demo" ? "demo mode — live arena unreachable" : (s === "connecting" ? "connecting…" : "");
+    chip.textContent = s === "demo" ? "demo mode" : (s === "connecting" ? "connecting…" : "");
     chip.classList.toggle("show", s !== "live");
   };
 

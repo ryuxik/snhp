@@ -391,6 +391,13 @@
     $("myhouse").addEventListener("click", (e) => {
       if (e.target && (e.target.id === "saga-btn" || e.target.id === "saga-btn-live")) showSaga();
     });
+    // mobile: ▤ toggles the stats drawer (the four data panels)
+    const statsBtn = $("stats-btn"), panels = $("panels");
+    if (statsBtn && panels) statsBtn.onclick = () => {
+      const open = panels.classList.toggle("open");
+      statsBtn.classList.toggle("on", open);
+      statsBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    };
     const sb = $("sound-btn");
     sb.onclick = () => { const on = A.sound.toggle(); sb.classList.toggle("on", on); };
     W.onTicker = () => pushTicker();
