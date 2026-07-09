@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "snhp"
-version = "0.1.0"
+version = "0.2.0"
 description = "Math-optimal negotiation moves for AI agents, in plain dollars (single + multi-issue)."
 readme = "README.md"
 requires-python = ">=3.10"
