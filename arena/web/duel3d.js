@@ -462,9 +462,9 @@
         '<div style="font-size:10.5px;line-height:1.55;color:#8f8aa4">Most people land near the naive split.<br>What would <b style="color:#c9c4dc">your</b> number be?</div>' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
           btn("https://par-game.fly.dev", "⚔ TRY THIS DEAL YOURSELF", true) +
-          btn("https://x.com/ryuxik", "🤝 HAVE IT NEGOTIATE FOR ME", false) +
+          btn("hire.html", "🤝 HAVE IT NEGOTIATE FOR ME", false) +
         "</div></div>" +
-      '<div style="font-size:9.5px;letter-spacing:.06em;color:#6f6a86;margin-top:8px;text-align:right">marketplace deals · agent-to-agent commerce — DM @ryuxik · ryuxik@gmail.com</div>';
+      '<div style="font-size:9.5px;letter-spacing:.06em;color:#6f6a86;margin-top:8px;text-align:right">MCP for your agent · API pilots · or DM @ryuxik</div>';
     // replays label the realized bar honestly (rev.label, e.g. "this deal");
     // "SNHP" is only the default for the canned engine demo
     el.innerHTML =

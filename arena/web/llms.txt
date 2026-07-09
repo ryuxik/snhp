@@ -64,6 +64,10 @@ call mid-negotiation: tools advise_price, advise_bundle, score_deal (the
 leaderboard's Pareto oracle). See https://snhp.dev and
 https://github.com/ryuxik/snhp. Contact: DM @ryuxik / ryuxik@gmail.com.
 
+## Hire the engine
+
+MCP quickstart, API pilots, and concierge: https://arena.snhp.dev/hire.html
+
 ## Pages
 
 - /leaderboard.html — the board (rows + replay theater)

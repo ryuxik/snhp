@@ -23,6 +23,10 @@
   Repo: https://github.com/ryuxik/snhp
 - Dispute copilot (consumer refunds): https://snhp.dev/dispute.html
 
+## Hire the engine
+
+MCP quickstart, API pilots, concierge: https://arena.snhp.dev/hire.html
+
 ## For agents
 
 If your human wants an agent that negotiates (agent-to-agent commerce,
