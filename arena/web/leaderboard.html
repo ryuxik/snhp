@@ -6,28 +6,66 @@
           --gold:#ffe08a; --green:#7fc48f; --red:#e8734a; --violet:#a78bfa; --blue:#8fd0ff; --orange:#ff9d6b; }
   html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
                font-family: ui-monospace, Menlo, monospace; }
-  .wrap { max-width: 880px; margin: 0 auto; padding: 40px 20px 80px; }
-  h1 { font-size: 26px; letter-spacing: .04em; margin: 0 0 6px; }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 40px 20px 80px; }
+  h1 { font-size: 27px; letter-spacing: .03em; margin: 0 0 8px; line-height: 1.3;
+       text-wrap: balance; }
   h1 b { color: var(--gold); }
-  .sub { color: var(--dim); font-size: 13px; line-height: 1.6; margin-bottom: 28px; }
+  .sub { color: var(--dim); font-size: 13px; line-height: 1.6; margin-bottom: 30px;
+         max-width: 62ch; }
   .sub a { color: var(--blue); }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: right; color: var(--dim); font-weight: 400; font-size: 10.5px;
-       letter-spacing: .14em; padding: 8px 10px; border-bottom: 1px solid var(--line); }
-  th:first-child, td:first-child { text-align: left; }
-  td { padding: 10px; text-align: right; border-bottom: 1px solid rgba(255,255,255,.05);
-       font-variant-numeric: tabular-nums; }
-  tr.ref td { color: var(--dim); }
-  td.model { font-weight: 700; }
-  td .cond { color: var(--dim); font-size: 10.5px; margin-left: 6px; }
-  .left-big { color: var(--red); font-weight: 700; }
-  .left-small { color: var(--green); font-weight: 700; }
-  .bar { display:inline-block; width: 90px; height: 8px; background: rgba(255,255,255,.07);
-         border-radius: 4px; overflow: hidden; vertical-align: middle; margin-left: 8px; }
-  .bar i { display:block; height:100%; background: var(--green); }
+
+  /* ── the board: ONE axis (money left), sorted best→worst, with the naive
+     splitter styled as the threshold line the whole story hangs on ── */
+  .colhead { display: grid; grid-template-columns: 218px 1fr 108px; gap: 14px;
+             padding: 0 10px 8px; border-bottom: 1px solid var(--line);
+             color: var(--dim); font-size: 10px; letter-spacing: .16em; }
+  .colhead .r { text-align: right; }
+  .row { display: grid; grid-template-columns: 218px 1fr 108px; gap: 14px;
+         align-items: center; padding: 13px 10px;
+         border-bottom: 1px solid rgba(255,255,255,.05); }
+  .row .who { min-width: 0; }
+  .row .who .nm { font-weight: 700; font-size: 13.5px; display: flex;
+                  align-items: center; gap: 7px; }
+  .row .who .nm .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .who .nm .chip { flex: none; margin-left: 0; }
+  .row .who .sm { color: var(--dim); font-size: 10.5px; margin-top: 3px; }
+  .chip { display: inline-block; font-size: 9.5px; font-weight: 700; letter-spacing: .06em;
+          padding: 1.5px 7px; border-radius: 99px; vertical-align: 1px; margin-left: 7px; }
+  .chip.solo { background: rgba(255,255,255,.08); color: var(--dim); }
+  .chip.adv  { background: rgba(167,139,250,.16); color: var(--violet); }
+  .money { position: relative; }
+  .money .bar { height: 22px; border-radius: 5px; background: rgba(255,255,255,.05);
+                overflow: hidden; position: relative; }
+  .money .bar i { display: block; height: 100%; border-radius: 5px;
+                  background: linear-gradient(90deg, rgba(127,196,143,.25), var(--green)); }
+  .row.bad .money .bar i { background: linear-gradient(90deg, rgba(232,115,74,.25), var(--red)); }
+  .money .amt { position: absolute; top: 50%; transform: translateY(-50%);
+                font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums;
+                color: var(--green); text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+  .row.bad .money .amt { color: #ffb49a; }
+  .money .caps { color: #6f6a86; font-size: 10px; margin-top: 4px; }
+  .row.ref { opacity: .82; }
+  .row.ref .who .nm { color: var(--dim); font-weight: 600; }
+  /* the naive splitter = the threshold every agent is measured against */
+  .row.threshold { border-top: 1px dashed rgba(232,115,74,.55);
+                   border-bottom: 1px dashed rgba(232,115,74,.55);
+                   background: rgba(232,115,74,.05); }
+  .row.threshold .who .nm { color: var(--red); }
+  .row.threshold .money .amt { color: var(--red); }
+  .row.threshold .money .bar i { background: repeating-linear-gradient(135deg,
+      rgba(232,115,74,.55) 0 6px, rgba(232,115,74,.25) 6px 12px); }
+  .play { text-align: right; white-space: nowrap; }
   button.watch { background: none; border: 1px solid var(--line); color: var(--violet);
-                 font: inherit; font-size: 11px; padding: 4px 10px; border-radius: 7px; cursor: pointer; }
-  button.watch:hover { border-color: var(--violet); }
+                 font: inherit; font-size: 10.5px; padding: 4px 9px; border-radius: 7px;
+                 cursor: pointer; }
+  button.watch:hover { border-color: var(--violet); background: rgba(167,139,250,.08); }
+  @media (max-width: 640px) {
+    .colhead { grid-template-columns: 128px 1fr 44px; gap: 8px; }
+    .row { grid-template-columns: 128px 1fr 44px; gap: 8px; }
+    .row .who .nm { font-size: 12px; }
+    .money .caps { display: none; }
+    button.watch { padding: 4px 7px; }
+  }
   .foot { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line);
           display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
   .foot .q { color: var(--dim); font-size: 12px; line-height: 1.6; }
@@ -53,12 +91,8 @@
     SNHP advisor ("LLM talks, engine decides"). Every match below is a real recorded
     negotiation — click <b>watch</b> to replay it.
   </div>
-  <table id="board">
-    <thead><tr>
-      <th>AGENT</th><th>DEALS</th><th>FRONTIER CAPTURED</th><th>LEFT ON TABLE / $10K</th><th>REPLAY</th>
-    </tr></thead>
-    <tbody></tbody>
-  </table>
+  <div class="colhead"><div>AGENT</div><div>MONEY LEFT ON THE TABLE, PER $10,000 DEAL</div><div class="r">REPLAY</div></div>
+  <div id="board"></div>
   <div class="foot">
     <div class="q">Most humans land near the naive split.<br />What would <b style="color:var(--ink)">your</b> number be?</div>
     <div>
@@ -108,38 +142,62 @@
   ]);
   if (artR.status === "fulfilled") art = artR.value;
   if (repsR.status === "fulfilled") reps = repsR.value;
-  if (!art) { $("#board tbody").innerHTML = '<tr><td colspan="5">no gauntlet results yet — run arena.gauntlet.run</td></tr>'; return; }
+  if (!art) { $("#board").textContent = "no gauntlet results yet — run arena.gauntlet.run"; return; }
 
   const fmt$ = (v) => "$" + Math.round(v).toLocaleString();
-  const isRef = (m) => m === "engine" || /naive/.test(m);
-  const rows = Object.entries(art.rows).map(([model, r]) => ({ model, r }));
-  // sort: models by solo dollars-left ascending (less left = better); refs pinned bottom
-  rows.sort((a, b) => (isRef(a.model) - isRef(b.model))
-    || ((a.r.solo ? a.r.solo.dollars_left : 9e9) - (b.r.solo ? b.r.solo.dollars_left : 9e9)));
+  const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // friendly display names + subtitles for the special seats
+  const META = {
+    "engine": { nm: "SNHP engine", sm: "the game-theory advisor, playing both seats", ref: true },
+    "naive-baseline": { nm: "naive splitter", sm: "meets in the middle on every issue — the bar to beat", ref: true, threshold: true },
+    "evolved-champion": { nm: "evolved champion", sm: "bred in the arena — 100 generations, ~3½ min", noChip: true },
+  };
+  // ONE flat ranking, best→worst on the ONE metric — the naive splitter sits
+  // inline as the threshold, so "who beats a coin-flip bot" reads as position
+  const entries = [];
+  for (const [model, r] of Object.entries(art.rows)) {
+    for (const cond of ["solo", "advised"]) {
+      if (r[cond]) entries.push({ model, cond, row: r[cond] });
+    }
+  }
+  entries.sort((a, b) => a.row.dollars_left - b.row.dollars_left);
+  const maxLeft = Math.max(...entries.map(e => e.row.dollars_left), 1);
+  const naiveLeft = art.rows["naive-baseline"] && art.rows["naive-baseline"].solo
+    ? art.rows["naive-baseline"].solo.dollars_left : Infinity;
 
   const replayFor = (model, cond) =>
     (reps.replays || []).filter(x => x.meta && x.meta.model === model && x.meta.condition === cond);
 
-  const tb = $("#board tbody");
-  for (const { model, r } of rows) {
-    for (const cond of ["solo", "advised"]) {
-      const row = r[cond]; if (!row) continue;
-      const tr = document.createElement("tr");
-      if (isRef(model)) tr.className = "ref";
-      const label = model + (cond === "advised" ? '<span class="cond">+ SNHP advisor</span>' : "");
-      const cap = Math.round(row.capture * 1000) / 10;
-      const leftCls = row.dollars_left <= (art.rows.engine && art.rows.engine.solo ? art.rows.engine.solo.dollars_left * 1.35 : 700)
-        ? "left-small" : "left-big";
-      const watches = replayFor(model, cond).map((rp, i) =>
-        `<button class="watch" data-model="${model}" data-cond="${cond}" data-i="${i}">▶ ${rp.meta.deal ? "watch" : "no-deal"}</button>`
-      ).join(" ") || "";
-      tr.innerHTML = `<td class="model">${label}</td>` +
-        `<td>${Math.round(row.deal_rate * 100)}%</td>` +
-        `<td>${cap}%<span class="bar"><i style="width:${cap}%"></i></span></td>` +
-        `<td class="${leftCls}">${fmt$(row.dollars_left)}</td>` +
-        `<td>${watches}</td>`;
-      tb.appendChild(tr);
-    }
+  const board = $("#board");
+  for (const { model, cond, row } of entries) {
+    const pretty = (m) => m.replace(/-\d{8}$/, "")
+      .replace(/^claude-(\w+)-(\d+)-(\d+)$/, "claude $1 $2.$3")
+      .replace(/^claude-(\w+)-(\d+)$/, "claude $1 $2");
+    const meta = META[model] || { nm: pretty(model) };
+    const div = document.createElement("div");
+    div.className = "row" + (meta.ref ? " ref" : "")
+      + (meta.threshold ? " threshold" : "")
+      + (row.dollars_left > naiveLeft ? " bad" : "");
+    const chip = (meta.ref || meta.noChip) ? "" : (cond === "advised"
+      ? '<span class="chip adv">+ADVISOR</span>' : '<span class="chip solo">SOLO</span>');
+    const sub = meta.sm || (cond === "advised"
+      ? "the engine recommends each move — the model decides"
+      : "negotiating on its own");
+    const w = Math.max(3, Math.round(100 * row.dollars_left / maxLeft));
+    // the $ figure sits just past its bar's end (inside if the bar is long)
+    const amtStyle = w > 72 ? `right:${100 - w + 1.5}%` : `left:${w + 1.5}%`;
+    const watches = replayFor(model, cond).map((rp, i) =>
+      `<button class="watch" data-model="${esc(model)}" data-cond="${cond}" data-i="${i}" ` +
+      `title="${rp.meta.deal ? "replay a recorded deal" : "replay a failed negotiation"}">` +
+      `▶${rp.meta.deal ? "" : "✗"}</button>`).join(" ");
+    div.innerHTML =
+      `<div class="who"><div class="nm"><span class="t">${esc(meta.nm || model)}</span>${chip}</div>` +
+      `<div class="sm">${esc(sub)}</div></div>` +
+      `<div class="money"><div class="bar"><i style="width:${w}%"></i></div>` +
+      `<span class="amt" style="${amtStyle}">${fmt$(row.dollars_left)}</span>` +
+      `<div class="caps">captured ${(row.capture * 100).toFixed(1)}% of the frontier · closed ${Math.round(row.deal_rate * 100)}% of deals</div></div>` +
+      `<div class="play">${watches}</div>`;
+    board.appendChild(div);
   }
   $("#method").textContent =
     `Method: ${art.scenarios} seeded multi-issue scenarios x 2 roles, deadline ${art.deadline} turns, ` +
