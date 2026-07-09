@@ -452,7 +452,7 @@ class World:
                 self.record_surplus = joint
                 yield self._ev("highlight", kind="record_surplus",
                                refs={"a": sid, "b": bid, "neg": m["neg"]},
-                               blurb=f"record deal: {joint:.2f} joint surplus")
+                               blurb=f"{joint:.2f} joint surplus")
         else:
             # walks: no income; credit a near-zero outcome so scorecards learn
             for ag, cp in ((seller, buyer), (buyer, seller)):

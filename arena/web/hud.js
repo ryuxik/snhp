@@ -147,7 +147,7 @@
   function _strategies() {
     const box = $("science");
     const tac = W.census.tactics;
-    let html = '<div class="sci-title">strategies · income this gen</div>';
+    let html = '<div class="sci-title">strategies · income / gen</div>';
     if (tac) {
       const inc = (v) => (v.income != null ? v.income : 0);
       const rows = Object.entries(tac).sort((p, q) => inc(q[1]) - inc(p[1]));
@@ -167,12 +167,14 @@
     // the SNHP knob actually under selection this gen, or just drifting?
     const cov = W.census.price_cov;
     if (cov != null) {
-      const sel = Math.abs(cov) < 0.15 ? "drifting" : (cov > 0 ? "bolder pays ▲" : "cannier pays ▼");
-      html += `<div class="strat-row" style="margin-top:5px"><span class="strat-name" style="color:#7c7790">selection on boldness</span>`
-        + `<span class="strat-e" style="color:${Math.abs(cov) < 0.15 ? "#7c7790" : "#a78bfa"}">${cov >= 0 ? "+" : ""}${cov.toFixed(2)} ${sel}</span></div>`;
+      const drift = Math.abs(cov) < 0.15;
+      const sel = drift ? "drifting" : (cov > 0 ? "bolder pays" : "cannier pays");
+      const col = drift ? "var(--ink-dim)" : "var(--violet-bright)";
+      html += `<div class="sci-sel"><span>selection on boldness</span>`
+        + `<b style="color:${col}">${cov >= 0 ? "+" : ""}${cov.toFixed(2)} · ${sel}</b></div>`;
     }
     html += '<canvas id="sci-chart" width="200" height="34"></canvas>'
-      + '<div style="font-size:9px;color:#7c7790;margin-top:2px">population boldness drift · every move computed by SNHP</div>';
+      + '<div class="sci-cap">mean boldness, over generations</div>';
     box.innerHTML = html;
     const cv = $("sci-chart");
     if (cv && W.knobHistory.length) {

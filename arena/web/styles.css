@@ -53,7 +53,7 @@ body { font-family: var(--mono); color: var(--ink); -webkit-font-smoothing: none
 #gen-counter { color: var(--ink-dim); text-transform: uppercase; font-size: 11px; margin-left: auto; }
 
 /* corner docks with hard bounds so no panel grows into another or the ticker */
-#leaderboard { top: var(--gutter); right: var(--gutter); width: 214px; max-height: 42vh; }
+#leaderboard { top: var(--gutter); right: var(--gutter); width: 232px; max-height: 42vh; }
 #leaderboard .lb-title, #census .cs-title, #science .sci-title {
   text-transform: uppercase; font-size: 10px; letter-spacing: 0.12em;
   color: var(--ink-dim); margin-bottom: 6px;
@@ -63,7 +63,7 @@ body { font-family: var(--mono); color: var(--ink); -webkit-font-smoothing: none
 .lb-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lb-energy { color: var(--gold); font-variant-numeric: tabular-nums; }
 
-#census { bottom: calc(var(--ticker-h) + var(--gutter)); left: var(--gutter); width: 230px; max-height: 46vh; }
+#census { bottom: calc(var(--ticker-h) + var(--gutter)); left: var(--gutter); width: 232px; max-height: 46vh; }
 .cs-bar { height: 8px; border-radius: 3px; margin: 3px 0; transition: width 0.6s ease; }
 .cs-stat { display: flex; justify-content: space-between; color: var(--ink-dim); font-size: 11px; }
 .cs-stat b { color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -75,8 +75,11 @@ body { font-family: var(--mono); color: var(--ink); -webkit-font-smoothing: none
 @keyframes softpulse { 0%,100% { opacity: 0.65; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .cs-soften { animation: none; } }
 
-#science { bottom: calc(var(--ticker-h) + var(--gutter)); right: var(--gutter); width: 214px; max-height: 46vh; }
+#science { bottom: calc(var(--ticker-h) + var(--gutter)); right: var(--gutter); width: 232px; max-height: 46vh; }
 #sci-chart { width: 100%; height: 60px; display: block; margin-top: 4px; }
+.sci-sel { display: flex; flex-direction: column; gap: 1px; margin-top: 7px; font-size: 10px; color: var(--ink-dim); }
+.sci-sel b { font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+.sci-cap { font-size: 9px; color: var(--ink-dim); opacity: 0.75; margin-top: 3px; }
 
 #ticker {
   position: absolute; bottom: 0; left: 0; right: 0; height: 26px;

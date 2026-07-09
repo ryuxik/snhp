@@ -352,7 +352,7 @@
     const sub = (a && b)
       ? (a.g.tactic_family + " v " + b.g.tactic_family + " · SNHP AT BOTH EARS")
       : ((lead.g ? lead.g.tactic_family : "") + " · SNHP AT BOTH EARS");
-    FX.text(ctx, sub.toUpperCase(), Math.round((480 - FX.textW(sub, 1)) / 2), 270 - 36, "#7c7790", 1);
+    FX.text(ctx, sub.toUpperCase(), Math.round((480 - FX.textW(sub, 1)) / 2), 270 - 36, "#b3aecb", 1);
   }
 
   A.choreo = { init, update, draw, focusX };

@@ -84,7 +84,7 @@
       }
       // occasional life events
       if (step % 22 === 10) { const p = agents[(Math.random() * agents.length) | 0], q = agents[(Math.random() * agents.length) | 0]; cb(ev({ type: "court.start", a: p.id, b: q.id, stakes: { a_energy: 200, b_energy: 180 } })); setTimeout(() => cb(ev({ type: "court.accept", a: p.id, b: q.id, crossover: { bargain: "pa", risk: "pb" }, child_preview: p.genome })), 1800); }
-      if (step % 40 === 20) { const v = agents[(Math.random() * agents.length) | 0]; cb(ev({ type: "highlight", kind: "record_surplus", refs: {}, blurb: "record deal" })); }
+      if (step % 40 === 20) { const v = agents[(Math.random() * agents.length) | 0]; cb(ev({ type: "highlight", kind: "record_surplus", refs: {}, blurb: "the hall gasps" })); }
       if (step % 55 === 30) { const v = agents[3 + ((Math.random() * 10) | 0)]; cb(ev({ type: "agent.critical", id: v.id, energy: 12 })); }
       if (step % 90 === 60) { const idx = Math.floor(Math.random() * agents.length); const v = agents[idx]; cb(ev({ type: "agent.death", id: v.id, cause: "starvation", age: 30, lineage: 0, deals: 5, heirs: [agents[(idx + 1) % agents.length].id], house: v.house })); if (Math.random() < 0.4) cb(ev({ type: "highlight", kind: "dynasty_founder_death", refs: { id: v.id, house: v.house }, blurb: v.house + " founder falls" })); }
       if (step % 100 === 80) { const h = HOUSES[(Math.random() * HOUSES.length) | 0][0]; const nid = 100 + step; cb(ev({ type: "immigration", id: nid, name: GIVEN[nid % GIVEN.length] + " of House " + h, house: h, genome: genome((Math.random() * 8) | 0), reason: "population_floor" })); }

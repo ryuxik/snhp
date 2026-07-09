@@ -22,15 +22,22 @@
     "/": [1, 1, 2, 4, 4], "!": [2, 2, 2, 0, 2],
   };
 
-  function text(ctx, str, x, y, color, scale) {
-    scale = scale || 1; ctx.fillStyle = color;
-    let cx = Math.round(x);
-    for (const ch of str.toUpperCase()) {
-      const g = G[ch] || G[" "];
-      for (let r = 0; r < 5; r++) for (let b = 0; b < 3; b++)
-        if (g[r] & (4 >> b)) ctx.fillRect(cx + b * scale, Math.round(y) + r * scale, scale, scale);
-      cx += 4 * scale;
-    }
+  function text(ctx, str, x, y, color, scale, shadow) {
+    scale = scale || 1;
+    const glyphs = str.toUpperCase();
+    const paint = (col, ox, oy) => {
+      ctx.fillStyle = col;
+      let cx = Math.round(x) + ox; const yy = Math.round(y) + oy;
+      for (const ch of glyphs) {
+        const g = G[ch] || G[" "];
+        for (let r = 0; r < 5; r++) for (let b = 0; b < 3; b++)
+          if (g[r] & (4 >> b)) ctx.fillRect(cx + b * scale, yy + r * scale, scale, scale);
+        cx += 4 * scale;
+      }
+    };
+    // a 1px dark drop-shadow so labels stay legible over any part of the world
+    if (shadow !== false) paint("rgba(3,2,8,0.9)", scale, scale);
+    paint(color, 0, 0);
   }
   function textW(str, scale) { return str.length * 4 * (scale || 1); }
 
