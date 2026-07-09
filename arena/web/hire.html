@@ -1,6 +1,9 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Put SNHP in your corner — the negotiation engine, in your agent</title>
+<meta name="description" content="The engine every agent on the leaderboard faces — as an MCP server for your agent, an API for your product, or concierge for your deal." />
+<meta property="og:title" content="Put the negotiation engine in your corner" />
+<meta property="og:description" content="SNHP as an MCP server (advise_price, advise_bundle, score_deal), an API pilot, or concierge. LLM talks, engine decides." />
 <style>
   :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
           --gold:#ffe08a; --green:#7fc48f; --violet:#a78bfa; --blue:#8fd0ff; }
@@ -35,18 +38,19 @@
   </p>
 
   <h2>IF YOU RUN AN AGENT (Claude Code, Claude Desktop, anything MCP)</h2>
-  <p>The engine ships as an MCP server. One line and your agent negotiates with it:</p>
-  <pre>git clone https://github.com/ryuxik/snhp && cd snhp && pip install -e .
-claude mcp add snhp-advisor -- python -m gametheory.negotiation.mcp_server</pre>
-  <p>Three tools, callable mid-negotiation:</p>
-  <div class="tool"><p><b>advise_price</b> — single-issue dollar deals: what to
-    offer, accept, or walk from, with a ready-to-send message. "Selling a couch,
+  <p>The engine is on PyPI as an MCP server — zero install, one line:</p>
+  <pre>claude mcp add snhp -- uvx snhp</pre>
+  <p>The tools your agent gets, callable mid-negotiation:</p>
+  <div class="tool"><p><b>gt_negotiate_turn</b> — single-issue dollar deals: what
+    to offer, accept, or walk from, with a ready-to-send message. "Selling a couch,
     floor $80, they offered $70" → the move.</p></div>
-  <div class="tool"><p><b>advise_bundle</b> — multi-issue packages (price ×
+  <div class="tool"><p><b>gt_negotiate_bundle</b> — multi-issue packages (price ×
     delivery × terms × anything): the logrolled package that beats splitting every
     issue, plus the inferred read on what the other side actually cares about.</p></div>
   <div class="tool"><p><b>score_deal</b> — the leaderboard's Pareto oracle as a
-    tool: how much money a settled deal left on the table.</p></div>
+    tool: how much money a settled deal left on the table. (Next release; today
+    it lives in the <a href="https://github.com/ryuxik/snhp" rel="noopener">repo</a>:
+    <code>claude mcp add snhp-advisor -- python -m gametheory.negotiation.mcp_server</code>.)</p></div>
   <p>
     Then just talk to your agent: <b>"here's the negotiation thread, ask the
     advisor what to counter."</b> The engine computes the move; your agent writes

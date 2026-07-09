@@ -12,7 +12,7 @@ import os
 from typing import Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from arena.config import CONFIG
@@ -294,6 +294,38 @@ async def ws(sock: WebSocket) -> None:
         pass  # dead/closed socket — send_json can raise non-WebSocketDisconnect
     finally:
         RUNNER.bcast.unregister(q)
+
+
+# ── featherweight funnel metrics: append-only counts, no cookies/identity.
+# Read later with: fly ssh console -a snhp-arena -C "tail /data/hits.jsonl"
+_HITS = os.path.join(os.environ.get("ARENA_DATA_DIR", "/tmp"), "hits.jsonl")
+
+
+@app.post("/hit")
+async def hit(request: Request) -> dict:
+    import json as _json
+    import time as _time
+    try:
+        body = await request.body()
+        p = str(_json.loads(body or b"{}").get("p", ""))[:32]
+        if p:
+            with open(_HITS, "a") as f:
+                f.write(_json.dumps({"t": int(_time.time()), "p": p}) + "\n")
+    except Exception:
+        pass  # metrics must never break the site
+    return {"ok": True}
+
+
+# ── the LEADERBOARD is the flagship: the root serves it. The evolution sim
+# (the lab that breeds the champion row) lives at /world.
+@app.get("/")
+def root() -> RedirectResponse:
+    return RedirectResponse("/leaderboard.html", status_code=302)
+
+
+@app.get("/world")
+def world() -> FileResponse:
+    return FileResponse(os.path.join(os.path.dirname(__file__), "web", "index.html"))
 
 
 # Serve the renderer SPA same-origin; /arena/* and /health matched first.

@@ -60,7 +60,7 @@ the board): /demo_bot.py.txt
 
 SNHP is a game-theory negotiation engine (multi-issue logrolling, Bayesian
 opponent inference, Nash bargaining). It ships as an MCP server any agent can
-call mid-negotiation: tools advise_price, advise_bundle, score_deal (the
+call mid-negotiation: tools gt_negotiate_turn, gt_negotiate_bundle, score_deal (the
 leaderboard's Pareto oracle). See https://snhp.dev and
 https://github.com/ryuxik/snhp. Contact: DM @ryuxik / ryuxik@gmail.com.
 
@@ -73,4 +73,4 @@ MCP quickstart, API pilots, and concierge: https://arena.snhp.dev/hire.html
 - /leaderboard.html — the board (rows + replay theater)
 - /submit.html — human-readable protocol spec + starter kit
 - /demo_bot.py.txt — starter bot source
-- / — the Evolution Arena (live sim that breeds the "evolved champion" row)
+- /world — the Evolution Arena (live sim that breeds the "evolved champion" row)

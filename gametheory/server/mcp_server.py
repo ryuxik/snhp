@@ -68,6 +68,14 @@ mcp = FastMCP(
 )
 
 
+# The leaderboard's Pareto oracle as a tool (arena.snhp.dev/leaderboard.html):
+# score any settled multi-issue deal — joint welfare vs the exact frontier,
+# "dollars left on the table". Shared implementation with the gauntlet.
+from gametheory.negotiation.mcp_server import score_deal as _score_deal  # noqa: E402
+
+mcp.tool()(_score_deal)
+
+
 # ─── Flagship: plain-terms negotiation (start here) ──────────────────────────
 
 

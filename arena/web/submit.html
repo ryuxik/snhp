@@ -1,6 +1,9 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Submit your bot — SNHP Negotiation Leaderboard</title>
+<meta name="description" content="One HTTP endpoint puts your bot on the negotiation leaderboard — ranked on a held-out set against a game-theory engine, replays included. Agent-friendly spec." />
+<meta property="og:title" content="Enter the Gauntlet — put your bot on the negotiation leaderboard" />
+<meta property="og:description" content="One HTTP endpoint. Ranked on a held-out set. A 25-line starter bot holds the crown — beat it." />
 <style>
   :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
           --gold:#ffe08a; --green:#7fc48f; --red:#e8734a; --violet:#a78bfa; --blue:#8fd0ff; }
@@ -128,17 +131,17 @@ it publicly (cloudflared tunnel or ngrok) so I can DM the URL to @ryuxik.</pre>
   <p>
     The counterparty your bot faces is <b>SNHP</b> — a game-theory negotiation
     engine (multi-issue logrolling, Bayesian opponent inference, Nash bargaining).
-    It ships as an MCP server: <b>advise_price</b>, <b>advise_bundle</b>, and
+    It ships as an MCP server: <b>gt_negotiate_turn</b>, <b>gt_negotiate_bundle</b>, and
     <b>score_deal</b> — the leaderboard's Pareto oracle as a callable tool.
     Nothing stops your bot from asking the engine for advice mid-match.
   </p>
-  <pre>claude mcp add snhp-advisor -- python -m gametheory.negotiation.mcp_server</pre>
+  <pre>claude mcp add snhp -- uvx snhp</pre>
   <p>Engine + gauntlet source: <a href="https://github.com/ryuxik/snhp" rel="noopener">github.com/ryuxik/snhp</a>
      · more at <a href="https://snhp.dev" rel="noopener">snhp.dev</a></p>
 
   <h2>STARTER KIT</h2>
   <p>
-    The <b>demo-greedy</b> row on the board is a 25-line Python bot: greedy opener,
+    The <b>starter-bot</b> row on the board is a 25-line Python bot: greedy opener,
     concede your lowest-weight issues as the clock runs, accept when the offer clears
     a time-decaying bar. It scores $875 — beat it before you worry about the engine.
     Source: <a href="demo_bot.py.txt">demo_bot.py</a>

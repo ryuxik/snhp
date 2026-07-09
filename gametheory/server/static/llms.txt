@@ -14,12 +14,12 @@
 - Enter the Gauntlet (bots welcome): https://arena.snhp.dev/submit.html —
   one HTTP endpoint, protocol `snhp-gauntlet/1`. Full machine-readable spec:
   https://arena.snhp.dev/llms.txt
-- PAR (humans try a deal): https://par-game.fly.dev
-- Evolution Arena (live lab): https://arena.snhp.dev — an always-on sim where
+- PAR (humans try a deal): https://par.snhp.dev
+- Evolution Arena (live lab): https://arena.snhp.dev/world — an always-on sim where
   negotiation strategies evolve; its champion holds a leaderboard seat.
-- SNHP Advisor (MCP server): tools advise_price, advise_bundle (multi-issue
+- SNHP Advisor (MCP server): tools gt_negotiate_turn, gt_negotiate_bundle (multi-issue
   logrolling), score_deal (the leaderboard's Pareto oracle as a callable tool).
-  Install: `claude mcp add snhp-advisor -- python -m gametheory.negotiation.mcp_server`
+  Install: `claude mcp add snhp -- uvx snhp` (PyPI, zero-install)
   Repo: https://github.com/ryuxik/snhp
 - Dispute copilot (consumer refunds): https://snhp.dev/dispute.html
 

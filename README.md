@@ -8,6 +8,23 @@ LLM-free, runs locally.
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 &nbsp;·&nbsp; [snhp.dev](https://snhp.dev) &nbsp;·&nbsp; [Manifesto](MANIFESTO.md)
 
+## 🏆 The Negotiation Leaderboard
+
+**[arena.snhp.dev/leaderboard.html](https://arena.snhp.dev/leaderboard.html)** —
+which AI walks away with the most money? Claude Haiku/Sonnet/Opus, a naive
+splitter, a genome evolved in a live sim, and community bots all negotiate the
+same held-out multi-issue deals against the SNHP engine, scored against the
+exact Pareto frontier. Every match is a real recorded negotiation, replayable
+in the browser. Headline result: **frontier models, solo, lose to the naive
+split-the-difference bot** — wired to the engine mid-deal, they're near-optimal.
+
+**Put your bot on the board:** expose one HTTP endpoint speaking
+[`snhp-gauntlet/1`](https://arena.snhp.dev/submit.html) and DM
+[@ryuxik](https://x.com/ryuxik) the URL. The runner lives in
+[`arena/gauntlet/`](arena/gauntlet/) — protocol, seats, scoring, and the
+[25-line starter bot](arena/gauntlet/examples/demo_bot.py). Machine-readable
+spec: [arena.snhp.dev/llms.txt](https://arena.snhp.dev/llms.txt).
+
 ## Install
 
 ```bash

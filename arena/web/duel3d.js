@@ -461,7 +461,7 @@
       '<div style="margin-top:15px;padding-top:13px;border-top:1px solid rgba(167,139,250,.22);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">' +
         '<div style="font-size:10.5px;line-height:1.55;color:#8f8aa4">Most people land near the naive split.<br>What would <b style="color:#c9c4dc">your</b> number be?</div>' +
         '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-          btn("https://par-game.fly.dev", "⚔ TRY THIS DEAL YOURSELF", true) +
+          btn("https://par.snhp.dev", "⚔ TRY THIS DEAL YOURSELF", true) +
           btn("hire.html", "🤝 HAVE IT NEGOTIATE FOR ME", false) +
         "</div></div>" +
       '<div style="font-size:9.5px;letter-spacing:.06em;color:#6f6a86;margin-top:8px;text-align:right">MCP for your agent · API pilots · or DM @ryuxik</div>';
@@ -517,6 +517,17 @@
     // pin the player-cards to the top corners (VS-HUD convention) — never over the action
     uiKnights.prime.card.style.left = "24px"; uiKnights.prime.card.style.top = "26px";
     uiKnights.chal.card.style.right = "24px"; uiKnights.chal.card.style.top = "26px"; uiKnights.chal.card.style.textAlign = "right";
+    // first-time key: what the shapes mean, shown for the opening beats only
+    const hint = document.createElement("div");
+    hint.id = "duel-hint";
+    hint.style.cssText = "position:fixed;left:50%;bottom:5%;transform:translateX(-50%);" +
+      "font-size:11.5px;letter-spacing:.05em;color:#b7b2cc;background:rgba(10,8,18,.72);" +
+      "border:1px solid rgba(167,139,250,.25);border-radius:9px;padding:7px 14px;" +
+      "white-space:nowrap;transition:opacity .6s ease;max-width:94vw;overflow:hidden;" +
+      "text-overflow:ellipsis";
+    hint.textContent = "◆ gold diamond = the offer on the table · ▼ pips = each side's secret target · meters ↑ = what each side is taking";
+    uiEl.appendChild(hint);
+    uiKnights.hint = hint;
     uiItems = [];
     rails.forEach(r => {
       uiItems.push({ el: mk('<span style="font-size:13px;letter-spacing:.14em;color:#d8d5e6;text-shadow:0 1px 3px #000">' + r.userData.name + '</span>'),
@@ -558,6 +569,11 @@
       if (behind) continue;
       const x = (_uv.x * 0.5 + 0.5) * w, y = (-_uv.y * 0.5 + 0.5) * h;
       it.el.style.transform = "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px) translate(" + it.ax + "," + it.vy + ")";
+    }
+    // the key fades once the viewer has seen a couple of beats land
+    if (uiKnights && uiKnights.hint) {
+      uiKnights.hint.style.opacity =
+        (phase === "intro" || (phase === "trade" && step < 3)) ? "1" : "0";
     }
     // live payoff meters — both climb past .50 as the logroll grows the pie
     if (uiKnights && truth) {
