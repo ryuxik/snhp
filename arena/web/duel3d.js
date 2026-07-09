@@ -24,9 +24,10 @@
 
   let scene, cam, renderer, root, running = false, raf = 0;
   let knights = {}, rails = [], candle = null, scoreboard = null;
-  let script = null, sT = 0, step = 0, phase = "idle", phaseT = 0;
+  let script = null, sT = 0, step = 0, phase = "idle", phaseT = 0, lastActor = null;
   let shake = 0, closeGlow = null, closeT = 0;
   let clock = null;
+  const BEAT_GAP = 1.9; // seconds between offers — paced for legibility
 
   // ── tiny helper: draw text to a canvas → THREE texture (no font loading) ──
   function textTexture(lines, opts) {
@@ -166,8 +167,8 @@
     table.position.set(0, 1.2, 2.2); root.add(table);
 
     // knights
-    knights.prime = knight(COL.primeK, 1); knights.prime.position.set(-4.8, 0, 1.9);
-    knights.chal = knight(COL.chalK, -1); knights.chal.position.set(4.8, 0, 1.9);
+    knights.prime = knight(COL.primeK, 1); knights.prime.position.set(-4.8, 0, 1.9); knights.prime.userData.baseX = -4.8;
+    knights.chal = knight(COL.chalK, -1); knights.chal.position.set(4.8, 0, 1.9); knights.chal.userData.baseX = 4.8;
     root.add(knights.prime, knights.chal);
 
     // issue rails between them at chest height (helmets rise above, table below)
@@ -192,11 +193,16 @@
     buildUI(); // crisp DOM labels tracking the 3D anchors
   }
 
-  // ── the canned script → drive markers, tells, candle, close, reveal ──
-  function applyTurn(turn) {
-    // turn.pos = {PRICE, DELIVERY, TERMS} in 0..1 (seller-favoured = 1)
-    rails.forEach(r => { const p = turn.pos[r.userData.name]; if (p != null) r.userData.tpos = p; });
-    shake = 0.5; // offer lands as a blow
+  // ── one offer = one BEAT: the actor strikes, the moved marker snaps ──
+  function fireTurn(turn) {
+    rails.forEach(r => {
+      const p = turn.pos[r.userData.name]; if (p == null) return;
+      if (Math.abs(p - r.userData.tpos) > 0.03) { r.userData.pop = 1; }  // struck → snap+flash
+      r.userData.tpos = p;
+    });
+    const kn = turn.actor === "prime" ? knights.prime : knights.chal;
+    kn.userData.lunge = 1;                 // the acting knight jabs forward
+    shake = 0.55; lastActor = turn.actor;
   }
   function setTruth(truth) {
     // show each side's hidden want ONLY on the issue it actually cares about
@@ -288,39 +294,37 @@
     if (clock) clock.candleLight.intensity = 1.25 + Math.sin(sT * 9) * 0.15 + Math.random() * 0.05;
     candle.userData.flame.scale.y = 0.85 + Math.sin(sT * 12) * 0.15;
 
-    // rail markers ease toward target; jump feel via shake
+    // rail markers: snap hard right after a strike, then settle; pop = flash+scale
     rails.forEach(r => {
-      r.userData.pos += (r.userData.tpos - r.userData.pos) * Math.min(1, dt * 6);
+      const snappy = r.userData.pop > 0.35 ? 16 : 6;
+      r.userData.pos += (r.userData.tpos - r.userData.pos) * Math.min(1, dt * snappy);
       r.userData.mk.position.x = railX(r, r.userData.pos);
+      r.userData.pop = Math.max(0, (r.userData.pop || 0) - dt * 2.6);
+      r.userData.mk.scale.setScalar(1 + r.userData.pop * 0.8);
       r.userData.mk.rotation.y += dt * 1.6; r.userData.mk.rotation.x = 0.35;
-      r.userData.mk.material.emissiveIntensity = 0.85 + Math.sin(sT * 5 + r.position.y) * 0.15;
+      r.userData.mk.material.emissiveIntensity = 0.9 + r.userData.pop * 2.2 + Math.sin(sT * 5 + r.position.y) * 0.1;
     });
 
-    // script playback
-    if (script && phase !== "reveal" && phase !== "done") {
+    // playback: one beat every BEAT_GAP seconds (paced so each offer reads)
+    if (script && (phase === "trade" || phase === "closing")) {
       phaseT += dt;
-      if (phase === "trade" && step < script.turns.length && phaseT >= script.turns[step].at) {
-        const tn = script.turns[step];
-        applyTurn(tn);
-        // tell: the offering side leans toward the issue it values
-        const kn = tn.actor === "prime" ? knights.prime : knights.chal;
-        kn.userData.lean = 1;
-        // candle burns down with rounds
-        const frac = 1 - (step + 1) / script.turns.length;
-        candle.userData.stick.scale.y = Math.max(0.15, frac);
-        candle.userData.stick.position.y = 1.1 * Math.max(0.15, frac);
-        candle.userData.flame.position.y = 0.1 + 2.2 * Math.max(0.15, frac);
-        step++;
-        if (step >= script.turns.length) { phase = "closing"; phaseT = 0; }
-      }
-      if (phase === "closing" && phaseT > 0.8) { doClose(); }
+      if (phase === "trade" && phaseT >= BEAT_GAP) {
+        if (step < script.turns.length) {
+          fireTurn(script.turns[step]); step++; phaseT = 0;
+          const frac = 1 - step / script.turns.length;   // candle burns down
+          candle.userData.stick.scale.y = Math.max(0.12, frac);
+          candle.userData.flame.position.y = 0.2 + 2.0 * Math.max(0.12, frac);
+        } else { phase = "closing"; phaseT = 0; }
+      } else if (phase === "closing" && phaseT >= 1.1) { doClose(); }
     }
-    // knight tells ease back
+    // knight lunge: quick forward jab on a strike, easing back to stance
     ["prime", "chal"].forEach(k => {
-      const kn = knights[k]; const target = kn.userData.lean * (k === "prime" ? -0.12 : 0.12);
-      kn.userData.lean *= (1 - Math.min(1, dt * 3));
-      kn.rotation.x += ((target) - kn.rotation.x) * Math.min(1, dt * 5);
-      kn.userData.glowMat.emissiveIntensity = 0.18 + kn.userData.lean * 0.5;
+      const kn = knights[k], sign = k === "prime" ? 1 : -1;
+      kn.userData.lunge = Math.max(0, (kn.userData.lunge || 0) - dt * 3.2);
+      const L = kn.userData.lunge;
+      kn.position.x = kn.userData.baseX + sign * L * 0.55;   // step in
+      kn.rotation.x = -L * 0.16;                             // lean into it
+      kn.userData.glowMat.emissiveIntensity = 0.04 + L * 0.35;
     });
     // close glow decay
     if (closeT > 0) { closeT -= dt; closeGlow.intensity = Math.max(0, closeT * 6); }
@@ -344,15 +348,15 @@
   let camGoal = { pos: new T.Vector3(0, 4.2, 13), look: new T.Vector3(0, 2.4, 0) };
   const _look = new T.Vector3();
   function cameraBeat() {
-    if (phase === "reveal") { camGoal.pos.set(0, 4.4, 12.5); camGoal.look.set(0, 4.0, 3); }
-    else if (phase === "closing") { camGoal.pos.set(0.4, 3.4, 8.5); camGoal.look.set(0, 2.5, 2.2); }
-    else if (phase === "trade") { // slow drift, framing the three rails + both knights
-      const p = Math.min(1, sT / 12);
-      camGoal.pos.set(Math.sin(sT * 0.16) * 1.0, 3.8 - p * 0.2, 13.5 - p * 1.0);
-      camGoal.look.set(0, 2.2, 1.9);
+    if (phase === "reveal") { camGoal.pos.set(0, 4.2, 12.5); camGoal.look.set(0, 3.0, 2.0); }
+    else if (phase === "close") { camGoal.pos.set(0, 3.4, 9.5); camGoal.look.set(0, 2.5, 2.0); }
+    else if (phase === "trade" || phase === "closing") {
+      // steady frame that gently leans toward whoever just struck (no aimless drift)
+      const bias = ((knights.chal.userData.lunge || 0) - (knights.prime.userData.lunge || 0)) * 1.7;
+      camGoal.pos.set(bias, 3.6, 12.6); camGoal.look.set(bias * 0.35, 2.2, 1.9);
     } else { camGoal.pos.set(0, 3.9, 14); camGoal.look.set(0, 2.2, 1.5); }
-    cam.position.lerp(camGoal.pos, 0.03);
-    _look.lerp(camGoal.look, 0.04); cam.lookAt(_look);
+    cam.position.lerp(camGoal.pos, 0.045);
+    _look.lerp(camGoal.look, 0.05); cam.lookAt(_look);
   }
 
   function doClose() {
@@ -390,8 +394,8 @@
     // reset rails to opening positions
     rails.forEach(r => { r.userData.pos = 0.5; r.userData.tpos = 0.5; });
     running = true; last = performance.now();
-    // brief establishing beat, then trade
-    setTimeout(() => { if (running) { phase = "trade"; phaseT = 0; } }, 2200);
+    // brief establishing beat, then trade (phaseT primed so the first offer fires)
+    setTimeout(() => { if (running) { phase = "trade"; phaseT = BEAT_GAP; } }, 2400);
     raf = requestAnimationFrame(loop);
   }
   function stop() { running = false; cancelAnimationFrame(raf); }
@@ -400,15 +404,20 @@
   // debug: freeze a specific state for screenshotting (bypasses timing)
   function _debug(which) {
     running = false; cancelAnimationFrame(raf);
-    if (which === "trade") {
+    if (which === "trade" || which === "strike") {
       phase = "trade"; hideReveal();
       const mid = { PRICE: 0.80, DELIVERY: 0.51, TERMS: 0.24 };
-      rails.forEach(r => { const p = mid[r.userData.name]; r.userData.pos = r.userData.tpos = p; r.userData.mk.position.x = railX(r, p); });
+      rails.forEach(r => { const p = mid[r.userData.name]; r.userData.pos = r.userData.tpos = p; r.userData.mk.position.x = railX(r, p); r.userData.mk.scale.setScalar(1); });
       if (script && script.truth) setTruth(script.truth);
-      knights.prime.rotation.x = -0.1; knights.prime.userData.glowMat.emissiveIntensity = 0.55;
-      knights.chal.rotation.x = 0.1; knights.chal.userData.glowMat.emissiveIntensity = 0.55;
-      candle.userData.stick.scale.y = 0.5; candle.userData.stick.position.y = 0.55; candle.userData.flame.position.y = 1.2;
-      cam.position.set(0, 3.7, 13.2); _look.set(0, 2.1, 1.9); cam.lookAt(_look);
+      candle.userData.stick.scale.y = 0.5; candle.userData.flame.position.y = 1.2;
+      let bias = 0;
+      if (which === "strike") { // freeze mid-strike: PRICE hit by Prime
+        const pr = rails.find(r => r.userData.name === "PRICE");
+        pr.userData.pop = 1; pr.userData.mk.scale.setScalar(1.8); pr.userData.mk.material.emissiveIntensity = 3.0;
+        knights.prime.userData.lunge = 1; knights.prime.position.x = -4.8 + 0.55; knights.prime.rotation.x = -0.16;
+        knights.prime.userData.glowMat.emissiveIntensity = 0.39; bias = -1.7;
+      }
+      cam.position.set(bias, 3.6, 12.6); _look.set(bias * 0.35, 2.2, 1.9); cam.lookAt(_look);
     } else if (which === "reveal") {
       if (script && script.reveal) showReveal(script.reveal);
       cam.position.set(0, 4.4, 12.5); _look.set(0, 4.0, 3); cam.lookAt(_look);
@@ -433,5 +442,9 @@
     return w + "x" + h;
   }
 
-  A.duel3d = { mount, play, stop, active, resize, _phase: () => phase, _debug, _capture };
+  function stateOf() { return { phase, step, phaseT: +phaseT.toFixed(2), running, sT: +sT.toFixed(1),
+    turns: script ? script.turns.length : -1, pos: rails.map(r => +r.userData.pos.toFixed(2)) }; }
+  // manually advance the sim (the preview tab pauses rAF; this drives tick directly)
+  function _advance(sec) { running = false; cancelAnimationFrame(raf); let t = 0; while (t < sec) { tick(0.033); t += 0.033; } return stateOf(); }
+  A.duel3d = { mount, play, stop, active, resize, _phase: () => phase, _debug, _capture, _advance, _state: stateOf };
 })();
