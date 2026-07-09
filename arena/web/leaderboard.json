@@ -1,22 +1,22 @@
 {
  "version": 1,
- "scenario_seed": 20260709,
- "scenarios": 20,
+ "scenario_seed": "held-out-v1",
+ "scenarios": 60,
  "deadline": 8,
  "notional": 10000,
- "generated": "2026-07-09T21:40:16Z",
+ "generated": "2026-07-09T22:34:13Z",
  "rows": {
   "engine": {
    "provider": "engine",
    "solo": {
-    "matches": 40,
-    "deal_rate": 1.0,
-    "capture": 0.9467,
-    "logroll": 0.823,
-    "dollars_left": 533.17,
-    "own_utility": 0.6891,
-    "engine_utility": 0.6888,
-    "mean_rounds": 2.4,
+    "matches": 120,
+    "deal_rate": 0.9417,
+    "capture": 0.9077,
+    "logroll": 0.6152,
+    "dollars_left": 922.5,
+    "own_utility": 0.6609,
+    "engine_utility": 0.6594,
+    "mean_rounds": 2.67,
     "advice_follow": null,
     "format_failures": 0
    }
@@ -24,113 +24,48 @@
   "naive-baseline": {
    "provider": "scripted-naive",
    "solo": {
-    "matches": 40,
-    "deal_rate": 0.9,
-    "capture": 0.864,
-    "logroll": 0.4126,
-    "dollars_left": 1359.97,
-    "own_utility": 0.6828,
-    "engine_utility": 0.5858,
-    "mean_rounds": 3.35,
+    "matches": 120,
+    "deal_rate": 0.975,
+    "capture": 0.9118,
+    "logroll": 0.6662,
+    "dollars_left": 881.96,
+    "own_utility": 0.7135,
+    "engine_utility": 0.6106,
+    "mean_rounds": 3.29,
     "advice_follow": null,
-    "format_failures": 0
-   }
-  },
-  "claude-haiku-4-5-20251001": {
-   "provider": "anthropic",
-   "solo": {
-    "matches": 40,
-    "deal_rate": 0.7,
-    "capture": 0.7652,
-    "logroll": 0.0909,
-    "dollars_left": 2347.58,
-    "own_utility": 0.5554,
-    "engine_utility": 0.5625,
-    "mean_rounds": 7.05,
-    "advice_follow": null,
-    "format_failures": 0
-   },
-   "advised": {
-    "matches": 40,
-    "deal_rate": 0.95,
-    "capture": 0.934,
-    "logroll": 0.676,
-    "dollars_left": 660.1,
-    "own_utility": 0.7136,
-    "engine_utility": 0.6538,
-    "mean_rounds": 3.17,
-    "advice_follow": 0.6292,
-    "format_failures": 0
-   }
-  },
-  "claude-sonnet-5": {
-   "provider": "anthropic",
-   "solo": {
-    "matches": 40,
-    "deal_rate": 0.675,
-    "capture": 0.7828,
-    "logroll": 0.0378,
-    "dollars_left": 2172.05,
-    "own_utility": 0.6131,
-    "engine_utility": 0.547,
-    "mean_rounds": 6.47,
-    "advice_follow": null,
-    "format_failures": 18
-   },
-   "advised": {
-    "matches": 40,
-    "deal_rate": 0.825,
-    "capture": 0.8752,
-    "logroll": 0.3836,
-    "dollars_left": 1248.34,
-    "own_utility": 0.698,
-    "engine_utility": 0.5921,
-    "mean_rounds": 4.28,
-    "advice_follow": 0.4792,
-    "format_failures": 10
-   }
-  },
-  "claude-opus-4-8": {
-   "provider": "anthropic",
-   "solo": {
-    "matches": 40,
-    "deal_rate": 0.8,
-    "capture": 0.8509,
-    "logroll": 0.2827,
-    "dollars_left": 1490.72,
-    "own_utility": 0.646,
-    "engine_utility": 0.6112,
-    "mean_rounds": 6.42,
-    "advice_follow": null,
-    "format_failures": 1
-   },
-   "advised": {
-    "matches": 40,
-    "deal_rate": 0.875,
-    "capture": 0.9077,
-    "logroll": 0.5244,
-    "dollars_left": 923.27,
-    "own_utility": 0.687,
-    "engine_utility": 0.6514,
-    "mean_rounds": 5.65,
-    "advice_follow": 0.3,
     "format_failures": 0
    }
   },
   "evolved-champion": {
    "provider": "champion",
    "solo": {
-    "matches": 40,
-    "deal_rate": 0.925,
-    "capture": 0.9164,
-    "logroll": 0.6094,
-    "dollars_left": 835.64,
-    "own_utility": 0.6205,
-    "engine_utility": 0.7232,
-    "mean_rounds": 3.25,
+    "matches": 120,
+    "deal_rate": 0.9167,
+    "capture": 0.91,
+    "logroll": 0.5621,
+    "dollars_left": 900.33,
+    "own_utility": 0.6065,
+    "engine_utility": 0.722,
+    "mean_rounds": 3.33,
     "advice_follow": null,
     "format_failures": 0
    }
+  },
+  "demo-greedy": {
+   "provider": "http",
+   "solo": {
+    "matches": 120,
+    "deal_rate": 0.975,
+    "capture": 0.9125,
+    "logroll": 0.6469,
+    "dollars_left": 875.27,
+    "own_utility": 0.7174,
+    "engine_utility": 0.6089,
+    "mean_rounds": 3.13,
+    "advice_follow": null,
+    "format_failures": 0
+   },
+   "by": "@ryuxik"
   }
  }
 }

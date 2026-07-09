@@ -138,6 +138,78 @@ def test_genome_seat_plays_and_is_deterministic(scenarios):
     assert r1.to_dict() == r2.to_dict()
 
 
+def test_http_seat_roundtrip_and_fallback(scenarios):
+    """A community bot behind a real local HTTP endpoint: plays legal moves,
+    falls back on garbage replies, aborts on a dead endpoint."""
+    import http.server
+    import threading
+
+    from arena.gauntlet.agents import HTTPSeat
+
+    class Bot(http.server.BaseHTTPRequestHandler):
+        mode = "play"
+
+        def do_POST(self):
+            body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            assert body["protocol"] == "snhp-gauntlet/1"
+            if Bot.mode == "play":   # accept when possible, else open mid-ish
+                if body["their_offers"]:
+                    out = {"action": "accept"}
+                else:
+                    out = {"action": "offer", "package": {
+                        i["name"]: i["options"][len(i["options"]) // 2]
+                        for i in body["issues"]}}
+            else:                    # garbage → format-failure path
+                out = {"action": "chaos"}
+            data = json.dumps(out).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def log_message(self, *a):
+            pass
+
+    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Bot)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{srv.server_port}/"
+    try:
+        sc, w_s, w_b = scenarios[0]
+        seat = HTTPSeat(url, name="test-bot")
+        r = run_match(seat, sc, w_s, w_b, role="buyer", condition="solo",
+                      scenario_id=0, match_seed=42)
+        assert r.deal and r.format_failures == 0     # accepted the engine's opener
+        Bot.mode = "garbage"
+        seat2 = HTTPSeat(url, name="test-bot")
+        r2 = run_match(seat2, sc, w_s, w_b, role="buyer", condition="solo",
+                       scenario_id=0, match_seed=42)
+        assert r2.format_failures > 0                # counted, run completed
+    finally:
+        srv.shutdown()
+    dead = HTTPSeat("http://127.0.0.1:1/", name="dead-bot", max_retries=0)
+    with pytest.raises(RuntimeError):
+        run_match(dead, scenarios[0][0], scenarios[0][1], scenarios[0][2],
+                  role="buyer", condition="solo", scenario_id=0, match_seed=42)
+
+
+def test_eval_seed_isolation(tmp_path):
+    """Ranking artifacts (held-out label) refuse to merge with practice runs,
+    and eval scenario sets differ from the practice set."""
+    from arena.gauntlet.run import SCENARIO_SEED
+    a = gen_gauntlet_scenarios(3, SCENARIO_SEED)
+    b = gen_gauntlet_scenarios(3, 987654321)         # any other seed
+    assert any(sa.seller_dirs != sb.seller_dirs for (sa, _, _), (sb, _, _) in zip(a, b))
+    entry = run_gauntlet("engine:", ["solo"], 3, verbose=False)
+    entry["author"] = None
+    out = tmp_path / "leaderboard.json"
+    art = merge_artifact(out, entry, 3, DEADLINE, seed_label="held-out-v1")
+    art.pop("matches")
+    out.write_text(json.dumps(art))
+    with pytest.raises(SystemExit):                  # practice label ≠ held-out label
+        merge_artifact(out, entry, 3, DEADLINE, seed_label=SCENARIO_SEED)
+
+
 def test_run_gauntlet_offline_and_merge(tmp_path):
     entry = run_gauntlet("scripted-naive:naive-test", ["solo"], 3, verbose=False)
     assert entry["conditions"]["solo"]["matches"] == 6      # 3 scenarios x 2 roles

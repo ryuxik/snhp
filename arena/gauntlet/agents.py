@@ -170,6 +170,30 @@ class NaiveSeat:
         return Action("offer", pkg)
 
 
+def action_from_obj(obj, view: SeatView) -> Optional[Action]:
+    """Validate a decoded {action, package?} object into a legal Action —
+    the shared contract for LLM replies and community HTTP bots. Returns None
+    on anything illegal (unknown action, incomplete package, premature accept)."""
+    if not isinstance(obj, dict):
+        return None
+    act = str(obj.get("action", "")).lower()
+    if act == "accept":
+        return Action("accept") if view.opp_offers else None
+    if act == "walk":
+        return Action("walk")
+    if act == "offer":
+        pkg = obj.get("package") or {}
+        out = {}
+        for iss in view.issues:
+            v = pkg.get(iss["name"])
+            if v is None or str(v) not in [str(o) for o in iss["options"]]:
+                return None
+            # normalize back to the canonical option object
+            out[iss["name"]] = iss["options"][[str(o) for o in iss["options"]].index(str(v))]
+        return Action("offer", out)
+    return None
+
+
 def _package_utility(view: SeatView, package: dict) -> float:
     """This seat's TRUE utility of a package (same math as executor._bundle_realized)."""
     total = 0.0
@@ -326,22 +350,7 @@ class LLMSeat:
             obj = json.loads(m.group(0))
         except json.JSONDecodeError:
             return None
-        act = str(obj.get("action", "")).lower()
-        if act == "accept":
-            return Action("accept") if view.opp_offers else None
-        if act == "walk":
-            return Action("walk")
-        if act == "offer":
-            pkg = obj.get("package") or {}
-            out = {}
-            for iss in view.issues:
-                v = pkg.get(iss["name"])
-                if v is None or str(v) not in [str(o) for o in iss["options"]]:
-                    return None
-                # normalize back to the canonical option object
-                out[iss["name"]] = iss["options"][[str(o) for o in iss["options"]].index(str(v))]
-            return Action("offer", out)
-        return None
+        return action_from_obj(obj, view)
 
     # -- policy ---------------------------------------------------------------
     def act(self, view: SeatView) -> Action:
@@ -384,6 +393,81 @@ class LLMSeat:
         # persistent FORMAT failure (transport fine, output unparseable): safest
         # legal fallback — repeat my last offer, else the naive baseline's move.
         # Counted per turn and reported on the leaderboard row.
+        self.format_failures += 1
+        if view.my_offers:
+            return Action("offer", dict(view.my_offers[-1]), meta={"fallback": True})
+        return self._naive.act(view)
+
+
+# ── community bots: bring-your-own-endpoint ──────────────────────────────────
+
+PROTOCOL = "snhp-gauntlet/1"
+
+
+def view_payload(view: SeatView, match_id: str) -> dict:
+    """The wire format a community bot receives each turn — the SeatView,
+    verbatim JSON. Documented at /submit.html; changing it is a protocol bump."""
+    return {
+        "protocol": PROTOCOL,
+        "match_id": match_id,
+        "role": view.role,
+        "turn": view.turn,
+        "deadline": view.deadline,
+        "batna": BATNA,
+        "issues": [{"name": i["name"], "options": list(i["options"]),
+                    "my_utility": list(i["my_utility"]),
+                    "their_utility": list(i["their_utility"])} for i in view.issues],
+        "weights": dict(view.weights),
+        "your_offers": list(view.my_offers),
+        "their_offers": list(view.opp_offers),
+    }
+
+
+class HTTPSeat:
+    """A community bot behind one HTTP endpoint. We POST the match view each
+    turn; the bot returns {"action": "offer"|"accept"|"walk", "package": {...}}.
+    Same integrity rules as LLM seats: invalid replies are counted and fall
+    back (visible on the row); a dead endpoint ABORTS the run — a leaderboard
+    row is the bot or nothing."""
+
+    def __init__(self, endpoint: str, name: str = "community-bot", *,
+                 timeout: float = 30.0, max_retries: int = 1):
+        self.endpoint = endpoint
+        self.name = name
+        self.timeout = timeout
+        self.max_retries = max_retries
+        self.format_failures = 0
+        self._naive = NaiveSeat()
+        self._client = None
+        self._match_id = "m0"
+
+    def new_match(self, match_id: str) -> None:
+        self._match_id = match_id
+
+    def act(self, view: SeatView) -> Action:
+        import httpx
+        if self._client is None:
+            self._client = httpx.Client(timeout=self.timeout)
+        payload = view_payload(view, self._match_id)
+        last_err = None
+        for attempt in range(self.max_retries + 1):
+            try:
+                r = self._client.post(self.endpoint, json=payload)
+                r.raise_for_status()
+                obj = r.json()
+                last_err = None
+            except Exception as e:            # transport/HTTP/JSON-decode error
+                last_err = e
+                time.sleep(1.0 * (attempt + 1))
+                continue
+            action = action_from_obj(obj, view)
+            if action is not None:
+                return action
+            break                              # decoded but illegal → format failure
+        if last_err is not None:
+            raise RuntimeError(
+                f"endpoint failure for {self.name} ({self.endpoint}) after "
+                f"{self.max_retries + 1} attempts: {last_err}")
         self.format_failures += 1
         if view.my_offers:
             return Action("offer", dict(view.my_offers[-1]), meta={"fallback": True})

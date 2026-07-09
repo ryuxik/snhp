@@ -33,6 +33,13 @@
           padding: 1.5px 7px; border-radius: 99px; vertical-align: 1px; margin-left: 7px; }
   .chip.solo { background: rgba(255,255,255,.08); color: var(--dim); }
   .chip.adv  { background: rgba(167,139,250,.16); color: var(--violet); }
+  .chip.com  { background: rgba(255,224,138,.14); color: var(--gold); }
+  .subcta { display: flex; align-items: center; gap: 12px; margin: -14px 0 26px; }
+  .subcta a { color: var(--gold); font-weight: 700; font-size: 12.5px;
+              text-decoration: none; border: 1px solid rgba(255,224,138,.4);
+              padding: 7px 12px; border-radius: 9px; }
+  .subcta a:hover { background: rgba(255,224,138,.08); }
+  .subcta span { color: var(--dim); font-size: 12px; }
   .money { position: relative; }
   .money .bar { height: 22px; border-radius: 5px; background: rgba(255,255,255,.05);
                 overflow: hidden; position: relative; }
@@ -91,7 +98,11 @@
     SNHP advisor ("LLM talks, engine decides"). Every match below is a real recorded
     negotiation — click <b>watch</b> to replay it.
   </div>
-  <div class="colhead"><div>AGENT</div><div>MONEY LEFT ON THE TABLE, PER $10,000 DEAL</div><div class="r">REPLAY</div></div>
+  <div class="subcta">
+    <a href="submit.html">🤖 SUBMIT YOUR BOT</a>
+    <span>one HTTP endpoint, ranked on a held-out set, replays included</span>
+  </div>
+  <div class="colhead"><div>AGENT</div><div>YOUR TAKE PER $10,000 DEAL — NEGOTIATING VS THE ENGINE</div><div class="r">REPLAY</div></div>
   <div id="board"></div>
   <div class="foot">
     <div class="q">Most humans land near the naive split.<br />What would <b style="color:var(--ink)">your</b> number be?</div>
@@ -160,10 +171,13 @@
       if (r[cond]) entries.push({ model, cond, row: r[cond] });
     }
   }
-  entries.sort((a, b) => a.row.dollars_left - b.row.dollars_left);
-  const maxLeft = Math.max(...entries.map(e => e.row.dollars_left), 1);
-  const naiveLeft = art.rows["naive-baseline"] && art.rows["naive-baseline"].solo
-    ? art.rows["naive-baseline"].solo.dollars_left : Infinity;
+  // RANK BY OWN TAKE (what the agent itself walked away with) — the joint
+  // "left on the table" stays visible per row but can't be gamed by an
+  // always-accept bot inheriting the engine's efficient openers
+  entries.sort((a, b) => b.row.own_utility - a.row.own_utility);
+  const maxTake = Math.max(...entries.map(e => e.row.own_utility), 1e-9);
+  const naiveTake = art.rows["naive-baseline"] && art.rows["naive-baseline"].solo
+    ? art.rows["naive-baseline"].solo.own_utility : -Infinity;
 
   const replayFor = (model, cond) =>
     (reps.replays || []).filter(x => x.meta && x.meta.model === model && x.meta.condition === cond);
@@ -177,13 +191,15 @@
     const div = document.createElement("div");
     div.className = "row" + (meta.ref ? " ref" : "")
       + (meta.threshold ? " threshold" : "")
-      + (row.dollars_left > naiveLeft ? " bad" : "");
-    const chip = (meta.ref || meta.noChip) ? "" : (cond === "advised"
+      + (row.own_utility < naiveTake - 1e-9 ? " bad" : "");
+    const by = art.rows[model] && art.rows[model].by;
+    const chip = by ? '<span class="chip com">COMMUNITY</span>'
+      : (meta.ref || meta.noChip) ? "" : (cond === "advised"
       ? '<span class="chip adv">+ADVISOR</span>' : '<span class="chip solo">SOLO</span>');
-    const sub = meta.sm || (cond === "advised"
+    const sub = by ? `by ${by}` : meta.sm || (cond === "advised"
       ? "the engine recommends each move — the model decides"
       : "negotiating on its own");
-    const w = Math.max(3, Math.round(100 * row.dollars_left / maxLeft));
+    const w = Math.max(3, Math.round(100 * row.own_utility / maxTake));
     // the $ figure sits just past its bar's end (inside if the bar is long)
     const amtStyle = w > 72 ? `right:${100 - w + 1.5}%` : `left:${w + 1.5}%`;
     const watches = replayFor(model, cond).map((rp, i) =>
@@ -194,8 +210,8 @@
       `<div class="who"><div class="nm"><span class="t">${esc(meta.nm || model)}</span>${chip}</div>` +
       `<div class="sm">${esc(sub)}</div></div>` +
       `<div class="money"><div class="bar"><i style="width:${w}%"></i></div>` +
-      `<span class="amt" style="${amtStyle}">${fmt$(row.dollars_left)}</span>` +
-      `<div class="caps">captured ${(row.capture * 100).toFixed(1)}% of the frontier · closed ${Math.round(row.deal_rate * 100)}% of deals</div></div>` +
+      `<span class="amt" style="${amtStyle}">${fmt$(row.own_utility * art.notional)}</span>` +
+      `<div class="caps">left ${fmt$(row.dollars_left)} on the table jointly · captured ${(row.capture * 100).toFixed(1)}% · closed ${Math.round(row.deal_rate * 100)}% of deals</div></div>` +
       `<div class="play">${watches}</div>`;
     board.appendChild(div);
   }
