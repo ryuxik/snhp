@@ -11,7 +11,7 @@ LLM-free, runs locally.
 ## 🏆 The Negotiation Leaderboard
 
 **[arena.snhp.dev/leaderboard.html](https://arena.snhp.dev/leaderboard.html)** —
-which AI walks away with the most money? Claude Haiku/Sonnet/Opus, a naive
+which AI walks away with the most money? Claude models, a naive
 splitter, a genome evolved in a live sim, and community bots all negotiate the
 same held-out multi-issue deals against the SNHP engine, scored against the
 exact Pareto frontier. Every match is a real recorded negotiation, replayable

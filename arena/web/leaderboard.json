@@ -4,7 +4,7 @@
  "scenarios": 60,
  "deadline": 8,
  "notional": 10000,
- "generated": "2026-07-09T22:34:13Z",
+ "generated": "2026-07-09T23:32:56Z",
  "rows": {
   "engine": {
    "provider": "engine",
@@ -66,6 +66,33 @@
     "format_failures": 0
    },
    "by": "@ryuxik"
+  },
+  "claude-haiku-4-5-20251001": {
+   "provider": "anthropic",
+   "solo": {
+    "matches": 120,
+    "deal_rate": 0.6167,
+    "capture": 0.7506,
+    "logroll": -0.0133,
+    "dollars_left": 2494.1,
+    "own_utility": 0.5731,
+    "engine_utility": 0.5317,
+    "mean_rounds": 6.78,
+    "advice_follow": null,
+    "format_failures": 0
+   },
+   "advised": {
+    "matches": 120,
+    "deal_rate": 0.9083,
+    "capture": 0.9007,
+    "logroll": 0.5841,
+    "dollars_left": 993.28,
+    "own_utility": 0.6935,
+    "engine_utility": 0.6188,
+    "mean_rounds": 3.73,
+    "advice_follow": 0.7181,
+    "format_failures": 0
+   }
   }
  }
 }

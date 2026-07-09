@@ -10,6 +10,439 @@
     "TERMS"
    ],
    "names": {
+    "seller": "CLAUDE-HAIKU-4-5-20251001",
+    "buyer": "SNHP ENGINE"
+   },
+   "origins": {
+    "seller": "claude-haiku-4-5-20251001 \u00b7 advised",
+    "buyer": "the shipped engine"
+   },
+   "subtitle": "a real recorded match: CLAUDE-HAIKU-4-5-20251001 (seller) vs SNHP ENGINE (buyer)",
+   "truth": {
+    "wantS": {
+     "PRICE": 1.0,
+     "DELIVERY": 1.0,
+     "QUALITY": 1.0,
+     "TERMS": 1.0
+    },
+    "wantB": {
+     "PRICE": 0.0,
+     "DELIVERY": 0.0,
+     "QUALITY": 0.0,
+     "TERMS": 0.0
+    },
+    "weightS": {
+     "PRICE": 0.108,
+     "DELIVERY": 0.261,
+     "QUALITY": 0.276,
+     "TERMS": 0.356
+    },
+    "weightB": {
+     "PRICE": 0.274,
+     "DELIVERY": 0.101,
+     "QUALITY": 0.448,
+     "TERMS": 0.176
+    }
+   },
+   "turns": [
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 0.0,
+      "QUALITY": 0.514,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    }
+   ],
+   "reveal": {
+    "naive": 1.007,
+    "snhp": 1.339,
+    "ceiling": 1.339,
+    "label": "this deal",
+    "line": "claude-haiku-4-5-20251001 (seller) settled with the SNHP engine in 3 rounds \u2014 $0 of $10,000 left on the table."
+   },
+   "meta": {
+    "model": "claude-haiku-4-5-20251001",
+    "condition": "advised",
+    "role": "seller",
+    "scenario_id": 2,
+    "deal": true,
+    "capture": 1.0,
+    "dollars_left": 0.0
+   }
+  },
+  {
+   "issues": [
+    "PRICE",
+    "DELIVERY",
+    "QUALITY",
+    "TERMS"
+   ],
+   "names": {
+    "seller": "CLAUDE-HAIKU-4-5-20251001",
+    "buyer": "SNHP ENGINE"
+   },
+   "origins": {
+    "seller": "claude-haiku-4-5-20251001 \u00b7 advised",
+    "buyer": "the shipped engine"
+   },
+   "subtitle": "a real recorded match: CLAUDE-HAIKU-4-5-20251001 (seller) vs SNHP ENGINE (buyer)",
+   "truth": {
+    "wantS": {
+     "PRICE": 1.0,
+     "DELIVERY": 1.0,
+     "QUALITY": 1.0,
+     "TERMS": 1.0
+    },
+    "wantB": {
+     "PRICE": 0.0,
+     "DELIVERY": 0.0,
+     "QUALITY": 0.0,
+     "TERMS": 0.0
+    },
+    "weightS": {
+     "PRICE": 0.051,
+     "DELIVERY": 0.21,
+     "QUALITY": 0.36,
+     "TERMS": 0.38
+    },
+    "weightB": {
+     "PRICE": 0.411,
+     "DELIVERY": 0.087,
+     "QUALITY": 0.414,
+     "TERMS": 0.088
+    }
+   },
+   "turns": [
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 0.277,
+      "QUALITY": 0.779,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.409,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.409,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.47,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    }
+   ],
+   "reveal": {
+    "naive": 1.031,
+    "snhp": 0.6,
+    "ceiling": 1.414,
+    "label": "this deal",
+    "line": "No deal \u2014 timeout walked. Both sides took their outside option; $5,758 of joint value evaporated."
+   },
+   "meta": {
+    "model": "claude-haiku-4-5-20251001",
+    "condition": "advised",
+    "role": "seller",
+    "scenario_id": 23,
+    "deal": false,
+    "capture": 0.4242,
+    "dollars_left": 5757.5081
+   }
+  },
+  {
+   "issues": [
+    "PRICE",
+    "DELIVERY",
+    "QUALITY",
+    "TERMS"
+   ],
+   "names": {
+    "seller": "SNHP ENGINE",
+    "buyer": "CLAUDE-HAIKU-4-5-20251001"
+   },
+   "origins": {
+    "seller": "the shipped engine",
+    "buyer": "claude-haiku-4-5-20251001 \u00b7 solo"
+   },
+   "subtitle": "a real recorded match: SNHP ENGINE (seller) vs CLAUDE-HAIKU-4-5-20251001 (buyer)",
+   "truth": {
+    "wantS": {
+     "PRICE": 1.0,
+     "DELIVERY": 1.0,
+     "QUALITY": 1.0,
+     "TERMS": 1.0
+    },
+    "wantB": {
+     "PRICE": 0.0,
+     "DELIVERY": 0.0,
+     "QUALITY": 0.0,
+     "TERMS": 0.0
+    },
+    "weightS": {
+     "PRICE": 0.108,
+     "DELIVERY": 0.261,
+     "QUALITY": 0.276,
+     "TERMS": 0.356
+    },
+    "weightB": {
+     "PRICE": 0.274,
+     "DELIVERY": 0.101,
+     "QUALITY": 0.448,
+     "TERMS": 0.176
+    }
+   },
+   "turns": [
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 0.0,
+      "QUALITY": 0.514,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 0.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    }
+   ],
+   "reveal": {
+    "naive": 1.007,
+    "snhp": 1.339,
+    "ceiling": 1.339,
+    "label": "this deal",
+    "line": "claude-haiku-4-5-20251001 (buyer) settled with the SNHP engine in 4 rounds \u2014 $0 of $10,000 left on the table."
+   },
+   "meta": {
+    "model": "claude-haiku-4-5-20251001",
+    "condition": "solo",
+    "role": "buyer",
+    "scenario_id": 2,
+    "deal": true,
+    "capture": 1.0,
+    "dollars_left": 0.0
+   }
+  },
+  {
+   "issues": [
+    "PRICE",
+    "DELIVERY",
+    "QUALITY",
+    "TERMS"
+   ],
+   "names": {
+    "seller": "CLAUDE-HAIKU-4-5-20251001",
+    "buyer": "SNHP ENGINE"
+   },
+   "origins": {
+    "seller": "claude-haiku-4-5-20251001 \u00b7 solo",
+    "buyer": "the shipped engine"
+   },
+   "subtitle": "a real recorded match: CLAUDE-HAIKU-4-5-20251001 (seller) vs SNHP ENGINE (buyer)",
+   "truth": {
+    "wantS": {
+     "PRICE": 1.0,
+     "DELIVERY": 1.0,
+     "QUALITY": 1.0,
+     "TERMS": 1.0
+    },
+    "wantB": {
+     "PRICE": 0.0,
+     "DELIVERY": 0.0,
+     "QUALITY": 0.0,
+     "TERMS": 0.0
+    },
+    "weightS": {
+     "PRICE": 0.789,
+     "DELIVERY": 0.125,
+     "QUALITY": 0.08,
+     "TERMS": 0.006
+    },
+    "weightB": {
+     "PRICE": 0.05,
+     "DELIVERY": 0.212,
+     "QUALITY": 0.623,
+     "TERMS": 0.115
+    }
+   },
+   "turns": [
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.611,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.747,
+      "DELIVERY": 1.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.305,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    }
+   ],
+   "reveal": {
+    "naive": 1.109,
+    "snhp": 0.6,
+    "ceiling": 1.738,
+    "label": "this deal",
+    "line": "No deal \u2014 timeout walked. Both sides took their outside option; $6,549 of joint value evaporated."
+   },
+   "meta": {
+    "model": "claude-haiku-4-5-20251001",
+    "condition": "solo",
+    "role": "seller",
+    "scenario_id": 35,
+    "deal": false,
+    "capture": 0.3451,
+    "dollars_left": 6548.7513
+   }
+  },
+  {
+   "issues": [
+    "PRICE",
+    "DELIVERY",
+    "QUALITY",
+    "TERMS"
+   ],
+   "names": {
     "seller": "SNHP ENGINE",
     "buyer": "DEMO-GREEDY"
    },

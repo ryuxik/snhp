@@ -1,8 +1,9 @@
 # SNHP (snhp.dev) — the negotiation engine for the agent economy
 
 > LLMs are measurably bad at multi-issue negotiation: on a Pareto-frontier
-> benchmark, Claude Haiku/Sonnet/Opus solo all score below a naive
-> split-the-difference bot. SNHP is a game-theory engine (logrolling, Bayesian
+> benchmark, frontier models playing solo score below a naive
+> split-the-difference bot (Claude Haiku solo takes $5,731 of a $10,000
+> notional vs the splitter's $7,135, on a held-out scenario set). SNHP is a game-theory engine (logrolling, Bayesian
 > opponent inference, Nash bargaining) that computes the moves — "LLM talks,
 > engine decides" — plus the public leaderboard that proves it.
 
