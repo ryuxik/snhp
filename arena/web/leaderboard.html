@@ -154,7 +154,7 @@
     "vendor/three-addons/ShaderPass.js",
     "vendor/three-addons/MaskPass.js",
     "vendor/three-addons/UnrealBloomPass.js",
-    "duel3d.js?v=48",
+    "duel3d.js?v=49",
   ];
   let duelReady = null;
   const loadScript = (src) => new Promise((res, rej) => {
@@ -242,8 +242,11 @@
   }
   $("#method").textContent =
     `Method: ${art.scenarios} seeded multi-issue scenarios x 2 roles, deadline ${art.deadline} turns, ` +
-    `standardized SNHP engine counterparty, true Dirichlet priorities per side; "left on the table" = ` +
-    `(frontier-best joint − realized joint)/frontier-best x ${fmt$(art.notional)} notional. Gauntlet v${art.version}, ` +
+    `standardized SNHP engine counterparty, true Dirichlet priorities per side. Ranked by "take" = ` +
+    `mean own priority-weighted score x ${fmt$(art.notional)} notional (no deal = 0.30 BATNA); ` +
+    `"left on the table" = (frontier-best joint − realized joint)/frontier-best x ${fmt$(art.notional)}. ` +
+    `Ranking on own take resists degenerate play: always-accept inherits the engine's openers (~$5,000), ` +
+    `never-conceding times out at $3,000. Gauntlet v${art.version}, ` +
     `frozen seed ${art.scenario_seed} — every agent faces the identical gauntlet. Generated ${art.generated}.`;
 
   // ── the replay theater: duel3d plays the RECORDED match (no live API) ──

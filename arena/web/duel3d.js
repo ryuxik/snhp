@@ -495,7 +495,9 @@
     // per-knight dashboard: name → role → secret priorities → live payoff meter
     const dash = (side, name, role, accent, shadow) => {
       const card = mk("", side === "prime" ? "left" : "right");
-      card.style.width = "176px"; card.style.whiteSpace = "normal";
+      // two cards + margins must fit the narrowest phone — clamp, don't overlap
+      card.style.width = Math.min(176, Math.floor(window.innerWidth / 2) - 34) + "px";
+      card.style.whiteSpace = "normal";
       card.innerHTML =
         '<div data-name style="font-size:18px;font-weight:600;letter-spacing:.08em;color:' + accent + ';text-shadow:0 0 14px ' + shadow + '">' + name + '</div>' +
         '<div data-role style="font-size:10.5px;letter-spacing:.04em;color:#8891a6;margin:1px 0 8px">' + role + '</div>' +
@@ -523,8 +525,7 @@
     hint.style.cssText = "position:fixed;left:50%;bottom:5%;transform:translateX(-50%);" +
       "font-size:11.5px;letter-spacing:.05em;color:#b7b2cc;background:rgba(10,8,18,.72);" +
       "border:1px solid rgba(167,139,250,.25);border-radius:9px;padding:7px 14px;" +
-      "white-space:nowrap;transition:opacity .6s ease;max-width:94vw;overflow:hidden;" +
-      "text-overflow:ellipsis";
+      "transition:opacity .6s ease;max-width:92vw;text-align:center;line-height:1.5";
     hint.textContent = "◆ gold diamond = the offer on the table · ▼ pips = each side's secret target · meters ↑ = what each side is taking";
     uiEl.appendChild(hint);
     uiKnights.hint = hint;

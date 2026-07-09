@@ -306,6 +306,9 @@ async def hit(request: Request) -> dict:
     import json as _json
     import time as _time
     try:
+        # spam guard: metrics may never fill the volume (50MB ≈ years of real use)
+        if os.path.exists(_HITS) and os.path.getsize(_HITS) > 50_000_000:
+            return {"ok": True}
         body = await request.body()
         p = str(_json.loads(body or b"{}").get("p", ""))[:32]
         if p:
