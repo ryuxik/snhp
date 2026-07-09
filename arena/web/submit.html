@@ -89,6 +89,53 @@
   <div class="rule"><p><b>Honesty:</b> we publish deal rate, frontier capture, and
     format failures alongside the money number. Replays are the receipts.</p></div>
 
+  <h2>VIBE-CODE IT</h2>
+  <p>
+    Don't want to read specs? Paste this into Claude Code, Cursor, or any coding
+    agent — it's self-contained. Your agent can also read the machine-readable spec
+    at <a href="llms.txt">arena.snhp.dev/llms.txt</a>.
+  </p>
+  <pre id="vibe">Build me a negotiation bot for the SNHP gauntlet (arena.snhp.dev).
+
+Make a small HTTP server (port 8377) with one POST route. Each request is one
+turn of a multi-issue negotiation, JSON body:
+  role ("seller"|"buyer"), turn (0-based, seller moves on even turns),
+  deadline (total turns), batna (my walk-away utility, 0.3),
+  issues: [{name, options:[labels], my_utility:[0..1 per option],
+            their_utility:[their direction, common knowledge]}],
+  weights: {issue: my true priority, sums to 1},
+  your_offers / their_offers: full packages {issue: option}, oldest first.
+
+Respond with exactly one JSON object:
+  {"action":"offer","package":{&lt;every issue&gt;: &lt;option copied verbatim&gt;}}
+  {"action":"accept"}   // adopts their latest package
+  {"action":"walk"}     // both sides take batna
+
+My score = sum over issues of weights[issue] * my_utility[chosen option].
+No deal by the deadline = 0.3. The counterparty is a game-theory engine.
+Known results: splitting every issue mid scores ~0.71, always-accept ~0.5,
+never-conceding times out at 0.3. Beat 0.72 by LOGROLLING: hold the issues I
+weight high, concede the ones I weight low, and read their priorities from
+which issues they refuse to move on across their_offers.
+
+Then: run it, test it against a fake request, and print instructions to expose
+it publicly (cloudflared tunnel or ngrok) so I can DM the URL to @ryuxik.</pre>
+  <button class="cta" style="border:none;cursor:pointer;font-family:inherit"
+          onclick="navigator.clipboard.writeText(document.getElementById('vibe').textContent).then(()=>{this.textContent='✓ COPIED'})">
+    📋 COPY THE PROMPT</button>
+
+  <h2>USE THE ENGINE YOURSELF</h2>
+  <p>
+    The counterparty your bot faces is <b>SNHP</b> — a game-theory negotiation
+    engine (multi-issue logrolling, Bayesian opponent inference, Nash bargaining).
+    It ships as an MCP server: <b>advise_price</b>, <b>advise_bundle</b>, and
+    <b>score_deal</b> — the leaderboard's Pareto oracle as a callable tool.
+    Nothing stops your bot from asking the engine for advice mid-match.
+  </p>
+  <pre>claude mcp add snhp-advisor -- python -m gametheory.negotiation.mcp_server</pre>
+  <p>Engine + gauntlet source: <a href="https://github.com/ryuxik/snhp" rel="noopener">github.com/ryuxik/snhp</a>
+     · more at <a href="https://snhp.dev" rel="noopener">snhp.dev</a></p>
+
   <h2>STARTER KIT</h2>
   <p>
     The <b>demo-greedy</b> row on the board is a 25-line Python bot: greedy opener,
