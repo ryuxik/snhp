@@ -59,10 +59,16 @@
     return m;
   }
 
+  // dark BackSide shell → a crafted outline around a voxel (cel-shaded feel)
+  function addOutline(mesh, k) {
+    const s = new T.Mesh(mesh.geometry, new T.MeshBasicMaterial({ color: 0x090712, side: T.BackSide }));
+    s.scale.setScalar(k || 1.07); mesh.add(s);
+  }
+
   // ── a cloaked knight: helmet + visor + pauldrons + an arm on the deal ──
   function knight(color, facing) {
     const g = new T.Group();
-    const mat = (hex, ei) => new T.MeshStandardMaterial({ color: hex, roughness: 0.72, metalness: 0.18, emissive: hex, emissiveIntensity: ei == null ? 0.08 : ei });
+    const mat = (hex, ei) => new T.MeshStandardMaterial({ color: hex, roughness: 0.85, metalness: 0.05, flatShading: true, emissive: hex, emissiveIntensity: ei == null ? 0.04 : ei });
     const dark = (hex) => new T.MeshStandardMaterial({ color: hex, roughness: 0.92 });
     const cloak = mat(color, 0.1);
     const b1 = new T.Mesh(new T.BoxGeometry(1.7, 1.9, 1.1), cloak); b1.position.y = 1.0;   // robe
@@ -80,6 +86,7 @@
     // banner-crest behind
     const pole = new T.Mesh(new T.BoxGeometry(0.1, 1.8, 0.1), dark(0x0f0c1a)); pole.position.set(-0.95 * facing, 2.3, -0.5);
     g.add(b1, b2, sh, helm, visor, crest, arm, hand, pole);
+    [b1, b2, helm, sh, arm].forEach(m => addOutline(m, 1.08));
     g.rotation.y = facing > 0 ? 0.22 : -0.22;
     g.userData = { base: 0, lean: 0, glowMat: cloak, hood: helm };
     return g;
@@ -105,9 +112,7 @@
     const sliver = (hex) => { const m = new T.Mesh(new T.BoxGeometry(0.2, 1.75, 0.2),
       new T.MeshBasicMaterial({ color: hex, transparent: true, opacity: 0.7 })); m.visible = false; g.add(m); return m; };
     const wantS = sliver(COL.prime), wantB = sliver(COL.chal);
-    const lab = label3d(name, { size: 44, color: "#e6e2f0", scale: 0.78 });
-    lab.position.set(-LEN / 2 - 1.0, 0.8, 0); // clear of the knight, above the rail
-    g.add(lab);
+    // label lives in the DOM UI layer (crisp, never clipped) — see buildUI()
     g.userData = { LEN, mk, wantS, wantB, pos: 0.5, tpos: 0.5, name };
     return g;
   }
@@ -129,7 +134,8 @@
     const key = new T.DirectionalLight(0xfff0e0, 0.75); key.position.set(3, 9, 11); scene.add(key);
     const candleLight = new T.PointLight(0xffcaa0, 1.8, 34, 2); candleLight.position.set(-1.5, 3.5, 5.0);
     const winLight = new T.PointLight(0x9f88ff, 1.3, 44, 2); winLight.position.set(0, 6, -6);
-    scene.add(candleLight, winLight);
+    const rim = new T.DirectionalLight(0xb49cff, 0.6); rim.position.set(-3, 7, -9); // silhouette rim from the window
+    scene.add(candleLight, winLight, rim);
     clock = { candleLight };
 
     // floor
@@ -163,11 +169,6 @@
     knights.prime = knight(COL.primeK, 1); knights.prime.position.set(-4.8, 0, 1.9);
     knights.chal = knight(COL.chalK, -1); knights.chal.position.set(4.8, 0, 1.9);
     root.add(knights.prime, knights.chal);
-    // nameplates
-    const npP = label3d([{ t: "SNHP PRIME", color: "#bfe4ff", glow: "#8fd0ff" }, { t: "the shipped agent", color: "#9aa3b8", font: "500 30px ui-monospace,monospace" }], { size: 46, line: 52, scale: 0.95 });
-    npP.position.set(-4.8, 4.7, 1.9); root.add(npP);
-    const npC = label3d([{ t: "THE CHALLENGER", color: "#ffc7a6", glow: "#ff9d6b" }, { t: "what evolution found", color: "#9aa3b8", font: "500 30px ui-monospace,monospace" }], { size: 42, line: 52, scale: 0.95 });
-    npC.position.set(4.8, 4.7, 1.9); root.add(npC);
 
     // issue rails between them at chest height (helmets rise above, table below)
     rails = ISSUES.map((n, i) => rail(n, 3.25 - i * 0.7));
@@ -187,6 +188,8 @@
 
     // reveal scoreboard (hidden until reveal), a big billboard
     scoreboard = new T.Group(); scoreboard.visible = false; scene.add(scoreboard);
+
+    buildUI(); // crisp DOM labels tracking the 3D anchors
   }
 
   // ── the canned script → drive markers, tells, candle, close, reveal ──
@@ -240,6 +243,42 @@
       bar("best possible", rev.ceiling, "#a78bfa") +
       `<div style="font-size:12.5px;line-height:1.6;color:#c9c4dc;margin-top:12px">${rev.line}</div>`;
     requestAnimationFrame(() => { el.style.opacity = "1"; el.style.transform = "translateX(-50%) translateY(0)"; });
+  }
+
+  // ── DOM UI layer: every readable label is crisp HTML tracking a 3D anchor
+  // (no baked textures → no clipping, pixel-sharp, trivially aligned) ──
+  let uiEl = null, uiItems = [];
+  function buildUI() {
+    if (uiEl) uiEl.remove();
+    uiEl = document.createElement("div"); uiEl.id = "duel-ui";
+    uiEl.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:100000;font-family:ui-monospace,Menlo,monospace";
+    document.body.appendChild(uiEl);
+    const mk = (html, align) => { const d = document.createElement("div");
+      d.style.cssText = "position:absolute;white-space:nowrap;will-change:transform;line-height:1.25";
+      d.dataset.align = align || "center"; d.innerHTML = html; uiEl.appendChild(d); return d; };
+    uiItems = [
+      { el: mk('<div style="font-size:19px;font-weight:600;letter-spacing:.09em;color:#cfeaff;text-shadow:0 0 14px rgba(143,208,255,.65)">SNHP PRIME</div><div style="font-size:11px;letter-spacing:.05em;color:#8891a6;text-align:center;margin-top:2px">the shipped agent</div>'),
+        world: new T.Vector3(-4.8, 5.1, 1.9) },
+      { el: mk('<div style="font-size:19px;font-weight:600;letter-spacing:.09em;color:#ffd0b3;text-shadow:0 0 14px rgba(255,157,107,.65)">THE CHALLENGER</div><div style="font-size:11px;letter-spacing:.05em;color:#8891a6;text-align:center;margin-top:2px">what evolution found</div>'),
+        world: new T.Vector3(4.8, 5.1, 1.9) },
+    ];
+    rails.forEach(r => {
+      uiItems.push({ el: mk('<span style="font-size:15px;letter-spacing:.14em;color:#eceaf4;text-shadow:0 1px 3px #000">' + r.userData.name + '</span>', "right"),
+        world: new T.Vector3(-r.userData.LEN / 2 - 0.5, r.position.y + 0.02, r.position.z) });
+    });
+  }
+  const _uv = new T.Vector3();
+  function updateUI() {
+    if (!uiEl) return;
+    const w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight;
+    for (const it of uiItems) {
+      _uv.copy(it.world).project(cam);
+      const behind = _uv.z > 1; it.el.style.display = behind ? "none" : "block";
+      if (behind) continue;
+      const x = (_uv.x * 0.5 + 0.5) * w, y = (-_uv.y * 0.5 + 0.5) * h;
+      const ax = it.el.dataset.align === "right" ? "-100%" : "-50%";
+      it.el.style.transform = "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px) translate(" + ax + ",-50%)";
+    }
   }
 
   // ── main loop ──
@@ -299,6 +338,7 @@
   function drawFrame() {
     renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
     renderer.render(scene, cam);
+    updateUI();
   }
 
   let camGoal = { pos: new T.Vector3(0, 4.2, 13), look: new T.Vector3(0, 2.4, 0) };
