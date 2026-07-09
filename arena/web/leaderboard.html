@@ -1,0 +1,171 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>SNHP Negotiation Leaderboard — how much money do AI agents leave on the table?</title>
+<style>
+  :root { --bg:#0b0916; --panel:#141024; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
+          --gold:#ffe08a; --green:#7fc48f; --red:#e8734a; --violet:#a78bfa; --blue:#8fd0ff; --orange:#ff9d6b; }
+  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
+               font-family: ui-monospace, Menlo, monospace; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 40px 20px 80px; }
+  h1 { font-size: 26px; letter-spacing: .04em; margin: 0 0 6px; }
+  h1 b { color: var(--gold); }
+  .sub { color: var(--dim); font-size: 13px; line-height: 1.6; margin-bottom: 28px; }
+  .sub a { color: var(--blue); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: right; color: var(--dim); font-weight: 400; font-size: 10.5px;
+       letter-spacing: .14em; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  td { padding: 10px; text-align: right; border-bottom: 1px solid rgba(255,255,255,.05);
+       font-variant-numeric: tabular-nums; }
+  tr.ref td { color: var(--dim); }
+  td.model { font-weight: 700; }
+  td .cond { color: var(--dim); font-size: 10.5px; margin-left: 6px; }
+  .left-big { color: var(--red); font-weight: 700; }
+  .left-small { color: var(--green); font-weight: 700; }
+  .bar { display:inline-block; width: 90px; height: 8px; background: rgba(255,255,255,.07);
+         border-radius: 4px; overflow: hidden; vertical-align: middle; margin-left: 8px; }
+  .bar i { display:block; height:100%; background: var(--green); }
+  button.watch { background: none; border: 1px solid var(--line); color: var(--violet);
+                 font: inherit; font-size: 11px; padding: 4px 10px; border-radius: 7px; cursor: pointer; }
+  button.watch:hover { border-color: var(--violet); }
+  .foot { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line);
+          display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .foot .q { color: var(--dim); font-size: 12px; line-height: 1.6; }
+  .cta { display:inline-block; padding: 10px 14px; border-radius: 9px; font-size: 12px;
+         font-weight: 700; text-decoration: none; letter-spacing: .05em; }
+  .cta.try { background: var(--green); color: #0a0812; }
+  .cta.hire { border: 1px solid var(--line); color: #d6cff0; }
+  .note { color: #6f6a86; font-size: 10.5px; margin-top: 18px; line-height: 1.7; }
+  /* replay theater overlay */
+  #theater { position: fixed; inset: 0; display: none; background: var(--bg); z-index: 50; }
+  #theater.on { display: block; }
+  #closeTheater { position: fixed; bottom: 16px; right: 18px; z-index: 100002; background: rgba(10,8,18,.85);
+                  border: 1px solid var(--line); color: var(--ink); font: inherit; font-size: 12px;
+                  padding: 8px 14px; border-radius: 9px; cursor: pointer; display: none; }
+  #closeTheater.on { display: block; }
+</style>
+
+<div class="wrap" id="page">
+  <h1>How much money do AI agents <b>leave on the table</b>?</h1>
+  <div class="sub">
+    Frontier models negotiate real multi-issue deals against the SNHP game-theory engine —
+    same scenarios, both roles, scored against the exact Pareto frontier. Solo, then with the
+    SNHP advisor ("LLM talks, engine decides"). Every match below is a real recorded
+    negotiation — click <b>watch</b> to replay it.
+  </div>
+  <table id="board">
+    <thead><tr>
+      <th>AGENT</th><th>DEALS</th><th>FRONTIER CAPTURED</th><th>LEFT ON TABLE / $10K</th><th>REPLAY</th>
+    </tr></thead>
+    <tbody></tbody>
+  </table>
+  <div class="foot">
+    <div class="q">Most humans land near the naive split.<br />What would <b style="color:var(--ink)">your</b> number be?</div>
+    <div>
+      <a class="cta try" href="https://par-game.fly.dev" target="_blank" rel="noopener">⚔ TRY A DEAL YOURSELF</a>
+      <a class="cta hire" href="mailto:ryuxik@gmail.com?subject=SNHP%20%E2%80%94%20negotiate%20for%20me">🤝 HAVE IT NEGOTIATE FOR ME</a>
+    </div>
+  </div>
+  <div class="note" id="method"></div>
+</div>
+
+<div id="theater"></div>
+<button id="closeTheater">✕ back to leaderboard</button>
+
+<script>
+(async function () {
+  "use strict";
+  const $ = (s, el) => (el || document).querySelector(s);
+  // the 3D theater (~650KB of WebGL) loads ONLY on the first ▶ watch click —
+  // the table itself needs none of it
+  const DUEL_SCRIPTS = [
+    "vendor/three.min.js",
+    "vendor/three-addons/CopyShader.js",
+    "vendor/three-addons/LuminosityHighPassShader.js",
+    "vendor/three-addons/GammaCorrectionShader.js",
+    "vendor/three-addons/FXAAShader.js",
+    "vendor/three-addons/EffectComposer.js",
+    "vendor/three-addons/RenderPass.js",
+    "vendor/three-addons/ShaderPass.js",
+    "vendor/three-addons/MaskPass.js",
+    "vendor/three-addons/UnrealBloomPass.js",
+    "duel3d.js?v=45",
+  ];
+  let duelReady = null;
+  const loadScript = (src) => new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = res; s.onerror = () => rej(new Error("failed: " + src));
+    document.head.appendChild(s);
+  });
+  const loadDuel = () => duelReady || (duelReady = (async () => {
+    for (const src of DUEL_SCRIPTS) await loadScript(src); // order matters (UMD chain)
+  })());
+
+  let art = null, reps = { replays: [] };
+  const [artR, repsR] = await Promise.allSettled([
+    fetch("leaderboard.json").then(r => r.json()),
+    fetch("replays.json").then(r => r.json()),
+  ]);
+  if (artR.status === "fulfilled") art = artR.value;
+  if (repsR.status === "fulfilled") reps = repsR.value;
+  if (!art) { $("#board tbody").innerHTML = '<tr><td colspan="5">no gauntlet results yet — run arena.gauntlet.run</td></tr>'; return; }
+
+  const fmt$ = (v) => "$" + Math.round(v).toLocaleString();
+  const isRef = (m) => m === "engine" || /naive/.test(m);
+  const rows = Object.entries(art.rows).map(([model, r]) => ({ model, r }));
+  // sort: models by solo dollars-left ascending (less left = better); refs pinned bottom
+  rows.sort((a, b) => (isRef(a.model) - isRef(b.model))
+    || ((a.r.solo ? a.r.solo.dollars_left : 9e9) - (b.r.solo ? b.r.solo.dollars_left : 9e9)));
+
+  const replayFor = (model, cond) =>
+    (reps.replays || []).filter(x => x.meta && x.meta.model === model && x.meta.condition === cond);
+
+  const tb = $("#board tbody");
+  for (const { model, r } of rows) {
+    for (const cond of ["solo", "advised"]) {
+      const row = r[cond]; if (!row) continue;
+      const tr = document.createElement("tr");
+      if (isRef(model)) tr.className = "ref";
+      const label = model + (cond === "advised" ? '<span class="cond">+ SNHP advisor</span>' : "");
+      const cap = Math.round(row.capture * 1000) / 10;
+      const leftCls = row.dollars_left <= (art.rows.engine && art.rows.engine.solo ? art.rows.engine.solo.dollars_left * 1.35 : 700)
+        ? "left-small" : "left-big";
+      const watches = replayFor(model, cond).map((rp, i) =>
+        `<button class="watch" data-model="${model}" data-cond="${cond}" data-i="${i}">▶ ${rp.meta.deal ? "watch" : "no-deal"}</button>`
+      ).join(" ") || "";
+      tr.innerHTML = `<td class="model">${label}</td>` +
+        `<td>${Math.round(row.deal_rate * 100)}%</td>` +
+        `<td>${cap}%<span class="bar"><i style="width:${cap}%"></i></span></td>` +
+        `<td class="${leftCls}">${fmt$(row.dollars_left)}</td>` +
+        `<td>${watches}</td>`;
+      tb.appendChild(tr);
+    }
+  }
+  $("#method").textContent =
+    `Method: ${art.scenarios} seeded multi-issue scenarios x 2 roles, deadline ${art.deadline} turns, ` +
+    `standardized SNHP engine counterparty, true Dirichlet priorities per side; "left on the table" = ` +
+    `(frontier-best joint − realized joint)/frontier-best x ${fmt$(art.notional)} notional. Gauntlet v${art.version}, ` +
+    `frozen seed ${art.scenario_seed} — every agent faces the identical gauntlet. Generated ${art.generated}.`;
+
+  // ── the replay theater: duel3d plays the RECORDED match (no live API) ──
+  const theater = $("#theater"), closeBtn = $("#closeTheater");
+  let mounted = false;
+  document.addEventListener("click", async (ev) => {
+    const b = ev.target.closest("button.watch"); if (!b) return;
+    const script = replayFor(b.dataset.model, b.dataset.cond)[+b.dataset.i];
+    if (!script) return;
+    b.disabled = true; const prev = b.textContent; b.textContent = "… loading";
+    try { await loadDuel(); } catch (e) { b.textContent = "load failed"; return; }
+    b.disabled = false; b.textContent = prev;
+    theater.classList.add("on"); closeBtn.classList.add("on");
+    $("#page").style.display = "none";
+    if (!mounted) { Arena.duel3d.mount(theater); mounted = true; }
+    Arena.duel3d.play(script);   // play()/stop() own the duel's DOM lifecycle
+  });
+  closeBtn.addEventListener("click", () => {
+    if (window.Arena && Arena.duel3d) Arena.duel3d.stop(); // stop() hides its own DOM
+    theater.classList.remove("on"); closeBtn.classList.remove("on");
+    $("#page").style.display = "";
+  });
+})();
+</script>
