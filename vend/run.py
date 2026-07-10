@@ -25,6 +25,11 @@ from vend.world import (DEFAULT_CONFIG, TICKS_PER_DAY, WorldConfig,
                         fresh_machine, hour_of, rate_at, sample_consumer)
 
 VEND_VERSION = 1
+def _llm_arm():
+    from vend.llm_arm import LLMQuotePolicy
+    return LLMQuotePolicy()
+
+
 ARMS = {
     "static": StaticPolicy,
     "gvr": GvrPolicy,
@@ -32,6 +37,7 @@ ARMS = {
     "a2a-liars25": lambda: A2APolicy(attest=False, liar_share=0.25),
     "a2a-liars50": lambda: A2APolicy(attest=False, liar_share=0.50),
     "a2a-liars100": lambda: A2APolicy(attest=False, liar_share=1.00),
+    "llm": _llm_arm,       # P2: LLM-priced machine (API spend; not byte-deterministic)
 }
 
 

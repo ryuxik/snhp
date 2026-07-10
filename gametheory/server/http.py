@@ -518,6 +518,12 @@ app.add_middleware(BodySizeLimit)
 from gametheory.server.a2a_routes import router as _a2a_router  # noqa: E402
 app.include_router(_a2a_router)
 
+# ─── VEND: snhp-price/1 — the price-link demo (quote/settle/machine) ─────────
+# The price a buyer sees is computed at request time (never above list,
+# receipt mandatory, context-hashed). See vend/DESIGN.md.
+from vend.api import router as _vend_router  # noqa: E402
+app.include_router(_vend_router)
+
 # Hosted MCP server (streamable HTTP) at /mcp — same toolkit, MCP-native, so
 # agents/clients that speak MCP over HTTP can connect without installing the
 # stdio package. (Endpoint serves at /mcp/; /mcp 307-redirects to it.)

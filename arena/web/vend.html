@@ -60,6 +60,8 @@
       <span>your bodega BATNA: $4.60</span>
     </div>
     <button class="cta" id="watch">▶ WATCH HOW YOUR AGENT GOT THIS PRICE</button>
+    <button class="cta" id="watchReal" style="background:transparent;color:var(--gold);border:1px solid rgba(255,224,138,.4)">
+      ⚡ A REAL ENGINE MATCH (2 rounds, 88% of frontier)</button>
   </div>
 
   <p>
@@ -138,15 +140,24 @@
   const theater = document.getElementById("theater");
   const closeBtn = document.getElementById("closeTheater");
   const page = document.getElementById("page");
-  document.getElementById("watch").addEventListener("click", async (ev) => {
-    const b = ev.target;
+  let realScripts = null;
+  async function playScript(b, script) {
     b.disabled = true; const prev = b.textContent; b.textContent = "… loading the theater";
     try { await loadDuel(); } catch (e) { b.textContent = "load failed — refresh?"; return; }
     b.disabled = false; b.textContent = prev;
     theater.classList.add("on"); closeBtn.classList.add("on");
     page.style.display = "none";
     if (!mounted) { Arena.duel3d.mount(theater); mounted = true; }
-    Arena.duel3d.play(VEND_SCRIPT);
+    Arena.duel3d.play(script);
+  }
+  document.getElementById("watch").addEventListener("click",
+    (ev) => playScript(ev.target, VEND_SCRIPT));
+  document.getElementById("watchReal").addEventListener("click", async (ev) => {
+    if (!realScripts) {
+      try { realScripts = await (await fetch("vend-replays.json")).json(); }
+      catch (e) { ev.target.textContent = "replays unavailable"; return; }
+    }
+    playScript(ev.target, realScripts[0]);
   });
   closeBtn.addEventListener("click", () => {
     if (window.Arena && Arena.duel3d) Arena.duel3d.stop();

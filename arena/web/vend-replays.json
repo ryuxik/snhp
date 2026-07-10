@@ -1,0 +1,194 @@
+[
+ {
+  "issues": [
+   "PRICE",
+   "ITEM",
+   "QUANTITY"
+  ],
+  "names": {
+   "seller": "THE MACHINE",
+   "buyer": "YOUR AGENT"
+  },
+  "origins": {
+   "seller": "stock 12 \u00b7 expires in 2d \u00b7 11:00",
+   "buyer": "your preferences \u00b7 walk cost $0.80"
+  },
+  "subtitle": "a real engine-vs-engine vend negotiation \u2014 every turn is the live engine",
+  "truth": {
+   "wantS": {
+    "PRICE": 1.0,
+    "ITEM": 1.0,
+    "QUANTITY": 1.0
+   },
+   "wantB": {
+    "PRICE": 0.0,
+    "ITEM": 0.0,
+    "QUANTITY": 0.0
+   },
+   "weightS": {
+    "PRICE": 0.25,
+    "ITEM": 0.4,
+    "QUANTITY": 0.35
+   },
+   "weightB": {
+    "PRICE": 0.5,
+    "ITEM": 0.3,
+    "QUANTITY": 0.2
+   }
+  },
+  "turns": [
+   {
+    "actor": "prime",
+    "pos": {
+     "PRICE": 0.143,
+     "ITEM": 1.0,
+     "QUANTITY": 0.2
+    }
+   }
+  ],
+  "reveal": {
+   "naive": 0.947,
+   "snhp": 1.094,
+   "ceiling": 1.25,
+   "label": "this deal",
+   "line": "Deal in 2 rounds: 1\u00d7 fruit-cup at $1.06 \u2014 88% of the frontier captured."
+  },
+  "meta": {
+   "model": "your agent",
+   "condition": "solo",
+   "role": "buyer",
+   "scenario_id": 1,
+   "deal": true,
+   "capture": 0.8754,
+   "dollars_left": 1245.8857
+  }
+ },
+ {
+  "issues": [
+   "PRICE",
+   "ITEM",
+   "QUANTITY"
+  ],
+  "names": {
+   "seller": "THE MACHINE",
+   "buyer": "YOUR AGENT"
+  },
+  "origins": {
+   "seller": "stock 12 \u00b7 expires in -1d \u00b7 14:00",
+   "buyer": "your preferences \u00b7 walk cost $1.31"
+  },
+  "subtitle": "a real engine-vs-engine vend negotiation \u2014 every turn is the live engine",
+  "truth": {
+   "wantS": {
+    "PRICE": 1.0,
+    "ITEM": 1.0,
+    "QUANTITY": 1.0
+   },
+   "wantB": {
+    "PRICE": 0.0,
+    "ITEM": 0.0,
+    "QUANTITY": 0.0
+   },
+   "weightS": {
+    "PRICE": 0.25,
+    "ITEM": 0.4,
+    "QUANTITY": 0.35
+   },
+   "weightB": {
+    "PRICE": 0.5,
+    "ITEM": 0.3,
+    "QUANTITY": 0.2
+   }
+  },
+  "turns": [
+   {
+    "actor": "prime",
+    "pos": {
+     "PRICE": 0.143,
+     "ITEM": 1.0,
+     "QUANTITY": 0.2
+    }
+   }
+  ],
+  "reveal": {
+   "naive": 0.956,
+   "snhp": 1.094,
+   "ceiling": 1.25,
+   "label": "this deal",
+   "line": "Deal in 2 rounds: 1\u00d7 sandwich at $2.06 \u2014 88% of the frontier captured."
+  },
+  "meta": {
+   "model": "your agent",
+   "condition": "solo",
+   "role": "buyer",
+   "scenario_id": 3,
+   "deal": true,
+   "capture": 0.8754,
+   "dollars_left": 1245.8857
+  }
+ },
+ {
+  "issues": [
+   "PRICE",
+   "ITEM",
+   "QUANTITY"
+  ],
+  "names": {
+   "seller": "THE MACHINE",
+   "buyer": "YOUR AGENT"
+  },
+  "origins": {
+   "seller": "stock 12 \u00b7 expires in 2d \u00b7 16:00",
+   "buyer": "your preferences \u00b7 walk cost $0.90"
+  },
+  "subtitle": "a real engine-vs-engine vend negotiation \u2014 every turn is the live engine",
+  "truth": {
+   "wantS": {
+    "PRICE": 1.0,
+    "ITEM": 1.0,
+    "QUANTITY": 1.0
+   },
+   "wantB": {
+    "PRICE": 0.0,
+    "ITEM": 0.0,
+    "QUANTITY": 0.0
+   },
+   "weightS": {
+    "PRICE": 0.25,
+    "ITEM": 0.4,
+    "QUANTITY": 0.35
+   },
+   "weightB": {
+    "PRICE": 0.5,
+    "ITEM": 0.3,
+    "QUANTITY": 0.2
+   }
+  },
+  "turns": [
+   {
+    "actor": "prime",
+    "pos": {
+     "PRICE": 0.143,
+     "ITEM": 1.0,
+     "QUANTITY": 0.2
+    }
+   }
+  ],
+  "reveal": {
+   "naive": 1.047,
+   "snhp": 1.094,
+   "ceiling": 1.25,
+   "label": "this deal",
+   "line": "Deal in 2 rounds: 1\u00d7 sandwich at $2.06 \u2014 88% of the frontier captured."
+  },
+  "meta": {
+   "model": "your agent",
+   "condition": "solo",
+   "role": "buyer",
+   "scenario_id": 4,
+   "deal": true,
+   "capture": 0.8754,
+   "dollars_left": 1245.8857
+  }
+ }
+]
