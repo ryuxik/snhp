@@ -79,6 +79,47 @@ the pitch becomes "the engine pays N% of your rent."
 - **B4** the block becomes the landing page: the leaderboard proves the
   engine, the block shows the world it builds.
 
+## 4b. B5 — the wholesale tier (both sides of the business)
+
+The venues' unit costs stop being constants and become NEGOTIATED inputs:
+wholesalers (beverage distributor, produce/deli supplier, tea/tapioca
+importer, apparel jobber) sell to the venues, with and without SNHP, in
+both worlds. This is the natural home of the June A2A stack — registry,
+verified peering, AP2 settlement — because B2B is where attestation is
+already culturally required (businesses do KYC), relationships repeat, and
+deals are genuinely multi-issue: price × delivery window × case size ×
+payment terms × spoilage-sharing. Pre-registered predictions: (1) the
+biggest B2B lever is DELIVERY-WINDOW logrolling against the wholesaler's
+route-density capacity — the boba pickup-slot result one tier up; (2)
+procurement and retail pricing are COUPLED (fashion P1 already showed a
+buy planned to the cliff calendar poisons the season): joint
+negotiated-procurement + negotiated-retail beats either alone; (3) the
+flywheel — SNHP retail volume → better wholesale terms → lower costs →
+better retail prices — compounds across tiers and the twin worlds show
+margin stacking. The wholesaler's truck is a shared constraint across
+venues, making it the block's first cross-venue coordination problem.
+
+## 4c. Venue candidates beyond the first four (each tests a NEW mechanism)
+
+- **Bakery** — the friction-free wedge: end-of-day markdown culture already
+  exists ("day-old shelf"); batch economics like boba. First to add.
+- **Barbershop / nail salon** — pure appointment capacity, zero inventory:
+  slot pricing + no-show risk; the boba scheduling result isolated.
+- **Parking lot** — pure yield management, duration × start-time bundles,
+  extreme real-world miscalibration; hilariously legible on a pixel street.
+- **Bar happy hour** — the anchor-optics wedge: happy hour IS computed
+  discounting by hour; we formalize an accepted ritual ("happy hour, but
+  optimal") — the cultural cover for computed pricing.
+- **Vintage/second-hand store** — one-of-one items: make-an-offer native
+  (the fashion offer arm's true home; reservation-price data moat).
+- **Flower shop** — extreme perishability + event demand spikes: fashion ×
+  vending hybrid stress test.
+- **Courier** (infrastructure actor) — delivery capacity shared across ALL
+  venues: the block's second cross-venue coordination market.
+- **Named non-fit:** pharmacy/regulated goods — price floors/ceilings and
+  fairness sensitivities make computed pricing wrong there; excluding it
+  deliberately is part of the honesty posture.
+
 ## 5. Honesty gates
 
 Every on-screen number traces to a seeded artifact (committed JSON, rerun
