@@ -1,0 +1,605 @@
+{
+ "single_merchant_unattested": {
+  "n": 4000,
+  "frontier_mean": 3.8223,
+  "naive_surplus": {
+   "mean": 1.7713,
+   "ci95": [
+    1.7255,
+    1.817
+   ],
+   "n": 4000
+  },
+  "agent_surplus": {
+   "mean": 2.3658,
+   "ci95": [
+    2.3183,
+    2.4133
+   ],
+   "n": 4000
+  },
+  "naive_regret": {
+   "mean": 2.0511,
+   "ci95": [
+    2.0306,
+    2.0716
+   ],
+   "n": 4000
+  },
+  "agent_regret": {
+   "mean": 1.4566,
+   "ci95": [
+    1.4377,
+    1.4754
+   ],
+   "n": 4000
+  },
+  "naive_capture_frac": 0.4634,
+  "agent_capture_frac": 0.6189,
+  "delta_surplus_agent_minus_naive": {
+   "mean": 0.5945,
+   "ci95": [
+    0.5848,
+    0.6043
+   ],
+   "n": 4000,
+   "significant": true
+  },
+  "delta_regret_agent_minus_naive": {
+   "mean": -0.5945,
+   "ci95": [
+    -0.6043,
+    -0.5848
+   ],
+   "n": 4000,
+   "significant": true
+  },
+  "ledger_conserves": true,
+  "attested": false,
+  "friction": 0.0,
+  "seed": 20260710
+ },
+ "single_merchant_attested": {
+  "n": 4000,
+  "frontier_mean": 2.3658,
+  "naive_surplus": {
+   "mean": 1.7713,
+   "ci95": [
+    1.7255,
+    1.817
+   ],
+   "n": 4000
+  },
+  "agent_surplus": {
+   "mean": 2.3658,
+   "ci95": [
+    2.3183,
+    2.4133
+   ],
+   "n": 4000
+  },
+  "naive_regret": {
+   "mean": 0.5945,
+   "ci95": [
+    0.5848,
+    0.6043
+   ],
+   "n": 4000
+  },
+  "agent_regret": {
+   "mean": 0.0,
+   "ci95": [
+    0.0,
+    0.0
+   ],
+   "n": 4000
+  },
+  "naive_capture_frac": 0.7487,
+  "agent_capture_frac": 1.0,
+  "delta_surplus_agent_minus_naive": {
+   "mean": 0.5945,
+   "ci95": [
+    0.5848,
+    0.6043
+   ],
+   "n": 4000,
+   "significant": true
+  },
+  "delta_regret_agent_minus_naive": {
+   "mean": -0.5945,
+   "ci95": [
+    -0.6043,
+    -0.5848
+   ],
+   "n": 4000,
+   "significant": true
+  },
+  "ledger_conserves": true,
+  "attested": true,
+  "friction": 0.0,
+  "seed": 20260710
+ },
+ "shop": {
+  "n": 4000,
+  "frontier_mean": 4.1439,
+  "naive_surplus": {
+   "mean": 2.5071,
+   "ci95": [
+    2.4618,
+    2.5523
+   ],
+   "n": 4000
+  },
+  "agent_surplus": {
+   "mean": 3.434,
+   "ci95": [
+    3.3662,
+    3.5018
+   ],
+   "n": 4000
+  },
+  "naive_regret": {
+   "mean": 1.6368,
+   "ci95": [
+    1.6055,
+    1.6681
+   ],
+   "n": 4000
+  },
+  "agent_regret": {
+   "mean": 0.7098,
+   "ci95": [
+    0.6949,
+    0.7247
+   ],
+   "n": 4000
+  },
+  "naive_capture_frac": 0.605,
+  "agent_capture_frac": 0.8287,
+  "delta_surplus_agent_minus_naive": {
+   "mean": 0.9269,
+   "ci95": [
+    0.8925,
+    0.9614
+   ],
+   "n": 4000,
+   "significant": true
+  },
+  "delta_regret_agent_minus_naive": {
+   "mean": -0.9269,
+   "ci95": [
+    -0.9614,
+    -0.8925
+   ],
+   "n": 4000,
+   "significant": true
+  },
+  "ledger_conserves": true,
+  "m": 3,
+  "attested": false,
+  "friction": 0.0,
+  "seed": 20260710,
+  "transfer_vs_growth": {
+   "delta_buyer_surplus_on_deals": {
+    "mean": 0.5987,
+    "ci95": [
+     0.5675,
+     0.6299
+    ],
+    "n": 2853,
+    "significant": true
+   },
+   "delta_joint_value_on_deals": {
+    "mean": -0.0,
+    "ci95": [
+     -0.0005,
+     0.0004
+    ],
+    "n": 2853,
+    "significant": false
+   },
+   "n_deals_both_arms": 2853
+  }
+ },
+ "time": {
+  "n": 4000,
+  "frontier_mean": 2.5945,
+  "naive_surplus": {
+   "mean": 2.3658,
+   "ci95": [
+    2.3183,
+    2.4133
+   ],
+   "n": 4000
+  },
+  "agent_surplus": {
+   "mean": 2.4788,
+   "ci95": [
+    2.4278,
+    2.5297
+   ],
+   "n": 4000
+  },
+  "naive_regret": {
+   "mean": 0.2287,
+   "ci95": [
+    0.2103,
+    0.247
+   ],
+   "n": 4000
+  },
+  "agent_regret": {
+   "mean": 0.1157,
+   "ci95": [
+    0.1126,
+    0.1188
+   ],
+   "n": 4000
+  },
+  "naive_capture_frac": 0.9119,
+  "agent_capture_frac": 0.9554,
+  "delta_surplus_agent_minus_naive": {
+   "mean": 0.113,
+   "ci95": [
+    0.0934,
+    0.1325
+   ],
+   "n": 4000,
+   "significant": true
+  },
+  "delta_regret_agent_minus_naive": {
+   "mean": -0.113,
+   "ci95": [
+    -0.1325,
+    -0.0934
+   ],
+   "n": 4000,
+   "significant": true
+  },
+  "ledger_conserves": true,
+  "glut_prob": 0.15,
+  "wait_cost": 0.15,
+  "attested": false,
+  "seed": 20260710,
+  "defer_rate": 0.8263,
+  "transfer_vs_growth": {
+   "delta_buyer_surplus_on_deals": {
+    "mean": 0.237,
+    "ci95": [
+     0.2172,
+     0.2568
+    ],
+    "n": 3992,
+    "significant": true
+   },
+   "delta_joint_value_on_deals": {
+    "mean": 0.5698,
+    "ci95": [
+     0.5224,
+     0.6172
+    ],
+    "n": 3992,
+    "significant": true
+   },
+   "n_deals_both_arms": 3992
+  }
+ },
+ "commit": {
+  "n": 4000,
+  "committers": 4000,
+  "p_spoil": 0.4,
+  "rounds": 6,
+  "newcomer_joint_growth": {
+   "mean": 1.538,
+   "ci95": [
+    1.5217,
+    1.5543
+   ],
+   "n": 4000
+  },
+  "newcomer_buyer_share": {
+   "mean": 0.769,
+   "ci95": [
+    0.7608,
+    0.7772
+   ],
+   "n": 4000
+  },
+  "newcomer_var_reduction": 1.6711,
+  "proven_joint_growth": {
+   "mean": 2.8976,
+   "ci95": [
+    2.8668,
+    2.9284
+   ],
+   "n": 4000
+  },
+  "proven_buyer_share": {
+   "mean": 1.4488,
+   "ci95": [
+    1.4334,
+    1.4642
+   ],
+   "n": 4000
+  },
+  "proven_var_reduction": 3.1484,
+  "proven_trusted_frac": 0.942,
+  "split_is_5050": true,
+  "portability_buyer_gain": {
+   "mean": 0.711,
+   "ci95": [
+    0.7035,
+    0.7186
+   ],
+   "n": 4000,
+   "significant": true
+  },
+  "seed": 20260710
+ },
+ "regime_human_vs_agent": {
+  "n": 4000,
+  "m": 3,
+  "human_friction": 0.3,
+  "frontier_mean": 4.1439,
+  "human_surplus": {
+   "mean": 2.2384,
+   "ci95": [
+    2.1933,
+    2.2836
+   ],
+   "n": 4000
+  },
+  "human_regret": {
+   "mean": 1.9054,
+   "ci95": [
+    1.8738,
+    1.9371
+   ],
+   "n": 4000
+  },
+  "agent_surplus": {
+   "mean": 3.434,
+   "ci95": [
+    3.3662,
+    3.5018
+   ],
+   "n": 4000
+  },
+  "agent_regret": {
+   "mean": 0.7098,
+   "ci95": [
+    0.6949,
+    0.7247
+   ],
+   "n": 4000
+  },
+  "delta_surplus_agent_minus_human": {
+   "mean": 1.1956,
+   "ci95": [
+    1.1607,
+    1.2306
+   ],
+   "n": 4000,
+   "significant": true
+  },
+  "seed": 20260710
+ },
+ "coordinate_audit": {
+  "n": 4000,
+  "target": "sandwich",
+  "p_spoil": 0.4,
+  "scarcity": 0.5,
+  "ks": [
+   2,
+   5,
+   10,
+   20
+  ],
+  "sweep": {
+   "2": {
+    "s_risk": 1,
+    "clusters": 2000,
+    "indep_growth_pc": {
+     "mean": 0.9675,
+     "ci95": [
+      0.9518,
+      0.9832
+     ],
+     "n": 2000
+    },
+    "coord_fair_growth_pc": {
+     "mean": 1.1604,
+     "ci95": [
+      1.1448,
+      1.1759
+     ],
+     "n": 2000
+    },
+    "coord_monopsony_growth_pc": {
+     "mean": 1.1604,
+     "ci95": [
+      1.1448,
+      1.1759
+     ],
+     "n": 2000
+    },
+    "d_coord_minus_indep": {
+     "mean": 0.1928,
+     "ci95": [
+      0.1793,
+      0.2063
+     ],
+     "n": 2000,
+     "significant": true
+    },
+    "fair_merchant_margin_min": 0.415746,
+    "monopsony_merchant_margin_min": 0.0,
+    "overreach_participation_fail_frac": 1.0,
+    "overreach_welfare_pc": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 2000
+    },
+    "overreach_units_spoiled": 2000
+   },
+   "5": {
+    "s_risk": 2,
+    "clusters": 800,
+    "indep_growth_pc": {
+     "mean": 0.761,
+     "ci95": [
+      0.7474,
+      0.7746
+     ],
+     "n": 800
+    },
+    "coord_fair_growth_pc": {
+     "mean": 1.0072,
+     "ci95": [
+      0.9932,
+      1.0212
+     ],
+     "n": 800
+    },
+    "coord_monopsony_growth_pc": {
+     "mean": 1.0072,
+     "ci95": [
+      0.9932,
+      1.0212
+     ],
+     "n": 800
+    },
+    "d_coord_minus_indep": {
+     "mean": 0.2462,
+     "ci95": [
+      0.2329,
+      0.2594
+     ],
+     "n": 800,
+     "significant": true
+    },
+    "fair_merchant_margin_min": 1.380231,
+    "monopsony_merchant_margin_min": 0.0,
+    "overreach_participation_fail_frac": 1.0,
+    "overreach_welfare_pc": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 800
+    },
+    "overreach_units_spoiled": 1600
+   },
+   "10": {
+    "s_risk": 5,
+    "clusters": 400,
+    "indep_growth_pc": {
+     "mean": 0.9676,
+     "ci95": [
+      0.9525,
+      0.9827
+     ],
+     "n": 400
+    },
+    "coord_fair_growth_pc": {
+     "mean": 1.2171,
+     "ci95": [
+      1.2022,
+      1.232
+     ],
+     "n": 400
+    },
+    "coord_monopsony_growth_pc": {
+     "mean": 1.2171,
+     "ci95": [
+      1.2022,
+      1.232
+     ],
+     "n": 400
+    },
+    "d_coord_minus_indep": {
+     "mean": 0.2495,
+     "ci95": [
+      0.2369,
+      0.2621
+     ],
+     "n": 400,
+     "significant": true
+    },
+    "fair_merchant_margin_min": 3.912823,
+    "monopsony_merchant_margin_min": 0.0,
+    "overreach_participation_fail_frac": 1.0,
+    "overreach_welfare_pc": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 400
+    },
+    "overreach_units_spoiled": 2000
+   },
+   "20": {
+    "s_risk": 10,
+    "clusters": 200,
+    "indep_growth_pc": {
+     "mean": 0.9687,
+     "ci95": [
+      0.9526,
+      0.9849
+     ],
+     "n": 200
+    },
+    "coord_fair_growth_pc": {
+     "mean": 1.2269,
+     "ci95": [
+      1.2109,
+      1.2429
+     ],
+     "n": 200
+    },
+    "coord_monopsony_growth_pc": {
+     "mean": 1.2269,
+     "ci95": [
+      1.2109,
+      1.2429
+     ],
+     "n": 200
+    },
+    "d_coord_minus_indep": {
+     "mean": 0.2582,
+     "ci95": [
+      0.2439,
+      0.2724
+     ],
+     "n": 200,
+     "significant": true
+    },
+    "fair_merchant_margin_min": 8.809518,
+    "monopsony_merchant_margin_min": 0.0,
+    "overreach_participation_fail_frac": 1.0,
+    "overreach_welfare_pc": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 200
+    },
+    "overreach_units_spoiled": 2000
+   }
+  },
+  "audit_checks": {
+   "A_coord_not_below_indep": true,
+   "B_participation_floor_holds": true,
+   "C_total_surplus_nondecreasing_in_K": true,
+   "D_overreach_is_self_defeating": true
+  },
+  "audit_verdict": "PASS \u2014 buyer coordination under our mechanism does not reduce total surplus and cannot extract below the merchant's participation floor",
+  "seed": 20260710
+ }
+}
