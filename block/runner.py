@@ -366,6 +366,13 @@ def run_world(world: str, days: int, seed: int, cfg: BlockConfig,
               ledger: BlockLedger, venues=VENUE_NAMES, catalog=None,
               fashion_plan=None, dawn=None) -> dict:
     has = set(venues)
+    # task #62: when agent_demand is on, the SNHP world's street lane is
+    # resolved by the buyer's-agent (shop/bertrand across vending+bodega). Lazy
+    # import so the default (off) path never imports agentdemand and the
+    # committed artifacts stay byte-exact (the branch below is dead when off).
+    agentic = None
+    if cfg.agent_demand != "off":
+        from block.agentdemand import resolve_shopper_agentic as agentic
     vend_v = VendingVenue(world, cfg, seed, catalog=catalog) \
         if "vending" in has else None
     bodega = BodegaVenue(world, cfg, seed,
@@ -424,8 +431,12 @@ def run_world(world: str, days: int, seed: int, cfg: BlockConfig,
             for sh in shoppers:
                 if sh.home in ("vending", "bodega"):
                     if vend_v is not None or bodega is not None:
-                        _resolve_shopper(world, sh, vend_v, bodega, ledger,
-                                         day, tick)
+                        if agentic is not None and world == "snhp":
+                            agentic(world, sh, vend_v, bodega, ledger,
+                                    day, tick, cfg)
+                        else:
+                            _resolve_shopper(world, sh, vend_v, bodega, ledger,
+                                             day, tick)
                 elif sh.home == "boba":
                     if boba_v is not None:
                         _resolve_boba(world, sh, boba_v, ledger, day, tick,
@@ -576,6 +587,12 @@ def run_twin(days: int, seed: int, cfg: BlockConfig = BlockConfig(),
     # reproducibility goldens (S2 wiring must not perturb B0/B1B2).
     if cfg.wholesale:
         results["config"]["procurement"] = cfg.procurement
+    # same discipline for the agent-mediated street lane (task #62): the
+    # agent_demand / agent_friction keys appear ONLY when the mode is on, so
+    # every committed passive artifact stays byte-exact.
+    if cfg.agent_demand != "off":
+        results["config"]["agent_demand"] = cfg.agent_demand
+        results["config"]["agent_friction"] = cfg.agent_friction
     results["meta"] = {"elapsed_s": round(time.perf_counter() - t0, 2)}
     return results, ledger, worlds
 
@@ -625,13 +642,23 @@ def main(argv=None) -> int:
                     choices=("static", "endogenous", "flywheel"),
                     help="dawn COGS source (with --wholesale): static haircut, "
                          "endogenous ProcurementAgent, or +demand-certainty flywheel")
+    ap.add_argument("--agent-demand", default="off",
+                    choices=("off", "shop", "bertrand"),
+                    help="task #62: make the SNHP street demand agent-mediated "
+                         "(buyer shops vending<->bodega; bertrand = + one "
+                         "competitive round). Off by default (byte-exact passive)")
+    ap.add_argument("--agent-friction", type=float, default=0.0,
+                    help="$ switch-cost the agent pays to accept a negotiated "
+                         "quote (agent-mediated=0; human regime carries friction)")
     ap.add_argument("--out", default=None)
     args = ap.parse_args(argv)
 
     venues = parse_venues(args.venues)
     cfg = BlockConfig(sigma_cal=args.sigma_cal, anchor_mult=args.anchor_mult,
                       regulars=args.regulars, bodega_adopts=args.bodega_adopts,
-                      wholesale=args.wholesale, procurement=args.procurement)
+                      wholesale=args.wholesale, procurement=args.procurement,
+                      agent_demand=args.agent_demand,
+                      agent_friction=args.agent_friction)
     results, ledger, _worlds = run_twin(args.days, args.seed, cfg,
                                         venues=venues)
 

@@ -1,0 +1,953 @@
+{
+ "config": {
+  "days": 30,
+  "seed": 20260710,
+  "regulars": 25,
+  "n_split": 4000
+ },
+ "core_street": {
+  "days": 30,
+  "seed": 20260710,
+  "regulars": 25,
+  "venues": [
+   "vending",
+   "bodega"
+  ],
+  "per_venue": {
+   "vending": {
+    "sticker_margin_day": 135.54,
+    "passive_snhp_margin_day": 138.55,
+    "adopt_snhp_margin_day": 131.7,
+    "agent_snhp_margin_day": 131.7,
+    "d_margin_agent_minus_passive": {
+     "mean": -6.85,
+     "ci95": [
+      -9.02,
+      -4.68
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_transfer_competition": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_surface_adoption": {
+     "mean": -6.85,
+     "ci95": [
+      -9.02,
+      -4.68
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_cs_agent_minus_passive": {
+     "mean": 0.86,
+     "ci95": [
+      -1.79,
+      3.5
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_joint_agent_minus_passive": {
+     "mean": -6.0,
+     "ci95": [
+      -9.75,
+      -2.24
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "hud_merchant_passive_day": 3.01,
+    "hud_merchant_agent_day": -3.84,
+    "hud_agent_negative": true
+   },
+   "bodega": {
+    "sticker_margin_day": 2992.0,
+    "passive_snhp_margin_day": 2986.16,
+    "adopt_snhp_margin_day": 3183.62,
+    "agent_snhp_margin_day": 3159.68,
+    "d_margin_agent_minus_passive": {
+     "mean": 173.52,
+     "ci95": [
+      162.21,
+      184.83
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_transfer_competition": {
+     "mean": -23.94,
+     "ci95": [
+      -26.71,
+      -21.16
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_surface_adoption": {
+     "mean": 197.45,
+     "ci95": [
+      185.41,
+      209.49
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_cs_agent_minus_passive": {
+     "mean": 389.98,
+     "ci95": [
+      367.12,
+      412.85
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_joint_agent_minus_passive": {
+     "mean": 563.5,
+     "ci95": [
+      541.09,
+      585.91
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "hud_merchant_passive_day": -5.84,
+    "hud_merchant_agent_day": 167.68,
+    "hud_agent_negative": false
+   }
+  },
+  "hud": {
+   "passive": {
+    "shoppers_kept_usd": 129.41,
+    "merchants_earned_usd": -84.73
+   },
+   "adopt": {
+    "shoppers_kept_usd": 11136.52,
+    "merchants_earned_usd": 5633.28
+   },
+   "agent_bertrand": {
+    "shoppers_kept_usd": 11854.62,
+    "merchants_earned_usd": 4915.22
+   }
+  }
+ },
+ "full_block": {
+  "hud": {
+   "passive": {
+    "shoppers_kept_usd": 43775.04,
+    "merchants_earned_usd": 32076.94
+   },
+   "adopt": {
+    "shoppers_kept_usd": 54782.15,
+    "merchants_earned_usd": 37794.95
+   },
+   "agent_bertrand": {
+    "shoppers_kept_usd": 55500.24,
+    "merchants_earned_usd": 37076.89
+   }
+  },
+  "per_venue": {
+   "vending": {
+    "sticker_margin_day": 135.54,
+    "passive_snhp_margin_day": 138.55,
+    "adopt_snhp_margin_day": 131.7,
+    "agent_snhp_margin_day": 131.7,
+    "d_margin_agent_minus_passive": {
+     "mean": -6.85,
+     "ci95": [
+      -9.02,
+      -4.68
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_transfer_competition": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_surface_adoption": {
+     "mean": -6.85,
+     "ci95": [
+      -9.02,
+      -4.68
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_cs_agent_minus_passive": {
+     "mean": 0.86,
+     "ci95": [
+      -1.79,
+      3.5
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_joint_agent_minus_passive": {
+     "mean": -6.0,
+     "ci95": [
+      -9.75,
+      -2.24
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "hud_merchant_passive_day": 3.01,
+    "hud_merchant_agent_day": -3.84,
+    "hud_agent_negative": true
+   },
+   "bodega": {
+    "sticker_margin_day": 2992.0,
+    "passive_snhp_margin_day": 2986.16,
+    "adopt_snhp_margin_day": 3183.62,
+    "agent_snhp_margin_day": 3159.68,
+    "d_margin_agent_minus_passive": {
+     "mean": 173.52,
+     "ci95": [
+      162.21,
+      184.83
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_transfer_competition": {
+     "mean": -23.94,
+     "ci95": [
+      -26.71,
+      -21.16
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_surface_adoption": {
+     "mean": 197.45,
+     "ci95": [
+      185.41,
+      209.49
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_cs_agent_minus_passive": {
+     "mean": 389.98,
+     "ci95": [
+      367.12,
+      412.85
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_joint_agent_minus_passive": {
+     "mean": 563.5,
+     "ci95": [
+      541.09,
+      585.91
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "hud_merchant_passive_day": -5.84,
+    "hud_merchant_agent_day": 167.68,
+    "hud_agent_negative": false
+   },
+   "boba": {
+    "sticker_margin_day": 1022.3,
+    "passive_snhp_margin_day": 1358.75,
+    "adopt_snhp_margin_day": 1358.75,
+    "agent_snhp_margin_day": 1358.75,
+    "d_margin_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_transfer_competition": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_surface_adoption": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_cs_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_joint_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "hud_merchant_passive_day": 336.45,
+    "hud_merchant_agent_day": 336.45,
+    "hud_agent_negative": false
+   },
+   "fashion": {
+    "sticker_margin_day": -435.27,
+    "passive_snhp_margin_day": -414.89,
+    "adopt_snhp_margin_day": -414.89,
+    "agent_snhp_margin_day": -414.89,
+    "d_margin_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 4,
+     "block": 7
+    },
+    "d_transfer_competition": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 4,
+     "block": 7
+    },
+    "d_surface_adoption": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 4,
+     "block": 7
+    },
+    "d_cs_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 4,
+     "block": 7
+    },
+    "d_joint_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 4,
+     "block": 7
+    },
+    "hud_merchant_passive_day": 20.38,
+    "hud_merchant_agent_day": 20.38,
+    "hud_agent_negative": false
+   },
+   "bakery": {
+    "sticker_margin_day": 473.54,
+    "passive_snhp_margin_day": 659.52,
+    "adopt_snhp_margin_day": 659.52,
+    "agent_snhp_margin_day": 659.52,
+    "d_margin_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_transfer_competition": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_surface_adoption": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_cs_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_joint_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "hud_merchant_passive_day": 185.99,
+    "hud_merchant_agent_day": 185.99,
+    "hud_agent_negative": false
+   },
+   "florist": {
+    "sticker_margin_day": -442.44,
+    "passive_snhp_margin_day": -234.95,
+    "adopt_snhp_margin_day": -234.95,
+    "agent_snhp_margin_day": -234.95,
+    "d_margin_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_transfer_competition": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_surface_adoption": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_cs_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_joint_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "hud_merchant_passive_day": 207.49,
+    "hud_merchant_agent_day": 207.49,
+    "hud_agent_negative": false
+   },
+   "barbershop": {
+    "sticker_margin_day": 257.1,
+    "passive_snhp_margin_day": 252.07,
+    "adopt_snhp_margin_day": 252.07,
+    "agent_snhp_margin_day": 252.07,
+    "d_margin_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_transfer_competition": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_surface_adoption": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_cs_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_joint_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "hud_merchant_passive_day": -5.03,
+    "hud_merchant_agent_day": -5.03,
+    "hud_agent_negative": true
+   },
+   "parking": {
+    "sticker_margin_day": 2018.84,
+    "passive_snhp_margin_day": 2187.96,
+    "adopt_snhp_margin_day": 2187.96,
+    "agent_snhp_margin_day": 2187.96,
+    "d_margin_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_transfer_competition": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_surface_adoption": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_cs_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_joint_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "hud_merchant_passive_day": 169.11,
+    "hud_merchant_agent_day": 169.11,
+    "hud_agent_negative": false
+   },
+   "bar": {
+    "sticker_margin_day": 7734.99,
+    "passive_snhp_margin_day": 7879.6,
+    "adopt_snhp_margin_day": 7879.6,
+    "agent_snhp_margin_day": 7879.6,
+    "d_margin_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 4,
+     "block": 7
+    },
+    "d_transfer_competition": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 4,
+     "block": 7
+    },
+    "d_surface_adoption": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 4,
+     "block": 7
+    },
+    "d_cs_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 4,
+     "block": 7
+    },
+    "d_joint_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 4,
+     "block": 7
+    },
+    "hud_merchant_passive_day": 144.61,
+    "hud_merchant_agent_day": 144.61,
+    "hud_agent_negative": false
+   },
+   "vintage": {
+    "sticker_margin_day": -237.29,
+    "passive_snhp_margin_day": -224.23,
+    "adopt_snhp_margin_day": -224.23,
+    "agent_snhp_margin_day": -224.23,
+    "d_margin_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_transfer_competition": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_surface_adoption": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_cs_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "d_joint_agent_minus_passive": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "hud_merchant_passive_day": 13.06,
+    "hud_merchant_agent_day": 13.06,
+    "hud_agent_negative": false
+   }
+  }
+ },
+ "commodity_stress": {
+  "goods": [
+   "cola-20oz",
+   "chips"
+  ],
+  "n_buyers": 18545,
+  "passive_margin_day": 207.63,
+  "bertrand_margin_day": 46.36,
+  "passive_cs_day": 409.1,
+  "bertrand_cs_day": 1468.03,
+  "margin_transfer_day": -161.27,
+  "competitive_deals_day": 374.1,
+  "frac_driven_to_floor": 0.017
+ },
+ "split": {
+  "commit": {
+   "n": 4000,
+   "committers": 4000,
+   "p_spoil": 0.4,
+   "newcomer_joint_growth": {
+    "mean": 2.9071,
+    "ci95": [
+     2.8747,
+     2.9395
+    ],
+    "n": 4000
+   },
+   "newcomer_buyer_share": {
+    "mean": 1.4535,
+    "ci95": [
+     1.4374,
+     1.4697
+    ],
+    "n": 4000
+   },
+   "newcomer_merchant_share": {
+    "mean": 1.4535,
+    "ci95": [
+     1.4374,
+     1.4697
+    ],
+    "n": 4000
+   },
+   "newcomer_var_reduction": 12.6596,
+   "proven_joint_growth": {
+    "mean": 5.477,
+    "ci95": [
+     5.4159,
+     5.538
+    ],
+    "n": 4000
+   },
+   "proven_trusted_frac": 0.942,
+   "merchant_share_min": 0.435499,
+   "merchant_share_ge_zero": true
+  },
+  "coordinate": {
+   "n": 4000,
+   "target": "sandwich",
+   "p_spoil": 0.4,
+   "ks": [
+    2,
+    5,
+    10,
+    20
+   ],
+   "sweep": {
+    "2": {
+     "s_risk": 1,
+     "clusters": 2000,
+     "indep_growth_pc": {
+      "mean": 1.8585,
+      "ci95": [
+       1.8284,
+       1.8886
+      ],
+      "n": 2000
+     },
+     "coord_fair_growth_pc": {
+      "mean": 2.1999,
+      "ci95": [
+       2.1689,
+       2.2309
+      ],
+      "n": 2000
+     },
+     "d_coord_minus_indep": {
+      "mean": 0.3414,
+      "ci95": [
+       0.3164,
+       0.3663
+      ],
+      "n": 2000,
+      "significant": true
+     },
+     "fair_merchant_margin_min": 0.791526,
+     "monopsony_merchant_margin_min": 0.0,
+     "overreach_participation_fail_frac": 1.0,
+     "overreach_units_spoiled": 2000
+    },
+    "5": {
+     "s_risk": 2,
+     "clusters": 800,
+     "indep_growth_pc": {
+      "mean": 1.4914,
+      "ci95": [
+       1.4637,
+       1.5191
+      ],
+      "n": 800
+     },
+     "coord_fair_growth_pc": {
+      "mean": 1.9185,
+      "ci95": [
+       1.8881,
+       1.9488
+      ],
+      "n": 800
+     },
+     "d_coord_minus_indep": {
+      "mean": 0.4271,
+      "ci95": [
+       0.4024,
+       0.4517
+      ],
+      "n": 800,
+      "significant": true
+     },
+     "fair_merchant_margin_min": 2.262397,
+     "monopsony_merchant_margin_min": 0.0,
+     "overreach_participation_fail_frac": 1.0,
+     "overreach_units_spoiled": 1600
+    },
+    "10": {
+     "s_risk": 5,
+     "clusters": 400,
+     "indep_growth_pc": {
+      "mean": 1.8677,
+      "ci95": [
+       1.8342,
+       1.9011
+      ],
+      "n": 400
+     },
+     "coord_fair_growth_pc": {
+      "mean": 2.3306,
+      "ci95": [
+       2.2944,
+       2.3668
+      ],
+      "n": 400
+     },
+     "d_coord_minus_indep": {
+      "mean": 0.4629,
+      "ci95": [
+       0.4379,
+       0.4879
+      ],
+      "n": 400,
+      "significant": true
+     },
+     "fair_merchant_margin_min": 7.08003,
+     "monopsony_merchant_margin_min": 0.0,
+     "overreach_participation_fail_frac": 1.0,
+     "overreach_units_spoiled": 2000
+    },
+    "20": {
+     "s_risk": 10,
+     "clusters": 200,
+     "indep_growth_pc": {
+      "mean": 1.8503,
+      "ci95": [
+       1.8136,
+       1.887
+      ],
+      "n": 200
+     },
+     "coord_fair_growth_pc": {
+      "mean": 2.3476,
+      "ci95": [
+       2.3073,
+       2.3879
+      ],
+      "n": 200
+     },
+     "d_coord_minus_indep": {
+      "mean": 0.4973,
+      "ci95": [
+       0.471,
+       0.5236
+      ],
+      "n": 200,
+      "significant": true
+     },
+     "fair_merchant_margin_min": 16.048745,
+     "monopsony_merchant_margin_min": 0.0,
+     "overreach_participation_fail_frac": 1.0,
+     "overreach_units_spoiled": 2000
+    }
+   },
+   "audit_checks": {
+    "A_coord_not_below_indep": true,
+    "B_participation_floor_holds": true,
+    "D_overreach_self_defeating": true
+   },
+   "audit_verdict": "PASS"
+  },
+  "regime": {
+   "n": 4000,
+   "human_friction": 0.3,
+   "frontier_mean": 9.0666,
+   "human_surplus": {
+    "mean": 4.1831,
+    "ci95": [
+     4.0628,
+     4.3033
+    ],
+    "n": 4000
+   },
+   "human_regret": {
+    "mean": 4.8835,
+    "ci95": [
+     4.7713,
+     4.9958
+    ],
+    "n": 4000
+   },
+   "agent_surplus": {
+    "mean": 5.1727,
+    "ci95": [
+     5.0483,
+     5.2971
+    ],
+    "n": 4000
+   },
+   "agent_regret": {
+    "mean": 3.894,
+    "ci95": [
+     3.7935,
+     3.9944
+    ],
+    "n": 4000
+   },
+   "delta_surplus_agent_minus_human": {
+    "mean": 0.9896,
+    "ci95": [
+     0.9268,
+     1.0524
+    ],
+    "n": 4000,
+    "significant": true
+   }
+  }
+ }
+}

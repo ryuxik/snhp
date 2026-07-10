@@ -121,6 +121,26 @@ class BlockConfig:
                                   #                reproduces "static" to the cent),
                                   # "flywheel"   = + agent-mediated demand certainty
                                   #                (S3: variance → lower COGS).
+    agent_demand: str = "off"     # task #62 (block/agentdemand.py): make the
+                                  # SNHP-world STREET demand AGENT-MEDIATED —
+                                  # the buyer's-agent shops vending↔bodega and
+                                  # plays the two brokered merchants off each
+                                  # other. "off" = passive (a single Nash quote
+                                  # at the home venue, byte-exact default);
+                                  # "shop" = the buyer takes the best of the two
+                                  # merchants' INDEPENDENT quotes (the shipped
+                                  # buyer.strategies.shop primitive); "bertrand"
+                                  # = + one competitive best-response round (each
+                                  # merchant re-quotes to beat the rival's offer
+                                  # — the cross-merchant competition the Bezos r2
+                                  # antagonism test turns on). Only the SNHP world
+                                  # and only the vending/bodega street lane change;
+                                  # the sticker world stays byte-identical, so the
+                                  # HUD baseline is untouched.
+    agent_friction: float = 0.0   # $ switch-cost the buyer's agent pays to accept
+                                  # a NEGOTIATED quote (agent-mediated → 0; the
+                                  # human regime carries a mental friction). Only
+                                  # consulted on the agent-mediated path.
 
 
 def build_block_catalog(cfg: BlockConfig, master_seed: int) -> dict[str, Listing]:
