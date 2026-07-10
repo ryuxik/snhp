@@ -1,0 +1,494 @@
+{
+ "human_run_version": 1,
+ "config": {
+  "seeds": [
+   20260710,
+   20260711,
+   20260712,
+   20260713,
+   20260714,
+   20260715,
+   20260716,
+   20260717
+  ],
+  "weeks": 12,
+  "human_types": [
+   "fair",
+   "hardballer",
+   "boulware",
+   "accommodator",
+   "bluffer",
+   "avoider",
+   "positional",
+   "nibbler"
+  ],
+  "notes": [
+   "pie = validated nash_deal joint gain (SNHP-coordinated route env)",
+   "full human type cross-product per positive-surplus relationship",
+   "paired on demand identity (seed\u00d7week\u00d7rel\u00d7type-pair), never mechanism",
+   "CIs over seed means; no win claimed when CI includes zero",
+   "no LLM; byte-deterministic on the seed"
+  ]
+ },
+ "summary": {
+  "n_pairs_per_seed": {
+   "mean": 4696.0,
+   "ci95": [
+    4615.424,
+    4776.576
+   ],
+   "n": 8
+  },
+  "four_failure_modes": {
+   "1_impasse": {
+    "human_impasse_rate": {
+     "mean": 0.375,
+     "ci95": [
+      0.375,
+      0.375
+     ],
+     "n": 8
+    },
+    "snhp_impasse_rate": 0.0,
+    "deadweight_per_impasse_$": {
+     "mean": 53.602,
+     "ci95": [
+      52.826,
+      54.379
+     ],
+     "n": 8
+    },
+    "note": "positive-surplus deals SNHP closes; humans destroy the pie"
+   },
+   "2_exploitation": {
+    "naive_gain_human_$": {
+     "mean": 11.605,
+     "ci95": [
+      11.437,
+      11.773
+     ],
+     "n": 8
+    },
+    "naive_gain_snhp_$": {
+     "mean": 26.801,
+     "ci95": [
+      26.413,
+      27.189
+     ],
+     "n": 8
+    },
+    "snhp_protects_naive_$": {
+     "mean": 15.196,
+     "ci95": [
+      14.976,
+      15.416
+     ],
+     "n": 8
+    }
+   },
+   "3_missed_logroll": {
+    "positional_joint_human_$": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 8
+    },
+    "positional_joint_snhp_$": {
+     "mean": 53.602,
+     "ci95": [
+      52.826,
+      54.379
+     ],
+     "n": 8
+    },
+    "logroll_gap_$": {
+     "mean": 53.602,
+     "ci95": [
+      52.826,
+      54.379
+     ],
+     "n": 8
+    }
+   },
+   "4_relationship_damage": {
+    "retention_human": {
+     "mean": 0.709,
+     "ci95": [
+      0.708,
+      0.709
+     ],
+     "n": 8
+    },
+    "retention_snhp": {
+     "mean": 0.97,
+     "ci95": [
+      0.97,
+      0.97
+     ],
+     "n": 8
+    },
+    "retention_gain": {
+     "mean": 0.261,
+     "ci95": [
+      0.261,
+      0.262
+     ],
+     "n": 8
+    },
+    "ltv_human_$": {
+     "mean": 235.008,
+     "ci95": [
+      231.913,
+      238.103
+     ],
+     "n": 8
+    },
+    "ltv_snhp_$": {
+     "mean": 530.613,
+     "ci95": [
+      522.927,
+      538.299
+     ],
+     "n": 8
+    },
+    "ltv_gain_$": {
+     "mean": 295.605,
+     "ci95": [
+      291.003,
+      300.207
+     ],
+     "n": 8
+    }
+   }
+  },
+  "both_sides_verdict": {
+   "total_surplus_human_$": {
+    "mean": 20.938,
+    "ci95": [
+     20.635,
+     21.242
+    ],
+    "n": 8
+   },
+   "total_surplus_snhp_$": {
+    "mean": 53.602,
+    "ci95": [
+     52.826,
+     54.379
+    ],
+    "n": 8
+   },
+   "surplus_gain_$": {
+    "mean": 32.664,
+    "ci95": [
+     32.191,
+     33.137
+    ],
+    "n": 8
+   },
+   "fairness_worstshare_human": {
+    "mean": 0.143,
+    "ci95": [
+     0.143,
+     0.143
+    ],
+    "n": 8
+   },
+   "fairness_worstshare_snhp": {
+    "mean": 0.423,
+    "ci95": [
+     0.42,
+     0.426
+    ],
+    "n": 8
+   },
+   "fairness_gain": {
+    "mean": 0.28,
+    "ci95": [
+     0.277,
+     0.282
+    ],
+    "n": 8
+   },
+   "efficiency_impasse_reduction": {
+    "mean": 0.375,
+    "ci95": [
+     0.375,
+     0.375
+    ],
+    "n": 8
+   },
+   "retention_gain": {
+    "mean": 0.261,
+    "ci95": [
+     0.261,
+     0.262
+    ],
+    "n": 8
+   },
+   "dominates_on": {
+    "surplus": true,
+    "fairness": true,
+    "efficiency": true,
+    "retention": true
+   }
+  },
+  "per_type_who_gains": {
+   "fair": {
+    "human_payoff": {
+     "mean": 16.863,
+     "ci95": [
+      16.619,
+      17.107
+     ],
+     "n": 8
+    },
+    "snhp_payoff": {
+     "mean": 26.801,
+     "ci95": [
+      26.413,
+      27.189
+     ],
+     "n": 8
+    },
+    "gain_from_switch": {
+     "mean": 9.938,
+     "ci95": [
+      9.794,
+      10.082
+     ],
+     "n": 8
+    },
+    "better_off_switching": true
+   },
+   "hardballer": {
+    "human_payoff": {
+     "mean": 14.615,
+     "ci95": [
+      14.403,
+      14.826
+     ],
+     "n": 8
+    },
+    "snhp_payoff": {
+     "mean": 26.801,
+     "ci95": [
+      26.413,
+      27.189
+     ],
+     "n": 8
+    },
+    "gain_from_switch": {
+     "mean": 12.187,
+     "ci95": [
+      12.01,
+      12.363
+     ],
+     "n": 8
+    },
+    "better_off_switching": true
+   },
+   "boulware": {
+    "human_payoff": {
+     "mean": 5.126,
+     "ci95": [
+      5.051,
+      5.2
+     ],
+     "n": 8
+    },
+    "snhp_payoff": {
+     "mean": 26.801,
+     "ci95": [
+      26.413,
+      27.189
+     ],
+     "n": 8
+    },
+    "gain_from_switch": {
+     "mean": 21.675,
+     "ci95": [
+      21.361,
+      21.989
+     ],
+     "n": 8
+    },
+    "better_off_switching": true
+   },
+   "accommodator": {
+    "human_payoff": {
+     "mean": 11.605,
+     "ci95": [
+      11.437,
+      11.773
+     ],
+     "n": 8
+    },
+    "snhp_payoff": {
+     "mean": 26.801,
+     "ci95": [
+      26.413,
+      27.189
+     ],
+     "n": 8
+    },
+    "gain_from_switch": {
+     "mean": 15.196,
+     "ci95": [
+      14.976,
+      15.416
+     ],
+     "n": 8
+    },
+    "better_off_switching": true
+   },
+   "bluffer": {
+    "human_payoff": {
+     "mean": 15.645,
+     "ci95": [
+      15.418,
+      15.871
+     ],
+     "n": 8
+    },
+    "snhp_payoff": {
+     "mean": 26.801,
+     "ci95": [
+      26.413,
+      27.189
+     ],
+     "n": 8
+    },
+    "gain_from_switch": {
+     "mean": 11.156,
+     "ci95": [
+      10.995,
+      11.318
+     ],
+     "n": 8
+    },
+    "better_off_switching": true
+   },
+   "avoider": {
+    "human_payoff": {
+     "mean": 3.35,
+     "ci95": [
+      3.302,
+      3.399
+     ],
+     "n": 8
+    },
+    "snhp_payoff": {
+     "mean": 26.801,
+     "ci95": [
+      26.413,
+      27.189
+     ],
+     "n": 8
+    },
+    "gain_from_switch": {
+     "mean": 23.451,
+     "ci95": [
+      23.111,
+      23.791
+     ],
+     "n": 8
+    },
+    "better_off_switching": true
+   },
+   "positional": {
+    "human_payoff": {
+     "mean": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "n": 8
+    },
+    "snhp_payoff": {
+     "mean": 26.801,
+     "ci95": [
+      26.413,
+      27.189
+     ],
+     "n": 8
+    },
+    "gain_from_switch": {
+     "mean": 26.801,
+     "ci95": [
+      26.413,
+      27.189
+     ],
+     "n": 8
+    },
+    "better_off_switching": true
+   },
+   "nibbler": {
+    "human_payoff": {
+     "mean": 16.551,
+     "ci95": [
+      16.311,
+      16.79
+     ],
+     "n": 8
+    },
+    "snhp_payoff": {
+     "mean": 26.801,
+     "ci95": [
+      26.413,
+      27.189
+     ],
+     "n": 8
+    },
+    "gain_from_switch": {
+     "mean": 10.25,
+     "ci95": [
+      10.102,
+      10.399
+     ],
+     "n": 8
+    },
+    "better_off_switching": true
+   }
+  },
+  "hardballer_story": {
+   "avg_gain_from_switch_$": {
+    "mean": 12.187,
+    "ci95": [
+     12.01,
+     12.363
+    ],
+    "n": 8
+   },
+   "better_off_on_average": true,
+   "extraction_edge_vs_naive_human_$": {
+    "mean": 50.011,
+    "ci95": [
+     49.286,
+     50.735
+    ],
+    "n": 8
+   },
+   "extraction_edge_vs_naive_snhp_$": {
+    "mean": 26.801,
+    "ci95": [
+     26.413,
+     27.189
+    ],
+    "n": 8
+   },
+   "edge_lost_$": {
+    "mean": -23.209,
+    "ci95": [
+     -23.546,
+     -22.873
+    ],
+    "n": 8
+   }
+  },
+  "hardballer_still_better_off": true,
+  "types_worse_off_under_snhp": []
+ }
+}

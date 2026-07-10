@@ -184,15 +184,33 @@ class Deal:
     list_value: float   # break_price(qty) * qty — the buffer's base
 
 
-def nash_deal(ctx: RelCtx, env: WeekDemand, schedule: Schedule,
-              d: Disagreement, *, coordinate: bool = True,
-              fix: dict | None = None) -> Deal | None:
-    """Nash bargaining over the full bundle space, against the
-    event-consistent disagreement. `coordinate=False` removes the
-    wholesaler's cross-venue visibility: every window is priced as a fresh
-    stop (physical feasibility is still the dispatcher's — you cannot book
-    an unbookable morning). `fix` freezes issues at given values (the
-    H-W1 issue-ablation arms), e.g. {"window": 3} or {"discount": 0.0}."""
+@dataclass
+class BundleGrids:
+    """The feasible-bundle utility tensors for one relationship-week — the SHARED
+    core of `nash_deal` (max-product split) and the human-negotiation frontier
+    (`wholesale.negotiators`, max-joint pie + who-captures-it). Extracted so both
+    read the SAME utilities: any human-vs-SNHP number is byte-consistent with the
+    engine that reproduces `run.run_week` to the cent (test_wholesale/​test_supply
+    stay green). Shapes broadcast to (nq, np, nt, ns, nw)."""
+    q: np.ndarray            # (nq,) case quantities on the table
+    price: np.ndarray        # (nq, np) unit prices (break price × discount rung)
+    terms: tuple             # (nt,) payment terms on the table
+    shares: np.ndarray       # (ns,) spoilage-share options
+    windows: list            # (nw,) delivery windows on the table
+    bp: np.ndarray           # (nq,) rate-card break price by quantity
+    u_v: np.ndarray          # (5D) venue utility of each bundle
+    u_w: np.ndarray          # (5D) wholesaler utility of each bundle
+    g_v: np.ndarray          # (5D) venue gain above disagreement (d_v)
+    g_w: np.ndarray          # (5D) wholesaler gain above disagreement (inf→0)
+    feas: np.ndarray         # (5D) both gains ≥ 0 and the route is schedulable
+
+
+def bundle_grids(ctx: RelCtx, env: WeekDemand, schedule: Schedule,
+                 d: Disagreement, *, coordinate: bool = True,
+                 fix: dict | None = None) -> BundleGrids:
+    """Build the feasible-bundle utility tensors against the event-consistent
+    disagreement `d`. `coordinate=False` prices every window as a fresh stop;
+    `fix` freezes issues (the H-W1 ablations / the POSITIONAL price-only set)."""
     fix = fix or {}
     q = (np.array([int(fix["qty"])]) if "qty" in fix else ctx.qty_grid)
     rungs = np.array([fix["discount"]] if "discount" in fix
@@ -230,9 +248,27 @@ def nash_deal(ctx: RelCtx, env: WeekDemand, schedule: Schedule,
 
     g_v, g_w = u_v - d.d_v, u_w - d.d_w
     feas = (g_v > -1e-9) & (g_w > -1e-9) & np.isfinite(u_w)
+    g_w = np.where(np.isfinite(g_w), g_w, 0.0)   # masked below; avoids inf*0
+    return BundleGrids(q=q, price=price, terms=terms, shares=shares,
+                       windows=windows, bp=bp, u_v=u_v, u_w=u_w,
+                       g_v=g_v, g_w=g_w, feas=feas)
+
+
+def nash_deal(ctx: RelCtx, env: WeekDemand, schedule: Schedule,
+              d: Disagreement, *, coordinate: bool = True,
+              fix: dict | None = None) -> Deal | None:
+    """Nash bargaining over the full bundle space, against the
+    event-consistent disagreement. `coordinate=False` removes the
+    wholesaler's cross-venue visibility: every window is priced as a fresh
+    stop (physical feasibility is still the dispatcher's — you cannot book
+    an unbookable morning). `fix` freezes issues at given values (the
+    H-W1 issue-ablation arms), e.g. {"window": 3} or {"discount": 0.0}."""
+    G = bundle_grids(ctx, env, schedule, d, coordinate=coordinate, fix=fix)
+    q, price, terms, shares, windows, bp = (G.q, G.price, G.terms, G.shares,
+                                            G.windows, G.bp)
+    u_v, u_w, g_v, g_w, feas = G.u_v, G.u_w, G.g_v, G.g_w, G.feas
     if not feas.any():
         return None
-    g_w = np.where(np.isfinite(g_w), g_w, 0.0)   # masked below; avoids inf*0
     prod = np.where(feas, g_v * g_w, -math.inf)
     pmax = prod.max()
     # lexicographic tiebreak (vend's): among max-product bundles, take the

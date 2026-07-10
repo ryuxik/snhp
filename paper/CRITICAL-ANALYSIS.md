@@ -479,6 +479,32 @@ capacity-smoothing lever survives and GROWS (+$165–206 → +$212–260/day, al
 CIs exclude zero) — the biggest boba lever is robust to the functional-form
 correction.**
 
+**WHOLESALE CONFIRMATION (2026-07-10, #69 — the report-independence boundary,
+empirically across a second venue family): the toxic-human-negotiation battery
+confirms Von Neumann's theorem directly.** Modeling the pre-SNHP baseline as
+humans negotiating BADLY (8 literature-grounded types: hardballer, accommodator,
+bluffer, avoider, Boulware, positional, nibbler, fair — tactics = the misreport
+strategies), the SNHP split is byte-identical across all 64 type-pairs, and
+every REPORT-INDEPENDENT tactic (anchoring, Boulware, positional,
+info-asymmetry exploitation) is fully neutralized because the supplier's
+reservation is pinned by COGS/finite stock. **The one report that survives is
+the BLUFF on a truly-private outside option — and only in the UNATTESTED
+regime** (the wholesale forecast is attested at settlement). That is exactly
+the §10 boundary: report-independent ⇒ neutralized; report-dependent private
+value ⇒ survives ⇒ attestation-required. Second independent venue family, same
+condition — strong evidence the theorem (#68) is the right abstraction. Bonus:
+positional (price-only) bargaining creates ≈$0 of joint surplus (price is a
+near-pure transfer; the whole pie is window×qty×terms×spoilage), which is the
+multi-issue logrolling thesis measured — human price-haggling forfeits the
+entire creatable pie. And the both-sides case is proven on the honest
+counterfactual: vs human-vs-human, both-SNHP cuts impasse 37.5pp (the
+Myerson-Satterthwaite deadweight, ≫ the buffer), protects the naive
+(+$15.20), captures the logroll (+$53.60), and lifts relationship LTV
+(+$295.61); all 8 types are better off switching, though the hardballer's gain
+is only because a mixed population makes its aggression self-defeating — it
+DOES lose its extraction edge over the naive (fleecing drops $50→$27), the
+honest both-sides mechanism.
+
 ## The meta-pattern
 
 Every real defect found so far is the same defect: **some term in the
