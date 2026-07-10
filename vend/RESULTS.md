@@ -573,3 +573,36 @@ sweep's baseline is read against CURRENT code, not that section's snapshot.
 Reproduce: `vend/tests/test_vend.py`'s fairness-knob tests pin the plumbing;
 the sweep itself is a direct script over `WorldConfig(regulars=120,
 anchor_peak=True, anchor_mult=1.25, loss_aversion=λ, ref_alpha_paid=1-carryover)`.
+
+## H4 (2026-07-10) — an LLM handed the machine (Project Vend, in sim)
+
+Pre-registered gate: give a frontier model the machine's pricing seat and see
+what it leaves on the table versus the engine. Arm `llm/1` = the machine
+priced turn-by-turn by **claude-haiku-4-5** (intent mode, strict no-deal
+protocol, format failures count against it); paired against `static/1` and
+`a2a/1` (the SNHP engine) on the **same seeded population**. Realistic-cell
+config (--sigma-cal 0.3 --sigma-rate 0.6 --sigma-wtp 0.3 --dow --glut 0.15),
+seed 20260713. **Profile caveat: this run predates the traffic recalibration —
+it is on the smart-store-P90 (hot) profile at 30 days, not the calibrated
+7–8 vends/day at 90.** The absolute deltas are therefore the hot-profile
+figures; the qualitative result is what carries.
+
+| arm vs static | profit Δ/day | CI95 | consumer surplus Δ/day |
+|---|---:|---|---:|
+| a2a (SNHP engine) | **+$2.42** | [1.67, 3.18] | **+$9.46** |
+| llm (haiku machine) | +$0.87 | [0.28, 1.46] | **+$0.00** |
+
+**The finding: an LLM alone beats the sticker by under a dollar a day and
+passes nothing to the customer.** The haiku machine negotiated 53 deals
+(machine gain $26) vs the engine's 115 deals ($153) — it shaves a little
+price for itself but does not find the joint-surplus-growing trades, so
+consumer surplus moves $0.00. The engine grows the pie for *both* sides
+(+$2.42 seller / +$9.46 buyer); the LLM-alone barely moves it and only for
+the seller. This is the Project Vend lesson in miniature and it matches the
+gauntlet's solo-vs-advised story exactly: the model alone is weak, the model
+*advised by the engine* is strong (advised-haiku ≈ advised-opus on the
+leaderboard). **Headline rerun still owed: calibrated traffic (7–8 vends/day)
+at 90 days** — expected to shrink absolute deltas per the recalibration, with
+the LLM's zero-consumer-surplus signature the durable qualitative result.
+Artifact: `vend/h4-llm.json` (non-deterministic — API-priced; not a
+byte-reproducibility target).
