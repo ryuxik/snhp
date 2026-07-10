@@ -253,9 +253,16 @@ eventual visual page.
   gauntlet matches — replays come free). *(~1–2 days)*
 - **P2** `llm/1` arm under gauntlet budget/abort rules. Gate: H4. *(~half day
   + API spend)*
-- **P3** `api.py` quote router + a minimal machine-face web page (quote,
-  why-receipt, live stock). Gate: a stranger can scan-QR → quote → settle in
-  the sim. *(~1 day)*
+- **P3** `api.py` quote router + **the vend theater**: the machine-face page
+  shows the quote instantly (that's the product truth — the price arrives
+  already negotiated), with a "watch how your agent got this price" button
+  that replays the actual A2A match in the duel3d 3D theater — buyer-knight
+  vs THE MACHINE over ITEM × QUANTITY × PRICE rails, reveal = the quote with
+  its why-receipt and dollars-left. Zero new rendering code: P1 matches are
+  gauntlet matches, `match_to_duel_script` already emits the theater's
+  schema, and the vendored three.js chain ships with the arena app.
+  Prototype gate (canned script) built ahead of P1 at `arena/web/vend.html`.
+  Gate: a stranger can scan-QR → quote → watch the replay → settle. *(~1 day)*
 - **P4** writeup + atoms ("Claude's vending machine lost money; ours
   doesn't"), Stripe/ACP pilot deck slide, and — if H1–H3 hold — the physical
   machine becomes a hardware project, not a research question.

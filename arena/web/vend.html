@@ -1,0 +1,157 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>VEND — the price you see has already been negotiated</title>
+<meta name="description" content="Scan an item; your agent and the machine negotiate item × quantity × price before the screen renders. Watch the actual negotiation in 3D." />
+<style>
+  :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
+          --gold:#ffe08a; --green:#7fc48f; --violet:#a78bfa; --blue:#8fd0ff; }
+  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
+               font-family: ui-monospace, Menlo, monospace; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 40px 20px 80px; }
+  h1 { font-size: 25px; letter-spacing:.02em; line-height:1.3; margin:0 0 8px; text-wrap:balance; }
+  h1 b { color: var(--gold); }
+  p { color: var(--dim); font-size:13px; line-height:1.7; }
+  p b { color: var(--ink); }
+  a { color: var(--blue); }
+  .proto { display:inline-block; font-size:11px; letter-spacing:.15em; color:var(--gold);
+           border:1px solid rgba(255,224,138,.4); border-radius:6px; padding:3px 9px; margin-bottom:14px; }
+  .quote { background:#131022; border:1px solid var(--line); border-radius:14px;
+           padding:20px 22px; margin:22px 0; }
+  .quote .item { font-size:15px; font-weight:700; }
+  .quote .prices { display:flex; align-items:baseline; gap:14px; margin:10px 0 4px; }
+  .quote .yours { font-size:34px; font-weight:700; color:var(--green); }
+  .quote .list  { font-size:15px; color:var(--dim); text-decoration:line-through; }
+  .quote .per   { font-size:12px; color:var(--dim); }
+  .why { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .why span { font-size:11px; color:var(--violet); border:1px solid var(--line);
+              border-radius:999px; padding:3px 10px; }
+  .cta { display:inline-block; border:none; cursor:pointer; font-family:inherit;
+         padding:12px 18px; border-radius:10px; font-size:13px; font-weight:700;
+         letter-spacing:.05em; background:var(--gold); color:#0a0812; margin-top:14px; }
+  .back { font-size:12px; }
+  #theater { position:fixed; inset:0; display:none; background:var(--bg); z-index:50; }
+  #theater.on { display:block; }
+  #closeTheater { position:fixed; top:14px; right:14px; z-index:100002; display:none;
+                  background:#131022; color:var(--ink); border:1px solid var(--line);
+                  border-radius:9px; padding:8px 14px; font-family:inherit; font-size:13px; cursor:pointer; }
+  #closeTheater.on { display:block; }
+</style>
+
+<div class="wrap" id="page">
+  <p class="back"><a href="leaderboard.html">← the negotiation leaderboard</a></p>
+  <span class="proto">PROTOTYPE · canned match — live A2A matches ship with VEND P1</span>
+  <h1>The price you see has <b>already been negotiated</b>.</h1>
+  <p>
+    You scanned a snack at a machine. Before this screen rendered, <b>your
+    agent</b> and <b>the machine</b> negotiated the whole deal — which item,
+    how many, what price — with SNHP on both sides. The receipt says why.
+    Never above the sticker; same context, same price, for anyone.
+  </p>
+
+  <div class="quote">
+    <div class="item">🥪 deli sandwich × 2 <span class="per">(the one expiring tonight)</span></div>
+    <div class="prices">
+      <span class="yours">$2.90</span>
+      <span class="list">$4.00 list</span>
+      <span class="per">per unit</span>
+    </div>
+    <div class="why">
+      <span>2 units</span><span>expires tonight</span><span>off-peak</span>
+      <span>your bodega BATNA: $4.60</span>
+    </div>
+    <button class="cta" id="watch">▶ WATCH HOW YOUR AGENT GOT THIS PRICE</button>
+  </div>
+
+  <p>
+    What you'll see: the machine opens at sticker, holding its expiring stock
+    high; your agent holds the price rail down and <b>trades across issues</b> —
+    it takes the sandwich the machine needs to move, and a second unit, and
+    gets paid for both in price. That trade is the whole engine:
+    <a href="https://snhp.dev" rel="noopener">snhp.dev</a> ·
+    <a href="leaderboard.html">the leaderboard it's benchmarked on</a>.
+  </p>
+</div>
+
+<div id="theater"></div>
+<button id="closeTheater">✕ close</button>
+
+<script>
+  // Canned prototype match in the theater's native schema (see
+  // arena/gauntlet/replay.py::match_to_duel_script). pos: 1 = machine-favorable.
+  const VEND_SCRIPT = {
+    issues: ["PRICE", "ITEM", "QUANTITY"],
+    names: { seller: "THE MACHINE", buyer: "YOUR AGENT" },
+    origins: { seller: "stock 6 · expires tonight · off-peak",
+               buyer: "your preferences · bodega BATNA $4.60" },
+    subtitle: "prototype: one vend negotiation over item × quantity × price",
+    truth: {
+      wantS: { PRICE: 1.0, ITEM: 1.0, QUANTITY: 1.0 },
+      wantB: { PRICE: 0.0, ITEM: 0.0, QUANTITY: 0.0 },
+      weightS: { PRICE: 0.45, ITEM: 0.35, QUANTITY: 0.20 },
+      weightB: { PRICE: 0.55, ITEM: 0.20, QUANTITY: 0.25 },
+    },
+    turns: [
+      { actor: "prime", pos: { PRICE: 1.00, ITEM: 1.00, QUANTITY: 1.00 } },
+      { actor: "chal",  pos: { PRICE: 0.00, ITEM: 0.00, QUANTITY: 0.30 } },
+      { actor: "prime", pos: { PRICE: 0.72, ITEM: 1.00, QUANTITY: 0.85 } },
+      { actor: "chal",  pos: { PRICE: 0.12, ITEM: 0.55, QUANTITY: 0.55 } },
+      { actor: "prime", pos: { PRICE: 0.44, ITEM: 0.95, QUANTITY: 0.70 } },
+      { actor: "chal",  pos: { PRICE: 0.28, ITEM: 1.00, QUANTITY: 0.70 } },
+      { actor: "prime", pos: { PRICE: 0.31, ITEM: 1.00, QUANTITY: 0.70 } },
+    ],
+    reveal: {
+      naive: 0.61, snhp: 0.86, ceiling: 0.90, label: "this deal",
+      line: "Your agent took the expiring sandwich — and a second unit — and " +
+            "got paid for both in price: $2.90 vs the $4.00 sticker. The " +
+            "machine cleared stock it was hours from salvaging. Both sides " +
+            "beat the sticker.",
+    },
+    meta: { model: "vend-prototype", condition: "a2a", role: "buyer",
+            scenario_id: "vend-demo", deal: true },
+  };
+
+  const DUEL_SCRIPTS = [
+    "vendor/three.min.js",
+    "vendor/three-addons/CopyShader.js",
+    "vendor/three-addons/LuminosityHighPassShader.js",
+    "vendor/three-addons/GammaCorrectionShader.js",
+    "vendor/three-addons/FXAAShader.js",
+    "vendor/three-addons/EffectComposer.js",
+    "vendor/three-addons/RenderPass.js",
+    "vendor/three-addons/ShaderPass.js",
+    "vendor/three-addons/MaskPass.js",
+    "vendor/three-addons/UnrealBloomPass.js",
+    "duel3d.js?v=49",
+  ];
+  const loadScript = (src) => new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = res; s.onerror = () => rej(new Error(src));
+    document.head.appendChild(s);
+  });
+  let loaded = false, mounted = false;
+  async function loadDuel() {
+    if (loaded) return;
+    for (const src of DUEL_SCRIPTS) await loadScript(src); // UMD chain: order matters
+    loaded = true;
+  }
+
+  const theater = document.getElementById("theater");
+  const closeBtn = document.getElementById("closeTheater");
+  const page = document.getElementById("page");
+  document.getElementById("watch").addEventListener("click", async (ev) => {
+    const b = ev.target;
+    b.disabled = true; const prev = b.textContent; b.textContent = "… loading the theater";
+    try { await loadDuel(); } catch (e) { b.textContent = "load failed — refresh?"; return; }
+    b.disabled = false; b.textContent = prev;
+    theater.classList.add("on"); closeBtn.classList.add("on");
+    page.style.display = "none";
+    if (!mounted) { Arena.duel3d.mount(theater); mounted = true; }
+    Arena.duel3d.play(VEND_SCRIPT);
+  });
+  closeBtn.addEventListener("click", () => {
+    if (window.Arena && Arena.duel3d) Arena.duel3d.stop();
+    theater.classList.remove("on"); closeBtn.classList.remove("on");
+    page.style.display = "";
+  });
+  try { navigator.sendBeacon("/hit", JSON.stringify({ p: "vend" })); } catch (e) {}
+</script>
