@@ -63,6 +63,9 @@ gametheory-http = "gametheory.server._http_entry:main"
 homepage = "https://gametheory.dev"
 docs = "https://docs.gametheory.dev/llms.txt"
 
+[tool.pytest.ini_options]
+markers = ["slow: long-running performance-budget tests (deselect with -m 'not slow')"]
+
 [tool.setuptools.packages.find]
 include = ["gametheory*", "snhp*"]
 exclude = ["snhp.tests*", "tests*", "venv*", "leaderboard*"]

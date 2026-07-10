@@ -251,7 +251,13 @@ class DemandLearner:
     def sold(self, sku: str, units: int):
         self._day_units[sku] = self._day_units.get(sku, 0.0) + units
 
-    def end_day(self):
+    def end_day(self, censored: frozenset = frozenset()):
+        """`censored`: SKUs that SOLD OUT today. A sellout truncates observed
+        sales below true demand; treating it as a demand observation drags
+        the estimate down exactly where it should go up — and the Nash
+        search then fires where the forecast hallucinates excess (adverse
+        selection on our own noise, found by the Block twin-run). Censored
+        days may only RAISE the level estimate, never lower it."""
         total = sum(self._day_units.values())
         if total > 0:
             for sku in set(self._shares) | set(self._day_units):
@@ -265,8 +271,16 @@ class DemandLearner:
         for sku in set(self._daily) | set(self._day_units):
             obs = self._day_units.get(sku, 0.0) / self._dow_today
             old = self._daily.get(sku)
-            self._daily[sku] = obs if old is None else \
-                (1 - self.share_ewma) * old + self.share_ewma * obs
+            if old is None:
+                self._daily[sku] = obs
+            elif sku in censored:
+                # demand ≥ observed sales, strictly (we ran out): escalate
+                # until sellouts stop — under permanent censoring a flat
+                # max() anchors on the first truncated day forever
+                self._daily[sku] = max(old, obs) * 1.2
+            else:
+                self._daily[sku] = (1 - self.share_ewma) * old \
+                    + self.share_ewma * obs
 
     def daily(self, sku: str) -> float | None:
         """EWMA realized units/day for this SKU in this arm's own regime

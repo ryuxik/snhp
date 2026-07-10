@@ -218,7 +218,8 @@ def run_day(policy, state, catalog, master_seed: int, day: int,
                         return_queue.append((tick + delay, consumer))
 
     if learner:
-        learner.end_day()
+        learner.end_day(frozenset(
+            sku for sku in catalog if state.stock(sku) == 0))
     if pool is not None:
         m["churned"] = pool.end_day(day)
         m["active_regulars"] = pool.active_count()
