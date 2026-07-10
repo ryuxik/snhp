@@ -50,6 +50,20 @@ fix, the honest conclusion stands: slot-shifting logrolls are a boba-shaped
 result (long service times, order-ahead) that does not generalize to
 short-peak venues, and the whitepaper says so.
 
+**OUTCOME (2026-07-10, post-registration): prediction REFUTED at the bar.**
+The learned relief basis (per-hour EWMA of the arm's own realized margin,
+sold-out-gated) improved every touched cell — barber σ=0 flipped
+significantly positive vs static, full-nego bar +$24–59/day — but noshift
+still beats full nego at the bar by $79–101/day (significant, all four
+cells), robust to average-vs-marginal basis. Per-buyer decomposition:
++$184/day genuine walkaway rescues vs −$110/day discounts to would-pay-list
+buyers and −$154/day displacement of later list walk-ins — within-day
+local-window state no day-level learned slot value can carry. The honest
+conclusion above stands and goes in the whitepaper: slot-shifting logrolls
+are boba-shaped; at short-peak walk-in venues the correct broker plays
+no-shift. Parking/barber-noshift artifacts byte-identical (never hit the
+swap path).
+
 ## 4. Vintage offer/1: −$302 at decent tags + deep shading; H-V1 refuted — HALF DEFECT, HALF CATEGORY ERROR, fix now
 
 Two distinct problems. (a) Counters trigger huffs the engine can't
@@ -68,6 +82,17 @@ the under-tag value H-V1 showed unrecoverable, with no fairness exposure
 because no reference exists.** The invariant's *scope* becomes a
 first-class finding: discount-only is per-category, reference-priced goods
 only.
+
+**OUTCOME (2026-07-10, post-registration): prediction SUPPORTED.** retag/1
+recovers 98% (σ_tag=0.3) / 51% (σ_tag=0.6) of the under-tag upside H-V1
+called unrecoverable; retag+offer/1 dominates in 3/4 cells (+$3.9–4.7k per
+60-day store). The shading learner turned the −$302 cell into +$40 (CI
+straddles zero — the loss is gone, not a win) by countering less into
+huff-risk. Two honest qualifications recorded in vintage/RESULTS.md: at
+σ=0.3 most of retag's gain is whole-board PV repricing rather than
+error-fixing, and pure retag *hurts* over-tagged stock until the offer arm
+repairs it. No fairness exposure: retags posted, visible, uniform, at most
+weekly, before any offer.
 
 ## 5. Block fashion: full-season tie (−18.85) — METHODOLOGY ARTIFACT, two parts
 

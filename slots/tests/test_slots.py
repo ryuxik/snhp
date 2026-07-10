@@ -263,15 +263,18 @@ def test_relief_only_when_shifting_off_peak():
 def test_rigid_customers_do_not_get_shifted():
     """The flexibility type has teeth: at $4–5/tick of shift disutility, a
     rigid buyer's slot-shift never pencils, while the same buyer flexible
-    does shift where the peak shadow pays for it."""
+    does shift where the freed peak span pays for it. (n_req=1 so the
+    whole span leaves the peak: since the relief fix, the old 2-drink
+    scenario picks an upsell-shift whose second drink still occupies the
+    same peak ticks — its relief is honestly 0, not >0.)"""
     from slots.policies import nego_quote
     v = venue("bar")
     state = fresh_day(v)
     edge_tick = (19 - v.open_hour) * 6    # 19:00 — the peak's leading edge:
     state.tick = edge_tick - 12           # a −30-min shift lands at 18:30
-    flex = _customer(v, ratio=1.3, desired=edge_tick, n_req=2, kind="beer",
+    flex = _customer(v, ratio=1.3, desired=edge_tick, n_req=1, kind="beer",
                      flexible=True)
-    rigid = _customer(v, ratio=1.3, desired=edge_tick, n_req=2, kind="beer",
+    rigid = _customer(v, ratio=1.3, desired=edge_tick, n_req=1, kind="beer",
                       flexible=False)
     d_flex = nego_quote(state, flex)
     d_rigid = nego_quote(state, rigid)
@@ -279,7 +282,155 @@ def test_rigid_customers_do_not_get_shifted():
     assert d_rigid is None or not d_rigid.shifted
 
 
-# ── accounting: conservation, no-shows, determinism ──────────────────────
+# ── the relief fix (post-registration, CRITICAL-ANALYSIS §3) ─────────────
+
+def _learned_policy(v, peak_val, shoulder_val):
+    """A nego policy whose learner has 'converged' to flat per-class slot
+    values: peak hours worth peak_val $/unit-tick, every other hour
+    shoulder_val — so relief arithmetic is checkable by hand."""
+    from slots.policies import NegoPolicy
+    pol = NegoPolicy()
+    pol.learner._m = {h: (peak_val if h in v.peak_hours else shoulder_val)
+                      for h in v.hours}
+    return pol
+
+
+def _hour_ticks(v, start, dur, h):
+    """Unit-ticks of [start, start+dur) that land in hour h."""
+    h0 = v.hidx(h) * 6
+    return max(0, min(start + dur, h0 + 6) - max(start, h0))
+
+
+def _expected_relief(v, pol, fb_span, deal_span):
+    """The pre-registered relief formula, computed independently:
+    value(fallback span) − value(deal span) at the learner's values."""
+    return sum(pol.learner.value(v, h)
+               * (_hour_ticks(v, *fb_span, h) - _hour_ticks(v, *deal_span, h))
+               for h in v.hours)
+
+
+def _edge_shift_scenario(v):
+    """The 19:00 bar-peak leading edge: a flexible one-beer buyer whose
+    −30-min shift moves the whole span off the peak."""
+    state = fresh_day(v)
+    edge = (19 - v.open_hour) * 6
+    state.tick = edge - 12
+    cust = _customer(v, ratio=1.3, desired=edge, n_req=1, kind="beer",
+                     flexible=True)
+    return state, cust
+
+
+def test_relief_prices_freed_peak_at_learned_regime_margin_not_list():
+    """The fix's first half: the credit for a freed peak slot is the
+    arm's LEARNED realized nego-regime value, not the static list margin
+    the old shadow assumed. Same scenario, two learned peak values —
+    relief tracks the learner exactly, and neither equals the static
+    mean-list-margin basis."""
+    v = venue("bar")
+    for peak_val in (2.0, 4.0):
+        pol = _learned_policy(v, peak_val=peak_val, shoulder_val=0.0)
+        state, cust = _edge_shift_scenario(v)
+        b_start, b_n, _, _ = best_board_booking(state, cust, list_mult)
+        deal = pol.quote_for(state, cust)
+        assert deal is not None and deal.shifted
+        want = _expected_relief(v, pol, (b_start, b_n * v.step_ticks),
+                                (deal.start, deal.n * v.step_ticks))
+        assert deal.relief == pytest.approx(want)
+        assert want == pytest.approx(peak_val * 3)      # 3 freed peak ticks
+        # and NOT the static list-margin basis the defect used
+        assert abs(deal.relief - v.mean_margin_per_tick * 3) > 1.0
+
+
+def test_shoulder_displacement_is_charged():
+    """The fix's second half: the shoulder ticks the shifted booking now
+    occupies are charged at the same learned basis — relief drops by
+    exactly shoulder_val x occupied shoulder ticks, and when shoulder
+    slot-time earns as much as peak slot-time the swap mints nothing, so
+    the engine stops paying for shifts."""
+    v = venue("bar")
+    free_pol = _learned_policy(v, peak_val=3.0, shoulder_val=0.0)
+    state, cust = _edge_shift_scenario(v)
+    d_free = free_pol.quote_for(state, cust)
+    assert d_free is not None and d_free.shifted
+    assert d_free.relief == pytest.approx(3.0 * 3)
+
+    charged_pol = _learned_policy(v, peak_val=3.0, shoulder_val=1.0)
+    state, cust = _edge_shift_scenario(v)
+    d_charged = charged_pol.quote_for(state, cust)
+    assert d_charged is not None and d_charged.shifted
+    # 3 freed peak ticks credited, 3 occupied shoulder ticks charged
+    assert d_charged.relief == pytest.approx(3.0 * 3 - 1.0 * 3)
+
+    flat_pol = _learned_policy(v, peak_val=3.0, shoulder_val=3.0)
+    state, cust = _edge_shift_scenario(v)
+    d_flat = flat_pol.quote_for(state, cust)
+    assert d_flat is None or not d_flat.shifted
+
+
+def test_warmup_falls_back_to_conservative_fraction_of_list_margin():
+    """Before the arm has any history of its own, the relief basis is
+    RELIEF_WARMUP_FRAC (0.6) x the static mean list margin per unit-tick
+    for peak hours and 0 off-peak — strictly more conservative than the
+    defect's full-list-margin credit."""
+    from slots.policies import (RELIEF_WARMUP_FRAC, NegoPolicy,
+                                warmup_hour_value)
+    v = venue("bar")
+    assert RELIEF_WARMUP_FRAC == 0.6
+    for h in v.hours:
+        want = 0.6 * v.mean_margin_per_tick if h in v.peak_hours else 0.0
+        assert warmup_hour_value(v, h) == pytest.approx(want)
+        # a fresh learner defers to the warmup values
+        assert NegoPolicy().learner.value(v, h) == pytest.approx(want)
+    pol = NegoPolicy()                       # no history at all
+    state, cust = _edge_shift_scenario(v)
+    deal = pol.quote_for(state, cust)
+    assert deal is not None and deal.shifted
+    assert deal.relief == pytest.approx(0.6 * v.mean_margin_per_tick * 3)
+    assert deal.relief < v.mean_margin_per_tick * 3    # conservative
+
+
+def test_learner_observes_soldout_gated_realized_margin():
+    """The learned slot value is MARGINAL, not average: realized margin
+    per sold unit-tick, gated by the fraction of the hour's ticks that
+    ended the day at full capacity. An hour with realized sales but slack
+    capacity learns toward 0 (a freed tick there enables no extra sale);
+    a sold-out hour learns its realized per-tick margin; the EWMA folds
+    days at alpha=0.3 (the vend DemandLearner pattern)."""
+    import numpy as np
+    from slots.policies import HourMarginLearner
+    v = venue("bar")
+    lrn = HourMarginLearner()
+    occ = np.zeros(v.ticks, dtype=np.int64)
+    h_full, h_slack = 20, 16
+    occ[v.hidx(h_full) * 6:(v.hidx(h_full) + 1) * 6] = v.capacity   # binds
+    occ[v.hidx(h_slack) * 6:(v.hidx(h_slack) + 1) * 6] = 10         # slack
+    margin = {h_full: 900.0, h_slack: 90.0}
+    lrn.end_day(v, margin, occ)
+    assert lrn.value(v, h_full) == pytest.approx(900.0 / (v.capacity * 6))
+    assert lrn.value(v, h_slack) == pytest.approx(0.0)   # never sold out
+    assert lrn.value(v, 15) == pytest.approx(0.0)        # no sales at all
+    # EWMA: a second day folds in at alpha=0.3
+    first = lrn.value(v, h_full)
+    lrn.end_day(v, {h_full: 450.0}, occ)
+    want = 0.7 * first + 0.3 * (450.0 / (v.capacity * 6))
+    assert lrn.value(v, h_full) == pytest.approx(want)
+
+
+def test_run_day_feeds_the_learner_realized_margins():
+    """The runner's end-of-day feed is real: after one day the nego arm's
+    learner has an estimate for every hour, its observations are bounded
+    by the day's realized margin, and no-show spans contribute nothing
+    (settled bookings only)."""
+    from slots.policies import ARMS
+    from slots.run import run_day
+    pol = ARMS["nego"]()
+    m = run_day(pol, "bar", 20260710, 0)
+    v = venue("bar")
+    assert set(pol.learner._m) == set(v.hours)
+    assert all(val >= 0.0 for val in pol.learner._m.values())
+    # sold-out gating can only shrink an hour's observation below its
+    # realized margin per capacity tick, never inflate it
+    assert sum(pol.learner._m.values()) * v.capacity * 6 <= m["margin"] + 0.02
 
 def test_slot_time_conservation():
     """booked + idle = capacity x ticks — sold from the revenue

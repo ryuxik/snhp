@@ -4,9 +4,12 @@ Every arm faces the IDENTICAL customer stream: arrivals, customer draws,
 flexibility flags, and no-show rolls depend only on (venue, master_seed,
 day, tick, k / uid), never on anything a policy did. Divergence starts
 only at each customer's decision against each arm's board or quote — the
-treatment effect, isolated. Days carry no overnight state (the occupancy
-grid resets at open), so per-day metrics are independent draws; the
-paired CI still uses 5-day blocks, which is conservative.
+treatment effect, isolated. The WORLD carries no overnight state (the
+occupancy grid resets at open); since the relief fix the nego arms carry
+their HourMarginLearner across days (each day's realized per-hour margins
+fold into the EWMA), so their per-day metrics are not strictly
+independent draws — the paired CI's 5-day blocks absorb that dependence
+as well as day-level noise.
 
   python3 -m slots.run --venue bar --days 30 --seed 20260710
   python3 -m slots.run --grid --days 30 --seed 20260710   # all venues
@@ -26,7 +29,7 @@ from slots.world import (DEFAULT_CONFIG, SlotConfig, VENUE_NAMES, Booking,
                          fresh_day, noshow_roll, occupy, release,
                          sample_customer, venue)
 
-SLOTS_VERSION = 1
+SLOTS_VERSION = 2      # v2: relief fix (post-registration, CRITICAL-ANALYSIS §3)
 
 
 def _book(state, m, cust, start, n, price, cs):
@@ -41,18 +44,26 @@ def _book(state, m, cust, start, n, price, cs):
                 cost=v.unit_cost(n, cust.kind), cs=cs)
     m["bookings"] += 1
     if start == state.tick:
-        _settle(m, b)
+        _settle(m, b, v)
     else:
         state.pending.append(b)
     return b
 
 
-def _settle(m, b):
+def _settle(m, b, v):
     m["revenue"] += b.price
     m["cost"] += b.cost
     m["shows"] += 1
     m["consumer_surplus"] += b.cs
     m["sold_unit_ticks"] += b.dur
+    # realized margin by hour (spread evenly over the span) — the feed for
+    # the nego arm's HourMarginLearner; settled bookings only, so no-shows
+    # contribute nothing, exactly as they pay nothing
+    hm = m.setdefault("_hour_margin", {})
+    per_tick = (b.price - b.cost) / b.dur
+    for t in range(b.start, b.start + b.dur):
+        h = v.hour_of(t)
+        hm[h] = hm.get(h, 0.0) + per_tick
 
 
 def _due(state, m, master_seed):
@@ -69,7 +80,7 @@ def _due(state, m, master_seed):
             release(state, b.start, b.dur)
             m["noshows"] += 1
         else:
-            _settle(m, b)
+            _settle(m, b, v)
     state.pending = still
 
 
@@ -128,6 +139,11 @@ def run_day(policy, venue_name: str, master_seed: int, day: int,
     # the last ticks' reservations all came due inside the loop (start
     # < ticks by construction); anything still pending is a bug.
     assert not state.pending, "pending bookings survived the day"
+    # feed the day's realized per-hour margins and final occupancy to arms
+    # that learn from their own history (the nego arms' HourMarginLearner)
+    hour_margin = m.pop("_hour_margin", {})
+    if hasattr(policy, "end_day"):
+        policy.end_day(v, hour_margin, state.occupied)
     peak = np.zeros(v.ticks, dtype=bool)
     for h in v.peak_hours:
         peak[v.hidx(h) * 6:(v.hidx(h) + 1) * 6] = True
