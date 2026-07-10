@@ -103,13 +103,16 @@ RELIEF_WARMUP_FRAC = 0.6    # pre-history relief basis: this fraction of the
                             # static list margin per peak unit-tick
 
 
-def warmup_hour_value(v: Venue, hour: int) -> float:
-    """Slot value before the arm has any history of its own: a
-    conservative fraction (0.6) of the static-regime mean list margin for
-    peak hours — the credit the diagnosed defect paid in FULL — and 0
-    off-peak (the static model's own shoulder valuation). Real learned
-    values take over after the first day."""
-    if hour in v.peak_hours:
+def warmup_hour_value(v: Venue, day: int, hour: int) -> float:
+    """Slot value before the arm has any history of its own for this
+    (day-of-week, hour): a conservative fraction (0.6) of the static-regime
+    mean list margin for hours that are peak ON THAT DAY-OF-WEEK — the
+    credit the diagnosed defect paid in FULL — and 0 off-peak (the static
+    model's own shoulder valuation). Calendar-aware (keyed on day%7 like the
+    learner and `mstar`): the bar's Saturday 16:00 warms up as a peak slot
+    without the same weekday hour doing so. Real learned values take over
+    after the first occurrence of that day-of-week."""
+    if v.is_peak(day, hour):
         return RELIEF_WARMUP_FRAC * v.mean_margin_per_tick
     return 0.0
 
@@ -117,11 +120,12 @@ def warmup_hour_value(v: Venue, hour: int) -> float:
 @dataclass
 class HourMarginLearner:
     """Regime-consistent slot values — vend's DemandLearner pattern applied
-    to slot-time. An EWMA, per hour, of THIS arm's OWN realized MARGINAL
-    value of one unit-tick, measured from its own days:
+    to slot-time. An EWMA, per (DAY-OF-WEEK, hour), of THIS arm's OWN
+    realized MARGINAL value of one unit-tick, measured from its own days:
 
-        obs(h) = (fraction of hour-h ticks that ended the day at full
-                  capacity) x (realized margin per SOLD unit-tick in h)
+        obs(d, h) = (fraction of hour-h ticks that ended day-of-week d at
+                     full capacity) x (realized margin per SOLD unit-tick
+                     in h on that day)
 
     The sold-out gate is what makes the estimate marginal rather than
     average: a freed slot-tick only enables an extra sale when the tick
@@ -131,25 +135,33 @@ class HourMarginLearner:
     factor is realized in THIS regime (discounted resale and sub-list
     conversion included; settled bookings only — a no-show pays nothing).
 
-    This is the post-registration fix for the H-S2 relief defect
-    (paper/CRITICAL-ANALYSIS.md §3): the old shadow priced a freed peak
-    slot at the STATIC regime's list margin with a demand-forecast
-    displacement probability — a world the mechanism abolishes. Here the
-    credit is the realized nego-regime margin per freed slot, and the
-    shoulder slot a shifted booking occupies is charged on the same
-    learned basis. Warmup: `warmup_hour_value` until a day of history
-    exists for the hour."""
+    CALENDAR-AWARE (keyed on day%7, like `mstar`; the fourth Lucas-critique
+    fix, paper/CRITICAL-ANALYSIS §3 CALIBRATED-WORLD UPDATE): the old
+    per-hour EWMA blended every day-of-week into one estimate, so the bar's
+    Saturday 16:00 — genuinely as valuable as hour 20 on Saturday — learned
+    the week-diluted $0.52/tick and the arm priced freed weekend-afternoon
+    slots as near-worthless. Now each day-of-week learns its OWN hourly
+    slot values (Saturday folds only into Saturday), and the relief credit
+    for shifting someone off a Saturday-afternoon peak is that Saturday's
+    realized nego-regime margin per freed slot, not the week average.
+    Barber/parking are calendar-flat, so their 7 per-dow EWMAs each track
+    the same statistical process (fewer samples apiece — a small precision
+    cost with no bias, reported in RESULTS). Warmup: `warmup_hour_value`
+    until a day of that day-of-week has been played."""
     alpha: float = 0.3          # vend's share_ewma
-    _m: dict = field(default_factory=dict)   # hour -> $/unit-tick, learned
+    _m: dict = field(default_factory=dict)   # (dow_key, hour) -> $/unit-tick
 
-    def value(self, v: Venue, hour: int) -> float:
-        got = self._m.get(hour)
-        return got if got is not None else warmup_hour_value(v, hour)
+    def value(self, v: Venue, day: int, hour: int) -> float:
+        got = self._m.get((v.dow_key(day), hour))
+        return got if got is not None else warmup_hour_value(v, day, hour)
 
-    def end_day(self, v: Venue, hour_margin: dict, occupied) -> None:
-        """Fold in one day of realized play: hour_margin[h] = settled
-        margin attributed to hour h; occupied = the day's final occupancy
-        grid (shown bookings only — no-shows released their spans)."""
+    def end_day(self, v: Venue, day: int, hour_margin: dict, occupied) -> None:
+        """Fold in one day of realized play into that DAY-OF-WEEK bucket's
+        EWMA (`v.dow_key`: day%7 for the bar, a single pooled bucket for
+        calendar-flat barber/parking): hour_margin[h] = settled margin
+        attributed to hour h; occupied = the day's final occupancy grid
+        (shown bookings only — no-shows released their spans)."""
+        dow = v.dow_key(day)
         for h in v.hours:
             h0 = v.hidx(h) * 6
             span = occupied[h0:h0 + 6]
@@ -159,8 +171,8 @@ class HourMarginLearner:
                 obs = soldout_frac * hour_margin.get(h, 0.0) / occ_ticks
             else:
                 obs = 0.0
-            old = self._m.get(h)
-            self._m[h] = obs if old is None else \
+            old = self._m.get((dow, h))
+            self._m[(dow, h)] = obs if old is None else \
                 (1 - self.alpha) * old + self.alpha * obs
 
 
@@ -218,10 +230,10 @@ class NegoPolicy:
         return nego_quote(state, cust, shift=self.shift,
                           min_gain_abs=self.min_gain_abs,
                           min_gain_frac=self.min_gain_frac,
-                          hour_value=lambda h: self.learner.value(v, h))
+                          hour_value=lambda h: self.learner.value(v, state.day, h))
 
-    def end_day(self, v: Venue, hour_margin: dict, occupied) -> None:
-        self.learner.end_day(v, hour_margin, occupied)
+    def end_day(self, v: Venue, day: int, hour_margin: dict, occupied) -> None:
+        self.learner.end_day(v, day, hour_margin, occupied)
 
 
 def _dur_candidates(n_req: int) -> list[int]:
@@ -267,8 +279,8 @@ def nego_quote(state: VenueState, cust: Customer, *, shift: bool = True,
     v = state.venue
     show = 1.0 - v.noshow_prob
     if hour_value is None:
-        def hour_value(h, _v=v):
-            return warmup_hour_value(_v, h)
+        def hour_value(h, _v=v, _day=state.day):
+            return warmup_hour_value(_v, _day, h)
 
     b_start, b_n, b_price, b_sur = best_board_booking(state, cust, list_mult)
     d_b = max(b_sur if b_start is not None else 0.0, cust.outside, 0.0)

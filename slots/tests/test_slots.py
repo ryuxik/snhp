@@ -393,11 +393,14 @@ def test_rigid_customers_do_not_get_shifted():
 def _learned_policy(v, peak_val, shoulder_val):
     """A nego policy whose learner has 'converged' to flat per-class slot
     values: peak hours worth peak_val $/unit-tick, every other hour
-    shoulder_val — so relief arithmetic is checkable by hand."""
+    shoulder_val — so relief arithmetic is checkable by hand. Keyed on
+    (day%7, hour) since the learner is now calendar-aware; a slot is
+    peak-valued on the days it is actually peak (`peak_hours_on`)."""
     from slots.policies import NegoPolicy
     pol = NegoPolicy()
-    pol.learner._m = {h: (peak_val if h in v.peak_hours else shoulder_val)
-                      for h in v.hours}
+    pol.learner._m = {(d, h): (peak_val if h in v.peak_hours_on(d)
+                               else shoulder_val)
+                      for d in range(7) for h in v.hours}
     return pol
 
 
@@ -407,10 +410,11 @@ def _hour_ticks(v, start, dur, h):
     return max(0, min(start + dur, h0 + 6) - max(start, h0))
 
 
-def _expected_relief(v, pol, fb_span, deal_span):
+def _expected_relief(v, pol, fb_span, deal_span, day=0):
     """The pre-registered relief formula, computed independently:
-    value(fallback span) − value(deal span) at the learner's values."""
-    return sum(pol.learner.value(v, h)
+    value(fallback span) − value(deal span) at the learner's (day-of-week
+    keyed) values."""
+    return sum(pol.learner.value(v, day, h)
                * (_hour_ticks(v, *fb_span, h) - _hour_ticks(v, *deal_span, h))
                for h in v.hours)
 
@@ -487,13 +491,18 @@ def test_warmup_falls_back_to_conservative_fraction_of_list_margin():
                                 warmup_hour_value)
     v = venue("bar")
     assert RELIEF_WARMUP_FRAC == 0.6
-    for h in v.hours:
-        want = 0.6 * v.mean_margin_per_tick if h in v.peak_hours else 0.0
-        assert warmup_hour_value(v, h) == pytest.approx(want)
-        # a fresh learner defers to the warmup values
-        assert NegoPolicy().learner.value(v, h) == pytest.approx(want)
+    # warmup is calendar-aware: checked on a Monday (day 0) and a Saturday
+    # (day 5), where the peak sets genuinely differ (Sat 16:00 warms up as
+    # peak, Mon 16:00 does not) — the whole point of the fix
+    for day in (0, 5):
+        for h in v.hours:
+            want = (0.6 * v.mean_margin_per_tick
+                    if v.is_peak(day, h) else 0.0)
+            assert warmup_hour_value(v, day, h) == pytest.approx(want)
+            # a fresh learner defers to the warmup values
+            assert NegoPolicy().learner.value(v, day, h) == pytest.approx(want)
     pol = NegoPolicy()                       # no history at all
-    state, cust = _edge_shift_scenario(v)
+    state, cust = _edge_shift_scenario(v)    # Monday, 22:00 peak edge
     deal = pol.quote_for(state, cust)
     assert deal is not None and deal.shifted
     assert deal.relief == pytest.approx(0.6 * v.mean_margin_per_tick * 3)
@@ -516,15 +525,16 @@ def test_learner_observes_soldout_gated_realized_margin():
     occ[v.hidx(h_full) * 6:(v.hidx(h_full) + 1) * 6] = v.capacity   # binds
     occ[v.hidx(h_slack) * 6:(v.hidx(h_slack) + 1) * 6] = 10         # slack
     margin = {h_full: 900.0, h_slack: 90.0}
-    lrn.end_day(v, margin, occ)
-    assert lrn.value(v, h_full) == pytest.approx(900.0 / (v.capacity * 6))
-    assert lrn.value(v, h_slack) == pytest.approx(0.0)   # never sold out
-    assert lrn.value(v, 15) == pytest.approx(0.0)        # no sales at all
-    # EWMA: a second day folds in at alpha=0.3
-    first = lrn.value(v, h_full)
-    lrn.end_day(v, {h_full: 450.0}, occ)
+    day = 5                                  # a Saturday
+    lrn.end_day(v, day, margin, occ)
+    assert lrn.value(v, day, h_full) == pytest.approx(900.0 / (v.capacity * 6))
+    assert lrn.value(v, day, h_slack) == pytest.approx(0.0)   # never sold out
+    assert lrn.value(v, day, 15) == pytest.approx(0.0)        # no sales at all
+    # EWMA: a second Saturday folds in at alpha=0.3
+    first = lrn.value(v, day, h_full)
+    lrn.end_day(v, day + 7, {h_full: 450.0}, occ)     # same day-of-week
     want = 0.7 * first + 0.3 * (450.0 / (v.capacity * 6))
-    assert lrn.value(v, h_full) == pytest.approx(want)
+    assert lrn.value(v, day, h_full) == pytest.approx(want)
 
 
 def test_run_day_feeds_the_learner_realized_margins():
@@ -535,13 +545,96 @@ def test_run_day_feeds_the_learner_realized_margins():
     from slots.policies import ARMS
     from slots.run import run_day
     pol = ARMS["nego"]()
-    m = run_day(pol, "bar", 20260710, 0)
+    m = run_day(pol, "bar", 20260710, 0)     # day 0 = Monday (day%7 == 0)
     v = venue("bar")
-    assert set(pol.learner._m) == set(v.hours)
+    # one day played folds into exactly that day-of-week's (0) slot values
+    assert set(pol.learner._m) == {(0, h) for h in v.hours}
     assert all(val >= 0.0 for val in pol.learner._m.values())
     # sold-out gating can only shrink an hour's observation below its
     # realized margin per capacity tick, never inflate it
     assert sum(pol.learner._m.values()) * v.capacity * 6 <= m["margin"] + 0.02
+
+
+# ── calendar-aware relief (CRITICAL-ANALYSIS §3 CALIBRATED-WORLD follow-up) ─
+# peak_hours and the HourMarginLearner are keyed on (day%7, hour), the same
+# keying computed/1's mstar uses, so the bar's Saturday-afternoon shoulder
+# slots learn their own high value instead of the week-blended one.
+
+def test_peak_hours_are_calendar_aware():
+    """The core fix: an hour's peak flag depends on the DAY-OF-WEEK. The
+    bar's 16:00 and 17:00 are among the week's busiest hours on Saturday
+    (day 5, the deliberate afternoon build-out) yet NOT peak on an ordinary
+    weekday (day 0) — the week-blended average diluted them below threshold,
+    the diagnosed calendar-blind defect. Barber and parking have no
+    day-of-week structure, so their per-day peak sets are identical across
+    the week (and equal to the reported union)."""
+    v = venue("bar")
+    # Saturday afternoon binds; the same clock hours are slack on a weekday
+    assert v.is_peak(5, 16) and v.is_peak(5, 17)
+    assert not v.is_peak(0, 16) and not v.is_peak(0, 17)
+    # 16:00 is in the "ever peak" union but not peak every day
+    assert 16 in v.peak_hours
+    assert v.peak_hours_on(5) != v.peak_hours_on(0)
+    # calendar-flat venues: every day-of-week gives the same peak set
+    for name in ("barber", "parking"):
+        vf = venue(name)
+        assert all(vf.peak_hours_on(d) == vf.peak_hours_on(0) for d in range(7))
+        assert set(vf.peak_hours) == set(vf.peak_hours_on(0))
+
+
+def test_learner_and_warmup_are_keyed_on_day_of_week():
+    """The task's explicit check: Saturday 16:00 learns a value DISTINCT
+    from (and higher than) the same clock hour on a low-traffic weekday.
+    Feeding one Saturday of sold-out 16:00 play folds only into Saturday's
+    EWMA; a Tuesday's 16:00 (never peak, never fed) keeps its warmup value
+    of 0. The learned Saturday value and the weekday value are different
+    numbers for the very same hour — the whole point of the fix."""
+    import numpy as np
+    from slots.policies import HourMarginLearner, warmup_hour_value
+    v = venue("bar")
+    # warmup already differs by day-of-week (peak flag is calendar-aware)
+    assert warmup_hour_value(v, 5, 16) == pytest.approx(0.6 * v.mean_margin_per_tick)
+    assert warmup_hour_value(v, 1, 16) == pytest.approx(0.0)   # Tue 16:00 slack
+
+    lrn = HourMarginLearner()
+    occ = np.zeros(v.ticks, dtype=np.int64)
+    occ[v.hidx(16) * 6:(v.hidx(16) + 1) * 6] = v.capacity      # 16:00 binds
+    lrn.end_day(v, 5, {16: 720.0}, occ)                        # a Saturday
+    sat_val = lrn.value(v, 5, 16)
+    tue_val = lrn.value(v, 1, 16)     # Tuesday 16:00 — untouched, warmup 0
+    assert sat_val == pytest.approx(720.0 / (v.capacity * 6))
+    assert tue_val == pytest.approx(0.0)
+    assert sat_val > tue_val + 1.0    # same hour, distinct value by weekday
+    # and a weekday folds into its OWN slot, not Saturday's
+    lrn.end_day(v, 1, {16: 360.0}, occ)
+    assert lrn.value(v, 5, 16) == pytest.approx(sat_val)   # Saturday unmoved
+
+
+def test_relief_credit_flows_the_calendar_aware_value():
+    """Integration: the calendar-aware peak flag reaches the relief credit.
+    A fresh nego arm (warmup values) offers a 16:00 buyer a −30-min shift
+    that frees a Saturday-afternoon PEAK slot and mints positive relief
+    (0.6 x mean list margin x the 3 freed peak ticks); the identical
+    clock-hour buyer on a Monday — where 16:00 is not peak — is offered no
+    peak-freeing shift, so the relief credit is 0. Pre-fix (calendar-blind)
+    both days shared hour 16's week-diluted, near-zero value and the
+    Saturday relief would have been mispriced to nearly nothing."""
+    from slots.policies import NegoPolicy
+    v = venue("bar")
+
+    def scenario(day):
+        state = fresh_day(v, day)
+        state.tick = 0
+        cust = _customer(v, ratio=1.35, desired=(16 - v.open_hour) * 6,
+                         n_req=1, kind="beer", flexible=True)
+        return NegoPolicy().quote_for(state, cust), cust
+
+    sat_deal, _ = scenario(5)
+    assert sat_deal is not None and sat_deal.shifted
+    assert sat_deal.relief == pytest.approx(0.6 * v.mean_margin_per_tick * 3)
+    mon_deal, _ = scenario(0)
+    assert mon_deal is None or mon_deal.relief <= 1e-9
+
 
 def test_slot_time_conservation():
     """booked + idle = capacity x ticks — sold from the revenue

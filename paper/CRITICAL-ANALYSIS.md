@@ -93,6 +93,27 @@ the *size* is on hold. Parking nego survives the elasticity fix unchanged
 (+$106–180/day, all significant; commuters confirmed least-elastic |e|=0.81);
 barber σ=0 positive holds (+$11–16/day, significant).
 
+**RESOLVED (2026-07-10): the calendar-blind artifact confirmed and removed —
+verdict now trustworthy and CLEAN.** Keying `peak_hours` + the relief EWMA on
+the day-of-week bucket (as `computed/1`'s mstar already was) let Saturday
+16:00 learn its own high slot value. The shift component collapsed ~70–84%
+(−$367–406 → **−$60–115/day**), and the fix also rescued full-nego from being
+a spurious net loser (bar nego −$263–385 → +$134–200/day, all CIs exclude
+zero) — confirming the −$400 was the artifact. **The boba-shaped-venue
+conclusion is now CLEAN: no-shift still wins at the bar (significant in 3/4
+cells) even with correctly-valued weekend shoulder slots, by a trustworthy
+$60–115/day.** That residual is irreducible by any *learned slot value* —
+whether this tick today is locally rebooked within the ±30-min window is
+same-day-trajectory state no day-level average can carry — which is exactly
+why slot-shifting logrolls are boba-shaped (order-ahead venues have that
+trajectory; walk-in venues don't). H-S2 fails at an honest magnitude.
+Side-finding: the ~31.6% peak anchor headroom is the *irreducible* price of
+two invariants (discount-only arms + a single-sticker profit-optimal static);
+it is symmetric across nego/noshift so it does not touch the shift verdict,
+and every attempt to close it either asymptotes short, turns static into a
+strawman the discount arms beat spuriously (the §1 artifact), or dissolves
+the single sticker into computed/1.
+
 ## 4. Vintage offer/1: −$302 at decent tags + deep shading; H-V1 refuted — HALF DEFECT, HALF CATEGORY ERROR, fix now
 
 Two distinct problems. (a) Counters trigger huffs the engine can't

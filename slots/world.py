@@ -168,7 +168,9 @@ class Venue:
     hours: tuple = ()
     ratio_appeal: float = 1.0
     cost_ratio: float = 0.0
-    peak_hours: tuple = ()
+    peak_hours: tuple = ()              # UNION of peak hours across the week
+                                        # (reporting + "ever peak" invariants)
+    peak_by_dow: dict = field(default_factory=dict)  # day%7 -> tuple(peak hours)
     mean_margin_per_tick: float = 0.0
     suffix_demand: np.ndarray | None = None   # (ticks+1, n_hours) unit-ticks
     mstar: dict = field(default_factory=dict)  # (day%7, hour) -> computed/1 mult
@@ -178,6 +180,32 @@ class Venue:
 
     def hidx(self, hour: int) -> int:
         return hour - self.open_hour
+
+    def dow_key(self, day: int) -> int:
+        """The day-of-week bucket the calendar-aware machinery keys on
+        (peak flags, the relief learner, warmup). `day % 7` for a venue that
+        actually varies by weekday (the bar's weekend curve), but a SINGLE
+        pooled bucket (0) for a calendar-flat venue (barber/parking, whose
+        dow multipliers are empty) — there, all seven days are the same
+        statistical process, so pooling their observations is strictly more
+        sample-efficient than splitting them, AND makes those venues
+        byte-identical to the pre-fix (per-hour) learner. Keys on the same
+        granularity the WORLD distinguishes — no finer, no coarser."""
+        return day % 7 if (self.dow_rate_mult or self.dow_wtp_mult) else 0
+
+    def is_peak(self, day: int, hour: int) -> bool:
+        """Calendar-aware congestion flag (CALIBRATION-TARGETS §4 follow-up,
+        the fourth Lucas-critique fix): whether `hour` is structurally
+        congested on this DAY-OF-WEEK bucket. Keyed like `mstar`, so the
+        bar's Saturday 16:00 — one of the week's busiest hours yet diluted
+        below threshold by the week-blended average — flags peak on Saturday
+        without spuriously flagging it on a quiet Monday. Barber/parking
+        pool to one bucket (all days identical), so every day gives the same
+        flags — byte-unaffected."""
+        return hour in self.peak_by_dow.get(self.dow_key(day), ())
+
+    def peak_hours_on(self, day: int) -> tuple:
+        return self.peak_by_dow.get(self.dow_key(day), ())
 
     def dow_rate_at(self, day: int, hour: int) -> float:
         return self.dow_rate_mult.get(day % 7, {}).get(hour, 1.0)
@@ -383,11 +411,21 @@ def capacity_shadow(state: VenueState, start: int, dur: int) -> float:
     unit-tick. Zero off-peak — the boba capacity-relief pattern: the value
     of shifting someone OFF a peak slot is exactly the shadow their
     desired slot no longer eats, and 0 anywhere demand is soft. A
-    first-order forecast, never marked to realized rescues."""
+    first-order forecast, never marked to realized rescues.
+
+    Congestion is now CALENDAR-AWARE (keyed on the day being simulated via
+    `state.day`): the guard fires on the bar's genuinely-busy Saturday
+    16:00 without firing on a quiet Monday 16:00 — `free_unit_ticks` reads
+    the actual day's occupancy, so a Saturday span that binds carries the
+    full shadow while the same weekday span (with slack) carries none. The
+    displacement probability still reads the calendar-COARSE D-hat (an
+    honestly flagged simplification, symmetric across computed/1 and
+    nego/1 — see the module docstring; peak flags and realized occupancy
+    are the calendar-aware parts)."""
     v = state.venue
     total = 0.0
     for hour in v.hours:
-        if hour not in v.peak_hours:
+        if not v.is_peak(state.day, hour):
             continue
         h0, h1 = v.hidx(hour) * 6, (v.hidx(hour) + 1) * 6
         ov = min(start + dur, h1) - max(start, h0)
@@ -620,6 +658,12 @@ def venue(name: str) -> Venue:
 
     contrib = np.zeros((v.ticks, n_hours))   # SUM over 7 days of rate-
                                              # weighted unit-ticks; /7'd below
+    # per-day-of-week expected unit-ticks landing in each hour, counted from
+    # OPEN (the from_tick=0 congestion measure) — NOT week-averaged. This is
+    # what makes `peak_hours` calendar-aware: the bar's Saturday afternoon
+    # can bind while the same weekday hour is slack. Barber/parking are
+    # calendar-flat, so every row is identical and equals the blend.
+    open_demand_by_dow = np.zeros((7, n_hours))
     margin_sum = tick_sum = 0.0
     for day_idx in DOW:
         for a in range(v.ticks):
@@ -649,7 +693,9 @@ def venue(name: str) -> Venue:
                                     h0, h1 = h * 6, (h + 1) * 6
                                     ov = min(t1, h1) - max(t0, h0)
                                     if ov > 0:
-                                        contrib[a, h] += ra * w * p_ge[j] * ov
+                                        cell = ra * w * p_ge[j] * ov
+                                        contrib[a, h] += cell
+                                        open_demand_by_dow[day_idx, h] += cell
     contrib /= 7.0
     margin_sum /= 7.0
     tick_sum /= 7.0
@@ -657,9 +703,21 @@ def venue(name: str) -> Venue:
     suffix[:-1] = contrib[::-1].cumsum(axis=0)[::-1]
     v.suffix_demand = suffix
     v.mean_margin_per_tick = margin_sum / tick_sum
-    v.peak_hours = tuple(
-        h for h in v.hours
-        if suffix[0, v.hidx(h)] >= PEAK_THRESHOLD * v.capacity * 6)
+    # peak flags, keyed by day-of-week: an hour is peak on a given day when
+    # THAT DAY's from-open expected demand ≥ 85% of the hour's capacity —
+    # not the week-blended average, which diluted the bar's Saturday
+    # afternoon below threshold (the diagnosed calendar-blind defect,
+    # paper/CRITICAL-ANALYSIS §3 CALIBRATED-WORLD UPDATE). Barber/parking
+    # rows are identical across days (trivial dow multipliers), so their
+    # per-day flags and their union both equal the old blended set exactly.
+    thr = PEAK_THRESHOLD * v.capacity * 6
+    v.peak_by_dow = {}
+    for d in DOW:                        # collapses to one bucket (0) when the
+        key = v.dow_key(d)               # venue is calendar-flat (dow_key == 0)
+        if key not in v.peak_by_dow:
+            v.peak_by_dow[key] = tuple(
+                h for h in v.hours if open_demand_by_dow[d, v.hidx(h)] >= thr)
+    v.peak_hours = tuple(sorted(set().union(*v.peak_by_dow.values())))
 
     # pass 4 — computed/1's per-(day, hour) multipliers (state-independent
     # part): a real mixture over that hour's segment mix (its own sigmas),

@@ -633,3 +633,192 @@ venues' notes), `slots/world.py` (per-segment sigma; day-of-week
 updated for the new calibration), `slots/results.json` (regenerated,
 `slots_version 3`).
 
+---
+
+## Calendar-aware relief (2026-07-10) — CRITICAL-ANALYSIS §3 CALIBRATED-WORLD follow-up, `slots_version 4`
+
+*30 paired days per grid cell, seed 20260710. Reproduce with
+`python3 -m slots.run --grid --days 30 --seed 20260710`.*
+
+This implements the fourth Lucas-critique fix, pre-registered in
+`paper/CRITICAL-ANALYSIS.md` §3's CALIBRATED-WORLD UPDATE: `peak_hours`
+and the `HourMarginLearner` relief EWMA were CALENDAR-BLIND. Harmless
+before the weekend curve landed, that blindness meant the bar's Saturday
+16:00 — one of the week's busiest hours — was never flagged "peak" (the
+week-blended average diluted it below the 85%-of-capacity threshold) and
+its learned relief value sat at $0.52/tick vs hour-20's $3.75/tick. The
+arm priced freed weekend-afternoon shoulder slots — exactly the ones the
+calibration just made valuable — as near-worthless, and the shift
+component deepened to a **DIAGNOSED-ARTIFACT −$367–406/day**.
+
+**The fix.** `peak_hours` and the relief learner are now keyed on the
+**day-of-week bucket** (`Venue.dow_key`: `day % 7` for a venue whose
+`dow_rate_mult`/`dow_wtp_mult` actually vary — the bar — and a single
+pooled bucket `0` for a calendar-flat venue — barber/parking, whose seven
+days are one statistical process, so pooling their observations is both
+strictly more sample-efficient AND makes them byte-identical to the
+pre-fix per-hour learner). This is the same keying `computed/1`'s `mstar`
+has used since the calibrated-world pass. Mechanics:
+`world.py` derives a per-day-of-week peak set (`peak_by_dow`, from that
+day's own from-open expected demand, not the week average) and
+`is_peak(day, hour)`/`peak_hours_on(day)`; `capacity_shadow` reads the
+day being simulated; `HourMarginLearner` folds each day's realized margins
+into that day-of-week's EWMA and `warmup_hour_value` warms up each
+day-of-week's peak slots. `expected_demand`/`suffix_demand` (the D-hat
+displacement *probability*) stay calendar-coarse — the flagged
+simplification, symmetric across `computed/1` and `nego/1`; the
+calendar-aware parts are the peak flags, the realized-occupancy gate, and
+the learned per-day slot values.
+
+**Scope, verified in the artifact diff.** Barber and parking are
+**byte-identical to `slots_version 3`** (calendar-flat → one pooled
+bucket → the pre-fix learner exactly): every barber/parking cell's margin,
+shift component, and CI reproduces v3 to the cent (barber shift
+−2.04/+1.10/−10.84/−13.67; parking +10.23/+12.03/−9.28/−8.18; barber σ=0
+nego-vs-static significant-positive verdict +$11.16 [1.56, 20.76] and
++$15.56 [5.03, 26.08] preserved). **Only the bar moves.**
+
+### Bar shift component (full nego − noshift), $/day — BEFORE vs AFTER the calendar-aware fix
+
+BEFORE is `slots_version 3` (the calibrated-world section above); AFTER is
+this fix (`slots_version 4`). CI95 is the DIRECT paired (nego − noshift)
+interval, 5-day blocks (pairing cancels the shared non-shift noise, so it
+is tighter and more powerful than differencing the two vs-static CIs).
+
+| cell | before | after | CI95 (after) | after excludes 0? |
+|---|---:|---:|---|---|
+| σ=0.0, flex=0.15 | **−405.83** | **−115.36** | [−184.95, −45.76] | **yes** |
+| σ=0.0, flex=0.35 | **−380.06** | **−110.62** | [−205.56, −15.67] | **yes** |
+| σ=0.4, flex=0.15 | **−385.50** | **−69.37** | [−109.30, −29.45] | **yes** |
+| σ=0.4, flex=0.35 | **−367.38** | **−59.74** | [−122.11, +2.63] | no |
+
+**The shift lever moved sharply toward zero — a ~70–84% collapse in
+magnitude** (−$367–406/day → −$60–115/day). The −$400 was indeed an
+artifact of the calendar-blind learner, as pre-registered. The
+`relief_credited` mispricing roughly halved too (−$11.3k to −$14.3k over
+30 days → −$5.8k to −$7.4k).
+
+### Bar margin Δ/day vs static — BEFORE vs AFTER
+
+| cell | nego BEFORE | nego AFTER | noshift BEFORE | noshift AFTER |
+|---|---:|---:|---:|---:|
+| σ=0.0, flex=0.15 | −384.87 [−665.84, −103.90] | **+133.91 [44.89, 222.93]** | +20.96 [−127.82, 169.74] | **+249.27 [186.23, 312.30]** |
+| σ=0.0, flex=0.35 | −327.19 [−544.60, −109.78] | **+145.80 [57.91, 233.68]** | +52.87 [−51.62, 157.36] | **+256.42 [220.01, 292.82]** |
+| σ=0.4, flex=0.15 | −295.40 [−724.42, 133.63] | **+186.86 [45.65, 328.08]** | +90.10 [−91.45, 271.65] | **+256.24 [146.19, 366.28]** |
+| σ=0.4, flex=0.35 | −262.92 [−653.96, 128.12] | **+200.30 [58.72, 341.87]** | +104.46 [−64.34, 273.27] | **+260.04 [149.67, 370.40]** |
+
+The calendar-aware fix **rescued full-nego from being a net loser at the
+bar**: it went from significantly WORSE than static (−$263–385/day, the
+v3 artifact) to a clear WINNER (+$134–200/day, all four CIs exclude 0).
+That reversal — the calibrated-world section's headline that "no-shift
+beats full-nego" had *deepened* until full-nego lost to static itself —
+was the calendar-blind learner destroying real value on the days it
+mattered most, not a clean economic verdict.
+
+### The trustworthy verdict
+
+**No-shift still wins at the bar — but by a trustworthy $60–115/day, not
+the artifact's $367–406/day.** The direct paired shift component is
+significantly negative in **3 of 4 cells** (only σ=0.4/flex=0.35 now
+straddles zero, at −59.74 [−122.11, +2.63]); no-shift captures
++$249–260/day vs full-nego's +$134–200/day. So with the weekend shoulder
+slots CORRECTLY valued, full-nego closes most of the gap on no-shift but
+**does not overtake it** — no-shift wins even at correct slot values. **The
+boba-shaped-venue conclusion is confirmed CLEAN.** The refuted-prediction
+finding from CRITICAL-ANALYSIS §3 stands at a magnitude we now trust:
+slot-shifting logrolls are a boba-shaped result (long service times,
+order-ahead, a shiftable queue) that does not generalize to short-peak
+walk-in venues; at 60 seats with a 4-hour peak the correct broker plays
+no-shift. The residual −$60–115/day is the genuine economic effect the
+pre-registration predicted, and its diagnosed cause is unchanged by this
+fix and *not further reducible by a learned slot value*: whether THIS
+tick, TODAY, would have been locally rebooked inside the ±30-min window
+buyers actually accept is same-day-trajectory information that **no
+day-level average can carry — not even a per-day-of-week one.** Making the
+learner calendar-aware removed the systematic cross-day mispricing (the
+$400 artifact); it cannot and does not remove the within-day,
+within-window state the Nash split hands partly to the buyer as a real
+discount.
+
+**H-S2, re-revisited: still FAILS, now at a trustworthy magnitude.** In no
+flex=0.35 cell does the shift component exceed the price-cut component
+(bar −110.62 vs +256.42). The pre-registered prediction ("the shift lever
+becomes ≥ 0 everywhere and full nego matches or beats the no-shift
+ablation") is REFUTED at the bar — but the case is now stated at
+−$60–115/day, the honest size, rather than the calendar-blind −$400.
+
+### Anchor-headroom investigation (the ~37% residual)
+
+The calibrated-world section flagged a residual: no finite anchor pins the
+peak's own unclamped profit-optimal multiplier to 1.0 under the shared
+full-week ratio-appeal inversion. Measured at the shipped anchor the peak
+crowd's unclamped optimum is **m\* = 1.316 → 31.6% headroom** (clamped to
+1.0 by the discount-only ceiling). The pre-registered question was whether
+a per-(day, hour) anchor or a non-shared inversion closes it. **Both were
+tested numerically; neither is clean — reported, not fixed:**
+
+- **Raise the dollar anchor (toward a fixed point).** Confirmed to
+  DIVERGE: as the anchor grows and cost becomes negligible, the peak's
+  unclamped m\* falls only toward an asymptote **> 1.0** (31.6% headroom at
+  ×1 → 23.1% at ×100, never 0). No finite anchor closes it.
+- **Non-shared (peak-subset) inversion** (invert R against the peak cell
+  alone, vend's `anchor_peak` spirit): pins the peak to exactly m\* = 1.0
+  (R drops 1.6255 → 1.2047), BUT the arrival-weighted **all-week blended
+  optimum collapses from 0.996 to 0.767** — static, posting its one
+  sticker at m = 1, would then OVERPRICE the entire week by ~30% (every
+  off-peak cell's optimum falls to 0.59–0.73). That turns the competent
+  static baseline into a **strawman**, and discount-only arms would beat it
+  spuriously off-peak — precisely the artifact CRITICAL-ANALYSIS §1 warns
+  against. NOT clean.
+- **Per-(day, hour) anchor** would require `static` to reprice by
+  (day, hour), dissolving the defining "one posted sticker all week"
+  baseline into a second copy of `computed/1`. Not applicable to a
+  posted-sticker control.
+
+**Conclusion: the ~32–37% headroom is the irreducible price of two
+deliberate design invariants — discount-only dynamic arms AND a
+single-sticker static that is the all-week profit-optimum — at a venue
+with strong within-week WTP dispersion. Closing it requires abandoning
+one of them.** Critically, the headroom is **symmetric across nego and
+noshift** (both discount-only, both capped at the same list), so it does
+NOT touch the shift-lever verdict above — it only bounds how much any
+discount-only arm can beat static at the peak. A genuinely closed fix
+would need a fixed, dollar-denominated "true peak WTP" input independent
+of the shared ratio-scale architecture every other venue parameter here
+uses (vend's pattern) — a larger re-architecture, out of this pass's
+scope.
+
+### Tests added / updated (all in `slots/tests/test_slots.py`)
+
+- `test_peak_hours_are_calendar_aware` — the bar's 16:00/17:00 flag peak on
+  Saturday (day 5) but not on a weekday (day 0); barber/parking peak sets
+  are identical across every day-of-week (pooled bucket).
+- `test_learner_and_warmup_are_keyed_on_day_of_week` — the task's explicit
+  check: Saturday 16:00 learns a value DISTINCT from (and higher than) the
+  same clock hour on a low-traffic weekday; a weekday fold does not move
+  Saturday's EWMA; warmup differs by day-of-week too.
+- `test_relief_credit_flows_the_calendar_aware_value` — integration: a
+  fresh nego arm mints positive warmup relief (0.6 × margin × 3 freed peak
+  ticks) for a −30-min shift off a Saturday-afternoon peak slot, and zero
+  for the identical clock-hour shift on a Monday where 16:00 is not peak.
+- Updated `_learned_policy`, `_expected_relief`,
+  `test_relief_prices_freed_peak_at_learned_regime_margin_not_list`,
+  `test_shoulder_displacement_is_charged`,
+  `test_warmup_falls_back_to_conservative_fraction_of_list_margin`,
+  `test_learner_observes_soldout_gated_realized_margin`, and
+  `test_run_day_feeds_the_learner_realized_margins` for the (day-of-week,
+  hour) keying. Full slots suite: **37 passing**
+  (`test_committed_results_stay_reproducible` re-pins `slots_version 4`).
+
+### Files changed
+
+`slots/world.py` (`Venue.dow_key`; per-day-of-week `peak_by_dow` built from
+`open_demand_by_dow`; `is_peak`/`peak_hours_on`; `capacity_shadow` reads
+`state.day`), `slots/policies.py` (`HourMarginLearner` keyed on
+`v.dow_key(day)` for `value`/`end_day`; `warmup_hour_value(v, day, hour)`
+calendar-aware; `nego_quote`/`NegoPolicy.quote_for`/`end_day` thread the
+day), `slots/run.py` (`SLOTS_VERSION` 3 → 4; `end_day` passes the day;
+`peak_sold_ticks` uses `peak_hours_on(day)`; config reports
+`peak_hours_by_dow`), `slots/tests/test_slots.py` (3 new tests, 7
+updated), `slots/results.json` (regenerated, `slots_version 4`).
+

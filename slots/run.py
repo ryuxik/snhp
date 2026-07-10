@@ -29,7 +29,13 @@ from slots.world import (DEFAULT_CONFIG, SlotConfig, VENUE_NAMES, Booking,
                          fresh_day, noshow_roll, occupy, release,
                          sample_customer, venue)
 
-SLOTS_VERSION = 3      # v3: calibrated-world (CALIBRATION-TARGETS §4 #7+#8):
+SLOTS_VERSION = 4      # v4: calendar-aware relief (paper/CRITICAL-ANALYSIS §3
+                       # CALIBRATED-WORLD follow-up). peak_hours and the
+                       # HourMarginLearner relief EWMA are now keyed on
+                       # (day%7, hour) — the same keying computed/1's mstar
+                       # uses — so the bar's Saturday-afternoon shoulder
+                       # slots learn their own (high) value instead of the
+                       # week-blended one. v3: calibrated-world (§4 #7+#8):
                        # bar weekend curve + peak-anchor fix, barber
                        # utilization/deposit no-show regime, parking
                        # structural per-segment elasticity
@@ -146,9 +152,9 @@ def run_day(policy, venue_name: str, master_seed: int, day: int,
     # that learn from their own history (the nego arms' HourMarginLearner)
     hour_margin = m.pop("_hour_margin", {})
     if hasattr(policy, "end_day"):
-        policy.end_day(v, hour_margin, state.occupied)
+        policy.end_day(v, day, hour_margin, state.occupied)
     peak = np.zeros(v.ticks, dtype=bool)
-    for h in v.peak_hours:
+    for h in v.peak_hours_on(day):      # calendar-aware peak occupancy metric
         peak[v.hidx(h) * 6:(v.hidx(h) + 1) * 6] = True
     m["peak_sold_ticks"] = int(state.occupied[peak].sum())
     # slot-time conservation: sold (accounting) + idle (grid) = capacity.
@@ -220,7 +226,9 @@ def run_experiment(arm_names: list[str], venue_name: str, days: int,
                       "flexible_share": cfg.flexible_share,
                       "capacity": v.capacity, "ticks": v.ticks,
                       "noshow_prob": v.noshow_prob,
-                      "peak_hours": list(v.peak_hours),
+                      "peak_hours": list(v.peak_hours),   # union across dow
+                      "peak_hours_by_dow": {d: list(v.peak_hours_on(d))
+                                            for d in range(7)},
                       "congestion_ratio": round(congestion_ratio(v), 3)},
             "notes": [
                 "static arm = ratio-appeal inversion makes list the "
