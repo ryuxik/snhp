@@ -108,3 +108,48 @@ we say so.
 
 Reproduce: `python3 -m vend.run --days 30 --seed 20260713 --arms static,gvr,a2a`
 and `--arms a2a,a2a-liars25,a2a-liars50,a2a-liars100`.
+
+## P1.5 (2026-07-09) — negotiation pays exactly where the real world lives
+
+P0/P1 gave the sticker an omniscient operator in a stationary world. P1.5
+restores real retail's information structure — day-level demand shocks, an
+office-tower calendar under one all-week sticker, glut deliveries, and the
+big one: the sticker is optimized against a NOISY operator estimate of
+demand (σ_cal), which is also what the dynamic arms believe (they adapt via
+a Gamma–Poisson crowd posterior and shares learned from their own sales;
+nobody secretly knows the truth). Pre-registered grid, 30 paired days per
+cell (`vend/grid.json`):
+
+| σ_cal \ σ_shock | 0 | 0.3 | 0.6 |
+|---|---|---|---|
+| **0 (omniscient)** | a2a −6.05 | −4.08 | −1.65 |
+| **0.15** | −3.19 | −1.53 | −0.30 *(all straddle 0)* |
+| **0.30 (realistic)** | **+3.80** [1.3, 6.3] | **+4.48** [1.4, 7.6] | **+5.85** [2.5, 9.2] |
+
+(a2a profit Δ/day vs static; control cell with all knobs off replicates
+P0/P1: −12.17.)
+
+**The three findings:**
+1. **Monotone in operator ignorance, exactly as pre-registered.** With a
+   perfectly-calibrated sticker, static stays unbeatable. At a realistic
+   ±30% demand-estimate error, brokered negotiation wins **+$3.80–5.85/day
+   per machine** (CIs exclude zero), and the edge GROWS with demand
+   volatility. Replicated on an independent seed (+$4.05 [1.1, 7.0]).
+2. **Both sides win — only in the A2A arm.** Consumer surplus is positive
+   in every winning cell (+$0.94 to +$2.00/day; +$4.45 on the replication
+   seed). Dynamic posted pricing (gvr) ekes out ~$1/day; **negotiation's
+   edge over posted-dynamic is 4–5×**, because disclosure beats inference:
+   the posted arm learns the crowd slowly from foot traffic, while the
+   negotiation sees each buyer's actual willingness directly, so the
+   miscalibrated sticker stops mattering for negotiated deals.
+3. **The mechanism sentence:** a sticker is a bet on a demand curve;
+   negotiation is what wins when that bet is wrong — and outside
+   simulations, it is always somewhat wrong.
+
+Caveats, honestly: the discount-only clamp means stickers set too LOW are
+unrecoverable by every arm (the win comes from the too-high SKUs); σ_cal =
+0.30 as "realistic" is an assumption reviewers should attack (markdown-
+optimization vendors claim retail price-setting errors at least this
+large); WTP shocks remain unobserved by all arms alike.
+
+Reproduce: `python3 -m vend.run --grid --days 30 --seed 20260713 --arms static,gvr,a2a`

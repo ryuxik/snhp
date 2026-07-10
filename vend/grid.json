@@ -1,0 +1,532 @@
+{
+ "vend_version": 1,
+ "days": 30,
+ "seed": 20260713,
+ "arms": [
+  "static",
+  "gvr",
+  "a2a"
+ ],
+ "cells": {
+  "control": {
+   "world": {
+    "sigma_cal": 0.0,
+    "sigma_rate": 0.0,
+    "sigma_wtp": 0.0,
+    "dow": false,
+    "glut_prob": 0.0
+   },
+   "profit": {
+    "static": 2862.75,
+    "gvr": 2800.98,
+    "a2a": 2497.62
+   },
+   "paired": {
+    "gvr_vs_static": {
+     "profit": {
+      "mean": -2.06,
+      "ci95": [
+       -2.78,
+       -1.34
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": 2.35,
+      "ci95": [
+       1.54,
+       3.16
+      ],
+      "n": 30
+     }
+    },
+    "a2a_vs_static": {
+     "profit": {
+      "mean": -12.17,
+      "ci95": [
+       -14.02,
+       -10.33
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": -17.26,
+      "ci95": [
+       -19.58,
+       -14.94
+      ],
+      "n": 30
+     }
+    }
+   }
+  },
+  "cal0_shock0": {
+   "world": {
+    "sigma_cal": 0.0,
+    "sigma_rate": 0.0,
+    "sigma_wtp": 0.0,
+    "dow": true,
+    "glut_prob": 0.15
+   },
+   "profit": {
+    "static": 2229.45,
+    "gvr": 2188.84,
+    "a2a": 2047.82
+   },
+   "paired": {
+    "gvr_vs_static": {
+     "profit": {
+      "mean": -1.35,
+      "ci95": [
+       -2.22,
+       -0.49
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": 2.6,
+      "ci95": [
+       1.55,
+       3.65
+      ],
+      "n": 30
+     }
+    },
+    "a2a_vs_static": {
+     "profit": {
+      "mean": -6.05,
+      "ci95": [
+       -10.17,
+       -1.94
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": -10.25,
+      "ci95": [
+       -13.49,
+       -7.01
+      ],
+      "n": 30
+     }
+    }
+   }
+  },
+  "cal0_shock0.3": {
+   "world": {
+    "sigma_cal": 0.0,
+    "sigma_rate": 0.3,
+    "sigma_wtp": 0.15,
+    "dow": true,
+    "glut_prob": 0.15
+   },
+   "profit": {
+    "static": 2213.9,
+    "gvr": 2163.77,
+    "a2a": 2091.64
+   },
+   "paired": {
+    "gvr_vs_static": {
+     "profit": {
+      "mean": -1.67,
+      "ci95": [
+       -2.47,
+       -0.87
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": 2.53,
+      "ci95": [
+       1.75,
+       3.31
+      ],
+      "n": 30
+     }
+    },
+    "a2a_vs_static": {
+     "profit": {
+      "mean": -4.08,
+      "ci95": [
+       -8.68,
+       0.53
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": -7.48,
+      "ci95": [
+       -11.31,
+       -3.65
+      ],
+      "n": 30
+     }
+    }
+   }
+  },
+  "cal0_shock0.6": {
+   "world": {
+    "sigma_cal": 0.0,
+    "sigma_rate": 0.6,
+    "sigma_wtp": 0.3,
+    "dow": true,
+    "glut_prob": 0.15
+   },
+   "profit": {
+    "static": 2079.95,
+    "gvr": 2042.36,
+    "a2a": 2030.55
+   },
+   "paired": {
+    "gvr_vs_static": {
+     "profit": {
+      "mean": -1.25,
+      "ci95": [
+       -2.04,
+       -0.47
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": 3.16,
+      "ci95": [
+       2.25,
+       4.07
+      ],
+      "n": 30
+     }
+    },
+    "a2a_vs_static": {
+     "profit": {
+      "mean": -1.65,
+      "ci95": [
+       -5.88,
+       2.59
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": -6.57,
+      "ci95": [
+       -11.12,
+       -2.02
+      ],
+      "n": 30
+     }
+    }
+   }
+  },
+  "cal0.15_shock0": {
+   "world": {
+    "sigma_cal": 0.15,
+    "sigma_rate": 0.0,
+    "sigma_wtp": 0.0,
+    "dow": true,
+    "glut_prob": 0.15
+   },
+   "profit": {
+    "static": 2096.55,
+    "gvr": 2094.39,
+    "a2a": 2000.72
+   },
+   "paired": {
+    "gvr_vs_static": {
+     "profit": {
+      "mean": -0.07,
+      "ci95": [
+       -0.82,
+       0.67
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": 2.73,
+      "ci95": [
+       1.81,
+       3.65
+      ],
+      "n": 30
+     }
+    },
+    "a2a_vs_static": {
+     "profit": {
+      "mean": -3.19,
+      "ci95": [
+       -6.81,
+       0.42
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": -4.16,
+      "ci95": [
+       -7.59,
+       -0.73
+      ],
+      "n": 30
+     }
+    }
+   }
+  },
+  "cal0.15_shock0.3": {
+   "world": {
+    "sigma_cal": 0.15,
+    "sigma_rate": 0.3,
+    "sigma_wtp": 0.15,
+    "dow": true,
+    "glut_prob": 0.15
+   },
+   "profit": {
+    "static": 2102.7,
+    "gvr": 2074.57,
+    "a2a": 2056.84
+   },
+   "paired": {
+    "gvr_vs_static": {
+     "profit": {
+      "mean": -0.94,
+      "ci95": [
+       -1.75,
+       -0.13
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": 1.77,
+      "ci95": [
+       0.73,
+       2.8
+      ],
+      "n": 30
+     }
+    },
+    "a2a_vs_static": {
+     "profit": {
+      "mean": -1.53,
+      "ci95": [
+       -5.91,
+       2.85
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": -3.23,
+      "ci95": [
+       -7.69,
+       1.22
+      ],
+      "n": 30
+     }
+    }
+   }
+  },
+  "cal0.15_shock0.6": {
+   "world": {
+    "sigma_cal": 0.15,
+    "sigma_rate": 0.6,
+    "sigma_wtp": 0.3,
+    "dow": true,
+    "glut_prob": 0.15
+   },
+   "profit": {
+    "static": 1985.25,
+    "gvr": 1982.86,
+    "a2a": 1976.28
+   },
+   "paired": {
+    "gvr_vs_static": {
+     "profit": {
+      "mean": -0.08,
+      "ci95": [
+       -0.91,
+       0.75
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": 2.88,
+      "ci95": [
+       1.86,
+       3.9
+      ],
+      "n": 30
+     }
+    },
+    "a2a_vs_static": {
+     "profit": {
+      "mean": -0.3,
+      "ci95": [
+       -4.24,
+       3.64
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": -2.81,
+      "ci95": [
+       -6.96,
+       1.33
+      ],
+      "n": 30
+     }
+    }
+   }
+  },
+  "cal0.3_shock0": {
+   "world": {
+    "sigma_cal": 0.3,
+    "sigma_rate": 0.0,
+    "sigma_wtp": 0.0,
+    "dow": true,
+    "glut_prob": 0.15
+   },
+   "profit": {
+    "static": 1822.75,
+    "gvr": 1852.61,
+    "a2a": 1936.89
+   },
+   "paired": {
+    "gvr_vs_static": {
+     "profit": {
+      "mean": 1.0,
+      "ci95": [
+       -0.05,
+       2.04
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": 1.55,
+      "ci95": [
+       0.72,
+       2.39
+      ],
+      "n": 30
+     }
+    },
+    "a2a_vs_static": {
+     "profit": {
+      "mean": 3.8,
+      "ci95": [
+       1.27,
+       6.34
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": 0.94,
+      "ci95": [
+       -1.29,
+       3.18
+      ],
+      "n": 30
+     }
+    }
+   }
+  },
+  "cal0.3_shock0.3": {
+   "world": {
+    "sigma_cal": 0.3,
+    "sigma_rate": 0.3,
+    "sigma_wtp": 0.15,
+    "dow": true,
+    "glut_prob": 0.15
+   },
+   "profit": {
+    "static": 1862.2,
+    "gvr": 1878.16,
+    "a2a": 1996.51
+   },
+   "paired": {
+    "gvr_vs_static": {
+     "profit": {
+      "mean": 0.53,
+      "ci95": [
+       -0.45,
+       1.51
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": 2.4,
+      "ci95": [
+       1.57,
+       3.23
+      ],
+      "n": 30
+     }
+    },
+    "a2a_vs_static": {
+     "profit": {
+      "mean": 4.48,
+      "ci95": [
+       1.36,
+       7.59
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": 1.26,
+      "ci95": [
+       -1.84,
+       4.36
+      ],
+      "n": 30
+     }
+    }
+   }
+  },
+  "cal0.3_shock0.6": {
+   "world": {
+    "sigma_cal": 0.3,
+    "sigma_rate": 0.6,
+    "sigma_wtp": 0.3,
+    "dow": true,
+    "glut_prob": 0.15
+   },
+   "profit": {
+    "static": 1776.5,
+    "gvr": 1814.21,
+    "a2a": 1951.88
+   },
+   "paired": {
+    "gvr_vs_static": {
+     "profit": {
+      "mean": 1.26,
+      "ci95": [
+       -0.13,
+       2.65
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": 2.48,
+      "ci95": [
+       1.36,
+       3.59
+      ],
+      "n": 30
+     }
+    },
+    "a2a_vs_static": {
+     "profit": {
+      "mean": 5.85,
+      "ci95": [
+       2.53,
+       9.16
+      ],
+      "n": 30
+     },
+     "consumer_surplus": {
+      "mean": 2.0,
+      "ci95": [
+       -1.99,
+       5.99
+      ],
+      "n": 30
+     }
+    }
+   }
+  }
+ }
+}
