@@ -374,6 +374,33 @@ resale value so the outside-option claim cannot move it) restores IC — if it
 does, the unifying claim becomes "emergent IC wherever the disagreement point
 is pinned to a pre-committed value."**
 
+**OUTCOME (2026-07-10) on action (c): the natural capacity fix does NOT
+restore IC — §10 stands and STRENGTHENS.** Implemented the observable-market
+floor (a buyer's claimed outside option is capped at what their OWN disclosed
+valuation earns at the visible competitor board — using rivals' PUBLIC prices
+only to validate a claim, never to set ours, distinct from RealPage). It
+provably removes the *entire observable lie* (the floored walk=zero cell is
+byte-identical to walk=honest), collapsing the old best-response exploit
++$1,099–1,171 → +$556–606/day. But the buyer just understates WTP harder to
+compensate: the best-response exploit falls only ~24–27% (to +$797–850/day),
+and the crossover liar-share that wipes the +$270–350 headline moves only
+~3 points (32–33% → 35–36%). **Honesty is still emphatically not a best
+response, so IC is not restored.** The dominant channel is the genuinely
+*private* WTP-understatement, which collapses the shop's believed menu-margin
+counterfactual — a term the outside-option floor cannot reach. Conclusion:
+pinning the *outside-option* term is necessary but insufficient; at a capacity
+venue the private-value term itself is manipulable in a way finite stock is
+not, so the honest paths remain (b) — verification becomes a security
+requirement, or the liar-immune menu (which keeps only ~10% of the gain). The
+"emergent IC wherever the disagreement point is pinned" unification is
+therefore NOT available for capacity venues via the cheap fix; it would
+require pinning the private-value counterfactual too, which is exactly what
+attestation does. **Balking-respec side-result (unrelated, good news): under
+the corrected queue-LENGTH nonlinear balking (Lu et al. 2013) the
+capacity-smoothing lever survives and GROWS (+$165–206 → +$212–260/day, all
+CIs exclude zero) — the biggest boba lever is robust to the functional-form
+correction.**
+
 ## The meta-pattern
 
 Every real defect found so far is the same defect: **some term in the

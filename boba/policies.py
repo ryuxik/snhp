@@ -190,6 +190,10 @@ class CartPolicy:
     liar_share: float = 0.0
     attack_wtp_factor: float = 0.55
     attack_claim_walk: bool = True
+    # BOBA P1a fix (#58): validate the outside-option claim against observable
+    # competitor prices. Default OFF = byte-identical to P0 (a no-op for honest
+    # buyers regardless, since their disclosed valuation IS their claim).
+    market_floor: bool = False
 
     def boards(self, state: ShopState) -> tuple[dict[str, float], dict[str, float]]:
         return sticker_boards()
@@ -197,7 +201,8 @@ class CartPolicy:
     def quote_for(self, state: ShopState, consumer: Consumer) -> CartDeal | None:
         return cart_nash(state, consumer, self.min_gain_abs, self.min_gain_frac,
                          defer_slots=self.defer_slots, salvage=self.salvage,
-                         quote_lookers=self.quote_lookers)
+                         quote_lookers=self.quote_lookers,
+                         market_floor=self.market_floor)
 
 
 def cart_nash(state: ShopState, consumer: Consumer,
@@ -206,7 +211,8 @@ def cart_nash(state: ShopState, consumer: Consumer,
               defer_slots: bool = True,
               salvage: bool = True,
               quote_lookers: bool = True,
-              outside_consumer: Consumer | None = None) -> CartDeal | None:
+              outside_consumer: Consumer | None = None,
+              market_floor: bool = False) -> CartDeal | None:
     """Nash bargaining over the cart outcome space, in dollars.
 
     The disagreement point is one consistent no-deal EVENT for both sides:
@@ -237,11 +243,31 @@ def cart_nash(state: ShopState, consumer: Consumer,
     DIFFERENT (typically truer, larger) valuation of the coffee shop next
     door than the one used to lowball this counter — 'I don't want much of
     this menu, but I'd happily pay full price two doors down.'
+
+    `market_floor` (BOBA P1a fix, issue #58): bound that outside-option term
+    by an OBSERVABLE competitor-price floor. The WTP-understatement is
+    genuinely private, but the OUTSIDE-OPTION claim is NOT — in a dense block
+    the rival carts' posted prices are public. So the buyer's claimed BATNA is
+    validated against them: the outside surplus can be no richer than what the
+    buyer's OWN disclosed valuation earns at the observable competitor board
+    (`outside_surplus` already prices against the +10%-markup posted menu). A
+    buyer who lowballs their in-store WTP cannot ALSO claim they'd 'happily pay
+    full price two doors down' — the same person can't value the same drink low
+    here and high there, and the shop can SEE the there-price. This is NOT the
+    RealPage move: we use competitors' PUBLIC prices only to CHECK a buyer's
+    self-serving claim, never to coordinate OUR OWN price off a rival's — our
+    prices never reference theirs, we only refuse to credit an unobservable
+    outside-option story. It floors the observable lie (claim_walk) and leaves
+    the genuinely-private WTP-understatement (which shrinks the disclosed menu
+    counterfactual d_shop) untouched — that residual is vend's finite-stock
+    shadow-pricing job, out of scope here.
     """
     b = balk_prob(state)
     pearls_stocked = state.pearl_stock()
     s_out = outside_surplus(outside_consumer if outside_consumer is not None
                             else consumer)
+    if market_floor:
+        s_out = min(s_out, outside_surplus(consumer))
 
     # the sticker counterfactual, via the same canonical chooser the
     # simulated walk-in uses (with the same pearls-availability rule)

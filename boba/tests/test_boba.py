@@ -16,8 +16,8 @@ from boba.world import (BATCH_SERVINGS, PEAK_HOURS, PEARL_COST,
                         TOP_COST, TOP_PRICE, arrivals_at, balk_prob,
                         best_menu_order, bundle_value, capacity_relief,
                         close_out, cook_batch, day_rate_mult, expected_wait_minutes,
-                        expire_batches, hour_of, maybe_cook, open_shop,
-                        outside_surplus, sample_consumer, serve_queue,
+                        expire_batches, hour_of, maybe_cook, observed_queue_length,
+                        open_shop, outside_surplus, sample_consumer, serve_queue,
                         take_pearls)
 
 
@@ -415,6 +415,140 @@ def test_liar_battery_and_sweep_run_end_to_end():
         # days=5 < 2*block(5): paired_ci falls back to the unblocked daily
         # series (n=5) rather than discarding the run — still a valid CI
         assert cell["margin"]["n"] == 5
+
+
+# ── BOBA P1a fix (#58): the observable market-price floor ─────────────────
+
+def test_market_floor_caps_the_outside_option_at_the_disclosed_valuation():
+    """The fix: a buyer who lowballs in-store WTP cannot ALSO claim a richer
+    valuation two doors down — the competitor's prices are observable, so the
+    outside option is capped at what the DISCLOSED valuation earns there. With
+    the floor on, a claim_walk deal is byte-identical to its honest-outside
+    (walk=honest) twin and costs the liar a strictly higher price than the
+    unfloored claim_walk exploit."""
+    state = open_shop()
+    state.tick = 30
+    c = _rich_consumer(wtp_scale=1.35, tops=0.4, decay=0.15)
+    disclosed, outside_c = strategic_disclosure(c, 0.6, claim_walk=True)
+    assert outside_surplus(c) > outside_surplus(disclosed)     # the lie has teeth
+    unfloored = cart_nash(state, disclosed, outside_consumer=outside_c,
+                          market_floor=False)
+    floored = cart_nash(state, disclosed, outside_consumer=outside_c,
+                        market_floor=True)
+    honest_out = cart_nash(state, disclosed, outside_consumer=None)
+    assert floored == honest_out          # claim_walk collapses onto disclosed
+    assert unfloored is not None and floored is not None
+    assert floored.d_buyer <= unfloored.d_buyer + 1e-9        # BATNA un-inflated
+    assert floored.price >= unfloored.price - 1e-9            # shop keeps more
+
+
+def test_market_floor_is_a_noop_for_honest_disclosure():
+    """An honest buyer's claim IS their disclosure, so min(claim, floor) does
+    nothing — market_floor=True must be byte-identical to P0 wherever no lie
+    is told."""
+    state = open_shop()
+    for tick in (12, 30, 48):
+        state.tick = tick
+        for scale in (0.85, 1.0, 1.3):
+            c = _rich_consumer(wtp_scale=scale, tops=scale, decay=0.15)
+            assert cart_nash(state, c, market_floor=True) == cart_nash(state, c)
+
+
+def test_cartpolicy_market_floor_defaults_off_and_is_noop_at_zero_share():
+    assert CartPolicy().market_floor is False
+    floored_off = [run_day(CartPolicy(market_floor=True), 5, d) for d in range(3)]
+    p0 = [run_day(CartPolicy(), 5, d) for d in range(3)]
+    assert floored_off == p0              # floor is a no-op with no liars
+
+
+def test_market_floor_reduces_venue_erosion_at_the_claim_walk_best_response():
+    """End-to-end: at the unfloored best-response deviation (0.7, claim_walk)
+    the floor STRICTLY reduces the venue's margin erosion — it removes the
+    outside-option half of the exploit. (It does NOT hold at every deviation:
+    where claim_walk already hurts the buyer, e.g. 0.55, the floor pushes them
+    to the better-for-them honest-outside lie — the fix targets the observable
+    claim, not every misreport; see RESULTS.md P1a-fix.)"""
+    dev = dict(attest=False, liar_share=1.0, attack_wtp_factor=0.7,
+               attack_claim_walk=True)
+    base = [run_day(CartPolicy(), 20260713, d) for d in range(6)]
+    unf = [run_day(CartPolicy(**dev), 20260713, d) for d in range(6)]
+    flo = [run_day(CartPolicy(**dev, market_floor=True), 20260713, d)
+           for d in range(6)]
+    ero_unf = sum(f["margin"] - b["margin"] for f, b in zip(unf, base))
+    ero_flo = sum(f["margin"] - b["margin"] for f, b in zip(flo, base))
+    assert ero_unf < 0 and ero_flo < 0                  # both erode the venue
+    assert ero_flo > ero_unf                            # but the floor erodes LESS
+
+
+# ── BOBA #52: length-based balking (Lu et al., Mgmt Sci 2013) ─────────────
+
+def test_balk_model_defaults_to_wait_and_is_byte_identical():
+    """The corrected spec is opt-in: BobaConfig defaults to the legacy
+    wait model, and a run under it is byte-identical to P0 (results.json
+    is never touched)."""
+    assert BobaConfig().balk_model == "wait"
+    assert open_shop().balk_model == "wait"
+    wait = [run_day(CartPolicy(), 5, d, BobaConfig(flexible_share=0.35)) for d in range(3)]
+    explicit = [run_day(CartPolicy(), 5, d,
+                        BobaConfig(flexible_share=0.35, balk_model="wait"))
+                for d in range(3)]
+    assert wait == explicit
+
+
+def test_length_balk_is_nonlinear_saturating_and_concave():
+    """Lu et al.'s form: P(balk|L) = 1 − exp(−α·L) — zero at an empty
+    counter, strictly increasing, capped below 1, and CONCAVE (each extra
+    party deters less than the last: the key nonlinearity the wait model's
+    linearity gets wrong)."""
+    from collections import deque
+    s = open_shop(balk_model="length")
+    s.queue = deque()
+    assert balk_prob(s) == 0.0
+    probs = []
+    for L in range(0, 9):
+        s.queue = deque([1] * L)
+        probs.append(balk_prob(s))
+    assert all(0.0 <= p < 1.0 for p in probs)
+    assert all(probs[i + 1] > probs[i] for i in range(len(probs) - 1))   # monotone
+    marg = [probs[i + 1] - probs[i] for i in range(len(probs) - 1)]
+    assert all(marg[i + 1] < marg[i] + 1e-12 for i in range(len(marg) - 1))  # concave
+
+
+def test_length_balk_reads_party_count_not_drink_count():
+    """The correction's whole point: abandonment tracks the OBSERVED number
+    of parties in line, not the (invisible) total drink count or a computed
+    wait. One 10-drink party and ten 1-drink parties carry the same drink
+    load but a walk-in sees a very different line — and balks accordingly."""
+    from collections import deque
+    s = open_shop(balk_model="length")
+    s.queue = deque([10])
+    assert observed_queue_length(s) == 1
+    one_big = balk_prob(s)
+    s.queue = deque([1] * 10)
+    assert observed_queue_length(s) == 10
+    ten_small = balk_prob(s)
+    assert ten_small > one_big + 0.3               # length, not drink load, drives it
+    # the legacy wait model collapses them (same drinks -> same wait)
+    w = open_shop(balk_model="wait")
+    w.queue = deque([10])
+    a = balk_prob(w)
+    w.queue = deque([1] * 10)
+    assert balk_prob(w) == a
+
+
+def test_smoothing_lever_survives_length_balk():
+    """THE #52 question: the capacity-smoothing lever (full cart − cart with
+    pickup slots OFF) stays clearly positive under the corrected balking
+    functional form — the deferred-slot logroll does not depend on the
+    wait-linear spec."""
+    import numpy as np
+    cfg = BobaConfig(sigma_shock=0.0, flexible_share=0.35, balk_model="length")
+    days = 15
+    cart = [run_day(CartPolicy(), 20260710, d, cfg)["margin"] for d in range(days)]
+    nodef = [run_day(CartPolicy(defer_slots=False), 20260710, d, cfg)["margin"]
+             for d in range(days)]
+    lever = float(np.mean([c - n for c, n in zip(cart, nodef)]))
+    assert lever > 100.0            # ~$256/day at 30d; comfortably positive at 15d
 
 
 # ── BOBA P1b: menu fairness ──────────────────────────────────────────────

@@ -350,3 +350,228 @@ against cart's *committed* P0 ablation numbers (`RESULTS.md`, seed
 second-order inconsistency (different day count) noted, not corrected,
 since re-deriving that table isn't in scope here and the committed numbers
 are themselves reproducible from `results.json`.
+
+# BOBA P1a-fix (2026-07-10) — the observable market-price floor (#58)
+
+*Reproduce: `python3 -m boba.attack --battery --liar-sweep --market-floor
+--wtp-factor 0.55 --claim-walk --seed 20260713 --days 30` (and `--seed 7`).
+Floored artifacts committed at `boba/attack-battery-floored.json`,
+`boba/liar-sweep-floored.json` (both keyed `{seed: result}`, 30 paired days,
+block-5 CIs). The unfloored P1a numbers above still reproduce byte-identically
+(the floor defaults OFF; `CartPolicy.market_floor=False`).*
+
+## The fix, and why it is NOT collusion
+
+The P1a exploit stacks two lies: an **understated WTP** (genuinely private —
+the shop can't see how much a buyer values a drink) and an **inflated
+outside-option claim** (`claim_walk`, "I'd happily pay full price two doors
+down"). The review's key insight: the second lie is NOT private. In a dense
+block a rival cart's **posted prices are public**, so a claimed BATNA can be
+checked against them. `cart_nash(..., market_floor=True)` does exactly that:
+
+    s_out = min(s_out_claimed, outside_surplus(disclosed_consumer))
+
+The claimed outside surplus is capped at what the buyer's **own disclosed
+valuation** earns at the observable competitor board (`outside_surplus` already
+prices against the +10%-markup posted menu). A buyer who lowballs their in-store
+WTP cannot simultaneously claim a *richer* valuation next door — same person,
+same drink, and the shop can see the there-price. **This is not the RealPage
+move:** we use competitors' PUBLIC prices only to *validate a buyer's
+self-serving claim*; we never reference a rival's price to set OUR OWN (no
+price is a function of a competitor's). It touches exactly one term — the
+disagreement point's outside option — and nothing else.
+
+## What the floor removes: the entire `claim_walk` column, provably
+
+For any understating factor the floored `walk=zero` cell is **byte-identical**
+to its `walk=honest` twin: both reduce to `outside_surplus(disclosed)` (with
+`disclosed < true`, `min` always picks the disclosed floor). Measured, seed
+20260713 / seed 7, pooled buyer-utility Δ/day vs all-honest cart:
+
+| wtp_factor | walk=honest (≡ floored walk=zero) | UNFLOORED walk=zero (was) |
+|---|---|---|
+| 0.55 | +$797.60 / +$849.71 | +$584.16 / +$604.32 |
+| 0.70 | +$556.52 / +$606.18 | **+$1,099.06 / +$1,170.65** |
+| 0.85 | +$262.93 / +$278.87 | +$975.48 / +$1,036.84 |
+
+The old best response (0.70 + `claim_walk`, +$1,099–1,171/day) is gone: at 0.70
+the floor cuts the exploit to +$556–606. Overstating cells (>1.0) are
+unchanged (there `disclosed > true`, so the floor is a no-op — correctly, since
+those lie the other way and lose money anyway).
+
+## What the floor does NOT remove: the buyer just understates harder
+
+**The buyer re-optimizes.** With `claim_walk` floored, the surplus-maximizing
+deviation slides down the private-WTP axis to compensate. A finer sweep
+(seed 20260713, 100% liars, floor ON, `walk=honest`):
+
+| factor | buyer CS Δ/day | venue margin Δ/day |
+|---|---:|---:|
+| 0.40 | +$796.68 | −$1,097.44 |
+| 0.50 | **+$830.99** | −$1,012.68 |
+| 0.55 | +$797.60 | −$932.38 |
+| 0.70 | +$556.52 | −$600.98 |
+
+The new best response is **≈0.50, pure understatement**: buyer CS **+$831/day**
+(vs +$1,099 unfloored) — the floor removes only **~24%** of the best-response
+buyer exploit. And note factor 0.40 already inflicts **more** venue damage
+(−$1,097) than the unfloored best response did (−$1,081): the floor does not
+even bound the venue's worst case, because the dominant channel it cannot touch
+is getting hit harder.
+
+**Why.** The private WTP-understatement attacks a DIFFERENT term than the
+outside option. Lowballing the disclosed WTP shrinks `best_menu_order`'s
+disclosed surplus `s_menu`, which (a) collapses the shop's believed menu-margin
+counterfactual `d_shop = (1−b)·margin_menu` toward zero, and (b) when
+`s_menu_disc` hits 0, flips `cart_nash` into the found-money branch (`d_shop=0`)
+outright — *without any outside-option claim at all*. The floor bounds the
+outside option; it has no purchase on the shop's own menu counterfactual, which
+rests on a WTP the shop genuinely cannot observe. That is precisely the residual
+the review flagged for vend's finite-stock shadow pricing.
+
+## Headline survival: crossover moves from ~32% to ~35–38% of liars
+
+Floored liar-share sweep, venue margin Δ/day vs all-honest cart (headline =
+all-honest cart vs static, +$349.97 / +$351.10 — **unchanged**, the floor is a
+no-op on honest buyers):
+
+| liar share | floored @0.55 (grid best) | floored @0.50 (buyer's true opt) | UNFLOORED @0.70+walk (was) |
+|---|---|---|---|
+| 25% | −$222.84 / −$228.23 | −$238.86 / −$247.84 | −$257.08 / −$273.69 |
+| 50% | −$456.72 / −$459.88 | −$494.80 / −$501.15 | −$532.04 / −$548.45 |
+| 100% | −$932.38 / −$943.12 | −$1,012.68 / −$1,023.90 | −$1,080.52 / −$1,108.50 |
+
+**Crossover** (liar share that wipes the headline), interpolated:
+
+| deviation | seed 20260713 | seed 7 |
+|---|---|---|
+| UNFLOORED (0.70, `claim_walk`) | 33.4% | 32.0% |
+| FLOORED (0.55, grid best-response) | 38.6% | 38.3% |
+| FLOORED (0.50, buyer's true optimum) | **35.9%** | **35.2%** |
+
+At the buyer's actual optimum the floor buys back only **~3 percentage points**
+(≈32% → ≈35%); the cart headline still succumbs to a **minority** of liars, one
+deviation, no coordination.
+
+## Verdict: necessary, correct, and far from sufficient — IC is NOT restored
+
+The observable-market-price floor is a real, well-motivated fix that removes the
+**entire** observable (`claim_walk`) lie — the whole column collapses,
+provably. But it removes only **~24–27%** of the best-response exploit and
+**~6–14%** of the 100%-liar venue damage, because the **private
+WTP-understatement is the dominant channel** and it lives in the shop's own
+menu-margin counterfactual, not the outside option. Honesty remains emphatically
+**not** a best response (+$797–850/day still on the table to lie), and the
+headline still dies at ~35% liars. **The task's prediction — "flooring
+substantially restores IC" — is falsified;** the honest read is that flooring is
+one necessary layer, and the residual private-WTP leak requires the finite-stock
+shadow-price analog (vend's mechanism), which remains genuine future work.
+
+**CRITICAL-ANALYSIS §10 note (no scope-boundary softening owed).** Because IC is
+NOT substantially restored, §10's lead correction stands **unchanged** — emergent
+IC is a property of finite-stock shadow pricing, and boba's capacity world
+breaks it. This experiment supplies a concrete data point for §10's own action
+item (c) ("test whether a shadow-price analog for capacity … restores IC"): the
+*natural* capacity-side first fix — pinning the manipulable **outside-option**
+term to an observable value — was implemented and measured, and it does **not**
+restore IC on its own. If anything §10 is strengthened: the unifying claim
+"emergent IC wherever the disagreement point is pinned to a pre-committed value"
+requires pinning *both* the outside option AND the seller's menu-margin
+counterfactual; flooring only the former leaves the larger hole open. (Paper not
+edited here — boba-scope only — but the §10(c) update is flagged.)
+
+## Caveats (attack these first)
+
+- **The floor is a no-op at deviations where `claim_walk` already hurt the
+  buyer.** At 0.55 the unfloored buyer preferred `walk=honest` (+$797 >
+  `claim_walk` +$584 — inflating `s_out` raises the buyer's *own* found-money
+  floor `d_buyer`); flooring simply enforces the honest-outside lie the buyer
+  wanted anyway, so at that exact deviation the floor *raises* venue erosion.
+  The fix targets the observable claim, not every misreport; the net effect on
+  the buyer's *best* response is what the verdict reports.
+- **The best-response factor is interior to the pre-registered grid** ({0.55 …}).
+  The grid-consistent 0.55 (matching the committed methodology) under-states the
+  exploit slightly; the finer 0.50 optimum is reported alongside and used for
+  the honest crossover. Neither is swept below 0.40, where deals start to
+  vanish (an over-lowballed disclosure fails `cart_nash`'s own gain check and
+  the real buyer falls back to the menu — a self-limiting floor on the lie).
+- **Model = truth for the buyer's true settlement** (as in P1a): a lie can win a
+  quote, never a sale the buyer's real self wouldn't take (`run_day` settles on
+  TRUE `bundle_value`). The floor changes only the quote, never acceptance.
+
+# BOBA #52 (2026-07-10) — balking re-spec on queue LENGTH (Lu et al. 2013)
+
+*Reproduce: `python3 -c` driver over `run_day` at `balk_model` ∈ {wait, length}
+(committed at `boba/balk-respec.json`; 30 paired days, seeds 20260710 & 7,
+block-5 CIs). Opt-in via `BobaConfig.balk_model`; the default `"wait"` is
+byte-identical to P0, so `results.json` is untouched.*
+
+## The correction
+
+The P0 world balks **linearly in an expected wait**
+(`P = min(1, 0.08·queue_drinks/rate)`). Lu, Musalem, Olivares & Schilkrut
+(*Management Science* 2013, "Measuring the Effect of Queues on Customer
+Purchases") — the canonical field study — find abandonment responds to the
+**observed queue LENGTH** (the number of people a walk-in actually sees ahead),
+**nonlinearly**, with the marginal deterrence of each extra body **diminishing**
+as the line grows. Our linear-in-computed-wait spec contradicts both facts. The
+corrected form is a saturating hazard in the party count `L = len(queue)`:
+
+    P(balk | L) = 1 − exp(−0.154 · L)
+
+concave (diminishing marginal effect), 0 at an empty counter, → 1 as the line
+grows. `0.154` is **calibrated so the static arm's realized peak-balk intensity
+matches the legacy model** (27.7 vs 27.67 peak balks/day at the flagship cell),
+which isolates the functional FORM from a scale change — the re-run tests the
+spec, not a recalibration. (The two specs diverge sharply on *what* a queue is:
+one 10-drink party and ten 1-drink parties carry the same drink load but a
+walk-in sees a very different line — the length model balks 0.79 vs 0.14, the
+wait model can't tell them apart.)
+
+Because it does not discount for the (unobserved-by-customers) service rate, the
+length model balks **more off-peak** at the same peak intensity — static total
+balks 62.6/day → 86.7/day, static margin $1,515 → $1,402, cups 252 → 234. This
+shifts the *baseline level*; the smoothing lever is measured as a **within-model
+paired difference** (`full cart − cart-with-slots-off`), so that level cancels.
+
+## THE QUESTION: does the smoothing lever survive? — YES, and it grows
+
+Capacity-smoothing lever = margin Δ/day of (full cart − cart-nodefer), 30 paired
+days, block-5 CI, seed 20260710 / seed 7:
+
+| cell | wait model (P0 spec) | **length model (#52, corrected)** |
+|---|---|---|
+| flex=0.15 | +$165.52 [144, 187] / +$175.96 [161, 191] | **+$212.61 [193, 233] / +$223.04 [205, 241]** |
+| flex=0.35 | +$206.38 [190, 223] / +$213.35 [195, 232] | **+$256.13 [241, 271] / +$260.74 [247, 274]** |
+
+The wait-model column **reproduces the committed P0 ablation exactly** (+$165.5 /
++$206.4, RESULTS.md "Where the cart edge concentrates"), validating the lever
+computation. Under the corrected nonlinear-in-length spec the lever is **larger,
+not smaller** — **+$213–223/day (flex 0.15)** and **+$256–261/day (flex 0.35)** —
+every CI excludes zero on both seeds, and it still scales with the flexible share
+exactly as pre-registered. **The $165–206/day capacity-smoothing lever survives
+the corrected balking functional form.**
+
+**Why it grows.** Deferring an order out of the peak shortens the *visible line*,
+and under Lu et al.'s concave hazard a shorter line rescues more balks per freed
+slot than the wait model's constant marginal effect. The cart responds by
+deferring *more* aggressively (104 → 125 deferrals/day, flex 0.35) and drives
+peak balks lower (21.1 → 19.7) — the smoothing logroll is not a wait-model
+artifact; if anything the P0 spec **understated** it.
+
+## Caveats
+
+- **Calibration matches peak, not total, balk intensity**, because the lever
+  operates in the congested lunch window; the length model's higher off-peak
+  balking is a genuine property of the spec (customers can't see that the
+  afternoon has two baristas), reported here, not tuned away. Matching total
+  balks instead would lower `α` and shrink the static-baseline shift, but the
+  lever (a within-model diff at peak) is insensitive to that choice.
+- **Single functional form.** `1 − exp(−α·L)` is the simplest one-parameter
+  saturating hazard with the right shape and boundary conditions; Lu et al.'s
+  reduced form is a richer logit in `L`. A shape robustness sweep (Hill /
+  logistic) is future work — the sign and survival of the lever are the claim
+  here, not the exact curvature.
+- **`L` counts parties (`len(queue)`)**, the Lu et al. regressor and the
+  visible line; a group order is one party. Deferred orders enter the FIFO as
+  one entry at their slot, so they are correctly invisible to walk-ins until due.

@@ -1,0 +1,180 @@
+{
+ "20260713": {
+  "attack_version": 1,
+  "kind": "liar_share_sweep",
+  "days": 30,
+  "seed": 20260713,
+  "wtp_factor": 0.55,
+  "claim_walk": true,
+  "market_floor": true,
+  "world": {
+   "sigma_shock": 0.0,
+   "flexible_share": 0.35
+  },
+  "notes": [
+   "liar identity is stable per person: keyed on consumer.uid via substream(seed,'liarid',uid), never on the policy",
+   "paired seeds, block=5 CI",
+   "observable competitor-price floor ON (issue #58)"
+  ],
+  "cells": {
+   "liars25": {
+    "liar_share": 0.25,
+    "margin": {
+     "mean": -222.84,
+     "ci95": [
+      -242.92,
+      -202.77
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "consumer_surplus": {
+     "mean": 190.02,
+     "ci95": [
+      172.86,
+      207.18
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "liar_deals_dev": 1688,
+    "deals_dev": 9319
+   },
+   "liars50": {
+    "liar_share": 0.5,
+    "margin": {
+     "mean": -456.72,
+     "ci95": [
+      -484.51,
+      -428.93
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "consumer_surplus": {
+     "mean": 385.52,
+     "ci95": [
+      366.29,
+      404.75
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "liar_deals_dev": 3369,
+    "deals_dev": 9031
+   },
+   "liars100": {
+    "liar_share": 1.0,
+    "margin": {
+     "mean": -932.38,
+     "ci95": [
+      -955.85,
+      -908.91
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "consumer_surplus": {
+     "mean": 797.6,
+     "ci95": [
+      766.96,
+      828.24
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "liar_deals_dev": 6824,
+    "deals_dev": 8521
+   }
+  }
+ },
+ "7": {
+  "attack_version": 1,
+  "kind": "liar_share_sweep",
+  "days": 30,
+  "seed": 7,
+  "wtp_factor": 0.55,
+  "claim_walk": true,
+  "market_floor": true,
+  "world": {
+   "sigma_shock": 0.0,
+   "flexible_share": 0.35
+  },
+  "notes": [
+   "liar identity is stable per person: keyed on consumer.uid via substream(seed,'liarid',uid), never on the policy",
+   "paired seeds, block=5 CI",
+   "observable competitor-price floor ON (issue #58)"
+  ],
+  "cells": {
+   "liars25": {
+    "liar_share": 0.25,
+    "margin": {
+     "mean": -228.23,
+     "ci95": [
+      -245.38,
+      -211.08
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "consumer_surplus": {
+     "mean": 203.68,
+     "ci95": [
+      183.96,
+      223.41
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "liar_deals_dev": 1706,
+    "deals_dev": 9474
+   },
+   "liars50": {
+    "liar_share": 0.5,
+    "margin": {
+     "mean": -459.88,
+     "ci95": [
+      -480.01,
+      -439.75
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "consumer_surplus": {
+     "mean": 415.74,
+     "ci95": [
+      403.61,
+      427.86
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "liar_deals_dev": 3417,
+    "deals_dev": 9213
+   },
+   "liars100": {
+    "liar_share": 1.0,
+    "margin": {
+     "mean": -943.12,
+     "ci95": [
+      -981.65,
+      -904.59
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "consumer_surplus": {
+     "mean": 849.71,
+     "ci95": [
+      816.78,
+      882.63
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "liar_deals_dev": 6930,
+    "deals_dev": 8678
+   }
+  }
+ }
+}

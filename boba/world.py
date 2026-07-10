@@ -73,6 +73,24 @@ def service_rate_at(tick: int) -> float:
 
 BALK_SLOPE = 0.08           # P(balk) = min(1, 0.08 × expected wait minutes)
 
+# ── BOBA #52: length-based balking (Lu et al., Mgmt Sci 2013) ─────────────
+# Lu, Musalem, Olivares & Schilkrut (2013), "Measuring the Effect of Queues on
+# Customer Purchases," find abandonment/no-purchase responds to the OBSERVED
+# queue LENGTH (the number of people a walk-in sees ahead of them) — NONLINEARLY,
+# with the marginal deterrence of each extra body DIMINISHING as the line grows —
+# not to a computed expected wait. Our legacy spec (balk linear in
+# queue_drinks/rate) contradicts both facts. The corrected form is a saturating
+# hazard in the party count L:
+#       P(balk | L) = 1 − exp(−BALK_LENGTH_HAZARD · L)
+# concave in L (diminishing marginal effect — the Lu et al. nonlinearity), 0 at
+# an empty counter, → 1 as the line grows. BALK_LENGTH_HAZARD is calibrated so
+# the STATIC arm's realized peak-balk intensity matches the legacy wait model at
+# the flagship cell — isolating the functional FORM from a scale change, so the
+# capacity-smoothing re-run tests the spec, not a recalibration (see RESULTS.md
+# #52). Opt-in via BobaConfig.balk_model="length"; the default "wait" is
+# byte-identical to P0 (results.json is untouched).
+BALK_LENGTH_HAZARD = 0.1540
+
 # ── demand shape ─────────────────────────────────────────────────────────
 # Arrivals per hour: lunch (12–14) and after-school (15–18) spikes, scaled
 # so the static arm lands near BOBA_DAILY_CUPS (~260 cups/day).
@@ -131,6 +149,8 @@ PEARL_COST = TOP_COST["pearls"]
 class BobaConfig:
     sigma_shock: float = 0.0        # day-level arrival shock (lognormal)
     flexible_share: float = 0.30    # share of pickup-flexible consumers
+    balk_model: str = "wait"        # "wait" (P0, linear-in-wait) or "length"
+                                    # (BOBA #52, nonlinear-in-queue-length)
 
 
 DEFAULT_CONFIG = BobaConfig()
@@ -335,6 +355,7 @@ class ShopState:
     batches: list[Batch] = field(default_factory=list)
     scheduled: dict[int, int] = field(default_factory=dict)  # slot tick → drinks
     batches_cooked: int = 0
+    balk_model: str = "wait"       # BOBA #52: "wait" (P0) or "length"
 
     def queue_drinks(self) -> int:
         return sum(self.queue)
@@ -343,9 +364,9 @@ class ShopState:
         return sum(b.servings for b in self.batches)
 
 
-def open_shop(day: int = 0) -> ShopState:
+def open_shop(day: int = 0, balk_model: str = "wait") -> ShopState:
     """10:00 sharp: the operator cooks batch 1 before the doors open."""
-    state = ShopState(day=day)
+    state = ShopState(day=day, balk_model=balk_model)
     cook_batch(state)
     return state
 
@@ -427,9 +448,23 @@ def expected_wait_minutes(state: ShopState) -> float:
     return state.queue_drinks() / service_rate_at(state.tick)
 
 
+def observed_queue_length(state: ShopState) -> int:
+    """The number of PARTIES (orders) a walk-in sees ahead of them — Lu et
+    al.'s queue-length regressor and the thing actually visible at the
+    counter, distinct from the total drink count or a computed wait."""
+    return len(state.queue)
+
+
 def balk_prob(state: ShopState) -> float:
-    """BOBA.md's queue abandonment: ~8% per minute of expected wait,
-    resolved BEFORE ordering."""
+    """Queue abandonment, resolved BEFORE ordering.
+
+    "wait" (P0, BOBA.md): linear in expected wait, ~8%/min. "length"
+    (BOBA #52, Lu et al. 2013): a saturating hazard in the observed party
+    count, P = 1 − exp(−BALK_LENGTH_HAZARD · L) — nonlinear in queue LENGTH,
+    the empirically-correct driver. The model is a property of the world
+    (carried on ShopState, set from BobaConfig), never of a policy."""
+    if getattr(state, "balk_model", "wait") == "length":
+        return 1.0 - math.exp(-BALK_LENGTH_HAZARD * observed_queue_length(state))
     return min(1.0, BALK_SLOPE * expected_wait_minutes(state))
 
 

@@ -62,12 +62,17 @@ def run_pair(base_factory, dev_factory, days: int, seed: int,
             "dev_totals": results["dev"]["totals"], "paired": paired}
 
 
-def run_battery(days: int, seed: int, cfg: BobaConfig = BATTERY_CFG) -> dict:
+def run_battery(days: int, seed: int, cfg: BobaConfig = BATTERY_CFG,
+                market_floor: bool = False) -> dict:
     """The 14-cell deviation grid, ALL buyers lying the same way each cell
     (liar_share=1.0 — 'every buyer deviating', matching vend's methodology),
     paired against the all-honest cart. Buyer-utility Δ (consumer_surplus,
     the pooled, TRUE-preference-settled metric) answers 'is honesty the
-    best response'; venue margin Δ is reported alongside for context."""
+    best response'; venue margin Δ is reported alongside for context.
+
+    `market_floor` (issue #58): run the deviation arm with the observable
+    competitor-price floor ON (the base honest cart is unaffected — the floor
+    is a no-op for a buyer whose claim IS their disclosure)."""
     cells = {}
     for f in WTP_FACTORS:
         for cw in WALK_CLAIMS:
@@ -76,7 +81,8 @@ def run_battery(days: int, seed: int, cfg: BobaConfig = BATTERY_CFG) -> dict:
                 lambda: CartPolicy(),
                 lambda f=f, cw=cw: CartPolicy(attest=False, liar_share=1.0,
                                               attack_wtp_factor=f,
-                                              attack_claim_walk=cw),
+                                              attack_claim_walk=cw,
+                                              market_floor=market_floor),
                 days, seed, cfg)
             cells[name] = {"wtp_factor": f, "claim_walk": cw,
                            "consumer_surplus": res["paired"]["consumer_surplus"],
@@ -87,11 +93,16 @@ def run_battery(days: int, seed: int, cfg: BobaConfig = BATTERY_CFG) -> dict:
             print(f"{name:<26} buyer CS Δ/day {cs['mean']:+8.2f} "
                   f"{cs['ci95']}  venue margin Δ/day {res['paired']['margin']['mean']:+8.2f}")
     return {"attack_version": ATTACK_VERSION, "kind": "battery",
-            "days": days, "seed": seed,
+            "days": days, "seed": seed, "market_floor": market_floor,
             "world": {"sigma_shock": cfg.sigma_shock,
                       "flexible_share": cfg.flexible_share},
             "notes": [
                 "every buyer deviates the SAME way each cell (liar_share=1.0)",
+                ("observable competitor-price floor ON: the claimed outside "
+                 "option is capped at what the DISCLOSED valuation earns at "
+                 "the public rival board (issue #58)") if market_floor else
+                "no market floor (P0/P1a-as-committed: outside claim taken on "
+                "faith)",
                 "consumer_surplus is the pooled TRUE-preference-settled buyer "
                 "utility (never the disclosed/lied one) — the honesty-as-"
                 "best-response readout",
@@ -104,11 +115,15 @@ def run_battery(days: int, seed: int, cfg: BobaConfig = BATTERY_CFG) -> dict:
 
 def run_liar_share_sweep(days: int, seed: int, cfg: BobaConfig,
                          wtp_factor: float, claim_walk: bool,
-                         shares=(0.25, 0.50, 1.00)) -> dict:
+                         shares=(0.25, 0.50, 1.00),
+                         market_floor: bool = False) -> dict:
     """Fix ONE deviation (the canonical anchoring attack, or whatever the
     battery found as the best response) and sweep the SHARE of buyers (by
     stable uid) who run it — H3's question, transplanted: at what liar
-    share does the venue's cart gain erode?"""
+    share does the venue's cart gain erode?
+
+    `market_floor` (issue #58): the swept liar arm carries the observable
+    competitor-price floor; the base honest cart is unchanged."""
     cells = {}
     for ls in shares:
         name = f"liars{int(ls * 100)}"
@@ -116,7 +131,8 @@ def run_liar_share_sweep(days: int, seed: int, cfg: BobaConfig,
             lambda: CartPolicy(),
             lambda ls=ls: CartPolicy(attest=False, liar_share=ls,
                                      attack_wtp_factor=wtp_factor,
-                                     attack_claim_walk=claim_walk),
+                                     attack_claim_walk=claim_walk,
+                                     market_floor=market_floor),
             days, seed, cfg)
         cells[name] = {"liar_share": ls,
                        "margin": res["paired"]["margin"],
@@ -127,13 +143,15 @@ def run_liar_share_sweep(days: int, seed: int, cfg: BobaConfig,
         print(f"{name:<10} venue margin Δ/day {m['mean']:+8.2f} {m['ci95']}")
     return {"attack_version": ATTACK_VERSION, "kind": "liar_share_sweep",
             "days": days, "seed": seed, "wtp_factor": wtp_factor,
-            "claim_walk": claim_walk,
+            "claim_walk": claim_walk, "market_floor": market_floor,
             "world": {"sigma_shock": cfg.sigma_shock,
                       "flexible_share": cfg.flexible_share},
             "notes": [
                 "liar identity is stable per person: keyed on consumer.uid "
                 "via substream(seed,'liarid',uid), never on the policy",
                 "paired seeds, block=5 CI",
+                ("observable competitor-price floor ON (issue #58)"
+                 if market_floor else "no market floor (P1a-as-committed)"),
             ],
             "cells": cells}
 
@@ -153,6 +171,9 @@ def main(argv=None) -> int:
                     help="deviation fixed for --liar-sweep")
     ap.add_argument("--claim-walk", action="store_true",
                     help="deviation fixed for --liar-sweep")
+    ap.add_argument("--market-floor", action="store_true",
+                    help="issue #58: cap the claimed outside option at the "
+                         "observable competitor-price floor")
     ap.add_argument("--out", default=None)
     args = ap.parse_args(argv)
 
@@ -165,10 +186,12 @@ def main(argv=None) -> int:
 
     out = {}
     if args.battery:
-        out["battery"] = run_battery(args.days, args.seed, cfg)
+        out["battery"] = run_battery(args.days, args.seed, cfg,
+                                     market_floor=args.market_floor)
     if args.liar_sweep:
         out["liar_share_sweep"] = run_liar_share_sweep(
-            args.days, args.seed, cfg, args.wtp_factor, args.claim_walk)
+            args.days, args.seed, cfg, args.wtp_factor, args.claim_walk,
+            market_floor=args.market_floor)
 
     if args.out:
         with open(args.out, "w") as f:

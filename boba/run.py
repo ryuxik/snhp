@@ -36,10 +36,21 @@ ARMS = {
     "static": StaticMenu, "computed": ComputedMenu, "cart": CartPolicy,
     "menu": MenuPolicy,
     "menu-no-defer": lambda: MenuPolicy(defer_tiers=False),
+    # BOBA #52: the capacity-smoothing ablation (pickup slots OFF) — the lever
+    # is (cart − cart-nodefer), a within-model paired diff robust to the
+    # balk-model baseline level.
+    "cart-nodefer": lambda: CartPolicy(defer_slots=False),
     # BOBA P1a: stable-identity liar sweep (mirrors vend's a2a-liarsNN)
     "cart-liars25": lambda: CartPolicy(attest=False, liar_share=0.25),
     "cart-liars50": lambda: CartPolicy(attest=False, liar_share=0.50),
     "cart-liars100": lambda: CartPolicy(attest=False, liar_share=1.00),
+    # BOBA P1a fix (#58): same liar sweep, observable-market-price floor ON
+    "cart-liars25-floor": lambda: CartPolicy(attest=False, liar_share=0.25,
+                                             market_floor=True),
+    "cart-liars50-floor": lambda: CartPolicy(attest=False, liar_share=0.50,
+                                             market_floor=True),
+    "cart-liars100-floor": lambda: CartPolicy(attest=False, liar_share=1.00,
+                                              market_floor=True),
 }
 
 
@@ -73,7 +84,7 @@ def run_day(policy, master_seed: int, day: int,
          "negotiated": 0, "neg_shop_gain": 0.0, "consumer_surplus": 0.0,
          "peak_wait_sum": 0.0, "peak_arrivals": 0, "batches_cooked": 0,
          "liar_deals": 0}
-    state = open_shop(day)
+    state = open_shop(day, cfg.balk_model)
 
     for tick in range(TICKS_PER_DAY):
         state.tick = tick
@@ -115,7 +126,9 @@ def run_day(policy, master_seed: int, day: int,
                                      defer_slots=policy.defer_slots,
                                      salvage=policy.salvage,
                                      quote_lookers=policy.quote_lookers,
-                                     outside_consumer=outside_c)
+                                     outside_consumer=outside_c,
+                                     market_floor=getattr(
+                                         policy, "market_floor", False))
                 else:
                     deal = policy.quote_for(state, consumer)
                 if deal is not None:
