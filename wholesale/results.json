@@ -1,0 +1,3698 @@
+{
+ "wholesale_version": 1,
+ "config": {
+  "weeks": 26,
+  "seeds": [
+   20260710,
+   20260711,
+   20260712,
+   20260713,
+   20260714,
+   20260715,
+   20260716,
+   20260717
+  ],
+  "arms": [
+   "ratecard",
+   "nego",
+   "nego-indep",
+   "nego-no-window",
+   "nego-no-price",
+   "nego-no-qty",
+   "nego-no-terms",
+   "nego-no-spoil"
+  ],
+  "windows": [
+   "Mon-AM",
+   "Mon-PM",
+   "Tue-AM",
+   "Tue-PM",
+   "Wed-AM",
+   "Wed-PM",
+   "Thu-AM",
+   "Thu-PM",
+   "Fri-AM",
+   "Fri-PM"
+  ],
+  "route": {
+   "stop": 45.0,
+   "drop": 8.0,
+   "shadow_am": 18.0,
+   "shadow_pm": 6.0,
+   "am_stops_per_week": 2
+  },
+  "buffer": {
+   "min": 5.0,
+   "frac": 0.03
+  },
+  "jetro": {
+   "price_frac": 0.93,
+   "trip_cost": 95.0
+  },
+  "demand_mu": {
+   "beverage->bodega": 48.1,
+   "beverage->boba": 4.0,
+   "beverage->vending": 9.3,
+   "beverage->bakery": 10.0,
+   "produce->bodega": 43.3,
+   "produce->boba": 24.3,
+   "produce->vending": 7.0,
+   "produce->bakery": 37.5,
+   "dry->bodega": 19.2,
+   "dry->boba": 14.0,
+   "dry->vending": 5.8,
+   "dry->bakery": 16.0
+  },
+  "notes": [
+   "paired weeks: identical forecasts and realized demand across arms",
+   "discount-only: negotiated price never above the published break price",
+   "event-consistent disagreement: rate-card sale the wholesaler already had, or Jetro (wholesaler keeps nothing)",
+   "route density explicit: a shared window bills one stop + drop fees",
+   "surpluses are realized (post-demand), $ per block-week; CIs over seed means",
+   "venue-side surplus includes attributable retail value, so LEVELS are large; the paired deltas are the experiment"
+  ]
+ },
+ "headline_cell": "noise0.15_flex0.7",
+ "cells": {
+  "noise0.15_flex0.7": {
+   "noise": 0.15,
+   "flex": 0.7,
+   "weeks": 26,
+   "seeds": [
+    20260710,
+    20260711,
+    20260712,
+    20260713,
+    20260714,
+    20260715,
+    20260716,
+    20260717
+   ],
+   "arms": {
+    "ratecard": {
+     "venue_side_week": 8100.1,
+     "wholesaler_side_week": 794.61,
+     "joint_week": 8894.72,
+     "per_venue_week": {
+      "bodega": 3726.26,
+      "boba": 1736.98,
+      "vending": 763.95,
+      "bakery": 1872.91
+     },
+     "per_wholesaler_week": {
+      "beverage": 102.0,
+      "produce": 569.52,
+      "dry": 123.09
+     },
+     "negotiated_share": 0.0,
+     "ratecard_share": 1.0,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 9.0,
+     "am_stops_week": 6.0,
+     "route_cost_week": 555.0
+    },
+    "nego": {
+     "venue_side_week": 8247.29,
+     "wholesaler_side_week": 977.26,
+     "joint_week": 9224.55,
+     "per_venue_week": {
+      "bodega": 3727.99,
+      "boba": 1814.24,
+      "vending": 827.68,
+      "bakery": 1877.39
+     },
+     "per_wholesaler_week": {
+      "beverage": 176.59,
+      "produce": 618.52,
+      "dry": 182.14
+     },
+     "negotiated_share": 0.5108,
+     "ratecard_share": 0.4892,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 3.07,
+     "am_stops_week": 2.94,
+     "route_cost_week": 263.41
+    },
+    "nego-indep": {
+     "venue_side_week": 8131.34,
+     "wholesaler_side_week": 821.56,
+     "joint_week": 8952.9,
+     "per_venue_week": {
+      "bodega": 3727.99,
+      "boba": 1748.37,
+      "vending": 767.79,
+      "bakery": 1887.18
+     },
+     "per_wholesaler_week": {
+      "beverage": 113.74,
+      "produce": 569.52,
+      "dry": 138.3
+     },
+     "negotiated_share": 0.2748,
+     "ratecard_share": 0.7252,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 8.87,
+     "am_stops_week": 4.87,
+     "route_cost_week": 535.86
+    },
+    "nego-no-window": {
+     "venue_side_week": 8104.14,
+     "wholesaler_side_week": 799.45,
+     "joint_week": 8903.58,
+     "per_venue_week": {
+      "bodega": 3726.26,
+      "boba": 1737.17,
+      "vending": 767.79,
+      "bakery": 1872.91
+     },
+     "per_wholesaler_week": {
+      "beverage": 102.39,
+      "produce": 569.52,
+      "dry": 127.53
+     },
+     "negotiated_share": 0.0493,
+     "ratecard_share": 0.9507,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 9.0,
+     "am_stops_week": 6.0,
+     "route_cost_week": 555.0
+    },
+    "nego-no-price": {
+     "venue_side_week": 8135.39,
+     "wholesaler_side_week": 1008.51,
+     "joint_week": 9143.91,
+     "per_venue_week": {
+      "bodega": 3726.56,
+      "boba": 1761.62,
+      "vending": 774.3,
+      "bakery": 1872.91
+     },
+     "per_wholesaler_week": {
+      "beverage": 199.95,
+      "produce": 619.2,
+      "dry": 189.37
+     },
+     "negotiated_share": 0.476,
+     "ratecard_share": 0.524,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 4.43,
+     "am_stops_week": 3.29,
+     "route_cost_week": 325.86
+    },
+    "nego-no-qty": {
+     "venue_side_week": 8230.71,
+     "wholesaler_side_week": 966.29,
+     "joint_week": 9197.01,
+     "per_venue_week": {
+      "bodega": 3726.26,
+      "boba": 1810.0,
+      "vending": 821.53,
+      "bakery": 1872.91
+     },
+     "per_wholesaler_week": {
+      "beverage": 167.77,
+      "produce": 620.55,
+      "dry": 177.97
+     },
+     "negotiated_share": 0.4992,
+     "ratecard_share": 0.5008,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 3.01,
+     "am_stops_week": 3.01,
+     "route_cost_week": 261.53
+    },
+    "nego-no-terms": {
+     "venue_side_week": 8240.61,
+     "wholesaler_side_week": 956.6,
+     "joint_week": 9197.21,
+     "per_venue_week": {
+      "bodega": 3732.13,
+      "boba": 1788.49,
+      "vending": 818.1,
+      "bakery": 1901.89
+     },
+     "per_wholesaler_week": {
+      "beverage": 174.53,
+      "produce": 608.12,
+      "dry": 173.96
+     },
+     "negotiated_share": 0.5717,
+     "ratecard_share": 0.4283,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 3.44,
+     "am_stops_week": 2.6,
+     "route_cost_week": 274.97
+    },
+    "nego-no-spoil": {
+     "venue_side_week": 8242.52,
+     "wholesaler_side_week": 982.33,
+     "joint_week": 9224.84,
+     "per_venue_week": {
+      "bodega": 3727.99,
+      "boba": 1810.38,
+      "vending": 826.76,
+      "bakery": 1877.39
+     },
+     "per_wholesaler_week": {
+      "beverage": 176.59,
+      "produce": 623.59,
+      "dry": 182.14
+     },
+     "negotiated_share": 0.5108,
+     "ratecard_share": 0.4892,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 3.07,
+     "am_stops_week": 2.94,
+     "route_cost_week": 263.41
+    }
+   },
+   "paired_vs_ratecard": {
+    "nego_vs_ratecard": {
+     "venue_side": {
+      "mean": 147.19,
+      "ci95": [
+       142.4,
+       151.98
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 182.64,
+      "ci95": [
+       175.66,
+       189.62
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 329.83,
+      "ci95": [
+       325.81,
+       333.85
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 1.73,
+       "ci95": [
+        0.91,
+        2.54
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 77.26,
+       "ci95": [
+        71.98,
+        82.54
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 63.73,
+       "ci95": [
+        60.21,
+        67.25
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 4.47,
+       "ci95": [
+        2.8,
+        6.14
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 74.59,
+       "ci95": [
+        74.27,
+        74.92
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 49.0,
+       "ci95": [
+        42.48,
+        55.51
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 59.05,
+       "ci95": [
+        57.8,
+        60.31
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-indep_vs_ratecard": {
+     "venue_side": {
+      "mean": 31.23,
+      "ci95": [
+       29.55,
+       32.91
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 26.95,
+      "ci95": [
+       24.66,
+       29.25
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 58.18,
+      "ci95": [
+       54.87,
+       61.5
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 1.73,
+       "ci95": [
+        0.91,
+        2.54
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 11.4,
+       "ci95": [
+        10.65,
+        12.15
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 3.84,
+       "ci95": [
+        3.46,
+        4.22
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 14.27,
+       "ci95": [
+        13.09,
+        15.45
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 11.74,
+       "ci95": [
+        11.44,
+        12.05
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 15.21,
+       "ci95": [
+        12.68,
+        17.74
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-window_vs_ratecard": {
+     "venue_side": {
+      "mean": 4.03,
+      "ci95": [
+       3.5,
+       4.57
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 4.84,
+      "ci95": [
+       4.18,
+       5.49
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 8.87,
+      "ci95": [
+       8.03,
+       9.7
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 0.19,
+       "ci95": [
+        -0.09,
+        0.47
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 3.84,
+       "ci95": [
+        3.46,
+        4.22
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 0.4,
+       "ci95": [
+        0.12,
+        0.67
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 4.44,
+       "ci95": [
+        3.85,
+        5.03
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-price_vs_ratecard": {
+     "venue_side": {
+      "mean": 35.29,
+      "ci95": [
+       28.4,
+       42.18
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 213.9,
+      "ci95": [
+       205.53,
+       222.28
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 249.19,
+      "ci95": [
+       243.76,
+       254.61
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.3,
+       "ci95": [
+        -2.44,
+        3.04
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 24.64,
+       "ci95": [
+        18.85,
+        30.44
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 10.35,
+       "ci95": [
+        7.22,
+        13.47
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 97.95,
+       "ci95": [
+        97.92,
+        97.98
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 49.68,
+       "ci95": [
+        41.34,
+        58.01
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 66.28,
+       "ci95": [
+        65.85,
+        66.7
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-qty_vs_ratecard": {
+     "venue_side": {
+      "mean": 130.61,
+      "ci95": [
+       124.84,
+       136.38
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 171.68,
+      "ci95": [
+       165.27,
+       178.08
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 302.29,
+      "ci95": [
+       301.37,
+       303.21
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 73.03,
+       "ci95": [
+        67.99,
+        78.07
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 57.58,
+       "ci95": [
+        55.56,
+        59.6
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 65.77,
+       "ci95": [
+        65.59,
+        65.96
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 51.03,
+       "ci95": [
+        44.69,
+        57.36
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 54.88,
+       "ci95": [
+        54.3,
+        55.46
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-terms_vs_ratecard": {
+     "venue_side": {
+      "mean": 140.5,
+      "ci95": [
+       135.74,
+       145.27
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 161.99,
+      "ci95": [
+       158.78,
+       165.2
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 302.5,
+      "ci95": [
+       297.42,
+       307.57
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 5.86,
+       "ci95": [
+        5.39,
+        6.34
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 51.51,
+       "ci95": [
+        47.1,
+        55.93
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 54.15,
+       "ci95": [
+        51.49,
+        56.8
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 28.98,
+       "ci95": [
+        27.36,
+        30.59
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 72.53,
+       "ci95": [
+        72.08,
+        72.98
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 38.6,
+       "ci95": [
+        34.95,
+        42.24
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 50.86,
+       "ci95": [
+        50.18,
+        51.55
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-spoil_vs_ratecard": {
+     "venue_side": {
+      "mean": 142.41,
+      "ci95": [
+       138.98,
+       145.85
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 187.71,
+      "ci95": [
+       186.13,
+       189.3
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 330.13,
+      "ci95": [
+       325.79,
+       334.47
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 1.73,
+       "ci95": [
+        0.91,
+        2.54
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 73.41,
+       "ci95": [
+        68.46,
+        78.36
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 62.81,
+       "ci95": [
+        60.09,
+        65.53
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 4.47,
+       "ci95": [
+        2.8,
+        6.14
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 74.59,
+       "ci95": [
+        74.27,
+        74.92
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 54.07,
+       "ci95": [
+        53.19,
+        54.95
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 59.05,
+       "ci95": [
+        57.8,
+        60.31
+       ],
+       "n_seeds": 8
+      }
+     }
+    }
+   },
+   "levers": {
+    "window": {
+     "mean": 320.97,
+     "ci95": [
+      317.09,
+      324.84
+     ],
+     "n_seeds": 8
+    },
+    "price": {
+     "mean": 80.64,
+     "ci95": [
+      75.41,
+      85.88
+     ],
+     "n_seeds": 8
+    },
+    "qty": {
+     "mean": 27.54,
+     "ci95": [
+      23.87,
+      31.22
+     ],
+     "n_seeds": 8
+    },
+    "terms": {
+     "mean": 27.34,
+     "ci95": [
+      21.75,
+      32.92
+     ],
+     "n_seeds": 8
+    },
+    "spoilage": {
+     "mean": -0.29,
+     "ci95": [
+      -3.29,
+      2.7
+     ],
+     "n_seeds": 8
+    }
+   },
+   "coordination": {
+    "wholesaler_side": {
+     "mean": 155.69,
+     "ci95": [
+      146.72,
+      164.66
+     ],
+     "n_seeds": 8
+    },
+    "joint": {
+     "mean": 271.65,
+     "ci95": [
+      264.76,
+      278.54
+     ],
+     "n_seeds": 8
+    },
+    "shared_windows_week": {
+     "nego": 3.0,
+     "nego-indep": 3.0,
+     "ratecard": 3.0
+    }
+   }
+  },
+  "noise0.15_flex0.3": {
+   "noise": 0.15,
+   "flex": 0.3,
+   "weeks": 26,
+   "seeds": [
+    20260710,
+    20260711,
+    20260712,
+    20260713,
+    20260714,
+    20260715,
+    20260716,
+    20260717
+   ],
+   "arms": {
+    "ratecard": {
+     "venue_side_week": 8100.1,
+     "wholesaler_side_week": 794.61,
+     "joint_week": 8894.72,
+     "per_venue_week": {
+      "bodega": 3726.26,
+      "boba": 1736.98,
+      "vending": 763.95,
+      "bakery": 1872.91
+     },
+     "per_wholesaler_week": {
+      "beverage": 102.0,
+      "produce": 569.52,
+      "dry": 123.09
+     },
+     "negotiated_share": 0.0,
+     "ratecard_share": 1.0,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 9.0,
+     "am_stops_week": 6.0,
+     "route_cost_week": 555.0
+    },
+    "nego": {
+     "venue_side_week": 8146.35,
+     "wholesaler_side_week": 886.85,
+     "joint_week": 9033.2,
+     "per_venue_week": {
+      "bodega": 3726.26,
+      "boba": 1752.57,
+      "vending": 794.6,
+      "bakery": 1872.91
+     },
+     "per_wholesaler_week": {
+      "beverage": 126.41,
+      "produce": 586.64,
+      "dry": 173.8
+     },
+     "negotiated_share": 0.3405,
+     "ratecard_share": 0.6595,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 4.97,
+     "am_stops_week": 4.96,
+     "route_cost_week": 369.3
+    },
+    "nego-indep": {
+     "venue_side_week": 8104.14,
+     "wholesaler_side_week": 799.45,
+     "joint_week": 8903.58,
+     "per_venue_week": {
+      "bodega": 3726.26,
+      "boba": 1737.17,
+      "vending": 767.79,
+      "bakery": 1872.91
+     },
+     "per_wholesaler_week": {
+      "beverage": 102.39,
+      "produce": 569.52,
+      "dry": 127.53
+     },
+     "negotiated_share": 0.0493,
+     "ratecard_share": 0.9507,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 9.0,
+     "am_stops_week": 6.0,
+     "route_cost_week": 555.0
+    },
+    "nego-no-window": {
+     "venue_side_week": 8104.14,
+     "wholesaler_side_week": 799.45,
+     "joint_week": 8903.58,
+     "per_venue_week": {
+      "bodega": 3726.26,
+      "boba": 1737.17,
+      "vending": 767.79,
+      "bakery": 1872.91
+     },
+     "per_wholesaler_week": {
+      "beverage": 102.39,
+      "produce": 569.52,
+      "dry": 127.53
+     },
+     "negotiated_share": 0.0493,
+     "ratecard_share": 0.9507,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 9.0,
+     "am_stops_week": 6.0,
+     "route_cost_week": 555.0
+    },
+    "nego-no-price": {
+     "venue_side_week": 8104.59,
+     "wholesaler_side_week": 811.07,
+     "joint_week": 8915.65,
+     "per_venue_week": {
+      "bodega": 3723.99,
+      "boba": 1743.73,
+      "vending": 763.95,
+      "bakery": 1872.91
+     },
+     "per_wholesaler_week": {
+      "beverage": 102.0,
+      "produce": 585.98,
+      "dry": 123.09
+     },
+     "negotiated_share": 0.0505,
+     "ratecard_share": 0.9495,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 8.44,
+     "am_stops_week": 5.54,
+     "route_cost_week": 525.54
+    },
+    "nego-no-qty": {
+     "venue_side_week": 8140.0,
+     "wholesaler_side_week": 858.68,
+     "joint_week": 8998.69,
+     "per_venue_week": {
+      "bodega": 3726.26,
+      "boba": 1751.0,
+      "vending": 789.83,
+      "bakery": 1872.91
+     },
+     "per_wholesaler_week": {
+      "beverage": 119.44,
+      "produce": 586.45,
+      "dry": 152.79
+     },
+     "negotiated_share": 0.2933,
+     "ratecard_share": 0.7067,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 5.48,
+     "am_stops_week": 4.94,
+     "route_cost_week": 390.92
+    },
+    "nego-no-terms": {
+     "venue_side_week": 8147.46,
+     "wholesaler_side_week": 880.34,
+     "joint_week": 9027.8,
+     "per_venue_week": {
+      "bodega": 3726.26,
+      "boba": 1753.2,
+      "vending": 795.08,
+      "bakery": 1872.91
+     },
+     "per_wholesaler_week": {
+      "beverage": 125.81,
+      "produce": 585.17,
+      "dry": 169.36
+     },
+     "negotiated_share": 0.3373,
+     "ratecard_share": 0.6627,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 4.96,
+     "am_stops_week": 4.95,
+     "route_cost_week": 368.77
+    },
+    "nego-no-spoil": {
+     "venue_side_week": 8141.13,
+     "wholesaler_side_week": 892.92,
+     "joint_week": 9034.05,
+     "per_venue_week": {
+      "bodega": 3726.26,
+      "boba": 1753.18,
+      "vending": 788.78,
+      "bakery": 1872.91
+     },
+     "per_wholesaler_week": {
+      "beverage": 126.41,
+      "produce": 592.71,
+      "dry": 173.8
+     },
+     "negotiated_share": 0.3478,
+     "ratecard_share": 0.6522,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 4.88,
+     "am_stops_week": 4.88,
+     "route_cost_week": 364.54
+    }
+   },
+   "paired_vs_ratecard": {
+    "nego_vs_ratecard": {
+     "venue_side": {
+      "mean": 46.24,
+      "ci95": [
+       42.32,
+       50.17
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 92.24,
+      "ci95": [
+       87.99,
+       96.48
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 138.48,
+      "ci95": [
+       133.6,
+       143.37
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 15.59,
+       "ci95": [
+        13.14,
+        18.05
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 30.65,
+       "ci95": [
+        26.45,
+        34.85
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 24.41,
+       "ci95": [
+        23.84,
+        24.98
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 17.12,
+       "ci95": [
+        14.07,
+        20.16
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 50.71,
+       "ci95": [
+        49.48,
+        51.94
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-indep_vs_ratecard": {
+     "venue_side": {
+      "mean": 4.03,
+      "ci95": [
+       3.5,
+       4.57
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 4.84,
+      "ci95": [
+       4.18,
+       5.49
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 8.87,
+      "ci95": [
+       8.03,
+       9.7
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 0.19,
+       "ci95": [
+        -0.09,
+        0.47
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 3.84,
+       "ci95": [
+        3.46,
+        4.22
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 0.4,
+       "ci95": [
+        0.12,
+        0.67
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 4.44,
+       "ci95": [
+        3.85,
+        5.03
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-window_vs_ratecard": {
+     "venue_side": {
+      "mean": 4.03,
+      "ci95": [
+       3.5,
+       4.57
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 4.84,
+      "ci95": [
+       4.18,
+       5.49
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 8.87,
+      "ci95": [
+       8.03,
+       9.7
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 0.19,
+       "ci95": [
+        -0.09,
+        0.47
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 3.84,
+       "ci95": [
+        3.46,
+        4.22
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 0.4,
+       "ci95": [
+        0.12,
+        0.67
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 4.44,
+       "ci95": [
+        3.85,
+        5.03
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-price_vs_ratecard": {
+     "venue_side": {
+      "mean": 4.48,
+      "ci95": [
+       -1.87,
+       10.84
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 16.45,
+      "ci95": [
+       11.23,
+       21.67
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 20.94,
+      "ci95": [
+       14.69,
+       27.19
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": -2.27,
+       "ci95": [
+        -5.75,
+        1.21
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 6.75,
+       "ci95": [
+        1.49,
+        12.01
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 0.0,
+       "ci95": [
+        -0.81,
+        0.81
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 16.45,
+       "ci95": [
+        11.23,
+        21.67
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-qty_vs_ratecard": {
+     "venue_side": {
+      "mean": 39.9,
+      "ci95": [
+       37.17,
+       42.63
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 64.07,
+      "ci95": [
+       62.17,
+       65.97
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 103.97,
+      "ci95": [
+       101.74,
+       106.2
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 14.02,
+       "ci95": [
+        13.38,
+        14.66
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 25.88,
+       "ci95": [
+        23.28,
+        28.48
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 17.44,
+       "ci95": [
+        17.19,
+        17.69
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 16.93,
+       "ci95": [
+        14.75,
+        19.11
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 29.7,
+       "ci95": [
+        28.25,
+        31.14
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-terms_vs_ratecard": {
+     "venue_side": {
+      "mean": 47.36,
+      "ci95": [
+       42.57,
+       52.14
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 85.73,
+      "ci95": [
+       81.68,
+       89.78
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 133.09,
+      "ci95": [
+       128.18,
+       138.0
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 16.22,
+       "ci95": [
+        13.7,
+        18.75
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 31.13,
+       "ci95": [
+        26.81,
+        35.46
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 23.82,
+       "ci95": [
+        23.21,
+        24.42
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 15.65,
+       "ci95": [
+        12.37,
+        18.92
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 46.27,
+       "ci95": [
+        45.02,
+        47.52
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-spoil_vs_ratecard": {
+     "venue_side": {
+      "mean": 41.03,
+      "ci95": [
+       37.63,
+       44.43
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 98.31,
+      "ci95": [
+       95.96,
+       100.66
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 139.34,
+      "ci95": [
+       135.68,
+       142.99
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 16.2,
+       "ci95": [
+        14.3,
+        18.11
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 24.83,
+       "ci95": [
+        22.68,
+        26.97
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 24.41,
+       "ci95": [
+        23.84,
+        24.98
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 23.19,
+       "ci95": [
+        22.25,
+        24.13
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 50.71,
+       "ci95": [
+        49.48,
+        51.94
+       ],
+       "n_seeds": 8
+      }
+     }
+    }
+   },
+   "levers": {
+    "window": {
+     "mean": 129.61,
+     "ci95": [
+      124.75,
+      134.48
+     ],
+     "n_seeds": 8
+    },
+    "price": {
+     "mean": 117.54,
+     "ci95": [
+      109.5,
+      125.59
+     ],
+     "n_seeds": 8
+    },
+    "qty": {
+     "mean": 34.51,
+     "ci95": [
+      28.43,
+      40.59
+     ],
+     "n_seeds": 8
+    },
+    "terms": {
+     "mean": 5.39,
+     "ci95": [
+      -0.53,
+      11.31
+     ],
+     "n_seeds": 8
+    },
+    "spoilage": {
+     "mean": -0.86,
+     "ci95": [
+      -5.35,
+      3.63
+     ],
+     "n_seeds": 8
+    }
+   },
+   "coordination": {
+    "wholesaler_side": {
+     "mean": 87.4,
+     "ci95": [
+      83.45,
+      91.36
+     ],
+     "n_seeds": 8
+    },
+    "joint": {
+     "mean": 129.61,
+     "ci95": [
+      124.75,
+      134.48
+     ],
+     "n_seeds": 8
+    },
+    "shared_windows_week": {
+     "nego": 3.0,
+     "nego-indep": 3.0,
+     "ratecard": 3.0
+    }
+   }
+  },
+  "noise0.35_flex0.3": {
+   "noise": 0.35,
+   "flex": 0.3,
+   "weeks": 26,
+   "seeds": [
+    20260710,
+    20260711,
+    20260712,
+    20260713,
+    20260714,
+    20260715,
+    20260716,
+    20260717
+   ],
+   "arms": {
+    "ratecard": {
+     "venue_side_week": 7398.6,
+     "wholesaler_side_week": 869.04,
+     "joint_week": 8267.64,
+     "per_venue_week": {
+      "bodega": 3444.28,
+      "boba": 1567.34,
+      "vending": 722.6,
+      "bakery": 1664.38
+     },
+     "per_wholesaler_week": {
+      "beverage": 129.66,
+      "produce": 594.37,
+      "dry": 145.01
+     },
+     "negotiated_share": 0.0,
+     "ratecard_share": 1.0,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 9.0,
+     "am_stops_week": 6.0,
+     "route_cost_week": 555.0
+    },
+    "nego": {
+     "venue_side_week": 7450.38,
+     "wholesaler_side_week": 946.98,
+     "joint_week": 8397.37,
+     "per_venue_week": {
+      "bodega": 3444.28,
+      "boba": 1581.59,
+      "vending": 760.13,
+      "bakery": 1664.38
+     },
+     "per_wholesaler_week": {
+      "beverage": 148.18,
+      "produce": 611.5,
+      "dry": 187.3
+     },
+     "negotiated_share": 0.359,
+     "ratecard_share": 0.641,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 4.96,
+     "am_stops_week": 4.96,
+     "route_cost_week": 368.62
+    },
+    "nego-indep": {
+     "venue_side_week": 7399.54,
+     "wholesaler_side_week": 871.31,
+     "joint_week": 8270.85,
+     "per_venue_week": {
+      "bodega": 3444.28,
+      "boba": 1568.23,
+      "vending": 722.66,
+      "bakery": 1664.38
+     },
+     "per_wholesaler_week": {
+      "beverage": 131.84,
+      "produce": 594.37,
+      "dry": 145.1
+     },
+     "negotiated_share": 0.0228,
+     "ratecard_share": 0.9772,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 9.0,
+     "am_stops_week": 6.0,
+     "route_cost_week": 555.0
+    },
+    "nego-no-window": {
+     "venue_side_week": 7399.54,
+     "wholesaler_side_week": 871.31,
+     "joint_week": 8270.85,
+     "per_venue_week": {
+      "bodega": 3444.28,
+      "boba": 1568.23,
+      "vending": 722.66,
+      "bakery": 1664.38
+     },
+     "per_wholesaler_week": {
+      "beverage": 131.84,
+      "produce": 594.37,
+      "dry": 145.1
+     },
+     "negotiated_share": 0.0228,
+     "ratecard_share": 0.9772,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 9.0,
+     "am_stops_week": 6.0,
+     "route_cost_week": 555.0
+    },
+    "nego-no-price": {
+     "venue_side_week": 7405.65,
+     "wholesaler_side_week": 893.27,
+     "joint_week": 8298.92,
+     "per_venue_week": {
+      "bodega": 3440.51,
+      "boba": 1567.34,
+      "vending": 733.42,
+      "bakery": 1664.38
+     },
+     "per_wholesaler_week": {
+      "beverage": 129.66,
+      "produce": 618.41,
+      "dry": 145.2
+     },
+     "negotiated_share": 0.0929,
+     "ratecard_share": 0.9071,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 8.0,
+     "am_stops_week": 6.0,
+     "route_cost_week": 512.0
+    },
+    "nego-no-qty": {
+     "venue_side_week": 7445.61,
+     "wholesaler_side_week": 941.76,
+     "joint_week": 8387.37,
+     "per_venue_week": {
+      "bodega": 3444.28,
+      "boba": 1581.56,
+      "vending": 755.39,
+      "bakery": 1664.38
+     },
+     "per_wholesaler_week": {
+      "beverage": 143.78,
+      "produce": 611.06,
+      "dry": 186.92
+     },
+     "negotiated_share": 0.3385,
+     "ratecard_share": 0.6615,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 4.94,
+     "am_stops_week": 4.93,
+     "route_cost_week": 367.45
+    },
+    "nego-no-terms": {
+     "venue_side_week": 7453.2,
+     "wholesaler_side_week": 940.62,
+     "joint_week": 8393.82,
+     "per_venue_week": {
+      "bodega": 3444.28,
+      "boba": 1586.2,
+      "vending": 758.34,
+      "bakery": 1664.38
+     },
+     "per_wholesaler_week": {
+      "beverage": 146.1,
+      "produce": 611.64,
+      "dry": 182.88
+     },
+     "negotiated_share": 0.3373,
+     "ratecard_share": 0.6627,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 4.95,
+     "am_stops_week": 4.95,
+     "route_cost_week": 368.36
+    },
+    "nego-no-spoil": {
+     "venue_side_week": 7443.29,
+     "wholesaler_side_week": 951.49,
+     "joint_week": 8394.78,
+     "per_venue_week": {
+      "bodega": 3444.28,
+      "boba": 1581.59,
+      "vending": 753.04,
+      "bakery": 1664.38
+     },
+     "per_wholesaler_week": {
+      "beverage": 148.18,
+      "produce": 616.01,
+      "dry": 187.3
+     },
+     "negotiated_share": 0.359,
+     "ratecard_share": 0.641,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 4.96,
+     "am_stops_week": 4.96,
+     "route_cost_week": 368.62
+    }
+   },
+   "paired_vs_ratecard": {
+    "nego_vs_ratecard": {
+     "venue_side": {
+      "mean": 51.79,
+      "ci95": [
+       45.83,
+       57.74
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 77.94,
+      "ci95": [
+       72.69,
+       83.19
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 129.73,
+      "ci95": [
+       124.41,
+       135.05
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 14.26,
+       "ci95": [
+        11.21,
+        17.3
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 37.53,
+       "ci95": [
+        32.67,
+        42.39
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 18.52,
+       "ci95": [
+        18.18,
+        18.85
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 17.13,
+       "ci95": [
+        12.03,
+        22.23
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 42.3,
+       "ci95": [
+        41.91,
+        42.69
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-indep_vs_ratecard": {
+     "venue_side": {
+      "mean": 0.95,
+      "ci95": [
+       0.39,
+       1.51
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 2.27,
+      "ci95": [
+       1.86,
+       2.68
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 3.22,
+      "ci95": [
+       2.42,
+       4.01
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 0.89,
+       "ci95": [
+        0.31,
+        1.48
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 0.06,
+       "ci95": [
+        -0.08,
+        0.19
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 2.18,
+       "ci95": [
+        1.72,
+        2.63
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 0.09,
+       "ci95": [
+        -0.12,
+        0.3
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-window_vs_ratecard": {
+     "venue_side": {
+      "mean": 0.95,
+      "ci95": [
+       0.39,
+       1.51
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 2.27,
+      "ci95": [
+       1.86,
+       2.68
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 3.22,
+      "ci95": [
+       2.42,
+       4.01
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 0.89,
+       "ci95": [
+        0.31,
+        1.48
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 0.06,
+       "ci95": [
+        -0.08,
+        0.19
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 2.18,
+       "ci95": [
+        1.72,
+        2.63
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 0.09,
+       "ci95": [
+        -0.12,
+        0.3
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-price_vs_ratecard": {
+     "venue_side": {
+      "mean": 7.06,
+      "ci95": [
+       -1.59,
+       15.71
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 24.23,
+      "ci95": [
+       17.96,
+       30.5
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 31.28,
+      "ci95": [
+       22.91,
+       39.66
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": -3.77,
+       "ci95": [
+        -10.89,
+        3.35
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 10.82,
+       "ci95": [
+        5.27,
+        16.37
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 24.04,
+       "ci95": [
+        17.65,
+        30.43
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 0.19,
+       "ci95": [
+        -0.1,
+        0.48
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-qty_vs_ratecard": {
+     "venue_side": {
+      "mean": 47.02,
+      "ci95": [
+       42.1,
+       51.94
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 72.72,
+      "ci95": [
+       68.64,
+       76.8
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 119.73,
+      "ci95": [
+       118.19,
+       121.28
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 14.23,
+       "ci95": [
+        13.65,
+        14.8
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 32.79,
+       "ci95": [
+        28.28,
+        37.3
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 14.12,
+       "ci95": [
+        13.86,
+        14.37
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 16.69,
+       "ci95": [
+        12.84,
+        20.54
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 41.91,
+       "ci95": [
+        41.39,
+        42.43
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-terms_vs_ratecard": {
+     "venue_side": {
+      "mean": 54.6,
+      "ci95": [
+       49.9,
+       59.31
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 71.58,
+      "ci95": [
+       67.0,
+       76.16
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 126.19,
+      "ci95": [
+       121.01,
+       131.36
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 18.86,
+       "ci95": [
+        15.64,
+        22.09
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 35.74,
+       "ci95": [
+        30.73,
+        40.75
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 16.44,
+       "ci95": [
+        16.05,
+        16.83
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 17.26,
+       "ci95": [
+        12.42,
+        22.1
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 37.88,
+       "ci95": [
+        37.49,
+        38.26
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-spoil_vs_ratecard": {
+     "venue_side": {
+      "mean": 44.7,
+      "ci95": [
+       39.89,
+       49.51
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 82.45,
+      "ci95": [
+       80.92,
+       83.98
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 127.14,
+      "ci95": [
+       122.87,
+       131.41
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 14.26,
+       "ci95": [
+        11.21,
+        17.3
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 30.44,
+       "ci95": [
+        26.75,
+        34.13
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 18.52,
+       "ci95": [
+        18.18,
+        18.85
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 21.63,
+       "ci95": [
+        20.4,
+        22.87
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 42.3,
+       "ci95": [
+        41.91,
+        42.69
+       ],
+       "n_seeds": 8
+      }
+     }
+    }
+   },
+   "levers": {
+    "window": {
+     "mean": 126.51,
+     "ci95": [
+      121.06,
+      131.97
+     ],
+     "n_seeds": 8
+    },
+    "price": {
+     "mean": 98.44,
+     "ci95": [
+      90.93,
+      105.96
+     ],
+     "n_seeds": 8
+    },
+    "qty": {
+     "mean": 9.99,
+     "ci95": [
+      3.36,
+      16.63
+     ],
+     "n_seeds": 8
+    },
+    "terms": {
+     "mean": 3.54,
+     "ci95": [
+      -2.54,
+      9.63
+     ],
+     "n_seeds": 8
+    },
+    "spoilage": {
+     "mean": 2.59,
+     "ci95": [
+      -0.01,
+      5.18
+     ],
+     "n_seeds": 8
+    }
+   },
+   "coordination": {
+    "wholesaler_side": {
+     "mean": 75.68,
+     "ci95": [
+      70.51,
+      80.84
+     ],
+     "n_seeds": 8
+    },
+    "joint": {
+     "mean": 126.51,
+     "ci95": [
+      121.06,
+      131.97
+     ],
+     "n_seeds": 8
+    },
+    "shared_windows_week": {
+     "nego": 3.0,
+     "nego-indep": 3.0,
+     "ratecard": 3.0
+    }
+   }
+  },
+  "noise0.35_flex0.7": {
+   "noise": 0.35,
+   "flex": 0.7,
+   "weeks": 26,
+   "seeds": [
+    20260710,
+    20260711,
+    20260712,
+    20260713,
+    20260714,
+    20260715,
+    20260716,
+    20260717
+   ],
+   "arms": {
+    "ratecard": {
+     "venue_side_week": 7398.6,
+     "wholesaler_side_week": 869.04,
+     "joint_week": 8267.64,
+     "per_venue_week": {
+      "bodega": 3444.28,
+      "boba": 1567.34,
+      "vending": 722.6,
+      "bakery": 1664.38
+     },
+     "per_wholesaler_week": {
+      "beverage": 129.66,
+      "produce": 594.37,
+      "dry": 145.01
+     },
+     "negotiated_share": 0.0,
+     "ratecard_share": 1.0,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 9.0,
+     "am_stops_week": 6.0,
+     "route_cost_week": 555.0
+    },
+    "nego": {
+     "venue_side_week": 7542.56,
+     "wholesaler_side_week": 1035.56,
+     "joint_week": 8578.11,
+     "per_venue_week": {
+      "bodega": 3446.08,
+      "boba": 1639.36,
+      "vending": 787.93,
+      "bakery": 1669.19
+     },
+     "per_wholesaler_week": {
+      "beverage": 197.47,
+      "produce": 641.94,
+      "dry": 196.15
+     },
+     "negotiated_share": 0.4872,
+     "ratecard_share": 0.5128,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 3.31,
+     "am_stops_week": 3.15,
+     "route_cost_week": 276.28
+    },
+    "nego-indep": {
+     "venue_side_week": 7416.44,
+     "wholesaler_side_week": 885.68,
+     "joint_week": 8302.12,
+     "per_venue_week": {
+      "bodega": 3446.08,
+      "boba": 1577.63,
+      "vending": 722.66,
+      "bakery": 1670.08
+     },
+     "per_wholesaler_week": {
+      "beverage": 139.72,
+      "produce": 594.37,
+      "dry": 151.59
+     },
+     "negotiated_share": 0.1506,
+     "ratecard_share": 0.8494,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 8.93,
+     "am_stops_week": 5.02,
+     "route_cost_week": 540.19
+    },
+    "nego-no-window": {
+     "venue_side_week": 7399.54,
+     "wholesaler_side_week": 871.31,
+     "joint_week": 8270.85,
+     "per_venue_week": {
+      "bodega": 3444.28,
+      "boba": 1568.23,
+      "vending": 722.66,
+      "bakery": 1664.38
+     },
+     "per_wholesaler_week": {
+      "beverage": 131.84,
+      "produce": 594.37,
+      "dry": 145.1
+     },
+     "negotiated_share": 0.0228,
+     "ratecard_share": 0.9772,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 9.0,
+     "am_stops_week": 6.0,
+     "route_cost_week": 555.0
+    },
+    "nego-no-price": {
+     "venue_side_week": 7415.53,
+     "wholesaler_side_week": 1105.81,
+     "joint_week": 8521.34,
+     "per_venue_week": {
+      "bodega": 3442.06,
+      "boba": 1567.34,
+      "vending": 741.75,
+      "bakery": 1664.38
+     },
+     "per_wholesaler_week": {
+      "beverage": 227.66,
+      "produce": 665.59,
+      "dry": 212.56
+     },
+     "negotiated_share": 0.4816,
+     "ratecard_share": 0.5184,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 4.36,
+     "am_stops_week": 3.22,
+     "route_cost_week": 321.95
+    },
+    "nego-no-qty": {
+     "venue_side_week": 7533.26,
+     "wholesaler_side_week": 1033.57,
+     "joint_week": 8566.83,
+     "per_venue_week": {
+      "bodega": 3444.28,
+      "boba": 1637.61,
+      "vending": 787.0,
+      "bakery": 1664.38
+     },
+     "per_wholesaler_week": {
+      "beverage": 191.9,
+      "produce": 646.26,
+      "dry": 195.41
+     },
+     "negotiated_share": 0.4944,
+     "ratecard_share": 0.5056,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 3.07,
+     "am_stops_week": 3.07,
+     "route_cost_week": 264.7
+    },
+    "nego-no-terms": {
+     "venue_side_week": 7537.87,
+     "wholesaler_side_week": 1035.41,
+     "joint_week": 8573.28,
+     "per_venue_week": {
+      "bodega": 3444.66,
+      "boba": 1638.99,
+      "vending": 788.18,
+      "bakery": 1666.03
+     },
+     "per_wholesaler_week": {
+      "beverage": 196.59,
+      "produce": 640.01,
+      "dry": 198.81
+     },
+     "negotiated_share": 0.478,
+     "ratecard_share": 0.522,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 3.32,
+     "am_stops_week": 3.26,
+     "route_cost_week": 278.02
+    },
+    "nego-no-spoil": {
+     "venue_side_week": 7541.52,
+     "wholesaler_side_week": 1036.14,
+     "joint_week": 8577.66,
+     "per_venue_week": {
+      "bodega": 3446.08,
+      "boba": 1639.36,
+      "vending": 786.89,
+      "bakery": 1669.19
+     },
+     "per_wholesaler_week": {
+      "beverage": 197.47,
+      "produce": 642.52,
+      "dry": 196.15
+     },
+     "negotiated_share": 0.4872,
+     "ratecard_share": 0.5128,
+     "jetro_share": 0.0,
+     "shared_windows_week": 3.0,
+     "stops_week": 3.31,
+     "am_stops_week": 3.15,
+     "route_cost_week": 276.28
+    }
+   },
+   "paired_vs_ratecard": {
+    "nego_vs_ratecard": {
+     "venue_side": {
+      "mean": 143.96,
+      "ci95": [
+       128.3,
+       159.62
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 166.52,
+      "ci95": [
+       162.03,
+       171.01
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 310.48,
+      "ci95": [
+       294.65,
+       326.3
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 1.8,
+       "ci95": [
+        1.36,
+        2.24
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 72.02,
+       "ci95": [
+        57.63,
+        86.42
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 65.33,
+       "ci95": [
+        60.82,
+        69.83
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 4.81,
+       "ci95": [
+        3.39,
+        6.23
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 67.81,
+       "ci95": [
+        67.3,
+        68.32
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 47.57,
+       "ci95": [
+        43.3,
+        51.84
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 51.14,
+       "ci95": [
+        50.78,
+        51.5
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-indep_vs_ratecard": {
+     "venue_side": {
+      "mean": 17.85,
+      "ci95": [
+       16.96,
+       18.73
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 16.64,
+      "ci95": [
+       14.28,
+       19.0
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 34.49,
+      "ci95": [
+       31.57,
+       37.41
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 1.8,
+       "ci95": [
+        1.36,
+        2.24
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 10.29,
+       "ci95": [
+        9.65,
+        10.93
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 0.06,
+       "ci95": [
+        -0.08,
+        0.19
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 5.7,
+       "ci95": [
+        4.9,
+        6.5
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 10.05,
+       "ci95": [
+        9.41,
+        10.7
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 6.59,
+       "ci95": [
+        4.38,
+        8.79
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-window_vs_ratecard": {
+     "venue_side": {
+      "mean": 0.95,
+      "ci95": [
+       0.39,
+       1.51
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 2.27,
+      "ci95": [
+       1.86,
+       2.68
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 3.22,
+      "ci95": [
+       2.42,
+       4.01
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 0.89,
+       "ci95": [
+        0.31,
+        1.48
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 0.06,
+       "ci95": [
+        -0.08,
+        0.19
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 2.18,
+       "ci95": [
+        1.72,
+        2.63
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 0.09,
+       "ci95": [
+        -0.12,
+        0.3
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-price_vs_ratecard": {
+     "venue_side": {
+      "mean": 16.93,
+      "ci95": [
+       7.72,
+       26.15
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 236.77,
+      "ci95": [
+       228.6,
+       244.93
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 253.7,
+      "ci95": [
+       242.36,
+       265.04
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": -2.21,
+       "ci95": [
+        -7.32,
+        2.89
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 19.15,
+       "ci95": [
+        13.99,
+        24.3
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 98.0,
+       "ci95": [
+        98.0,
+        98.0
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 71.21,
+       "ci95": [
+        63.19,
+        79.24
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 67.55,
+       "ci95": [
+        67.05,
+        68.05
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-qty_vs_ratecard": {
+     "venue_side": {
+      "mean": 134.67,
+      "ci95": [
+       130.74,
+       138.6
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 164.53,
+      "ci95": [
+       160.55,
+       168.5
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 299.2,
+      "ci95": [
+       296.73,
+       301.66
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 70.27,
+       "ci95": [
+        69.21,
+        71.33
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 64.4,
+       "ci95": [
+        60.75,
+        68.05
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 62.24,
+       "ci95": [
+        61.85,
+        62.63
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 51.89,
+       "ci95": [
+        48.08,
+        55.7
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 50.4,
+       "ci95": [
+        50.2,
+        50.6
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-terms_vs_ratecard": {
+     "venue_side": {
+      "mean": 139.27,
+      "ci95": [
+       123.89,
+       154.65
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 166.37,
+      "ci95": [
+       162.79,
+       169.95
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 305.64,
+      "ci95": [
+       289.67,
+       321.61
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 0.39,
+       "ci95": [
+        0.16,
+        0.62
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 71.65,
+       "ci95": [
+        56.43,
+        86.88
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 65.58,
+       "ci95": [
+        61.04,
+        70.12
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 1.65,
+       "ci95": [
+        0.73,
+        2.58
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 66.93,
+       "ci95": [
+        66.28,
+        67.57
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 45.64,
+       "ci95": [
+        42.12,
+        49.15
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 53.81,
+       "ci95": [
+        53.38,
+        54.23
+       ],
+       "n_seeds": 8
+      }
+     }
+    },
+    "nego-no-spoil_vs_ratecard": {
+     "venue_side": {
+      "mean": 142.92,
+      "ci95": [
+       127.0,
+       158.85
+      ],
+      "n_seeds": 8
+     },
+     "wholesaler_side": {
+      "mean": 167.1,
+      "ci95": [
+       165.59,
+       168.6
+      ],
+      "n_seeds": 8
+     },
+     "joint": {
+      "mean": 310.02,
+      "ci95": [
+       294.05,
+       325.98
+      ],
+      "n_seeds": 8
+     },
+     "per_venue": {
+      "bodega": {
+       "mean": 1.8,
+       "ci95": [
+        1.36,
+        2.24
+       ],
+       "n_seeds": 8
+      },
+      "boba": {
+       "mean": 72.02,
+       "ci95": [
+        57.63,
+        86.42
+       ],
+       "n_seeds": 8
+      },
+      "vending": {
+       "mean": 64.29,
+       "ci95": [
+        59.16,
+        69.41
+       ],
+       "n_seeds": 8
+      },
+      "bakery": {
+       "mean": 4.81,
+       "ci95": [
+        3.39,
+        6.23
+       ],
+       "n_seeds": 8
+      }
+     },
+     "per_wholesaler": {
+      "beverage": {
+       "mean": 67.81,
+       "ci95": [
+        67.3,
+        68.32
+       ],
+       "n_seeds": 8
+      },
+      "produce": {
+       "mean": 48.15,
+       "ci95": [
+        46.35,
+        49.94
+       ],
+       "n_seeds": 8
+      },
+      "dry": {
+       "mean": 51.14,
+       "ci95": [
+        50.78,
+        51.5
+       ],
+       "n_seeds": 8
+      }
+     }
+    }
+   },
+   "levers": {
+    "window": {
+     "mean": 307.26,
+     "ci95": [
+      291.56,
+      322.96
+     ],
+     "n_seeds": 8
+    },
+    "price": {
+     "mean": 56.78,
+     "ci95": [
+      41.06,
+      72.5
+     ],
+     "n_seeds": 8
+    },
+    "qty": {
+     "mean": 11.28,
+     "ci95": [
+      -3.85,
+      26.41
+     ],
+     "n_seeds": 8
+    },
+    "terms": {
+     "mean": 4.84,
+     "ci95": [
+      -4.78,
+      14.45
+     ],
+     "n_seeds": 8
+    },
+    "spoilage": {
+     "mean": 0.46,
+     "ci95": [
+      -0.1,
+      1.02
+     ],
+     "n_seeds": 8
+    }
+   },
+   "coordination": {
+    "wholesaler_side": {
+     "mean": 149.88,
+     "ci95": [
+      144.04,
+      155.71
+     ],
+     "n_seeds": 8
+    },
+    "joint": {
+     "mean": 275.99,
+     "ci95": [
+      260.76,
+      291.22
+     ],
+     "n_seeds": 8
+    },
+    "shared_windows_week": {
+     "nego": 3.0,
+     "nego-indep": 3.0,
+     "ratecard": 3.0
+    }
+   }
+  }
+ },
+ "hypotheses": {
+  "H-W1_window_lever_vs_price_lever": {
+   "window": {
+    "mean": 320.97,
+    "ci95": [
+     317.09,
+     324.84
+    ],
+    "n_seeds": 8
+   },
+   "price": {
+    "mean": 80.64,
+    "ci95": [
+     75.41,
+     85.88
+    ],
+    "n_seeds": 8
+   },
+   "qty": {
+    "mean": 27.54,
+    "ci95": [
+     23.87,
+     31.22
+    ],
+    "n_seeds": 8
+   },
+   "terms": {
+    "mean": 27.34,
+    "ci95": [
+     21.75,
+     32.92
+    ],
+    "n_seeds": 8
+   },
+   "spoilage": {
+    "mean": -0.29,
+    "ci95": [
+     -3.29,
+     2.7
+    ],
+    "n_seeds": 8
+   },
+   "window_gt_price": true
+  },
+  "H-W2_both_sides_beat_ratecard": {
+   "venue_side": {
+    "mean": 147.19,
+    "ci95": [
+     142.4,
+     151.98
+    ],
+    "n_seeds": 8
+   },
+   "wholesaler_side": {
+    "mean": 182.64,
+    "ci95": [
+     175.66,
+     189.62
+    ],
+    "n_seeds": 8
+   },
+   "both_positive": true,
+   "per_venue": {
+    "bodega": {
+     "mean": 1.73,
+     "ci95": [
+      0.91,
+      2.54
+     ],
+     "n_seeds": 8
+    },
+    "boba": {
+     "mean": 77.26,
+     "ci95": [
+      71.98,
+      82.54
+     ],
+     "n_seeds": 8
+    },
+    "vending": {
+     "mean": 63.73,
+     "ci95": [
+      60.21,
+      67.25
+     ],
+     "n_seeds": 8
+    },
+    "bakery": {
+     "mean": 4.47,
+     "ci95": [
+      2.8,
+      6.14
+     ],
+     "n_seeds": 8
+    }
+   },
+   "per_wholesaler": {
+    "beverage": {
+     "mean": 74.59,
+     "ci95": [
+      74.27,
+      74.92
+     ],
+     "n_seeds": 8
+    },
+    "produce": {
+     "mean": 49.0,
+     "ci95": [
+      42.48,
+      55.51
+     ],
+     "n_seeds": 8
+    },
+    "dry": {
+     "mean": 59.05,
+     "ci95": [
+      57.8,
+      60.31
+     ],
+     "n_seeds": 8
+    }
+   }
+  },
+  "H-W3_coordination_is_cross_venue": {
+   "coordination_value": {
+    "mean": 155.69,
+    "ci95": [
+     146.72,
+     164.66
+    ],
+    "n_seeds": 8
+   },
+   "shared_windows_week": {
+    "nego": 3.0,
+    "nego-indep": 3.0,
+    "ratecard": 3.0
+   },
+   "share_of_wholesaler_gain": 0.852
+  }
+ }
+}
