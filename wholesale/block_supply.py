@@ -30,7 +30,7 @@ from wholesale.calibration import V_ORDER, W_ORDER
 from wholesale.run import _score
 from wholesale.scenario import build_ctx
 from wholesale.supply import ProcurementAgent, SupplierMerchant, procurement_agent
-from wholesale.world import Schedule, week_demand
+from wholesale.world import Schedule, substream, week_demand
 
 # concrete supplier archetype behind each (category, venue) line — the "sea"
 SUPPLIER_TYPES = {
@@ -82,7 +82,7 @@ class ProcurementMarket:
                 sup = SupplierMerchant(w, v, ctx, env, sch,
                                        coordinate=(True if arm == "ratecard"
                                                    else coord))
-                agent = ProcurementAgent(uid=abs(hash((w, v))) % 10**8,
+                agent = ProcurementAgent(uid=substream("procuid", w, v) % 10**8,
                                          wtp={sup.sku: ctx.R}, walk_cost=0.0)
                 dis = sup._disagreement()
                 if arm == "ratecard":

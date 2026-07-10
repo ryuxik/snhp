@@ -21,7 +21,8 @@ from wholesale.negotiators import (ACCOMMODATOR, AVOIDER, BLUFFER, BOULWARE,
                                    POSITIONAL, SNHP, NegotiatorType, _effective,
                                    _is_soft, bargain, rel_value, relationship,
                                    snhp_outcome)
-from wholesale.run_human import block_rel_values, run_seed, summarize
+from wholesale.run_human import (TYPE_NAMES, block_rel_values, run_seed,
+                                 summarize)
 from wholesale.scenario import build_ctx, disagreement, nash_deal
 from wholesale.world import Schedule, week_demand
 
@@ -241,6 +242,25 @@ def test_determinism_byte_identical_reruns():
     a = json.dumps(summarize([run_seed(SEED, 4)]), sort_keys=True)
     b = json.dumps(summarize([run_seed(SEED, 4)]), sort_keys=True)
     assert a == b
+
+
+def test_summarize_degrades_gracefully_on_a_degenerate_seed():
+    """A degenerate seed must not crash summarize(). The accumulator is a
+    dict(defaultdict): a seed with zero positive-surplus relationships leaves the
+    acc EMPTY (every key absent), and a seed that closes deals but never impasses
+    leaves 'impasse_n'/'deadweight_sum' absent. Bare indexing would KeyError (and
+    n=0 would ZeroDivide); the .get + floored-denominator reads degrade to 0."""
+    pt = {t: [0.0, 0.0, 0] for t in TYPE_NAMES}
+    empty = {"acc": {}, "per_type": pt}                       # zero relationships
+    no_impasse = {"acc": {"n": 12, "joint_h": 30.0, "joint_s": 33.0,
+                          "naive_n": 5, "naive_h": 4.0, "naive_s": 6.0},
+                  "per_type": pt}                             # closes, zero impasses
+    for rows in ([empty, empty], [no_impasse, no_impasse], [empty, no_impasse]):
+        out = summarize(rows)                                 # must not raise
+        # zero impasses (key absent) → rate reads 0, not KeyError/ZeroDivide
+        assert out["four_failure_modes"]["1_impasse"]["snhp_impasse_rate"] == 0.0
+        assert out["four_failure_modes"]["1_impasse"]["human_impasse_rate"]["mean"] == 0.0
+        assert out["four_failure_modes"]["1_impasse"]["deadweight_per_impasse_$"]["mean"] == 0.0
 
 
 def test_bargain_rejects_the_snhp_sentinel():

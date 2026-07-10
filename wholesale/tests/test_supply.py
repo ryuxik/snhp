@@ -13,6 +13,10 @@ Per phase (binding rigor):
       identity); the procurement monopsony audit PASSES and never breaches the
       supplier's participation floor — at BOTH interfaces, same code.
 """
+import os
+import subprocess
+import sys
+
 import numpy as np
 import pytest
 
@@ -30,6 +34,7 @@ from wholesale.supply import (ProcurementAgent, Supplier, SupplierMerchant,
 from wholesale.block_supply import ProcurementMarket, endogenous_scales
 
 SEED = 20260710
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _CENT_FIELDS = ["wholesaler", "venue", "channel", "qty", "unit_price", "window",
                 "terms", "share", "real_u_v", "real_w_contrib", "exp_u_v",
                 "exp_u_w", "d_v", "d_w", "event"]
@@ -117,6 +122,41 @@ def test_procurement_regret_nonnegative_and_zero_when_attested():
             _, realized, _ = agent.negotiate(sup)
             assert procurement_regret(fr, realized) >= 0.0
             assert procurement_regret(fr, realized) < 1e-9      # attested → 0
+
+
+def test_procurement_agent_receipt_is_guarded():
+    """ProcurementAgent inherits BuyerAgent.receipt(), which computes regret via
+    single_merchant_frontier → bundle_surplus (the CONSUMER linear-decay value
+    model) over CASE quantities — garbage for a venue's newsvendor value. It is
+    overridden to raise, so the wrong path can never be silently taken;
+    procurement_frontier / procurement_regret are the correct primitives."""
+    sup = SupplierMerchant.from_wholesale("produce", "bodega", seed=SEED, week=0)
+    agent = procurement_agent("bodega", [sup])
+    with pytest.raises(NotImplementedError):
+        agent.receipt(sup)
+
+
+def test_procurement_uid_is_deterministic_across_hash_seeds():
+    """Reproducibility (the paper's determinism claim): the emitted procurement
+    uid must NOT depend on Python's per-process hash salt (PYTHONHASHSEED). It is
+    a blake2b substream of the identity, not abs(hash((w, v))). The in-process
+    uid equals the pure derivation, and three fresh subprocesses under different
+    hash seeds emit the SAME uids for both the supply.py and block_supply.py
+    sites."""
+    from wholesale.world import substream
+    sup = SupplierMerchant.from_wholesale("dry", "boba", seed=SEED, week=0)
+    assert procurement_agent("boba", [sup]).uid == substream("procuid", "boba") % 10**8
+    snippet = (
+        "from wholesale.supply import procurement_agent, SupplierMerchant;"
+        "from wholesale.world import substream;"
+        "sup = SupplierMerchant.from_wholesale('dry','boba',seed=%d,week=0);"
+        "print(procurement_agent('boba',[sup]).uid,"
+        "      substream('procuid','beverage','bodega') %% 10**8)" % SEED)
+    outs = {subprocess.check_output(
+        [sys.executable, "-c", snippet], cwd=ROOT, text=True,
+        env={**os.environ, "PYTHONHASHSEED": hs}).strip()
+        for hs in ("0", "1", "9973")}
+    assert len(outs) == 1, outs        # identical under every hash salt
 
 
 # ══ S2 ══════════════════════════════════════════════════════════════════════

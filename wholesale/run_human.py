@@ -156,23 +156,32 @@ def summarize(seed_rows: list) -> dict:
     def col(fn):
         return np.array([fn(r["acc"]) for r in seed_rows], dtype=float)
 
-    n = col(lambda a: a["n"])
-    impasse_rate = col(lambda a: a["impasse_n"] / a["n"])
-    deadweight = col(lambda a: a["deadweight_sum"] / max(1, a["impasse_n"]))
-    joint_h = col(lambda a: a["joint_h"] / a["n"])
-    joint_s = col(lambda a: a["joint_s"] / a["n"])
-    ret_h = col(lambda a: a["ret_h"] / a["n"])
-    ret_s = col(lambda a: a["ret_s"] / a["n"])
-    ltv_h = col(lambda a: a["ltv_h"] / a["n"])
-    ltv_s = col(lambda a: a["ltv_s"] / a["n"])
-    worst_h = col(lambda a: a["worst_h"] / a["n"])
-    worst_s = col(lambda a: a["worst_s"] / a["n"])
-    naive_h = col(lambda a: a["naive_h"] / a["naive_n"])
-    naive_s = col(lambda a: a["naive_s"] / a["naive_n"])
-    pos_h = col(lambda a: a["pos_joint_h"] / max(1, a["pos_n"]))
-    pos_s = col(lambda a: a["pos_joint_s"] / max(1, a["pos_n"]))
-    hbf_h = col(lambda a: a["hb_fleece_h"] / max(1, a["hb_fleece_n"]))
-    hbf_s = col(lambda a: a["hb_fleece_s"] / max(1, a["hb_fleece_n"]))
+    def rate(num, den):
+        """Per-seed ratio that degrades gracefully on a degenerate seed. The
+        accumulator is a dict(defaultdict): a seed that never increments a given
+        event leaves that key ABSENT, so read every key with .get and floor the
+        denominator at 1 — a seed with zero relationships (n absent) or zero
+        impasses (impasse_n absent) contributes 0, not a KeyError /
+        ZeroDivisionError."""
+        return col(lambda a: a.get(num, 0.0) / max(1, a.get(den, 0)))
+
+    n = col(lambda a: a.get("n", 0))
+    impasse_rate = rate("impasse_n", "n")
+    deadweight = rate("deadweight_sum", "impasse_n")
+    joint_h = rate("joint_h", "n")
+    joint_s = rate("joint_s", "n")
+    ret_h = rate("ret_h", "n")
+    ret_s = rate("ret_s", "n")
+    ltv_h = rate("ltv_h", "n")
+    ltv_s = rate("ltv_s", "n")
+    worst_h = rate("worst_h", "n")
+    worst_s = rate("worst_s", "n")
+    naive_h = rate("naive_h", "naive_n")
+    naive_s = rate("naive_s", "naive_n")
+    pos_h = rate("pos_joint_h", "pos_n")
+    pos_s = rate("pos_joint_s", "pos_n")
+    hbf_h = rate("hb_fleece_h", "hb_fleece_n")
+    hbf_s = rate("hb_fleece_s", "hb_fleece_n")
 
     # per-type payoff (mean $ per appearance) and the switch delta
     type_tbl = {}

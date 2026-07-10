@@ -45,7 +45,8 @@ from buyer.merchant import BoardItem, Disclosure, Intent, Merchant, Quote
 from wholesale import calibration as cal
 from wholesale.scenario import (Deal, Disagreement, RelCtx, build_ctx,
                                 disagreement, nash_deal)
-from wholesale.world import Schedule, WeekDemand, week_demand, window_label
+from wholesale.world import (Schedule, WeekDemand, substream, week_demand,
+                             window_label)
 
 
 # ── the supply interface: Merchant + the venue's newsvendor fallback ────────
@@ -201,6 +202,16 @@ class ProcurementAgent(BuyerAgent):
             return q, s, "nego"
         return None, fb, "no_deal"
 
+    def receipt(self, *args, **kwargs):
+        """GUARD the inherited BuyerAgent.receipt(): it grades regret via
+        single_merchant_frontier → bundle_surplus (the CONSUMER linear-decay
+        value model) applied to CASE quantities — silently wrong for a venue's
+        newsvendor value (which lives on the Quote as u_buyer). Procurement uses
+        procurement_frontier / procurement_regret instead, so the wrong path is
+        made loud rather than returning garbage."""
+        raise NotImplementedError(
+            "use procurement_frontier/procurement_regret for procurement agents")
+
 
 def procurement_agent(venue: str, suppliers: list[SupplierMerchant], *,
                       friction: float = 0.0, uid: int | None = None
@@ -208,7 +219,8 @@ def procurement_agent(venue: str, suppliers: list[SupplierMerchant], *,
     """Build a venue's procurement agent: its per-case value (wtp) is the
     calibrated attributable retail value R of each supplier's case."""
     wtp = {s.sku: s._ctx.R for s in suppliers}
-    return ProcurementAgent(uid=uid if uid is not None else abs(hash(venue)) % 10**8,
+    return ProcurementAgent(uid=uid if uid is not None
+                            else substream("procuid", venue) % 10**8,
                             wtp=wtp, walk_cost=0.0, policy="honest",
                             friction=friction)
 
