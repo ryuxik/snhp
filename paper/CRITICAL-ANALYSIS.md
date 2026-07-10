@@ -140,12 +140,26 @@ survives (zero significantly-negative cells at the realistic 58% huff rate)
 for the same reason parking's nego survives a wrong forecast (§2): it
 discounts only to the specific browser negotiating, so a bad price is
 declined by one person, whereas retag *broadcasts* the markdown to every
-future visitor and bleeds. **New honest conclusion for the paper: the retag
-recovery does not generalize past a fast-sale regime; the durable vintage
-finding is that bilateral targeting beats broadcast markdown when arrivals
-are slow.** Pre-registered follow-up (not yet run): retune HOLDING_COST/
-DAILY_DISCOUNT to the realistic hazard and re-test whether a slow-aware retag
-solve recovers — if it doesn't, the broadcast-bleed conclusion hardens.
+future visitor and bleeds. **PROVISIONAL — this is an engine-tuning gap, not
+yet a fundamental result (flagged 2026-07-10 after review challenge).** The
+retag loss is measured against a solve whose HOLDING_COST/DAILY_DISCOUNT are
+tuned to a fast-sale world; we have NOT yet given retag its best shot at the
+realistic timeline. Until we retune the holding cost/discount to the slow
+hazard and re-test, we may only claim "the fast-tuned retag solve bleeds when
+the world is slow," NOT "broadcast markdown fundamentally bleeds." This is the
+meta-pattern once more (the objective assumed the wrong regime — here the
+wrong TIME regime), and the fix is the same: make the schedule
+regime-consistent with the real demand timeline. The one residual that is
+robust to tuning: offer/1 carried the SAME mis-tuned holding cost and did
+NOT lose money, because per-individual gating declines a bad price one buyer
+at a time while a broadcast markdown commits it to everyone — that asymmetry
+is real regardless of tuning. **BLOCKER before any vintage claim ships:
+retune to the realistic hazard (the "demand-timeline-tuned" arm) and re-run.
+If a slow-aware retag recovers, the reversal was a tuning artifact; if it
+still bleeds, the broadcast-vs-targeted asymmetry hardens.** Same axis applies
+to fashion (§5-adjacent): the markdown-beats-cliff result compares FIXED
+schedules, not an engine tuned to the true demand+return timeline — the
+stronger test is the timeline-optimized markdown, also owed.
 
 ## 5. Block fashion: full-season tie (−18.85) — METHODOLOGY ARTIFACT, two parts
 
