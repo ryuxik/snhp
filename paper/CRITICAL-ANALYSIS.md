@@ -268,6 +268,31 @@ opportunity-cost floor (tighter buffer, less extractable margin) while
 computed/1, unconstrained by that reference, gets more runway from the longer
 vase life. The florist boundary is more robust at realistic shrink, not less.
 
+**SERVICES-TIER SCOPING (2026-07-10, review challenge): "posted beats nego"
+was true only of the 20% clearance slice — bilateral wins the 80% services
+business.** The §9 florist was modeled as pure perishable walk-in clearance,
+which is its ANTI-lever. Adding the lines a real florist runs on —
+arrangement (grade×style×size logroll), events (weddings/funerals,
+scope×palette), delivery (route-density window), attach (complement bundle) —
+flips the whole P&L: posted-only $1,332.70/day → deployable bilateral broker
+$1,671.09/day = **+$338.39/day (+25.4%)**. Per-line, the deployable broker
+(bilateral + menu fallback) wins EVERY services line (arrangement +$166,
+event +$164, attach +$54, delivery +$38; all CIs clear of zero) and posted
+keeps clearance (−$83 conceded). The harder falsification — standalone
+bilateral vs posted — splits informatively: arrangement wins outright
+(genuine multi-issue taste; a test pins the premium-blooms-in-cheap-wrap
+logroll), events are horizon-sensitive/not significant, delivery+attach LOSE
+standalone (already efficiently postable — bilateral adds only a bounded
+heterogeneity top-up that pays kept on the posted base). Services are 80% of
+realized revenue (event 39%, arrangement 25%), clearance 20%. **Corrected
+boundary for the paper: posted wins where TIME is the only variable and
+buyers are interchangeable (the clearance slice); bilateral wins where the
+scarce information is buyer heterogeneity (the services slice) — NOT
+"florists don't benefit from SNHP," which the walk-in-only model wrongly
+implied.** This is the general lesson for every venue we modeled with a
+single lever: the lever we happened to pick can be the venue's anti-lever;
+the honest claim is per-line, not per-venue.
+
 ## 10. Emergent incentive-compatibility is NOT universal — it is a property of finite-stock shadow pricing (boba breaks it) — SCOPE BOUNDARY, corrects a lead claim
 
 The whitepaper's lead claim (abstract + §4.2) is that a best-response search

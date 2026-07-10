@@ -1,0 +1,358 @@
+{
+ "services_version": 1,
+ "seed": 20260710,
+ "days": 180,
+ "arms": [
+  "posted",
+  "nego-pure",
+  "nego"
+ ],
+ "lines": {
+  "arrangement": {
+   "totals": {
+    "posted": {
+     "profit": 89971.52,
+     "revenue": 135475.52,
+     "units": 2528,
+     "profit_per_day": 499.84,
+     "revenue_per_day": 752.64
+    },
+    "nego-pure": {
+     "profit": 94673.37,
+     "revenue": 166839.57,
+     "units": 2558,
+     "profit_per_day": 525.96,
+     "revenue_per_day": 926.89
+    },
+    "nego": {
+     "profit": 119764.32,
+     "revenue": 204620.52,
+     "units": 3263,
+     "profit_per_day": 665.36,
+     "revenue_per_day": 1136.78
+    }
+   },
+   "deltas": {
+    "nego_vs_posted": {
+     "profit": {
+      "mean": 165.52,
+      "ci95": [
+       157.33,
+       173.7
+      ],
+      "n": 36,
+      "block": 5
+     },
+     "revenue": {
+      "mean": 384.14,
+      "ci95": [
+       365.36,
+       402.92
+      ],
+      "n": 36,
+      "block": 5
+     }
+    },
+    "nego-pure_vs_posted": {
+     "profit": {
+      "mean": 26.12,
+      "ci95": [
+       10.71,
+       41.53
+      ],
+      "n": 36,
+      "block": 5
+     },
+     "revenue": {
+      "mean": 174.24,
+      "ci95": [
+       147.43,
+       201.06
+      ],
+      "n": 36,
+      "block": 5
+     }
+    }
+   },
+   "posted_markup": 1.165
+  },
+  "event": {
+   "totals": {
+    "posted": {
+     "profit": 69707.67,
+     "revenue": 210654.27,
+     "units": 88,
+     "profit_per_day": 387.26,
+     "revenue_per_day": 1170.3
+    },
+    "nego-pure": {
+     "profit": 42981.71,
+     "revenue": 193922.81,
+     "units": 78,
+     "profit_per_day": 238.79,
+     "revenue_per_day": 1077.35
+    },
+    "nego": {
+     "profit": 99198.49,
+     "revenue": 363631.19,
+     "units": 138,
+     "profit_per_day": 551.1,
+     "revenue_per_day": 2020.17
+    }
+   },
+   "deltas": {
+    "nego_vs_posted": {
+     "profit": {
+      "mean": 163.84,
+      "ci95": [
+       99.27,
+       228.4
+      ],
+      "n": 36,
+      "block": 5
+     },
+     "revenue": {
+      "mean": 849.87,
+      "ci95": [
+       549.98,
+       1149.76
+      ],
+      "n": 36,
+      "block": 5
+     }
+    },
+    "nego-pure_vs_posted": {
+     "profit": {
+      "mean": -148.48,
+      "ci95": [
+       -332.57,
+       35.61
+      ],
+      "n": 36,
+      "block": 5
+     },
+     "revenue": {
+      "mean": -92.95,
+      "ci95": [
+       -703.96,
+       518.05
+      ],
+      "n": 36,
+      "block": 5
+     }
+    }
+   },
+   "posted_markup": {
+    "wedding": 0.805,
+    "funeral": 0.835
+   }
+  },
+  "delivery": {
+   "totals": {
+    "posted": {
+     "profit": 15751.6,
+     "revenue": 34720.0,
+     "units": 2170,
+     "profit_per_day": 87.51,
+     "revenue_per_day": 192.89
+    },
+    "nego-pure": {
+     "profit": 7322.66,
+     "revenue": 21075.86,
+     "units": 1838,
+     "profit_per_day": 40.68,
+     "revenue_per_day": 117.09
+    },
+    "nego": {
+     "profit": 22533.89,
+     "revenue": 49530.89,
+     "units": 3745,
+     "profit_per_day": 125.19,
+     "revenue_per_day": 275.17
+    }
+   },
+   "deltas": {
+    "nego_vs_posted": {
+     "profit": {
+      "mean": 37.68,
+      "ci95": [
+       35.91,
+       39.45
+      ],
+      "n": 36,
+      "block": 5
+     },
+     "revenue": {
+      "mean": 82.28,
+      "ci95": [
+       77.98,
+       86.59
+      ],
+      "n": 36,
+      "block": 5
+     }
+    },
+    "nego-pure_vs_posted": {
+     "profit": {
+      "mean": -46.83,
+      "ci95": [
+       -51.74,
+       -41.91
+      ],
+      "n": 36,
+      "block": 5
+     },
+     "revenue": {
+      "mean": -75.8,
+      "ci95": [
+       -84.91,
+       -66.7
+      ],
+      "n": 36,
+      "block": 5
+     }
+    }
+   },
+   "posted_fee": 16.0
+  },
+  "attach": {
+   "totals": {
+    "posted": {
+     "profit": 34550.6,
+     "revenue": 51195.2,
+     "units": 4067,
+     "profit_per_day": 191.95,
+     "revenue_per_day": 284.42
+    },
+    "nego-pure": {
+     "profit": 9796.47,
+     "revenue": 27225.27,
+     "units": 3894,
+     "profit_per_day": 54.42,
+     "revenue_per_day": 151.25
+    },
+    "nego": {
+     "profit": 44347.07,
+     "revenue": 78420.47,
+     "units": 7961,
+     "profit_per_day": 246.37,
+     "revenue_per_day": 435.67
+    }
+   },
+   "deltas": {
+    "nego_vs_posted": {
+     "profit": {
+      "mean": 54.42,
+      "ci95": [
+       52.03,
+       56.82
+      ],
+      "n": 36,
+      "block": 5
+     },
+     "revenue": {
+      "mean": 151.25,
+      "ci95": [
+       144.61,
+       157.89
+      ],
+      "n": 36,
+      "block": 5
+     }
+    },
+    "nego-pure_vs_posted": {
+     "profit": {
+      "mean": -137.52,
+      "ci95": [
+       -145.52,
+       -129.52
+      ],
+      "n": 36,
+      "block": 5
+     },
+     "revenue": {
+      "mean": -133.17,
+      "ci95": [
+       -145.94,
+       -120.39
+      ],
+      "n": 36,
+      "block": 5
+     }
+    }
+   },
+   "posted_markup": 1.12
+  }
+ },
+ "walkin": {
+  "posted_arm": "computed/1",
+  "nego_arm": "nego/1",
+  "nego_vs_posted_profit": {
+   "mean": -83.06,
+   "ci95": [
+    -97.8,
+    -68.32
+   ],
+   "n": 36,
+   "block": 5
+  },
+  "posted_profit_per_day": 166.14,
+  "nego_profit_per_day": 83.07,
+  "posted_revenue_per_day": 600.9
+ },
+ "blend": {
+  "rows": [
+   {
+    "line": "arrangement",
+    "revenue_per_day": 752.64,
+    "posted_profit_per_day": 499.84,
+    "nego_profit_per_day": 665.36,
+    "nego_minus_posted": 165.52,
+    "revenue_share": 0.2508
+   },
+   {
+    "line": "event",
+    "revenue_per_day": 1170.3,
+    "posted_profit_per_day": 387.26,
+    "nego_profit_per_day": 551.1,
+    "nego_minus_posted": 163.84,
+    "revenue_share": 0.39
+   },
+   {
+    "line": "delivery",
+    "revenue_per_day": 192.89,
+    "posted_profit_per_day": 87.51,
+    "nego_profit_per_day": 125.19,
+    "nego_minus_posted": 37.68,
+    "revenue_share": 0.0643
+   },
+   {
+    "line": "attach",
+    "revenue_per_day": 284.42,
+    "posted_profit_per_day": 191.95,
+    "nego_profit_per_day": 246.37,
+    "nego_minus_posted": 54.42,
+    "revenue_share": 0.0948
+   },
+   {
+    "line": "walk-in (clearance)",
+    "revenue_per_day": 600.9,
+    "posted_profit_per_day": 166.14,
+    "nego_profit_per_day": 83.07,
+    "nego_minus_posted": -83.07,
+    "revenue_share": 0.2002
+   }
+  ],
+  "posted_profit_per_day": 1332.7,
+  "nego_profit_per_day": 1671.09,
+  "nego_minus_posted_per_day": 338.39,
+  "total_revenue_per_day": 3001.15
+ },
+ "notes": [
+  "PAIRED on identity: buyer draws depend only on (seed, line, day, k) \u2014 both arms face the same stream.",
+  "posted gets its best shot: menu markup / flat fee tuned to the profit-max global level on the population (not a strawman).",
+  "discount-only: a bilateral quote never prices over the config's reference list.",
+  "nego-pure = bilateral only (a declined quote is a lost sale) \u2014 the mechanism's standalone verdict; nego = bilateral with the posted menu as fallback (the deployable broker).",
+  "truthful disclosure to the Nash engine assumed (vend-P1); the liar tax is measured elsewhere."
+ ]
+}

@@ -109,3 +109,127 @@ FLOWER_CATALOG_LEGACY = [
 ]
 FLOWER_DUMP_AGE_LEGACY = 3
 FLOWER_DUMP_FRAC_LEGACY = 0.30
+
+# ── the SERVICES tier (CRITICAL-ANALYSIS §9 follow-up: the REAL florist) ──
+# The florist "posted beats negotiation" boundary (CRITICAL-ANALYSIS §9) was
+# found on an IMPOVERISHED florist modeled as pure perishable walk-in
+# clearance — the florist's ANTI-lever for our mechanism. But real florist
+# revenue is dominated by higher-margin, heterogeneous, multi-issue lines
+# that are exactly the regimes bilateral negotiation wins everywhere else in
+# our results. This block calibrates four such lines (NYC 2026, sourced in
+# bakeshop/RESULTS.md "services tier" section). Every number here is a
+# calibration TARGET; volumes/dispersions are labeled assumptions and swept.
+SERVICES_SEED_SALT = "services"
+
+# Daily order volumes (Poisson means) for a full-service Manhattan florist —
+# NOT the grab-and-go walk-in shop the §9 grid modeled. Labeled assumptions
+# (retail-florist order mix); the revenue-weighted blend in RESULTS.md reports
+# realized per-line revenue so the weighting is explicit, not hidden.
+ARRANGEMENT_RATE = 18.0      # arranged-bouquet orders/day
+DELIVERY_RATE    = 22.0      # delivered gift orders/day (most web/phone volume)
+EVENT_RATE       = 0.8       # weddings + funerals booked/day (lumpy, high $)
+ATTACH_RATE      = 34.0      # POS flower buyers who see an attach suggestion/day
+
+# ── line 1: ARRANGEMENT — flowers × style × size, the labor-margin,
+#    heterogeneous-taste multi-issue line (logrolling home turf). ──
+# Wholesale stem cost by size (standard grade); premium grade multiplies it.
+ARR_SIZE_WHOLESALE = {"small": 9.0, "medium": 18.0, "large": 30.0}
+ARR_GRADE_MULT = {"standard": 1.0, "premium": 1.9}   # premium bloom wholesale
+ARR_STYLE_LABOR = {"wrap": 8.0, "hand_tie": 16.0, "vase": 26.0}  # design $
+ARR_STYLE_VESSEL = {"wrap": 1.0, "hand_tie": 2.0, "vase": 9.0}   # hard good $
+# Florist markup convention (Florists' Review / EveryStem / Fiore Designs):
+# fresh goods retail ≈ 3.5× wholesale, hard goods ≈ 2.5×, design labor billed
+# ~1.5× (the "labor is 25-40% of the marked-up subtotal" rule, folded into a
+# per-style dollar fee). These reproduce the TJ Flowers NYC anchors: standard
+# medium wrap ≈ $85, standard medium vase ≈ $125, premium medium vase ≈ $175.
+ARR_FRESH_MARKUP = 3.5
+ARR_HARD_MARKUP = 2.5
+ARR_LABOR_MARKUP = 1.5
+# Population-average desirability scores per attribute level (a buyer's own
+# private importance weights, drawn per buyer, tilt these into heterogeneous
+# per-config value — the scarce information bilateral discovery exploits).
+ARR_GRADE_SCORE = {"standard": 1.00, "premium": 1.55}
+ARR_STYLE_SCORE = {"wrap": 1.00, "hand_tie": 1.12, "vase": 1.30}
+ARR_SIZE_SCORE = {"small": 0.80, "medium": 1.00, "large": 1.28}
+ARR_WEIGHT_SIGMA = 0.55      # lognormal spread of a buyer's per-issue weights
+ARR_BUDGET_MU = 96.0         # median buyer flower budget $ (near the popular
+                             # config's reference list — the strong-sticker
+                             # calibration: list ≈ the profit-max posted price,
+                             # so the tuned menu markup lands interior ≈ 1.0)
+ARR_BUDGET_SIGMA = 0.42      # lognormal spread of buyer budgets
+ARR_OUTSIDE_MARKUP = 1.15    # the florist across the street / a delivery app:
+                             # the SAME config, ~15% pricier — a COMPETITIVE
+                             # outside that scales with the buyer's own value
+                             # (mirrors world.outside_surplus), so demand is
+                             # elastic and the profit-max menu markup lands
+                             # interior instead of running away up a fat tail
+ARR_WALK = (1.0, 4.0)        # $-hassle of going to that competitor
+# The posted arm's menu is necessarily COARSE (a shelf/web menu can't carry a
+# bespoke price for all 2×3×3 = 18 configs). This is the realistic six-SKU
+# menu; a "full 18-config menu" ablation is also run so the win is not a
+# menu-coarseness artifact.
+ARR_MENU = (("standard", "wrap", "small"), ("standard", "wrap", "medium"),
+            ("standard", "vase", "medium"), ("premium", "vase", "medium"),
+            ("premium", "vase", "large"), ("standard", "hand_tie", "large"))
+
+# ── line 2: DELIVERY — the time-window logistics lever (route density is the
+#    capacity; buyers value windows differently — the boba pickup-slot lever). ──
+DELIVERY_WINDOWS = ("early", "midday", "afternoon", "evening", "flexible")
+DELIVERY_BASE_COST = 11.0    # marginal cost of one un-batched delivery $
+DELIVERY_DENSITY_SAVING = 1.6  # $ shaved per prior delivery already routed to
+                               # the same window (route batching), capped
+DELIVERY_DENSITY_CAP = 6.0     # max $ density saving per delivery
+DELIVERY_REF_FEE = 14.0      # the posted flat fee $ (NYC local-florist band
+                             # starts ~$9; $14 = a mid Manhattan zone fee)
+DELIVERY_CONVENIENCE_MU = 17.0  # median buyer $-value of having it delivered
+DELIVERY_CONVENIENCE_SIGMA = 0.5
+DELIVERY_TIGHT_PROB = 0.45   # P(buyer has a tight preferred window vs flexible)
+DELIVERY_OFFWINDOW_PENALTY = 0.55  # a tight buyer's convenience is ×this in a
+                                   # non-preferred window; flexible buyers ~1.0
+DELIVERY_FLEX_SIGMA = 0.12   # flexible buyers' tiny window preference spread
+
+# ── line 3: EVENT PRE-ORDERS — weddings/funerals: advance-booked, high-value,
+#    wide-WTP, multi-issue (scope × palette) — bilateral quoting's textbook. ──
+EVENT_WEDDING_PROB = 0.45    # rest are funerals (throughout the week)
+# scope = how much of a "full" event; palette = standard vs premium blooms.
+EVENT_WED_SCOPES = ("intimate", "standard", "grand")
+EVENT_WED_COST = {"intimate": 2400.0, "standard": 5600.0, "grand": 13000.0}
+EVENT_WED_COMPLETE = {"intimate": 0.45, "standard": 0.75, "grand": 1.0}
+EVENT_WED_BUDGET_MU = 8000.0   # NYC average wedding floral spend (Ode/Cape Lily)
+EVENT_WED_BUDGET_SIGMA = 0.62  # $3k floor … $25k full-service (wide)
+EVENT_FUN_SCOPES = ("basket", "standing", "casket")
+EVENT_FUN_COST = {"basket": 55.0, "standing": 175.0, "casket": 320.0}
+EVENT_FUN_COMPLETE = {"basket": 0.5, "standing": 0.8, "casket": 1.0}
+EVENT_FUN_BUDGET_MU = 520.0    # families spend $500-700 avg (Everloved/Kremp)
+EVENT_FUN_BUDGET_SIGMA = 0.5
+EVENT_PALETTE_MULT = {"standard": 1.0, "premium": 1.28}  # premium bloom uplift
+EVENT_PALETTE_COST = {"standard": 1.0, "premium": 1.22}
+EVENT_PALETTE_TASTE_SIGMA = 0.35  # spread of buyers' taste for premium blooms
+EVENT_MARKUP = 1.85          # reference package retail = cost × this (the
+                             # posted package sticker; discount-only ceiling)
+EVENT_OUTSIDE_MARKUP = 1.15  # a competing event florist / DIY: the same scope,
+                             # ~15% pricier — the competitive outside that keeps
+                             # the posted package markup interior (couples DO
+                             # shop multiple florists)
+# The posted arm lists a coarse tiered package menu per event type (real
+# florists that DON'T quote bespoke sell 3 fixed tiers); nego quotes the full
+# scope×palette space per booking.
+EVENT_WED_MENU = (("intimate", "standard"), ("standard", "standard"),
+                  ("grand", "premium"))
+EVENT_FUN_MENU = (("basket", "standard"), ("standing", "standard"),
+                  ("casket", "premium"))
+
+# ── line 4: ATTACH — chocolates / card / vase at the point of sale
+#    (suggest/1: a COMPLEMENT to the flower purchase, not a substitute). ──
+ATTACH_ITEMS = ("card", "chocolates", "vase")
+ATTACH_COST = {"card": 1.2, "chocolates": 9.0, "vase": 6.0}
+ATTACH_REF_PRICE = {"card": 5.0, "chocolates": 20.0, "vase": 18.0}  # shelf $
+ATTACH_BASE_WTP_MU = {"card": 4.0, "chocolates": 14.0, "vase": 12.0}
+ATTACH_WTP_SIGMA = 0.6
+ATTACH_COMPLEMENT_BOOST = 0.45  # buying flowers raises attach WTP ×(1+this):
+                                # a gift wants a card, chocolates ride along
+ATTACH_INTEREST_PROB = {"card": 0.7, "chocolates": 0.4, "vase": 0.3}  # P(shops)
+
+# Common bilateral buffer (mirrors nego/1: don't-negotiate-for-pennies).
+SERVICES_MIN_GAIN_ABS = 0.50
+SERVICES_MIN_GAIN_FRAC = 0.06

@@ -303,7 +303,20 @@ def main(argv=None) -> int:
     ap.add_argument("--grid", action="store_true",
                     help="miscalibration × spike-frequency grid, both "
                          "venues unless --venue is given")
+    ap.add_argument("--services", action="store_true",
+                    help="the florist SERVICES tier (arrangement/delivery/"
+                         "event/attach): paired posted-vs-bilateral per line "
+                         "(bakeshop/services.py; writes bakeshop/services.json)")
     args = ap.parse_args(argv)
+
+    if args.services:
+        from bakeshop.services import main as services_main
+        sv = ["--seed", str(args.seed)]
+        if args.out:
+            sv += ["--out", args.out]
+        if args.days != 30:
+            sv += ["--days", str(args.days)]
+        return services_main(sv)
 
     arm_names = [a.strip() for a in args.arms.split(",") if a.strip()]
     unknown = [a for a in arm_names if a not in ARMS]

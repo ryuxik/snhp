@@ -424,3 +424,162 @@ damaging ordinary bakery operation (the pre-registration's main
 concern), but it is not free either — the honest spillover verdict is
 **"unchanged in calm conditions, a small unproven-but-plausible cost on
 flood days,"** short of the pre-registered "unchanged/slightly better."
+
+---
+
+## SERVICES TIER (2026-07-10): the REAL florist — posted wins the CLEARANCE slice, bilateral wins the SERVICES slice
+
+*CRITICAL-ANALYSIS §9 follow-up. The §9 "posted beats negotiation" boundary
+was found on an IMPOVERISHED florist modeled as pure perishable walk-in
+clearance (linear decay, weekly resupply, everything must move) — the
+florist's ANTI-lever for our mechanism. But that walk-in slice is a MINORITY
+of a real florist's revenue; the money is in higher-margin, heterogeneous,
+multi-issue lines that are exactly the regimes bilateral negotiation wins
+everywhere else in our results. This section adds four such lines
+(`bakeshop/services.py`, `bakeshop/calibration.py`) and re-tests posted vs
+bilateral on each. Reproduce: `python3 -m bakeshop.services --days 180`
+(writes `bakeshop/services.json`; committed at 180 paired days, seed
+20260710 — ≥90/day, per §8).*
+
+### Pre-registration (written BEFORE the grid ran)
+
+The prediction (task #59, pre-registered): **negotiation wins on the
+arrangement / delivery / event business even though posted still wins on the
+walk-in perishable slice.** The honest paper claim should become "posted wins
+the clearance slice, bilateral wins the services slice" — NOT "florists don't
+benefit from SNHP." Falsifier: bilateral fails to beat posted on the services
+lines, or the revenue-weighted florist still favours posted.
+
+**Setup (four lines, each its own paired mechanism test).** Every line runs
+three arms on the byte-IDENTICAL buyer stream (paired seeds keyed on IDENTITY
+— `(seed, line, day, k)` — never on policy): `posted` (the profit-max menu /
+flat fee / package tiers / shelf price), `nego-pure` (bilateral ONLY — a
+declined quote is a LOST sale, the mechanism standing alone), and `nego` (the
+deployable broker — bilateral WITH the posted menu as fallback, "never worse
+UX than the culture", inherited from nego/1). Two rigor guards, both binding:
+(1) the posted arm gets its BEST SHOT — its markup/fee is tuned to the
+profit-max global level on the buyer population (the §2 meta-pattern:
+disclosure only beats inference if inference got its best shot); a test pins
+that this optimum is INTERIOR, not a boundary strawman. (2) DISCOUNT-ONLY: a
+bilateral quote never prices above the config's posted sticker (λ×ref_list) —
+it wins by config-efficiency (logrolling) and by converting buyers the menu
+loses, never by charging over list. Truthful disclosure to the Nash engine is
+assumed (vend-P1); the liar tax is measured elsewhere.
+
+### NYC 2026 calibration (sourced)
+
+| line | anchors | sources |
+|---|---|---|
+| ARRANGEMENT | wrapped hand-tie ≈ **$85**, arranged vase ≈ **$125** (the +≈$40 IS design labor + vessel), premium/luxury **$150–300**; markup convention fresh **3.5×** wholesale / hard goods **2.5×** / design labor **25–40%** of the marked-up subtotal; $107/dozen NYC | TJ Flowers & Events NYC guide; Florists' Review, EveryStem, Fiore Designs; CALIBRATION-TARGETS §3 |
+| DELIVERY | NYC local-florist delivery fee starts **~$9**, zone-based; same-day cutoffs 12 pm–6:45 pm; route batching is the density lever | Flordel, Plantshed, UrbanStems, Blooming Affairs |
+| EVENT | NYC wedding floral avg **$8,000** ($3k floor … $25k full-service), centerpieces **$100–500**, ≈$85/head, freelance labor $20–50/hr; funerals: standing spray **$150–350**, casket spray **$200–500**, families spend **$500–700** | Ode Events, Cape Lily, Zola, The Knot; Everloved, Kremp, Funeral.com |
+| ATTACH | chocolates ≈ **$20**, card ≈ **$5**, bundle uplift **$15–25**; a COMPLEMENT (a gift wants a card), not a substitute | Hana Florist POS, SendFlowers.io |
+
+Tuned posted best-shot levels landed interior (a competent sticker, not a
+strawman): arrangement menu markup **λ=1.165**, wedding packages **λ=0.805**,
+funeral packages **λ=0.835**, delivery flat fee **$16** (the profit-max fee;
+the $9 anchor is the cheapest-zone floor), attach shelf markup **λ=1.12**.
+
+### Headline: profit Δ/day, posted vs bilateral (180 paired days, 95% t on 5-day blocks)
+
+| line | posted $/day | **nego−posted** (deployable broker) | nego-pure−posted (standalone mechanism) | rev share |
+|---|---|---|---|---|
+| ARRANGEMENT | 499.84 | **+165.52 [157.33, 173.70]** | **+26.12 [10.71, 41.53]** | 25.1% |
+| EVENT | 387.26 | **+163.84 [99.27, 228.40]** | −148.48 [−332.57, 35.61] | 39.0% |
+| DELIVERY | 87.51 | **+37.68 [35.91, 39.45]** | −46.83 [−51.74, −41.91] | 6.4% |
+| ATTACH | 191.95 | **+54.42 [52.03, 56.82]** | −137.52 [−145.52, −129.52] | 9.5% |
+| **walk-in (CLEARANCE)** | 166.14 | **−83.06 [−97.80, −68.32]** (nego/1 vs computed/1) | — | 20.0% |
+
+Bolded deltas have a 95% CI clear of zero (a win claim; per the rigor rule,
+no delta whose CI includes zero is called a win). Two columns because the
+question has two honest answers:
+
+* **The DEPLOYABLE broker (nego = bilateral + menu fallback) wins EVERY
+  services line** — arrangement, event, delivery, attach — all four CIs clear
+  of zero, while posted wins the walk-in clearance slice (CI clear of zero).
+  This delta is ≥ 0 by construction (the broker contains posted as a
+  fallback), so a CI clear of zero means "bilateral finds material CREATED
+  surplus here" — a deployment claim: a florist running the broker beats one
+  running posted-only on all four services lines.
+* **The STANDALONE mechanism (nego-pure, no menu safety net) is the real
+  falsification test** and it splits informatively:
+  * ARRANGEMENT wins standalone (+$26/day, CI clear of zero) — genuine
+    multi-issue heterogeneity (grade × style × size taste); a test pins the
+    logroll directly (a premium-loving, vessel-indifferent buyer is steered to
+    *premium blooms in a cheap wrap* — the joint value−cost maximizer the
+    coarse "premium-only-in-a-vase" menu can't offer).
+  * EVENT is not significant standalone (−$148 [−333, +36], and the point
+    estimate is horizon-sensitive: +$27 at 90 days) — bespoke bilateral
+    occasionally WALKS from a mega-booking the package menu already serves
+    efficiently (when the efficient config coincides with the menu's grand
+    package, there is no created surplus and pure-nego declines a $10k+
+    booking). Lumpy high-variance line; the DEPLOYABLE event win is the solid
+    claim, and it is large.
+  * DELIVERY and ATTACH LOSE standalone (−$47, −$138) — these lines are
+    mostly already efficiently served by a flat fee / a shelf price; bilateral
+    adds a genuine but BOUNDED heterogeneity slice (route-density steering of
+    flexible buyers on delivery; sub-shelf conversion on attach) that only
+    pays when kept ON TOP of the posted base. Refusing the menu throws away
+    the non-negotiable majority.
+
+### The revenue-weighted verdict
+
+The services slice is **80% of revenue** (event 39.0%, arrangement 25.1%,
+attach 9.5%, delivery 6.4%); the walk-in clearance slice is **20%** — the
+task's premise, confirmed in the sim's own realized revenue. Blending the
+DEPLOYABLE broker across all five lines (the P&L a florist would actually
+run):
+
+| | posted-only | bilateral broker | Δ/day |
+|---|---|---|---|
+| florist profit/day | $1,332.70 | **$1,671.09** | **+$338.39 (+25.4%)** |
+
+**The revenue-weighted florist favours bilateral by +$338/day (+25%).** The
++$164/day arrangement win and the +$164/day event win (the two biggest
+revenue lines) swamp the −$83/day the shop concedes on the walk-in clearance
+slice.
+
+### Is the "posted beats nego" boundary now scoped to the clearance slice? YES.
+
+CRITICAL-ANALYSIS §9's boundary stands but is now correctly SCOPED: **posted
+clearance wins where TIME is the only variable and buyers are interchangeable
+(the 20%-of-revenue walk-in perishable slice), and loses everywhere the
+scarce information is buyer HETEROGENEITY** (which flowers, which arrangement,
+which delivery window, which event scope, which add-on) — the 80%-of-revenue
+services slice. The honest paper claim is therefore **"posted wins the
+clearance slice, bilateral wins the services slice"** — NOT "florists don't
+benefit from SNHP." The §9 result was true of the impoverished walk-in-only
+florist it measured; it does not generalize to the real business.
+
+### Honest caveats (attack these first)
+
+* **The deployable delta is ≥ 0 by construction.** The broker contains posted
+  as a fallback, so nego − posted cannot be negative; its CI clearing zero is
+  a "material created surplus" claim, not a coin-flip test. The genuine
+  falsification test is nego-pure (which CAN and does go negative — walk-in,
+  delivery, attach, and event-standalone), and it is reported alongside.
+* **Volumes and dispersions are labeled assumptions.** The daily order rates
+  (arrangement 18, delivery 22, event 0.8, attach 34) and the WTP
+  dispersions set the revenue MIX and hence the blend weight; the sim reports
+  realized per-line revenue so the weighting is explicit, not hidden. A
+  florist with a smaller event book shifts the blend toward the smaller
+  arrangement/attach wins but does not flip the sign (posted still loses the
+  services lines).
+* **Events are lumpy.** 0.8 bookings/day with a wide wedding-budget dispersion
+  ($3k…$25k) makes the event daily-profit series heavy-tailed; the 5-day-block
+  t-CI is an approximation there, and the pure-nego point estimate is
+  horizon-sensitive (the DEPLOYABLE event delta is the stable, significant
+  one). 180 days ≈ 144 bookings.
+* **Posted is a menu, bilateral configures per buyer** — that IS the mechanism
+  difference (a shelf/web menu is necessarily coarse; a quote is not), but it
+  is also the strongest attack surface. The posted arm is given the profit-max
+  global markup on its menu (interior optimum, test-pinned); a fuller "posted
+  with the whole config space" arm would narrow the arrangement/event edge and
+  is the natural next ablation.
+* **Truthful disclosure to the Nash engine** (vend-P1 attestation) — the
+  sub-shelf/conversion components are what liars would attack; the liar tax is
+  measured elsewhere and not re-run here.
+* **Delivery route density is a simple linear batching saving** (capped);
+  real routing is a VRP with time windows — the direction (flexible buyers are
+  cheaper to serve, steering them is a logroll) is robust, the magnitude is a
+  first-order stand-in.

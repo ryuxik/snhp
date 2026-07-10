@@ -542,3 +542,231 @@ def test_run_day_accounting_consistency(bakery):
             m["revenue"] - m["cogs_sold"] - m["waste_cost"], abs=0.02)
         assert m["revenue"] >= 0 and m["consumer_surplus"] >= 0
         assert 0.0 <= m["depth"] <= 1.0
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  The SERVICES tier — the REAL florist (CRITICAL-ANALYSIS §9 follow-up).
+#  Posted wins the walk-in CLEARANCE slice; bilateral wins the SERVICES slice
+#  (arrangement / delivery / event / attach). These tests pin the four new
+#  lines' mechanisms, the discount-only invariant, identity-keyed pairing, and
+#  that the posted arm gets its BEST SHOT (an interior profit-max, not a
+#  strawman) so a bilateral win is a real result, not a rigged one.
+# ════════════════════════════════════════════════════════════════════════════
+from bakeshop import calibration as cal
+from bakeshop import services as svc
+
+
+def test_services_nash_price_splits_and_respects_discount_only():
+    """The shared bilateral primitive: on a real surplus it returns an interior
+    price that clears the buyer (gain ≥ 0), clears the shop's buffer, and never
+    exceeds the discount-only ceiling; on no surplus it declines."""
+    # value 100, cost 40, both walk away from nothing: midpoint ≈ 70
+    p = svc.nash_price(100.0, 40.0, 0.0, 0.0, ceiling=120.0, buffer=1.0)
+    assert p == pytest.approx(70.0, abs=0.01)
+    # discount-only ceiling binds: never over list even though the split wants to
+    p = svc.nash_price(100.0, 40.0, 0.0, 0.0, ceiling=55.0, buffer=1.0)
+    assert p <= 55.0 + 1e-9 and p >= 40.0
+    # no joint gain over disagreements → no deal
+    assert svc.nash_price(50.0, 40.0, 6.0, 6.0, ceiling=100.0, buffer=1.0) is None
+    # a deal that cannot clear the buffer under the ceiling → no deal
+    assert svc.nash_price(60.0, 40.0, 0.0, 18.0, ceiling=59.0, buffer=5.0) is None
+
+
+def test_arrangement_reference_prices_hit_nyc_anchors():
+    """The arrangement line reproduces the TJ Flowers NYC price anchors:
+    standard medium wrapped ≈ $85, standard medium vase ≈ $125, premium medium
+    vase in the $150-200 luxury band — and every config carries a real labor
+    margin (cost < reference list)."""
+    by = {c.attrs: c for c in svc.ARR_CONFIGS}
+    assert by[("standard", "wrap", "medium")].ref_list == pytest.approx(85, abs=15)
+    assert by[("standard", "vase", "medium")].ref_list == pytest.approx(125, abs=15)
+    assert 150 <= by[("premium", "vase", "medium")].ref_list <= 205
+    for c in svc.ARR_CONFIGS:
+        assert c.cost < c.ref_list                    # a real arrangement margin
+    # the vase (arranged) config carries MORE margin than the wrap — the
+    # arrangement IS the margin (the whole premise of the line)
+    assert (by[("standard", "vase", "medium")].ref_list
+            - by[("standard", "vase", "medium")].cost) > \
+           (by[("standard", "wrap", "medium")].ref_list
+            - by[("standard", "wrap", "medium")].cost)
+
+
+def test_services_buyer_streams_are_paired_on_identity_not_policy():
+    """The isolation guarantee, services edition: every buyer draw depends only
+    on (seed, line, day, k) — never on the arm. Both posted and bilateral face
+    the byte-identical stream; the k index actually varies the buyer."""
+    a = svc.arr_buyer(20260710, 3, 5)
+    assert a.values == svc.arr_buyer(20260710, 3, 5).values     # deterministic
+    assert svc.arr_buyer(20260710, 3, 6).values != a.values     # k varies buyer
+    assert svc.delivery_buyer(1, 2, 0).convenience == \
+        svc.delivery_buyer(1, 2, 0).convenience
+    assert svc.attach_buyer(1, 2, 0) == svc.attach_buyer(1, 2, 0)
+    c1, m1, b1 = svc.event_booking(9, 4, 0)
+    c2, m2, b2 = svc.event_booking(9, 4, 0)
+    assert b1.values == b2.values and c1 is c2
+
+
+def test_arrangement_logroll_selects_the_efficient_config():
+    """The multi-issue logroll (the arrangement line's whole point). A buyer
+    who loves PREMIUM blooms but is indifferent to the vessel should be steered
+    by the bilateral engine to premium flowers in a cheap wrap — the joint
+    value-minus-cost maximizer — NOT the rigid menu's premium-only-in-a-vase
+    pairing. The engine picks argmax(value − cost) over the WHOLE space and
+    prices it under the discount-only ceiling, clearing the shop's buffer."""
+    by = {c.attrs: i for i, c in enumerate(svc.ARR_CONFIGS)}
+    # craft the buyer: high value on premium+wrap configs, low on vases
+    vals = [0.0] * len(svc.ARR_CONFIGS)
+    for i, c in enumerate(svc.ARR_CONFIGS):
+        g, st, sz = c.attrs
+        base = 200.0 if g == "premium" else 120.0
+        base *= 1.0 if st == "wrap" else (0.72 if st == "hand_tie" else 0.5)
+        vals[i] = base * (0.85 if sz == "small" else 1.0 if sz == "medium" else 1.15)
+    buyer = svc.Buyer(tuple(vals), outside=0.0)
+    # λ=1.0 (the reference sticker) — a tighter discount-only ceiling than the
+    # tuned markup, so the logroll clears the buffer under the strictest ceiling
+    out = svc._nego_choice(svc.ARR_CONFIGS, svc.ARR_MENU_IDX, 1.0, buyer,
+                           pure=True)
+    assert out is not None
+    price, cost, idx, kind = out
+    g, st, sz = svc.ARR_CONFIGS[idx].attrs
+    assert (g, st) == ("premium", "wrap")             # premium-in-a-wrap logroll
+    assert price <= 1.0 * svc.ARR_CONFIGS[idx].ref_list + 1e-6      # discount-only
+    assert (price - cost) >= max(cal.SERVICES_MIN_GAIN_ABS,
+                                 cal.SERVICES_MIN_GAIN_FRAC
+                                 * svc.ARR_CONFIGS[idx].ref_list) - 1e-6
+
+
+def test_delivery_routing_logroll_beats_the_flat_fee():
+    """The delivery line's capacity lever: route density. On a day the bilateral
+    broker steers flexible buyers into shared windows (lower marginal cost) and
+    splits the saving; a declined quote falls back to the flat fee, so the
+    deployable broker is never worse than posted — and on a flexible-heavy day
+    it is strictly better."""
+    fee = svc._optimize_flat_fee(20260710, 60, cal.DELIVERY_RATE)
+    posted = svc._delivery_day(20260710, 3, cal.DELIVERY_RATE, fee, "posted")
+    nego = svc._delivery_day(20260710, 3, cal.DELIVERY_RATE, fee, "nego")
+    assert nego[0] >= posted[0] - 1e-6                 # deployable ≥ posted
+    # aggregate over many days: the routing logroll is a real, positive edge
+    tot_p = sum(svc._delivery_day(20260710, d, cal.DELIVERY_RATE, fee, "posted")[0]
+                for d in range(40))
+    tot_n = sum(svc._delivery_day(20260710, d, cal.DELIVERY_RATE, fee, "nego")[0]
+                for d in range(40))
+    assert tot_n > tot_p
+
+
+def test_event_bespoke_quote_beats_fixed_packages():
+    """The event line: over real bookings, bespoke bilateral quoting sizes to
+    each booking's budget and configures the scope×palette space the coarse
+    tiered package menu can't span. The deployable broker nets AT LEAST the
+    fixed-package profit on every booking and strictly more in aggregate, and
+    it changes the outcome on a real share of bookings (bespoke actually
+    fires) — bilateral quoting's textbook case. Discount-only holds throughout."""
+    wed_lam, fun_lam = svc.event_markups(20260710)
+    tot_p = tot_n = 0.0
+    bespoke = 0
+    for d in range(500):
+        for k in range(3):
+            configs, menu, buyer = svc.event_booking(20260710, d, k)
+            lam = wed_lam if configs is svc.EVENT_WED_CONFIGS else fun_lam
+            pp = svc._posted_choice(configs, menu, lam, buyer)
+            nn = svc._nego_choice(configs, menu, lam, buyer, pure=False)
+            if pp is not None:
+                tot_p += pp[0] - pp[1]
+            if nn is not None:
+                tot_n += nn[0] - nn[1]
+                assert nn[0] <= round(lam * configs[nn[2]].ref_list, 2) + 1e-6
+                if pp is None or nn[2] != pp[2] or abs(nn[0] - pp[0]) > 1e-6:
+                    bespoke += 1
+    assert tot_n >= tot_p - 1e-6            # deployable broker ≥ fixed packages
+    assert tot_n > tot_p                    # and strictly better in aggregate
+    assert bespoke > 0                      # bespoke quoting actually fired
+
+
+def test_attach_is_a_complement_and_suggest_converts_sub_shelf():
+    """The attach line (suggest/1): buying flowers RAISES attach WTP (a
+    complement, not a substitute), and the suggest mechanic converts a buyer
+    whose WTP sits BELOW the shelf price but above cost — a sale the passive
+    shelf loses entirely."""
+    # complement boost is applied to interested items (measured over a sample)
+    boosted = False
+    for k in range(50):
+        wtp = svc.attach_buyer(20260710, 1, k)
+        for item in cal.ATTACH_ITEMS:
+            if wtp[item] > 0:
+                boosted = True
+                # an interested item can exceed its un-boosted base median
+                # (the ×(1+boost) complement), which the shelf-only arm ignores
+    assert boosted
+    # a sub-shelf conversion: WTP between cost and shelf price → posted misses,
+    # suggest converts at a Nash price strictly inside (cost, shelf)
+    item = "chocolates"
+    shelf = 1.12 * cal.ATTACH_REF_PRICE[item]
+    cost = cal.ATTACH_COST[item]
+    w = 0.5 * (cost + shelf)                           # below shelf, above cost
+    assert w < shelf                                    # posted would NOT sell
+    p = svc.nash_price(w, cost, 0.0, 0.0, cal.ATTACH_REF_PRICE[item],
+                       max(cal.SERVICES_MIN_GAIN_ABS,
+                           cal.SERVICES_MIN_GAIN_FRAC * cal.ATTACH_REF_PRICE[item]))
+    assert p is not None and cost < p <= w + 1e-9       # converted, shop profits
+
+
+def test_services_posted_arm_gets_its_best_shot_interior_optimum():
+    """The §2 meta-pattern, enforced: the posted arm's tuned menu markup is a
+    genuine INTERIOR profit-max (not pinned at a grid boundary — that would be a
+    strawman the bilateral arm beats for free). Perturbing the markup up AND
+    down both lower posted profit on the population."""
+    lam = svc._optimize_menu_markup(
+        svc.ARR_CONFIGS, svc.ARR_MENU_IDX,
+        (svc.arr_buyer(20260710, 9 * 10 ** 6, k) for k in range(9000)),
+        n_sample=8000)
+    assert 0.78 < lam < 1.55                            # strictly interior
+
+    sample = [svc.arr_buyer(20260710, 9 * 10 ** 6, k) for k in range(8000)]
+
+    def posted_profit(l):
+        prof = 0.0
+        for b in sample:
+            out = svc._posted_choice(svc.ARR_CONFIGS, svc.ARR_MENU_IDX, l, b)
+            if out is not None:
+                prof += out[0] - out[1]
+        return prof
+    here = posted_profit(lam)
+    assert here >= posted_profit(lam + 0.1) and here >= posted_profit(lam - 0.1)
+
+
+def test_services_run_is_deterministic():
+    """The whole services pipeline is reproducible bit-for-bit at a fixed seed
+    (the committed bakeshop/services.json is regenerated from it)."""
+    import json
+    a = svc.run_services(20260710, days=12)
+    b = svc.run_services(20260710, days=12)
+    assert json.dumps(a["lines"], sort_keys=True) == \
+        json.dumps(b["lines"], sort_keys=True)
+    assert a["blend"] == b["blend"]
+
+
+def test_services_committed_artifact_states_the_split_honestly():
+    """The headline claim, guarded on the committed artifact: posted WINS the
+    walk-in clearance slice (nego − posted negative, CI clear of zero) while
+    bilateral WINS every services line (deployable nego − posted positive, CI
+    clear of zero), and the revenue-weighted florist favours bilateral. The
+    'posted beats nego' boundary is now scoped to the clearance slice alone."""
+    import json
+    import pathlib
+    path = pathlib.Path(__file__).parents[1] / "services.json"
+    d = json.load(open(path))
+    # posted wins the clearance slice, unambiguously
+    w = d["walkin"]["nego_vs_posted_profit"]
+    assert w["mean"] < 0 and w["ci95"][1] < 0
+    # bilateral (deployable) wins every services line, unambiguously
+    for name, L in d["lines"].items():
+        delta = L["deltas"]["nego_vs_posted"]["profit"]
+        assert delta["mean"] > 0 and delta["ci95"][0] > 0, name
+    # arrangement bilateral wins even STANDALONE (pure, no menu fallback)
+    arr_pure = d["lines"]["arrangement"]["deltas"]["nego-pure_vs_posted"]["profit"]
+    assert arr_pure["mean"] > 0 and arr_pure["ci95"][0] > 0
+    # the services slice dominates revenue (the task's premise)
+    shares = {r["line"]: r["revenue_share"] for r in d["blend"]["rows"]}
+    assert shares["walk-in (clearance)"] < 0.35        # clearance is a minority
+    # revenue-weighted, the whole florist favours bilateral
+    assert d["blend"]["nego_profit_per_day"] > d["blend"]["posted_profit_per_day"]
