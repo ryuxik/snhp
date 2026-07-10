@@ -232,6 +232,16 @@ upgrades:
 in its own fortress; significantly better wherever the operator's
 calibration or the world is imperfect; consumers better off everywhere.
 
+**Attack battery ("IC against one deviation isn't IC"):** best-response
+search over disclosed-WTP scaling {0.55…1.5} × outside-option claims, every
+buyer deviating, paired 30 days. Honest disclosure is at the buyers' best
+response: every genuine misreport LOSES them money (−$0.11 to −$1.76/day
+pooled across all buyers); the lone positive point estimate (truthful WTP +
+free-walk claim, +$0.50/day pooled ≈ half a cent per visit) is noise-level,
+costs the machine, and is precisely what the attestation discount tier
+prices out. Remaining for the formal write-up: per-deviation CIs across
+seeds, adaptive (state-dependent) deviations, colluding buyers.
+
 **H3 inverted — the anchoring attack no longer pays.** Under the upgraded
 mechanism the liar sweep flattens to zero for the machine (Δ +$0.26–0.48/day,
 CIs spanning 0) and liars do slightly WORSE than honest disclosure

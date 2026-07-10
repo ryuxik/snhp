@@ -288,9 +288,19 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
                      (u_s - d_s) + (u_b - d_b), why)
 
 
+def strategic_disclosure(wtp: dict[str, float], walk_cost: float,
+                         wtp_factor: float = 0.55,
+                         zero_walk: bool = True
+                         ) -> tuple[dict[str, float], float]:
+    """A parameterized misreport: scale every disclosed WTP by wtp_factor
+    (<1 understates/anchors, >1 overstates) and optionally claim a free
+    outside option. The attack battery sweeps this space to find the
+    buyer's BEST-RESPONSE deviation — 'IC against one deviation isn't IC'."""
+    return ({sku: v * wtp_factor for sku, v in wtp.items()},
+            0.0 if zero_walk else walk_cost)
+
+
 def liar_disclosure(wtp: dict[str, float], walk_cost: float
                     ) -> tuple[dict[str, float], float]:
-    """The anchoring attack: understate every WTP, claim a free outside
-    option. Shrinks the machine's believed sticker counterfactual and
-    inflates the buyer's claimed disagreement."""
-    return {sku: v * 0.55 for sku, v in wtp.items()}, 0.0
+    """The canonical anchoring attack (H3): understate + free outside."""
+    return strategic_disclosure(wtp, walk_cost, 0.55, True)

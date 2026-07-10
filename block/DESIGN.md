@@ -5,17 +5,24 @@ shop, fashion boutique, vending machine — with people walking in and out,
 a commerce timelapse where every number on screen traces to a committed,
 seeded simulation, and a running ledger of how SNHP helped everyone.*
 
-## 0. The shot
+## 0. The shot — TWIN BLOCKS
 
-A pixel-art street elevation (the arena's Castlevania-NES language, daylight
-palette): four storefronts, walkers with personas (office worker, student,
-tourist, local) flowing through a day/night cycle. People enter shops;
-deals happen as small receipt popups ("2× sandwich −$2.10 · expires
-tonight"). A timelapse dial runs days in seconds. Two HUD counters climb:
-**"shoppers kept $X"** and **"merchants earned +$Y vs the sticker world"**
-— both backed by a paired counterfactual sim (identical customer streams,
-sticker-world vs SNHP-world), not vibes. Click any deal → the 3D duel
-theater replays the actual negotiation (existing machinery).
+Two pixel-art street elevations, stacked or side by side: **THE STICKER
+BLOCK** and **THE SNHP BLOCK** — the same four storefronts, and the SAME
+people (paired seeds render as mirrored walkers entering both worlds).
+They start identical and DIVERGE over the timelapse, and the divergence is
+the fairness-v2 result made visible: on the sticker block under an
+aggressive anchor, regulars stop coming back (the street visibly thins —
+churn as depopulation), spoilage bins fill behind the bodega, the boutique
+drowns in −70% clearance racks at season end, the boba queue balks at peak;
+on the SNHP block the same people keep coming, receipts pop ("2× sandwich
+−$2.10 · expires tonight"), pickup-time deals smooth the boba rush, and
+the two HUD counters climb between the blocks: **"shoppers kept $X"** and
+**"merchants earned +$Y"** — honest paired differences, because both
+worlds run the identical seeded population. A timelapse dial runs days in
+seconds; the community-level trajectories (active regulars, waste, queue
+health) chart underneath. Click any deal → the 3D duel theater replays the
+actual negotiation (existing machinery).
 
 ## 1. Why this is the demo
 

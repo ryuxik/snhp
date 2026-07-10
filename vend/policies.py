@@ -192,11 +192,17 @@ class A2APolicy:
     def price_board(self, state: MachineState) -> dict[str, tuple[float, list[str]]]:
         return sticker_board(state)
 
+    attack_factor: float = 0.55     # attack battery: disclosed-WTP scale
+    attack_zero_walk: bool = True   # ...and whether liars claim a free outside
+
     def quote_for(self, state: MachineState, consumer,
                   liar_roll: float) -> tuple[NashQuote, bool]:
+        from vend.scenario import strategic_disclosure
         lied = (not self.attest) and liar_roll < self.liar_share
         if lied:
-            wtp_d, walk_d = liar_disclosure(consumer.wtp, consumer.walk_cost)
+            wtp_d, walk_d = strategic_disclosure(
+                consumer.wtp, consumer.walk_cost,
+                self.attack_factor, self.attack_zero_walk)
         else:
             wtp_d, walk_d = consumer.wtp, consumer.walk_cost
         n = len(state.listings)
