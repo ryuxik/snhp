@@ -85,7 +85,8 @@ class RegularPool:
     def __init__(self, cfg: WorldConfig, master_seed: int, catalog,
                  market_ref: dict[str, float], *,
                  loss_aversion: float = LOSS_AVERSION,
-                 ref_alpha_paid: float = REF_ALPHA_PAID):
+                 ref_alpha_paid: float = REF_ALPHA_PAID,
+                 churn_rate: float = CHURN_RATE):
         self.cfg = cfg
         self.seed = master_seed
         self.catalog = catalog
@@ -96,6 +97,10 @@ class RegularPool:
         # (initial pool AND exogenous replenishment) inherits these
         self.loss_aversion = loss_aversion
         self.ref_alpha_paid = ref_alpha_paid
+        # churn intensity: default matches the module CHURN_RATE (committed
+        # artifacts unaffected); Task #66 sets it to 0.0 for the churn-OFF
+        # counterfactual that measures captured value with the pool held full.
+        self.churn_rate = churn_rate
         self.pool: list[Regular] = [self._spawn(i) for i in range(cfg.regulars)]
 
     def _spawn(self, i: int) -> Regular:
@@ -137,7 +142,7 @@ class RegularPool:
             if not reg.active:
                 continue
             reg.dissat *= FORGIVE
-            p = 1.0 - float(np.exp(-reg.dissat * CHURN_RATE))
+            p = 1.0 - float(np.exp(-reg.dissat * self.churn_rate))
             rng = np.random.default_rng(substream(self.seed, "churn", day, i))
             if rng.random() < p:
                 reg.active = False

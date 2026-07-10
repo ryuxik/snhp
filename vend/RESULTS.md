@@ -893,3 +893,133 @@ Reproduce: `python3 -m vend.run --tilt --days 90` (writes `vend/tilt.json` with
 the full per-w frontier, per-deviation liar battery, and break-points). Tests:
 `vend/tests/test_vend.py::test_seller_weight_*`, `::test_run_tilt_is_deterministic`,
 `::test_tilt_frontier_artifact_shows_the_predicted_shape`.
+
+## Surge value without surging (2026-07-10) — Task #66: **the strong thesis is PARTIALLY REFUTED, and the refutation is the finding**
+
+**The pre-registered thesis.** Single-price categories (bodega / vending / boba /
+fashion) forfeit time-of-day + heterogeneity value because a VISIBLE posted surge
+on everyday goods is a fairness violation (Coca-Cola's 1999 hot-day vending PR
+disaster; Wendy's 2024 dynamic-pricing backlash; Kahneman-Knetsch-Thaler dual
+entitlement). The CLAIM under test: SNHP captures that same value INVISIBLY as an
+individual discount-from-a-peak-anchor, so the fairness churn that makes the
+visible surge *net-negative* does NOT fire for the engine — "surge value without
+surging," and therefore the fairness apparatus is the economic engine (not
+deletable transitional scaffolding — the rebuttal to the "delete fairness"
+critique).
+
+**The design.** Three arms + one diagnostic, same seeded 120-regular franchise,
+paired seeds (20260713, 7), 90 days, clean stationary world (the Fairness-v2
+regime the churn machinery was validated in — no calibration/shock noise to muddy
+the churn signal), block-5 pooled CIs. Everyday reference = the all-day
+profit-optimal single price (what regulars remember, what STATIC posts).
+- **STATIC** — the single all-day sticker these categories run (board == reference
+  ⇒ no above-reference event, ≈0 churn).
+- **POSTED-SURGE** (`PostedSurgePolicy`) — a VISIBLE peak-surcharge board: the
+  everyday price off-peak, ABOVE the reference at peak (a bar / parking / happy-hour
+  surge). `surge_to_ceiling` sets how far the peak surcharge reaches (mild
+  profit-max vs the aggressive anchor ceiling).
+- **ENGINE** (`a2a`, `anchor_peak`) — invisible individual discount-from-a-PEAK-
+  anchor: the ceiling IS the peak anchor, quotes discount from it. The hypothesis:
+  "no above-reference event."
+- **ENGINE-REF** (diagnostic: `a2a` on the all-day catalog) — the fairness-SAFE
+  engine whose sticker == the everyday reference, so it NEVER posts above the
+  reference; it captures value only as discounts BELOW it.
+
+Captured value is isolated from the churn cost with a **churn-OFF counterfactual**
+(`WorldConfig.churn_rate=0`, pool held full): churn-off gross-margin Δ vs static =
+pricing capture before any permanent exit; churn-ON profit Δ = capture net of
+churn; their difference is the fairness (churn) cost.
+
+### The 3-arm table (pooled both seeds, block-5 CIs, $/day vs STATIC)
+
+| anchor | arm | captured (churn-off) | NET profit (churn-on) | consumer surplus | churn (s7013/s7) | day-90 active | fairness cost/day |
+|---|---|---|---|---|---|---|---|
+| — | static | +0.00 | +0.00 | +0.00 | 0 / 0 | 120 / 120 | 0.00 |
+| — | **engine-ref** (never > ref) | **−0.10** [−0.25, 0.04] | −0.10 | +0.01 | **0 / 0** | **120 / 120** | 0.00 |
+| **×1.0** | surge (mild, profit-max) | +2.83 [2.73, 2.93] | +2.77 | −0.05 | 5 / 2 | 120 / 120 | −0.07 |
+| **×1.0** | surge (to ceiling) | +6.98 [6.91, 7.04] | +6.89 | +0.54 | 8 / 4 | 120 / 120 | −0.09 |
+| **×1.0** | **engine** | **+8.24** [8.01, 8.47] | **+8.24** | **+1.15** [0.51, 1.79] | 11 / 5 | 119 / 120 | 0.00 |
+| **×1.25** | surge (to ceiling) | +32.88 [31.7, 34.1] | **+29.75** [29.1, 30.4] | **−12.16** [−13.4, −11.0] | 48 / 47 | 118 / 118 | −3.14 |
+| **×1.25** | **engine** | +40.89 [38.3, 43.5] | **+36.69** [34.5, 38.9] | **−15.93** [−16.9, −15.0] | 72 / 71 | **102 / 114** | −4.20 |
+
+Head-to-head (engine − surge, paired, pooled): at ×1.0 **net +$1.36/day [1.11,
+1.60]**, CS **+$0.61**; at ×1.25 net +$6.94 [5.17, 8.71], CS **−$3.76**.
+
+### The verdict — honest, both directions
+
+1. **The visible surge does NOT go net-negative from churn — the strong premise
+   FAILS.** At every anchor the posted surge is net-POSITIVE (+$2.77 → +$29.75/day
+   vs static, CIs clear). Even the aggressive ×1.25 harvest surge, which churns 95
+   regulars, nets +$29.75/day: the captive harvest SURVIVES the churn because the
+   survivors pay more and the 0.7/day exogenous replenishment holds the pool at
+   118/120. There is no self-destructing surge here. The pre-registered "fairness
+   churn makes the visible surge net-negative in these categories" is **not
+   supported by the model.**
+
+2. **The peak-anchor engine does NOT escape the surge's churn — it churns MORE.**
+   At ×1.25 the engine churns **143** (72+71) vs the surge's **95** (48+47) and
+   retains **fewer** regulars (102/114 vs 118/118). The reason is mechanical and
+   fatal to the "no above-reference event" premise: the engine's *fallback board*
+   IS the flat peak ceiling ($2.56 cola vs the $1.95 reference), so a no-quote
+   regular faces an above-reference price **all day**, while the surge is above
+   reference only at **peak** (off-peak == the everyday reference, fairness-neutral).
+   **Consumers react to the reference-price VIOLATION (the level), not to
+   posted-vs-negotiated VISIBILITY.** An aggressive discount-from-a-high-anchor is
+   a reference violation just like a visible surge — worse, because it is
+   all-day. Unit-tested: a surge board above ref×1.10 accrues dissatisfaction,
+   but a discount quote *below* the reference is a gain-with-glow that *heals* it
+   (`test_surge_board_fires_fairness_churn_but_discount_quote_does_not`) — so the
+   engine's aggregate churn is its FALLBACK board, not its discounts.
+
+3. **The engine still NETS MORE than the surge — but via VALUE (heterogeneity
+   capture), not retention.** engine−surge net is +$1.36/day (×1.0) / +$6.94/day
+   (×1.25), CIs clear, driven by the churn-off *captured*-value edge (+$1.27 /
+   +$8.01) — individual price discrimination extracts more per transaction. At
+   ×1.25 the engine's fairness cost (−$4.20/day) is WORSE than the surge's
+   (−$3.14), and it hurts consumers MORE (CS −$15.93 vs −$12.16): in the harvest
+   zone the engine is the *harsher* extractor, not the fairer one.
+
+4. **What SURVIVES — the modest-anchor both-win is real.** At the mild peak-optimum
+   anchor (×1.0) the engine captures modestly MORE value than the posted surge
+   (+$8.24 vs +$6.89 net) at BETTER consumer surplus (+$1.15 vs +$0.54) with the
+   whole franchise retained (119-120/120, churn negligible for both). engine−surge
+   +$1.36/day [1.11, 1.60] AND CS +$0.61 — a genuine both-sides-win over the visible
+   surge, on the within-hour heterogeneity the surge structurally cannot touch
+   (referee #48). This is the deployable "who pays us": the merchant pays because,
+   at a defensible anchor, the engine out-earns the visible time-of-day board AND
+   leaves customers better off.
+
+5. **"Fairness is the economic engine" — SUPPORTED in the load-bearing sense, and
+   that still rebuts "delete fairness."** The fairness apparatus is the BINDING
+   economic constraint on BOTH arms: churn, fairness cost, and CS all track the
+   *anchor / price level*, not the frame (churn 5→143, fairness cost $0→−$4.20/day,
+   CS +$1.15→−$15.93/day as the anchor climbs 1.0→1.25), for surge and engine
+   alike. Delete it (the Musk critique) and the model predicts the ×1.25 harvest is
+   free and painless — contradicting the empirical Wendy's/Coke backlash the whole
+   apparatus is calibrated to. And the ENGINE-REF diagnostic locates the ONE
+   fairness-free lever: individual discounts BELOW the reference (never above) —
+   which capture **+$0.00** here (churn-off −$0.10, zero churn) because the clean
+   world's all-day sticker is already profit-optimal, so the only extra value at a
+   captive machine is captive HARVEST, which costs fairness in ANY frame. Where the
+   sticker is genuinely MIS-SET (the realistic-miscalibration cells) that same
+   below-reference lever is worth +$0.60–2.45/day at CS-positive (referee #48's
+   result) — the fair value SNHP actually captures.
+
+**Sharpened, defensible claim (what the evidence supports):** the value a
+single-price *captive* machine forfeits is, in a calibrated world, captive-harvest
+value; capturing it costs fairness churn visibly OR invisibly — there is no free
+"surge without surging." SNHP's fairness-free edge is EFFICIENCY capture
+(below-reference discrimination that recruits marginal buyers and redistributes to
+them), which is CS-positive and churn-free, and it is real where the sticker is
+mispriced. The fairness apparatus is the economic engine because it is what taxes
+the harvest identically in every frame and channels the fair value into discounts —
+the very line that keeps SNHP from being RealPage. The strong "posted surge
+self-destructs, engine dodges it via invisibility" claim is **refuted**; the modest-
+anchor both-win and the non-deletability of fairness **stand.**
+
+Reproduce: `python3 -m vend.run --surge --days 90` (writes `vend/surge.json` — the
+full two-anchor frontier, both surge intensities, the engine-ref diagnostic, and
+the churn-on/off decomposition). Tests: `vend/tests/test_vend.py::test_surge_*`,
+`::test_worldconfig_churn_rate_matches_regulars_module`,
+`::test_regular_pool_honors_churn_rate`, `::test_posted_surge_is_a_visible_above_reference_board`,
+`::test_run_surge_is_deterministic`.

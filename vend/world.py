@@ -76,6 +76,12 @@ class WorldConfig:
     ref_alpha_paid: float = 0.20   # 1 - carryover: EWMA weight a PAID price
                                    # gets on the reference update (published
                                    # carryover band 0.47-0.65; HJF 0.847)
+    churn_rate: float = 0.05       # dissatisfaction → daily P(churn); duplicates
+                                   # vend.regulars.CHURN_RATE (same import-order
+                                   # reason as loss_aversion; guarded by a test).
+                                   # Set 0.0 for the CHURN-OFF counterfactual that
+                                   # isolates captured time-of-day VALUE from the
+                                   # fairness CHURN cost (Task #66 surge experiment)
 
 
 DEFAULT_CONFIG = WorldConfig()

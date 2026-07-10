@@ -782,3 +782,152 @@ def test_tilt_frontier_artifact_shows_the_predicted_shape():
     assert att[-1] < peak                                     # collapsed by w=1.0
     # honest-region max is a real (CI-excludes-zero) seller-profit gain
     assert d["breakpoints"]["max_honest_profit_vs_posted"]["ci95"][0] > 0
+
+
+# ── surge-value-without-surging (Task #66) ──────────────────────────────────
+
+def test_worldconfig_churn_rate_matches_regulars_module():
+    """WorldConfig.churn_rate duplicates vend.regulars.CHURN_RATE (same
+    import-order reason as loss_aversion) — pinned so they can't drift, and so
+    the committed artifacts (default churn_rate) stay byte-identical."""
+    from vend.world import WorldConfig
+    from vend import regulars
+    assert WorldConfig().churn_rate == regulars.CHURN_RATE
+
+
+def test_regular_pool_honors_churn_rate():
+    """churn_rate=0.0 is the CHURN-OFF counterfactual: even a maximally
+    dissatisfied pool never permanently exits (the pool is held full so the
+    captured-value measurement is uncontaminated by retention)."""
+    from vend.regulars import RegularPool
+    from vend.world import (WorldConfig, build_catalog,
+                            _profit_optimal_list_price, CATALOG_SPEC)
+    cat = build_catalog()
+    market_ref = {s: _profit_optimal_list_price(mu, c)
+                  for s, mu, c, *_ in CATALOG_SPEC}
+    off = RegularPool(WorldConfig(regulars=20), 1, cat, market_ref, churn_rate=0.0)
+    on = RegularPool(WorldConfig(regulars=20), 1, cat, market_ref, churn_rate=0.05)
+    for pool in (off, on):
+        for r in pool.pool:
+            r.dissat = 100.0          # everyone furious
+    off_churn = on_churn = 0
+    for day in range(30):
+        off_churn += off.end_day(day)
+        on_churn += on.end_day(day)
+    assert off_churn == 0                        # churn OFF: nobody ever leaves
+    assert on_churn > 0                          # churn ON: the furious churn out
+    # (active_count can return to cap either way — exogenous replenishment
+    # refills the pool; the CHURN-OFF guarantee is about permanent EXITS)
+
+
+def test_posted_surge_is_a_visible_above_reference_board(catalog):
+    """POSTED-SURGE is a board-mode arm that posts the everyday reference
+    off-peak and SURGES above it at peak (the visible time-of-day increase that
+    fires the fairness churn), never above the peak-anchor ceiling."""
+    from vend.run import ARMS
+    from vend.policies import PostedSurgePolicy
+    from vend.world import (WorldConfig, build_catalog, fresh_machine,
+                            _profit_optimal_list_price)
+    assert "posted-surge" in ARMS and isinstance(ARMS["posted-surge"](),
+                                                 PostedSurgePolicy)
+    cfg = WorldConfig(anchor_peak=True, anchor_mult=1.25)   # room to surge
+    cat = build_catalog(cfg, 20260713)
+    st = fresh_machine("m", cat, cfg, 20260713)
+    pol = PostedSurgePolicy(surge_to_ceiling=True)
+    assert pol.mode == "board"
+    ref = _profit_optimal_list_price(2.20, 0.70)            # cola everyday price
+    st.tick = 24                                            # 11:00 lunch peak (mult 1.15)
+    peak = pol.price_board(st)["cola"][0]
+    st.tick = 44                                            # ~14:20 off-peak (mult 0.75)
+    off = pol.price_board(st)["cola"][0]
+    assert peak > ref + 1e-9, (peak, ref)                  # surges ABOVE reference at peak
+    assert off == pytest.approx(ref, abs=0.01)             # everyday price off-peak
+    assert peak <= cat["cola"].list_price + 1e-9           # never above the ceiling
+
+
+def test_surge_board_fires_fairness_churn_but_discount_quote_does_not():
+    """The two mechanisms the experiment turns on, at the unit level:
+      (a) a VISIBLE surge board above ref×1.10 fires sticker-shock on
+          observation → dissatisfaction accrues (the churn driver);
+      (b) an individual DISCOUNT quote below the reference is a GAIN with a
+          deal-framing glow (fairness > 0) and, when settled, RELIEVES
+          dissatisfaction — it does NOT fire sticker-shock. The discount-from-
+          anchor mechanism itself is churn-negative; the peak-anchor engine's
+          aggregate churn (see the artifact test) comes from its flat-ceiling
+          FALLBACK board, not from the discounts."""
+    from vend.regulars import Regular, regular_board_decision, settle_regular
+    # (a) surge board observation → sticker shock → dissat up
+    reg = Regular(uid=1, wtp={"cola": 5.0}, walk_cost=1.0, visit_prob=0.5,
+                  home_tick=24, ref={"cola": 1.95})
+    regular_board_decision(reg, {"cola": 2.56}, {"cola": 10},
+                           outside_prices={"cola": 3.0})   # 2.56 > 1.95×1.10
+    assert reg.dissat > 0                                  # the surge hurt
+
+    # (b) a discount quote below reference is a positive-utility GAIN (glow),
+    # and settling it RELIEVES accrued dissatisfaction (no sticker shock)
+    reg2 = Regular(uid=2, wtp={"cola": 5.0}, walk_cost=1.0, visit_prob=0.5,
+                   home_tick=24, ref={"cola": 1.95})
+    reg2.dissat = 0.5
+    glow = reg2.fairness("cola", 1.70, 1, list_price=2.56)  # discount off a high anchor
+    assert glow > 0                                        # gain + deal-framing glow
+    settle_regular(reg2, "cola", 1.70, 1)                  # below-ref payment
+    assert reg2.dissat < 0.5                               # the deal healed
+
+
+def test_surge_experiment_artifact_shows_the_honest_shape():
+    """The committed vend/surge.json (90-day, both-seed, block-5) must exhibit
+    the HONEST, pre-registered-then-tested shape — including the two findings
+    that REFUTE the strong thesis:
+      * static is the flat baseline (0 capture, 0 churn);
+      * the reference-anchor engine captures ≈0 with ZERO churn (the clean
+        world's sticker is already optimal ⇒ the only extra value is captive
+        harvest, which needs an above-reference price);
+      * the visible surge does NOT go net-negative from churn (captive harvest
+        survives churn + replenishment) — the strong premise fails;
+      * the peak-anchor engine does NOT escape the surge's churn: at the harvest
+        anchor it churns MORE and retains FEWER regulars than the surge (its
+        flat-ceiling fallback is above reference all day);
+      * the engine still NETS MORE than the surge — via value (heterogeneity
+        capture), not retention."""
+    import json
+    import pathlib
+    d = json.load(open(pathlib.Path(__file__).parents[1] / "surge.json"))
+    a = d["arms"]
+    hi = max(d["anchors"])
+    surge, engine = a[f"surge@{hi:g}"], a[f"engine@{hi:g}"]
+    # static baseline is exactly flat
+    assert a["static"]["captured_value_vs_static"]["mean"] == 0.0
+    assert sum(a["static"]["churned_by_seed"]) == 0
+    # reference-anchor engine: ≈0 capture, zero churn (fairness-safe but empty)
+    assert abs(a["engine-ref"]["captured_value_vs_static"]["mean"]) < 1.0
+    assert sum(a["engine-ref"]["churned_by_seed"]) == 0
+    # the surge is NET-POSITIVE (does not go net-negative from churn)
+    assert surge["net_profit_vs_static"]["ci95"][0] > 0
+    assert d["verdict"]["surge_goes_net_negative_from_churn"] is False
+    # the peak-anchor engine churns MORE than the surge (both seeds) — it does
+    # NOT escape the fairness churn (the "no above-reference event" premise fails)
+    assert all(engine["churned_by_seed"][i] > surge["churned_by_seed"][i]
+               for i in range(len(d["seeds"])))
+    assert d["verdict"]["peak_anchor_engine_escapes_surge_churn"] is False
+    # net-profit ordering: engine > surge > static, and the engine's edge is
+    # VALUE (churn-off capture), not retention
+    assert (engine["net_profit_vs_static"]["mean"]
+            > surge["net_profit_vs_static"]["mean"] > 0)
+    assert (engine["captured_value_vs_static"]["mean"]
+            > surge["captured_value_vs_static"]["mean"])
+
+
+def test_run_surge_is_deterministic(tmp_path):
+    """The surge sweep is reproducible (a tiny slice: 1 seed, 6 days, one anchor,
+    a small pool — the whole machinery, fast)."""
+    import io
+    import contextlib
+    import json
+    from vend.run import run_surge
+    outs = []
+    for i in range(2):
+        p = tmp_path / f"s{i}.json"
+        with contextlib.redirect_stdout(io.StringIO()):
+            run_surge([7], 6, str(p), anchors=[1.25], regulars=20)
+        outs.append(json.load(open(p)))
+    assert outs[0] == outs[1]

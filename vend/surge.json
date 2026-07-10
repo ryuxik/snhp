@@ -1,0 +1,946 @@
+{
+ "vend_version": 1,
+ "task": "surge-value-without-surging-66",
+ "days": 90,
+ "seeds": [
+  20260713,
+  7
+ ],
+ "anchors": [
+  1.0,
+  1.25
+ ],
+ "regulars": 120,
+ "block": 5,
+ "world": {
+  "note": "clean stationary world, traffic_scale=1.0; everyday reference = all-day profit-optimal single price (STATIC's board); surge/engine ceiling = peak-crowd optimum \u00d7 anchor_mult; engine-ref anchors at the all-day reference (never above it)"
+ },
+ "list_prices": {
+  "static_allday_reference": {
+   "cola": 1.95,
+   "diet-cola": 1.85,
+   "water": 1.35,
+   "chips": 1.65,
+   "candy": 1.5,
+   "energy": 2.8,
+   "sandwich": 4.85,
+   "fruit-cup": 3.3
+  },
+  "peak_ceiling_x1": {
+   "cola": 2.05,
+   "diet-cola": 1.95,
+   "water": 1.4,
+   "chips": 1.8,
+   "candy": 1.55,
+   "energy": 2.95,
+   "sandwich": 5.1,
+   "fruit-cup": 3.45
+  },
+  "peak_ceiling_x1.25": {
+   "cola": 2.56,
+   "diet-cola": 2.44,
+   "water": 1.75,
+   "chips": 2.25,
+   "candy": 1.94,
+   "energy": 3.69,
+   "sandwich": 6.38,
+   "fruit-cup": 4.31
+  }
+ },
+ "arms": {
+  "static": {
+   "captured_value_vs_static": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "captured_value_by_seed": [
+    0.0,
+    0.0
+   ],
+   "net_profit_vs_static": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "net_profit_by_seed": [
+    0.0,
+    0.0
+   ],
+   "cs_vs_static": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "cs_by_seed": [
+    0.0,
+    0.0
+   ],
+   "fairness_cost_by_seed": [
+    0.0,
+    0.0
+   ],
+   "churned_by_seed": [
+    0,
+    0
+   ],
+   "day90_active_by_seed": [
+    120,
+    120
+   ],
+   "reg_deals_by_seed": [
+    2348,
+    2395
+   ]
+  },
+  "engine-ref": {
+   "captured_value_vs_static": {
+    "mean": -0.1,
+    "ci95": [
+     -0.25,
+     0.04
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "captured_value_by_seed": [
+    -0.11,
+    -0.09
+   ],
+   "net_profit_vs_static": {
+    "mean": -0.1,
+    "ci95": [
+     -0.25,
+     0.04
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "net_profit_by_seed": [
+    -0.11,
+    -0.09
+   ],
+   "cs_vs_static": {
+    "mean": 0.01,
+    "ci95": [
+     -0.02,
+     0.04
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "cs_by_seed": [
+    0.03,
+    -0.0
+   ],
+   "fairness_cost_by_seed": [
+    0.0,
+    0.0
+   ],
+   "churned_by_seed": [
+    0,
+    0
+   ],
+   "day90_active_by_seed": [
+    120,
+    120
+   ],
+   "reg_deals_by_seed": [
+    2348,
+    2392
+   ]
+  },
+  "surge-pm@1": {
+   "captured_value_vs_static": {
+    "mean": 2.83,
+    "ci95": [
+     2.73,
+     2.93
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "captured_value_by_seed": [
+    2.83,
+    2.83
+   ],
+   "net_profit_vs_static": {
+    "mean": 2.77,
+    "ci95": [
+     2.66,
+     2.87
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "net_profit_by_seed": [
+    2.78,
+    2.76
+   ],
+   "cs_vs_static": {
+    "mean": -0.05,
+    "ci95": [
+     -0.45,
+     0.35
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "cs_by_seed": [
+    0.34,
+    -0.44
+   ],
+   "fairness_cost_by_seed": [
+    -0.06,
+    -0.07
+   ],
+   "churned_by_seed": [
+    5,
+    2
+   ],
+   "day90_active_by_seed": [
+    120,
+    120
+   ],
+   "reg_deals_by_seed": [
+    2336,
+    2411
+   ]
+  },
+  "surge@1": {
+   "captured_value_vs_static": {
+    "mean": 6.98,
+    "ci95": [
+     6.91,
+     7.04
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "captured_value_by_seed": [
+    7.04,
+    6.91
+   ],
+   "net_profit_vs_static": {
+    "mean": 6.89,
+    "ci95": [
+     6.81,
+     6.96
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "net_profit_by_seed": [
+    6.99,
+    6.78
+   ],
+   "cs_vs_static": {
+    "mean": 0.54,
+    "ci95": [
+     -0.02,
+     1.1
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "cs_by_seed": [
+    0.33,
+    0.75
+   ],
+   "fairness_cost_by_seed": [
+    -0.05,
+    -0.13
+   ],
+   "churned_by_seed": [
+    8,
+    4
+   ],
+   "day90_active_by_seed": [
+    120,
+    120
+   ],
+   "reg_deals_by_seed": [
+    2335,
+    2452
+   ]
+  },
+  "engine@1": {
+   "captured_value_vs_static": {
+    "mean": 8.24,
+    "ci95": [
+     8.01,
+     8.47
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "captured_value_by_seed": [
+    8.2,
+    8.28
+   ],
+   "net_profit_vs_static": {
+    "mean": 8.24,
+    "ci95": [
+     8.01,
+     8.47
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "net_profit_by_seed": [
+    8.2,
+    8.28
+   ],
+   "cs_vs_static": {
+    "mean": 1.15,
+    "ci95": [
+     0.51,
+     1.79
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "cs_by_seed": [
+    0.59,
+    1.7
+   ],
+   "fairness_cost_by_seed": [
+    0.0,
+    0.0
+   ],
+   "churned_by_seed": [
+    11,
+    5
+   ],
+   "day90_active_by_seed": [
+    119,
+    120
+   ],
+   "reg_deals_by_seed": [
+    2355,
+    2480
+   ]
+  },
+  "surge-pm@1.25": {
+   "captured_value_vs_static": {
+    "mean": 4.32,
+    "ci95": [
+     4.17,
+     4.47
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "captured_value_by_seed": [
+    4.33,
+    4.31
+   ],
+   "net_profit_vs_static": {
+    "mean": 4.19,
+    "ci95": [
+     4.04,
+     4.34
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "net_profit_by_seed": [
+    4.17,
+    4.21
+   ],
+   "cs_vs_static": {
+    "mean": 0.1,
+    "ci95": [
+     -0.42,
+     0.62
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "cs_by_seed": [
+    0.87,
+    -0.67
+   ],
+   "fairness_cost_by_seed": [
+    -0.16,
+    -0.1
+   ],
+   "churned_by_seed": [
+    7,
+    3
+   ],
+   "day90_active_by_seed": [
+    120,
+    120
+   ],
+   "reg_deals_by_seed": [
+    2374,
+    2452
+   ]
+  },
+  "surge@1.25": {
+   "captured_value_vs_static": {
+    "mean": 32.88,
+    "ci95": [
+     31.69,
+     34.08
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "captured_value_by_seed": [
+    33.08,
+    32.69
+   ],
+   "net_profit_vs_static": {
+    "mean": 29.75,
+    "ci95": [
+     29.05,
+     30.44
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "net_profit_by_seed": [
+    29.37,
+    30.12
+   ],
+   "cs_vs_static": {
+    "mean": -12.16,
+    "ci95": [
+     -13.36,
+     -10.97
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "cs_by_seed": [
+    -10.75,
+    -13.58
+   ],
+   "fairness_cost_by_seed": [
+    -3.71,
+    -2.57
+   ],
+   "churned_by_seed": [
+    48,
+    47
+   ],
+   "day90_active_by_seed": [
+    118,
+    118
+   ],
+   "reg_deals_by_seed": [
+    2103,
+    2006
+   ]
+  },
+  "engine@1.25": {
+   "captured_value_vs_static": {
+    "mean": 40.89,
+    "ci95": [
+     38.26,
+     43.53
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "captured_value_by_seed": [
+    40.17,
+    41.61
+   ],
+   "net_profit_vs_static": {
+    "mean": 36.69,
+    "ci95": [
+     34.47,
+     38.9
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "net_profit_by_seed": [
+    34.96,
+    38.41
+   ],
+   "cs_vs_static": {
+    "mean": -15.93,
+    "ci95": [
+     -16.88,
+     -14.97
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "cs_by_seed": [
+    -15.42,
+    -16.43
+   ],
+   "fairness_cost_by_seed": [
+    -5.21,
+    -3.2
+   ],
+   "churned_by_seed": [
+    72,
+    71
+   ],
+   "day90_active_by_seed": [
+    102,
+    114
+   ],
+   "reg_deals_by_seed": [
+    1330,
+    1381
+   ]
+  }
+ },
+ "frontier": [
+  {
+   "anchor_mult": 1.0,
+   "surge": {
+    "captured_value_vs_static": {
+     "mean": 6.98,
+     "ci95": [
+      6.91,
+      7.04
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "captured_value_by_seed": [
+     7.04,
+     6.91
+    ],
+    "net_profit_vs_static": {
+     "mean": 6.89,
+     "ci95": [
+      6.81,
+      6.96
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "net_profit_by_seed": [
+     6.99,
+     6.78
+    ],
+    "cs_vs_static": {
+     "mean": 0.54,
+     "ci95": [
+      -0.02,
+      1.1
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "cs_by_seed": [
+     0.33,
+     0.75
+    ],
+    "fairness_cost_by_seed": [
+     -0.05,
+     -0.13
+    ],
+    "churned_by_seed": [
+     8,
+     4
+    ],
+    "day90_active_by_seed": [
+     120,
+     120
+    ],
+    "reg_deals_by_seed": [
+     2335,
+     2452
+    ]
+   },
+   "engine": {
+    "captured_value_vs_static": {
+     "mean": 8.24,
+     "ci95": [
+      8.01,
+      8.47
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "captured_value_by_seed": [
+     8.2,
+     8.28
+    ],
+    "net_profit_vs_static": {
+     "mean": 8.24,
+     "ci95": [
+      8.01,
+      8.47
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "net_profit_by_seed": [
+     8.2,
+     8.28
+    ],
+    "cs_vs_static": {
+     "mean": 1.15,
+     "ci95": [
+      0.51,
+      1.79
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "cs_by_seed": [
+     0.59,
+     1.7
+    ],
+    "fairness_cost_by_seed": [
+     0.0,
+     0.0
+    ],
+    "churned_by_seed": [
+     11,
+     5
+    ],
+    "day90_active_by_seed": [
+     119,
+     120
+    ],
+    "reg_deals_by_seed": [
+     2355,
+     2480
+    ]
+   },
+   "surge_pm": {
+    "captured_value_vs_static": {
+     "mean": 2.83,
+     "ci95": [
+      2.73,
+      2.93
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "captured_value_by_seed": [
+     2.83,
+     2.83
+    ],
+    "net_profit_vs_static": {
+     "mean": 2.77,
+     "ci95": [
+      2.66,
+      2.87
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "net_profit_by_seed": [
+     2.78,
+     2.76
+    ],
+    "cs_vs_static": {
+     "mean": -0.05,
+     "ci95": [
+      -0.45,
+      0.35
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "cs_by_seed": [
+     0.34,
+     -0.44
+    ],
+    "fairness_cost_by_seed": [
+     -0.06,
+     -0.07
+    ],
+    "churned_by_seed": [
+     5,
+     2
+    ],
+    "day90_active_by_seed": [
+     120,
+     120
+    ],
+    "reg_deals_by_seed": [
+     2336,
+     2411
+    ]
+   },
+   "engine_minus_surge_net": {
+    "mean": 1.36,
+    "ci95": [
+     1.11,
+     1.6
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "engine_minus_surge_captured": {
+    "mean": 1.27,
+    "ci95": [
+     1.03,
+     1.5
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "engine_minus_surge_cs": {
+    "mean": 0.61,
+    "ci95": [
+     0.2,
+     1.02
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "surge_net_negative": false,
+   "engine_churns_more_than_surge_both_seeds": true,
+   "engine_retains_fewer_than_surge_both_seeds": false
+  },
+  {
+   "anchor_mult": 1.25,
+   "surge": {
+    "captured_value_vs_static": {
+     "mean": 32.88,
+     "ci95": [
+      31.69,
+      34.08
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "captured_value_by_seed": [
+     33.08,
+     32.69
+    ],
+    "net_profit_vs_static": {
+     "mean": 29.75,
+     "ci95": [
+      29.05,
+      30.44
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "net_profit_by_seed": [
+     29.37,
+     30.12
+    ],
+    "cs_vs_static": {
+     "mean": -12.16,
+     "ci95": [
+      -13.36,
+      -10.97
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "cs_by_seed": [
+     -10.75,
+     -13.58
+    ],
+    "fairness_cost_by_seed": [
+     -3.71,
+     -2.57
+    ],
+    "churned_by_seed": [
+     48,
+     47
+    ],
+    "day90_active_by_seed": [
+     118,
+     118
+    ],
+    "reg_deals_by_seed": [
+     2103,
+     2006
+    ]
+   },
+   "engine": {
+    "captured_value_vs_static": {
+     "mean": 40.89,
+     "ci95": [
+      38.26,
+      43.53
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "captured_value_by_seed": [
+     40.17,
+     41.61
+    ],
+    "net_profit_vs_static": {
+     "mean": 36.69,
+     "ci95": [
+      34.47,
+      38.9
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "net_profit_by_seed": [
+     34.96,
+     38.41
+    ],
+    "cs_vs_static": {
+     "mean": -15.93,
+     "ci95": [
+      -16.88,
+      -14.97
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "cs_by_seed": [
+     -15.42,
+     -16.43
+    ],
+    "fairness_cost_by_seed": [
+     -5.21,
+     -3.2
+    ],
+    "churned_by_seed": [
+     72,
+     71
+    ],
+    "day90_active_by_seed": [
+     102,
+     114
+    ],
+    "reg_deals_by_seed": [
+     1330,
+     1381
+    ]
+   },
+   "surge_pm": {
+    "captured_value_vs_static": {
+     "mean": 4.32,
+     "ci95": [
+      4.17,
+      4.47
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "captured_value_by_seed": [
+     4.33,
+     4.31
+    ],
+    "net_profit_vs_static": {
+     "mean": 4.19,
+     "ci95": [
+      4.04,
+      4.34
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "net_profit_by_seed": [
+     4.17,
+     4.21
+    ],
+    "cs_vs_static": {
+     "mean": 0.1,
+     "ci95": [
+      -0.42,
+      0.62
+     ],
+     "n": 36,
+     "block": 5
+    },
+    "cs_by_seed": [
+     0.87,
+     -0.67
+    ],
+    "fairness_cost_by_seed": [
+     -0.16,
+     -0.1
+    ],
+    "churned_by_seed": [
+     7,
+     3
+    ],
+    "day90_active_by_seed": [
+     120,
+     120
+    ],
+    "reg_deals_by_seed": [
+     2374,
+     2452
+    ]
+   },
+   "engine_minus_surge_net": {
+    "mean": 6.94,
+    "ci95": [
+     5.17,
+     8.71
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "engine_minus_surge_captured": {
+    "mean": 8.01,
+    "ci95": [
+     6.34,
+     9.68
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "engine_minus_surge_cs": {
+    "mean": -3.76,
+    "ci95": [
+     -4.68,
+     -2.84
+    ],
+    "n": 36,
+    "block": 5
+   },
+   "surge_net_negative": false,
+   "engine_churns_more_than_surge_both_seeds": true,
+   "engine_retains_fewer_than_surge_both_seeds": true
+  }
+ ],
+ "verdict": {
+  "headline_anchor": 1.25,
+  "surge_goes_net_negative_from_churn": false,
+  "surge_net_profit_vs_static_at_headline": {
+   "mean": 29.75,
+   "ci95": [
+    29.05,
+    30.44
+   ],
+   "n": 36,
+   "block": 5
+  },
+  "engine_ref_captured_value_vs_static": {
+   "mean": -0.1,
+   "ci95": [
+    -0.25,
+    0.04
+   ],
+   "n": 36,
+   "block": 5
+  },
+  "engine_ref_churned_by_seed": [
+   0,
+   0
+  ],
+  "peak_anchor_engine_escapes_surge_churn": false,
+  "fairness_free_value_is_reference_anchor_discounts": true
+ }
+}

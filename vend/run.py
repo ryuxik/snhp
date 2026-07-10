@@ -18,7 +18,8 @@ import sys
 import numpy as np
 
 from vend.core import QuoteItem, make_quote, substream
-from vend.policies import A2APolicy, GvrPolicy, StaticPolicy, StrongPostedPolicy
+from vend.policies import (A2APolicy, GvrPolicy, PostedSurgePolicy, StaticPolicy,
+                           StrongPostedPolicy)
 from vend.scenario import buyer_value
 from vend.world import (BODEGA_MARKUP, DEFAULT_CONFIG, TICKS_PER_DAY,
                         WorldConfig, arrivals_at, build_catalog, day_state,
@@ -35,6 +36,7 @@ ARMS = {
     "static": StaticPolicy,
     "gvr": GvrPolicy,
     "posted": StrongPostedPolicy,   # #48: choice-model, jointly-optimized posted board
+    "posted-surge": PostedSurgePolicy,   # #66: VISIBLE time-of-day surge (above ref at peak)
     "a2a": A2APolicy,                                           # attested, all truthful
     "a2a-liars25": lambda: A2APolicy(attest=False, liar_share=0.25),
     "a2a-liars50": lambda: A2APolicy(attest=False, liar_share=0.50),
@@ -275,7 +277,8 @@ def run_experiment(arm_names: list[str], days: int, seed: int,
                           for s, mu, c, *_ in CATALOG_SPEC}
             pool = RegularPool(cfg, seed, catalog, market_ref,
                               loss_aversion=cfg.loss_aversion,
-                              ref_alpha_paid=cfg.ref_alpha_paid)
+                              ref_alpha_paid=cfg.ref_alpha_paid,
+                              churn_rate=cfg.churn_rate)
         per_day = [run_day(policy, state, catalog, seed, d, cfg, pool)
                    for d in range(days)]
         totals = {k: round(sum(m[k] for m in per_day), 2)
@@ -568,6 +571,228 @@ def run_tilt(seeds: list[int], days: int, cfg: WorldConfig, out: str,
     return 0
 
 
+# ── surge-value-without-surging (Task #66) ──────────────────────────────────
+# The load-bearing "who pays us" + "fairness is not deletable" proof for the
+# SINGLE-PRICE categories (bodega / vending / boba / fashion) that CANNOT
+# time-of-day price because a VISIBLE surge on everyday goods is a fairness
+# violation (Coca-Cola 1999, Wendy's 2024, Kahneman-Knetsch-Thaler dual
+# entitlement). Same seeded regular population (the franchise at stake),
+# paired seeds, clean stationary world (the Fairness-v2 regime the churn
+# machinery was validated in — no calibration/shock noise to muddy the churn
+# signal). Everyday reference = the all-day profit-optimal single price (what
+# regulars remember, what STATIC posts):
+#   STATIC     — the single all-day sticker these categories actually run
+#                (reference == board ⇒ no above-reference event, ≈0 churn).
+#   SURGE      — a VISIBLE peak-surcharge board: the everyday price off-peak,
+#                ABOVE the reference at peak (a bar/parking/happy-hour surge).
+#                surge_to_ceiling → how far the peak surcharge reaches
+#                (profit-max = mild honest surge; ceiling = aggressive harvest).
+#   ENGINE     — invisible individual discount-from-a-PEAK-anchor (a2a,
+#                anchor_peak): the ceiling IS the peak anchor, quotes discount
+#                from it. The HYPOTHESIS under test: this has "no above-reference
+#                event" so it escapes the surge's churn.
+#   ENGINE-REF — the fairness-SAFE engine (a2a on the all-day catalog): its
+#                sticker == the everyday reference, so it NEVER posts above the
+#                reference; it captures value only as DISCOUNTS below it. The
+#                diagnostic that locates where fairness-free value actually is.
+# Captured value is isolated from the churn cost with a CHURN-OFF counterfactual
+# (churn_rate=0, pool held full): the churn-off gross-margin advantage over
+# static is the pricing capture NET of transient fairness refusal but BEFORE any
+# permanent exit; the churn-ON profit advantage adds the permanent churn. Their
+# difference is the fairness (churn) cost. Two anchors span the frontier: a mild
+# peak-optimum ceiling (1.0, the both-sides-win regime) and an aggressive
+# captive-harvest ceiling (1.25, the "Wendy's zone").
+
+SURGE_SEEDS = (20260713, 7)
+SURGE_ANCHORS = (1.0, 1.25)
+
+
+def run_surge(seeds, days: int, out: str, anchors=SURGE_ANCHORS,
+              regulars: int = 120) -> int:
+    from vend.regulars import RegularPool
+    from vend.policies import A2APolicy, PostedSurgePolicy, StaticPolicy
+    from vend.world import _profit_optimal_list_price, CATALOG_SPEC
+
+    market_ref = {s: _profit_optimal_list_price(mu, c)
+                  for s, mu, c, *_ in CATALOG_SPEC}
+
+    def cfg_for(anchor_peak: bool, anchor_mult: float, churn_rate: float) -> WorldConfig:
+        return WorldConfig(regulars=regulars, anchor_peak=anchor_peak,
+                           anchor_mult=(anchor_mult if anchor_peak else 1.0),
+                           churn_rate=churn_rate)
+
+    def run_one(seed: int, anchor_peak: bool, anchor_mult: float,
+                factory, churn_rate: float):
+        cfg = cfg_for(anchor_peak, anchor_mult, churn_rate)
+        catalog = build_catalog(cfg, seed)
+        state = fresh_machine("surge", catalog, cfg, seed)
+        # same seed + same all-day market_ref ⇒ IDENTICAL initial regular pool
+        # across arms (references and churn then diverge by arm — the treatment).
+        pool = RegularPool(cfg, seed, catalog, market_ref,
+                           loss_aversion=cfg.loss_aversion,
+                           ref_alpha_paid=cfg.ref_alpha_paid,
+                           churn_rate=cfg.churn_rate)
+        pol = factory()
+        return [run_day(pol, state, catalog, seed, d, cfg, pool)
+                for d in range(days)]
+
+    # arm key -> (anchor_peak, anchor_mult, factory). static and engine-ref are
+    # anchor-independent (all-day catalog); surge/engine are run per anchor.
+    arm_specs = {
+        "static":     (False, 1.0, StaticPolicy),
+        "engine-ref": (False, 1.0, A2APolicy),
+    }
+    for m in anchors:
+        arm_specs[("surge-pm", m)] = (True, m,
+            lambda: PostedSurgePolicy(surge_to_ceiling=False))   # mild honest surge
+        arm_specs[("surge", m)] = (True, m,
+            lambda: PostedSurgePolicy(surge_to_ceiling=True))    # aggressive surge
+        arm_specs[("engine", m)] = (True, m, A2APolicy)
+
+    series: dict = {}   # (seed, arm_key, tag) -> per_day list
+    for seed in seeds:
+        for churn, tag in ((0.05, "on"), (0.0, "off")):
+            for key, (ap, am, fac) in arm_specs.items():
+                series[(seed, key, tag)] = run_one(seed, ap, am, fac, churn)
+        print(f"  seed {seed}: ran {len(arm_specs) * 2} arm-runs (churn on+off)")
+
+    gross = lambda m: m["revenue"] - m["cogs_sold"]      # margin before spoilage
+    profit = lambda m: m["profit"]
+    cs = lambda m: m["consumer_surplus"]
+
+    def dser(key, tag, fn, base="static"):
+        return [[fn(series[(s, key, tag)][d]) - fn(series[(s, base, tag)][d])
+                 for d in range(days)] for s in seeds]
+
+    def perseed_means(key, tag, fn, base="static"):
+        return [round(paired_ci(dser(key, tag, fn, base)[i])["mean"], 2)
+                for i in range(len(seeds))]
+
+    def summarize(key) -> dict:
+        return {
+            # (a) captured value: churn-OFF gross-margin Δ vs static
+            "captured_value_vs_static": _pooled_ci(dser(key, "off", gross)),
+            "captured_value_by_seed": perseed_means(key, "off", gross),
+            # (c) NET profit after churn: churn-ON profit Δ vs static
+            "net_profit_vs_static": _pooled_ci(dser(key, "on", profit)),
+            "net_profit_by_seed": perseed_means(key, "on", profit),
+            # (d) consumer surplus: churn-ON CS Δ vs static
+            "cs_vs_static": _pooled_ci(dser(key, "on", cs)),
+            "cs_by_seed": perseed_means(key, "on", cs),
+            # fairness (churn) COST: this arm's own churn-ON − churn-OFF profit
+            "fairness_cost_by_seed": [
+                round((sum(profit(m) for m in series[(s, key, "on")])
+                       - sum(profit(m) for m in series[(s, key, "off")])) / days, 2)
+                for s in seeds],
+            # (b) churn / retention (churn-ON)
+            "churned_by_seed": [sum(m["churned"] for m in series[(s, key, "on")])
+                                for s in seeds],
+            "day90_active_by_seed": [series[(s, key, "on")][-1]["active_regulars"]
+                                     for s in seeds],
+            "reg_deals_by_seed": [sum(m["reg_deals"] for m in series[(s, key, "on")])
+                                  for s in seeds],
+        }
+
+    def keystr(k):
+        return k if isinstance(k, str) else f"{k[0]}@{k[1]:g}"
+
+    table = {keystr(k): summarize(k) for k in arm_specs}
+
+    def sig(ci_dict):
+        ci = ci_dict["ci95"]
+        if ci is None:
+            return "?"
+        return "neg" if ci[1] < 0 else ("pos" if ci[0] > 0 else "0")
+
+    # per-anchor engine-vs-surge head-to-head (paired on the customer stream)
+    frontier = []
+    for m in anchors:
+        sk, ek = ("surge", m), ("engine", m)
+        row = {
+            "anchor_mult": m,
+            "surge": table[keystr(sk)],
+            "engine": table[keystr(ek)],
+            "surge_pm": table[keystr(("surge-pm", m))],
+            "engine_minus_surge_net": _pooled_ci(
+                [[profit(series[(s, ek, "on")][d]) - profit(series[(s, sk, "on")][d])
+                  for d in range(days)] for s in seeds]),
+            "engine_minus_surge_captured": _pooled_ci(
+                [[gross(series[(s, ek, "off")][d]) - gross(series[(s, sk, "off")][d])
+                  for d in range(days)] for s in seeds]),
+            "engine_minus_surge_cs": _pooled_ci(
+                [[cs(series[(s, ek, "on")][d]) - cs(series[(s, sk, "on")][d])
+                  for d in range(days)] for s in seeds]),
+        }
+        row["surge_net_negative"] = sig(table[keystr(sk)]["net_profit_vs_static"]) == "neg"
+        row["engine_churns_more_than_surge_both_seeds"] = all(
+            table[keystr(ek)]["churned_by_seed"][i]
+            > table[keystr(sk)]["churned_by_seed"][i] for i in range(len(seeds)))
+        row["engine_retains_fewer_than_surge_both_seeds"] = all(
+            table[keystr(ek)]["day90_active_by_seed"][i]
+            < table[keystr(sk)]["day90_active_by_seed"][i] for i in range(len(seeds)))
+        frontier.append(row)
+
+    # the headline is the AGGRESSIVE anchor (the harvest / "Wendy's" zone where
+    # the fairness question is live); the mild anchor is reported too.
+    hi = max(anchors)
+    hi_surge = table[keystr(("surge", hi))]["net_profit_vs_static"]
+    engref = table["engine-ref"]
+    verdict = {
+        "headline_anchor": hi,
+        "surge_goes_net_negative_from_churn": sig(hi_surge) == "neg",
+        "surge_net_profit_vs_static_at_headline": hi_surge,
+        "engine_ref_captured_value_vs_static": engref["captured_value_vs_static"],
+        "engine_ref_churned_by_seed": engref["churned_by_seed"],
+        # the honest reads (computed):
+        "peak_anchor_engine_escapes_surge_churn": not any(
+            r["engine_churns_more_than_surge_both_seeds"] for r in frontier),
+        "fairness_free_value_is_reference_anchor_discounts": (
+            sig(engref["captured_value_vs_static"]) != "neg"
+            and max(engref["churned_by_seed"]) <= 2),
+    }
+
+    payload = {
+        "vend_version": VEND_VERSION, "task": "surge-value-without-surging-66",
+        "days": days, "seeds": list(seeds), "anchors": list(anchors),
+        "regulars": regulars, "block": 5,
+        "world": {"note": "clean stationary world, traffic_scale=1.0; everyday "
+                          "reference = all-day profit-optimal single price "
+                          "(STATIC's board); surge/engine ceiling = peak-crowd "
+                          "optimum × anchor_mult; engine-ref anchors at the "
+                          "all-day reference (never above it)"},
+        "list_prices": {
+            "static_allday_reference": {s: round(v, 2) for s, v in market_ref.items()},
+            **{f"peak_ceiling_x{m:g}": {
+                s: l.list_price for s, l in
+                build_catalog(cfg_for(True, m, 0.05), seeds[0]).items()}
+               for m in anchors},
+        },
+        "arms": table,
+        "frontier": frontier,
+        "verdict": verdict,
+    }
+    with open(out, "w") as f:
+        json.dump(payload, f, indent=1)
+    print(f"wrote {out}")
+
+    def fmt(ci):
+        m, c = ci["mean"], ci["ci95"]
+        return f"{m:+6.2f} {str(c)}" if c else f"{m:+6.2f}"
+    print(f"\n{'arm':16} {'captured$/d(off)':22} {'net$/d(on)':22} "
+          f"{'CS$/d':22} {'churn':7} {'day90':8}")
+    order = (["static", "engine-ref"]
+             + [keystr((n, m)) for m in anchors for n in ("surge-pm", "surge", "engine")])
+    for k in order:
+        r = table[k]
+        churn = "/".join(str(x) for x in r["churned_by_seed"])
+        act = "/".join(str(x) for x in r["day90_active_by_seed"])
+        print(f"{k:16} {fmt(r['captured_value_vs_static']):22} "
+              f"{fmt(r['net_profit_vs_static']):22} {fmt(r['cs_vs_static']):22} "
+              f"{churn:7} {act:8}")
+    print("\nverdict:", json.dumps(verdict, indent=1, default=str))
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--days", type=int, default=30)
@@ -593,6 +818,14 @@ def main(argv=None) -> int:
     ap.add_argument("--tilt", action="store_true",
                     help="run the split-tilt seller-weight frontier (Task #65) "
                          "at the realistic calibrated cell, both seeds, 90d")
+    ap.add_argument("--surge", action="store_true",
+                    help="run the surge-value-without-surging experiment (Task "
+                         "#66): static vs VISIBLE posted-surge vs invisible "
+                         "engine discount-from-peak-anchor, both seeds, 90d")
+    ap.add_argument("--anchor-mult", type=float, default=1.0,
+                    help="peak-anchor ceiling multiplier for --surge (default "
+                         "1.0 = the peak-crowd optimum, the shared surge/engine "
+                         "ceiling)")
     args = ap.parse_args(argv)
 
     arm_names = [a.strip() for a in args.arms.split(",") if a.strip()]
@@ -612,6 +845,12 @@ def main(argv=None) -> int:
                           traffic_scale=CALIBRATED_TRAFFIC_SCALE)
         return run_tilt([20260713, 7], args.days if args.days != 30 else 90,
                         cfg, args.out or "vend/tilt.json")
+
+    if args.surge:
+        anchors = ([args.anchor_mult] if args.anchor_mult != 1.0
+                   else list(SURGE_ANCHORS))
+        return run_surge(list(SURGE_SEEDS), args.days if args.days != 30 else 90,
+                         args.out or "vend/surge.json", anchors=anchors)
 
     if args.traffic_scale is not None:
         traffic_scale = args.traffic_scale

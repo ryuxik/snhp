@@ -336,6 +336,95 @@ class StrongPostedPolicy:
 
 
 @dataclass
+class PostedSurgePolicy:
+    """The VISIBLE time-of-day posted surge — what a bar, a parking meter, or a
+    happy-hour board does, and what a bodega / vending machine / boba shop /
+    fashion rack STRUCTURALLY CANNOT do without a fairness backlash (Coca-Cola's
+    1999 hot-day vending PR disaster; Wendy's 2024 dynamic-pricing backlash;
+    Kahneman-Knetsch-Thaler dual entitlement — raising the everyday price on a
+    thirsty customer is a reference-transaction violation, not merely dear).
+
+    The board at each tick is the PROFIT-MAX price against THIS HOUR's crowd
+    (public knowledge: the lunch rush values a cola more than the 3pm stroller),
+    floored at opportunity cost and capped at the peak-anchored list ceiling.
+    Unlike EVERY other arm it is NOT clamped down to an all-day sticker: at peak
+    it POSTS ABOVE the everyday reference price the regulars remember — a visible
+    surge. That above-reference posting is exactly what fires the fairness model's
+    churn response (sticker-shock on observation, loss-averse transaction utility,
+    dissatisfaction → permanent churn). Capturing the time-of-day profit is the
+    point; paying for it in lost regulars is the whole experiment (Task #66).
+
+    A PEAK-SURCHARGE board (the faithful bar / parking / event-pricing shape):
+    off-peak it posts the EVERYDAY reference price (the all-day profit-optimal
+    single price these categories actually run — no discount, the normal price);
+    at peak it SURGES up toward the peak-anchor ceiling. So it is above the
+    reference ONLY at peak — the visible time-of-day increase that fires the
+    fairness churn — and it never discounts BELOW the everyday price (a symmetric
+    "cheaper off-peak" board would heal the very regulars the peak surcharge
+    hurts, which no real surge business does — happy-hour is a peak UP-charge,
+    the base price is the base price). The `surge_to_ceiling` knob sets how far
+    the peak surcharge reaches: False = the honest per-hour profit-max (~5-8%
+    over the reference, the mildest defensible surge); True = all the way to the
+    anchor ceiling (aggressive event pricing — how far a merchant would push if
+    fairness didn't bite). Both are VISIBLE and both fire the churn; the sweep
+    over anchor_mult × surge_to_ceiling is the surge frontier.
+
+    Deliberately a PURE time-of-day board — no per-SKU scarcity/learner machinery
+    (that lives in gvr / posted-strong) — so the churn it triggers is attributable
+    to the visible above-reference posting alone, not a forecasting artifact.
+    """
+    policy_id: str = "posted-surge/1"
+    mode: str = "board"
+    learner: "DemandLearner" = None   # wired by run.py (board-arm interface); the
+    dow_mult: float = 1.0             # pure per-hour board doesn't consult it, but
+    traffic_scale: float = 1.0        # exposing it keeps run.py's accounting uniform
+    surge_to_ceiling: bool = False    # peak surcharge target: profit-max (False)
+                                      # vs the full anchor ceiling (True)
+    _allday: dict = field(default_factory=dict)   # (mu,cost) -> everyday reference
+
+    def __post_init__(self):
+        if self.learner is None:
+            self.learner = DemandLearner()
+
+    def _everyday(self, mu_est: float, cost: float) -> float:
+        """The all-day profit-optimal single price — the everyday reference the
+        regulars carry (identical to world._profit_optimal_list_price(mu,c), the
+        RegularPool's market_ref, in the sigma_cal=0 world). Cached per (mu,cost)."""
+        key = (round(mu_est, 4), round(cost, 4))
+        if key not in self._allday:
+            from vend.world import _profit_optimal_list_price
+            self._allday[key] = _profit_optimal_list_price(mu_est, cost)
+        return self._allday[key]
+
+    def price_board(self, state: MachineState) -> dict[str, tuple[float, list[str]]]:
+        from vend.scenario import c_eff as _c_eff
+        board = {}
+        mult_now = wtp_mult_at(state.tick)
+        h = hour_of(state.tick)
+        for sku, listing in state.listings.items():
+            if state.stock(sku) <= 0:
+                continue
+            ce = _c_eff(state, sku)
+            mu_est = listing.wtp_mu_est
+            if mu_est <= 0:
+                raise ValueError(f"Listing {sku!r} has no operator demand estimate "
+                                 "— build catalogs via world.build_catalog")
+            everyday = self._everyday(mu_est, listing.unit_cost)
+            if mult_now >= 1.0:      # peak: surge UP from the everyday price
+                target = (listing.list_price if self.surge_to_ceiling
+                          else _profit_max_price(round(mu_est * mult_now, 6),
+                                                 round(ce, 6)))
+                price = max(everyday, min(listing.list_price, target))
+                why = [f"peak surcharge ({h}:00)"]
+            else:                    # off-peak / shoulder: the everyday price
+                price = min(listing.list_price, everyday)
+                why = [f"standard price ({h}:00)"]
+            price = round(min(listing.list_price, max(price, ce)), 2)
+            board[sku] = (price, why)
+        return board
+
+
+@dataclass
 class A2APolicy:
     """Brokered A2A: every arrival's agent discloses to the neutral engine,
     which quotes the Nash point over the true joint frontier (scenario.py).
