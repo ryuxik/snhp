@@ -99,6 +99,47 @@ better retail prices — compounds across tiers and the twin worlds show
 margin stacking. The wholesaler's truck is a shared constraint across
 venues, making it the block's first cross-venue coordination problem.
 
+## 4b-2. Composition guarantee
+
+Every standalone sim in this repo IS a future storefront: the venue-adapter
+pattern (B0/B1/B2) wraps each package's world+policies onto the block clock
+with the shared population, and the wholesale tier becomes the block's dawn
+layer (trucks, windows, route density). Target roster for the full street:
+vending machine, bodega, boba, fashion boutique, bakery, flower shop,
+barbershop, parking lot, happy-hour bar, vintage store — each running
+sticker-world vs snhp-world — plus wholesalers and (later) the courier as
+infrastructure actors. A sim is not "done" until it has a storefront.
+
+## 4d. Art direction — high quality AND playful (binding, not aspirational)
+
+The bar is the arena's proven pixel language (Castlevania-NES heritage,
+the Adam Ho design pass) applied warmly. Direction:
+
+- **Regulars are recognizable characters.** Named sprites with persistent
+  looks — you can literally watch Maria stop visiting the sticker block
+  after the anchor hike. Churn becomes a story you follow, not a counter.
+- **Every venue gets a signature micro-animation**: spinning barber pole,
+  blinking neon boba cup, croissant steam, flower buckets whose colors
+  fade with freshness, the parking gate arm, the bar's happy-hour glow,
+  browsing hands at the vintage rack, fashion window displays that change
+  with the season.
+- **The dawn ballet**: wholesale trucks at 6am — a handshake sprite over
+  negotiated deliveries, a clipboard over rate-card ones; two venues
+  sharing one truck window on the SNHP block (route density, visible).
+- **Street life**: pigeons, a bodega cat, dog walkers, rain days (demand
+  shocks made visible as weather), day/night palette shifts.
+- **Deals feel good**: receipts pop as tiny confetti tickets; the HUD
+  counters are a flip-clock scoreboard; the timelapse dial is a chunky
+  jukebox knob.
+- **The divergence is the drama**: the sticker block slowly grays and
+  thins as regulars churn; the SNHP block keeps its crowd. Emotional
+  storytelling through crowd density, backed cell-by-cell by the ledger.
+- **Everything clickable**: follow any walker; click any deal → the 3D
+  duel theater replays the actual negotiation (shipped machinery).
+- **Make-or-break gate** (the duel3d discipline): B3's first milestone is
+  a canned-data street frame that a stranger finds charming and legible
+  at BOTH 1280px and 375px before any live wiring happens.
+
 ## 4c. Venue candidates beyond the first four (each tests a NEW mechanism)
 
 - **Bakery** — the friction-free wedge: end-of-day markdown culture already
