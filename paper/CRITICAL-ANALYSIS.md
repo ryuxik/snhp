@@ -103,6 +103,28 @@ Best-vs-best anchor (seed A) and several block cells straddle zero at 30
 days. **Action: 90-day runs for any cell quoted in the whitepaper; no
 30-day CI may appear in a headline table.**
 
+## 9. Florist: computed BEATS nego (+$142–202 vs +$113–182), and spike-day nego is strictly worse (−$123–162/day) — THEORY-INFORMATIVE, new
+
+When clearance-to-zero is the entire game (linear decay, weekly resupply,
+everything must move), a posted markdown board dominates bilateral
+splitting: the Nash split hands each buyer a share of surplus the shop
+doesn't need to concede when the alternative buyer arrives minutes later,
+and the buffer blocks deals posted clearance would happily take. On demand
+floods this inverts hardest — negotiating into a queue is strictly worse
+than posted rationing. **The mechanism boundary, sharpened: bilateral
+quoting wins where buyer heterogeneity is the scarce information (who
+values what, who has which alternative); posted clearance wins where TIME
+is the only variable that matters and buyers are interchangeable.** Action:
+(a) the broker should detect flood/clearance regimes (learned arrival
+pressure vs stock) and fall back to its own posted-markdown mode — the
+mechanism containing the posted board as a special case is strictly
+stronger than either alone; pre-registered prediction: a regime-switching
+arm weakly dominates both at the florist. (b) The bakery's noon day-old
+pull vindication (folk cannibalization control beating naive dynamic
+tiers) goes in the paper as evidence that cultural pricing practices
+encode real constraints — controls must implement the culture, not a
+caricature of it.
+
 ## The meta-pattern
 
 Every real defect found so far is the same defect: **some term in the
