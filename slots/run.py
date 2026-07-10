@@ -8,11 +8,14 @@ treatment effect, isolated. The WORLD carries no overnight state (the
 occupancy grid resets at open); since the relief fix the nego arms carry
 their HourMarginLearner across days (each day's realized per-hour margins
 fold into the EWMA), so their per-day metrics are not strictly
-independent draws — the paired CI's 5-day blocks absorb that dependence
-as well as day-level noise.
+independent draws — the paired CI blocks absorb that dependence as well
+as day-level noise. The bar additionally has deterministic weekly
+seasonality, so its CI blocks are a FULL WEEK (block=7, on a 35-day = 5-
+week run) to keep the block means exchangeable; the calendar-flat venues
+use block=5 (see paired_ci / run_experiment).
 
-  python3 -m slots.run --venue bar --days 30 --seed 20260710
-  python3 -m slots.run --grid --days 30 --seed 20260710   # all venues
+  python3 -m slots.run --venue bar --days 35 --seed 20260710
+  python3 -m slots.run --grid --days 35 --seed 20260710   # all venues
 """
 from __future__ import annotations
 
@@ -39,6 +42,13 @@ SLOTS_VERSION = 4      # v4: calendar-aware relief (paper/CRITICAL-ANALYSIS §3
                        # bar weekend curve + peak-anchor fix, barber
                        # utilization/deposit no-show regime, parking
                        # structural per-segment elasticity
+
+DEFAULT_DAYS = 35      # 5 FULL weeks — a multiple of 7 so every day-of-week
+                       # appears equally. The bar's deterministic weekly
+                       # seasonality (Sat rate mult up to ~25x) means an
+                       # unbalanced week (e.g. 30 days = 4 weeks + 2 days)
+                       # over-represents Mon/Tue and understates Saturday's
+                       # share; >= the pre-registered 30-day minimum.
 
 
 def _book(state, m, cust, start, n, price, cs):
@@ -170,8 +180,26 @@ def run_day(policy, venue_name: str, master_seed: int, day: int,
 
 def paired_ci(diffs: list[float], block: int = 1) -> dict:
     """Mean paired difference with a 95% t-interval on `block`-day means
-    (copied from vend.run; slot days are independent, so blocking only
-    widens the CI — conservative)."""
+    (the t-interval treats the block means as the i.i.d. units).
+
+    Choose `block` so the blocks are EXCHANGEABLE — that is what the
+    t-interval assumes; blocking is not automatically "conservative". Two
+    dependence sources make a slot day non-independent:
+      * deterministic weekly seasonality — the bar's arrival/WTP curves
+        vary by day-of-week (Sat rate mult up to ~25x), so paired daily
+        diffs are NOT identically distributed across the week; and
+      * carried arm state — the nego arms' HourMarginLearner folds each
+        day's realized margins into an EWMA, so consecutive days are
+        serially correlated.
+    A block whose length is COPRIME to the 7-day week (e.g. block=5) gives
+    blocks with DIFFERENT day-of-week composition — the block means are
+    then not exchangeable and the interval is neither exact nor reliably
+    conservative for the bar. Use a block that is a whole number of weeks
+    (block=7, on a day count that is a multiple of 7) for the seasonal
+    bar so every block spans one full week and the block means are
+    exchangeable. Calendar-flat venues (barber/parking: no day-of-week
+    structure, learner pooled to one bucket) are near-exchangeable
+    day-to-day, so block=5 is fine there — see run_experiment."""
     d = np.asarray(diffs, dtype=float)
     if block > 1 and len(d) >= 2 * block:
         n_blocks = len(d) // block
@@ -207,13 +235,17 @@ def run_experiment(arm_names: list[str], venue_name: str, days: int,
             totals["sold_unit_ticks"] / (v.capacity * v.ticks * days), 4)
         results[name] = {"totals": totals, "per_day": per_day}
 
+    # CI block: one FULL WEEK for the seasonal bar (block means are then
+    # exchangeable — see paired_ci), the near-exchangeable block=5 for the
+    # calendar-flat venues (barber/parking).
+    ci_block = 7 if venue_name == "bar" else 5
     paired = {}
     base = arm_names[0]
     for name in arm_names[1:]:
         paired[f"{name}_vs_{base}"] = {
             metric: paired_ci([results[name]["per_day"][d][metric]
                                - results[base]["per_day"][d][metric]
-                               for d in range(days)], block=5)
+                               for d in range(days)], block=ci_block)
             for metric in PAIRED_METRICS
         }
 
@@ -251,7 +283,12 @@ def run_experiment(arm_names: list[str], venue_name: str, days: int,
 def run_grid(arm_names: list[str], venue_names: list[str], days: int,
              seed: int, out: str) -> int:
     """The pre-registered grid: flexibility share {0.15, 0.35} x demand
-    shock sigma {0, 0.4}, 30 paired days per cell, per venue."""
+    shock sigma {0, 0.4}, 35 paired days per cell (= 5 FULL weeks: the bar's
+    weekly seasonality means only a multiple of 7 gives every day-of-week
+    equal weight — 30 days over-represents Mon/Tue and understates Sat's
+    share; calibration.py §BAR and test_bar_saturday_revenue_share), per
+    venue. Barber/parking are calendar-flat, so their totals just scale with
+    the day count — verdicts unaffected."""
     grid = {}
     for vn in venue_names:
         cells = {}
@@ -294,14 +331,16 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--venue", choices=VENUE_NAMES, default=None,
                     help="single venue (default: all three in --grid)")
-    ap.add_argument("--days", type=int, default=30)
+    ap.add_argument("--days", type=int, default=DEFAULT_DAYS)   # balanced
+                    # week (multiple of 7) so every day-of-week appears
+                    # equally — see DEFAULT_DAYS
     ap.add_argument("--seed", type=int, default=20260710)
     ap.add_argument("--arms", default="static,computed,nego,nego-noshift")
     ap.add_argument("--out", default=None)
     ap.add_argument("--sigma-shock", type=float, default=0.0)
     ap.add_argument("--flexible-share", type=float, default=0.30)
     ap.add_argument("--grid", action="store_true",
-                    help="run the flexibility x shock grid (30 days/cell)")
+                    help="run the flexibility x shock grid (35 days/cell)")
     args = ap.parse_args(argv)
 
     arm_names = [a.strip() for a in args.arms.split(",") if a.strip()]

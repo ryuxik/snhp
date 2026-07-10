@@ -325,7 +325,17 @@ def nego_quote(state: VenueState, cust: Customer, *, shift: bool = True,
     if u_v - d_v < max(min_gain_abs, min_gain_frac * L):
         return None                    # gains too thin to bother quoting
     u_b = val - p - move
-    relief = d_shadow - sh
+    # Relief is a SWAP credit and is defined ONLY when the fallback books:
+    # value(fallback span) − value(deal span), both on the learned regime
+    # basis (`sh` and `d_shadow` are then both _span_value). When the
+    # fallback does NOT book, the deal is ADDED occupancy, not a swap of
+    # spans — there is no freed span to credit, so relief is 0. (In that
+    # branch `d_shadow` is 0 and `sh` is the conservative static
+    # displacement shadow, a guard on the DECISION, not a relief basis;
+    # crediting `d_shadow - sh = −capacity_shadow` would wrongly report
+    # NEGATIVE relief on every added-occupancy peak deal — the diagnostic
+    # bug this fixes. Margin/CS/acceptance never read relief.)
+    relief = (d_shadow - sh) if fallback_books else 0.0
     why = ["negotiated slot"]
     if start != cust.desired:
         why.append(f"{(start - cust.desired) * 10:+d}-min shift"

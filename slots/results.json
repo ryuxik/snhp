@@ -1,6 +1,6 @@
 {
  "slots_version": 4,
- "days": 30,
+ "days": 35,
  "seed": 20260710,
  "arms": [
   "static",
@@ -97,76 +97,76 @@
      },
      "totals": {
       "static": {
-       "margin": 14751.0,
-       "bookings": 462,
-       "shows": 447,
-       "noshows": 15,
-       "occupancy": 0.6208,
+       "margin": 16995.0,
+       "bookings": 531,
+       "shows": 515,
+       "noshows": 16,
+       "occupancy": 0.6131,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 9069.65,
-       "lost_to_outside": 164
+       "consumer_surplus": 10638.88,
+       "lost_to_outside": 196
       },
       "computed": {
-       "margin": 14563.22,
-       "bookings": 471,
-       "shows": 454,
-       "noshows": 17,
-       "occupancy": 0.6306,
+       "margin": 16805.18,
+       "bookings": 543,
+       "shows": 524,
+       "noshows": 19,
+       "occupancy": 0.6238,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 9172.99,
-       "lost_to_outside": 168
+       "consumer_surplus": 10803.03,
+       "lost_to_outside": 200
       },
       "nego": {
-       "margin": 15085.69,
-       "bookings": 508,
-       "shows": 494,
-       "noshows": 14,
-       "occupancy": 0.6861,
-       "shifted_deals": 45,
+       "margin": 17324.98,
+       "bookings": 587,
+       "shows": 571,
+       "noshows": 16,
+       "occupancy": 0.6798,
+       "shifted_deals": 55,
        "trimmed_deals": 0,
-       "relief_credited": -494.2,
-       "discount_given": 1221.02,
-       "consumer_surplus": 9436.14,
-       "lost_to_outside": 169
+       "relief_credited": 27.01,
+       "discount_given": 1541.59,
+       "consumer_surplus": 11005.04,
+       "lost_to_outside": 203
       },
       "nego-noshift": {
-       "margin": 15147.01,
-       "bookings": 496,
-       "shows": 478,
-       "noshows": 18,
-       "occupancy": 0.6639,
+       "margin": 17508.87,
+       "bookings": 574,
+       "shows": 554,
+       "noshows": 20,
+       "occupancy": 0.6595,
        "shifted_deals": 0,
        "trimmed_deals": 0,
-       "relief_credited": -350.9,
-       "discount_given": 659.99,
-       "consumer_surplus": 9260.05,
-       "lost_to_outside": 170
+       "relief_credited": 0.0,
+       "discount_given": 824.99,
+       "consumer_surplus": 10900.61,
+       "lost_to_outside": 203
       }
      },
      "paired": {
       "computed_vs_static": {
        "margin": {
-        "mean": -6.26,
+        "mean": -5.42,
         "ci95": [
-         -13.68,
-         1.16
+         -11.73,
+         0.88
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 3.44,
+        "mean": 4.69,
         "ci95": [
-         -4.6,
-         11.49
+         -2.47,
+         11.85
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
@@ -175,16 +175,16 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 1.17,
+        "mean": 1.29,
         "ci95": [
-         -0.06,
-         2.39
+         0.26,
+         2.31
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
@@ -193,7 +193,7 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
@@ -202,83 +202,83 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       },
       "nego_vs_static": {
        "margin": {
-        "mean": 11.16,
+        "mean": 9.43,
         "ci95": [
-         1.56,
-         20.76
+         0.62,
+         18.23
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 12.22,
+        "mean": 10.46,
         "ci95": [
-         4.62,
-         19.81
+         3.0,
+         17.93
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
-        "mean": 1.5,
+        "mean": 1.57,
         "ci95": [
-         1.18,
-         1.82
+         1.26,
+         1.88
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 7.83,
+        "mean": 8.0,
         "ci95": [
-         6.44,
-         9.23
+         6.81,
+         9.19
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
-        "mean": -16.47,
+        "mean": 0.77,
         "ci95": [
-         -21.23,
-         -11.71
+         -0.12,
+         1.66
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
-        "mean": 40.7,
+        "mean": 44.05,
         "ci95": [
-         34.15,
-         47.25
+         34.31,
+         53.78
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       },
       "nego-noshift_vs_static": {
        "margin": {
-        "mean": 13.2,
+        "mean": 14.68,
         "ci95": [
-         8.0,
-         18.4
+         9.15,
+         20.22
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 6.35,
+        "mean": 7.48,
         "ci95": [
-         1.96,
-         10.73
+         2.99,
+         11.96
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
@@ -287,34 +287,34 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 5.17,
+        "mean": 5.57,
         "ci95": [
-         4.13,
-         6.2
+         4.28,
+         6.86
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
-        "mean": -11.7,
+        "mean": 0.0,
         "ci95": [
-         -17.86,
-         -5.53
+         0.0,
+         0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
-        "mean": 22.0,
+        "mean": 23.57,
         "ci95": [
-         18.16,
-         25.84
+         18.64,
+         28.5
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       }
@@ -405,76 +405,76 @@
      },
      "totals": {
       "static": {
-       "margin": 15213.0,
-       "bookings": 475,
-       "shows": 461,
-       "noshows": 14,
-       "occupancy": 0.6403,
+       "margin": 17523.0,
+       "bookings": 546,
+       "shows": 531,
+       "noshows": 15,
+       "occupancy": 0.6321,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 9127.61,
-       "lost_to_outside": 151
+       "consumer_surplus": 10619.05,
+       "lost_to_outside": 182
       },
       "computed": {
-       "margin": 14984.58,
-       "bookings": 483,
-       "shows": 467,
-       "noshows": 16,
-       "occupancy": 0.6486,
+       "margin": 17294.35,
+       "bookings": 557,
+       "shows": 539,
+       "noshows": 18,
+       "occupancy": 0.6417,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 9260.99,
-       "lost_to_outside": 157
+       "consumer_surplus": 10826.43,
+       "lost_to_outside": 188
       },
       "nego": {
-       "margin": 15679.71,
-       "bookings": 525,
-       "shows": 512,
-       "noshows": 13,
-       "occupancy": 0.7111,
-       "shifted_deals": 51,
+       "margin": 17985.0,
+       "bookings": 606,
+       "shows": 591,
+       "noshows": 15,
+       "occupancy": 0.7036,
+       "shifted_deals": 61,
        "trimmed_deals": 0,
-       "relief_credited": -327.41,
-       "discount_given": 1225.71,
-       "consumer_surplus": 9655.9,
-       "lost_to_outside": 153
+       "relief_credited": 99.14,
+       "discount_given": 1546.28,
+       "consumer_surplus": 11251.26,
+       "lost_to_outside": 185
       },
       "nego-noshift": {
-       "margin": 15646.72,
-       "bookings": 509,
-       "shows": 492,
-       "noshows": 17,
-       "occupancy": 0.6833,
+       "margin": 18074.58,
+       "bookings": 589,
+       "shows": 570,
+       "noshows": 19,
+       "occupancy": 0.6786,
        "shifted_deals": 0,
        "trimmed_deals": 0,
-       "relief_credited": -351.19,
-       "discount_given": 622.28,
-       "consumer_surplus": 9422.13,
-       "lost_to_outside": 153
+       "relief_credited": 0.0,
+       "discount_given": 787.28,
+       "consumer_surplus": 10984.9,
+       "lost_to_outside": 185
       }
      },
      "paired": {
       "computed_vs_static": {
        "margin": {
-        "mean": -7.61,
+        "mean": -6.53,
         "ci95": [
-         -17.23,
-         2.0
+         -14.71,
+         1.64
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 4.45,
+        "mean": 5.93,
         "ci95": [
-         -5.0,
-         13.89
+         -2.49,
+         14.34
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
@@ -483,16 +483,16 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 1.0,
+        "mean": 1.14,
         "ci95": [
-         -0.63,
-         2.63
+         -0.21,
+         2.5
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
@@ -501,7 +501,7 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
@@ -510,83 +510,83 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       },
       "nego_vs_static": {
        "margin": {
-        "mean": 15.56,
+        "mean": 13.2,
         "ci95": [
-         5.03,
-         26.08
+         2.96,
+         23.44
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 17.61,
+        "mean": 18.06,
         "ci95": [
-         6.02,
-         29.2
+         8.67,
+         27.45
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
-        "mean": 1.7,
+        "mean": 1.74,
         "ci95": [
-         1.44,
-         1.96
+         1.51,
+         1.97
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 8.5,
+        "mean": 8.57,
         "ci95": [
-         6.91,
-         10.09
+         7.28,
+         9.86
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
-        "mean": -10.91,
+        "mean": 2.83,
         "ci95": [
-         -18.18,
-         -3.64
+         -0.15,
+         5.82
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
-        "mean": 40.86,
+        "mean": 44.18,
         "ci95": [
-         37.02,
-         44.7
+         35.48,
+         52.88
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       },
       "nego-noshift_vs_static": {
        "margin": {
-        "mean": 14.46,
+        "mean": 15.76,
         "ci95": [
-         10.83,
-         18.09
+         11.44,
+         20.08
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 9.82,
+        "mean": 10.45,
         "ci95": [
-         6.44,
-         13.2
+         7.32,
+         13.59
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
@@ -595,34 +595,34 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 5.17,
+        "mean": 5.57,
         "ci95": [
-         4.38,
-         5.96
+         4.39,
+         6.75
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
-        "mean": -11.71,
+        "mean": 0.0,
         "ci95": [
-         -18.0,
-         -5.41
+         0.0,
+         0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
-        "mean": 20.74,
+        "mean": 22.49,
         "ci95": [
-         17.74,
-         23.74
+         17.58,
+         27.41
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       }
@@ -713,76 +713,76 @@
      },
      "totals": {
       "static": {
-       "margin": 14982.0,
-       "bookings": 469,
-       "shows": 454,
-       "noshows": 15,
-       "occupancy": 0.6306,
+       "margin": 17160.0,
+       "bookings": 536,
+       "shows": 520,
+       "noshows": 16,
+       "occupancy": 0.619,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 8652.48,
-       "lost_to_outside": 301
+       "consumer_surplus": 10089.64,
+       "lost_to_outside": 330
       },
       "computed": {
-       "margin": 14734.35,
-       "bookings": 473,
-       "shows": 458,
-       "noshows": 15,
-       "occupancy": 0.6361,
+       "margin": 16937.72,
+       "bookings": 544,
+       "shows": 527,
+       "noshows": 17,
+       "occupancy": 0.6274,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 8981.13,
-       "lost_to_outside": 306
+       "consumer_surplus": 10487.73,
+       "lost_to_outside": 335
       },
       "nego": {
-       "margin": 14675.52,
-       "bookings": 497,
-       "shows": 481,
-       "noshows": 16,
-       "occupancy": 0.6681,
-       "shifted_deals": 51,
+       "margin": 16853.52,
+       "bookings": 573,
+       "shows": 555,
+       "noshows": 18,
+       "occupancy": 0.6607,
+       "shifted_deals": 59,
        "trimmed_deals": 0,
-       "relief_credited": -442.66,
-       "discount_given": 1244.62,
-       "consumer_surplus": 8947.2,
-       "lost_to_outside": 312
+       "relief_credited": 66.33,
+       "discount_given": 1527.48,
+       "consumer_surplus": 10422.22,
+       "lost_to_outside": 343
       },
       "nego-noshift": {
-       "margin": 15000.86,
-       "bookings": 488,
-       "shows": 471,
-       "noshows": 17,
-       "occupancy": 0.6542,
+       "margin": 17273.15,
+       "bookings": 563,
+       "shows": 544,
+       "noshows": 19,
+       "occupancy": 0.6476,
        "shifted_deals": 0,
        "trimmed_deals": 0,
-       "relief_credited": -331.21,
-       "discount_given": 556.28,
-       "consumer_surplus": 8633.14,
-       "lost_to_outside": 312
+       "relief_credited": 0.0,
+       "discount_given": 711.85,
+       "consumer_surplus": 10118.17,
+       "lost_to_outside": 343
       }
      },
      "paired": {
       "computed_vs_static": {
        "margin": {
-        "mean": -8.25,
+        "mean": -6.35,
         "ci95": [
-         -13.8,
-         -2.71
+         -12.8,
+         0.1
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 10.95,
+        "mean": 11.37,
         "ci95": [
-         -4.67,
-         26.58
+         -1.24,
+         23.99
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
@@ -791,16 +791,16 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 0.67,
+        "mean": 1.0,
         "ci95": [
-         -0.19,
-         1.52
+         -0.07,
+         2.07
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
@@ -809,7 +809,7 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
@@ -818,83 +818,83 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       },
       "nego_vs_static": {
        "margin": {
-        "mean": -10.22,
+        "mean": -8.76,
         "ci95": [
-         -23.8,
-         3.37
+         -20.26,
+         2.74
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 9.82,
+        "mean": 9.5,
         "ci95": [
-         3.21,
-         16.44
+         4.13,
+         14.88
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
-        "mean": 1.7,
+        "mean": 1.69,
         "ci95": [
-         1.36,
-         2.04
+         1.41,
+         1.97
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 4.5,
+        "mean": 5.0,
         "ci95": [
-         1.95,
-         7.05
+         2.61,
+         7.39
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
-        "mean": -14.76,
+        "mean": 1.9,
         "ci95": [
-         -24.53,
-         -4.98
+         -0.27,
+         4.06
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
-        "mean": 41.49,
+        "mean": 43.64,
         "ci95": [
-         33.09,
-         49.88
+         35.07,
+         52.21
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       },
       "nego-noshift_vs_static": {
        "margin": {
-        "mean": 0.63,
+        "mean": 3.23,
         "ci95": [
-         -7.92,
-         9.18
+         -6.14,
+         12.61
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": -0.64,
+        "mean": 0.82,
         "ci95": [
-         -8.72,
-         7.43
+         -6.6,
+         8.23
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
@@ -903,34 +903,34 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 2.83,
+        "mean": 3.43,
         "ci95": [
-         1.29,
-         4.38
+         1.51,
+         5.34
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
-        "mean": -11.04,
+        "mean": 0.0,
         "ci95": [
-         -17.33,
-         -4.75
+         0.0,
+         0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
-        "mean": 18.54,
+        "mean": 20.34,
         "ci95": [
-         13.43,
-         23.65
+         14.32,
+         26.36
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       }
@@ -1021,76 +1021,76 @@
      },
      "totals": {
       "static": {
-       "margin": 15411.0,
-       "bookings": 482,
-       "shows": 467,
-       "noshows": 15,
-       "occupancy": 0.6486,
+       "margin": 17622.0,
+       "bookings": 550,
+       "shows": 534,
+       "noshows": 16,
+       "occupancy": 0.6357,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 8813.15,
-       "lost_to_outside": 290
+       "consumer_surplus": 10269.14,
+       "lost_to_outside": 317
       },
       "computed": {
-       "margin": 15140.99,
-       "bookings": 485,
-       "shows": 471,
-       "noshows": 14,
-       "occupancy": 0.6542,
+       "margin": 17412.17,
+       "bookings": 558,
+       "shows": 542,
+       "noshows": 16,
+       "occupancy": 0.6452,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 9086.97,
-       "lost_to_outside": 298
+       "consumer_surplus": 10612.6,
+       "lost_to_outside": 325
       },
       "nego": {
-       "margin": 15104.54,
-       "bookings": 511,
-       "shows": 495,
-       "noshows": 16,
-       "occupancy": 0.6875,
-       "shifted_deals": 56,
+       "margin": 17348.54,
+       "bookings": 589,
+       "shows": 571,
+       "noshows": 18,
+       "occupancy": 0.6798,
+       "shifted_deals": 64,
        "trimmed_deals": 0,
-       "relief_credited": -307.19,
-       "discount_given": 1272.89,
-       "consumer_surplus": 9130.14,
-       "lost_to_outside": 300
+       "relief_credited": 111.05,
+       "discount_given": 1555.75,
+       "consumer_surplus": 10638.52,
+       "lost_to_outside": 328
       },
       "nego-noshift": {
-       "margin": 15514.71,
-       "bookings": 503,
-       "shows": 486,
-       "noshows": 17,
-       "occupancy": 0.675,
+       "margin": 17820.0,
+       "bookings": 579,
+       "shows": 560,
+       "noshows": 19,
+       "occupancy": 0.6667,
        "shifted_deals": 0,
        "trimmed_deals": 0,
-       "relief_credited": -329.08,
-       "discount_given": 537.43,
-       "consumer_surplus": 8819.55,
-       "lost_to_outside": 296
+       "relief_credited": 0.0,
+       "discount_given": 693.0,
+       "consumer_surplus": 10323.41,
+       "lost_to_outside": 325
       }
      },
      "paired": {
       "computed_vs_static": {
        "margin": {
-        "mean": -9.0,
+        "mean": -6.0,
         "ci95": [
-         -21.72,
-         3.72
+         -18.6,
+         6.61
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 9.13,
+        "mean": 9.81,
         "ci95": [
-         -6.6,
-         24.86
+         -2.95,
+         22.58
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
@@ -1099,16 +1099,16 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 0.67,
+        "mean": 1.14,
         "ci95": [
-         -1.4,
-         2.73
+         -0.89,
+         3.17
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
@@ -1117,7 +1117,7 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
@@ -1126,83 +1126,83 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       },
       "nego_vs_static": {
        "margin": {
-        "mean": -10.22,
+        "mean": -7.81,
         "ci95": [
-         -28.56,
-         8.13
+         -23.7,
+         8.07
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 10.57,
+        "mean": 10.55,
         "ci95": [
-         1.04,
-         20.09
+         2.89,
+         18.22
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
-        "mean": 1.87,
+        "mean": 1.83,
         "ci95": [
-         1.31,
-         2.42
+         1.37,
+         2.29
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 4.67,
+        "mean": 5.29,
         "ci95": [
-         1.3,
-         8.03
+         2.19,
+         8.39
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
-        "mean": -10.24,
+        "mean": 3.17,
         "ci95": [
-         -16.31,
-         -4.17
+         -0.26,
+         6.61
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
-        "mean": 42.43,
+        "mean": 44.45,
         "ci95": [
-         33.09,
-         51.77
+         35.45,
+         53.45
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       },
       "nego-noshift_vs_static": {
        "margin": {
-        "mean": 3.46,
+        "mean": 5.66,
         "ci95": [
-         -3.07,
-         9.98
+         -1.86,
+         13.18
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 0.21,
+        "mean": 1.55,
         "ci95": [
-         -6.41,
-         6.84
+         -4.7,
+         7.8
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
@@ -1211,34 +1211,34 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 3.17,
+        "mean": 3.71,
         "ci95": [
-         1.77,
-         4.56
+         1.97,
+         5.46
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
-        "mean": -10.97,
+        "mean": 0.0,
         "ci95": [
-         -17.5,
-         -4.44
+         0.0,
+         0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
-        "mean": 17.91,
+        "mean": 19.8,
         "ci95": [
-         13.49,
-         22.34
+         13.97,
+         25.63
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       }
@@ -1358,76 +1358,76 @@
      },
      "totals": {
       "static": {
-       "margin": 87122.6,
-       "bookings": 2577,
-       "shows": 2447,
-       "noshows": 130,
-       "occupancy": 0.6818,
+       "margin": 101602.8,
+       "bookings": 3009,
+       "shows": 2853,
+       "noshows": 156,
+       "occupancy": 0.6821,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 54031.49,
-       "lost_to_outside": 1263
+       "consumer_surplus": 62244.62,
+       "lost_to_outside": 1476
       },
       "computed": {
-       "margin": 86384.99,
-       "bookings": 2632,
-       "shows": 2498,
-       "noshows": 134,
+       "margin": 100628.9,
+       "bookings": 3070,
+       "shows": 2910,
+       "noshows": 160,
        "occupancy": 0.6864,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 54839.67,
-       "lost_to_outside": 1292
+       "consumer_surplus": 63235.69,
+       "lost_to_outside": 1513
       },
       "nego": {
-       "margin": 92513.57,
-       "bookings": 3128,
-       "shows": 2945,
-       "noshows": 183,
-       "occupancy": 0.7425,
-       "shifted_deals": 89,
-       "trimmed_deals": 18,
-       "relief_credited": -863.62,
-       "discount_given": 9977.05,
-       "consumer_surplus": 59151.0,
-       "lost_to_outside": 1238
+       "margin": 107796.26,
+       "bookings": 3638,
+       "shows": 3427,
+       "noshows": 211,
+       "occupancy": 0.7417,
+       "shifted_deals": 103,
+       "trimmed_deals": 20,
+       "relief_credited": 0.0,
+       "discount_given": 11424.77,
+       "consumer_surplus": 68223.57,
+       "lost_to_outside": 1448
       },
       "nego-noshift": {
-       "margin": 92206.68,
-       "bookings": 3075,
-       "shows": 2900,
-       "noshows": 175,
-       "occupancy": 0.7361,
+       "margin": 107474.09,
+       "bookings": 3577,
+       "shows": 3375,
+       "noshows": 202,
+       "occupancy": 0.7357,
        "shifted_deals": 0,
-       "trimmed_deals": 15,
-       "relief_credited": -406.33,
-       "discount_given": 8766.06,
-       "consumer_surplus": 58414.52,
-       "lost_to_outside": 1262
+       "trimmed_deals": 16,
+       "relief_credited": 0.0,
+       "discount_given": 10020.83,
+       "consumer_surplus": 67431.64,
+       "lost_to_outside": 1477
       }
      },
      "paired": {
       "computed_vs_static": {
        "margin": {
-        "mean": -24.59,
+        "mean": -27.83,
         "ci95": [
-         -40.36,
-         -8.82
+         -42.78,
+         -12.87
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 26.94,
+        "mean": 28.32,
         "ci95": [
-         9.4,
-         44.48
+         13.81,
+         42.82
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
@@ -1436,16 +1436,16 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 20.2,
+        "mean": 18.86,
         "ci95": [
-         11.0,
-         29.4
+         10.76,
+         26.95
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
@@ -1454,7 +1454,7 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
@@ -1463,83 +1463,83 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       },
       "nego_vs_static": {
        "margin": {
-        "mean": 179.7,
+        "mean": 176.96,
         "ci95": [
-         150.9,
-         208.5
+         152.83,
+         201.08
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 170.65,
+        "mean": 170.83,
         "ci95": [
-         138.39,
-         202.91
+         144.87,
+         196.78
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
-        "mean": 2.97,
+        "mean": 2.94,
         "ci95": [
-         2.61,
-         3.33
+         2.65,
+         3.24
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 262.2,
+        "mean": 257.49,
         "ci95": [
-         226.22,
-         298.18
+         226.33,
+         288.65
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
-        "mean": -28.79,
+        "mean": 0.0,
         "ci95": [
-         -36.6,
-         -20.97
+         0.0,
+         0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
-        "mean": 332.57,
+        "mean": 326.42,
         "ci95": [
-         294.38,
-         370.76
+         292.22,
+         360.63
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       },
       "nego-noshift_vs_static": {
        "margin": {
-        "mean": 169.47,
+        "mean": 167.75,
         "ci95": [
-         139.81,
-         199.13
+         143.52,
+         191.98
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 146.1,
+        "mean": 148.2,
         "ci95": [
-         121.27,
-         170.93
+         127.57,
+         168.83
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
@@ -1548,34 +1548,34 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 234.6,
+        "mean": 231.6,
         "ci95": [
-         195.98,
-         273.22
+         199.67,
+         263.53
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
-        "mean": -13.54,
+        "mean": 0.0,
         "ci95": [
-         -17.13,
-         -9.96
+         0.0,
+         0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
-        "mean": 292.2,
+        "mean": 286.31,
         "ci95": [
-         254.3,
-         330.1
+         252.58,
+         320.04
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       }
@@ -1690,76 +1690,76 @@
      },
      "totals": {
       "static": {
-       "margin": 87457.4,
-       "bookings": 2588,
-       "shows": 2459,
-       "noshows": 129,
+       "margin": 101955.2,
+       "bookings": 3022,
+       "shows": 2866,
+       "noshows": 156,
        "occupancy": 0.6842,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 54059.02,
-       "lost_to_outside": 1270
+       "consumer_surplus": 62262.59,
+       "lost_to_outside": 1483
       },
       "computed": {
-       "margin": 86582.28,
-       "bookings": 2642,
-       "shows": 2507,
-       "noshows": 135,
-       "occupancy": 0.6893,
+       "margin": 100785.47,
+       "bookings": 3079,
+       "shows": 2918,
+       "noshows": 161,
+       "occupancy": 0.6888,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 55151.1,
-       "lost_to_outside": 1292
+       "consumer_surplus": 63540.36,
+       "lost_to_outside": 1514
       },
       "nego": {
-       "margin": 92836.21,
-       "bookings": 3140,
-       "shows": 2956,
-       "noshows": 184,
-       "occupancy": 0.7435,
-       "shifted_deals": 85,
-       "trimmed_deals": 16,
-       "relief_credited": -696.25,
-       "discount_given": 9863.3,
-       "consumer_surplus": 59304.68,
-       "lost_to_outside": 1247
+       "margin": 108189.95,
+       "bookings": 3652,
+       "shows": 3439,
+       "noshows": 213,
+       "occupancy": 0.7427,
+       "shifted_deals": 96,
+       "trimmed_deals": 18,
+       "relief_credited": 0.0,
+       "discount_given": 11291.11,
+       "consumer_surplus": 68399.54,
+       "lost_to_outside": 1460
       },
       "nego-noshift": {
-       "margin": 92475.22,
-       "bookings": 3074,
-       "shows": 2902,
-       "noshows": 172,
-       "occupancy": 0.738,
+       "margin": 107753.46,
+       "bookings": 3576,
+       "shows": 3377,
+       "noshows": 199,
+       "occupancy": 0.7371,
        "shifted_deals": 0,
-       "trimmed_deals": 12,
-       "relief_credited": -348.75,
-       "discount_given": 8619.72,
-       "consumer_surplus": 58797.36,
-       "lost_to_outside": 1263
+       "trimmed_deals": 13,
+       "relief_credited": 0.0,
+       "discount_given": 9855.06,
+       "consumer_surplus": 67822.85,
+       "lost_to_outside": 1478
       }
      },
      "paired": {
       "computed_vs_static": {
        "margin": {
-        "mean": -29.17,
+        "mean": -33.42,
         "ci95": [
-         -47.06,
-         -11.28
+         -51.18,
+         -15.67
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 36.4,
+        "mean": 36.51,
         "ci95": [
-         24.8,
-         48.0
+         27.17,
+         45.84
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
@@ -1768,16 +1768,16 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 21.8,
+        "mean": 19.71,
         "ci95": [
-         9.79,
-         33.81
+         8.79,
+         30.64
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
@@ -1786,7 +1786,7 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
@@ -1795,83 +1795,83 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       },
       "nego_vs_static": {
        "margin": {
-        "mean": 179.29,
+        "mean": 178.14,
         "ci95": [
-         147.81,
-         210.78
+         152.65,
+         203.62
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 174.86,
+        "mean": 175.34,
         "ci95": [
-         135.8,
-         213.91
+         143.9,
+         206.78
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
-        "mean": 2.83,
+        "mean": 2.74,
         "ci95": [
-         2.08,
-         3.59
+         2.1,
+         3.39
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 256.2,
+        "mean": 252.86,
         "ci95": [
-         212.67,
-         299.73
+         216.9,
+         288.82
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
-        "mean": -23.21,
+        "mean": 0.0,
         "ci95": [
-         -28.22,
-         -18.2
+         0.0,
+         0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
-        "mean": 328.78,
+        "mean": 322.6,
         "ci95": [
-         286.42,
-         371.13
+         285.33,
+         359.87
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       },
       "nego-noshift_vs_static": {
        "margin": {
-        "mean": 167.26,
+        "mean": 165.66,
         "ci95": [
-         138.33,
-         196.19
+         142.06,
+         189.26
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 157.94,
+        "mean": 158.86,
         "ci95": [
-         126.0,
-         189.89
+         133.06,
+         184.67
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
@@ -1880,34 +1880,34 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 232.4,
+        "mean": 228.51,
         "ci95": [
-         194.82,
-         269.98
+         196.82,
+         260.21
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
-        "mean": -11.62,
+        "mean": 0.0,
         "ci95": [
-         -14.53,
-         -8.72
+         0.0,
+         0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
-        "mean": 287.32,
+        "mean": 281.57,
         "ci95": [
-         250.59,
-         324.05
+         248.84,
+         314.3
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       }
@@ -2022,76 +2022,76 @@
      },
      "totals": {
       "static": {
-       "margin": 87157.6,
-       "bookings": 2563,
-       "shows": 2432,
-       "noshows": 131,
-       "occupancy": 0.682,
+       "margin": 101210.8,
+       "bookings": 2974,
+       "shows": 2820,
+       "noshows": 154,
+       "occupancy": 0.6811,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 54030.65,
-       "lost_to_outside": 1437
+       "consumer_surplus": 62685.98,
+       "lost_to_outside": 1624
       },
       "computed": {
-       "margin": 86256.81,
-       "bookings": 2610,
-       "shows": 2479,
-       "noshows": 131,
-       "occupancy": 0.6866,
+       "margin": 100193.7,
+       "bookings": 3031,
+       "shows": 2875,
+       "noshows": 156,
+       "occupancy": 0.6856,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 55197.9,
-       "lost_to_outside": 1459
+       "consumer_surplus": 63922.18,
+       "lost_to_outside": 1650
       },
       "nego": {
-       "margin": 90347.39,
-       "bookings": 3068,
-       "shows": 2891,
-       "noshows": 177,
-       "occupancy": 0.7338,
-       "shifted_deals": 139,
-       "trimmed_deals": 40,
-       "relief_credited": -789.04,
-       "discount_given": 10606.12,
-       "consumer_surplus": 58111.83,
-       "lost_to_outside": 1444
+       "margin": 105095.08,
+       "bookings": 3554,
+       "shows": 3351,
+       "noshows": 203,
+       "occupancy": 0.7328,
+       "shifted_deals": 155,
+       "trimmed_deals": 44,
+       "relief_credited": 0.0,
+       "discount_given": 11974.29,
+       "consumer_surplus": 67455.21,
+       "lost_to_outside": 1629
       },
       "nego-noshift": {
-       "margin": 90625.71,
-       "bookings": 2998,
-       "shows": 2830,
-       "noshows": 168,
-       "occupancy": 0.728,
+       "margin": 105337.64,
+       "bookings": 3473,
+       "shows": 3281,
+       "noshows": 192,
+       "occupancy": 0.7266,
        "shifted_deals": 0,
-       "trimmed_deals": 15,
-       "relief_credited": -437.68,
-       "discount_given": 8531.91,
-       "consumer_surplus": 57322.59,
-       "lost_to_outside": 1465
+       "trimmed_deals": 16,
+       "relief_credited": 0.0,
+       "discount_given": 9641.27,
+       "consumer_surplus": 66555.44,
+       "lost_to_outside": 1655
       }
      },
      "paired": {
       "computed_vs_static": {
        "margin": {
-        "mean": -30.03,
+        "mean": -29.06,
         "ci95": [
-         -39.1,
-         -20.95
+         -36.73,
+         -21.39
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 38.91,
+        "mean": 35.32,
         "ci95": [
-         24.04,
-         53.78
+         20.48,
+         50.16
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
@@ -2100,16 +2100,16 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 19.8,
+        "mean": 19.71,
         "ci95": [
-         9.33,
-         30.27
+         11.29,
+         28.14
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
@@ -2118,7 +2118,7 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
@@ -2127,83 +2127,83 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       },
       "nego_vs_static": {
        "margin": {
-        "mean": 106.33,
+        "mean": 110.98,
         "ci95": [
-         40.62,
-         172.04
+         56.9,
+         165.06
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 136.04,
+        "mean": 136.26,
         "ci95": [
-         94.23,
-         177.84
+         102.63,
+         169.9
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
-        "mean": 4.63,
+        "mean": 4.43,
         "ci95": [
-         1.94,
-         7.33
+         2.21,
+         6.65
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 224.0,
+        "mean": 223.54,
         "ci95": [
-         169.72,
-         278.28
+         179.86,
+         267.23
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
-        "mean": -26.3,
+        "mean": 0.0,
         "ci95": [
-         -28.44,
-         -24.16
+         0.0,
+         0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
-        "mean": 353.54,
+        "mean": 342.12,
         "ci95": [
-         272.45,
-         434.63
+         271.16,
+         413.09
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       },
       "nego-noshift_vs_static": {
        "margin": {
-        "mean": 115.6,
+        "mean": 117.91,
         "ci95": [
-         56.88,
-         174.33
+         70.33,
+         165.49
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 109.73,
+        "mean": 110.56,
         "ci95": [
-         55.09,
-         164.37
+         66.55,
+         154.56
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
@@ -2212,34 +2212,34 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 198.6,
+        "mean": 196.8,
         "ci95": [
-         139.41,
-         257.79
+         148.98,
+         244.62
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
-        "mean": -14.59,
+        "mean": 0.0,
         "ci95": [
-         -16.79,
-         -12.39
+         0.0,
+         0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
-        "mean": 284.4,
+        "mean": 275.46,
         "ci95": [
-         229.3,
-         339.5
+         226.04,
+         324.89
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       }
@@ -2354,76 +2354,76 @@
      },
      "totals": {
       "static": {
-       "margin": 87313.4,
-       "bookings": 2572,
-       "shows": 2441,
-       "noshows": 131,
-       "occupancy": 0.6831,
+       "margin": 101301.2,
+       "bookings": 2980,
+       "shows": 2827,
+       "noshows": 153,
+       "occupancy": 0.682,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 54255.73,
-       "lost_to_outside": 1434
+       "consumer_surplus": 62931.57,
+       "lost_to_outside": 1621
       },
       "computed": {
-       "margin": 86328.6,
-       "bookings": 2617,
-       "shows": 2488,
-       "noshows": 129,
-       "occupancy": 0.6881,
+       "margin": 100224.59,
+       "bookings": 3038,
+       "shows": 2884,
+       "noshows": 154,
+       "occupancy": 0.6869,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 55373.55,
-       "lost_to_outside": 1461
+       "consumer_surplus": 64192.89,
+       "lost_to_outside": 1651
       },
       "nego": {
-       "margin": 90605.48,
-       "bookings": 3084,
-       "shows": 2902,
-       "noshows": 182,
-       "occupancy": 0.7352,
-       "shifted_deals": 140,
-       "trimmed_deals": 45,
-       "relief_credited": -695.98,
-       "discount_given": 10550.15,
-       "consumer_surplus": 58272.0,
-       "lost_to_outside": 1459
+       "margin": 105397.49,
+       "bookings": 3571,
+       "shows": 3363,
+       "noshows": 208,
+       "occupancy": 0.734,
+       "shifted_deals": 154,
+       "trimmed_deals": 50,
+       "relief_credited": 0.0,
+       "discount_given": 11883.2,
+       "consumer_surplus": 67779.96,
+       "lost_to_outside": 1643
       },
       "nego-noshift": {
-       "margin": 90850.79,
-       "bookings": 3003,
-       "shows": 2837,
-       "noshows": 166,
-       "occupancy": 0.7287,
+       "margin": 105528.21,
+       "bookings": 3478,
+       "shows": 3287,
+       "noshows": 191,
+       "occupancy": 0.7271,
        "shifted_deals": 0,
-       "trimmed_deals": 12,
-       "relief_credited": -406.57,
-       "discount_given": 8426.43,
-       "consumer_surplus": 57794.16,
-       "lost_to_outside": 1466
+       "trimmed_deals": 13,
+       "relief_credited": 0.0,
+       "discount_given": 9498.3,
+       "consumer_surplus": 67138.6,
+       "lost_to_outside": 1654
       }
      },
      "paired": {
       "computed_vs_static": {
        "margin": {
-        "mean": -32.83,
+        "mean": -30.76,
         "ci95": [
-         -48.53,
-         -17.13
+         -44.37,
+         -17.15
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 37.26,
+        "mean": 36.04,
         "ci95": [
-         22.41,
-         52.11
+         23.72,
+         48.36
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
@@ -2432,16 +2432,16 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 21.6,
+        "mean": 20.91,
         "ci95": [
-         10.17,
-         33.03
+         11.57,
+         30.26
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
@@ -2450,7 +2450,7 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
@@ -2459,83 +2459,83 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       },
       "nego_vs_static": {
        "margin": {
-        "mean": 109.74,
+        "mean": 117.04,
         "ci95": [
-         43.81,
-         175.66
+         61.07,
+         173.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 133.88,
+        "mean": 138.53,
         "ci95": [
-         91.83,
-         175.92
+         102.84,
+         174.21
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
-        "mean": 4.67,
+        "mean": 4.4,
         "ci95": [
-         1.96,
-         7.37
+         2.13,
+         6.67
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 225.2,
+        "mean": 224.74,
         "ci95": [
-         171.02,
-         279.38
+         181.14,
+         268.35
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
-        "mean": -23.2,
+        "mean": 0.0,
         "ci95": [
-         -26.96,
-         -19.43
+         0.0,
+         0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
-        "mean": 351.67,
+        "mean": 339.52,
         "ci95": [
-         266.62,
-         436.72
+         264.92,
+         414.12
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       },
       "nego-noshift_vs_static": {
        "margin": {
-        "mean": 117.91,
+        "mean": 120.77,
         "ci95": [
-         57.02,
-         178.81
+         71.28,
+         170.26
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "consumer_surplus": {
-        "mean": 117.95,
+        "mean": 120.2,
         "ci95": [
-         69.03,
-         166.86
+         80.47,
+         159.94
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "shifted_deals": {
@@ -2544,34 +2544,34 @@
          0.0,
          0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "sold_unit_ticks": {
-        "mean": 197.2,
+        "mean": 194.57,
         "ci95": [
-         140.77,
-         253.63
+         148.72,
+         240.43
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "relief_credited": {
-        "mean": -13.55,
+        "mean": 0.0,
         "ci95": [
-         -16.72,
-         -10.39
+         0.0,
+         0.0
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        },
        "discount_given": {
-        "mean": 280.88,
+        "mean": 271.38,
         "ci95": [
-         225.67,
-         336.09
+         221.25,
+         321.51
         ],
-        "n": 6,
+        "n": 7,
         "block": 5
        }
       }
@@ -2647,77 +2647,77 @@
      },
      "totals": {
       "static": {
-       "margin": 256463.35,
-       "bookings": 10824,
-       "shows": 10824,
+       "margin": 300910.6,
+       "bookings": 12646,
+       "shows": 12646,
        "noshows": 0,
-       "occupancy": 0.5755,
+       "occupancy": 0.5781,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 201181.73,
-       "lost_to_outside": 8509
+       "consumer_surplus": 238175.73,
+       "lost_to_outside": 10642
       },
       "computed": {
-       "margin": 250955.97,
-       "bookings": 11045,
-       "shows": 11045,
+       "margin": 294102.08,
+       "bookings": 12901,
+       "shows": 12901,
        "noshows": 0,
-       "occupancy": 0.6015,
+       "occupancy": 0.6039,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 208740.12,
-       "lost_to_outside": 8645
+       "consumer_surplus": 246613.71,
+       "lost_to_outside": 10815
       },
       "nego": {
-       "margin": 260480.66,
-       "bookings": 11821,
-       "shows": 11821,
+       "margin": 305794.06,
+       "bookings": 13835,
+       "shows": 13835,
        "noshows": 0,
-       "occupancy": 0.6558,
-       "shifted_deals": 1512,
-       "trimmed_deals": 1028,
-       "relief_credited": -5792.95,
-       "discount_given": 36647.46,
-       "consumer_surplus": 214148.11,
-       "lost_to_outside": 8651
+       "occupancy": 0.6565,
+       "shifted_deals": 1744,
+       "trimmed_deals": 1214,
+       "relief_credited": 4486.47,
+       "discount_given": 41718.95,
+       "consumer_surplus": 253318.49,
+       "lost_to_outside": 10785
       },
       "nego-noshift": {
-       "margin": 263941.32,
-       "bookings": 11839,
-       "shows": 11839,
+       "margin": 309506.71,
+       "bookings": 13821,
+       "shows": 13821,
        "noshows": 0,
-       "occupancy": 0.6515,
+       "occupancy": 0.6526,
        "shifted_deals": 0,
-       "trimmed_deals": 415,
-       "relief_credited": -1942.19,
-       "discount_given": 27320.18,
-       "consumer_surplus": 207797.5,
-       "lost_to_outside": 8694
+       "trimmed_deals": 475,
+       "relief_credited": -189.21,
+       "discount_given": 31177.12,
+       "consumer_surplus": 244706.39,
+       "lost_to_outside": 10866
       }
      },
      "paired": {
       "computed_vs_static": {
        "margin": {
-        "mean": -183.58,
+        "mean": -194.53,
         "ci95": [
-         -318.73,
-         -48.43
+         -258.98,
+         -130.07
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "consumer_surplus": {
-        "mean": 251.95,
+        "mean": 241.09,
         "ci95": [
-         178.08,
-         325.82
+         154.6,
+         327.57
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "shifted_deals": {
         "mean": 0.0,
@@ -2725,17 +2725,17 @@
          0.0,
          0.0
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "sold_unit_ticks": {
-        "mean": 84.2,
+        "mean": 83.66,
         "ci95": [
-         77.1,
-         91.3
+         76.52,
+         90.79
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "relief_credited": {
         "mean": 0.0,
@@ -2743,8 +2743,8 @@
          0.0,
          0.0
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "discount_given": {
         "mean": 0.0,
@@ -2752,84 +2752,84 @@
          0.0,
          0.0
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        }
       },
       "nego_vs_static": {
        "margin": {
-        "mean": 133.91,
+        "mean": 139.53,
         "ci95": [
-         44.89,
-         222.93
+         80.55,
+         198.51
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "consumer_surplus": {
-        "mean": 432.21,
+        "mean": 432.65,
         "ci95": [
-         266.14,
-         598.28
+         214.26,
+         651.04
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "shifted_deals": {
-        "mean": 50.4,
+        "mean": 49.83,
         "ci95": [
-         42.08,
-         58.72
+         44.04,
+         55.62
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "sold_unit_ticks": {
-        "mean": 260.3,
+        "mean": 253.97,
         "ci95": [
-         212.65,
-         307.95
+         236.53,
+         271.42
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "relief_credited": {
-        "mean": -193.1,
+        "mean": 128.18,
         "ci95": [
-         -434.5,
-         48.3
+         -133.86,
+         390.23
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "discount_given": {
-        "mean": 1221.58,
+        "mean": 1191.97,
         "ci95": [
-         1030.23,
-         1412.93
+         1084.61,
+         1299.33
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        }
       },
       "nego-noshift_vs_static": {
        "margin": {
-        "mean": 249.27,
+        "mean": 245.6,
         "ci95": [
-         186.23,
-         312.3
+         217.74,
+         273.47
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "consumer_surplus": {
-        "mean": 220.53,
+        "mean": 186.59,
         "ci95": [
-         132.48,
-         308.57
+         93.78,
+         279.4
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "shifted_deals": {
         "mean": 0.0,
@@ -2837,35 +2837,35 @@
          0.0,
          0.0
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "sold_unit_ticks": {
-        "mean": 246.5,
+        "mean": 241.46,
         "ci95": [
-         206.65,
-         286.35
+         227.88,
+         255.04
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "relief_credited": {
-        "mean": -64.74,
+        "mean": -5.41,
         "ci95": [
-         -137.15,
-         7.67
+         -80.44,
+         69.63
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "discount_given": {
-        "mean": 910.67,
+        "mean": 890.77,
         "ci95": [
-         783.45,
-         1037.89
+         831.57,
+         949.98
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        }
       }
      }
@@ -2935,77 +2935,77 @@
      },
      "totals": {
       "static": {
-       "margin": 253033.19,
-       "bookings": 11083,
-       "shows": 11083,
+       "margin": 296904.53,
+       "bookings": 12945,
+       "shows": 12945,
        "noshows": 0,
-       "occupancy": 0.5767,
+       "occupancy": 0.5792,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 199910.83,
-       "lost_to_outside": 8398
+       "consumer_surplus": 235789.5,
+       "lost_to_outside": 10512
       },
       "computed": {
-       "margin": 247898.89,
-       "bookings": 11345,
-       "shows": 11345,
+       "margin": 290535.07,
+       "bookings": 13248,
+       "shows": 13248,
        "noshows": 0,
-       "occupancy": 0.6034,
+       "occupancy": 0.6058,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 208495.47,
-       "lost_to_outside": 8551
+       "consumer_surplus": 245832.92,
+       "lost_to_outside": 10700
       },
       "nego": {
-       "margin": 257407.13,
-       "bookings": 12004,
-       "shows": 12004,
+       "margin": 302148.38,
+       "bookings": 14034,
+       "shows": 14034,
        "noshows": 0,
-       "occupancy": 0.6564,
-       "shifted_deals": 1432,
-       "trimmed_deals": 956,
-       "relief_credited": -5826.16,
-       "discount_given": 35490.12,
-       "consumer_surplus": 211824.4,
-       "lost_to_outside": 8587
+       "occupancy": 0.6572,
+       "shifted_deals": 1640,
+       "trimmed_deals": 1111,
+       "relief_credited": 2900.3,
+       "discount_given": 40353.48,
+       "consumer_surplus": 250527.53,
+       "lost_to_outside": 10711
       },
       "nego-noshift": {
-       "margin": 260725.65,
-       "bookings": 12106,
-       "shows": 12106,
+       "margin": 305688.47,
+       "bookings": 14127,
+       "shows": 14127,
        "noshows": 0,
-       "occupancy": 0.651,
+       "occupancy": 0.6521,
        "shifted_deals": 0,
-       "trimmed_deals": 398,
-       "relief_credited": -1661.17,
-       "discount_given": 26379.18,
-       "consumer_surplus": 206642.69,
-       "lost_to_outside": 8561
+       "trimmed_deals": 457,
+       "relief_credited": -85.41,
+       "discount_given": 30123.07,
+       "consumer_surplus": 243336.76,
+       "lost_to_outside": 10708
       }
      },
      "paired": {
       "computed_vs_static": {
        "margin": {
-        "mean": -171.14,
+        "mean": -181.98,
         "ci95": [
-         -288.92,
-         -53.37
+         -247.38,
+         -116.58
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "consumer_surplus": {
-        "mean": 286.15,
+        "mean": 286.95,
         "ci95": [
-         241.68,
-         330.63
+         240.72,
+         333.19
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "shifted_deals": {
         "mean": 0.0,
@@ -3013,17 +3013,17 @@
          0.0,
          0.0
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "sold_unit_ticks": {
-        "mean": 86.6,
+        "mean": 86.06,
         "ci95": [
-         76.57,
-         96.63
+         77.0,
+         95.11
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "relief_credited": {
         "mean": 0.0,
@@ -3031,8 +3031,8 @@
          0.0,
          0.0
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "discount_given": {
         "mean": 0.0,
@@ -3040,84 +3040,84 @@
          0.0,
          0.0
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        }
       },
       "nego_vs_static": {
        "margin": {
-        "mean": 145.8,
+        "mean": 149.82,
         "ci95": [
-         57.91,
-         233.68
+         90.49,
+         209.16
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "consumer_surplus": {
-        "mean": 397.12,
+        "mean": 421.09,
         "ci95": [
-         228.07,
-         566.17
+         216.11,
+         626.06
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "shifted_deals": {
-        "mean": 47.73,
+        "mean": 46.86,
         "ci95": [
-         38.08,
-         57.39
+         40.7,
+         53.02
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "sold_unit_ticks": {
-        "mean": 258.2,
+        "mean": 252.6,
         "ci95": [
-         211.0,
-         305.4
+         235.75,
+         269.45
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "relief_credited": {
-        "mean": -194.21,
+        "mean": 82.87,
         "ci95": [
-         -351.07,
-         -37.34
+         -119.48,
+         285.21
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "discount_given": {
-        "mean": 1183.0,
+        "mean": 1152.96,
         "ci95": [
-         967.72,
-         1398.29
+         1046.41,
+         1259.51
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        }
       },
       "nego-noshift_vs_static": {
        "margin": {
-        "mean": 256.42,
+        "mean": 250.97,
         "ci95": [
-         220.01,
-         292.82
+         230.33,
+         271.61
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "consumer_surplus": {
-        "mean": 224.4,
+        "mean": 215.64,
         "ci95": [
-         162.59,
-         286.2
+         168.52,
+         262.75
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "shifted_deals": {
         "mean": 0.0,
@@ -3125,35 +3125,35 @@
          0.0,
          0.0
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "sold_unit_ticks": {
-        "mean": 240.8,
+        "mean": 236.14,
         "ci95": [
-         202.09,
-         279.51
+         221.51,
+         250.77
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "relief_credited": {
-        "mean": -55.37,
+        "mean": -2.44,
         "ci95": [
-         -124.53,
-         13.78
+         -71.11,
+         66.23
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "discount_given": {
-        "mean": 879.31,
+        "mean": 860.66,
         "ci95": [
-         751.8,
-         1006.81
+         803.03,
+         918.29
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        }
       }
      }
@@ -3223,77 +3223,77 @@
      },
      "totals": {
       "static": {
-       "margin": 233168.93,
-       "bookings": 9976,
-       "shows": 9976,
+       "margin": 275963.36,
+       "bookings": 11724,
+       "shows": 11724,
        "noshows": 0,
-       "occupancy": 0.5261,
+       "occupancy": 0.5323,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 185045.25,
-       "lost_to_outside": 10453
+       "consumer_surplus": 221127.92,
+       "lost_to_outside": 11595
       },
       "computed": {
-       "margin": 227878.64,
-       "bookings": 10117,
-       "shows": 10117,
+       "margin": 270478.31,
+       "bookings": 11936,
+       "shows": 11936,
        "noshows": 0,
-       "occupancy": 0.5477,
+       "occupancy": 0.5557,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 192255.67,
-       "lost_to_outside": 10594
+       "consumer_surplus": 229857.16,
+       "lost_to_outside": 11750
       },
       "nego": {
-       "margin": 238774.85,
-       "bookings": 10667,
-       "shows": 10667,
+       "margin": 283225.37,
+       "bookings": 12591,
+       "shows": 12591,
        "noshows": 0,
-       "occupancy": 0.6039,
-       "shifted_deals": 1060,
-       "trimmed_deals": 658,
-       "relief_credited": -7390.82,
-       "discount_given": 32793.52,
-       "consumer_surplus": 193071.21,
-       "lost_to_outside": 10672
+       "occupancy": 0.6115,
+       "shifted_deals": 1264,
+       "trimmed_deals": 798,
+       "relief_credited": -316.59,
+       "discount_given": 38884.62,
+       "consumer_surplus": 231337.85,
+       "lost_to_outside": 11822
       },
       "nego-noshift": {
-       "margin": 240856.06,
-       "bookings": 10735,
-       "shows": 10735,
+       "margin": 285648.31,
+       "bookings": 12665,
+       "shows": 12665,
        "noshows": 0,
-       "occupancy": 0.6004,
+       "occupancy": 0.6079,
        "shifted_deals": 0,
-       "trimmed_deals": 297,
-       "relief_credited": -3967.67,
-       "discount_given": 26524.12,
-       "consumer_surplus": 190061.14,
-       "lost_to_outside": 10687
+       "trimmed_deals": 350,
+       "relief_credited": -2423.75,
+       "discount_given": 31098.78,
+       "consumer_surplus": 227312.66,
+       "lost_to_outside": 11850
       }
      },
      "paired": {
       "computed_vs_static": {
        "margin": {
-        "mean": -176.34,
+        "mean": -156.72,
         "ci95": [
-         -311.43,
-         -41.26
+         -269.15,
+         -44.29
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "consumer_surplus": {
-        "mean": 240.35,
+        "mean": 249.41,
         "ci95": [
-         206.78,
-         273.91
+         219.24,
+         279.57
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "shifted_deals": {
         "mean": 0.0,
@@ -3301,17 +3301,17 @@
          0.0,
          0.0
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "sold_unit_ticks": {
-        "mean": 69.7,
+        "mean": 75.86,
         "ci95": [
-         60.94,
-         78.46
+         48.84,
+         102.88
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "relief_credited": {
         "mean": 0.0,
@@ -3319,8 +3319,8 @@
          0.0,
          0.0
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "discount_given": {
         "mean": 0.0,
@@ -3328,84 +3328,84 @@
          0.0,
          0.0
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        }
       },
       "nego_vs_static": {
        "margin": {
-        "mean": 186.86,
+        "mean": 207.49,
         "ci95": [
-         45.65,
-         328.08
+         39.46,
+         375.51
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "consumer_surplus": {
-        "mean": 267.53,
+        "mean": 291.71,
         "ci95": [
-         179.8,
-         355.26
+         170.5,
+         412.92
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "shifted_deals": {
-        "mean": 35.33,
+        "mean": 36.11,
         "ci95": [
-         26.1,
-         44.56
+         31.47,
+         40.76
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "sold_unit_ticks": {
-        "mean": 252.0,
+        "mean": 256.54,
         "ci95": [
-         219.43,
-         284.57
+         218.83,
+         294.25
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "relief_credited": {
-        "mean": -246.36,
+        "mean": -9.05,
         "ci95": [
-         -368.02,
-         -124.7
+         -151.01,
+         132.92
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "discount_given": {
-        "mean": 1093.12,
+        "mean": 1110.99,
         "ci95": [
-         1030.77,
-         1155.47
+         991.59,
+         1230.39
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        }
       },
       "nego-noshift_vs_static": {
        "margin": {
-        "mean": 256.24,
+        "mean": 276.71,
         "ci95": [
-         146.19,
-         366.28
+         140.86,
+         412.56
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "consumer_surplus": {
-        "mean": 167.2,
+        "mean": 176.71,
         "ci95": [
-         100.49,
-         233.9
+         109.13,
+         244.29
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "shifted_deals": {
         "mean": 0.0,
@@ -3413,35 +3413,35 @@
          0.0,
          0.0
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "sold_unit_ticks": {
-        "mean": 240.7,
+        "mean": 245.06,
         "ci95": [
-         212.31,
-         269.09
+         211.39,
+         278.73
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "relief_credited": {
-        "mean": -132.26,
+        "mean": -69.25,
         "ci95": [
-         -178.6,
-         -85.91
+         -117.52,
+         -20.98
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "discount_given": {
-        "mean": 884.14,
+        "mean": 888.54,
         "ci95": [
-         864.56,
-         903.71
+         820.89,
+         956.18
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        }
       }
      }
@@ -3511,77 +3511,77 @@
      },
      "totals": {
       "static": {
-       "margin": 230155.14,
-       "bookings": 10167,
-       "shows": 10167,
+       "margin": 272496.05,
+       "bookings": 11977,
+       "shows": 11977,
        "noshows": 0,
-       "occupancy": 0.5273,
+       "occupancy": 0.5337,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 185269.06,
-       "lost_to_outside": 10325
+       "consumer_surplus": 220079.94,
+       "lost_to_outside": 11431
       },
       "computed": {
-       "margin": 225031.99,
-       "bookings": 10351,
-       "shows": 10351,
+       "margin": 266884.43,
+       "bookings": 12230,
+       "shows": 12230,
        "noshows": 0,
-       "occupancy": 0.5499,
+       "occupancy": 0.5579,
        "shifted_deals": 0,
        "trimmed_deals": 0,
        "relief_credited": 0.0,
        "discount_given": 0.0,
-       "consumer_surplus": 192835.46,
-       "lost_to_outside": 10485
+       "consumer_surplus": 229650.52,
+       "lost_to_outside": 11612
       },
       "nego": {
-       "margin": 236163.99,
-       "bookings": 10844,
-       "shows": 10844,
+       "margin": 280081.15,
+       "bookings": 12782,
+       "shows": 12782,
        "noshows": 0,
-       "occupancy": 0.6053,
-       "shifted_deals": 1137,
-       "trimmed_deals": 674,
-       "relief_credited": -6654.46,
-       "discount_given": 32555.25,
-       "consumer_surplus": 192084.01,
-       "lost_to_outside": 10567
+       "occupancy": 0.6128,
+       "shifted_deals": 1353,
+       "trimmed_deals": 810,
+       "relief_credited": -764.77,
+       "discount_given": 38461.73,
+       "consumer_surplus": 229982.88,
+       "lost_to_outside": 11715
       },
       "nego-noshift": {
-       "margin": 237956.22,
-       "bookings": 10936,
-       "shows": 10936,
+       "margin": 282050.24,
+       "bookings": 12916,
+       "shows": 12916,
        "noshows": 0,
-       "occupancy": 0.6006,
+       "occupancy": 0.6079,
        "shifted_deals": 0,
-       "trimmed_deals": 290,
-       "relief_credited": -3778.97,
-       "discount_given": 25604.24,
-       "consumer_surplus": 189831.29,
-       "lost_to_outside": 10532
+       "trimmed_deals": 337,
+       "relief_credited": -2442.15,
+       "discount_given": 29954.53,
+       "consumer_surplus": 225822.99,
+       "lost_to_outside": 11667
       }
      },
      "paired": {
       "computed_vs_static": {
        "margin": {
-        "mean": -170.77,
+        "mean": -160.33,
         "ci95": [
-         -310.58,
-         -30.96
+         -260.02,
+         -60.64
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "consumer_surplus": {
-        "mean": 252.21,
+        "mean": 273.45,
         "ci95": [
-         194.95,
-         309.48
+         177.42,
+         369.47
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "shifted_deals": {
         "mean": 0.0,
@@ -3589,17 +3589,17 @@
          0.0,
          0.0
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "sold_unit_ticks": {
-        "mean": 73.2,
+        "mean": 78.26,
         "ci95": [
-         64.08,
-         82.32
+         53.68,
+         102.83
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "relief_credited": {
         "mean": 0.0,
@@ -3607,8 +3607,8 @@
          0.0,
          0.0
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "discount_given": {
         "mean": 0.0,
@@ -3616,84 +3616,84 @@
          0.0,
          0.0
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        }
       },
       "nego_vs_static": {
        "margin": {
-        "mean": 200.3,
+        "mean": 216.72,
         "ci95": [
-         58.72,
-         341.87
+         52.77,
+         380.66
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "consumer_surplus": {
-        "mean": 227.16,
+        "mean": 282.94,
         "ci95": [
-         125.72,
-         328.61
+         83.66,
+         482.22
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "shifted_deals": {
-        "mean": 37.9,
+        "mean": 38.66,
         "ci95": [
-         29.65,
-         46.15
+         32.03,
+         45.28
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "sold_unit_ticks": {
-        "mean": 252.6,
+        "mean": 256.2,
         "ci95": [
-         218.73,
-         286.47
+         220.96,
+         291.44
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "relief_credited": {
-        "mean": -221.82,
+        "mean": -21.85,
         "ci95": [
-         -303.27,
-         -140.36
+         -147.29,
+         103.59
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "discount_given": {
-        "mean": 1085.17,
+        "mean": 1098.91,
         "ci95": [
-         1020.6,
-         1149.75
+         980.9,
+         1216.91
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        }
       },
       "nego-noshift_vs_static": {
        "margin": {
-        "mean": 260.04,
+        "mean": 272.98,
         "ci95": [
-         149.67,
-         370.4
+         156.85,
+         389.11
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "consumer_surplus": {
-        "mean": 152.07,
+        "mean": 164.09,
         "ci95": [
-         61.5,
-         242.65
+         83.01,
+         245.17
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "shifted_deals": {
         "mean": 0.0,
@@ -3701,35 +3701,35 @@
          0.0,
          0.0
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "sold_unit_ticks": {
-        "mean": 237.2,
+        "mean": 240.34,
         "ci95": [
-         206.39,
-         268.01
+         208.48,
+         272.21
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "relief_credited": {
-        "mean": -125.97,
+        "mean": -69.78,
         "ci95": [
-         -170.84,
-         -81.09
+         -113.76,
+         -25.79
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        },
        "discount_given": {
-        "mean": 853.47,
+        "mean": 855.84,
         "ci95": [
-         828.38,
-         878.57
+         798.45,
+         913.24
         ],
-        "n": 6,
-        "block": 5
+        "n": 5,
+        "block": 7
        }
       }
      }

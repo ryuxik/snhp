@@ -1,5 +1,16 @@
 # SLOT-ECONOMICS results — one world core, three venue calibrations
 
+> **REGENERATED 2026-07-10 (post code-review):** `slots/results.json` is now
+> the authoritative source, run at **35 balanced days** (5 full weeks, so the
+> bar's Saturday isn't under-counted) with **7-day CI blocks for the bar**
+> (week-aligned) and 5-day for barber/parking. The `relief_credited` diagnostic
+> is now credited only on genuine span-swaps (the old negative-`capacity_shadow`
+> pollution is fixed; margin/CS unchanged). **Bar verdict is unchanged** —
+> no-shift still beats full-nego (shift component ≈ −$108/day, CI excludes
+> zero). Some 30-day / 5-day-block / old-`relief_credited` figures in the prose
+> below predate this regeneration and are pending a doc reconciliation pass
+> (folded into the whitepaper refresh); trust `results.json` on any conflict.*
+
 *30 paired days per cell, seed 20260710. Reproduce with
 `python3 -m slots.run --grid --days 30 --seed 20260710` (writes
 `slots/results.json`).*
