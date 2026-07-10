@@ -347,6 +347,227 @@ def run_grid(arm_names: list[str], days: int, seed: int, out: str) -> int:
     return 0
 
 
+# ── split-tilt frontier (Task #65) ─────────────────────────────────────────
+# Sweep the seller bargaining weight w (scenario.nash_quote) at the realistic
+# calibrated cell and map three axes: SELLER PROFIT (a2a−posted), CONSUMER
+# SURPLUS advantage (a2a−posted), and honest-disclosure IC (the buyer's
+# best-response gain from lying — the wtp_factor × walk-claim liar battery).
+# The deliverable is the max defensible seller-profit gain SUBJECT TO CS≥0 and
+# IC intact. Pairing is on the customer stream (seed,day,tick,k,uid), which is
+# policy-independent — so a2a(w) − posted and a2a(w) − a2a(0.5) are all paired.
+
+TILT_W_GRID = (0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0)
+# the liar battery: disclosed-WTP scaling × outside-option claim, MINUS the
+# honest point (1.0, no-free-walk). "the buyer's best response" = the max-gain
+# deviation over this grid.
+TILT_LIAR_GRID = tuple((f, zw) for f in (0.55, 0.75, 1.0, 1.25, 1.5)
+                       for zw in (False, True) if not (f == 1.0 and zw is False))
+
+
+def _pooled_ci(per_seed_diffs: list[list[float]], block: int = 5) -> dict:
+    """Block CI over the two seeds' paired daily-diff series, concatenated —
+    each day's diff is within-seed paired (same customer stream); the blocks
+    are then treated as the independent replicate units."""
+    flat = [x for series in per_seed_diffs for x in series]
+    return paired_ci(flat, block=block)
+
+
+def run_tilt(seeds: list[int], days: int, cfg: WorldConfig, out: str,
+             w_grid=TILT_W_GRID, liar_grid=TILT_LIAR_GRID) -> int:
+    from vend.policies import A2APolicy, StaticPolicy, StrongPostedPolicy
+
+    def run_arm(seed, catalog, factory):
+        state = fresh_machine("tilt", catalog, cfg, seed)
+        pol = factory()
+        return [run_day(pol, state, catalog, seed, d, cfg) for d in range(days)]
+
+    series: dict = {}   # (seed, key) -> per_day list
+    for seed in seeds:
+        catalog = build_catalog(cfg, seed)
+        series[(seed, "static")] = run_arm(seed, catalog, StaticPolicy)
+        series[(seed, "posted")] = run_arm(seed, catalog, StrongPostedPolicy)
+        for w in w_grid:
+            series[(seed, ("a2a", w))] = run_arm(
+                seed, catalog, lambda w=w: A2APolicy(seller_weight=w))
+            for (f, zw) in liar_grid:
+                series[(seed, ("liar", w, f, zw))] = run_arm(
+                    seed, catalog, lambda w=w, f=f, zw=zw: A2APolicy(
+                        attest=False, liar_share=1.0, attack_factor=f,
+                        attack_zero_walk=zw, seller_weight=w))
+        print(f"  seed {seed}: ran {2 + len(w_grid) * (1 + len(liar_grid))} arms")
+
+    def dseries(key_a, key_b, metric):
+        return [[series[(s, key_a)][d][metric] - series[(s, key_b)][d][metric]
+                 for d in range(days)] for s in seeds]
+
+    frontier = []
+    for w in w_grid:
+        a2a = ("a2a", w)
+        row = {"w": w}
+        # axis 1 & 2: seller profit and CS advantage over each baseline
+        for base in ("posted", "static"):
+            row[f"profit_vs_{base}"] = _pooled_ci(dseries(a2a, base, "profit"))
+            row[f"cs_vs_{base}"] = _pooled_ci(
+                dseries(a2a, base, "consumer_surplus"))
+            row[f"profit_vs_{base}_by_seed"] = [
+                paired_ci(dseries(a2a, base, "profit")[i])["mean"]
+                for i in range(len(seeds))]
+            row[f"cs_vs_{base}_by_seed"] = [
+                paired_ci(dseries(a2a, base, "consumer_surplus")[i])["mean"]
+                for i in range(len(seeds))]
+        # raw levels (context)
+        row["a2a_profit_per_day"] = round(sum(
+            sum(m["profit"] for m in series[(s, a2a)]) for s in seeds)
+            / (len(seeds) * days), 2)
+        row["a2a_cs_per_day"] = round(sum(
+            sum(m["consumer_surplus"] for m in series[(s, a2a)]) for s in seeds)
+            / (len(seeds) * days), 2)
+        # axis 3: IC — buyer's best-response gain from lying (CS of an
+        # all-liars arm − CS of the honest a2a arm, same w, paired). We also
+        # track each liar arm's PROFIT vs posted (the realized seller profit
+        # when buyers actually play that lie) to test the profit-peak-then-
+        # collapse prediction, and we SEPARATE the WTP-understatement channel
+        # (factor<1, no free-walk claim — the anchoring attack the TILT is
+        # supposed to re-enable) from the w-robust free-walk outside-option
+        # leak (zero_walk=True), which attestation prices out independently.
+        devs = []
+        for (f, zw) in liar_grid:
+            liar = ("liar", w, f, zw)
+            devs.append({
+                "factor": f, "zero_walk": zw,
+                "cs_gain": _pooled_ci(dseries(liar, a2a, "consumer_surplus")),
+                "profit_vs_posted": _pooled_ci(dseries(liar, "posted", "profit")),
+            })
+        best = max(devs, key=lambda d: d["cs_gain"]["mean"])
+        row["liar_best_response"] = {
+            "factor": best["factor"], "zero_walk": best["zero_walk"],
+            "cs_gain": best["cs_gain"],
+            "realized_profit_vs_posted": best["profit_vs_posted"]}
+        # the WTP-understatement channel only (factor<1, zw=False)
+        under = [d for d in devs if d["factor"] < 1.0 and not d["zero_walk"]]
+        best_u = max(under, key=lambda d: d["cs_gain"]["mean"])
+        row["understatement_best"] = {
+            "factor": best_u["factor"], "cs_gain": best_u["cs_gain"],
+            "realized_profit_vs_posted": best_u["profit_vs_posted"]}
+        # Realized seller profit under the REALISTIC deployment: the engine
+        # attests the OUTSIDE OPTION (blocks the w-robust free-walk leak), so
+        # the only lie left is WTP-understatement — which pays the buyer only
+        # once the tilt is steep enough (understatement_best significantly
+        # positive). Below that, buyers stay honest and the seller banks the
+        # honest-arm profit; at/after it, buyers understate and the seller
+        # gets the understatement-arm profit. This is the series the peak-
+        # then-collapse prediction is about.
+        u_ci = best_u["cs_gain"]["ci95"]
+        wtp_lie_pays = u_ci is not None and u_ci[0] > 0
+        row["attested_realized_profit_vs_posted"] = (
+            best_u["profit_vs_posted"] if wtp_lie_pays else row["profit_vs_posted"])
+        row["wtp_understatement_pays"] = wtp_lie_pays
+        row["liar_deviations"] = devs
+        frontier.append(row)
+
+    # break-points
+    def crosses_zero(getter, positive_at_start=True):
+        """First w at which `getter(row)` mean crosses 0 (linear interp
+        between bracketing grid points); None if it never crosses."""
+        pts = [(r["w"], getter(r)) for r in frontier]
+        for (w0, v0), (w1, v1) in zip(pts, pts[1:]):
+            if (v0 >= 0) != (v1 >= 0):
+                if v1 == v0:
+                    return w1
+                return round(w0 + (0 - v0) * (w1 - w0) / (v1 - v0), 3)
+        return None
+
+    cs_zero_posted = crosses_zero(lambda r: r["cs_vs_posted"]["mean"])
+    cs_zero_static = crosses_zero(lambda r: r["cs_vs_static"]["mean"])
+
+    def first_sig_positive(getter):
+        """First w at which getter(row) (a paired_ci dict) is significantly
+        positive — CI lower bound > 0 — i.e. lying is significantly the
+        buyer's best response and disclosure-IC has broken."""
+        for r in frontier:
+            ci = getter(r)["ci95"]
+            if ci is not None and ci[0] > 0:
+                return r["w"]
+        return None
+
+    # IC breaks (two channels): the strict all-deviation best response, and
+    # the WTP-understatement channel the tilt specifically re-enables.
+    ic_break_all = first_sig_positive(lambda r: r["liar_best_response"]["cs_gain"])
+    ic_break_under = first_sig_positive(lambda r: r["understatement_best"]["cs_gain"])
+
+    # profit-peak axes: (1) the HONEST arm's seller profit (truthtelling
+    # assumed); (2) the REALIZED seller profit when buyers play the CS-best
+    # lie — the axis the peak-then-collapse prediction is actually about.
+    peak_honest = max(frontier, key=lambda r: r["profit_vs_posted"]["mean"])
+    peak_realized = max(
+        frontier, key=lambda r: r["liar_best_response"]["realized_profit_vs_posted"]["mean"])
+    peak_attested = max(
+        frontier, key=lambda r: r["attested_realized_profit_vs_posted"]["mean"])
+
+    # honest region: CS≥0 (both baselines) AND WTP-disclosure IC intact
+    # (understatement not significantly the buyer's best response).
+    def under_ic_intact(r):
+        ci = r["understatement_best"]["cs_gain"]["ci95"]
+        return ci is None or ci[0] <= 0
+    fair_floor = 0.5 * frontier[0]["cs_vs_posted"]["mean"]   # half symmetric CS
+    honest = [r for r in frontier
+              if r["cs_vs_posted"]["mean"] >= 0 and under_ic_intact(r)]
+    honest_fair = [r for r in honest
+                   if r["cs_vs_posted"]["mean"] >= fair_floor]
+    max_honest = max(honest, key=lambda r: r["profit_vs_posted"]["mean"]) \
+        if honest else None
+    max_fair = max(honest_fair, key=lambda r: r["profit_vs_posted"]["mean"]) \
+        if honest_fair else None
+
+    breakpoints = {
+        "cs_zero_w_vs_posted": cs_zero_posted,
+        "cs_zero_w_vs_static": cs_zero_static,
+        "ic_break_w_all_deviations": ic_break_all,
+        "ic_break_w_understatement": ic_break_under,
+        "profit_peak_w_honest_arm": peak_honest["w"],
+        "profit_peak_w_realized_under_lying": peak_realized["w"],
+        "profit_peak_w_attested_realized": peak_attested["w"],
+        "profit_peak_attested_realized_vs_posted": peak_attested["attested_realized_profit_vs_posted"],
+        "fairness_floor_cs_vs_posted": round(fair_floor, 2),
+        "max_honest_w": max_honest["w"] if max_honest else None,
+        "max_honest_profit_vs_posted": max_honest["profit_vs_posted"] if max_honest else None,
+        "max_fair_w": max_fair["w"] if max_fair else None,
+        "max_fair_profit_vs_posted": max_fair["profit_vs_posted"] if max_fair else None,
+    }
+
+    payload = {
+        "vend_version": VEND_VERSION, "task": "split-tilt-frontier-65",
+        "days": days, "seeds": seeds,
+        "world": {"sigma_cal": cfg.sigma_cal, "sigma_rate": cfg.sigma_rate,
+                  "sigma_wtp": cfg.sigma_wtp, "dow": cfg.dow,
+                  "glut_prob": cfg.glut_prob, "traffic_scale": cfg.traffic_scale},
+        "w_grid": list(w_grid),
+        "liar_grid": [{"factor": f, "zero_walk": zw} for f, zw in liar_grid],
+        "block": 5,
+        "frontier": frontier,
+        "breakpoints": breakpoints,
+    }
+    with open(out, "w") as f:
+        json.dump(payload, f, indent=1)
+    print(f"wrote {out}")
+    hdr = ("w     sellerΔ(a2a-posted)   CSΔ(a2a-posted)      "
+           "understate-lie-gain   any-lie-gain   realized-profit(under lie)")
+    print("\n" + hdr)
+    for r in frontier:
+        pv, cv = r["profit_vs_posted"], r["cs_vs_posted"]
+        ug = r["understatement_best"]["cs_gain"]
+        lg = r["liar_best_response"]["cs_gain"]
+        rp = r["liar_best_response"]["realized_profit_vs_posted"]
+        ar = r["attested_realized_profit_vs_posted"]
+        print(f"{r['w']:<5} {pv['mean']:+5.2f} {str(pv['ci95']):<16} "
+              f"{cv['mean']:+5.2f} {str(cv['ci95']):<16} "
+              f"{ug['mean']:+5.2f} {str(ug['ci95']):<14} "
+              f"{lg['mean']:+5.2f}   {ar['mean']:+5.2f}{'!' if not r['wtp_understatement_pays'] else 'X'}")
+    print("(attested-realized col: '!' = WTP-honest, banked; 'X' = WTP-lie pays, collapsed)")
+    print("\nbreak-points:", json.dumps(breakpoints, indent=1))
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--days", type=int, default=30)
@@ -369,6 +590,9 @@ def main(argv=None) -> int:
                          "takes precedence over --calibrated-traffic")
     ap.add_argument("--grid", action="store_true",
                     help="run the P1.5 miscalibration × shock grid")
+    ap.add_argument("--tilt", action="store_true",
+                    help="run the split-tilt seller-weight frontier (Task #65) "
+                         "at the realistic calibrated cell, both seeds, 90d")
     args = ap.parse_args(argv)
 
     arm_names = [a.strip() for a in args.arms.split(",") if a.strip()]
@@ -380,6 +604,14 @@ def main(argv=None) -> int:
     if args.grid:
         return run_grid(arm_names, args.days, args.seed,
                         args.out or "vend/grid.json")
+
+    if args.tilt:
+        from vend.world import CALIBRATED_TRAFFIC_SCALE
+        cfg = WorldConfig(sigma_cal=0.3, sigma_rate=0.6, sigma_wtp=0.3,
+                          dow=True, glut_prob=0.15,
+                          traffic_scale=CALIBRATED_TRAFFIC_SCALE)
+        return run_tilt([20260713, 7], args.days if args.days != 30 else 90,
+                        cfg, args.out or "vend/tilt.json")
 
     if args.traffic_scale is not None:
         traffic_scale = args.traffic_scale

@@ -62,7 +62,32 @@ machine — do not let it read as "the engine has no profit edge over a real
 seller."** This is also part of the "who pays us" answer: the merchant pays
 because we beat the single all-day price they run, not because we beat an
 optimizer they don't have.
-Built `StrongPostedPolicy` (arm `posted`): a discrete-choice model over the
+
+**SPLIT-TILT FRONTIER (2026-07-10, #65 — the mechanism-level "who pays us,"
+answered YES with a bounded number):** `nash_quote` was symmetric (50/50); we
+added a seller bargaining-weight w∈[0.5,1.0] (asymmetric Nash: maximize
+gs^w·gb^(1−w) above the disagreement point; discount-only and the floor
+preserved; w=0.5 byte-identical). Sweeping w maps the three break-points:
+(1) **consumer surplus NEVER crosses zero** in [0.5,1.0] — even at full
+seller-take (w=1.0) buyers stay strictly ahead of the strong posted board,
+because the disagreement floor + pie-growth structurally prevent SNHP from
+becoming a pure extraction tool; (2) **IC breaks at w≈0.8** — WTP
+understatement flips from losing (w=0.5, "H3 inverted") to the buyer's
+significant best response; (3) **realized seller profit PEAKS at w=0.7 then
+COLLAPSES** — paper profit rises monotonically to +$1.27 at w=1.0, but the
+*attested-realized* profit peaks at **+$0.61/day [0.37,0.85] at w=0.7** and
+collapses to −$0.78 at w=0.8 as buyers start lying and shrink the pie
+(attestation banks the honest number by pricing out the free-outside-option
+leak). **The deliverable: the max defensible seller-profit gain is +$0.61/day
+(~+6% over the STRONG posted board, more over a real sticker) at w=0.7, with
+consumers still +$1.04/day ahead and disclosure incentive-compatible.** So
+"who pays us" has a mechanism answer: the merchant pays for a *bounded* tilt
+that delivers them real profit, self-limiting because past w≈0.8 a
+seller-favoring mechanism destroys the disclosure it runs on (the
+pre-registered profit-peak-then-collapse, confirmed). This is the growth-
+sharing region — the seller captures a slice of the created value without the
+mechanism turning into RealPage, which it structurally cannot (CS never
+negative). Built `StrongPostedPolicy` (arm `posted`): a discrete-choice model over the
 whole board from a synthetic WTP panel, joint coordinate-ascent price
 optimization, using the IDENTICAL demand call the a2a arm makes. Realistic
 calibrated cell, 90d, block CIs: **a2a − posted profit = −$0.05 [−0.39,0.29]

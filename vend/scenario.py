@@ -192,7 +192,8 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
                dow_mult: float = 1.0, mult_hat: float = 1.0,
                share_fn=None, allowed=None, daily_fn=None,
                min_gain: float = 0.0, min_gain_frac: float = 0.0,
-               traffic_scale: float = 1.0) -> NashQuote:
+               traffic_scale: float = 1.0,
+               seller_weight: float = 0.5) -> NashQuote:
     """Nash bargaining over the enumerated outcome space, on the DISCLOSED
     buyer utilities. Machine surplus is measured against its sticker
     counterfactual; buyer surplus against their claimed outside option.
@@ -202,7 +203,21 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
     (see expected_list_demand) — irrelevant once a SKU has sold and the
     regime-consistent emp_daily estimate takes over.
     `allowed` (Outcome → bool) restricts the outcome space — e.g. to the
-    intent's SKU when the buyer forbids substitutes."""
+    intent's SKU when the buyer forbids substitutes.
+
+    `seller_weight` ∈ [0.5, 1.0] is the seller's bargaining weight in the
+    GENERALIZED (asymmetric) Nash split: the chosen outcome maximizes
+    gs**w · gb**(1-w) where gs, gb are the seller/buyer gains ABOVE their
+    disagreement points. w=0.5 is the symmetric Nash split (the default —
+    byte-identical to the committed artifact, special-cased below to the
+    exact `gs*gb` expression); w=1.0 hands the seller ALL surplus above the
+    buyer's disagreement (the buyer is held exactly at their floor). The
+    tilt only reallocates surplus ABOVE the disagreement — feasibility still
+    requires gs ≥ 0 AND gb ≥ 0, so it never prices below the buyer's floor,
+    and the outcome space is still discount-only (floor…list), so it never
+    prices above the sticker. This is the split-tilt monetization knob: how
+    much of the jointly-created surplus the merchant keeps as seller profit
+    (mapped against the CS-crosses-zero and IC-breaks frontier in tilt.py)."""
     catalog = state.listings
     n = len(catalog)
     _share = share_fn if share_fn is not None else (lambda s: 1.0 / n)
@@ -264,6 +279,7 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
     # discarding a legitimate boundary deal.
     best, best_score = None, None
     joint_best = 0.0
+    w = seller_weight
     for o in enumerate_outcomes(state):
         if allowed is not None and not allowed(o):
             continue
@@ -272,7 +288,17 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
         gs, gb = u_s - d_s, u_b - d_b
         if gs >= -1e-9 and gb >= -1e-9:
             joint_best = max(joint_best, gs + gb)
-            score = (gs * gb, gs + gb)
+            # Generalized Nash product tilted by the seller's weight w. At
+            # w=0.5 use the EXACT symmetric expression (byte-identical to the
+            # committed artifact — pow(0.5) is only a monotone transform of
+            # gs*gb, but this pins the arithmetic). For w>0.5 clamp the gains
+            # at 0 first: the ±1e-9 feasibility slack would otherwise feed a
+            # tiny negative base into a fractional power (→ NaN/complex).
+            if w == 0.5:
+                nash = gs * gb
+            else:
+                nash = (max(0.0, gs) ** w) * (max(0.0, gb) ** (1.0 - w))
+            score = (nash, gs + gb)
             if best_score is None or score > best_score:
                 best, best_score = o, score
     if best is not None and best_score[0] <= 0 and best_score[1] <= 1e-9:

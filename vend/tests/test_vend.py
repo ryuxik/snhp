@@ -645,3 +645,140 @@ def test_strong_posted_outearns_static_at_realistic_cell():
     res = run_experiment(["static", "posted"], days=30, seed=20260713, cfg=cfg)
     assert (res["arms"]["posted"]["totals"]["profit"]
             > res["arms"]["static"]["totals"]["profit"])
+
+
+# ── split-tilt seller-weight frontier (Task #65) ────────────────────────────
+
+def test_seller_weight_default_is_symmetric_byte_identical(catalog):
+    """w defaults to 0.5 = the EXACT symmetric Nash split. The default path
+    (no seller_weight passed) and seller_weight=0.5 are byte-identical — both
+    at the nash_quote level and end-to-end over a paired run, so the committed
+    artifacts are unperturbed. (results.json reproducibility is pinned
+    separately by test_default_config_reproduces_committed_artifact.)"""
+    import dataclasses
+    from vend.scenario import nash_quote
+    state, c = _glut_state(catalog), _consumer(catalog)
+    a = nash_quote(state, c.wtp, c.walk_cost)
+    b = nash_quote(state, c.wtp, c.walk_cost, seller_weight=0.5)
+    assert dataclasses.astuple(a) == dataclasses.astuple(b)
+    from vend.world import WorldConfig, CALIBRATED_TRAFFIC_SCALE, fresh_machine
+    from vend.policies import A2APolicy
+    cfg = WorldConfig(sigma_cal=0.3, sigma_rate=0.6, sigma_wtp=0.3, dow=True,
+                      glut_prob=0.15, traffic_scale=CALIBRATED_TRAFFIC_SCALE)
+
+    def run(**kw):
+        cat = build_catalog(cfg, 7)
+        st = fresh_machine("m", cat, cfg, 7)
+        p = A2APolicy(**kw)
+        return [run_day(p, st, cat, 7, d, cfg) for d in range(8)]
+
+    assert run() == run(seller_weight=0.5)
+
+
+def test_seller_weight_tilts_the_split_toward_the_seller(catalog):
+    """Raising w reallocates the surplus ABOVE the disagreement toward the
+    seller: seller gain gs monotone non-decreasing, buyer gain gb monotone
+    non-increasing, quoted price non-decreasing — a genuine asymmetric Nash
+    tilt (nash_quote reads state, never mutates it, so one state is reused)."""
+    from vend.scenario import nash_quote
+    state, c = _glut_state(catalog), _consumer(catalog)
+    gs, gb, px = [], [], []
+    for w in (0.5, 0.6, 0.7, 0.8, 0.9, 1.0):
+        nq = nash_quote(state, c.wtp, c.walk_cost, seller_weight=w)
+        assert nq.outcome is not None
+        gs.append(nq.u_machine - nq.d_machine)
+        gb.append(nq.u_buyer_claimed - nq.d_buyer)
+        px.append(nq.outcome.unit_price)
+    assert all(gs[i + 1] >= gs[i] - 1e-9 for i in range(len(gs) - 1))
+    assert all(gb[i + 1] <= gb[i] + 1e-9 for i in range(len(gb) - 1))
+    assert all(px[i + 1] >= px[i] - 1e-9 for i in range(len(px) - 1))
+    assert gs[-1] > gs[0] and gb[-1] < gb[0]          # strict overall move
+
+
+def test_seller_weight_one_holds_buyer_at_the_floor(catalog):
+    """w=1.0 hands the seller ALL surplus above the buyer's disagreement: the
+    buyer's gain over its floor is weakly smaller than at the symmetric split
+    and never negative — the disagreement discipline still binds, so the tilt
+    can extract but can never price the buyer below its outside option."""
+    from vend.scenario import nash_quote
+    state, c = _glut_state(catalog), _consumer(catalog)
+    lo = nash_quote(state, c.wtp, c.walk_cost, seller_weight=0.5)
+    hi = nash_quote(state, c.wtp, c.walk_cost, seller_weight=1.0)
+    gb_lo = lo.u_buyer_claimed - lo.d_buyer
+    gb_hi = hi.u_buyer_claimed - hi.d_buyer
+    assert -1e-9 <= gb_hi <= gb_lo + 1e-9
+
+
+def test_seller_weight_preserves_discount_only_and_floor(catalog):
+    """The tilt only moves surplus ABOVE the disagreement; the outcome space is
+    still floor…list, so it never prices below opportunity cost or above the
+    sticker, at any w."""
+    from vend.scenario import nash_quote, c_eff
+    state, c = _glut_state(catalog), _consumer(catalog)
+    for w in (0.5, 0.75, 1.0):
+        nq = nash_quote(state, c.wtp, c.walk_cost, seller_weight=w)
+        assert nq.outcome is not None
+        o = nq.outcome
+        assert o.unit_price <= catalog[o.sku].list_price + 1e-9
+        assert o.unit_price >= c_eff(state, o.sku) - 1e-9
+
+
+def test_run_tilt_is_deterministic(tmp_path):
+    """The frontier sweep is reproducible (a tiny slice: 1 seed, 6 days, two
+    w, two liar deviations — the whole machinery, fast)."""
+    import io
+    import contextlib
+    import json
+    from vend.world import WorldConfig, CALIBRATED_TRAFFIC_SCALE
+    from vend.run import run_tilt
+    cfg = WorldConfig(sigma_cal=0.3, sigma_rate=0.6, sigma_wtp=0.3, dow=True,
+                      glut_prob=0.15, traffic_scale=CALIBRATED_TRAFFIC_SCALE)
+    outs = []
+    for i in range(2):
+        p = tmp_path / f"t{i}.json"
+        with contextlib.redirect_stdout(io.StringIO()):
+            run_tilt([7], 6, cfg, str(p), w_grid=(0.5, 1.0),
+                     liar_grid=((0.55, False), (0.55, True)))
+        outs.append(json.load(open(p)))
+    assert outs[0] == outs[1]
+
+
+def test_tilt_frontier_artifact_shows_the_predicted_shape():
+    """The committed vend/tilt.json (90-day, both-seed, block-5 split-tilt
+    sweep) must exhibit the deliverable's pre-registered shape:
+      * SELLER PROFIT (a2a−posted) rises with w, a tie at w=0.5;
+      * CONSUMER SURPLUS advantage falls with w but stays > 0 throughout
+        (no CS=0 crossing in [0.5, 1.0]);
+      * the WTP-understatement lie's buyer gain rises with w — IC intact at
+        w=0.5 (not significantly positive), broken before w=1.0;
+      * ATTESTED REALIZED seller profit PEAKS at a small tilt then COLLAPSES
+        when disclosure-IC breaks (peak w < 1.0; profit at w=1.0 < the peak);
+      * the honest-region max seller-profit gain has a CI excluding zero."""
+    import json
+    import pathlib
+    d = json.load(open(pathlib.Path(__file__).parents[1] / "tilt.json"))
+    fr = d["frontier"]
+    assert fr[0]["w"] == 0.5 and fr[-1]["w"] == 1.0
+    prof = [r["profit_vs_posted"]["mean"] for r in fr]
+    cs = [r["cs_vs_posted"]["mean"] for r in fr]
+    und = [r["understatement_best"]["cs_gain"]["mean"] for r in fr]
+    att = [r["attested_realized_profit_vs_posted"]["mean"] for r in fr]
+    # seller profit: symmetric tie, monotone up, ends strictly higher
+    lo, hi = fr[0]["profit_vs_posted"]["ci95"]
+    assert lo <= 0 <= hi                                       # w=0.5 tie
+    assert all(prof[i + 1] >= prof[i] - 1e-9 for i in range(len(prof) - 1))
+    assert prof[-1] > prof[0]
+    # CS advantage: falls overall, never crosses zero
+    assert cs[-1] < cs[0] and all(x > 0 for x in cs)
+    assert d["breakpoints"]["cs_zero_w_vs_posted"] is None
+    # understatement-IC: intact at w=0.5, rises, breaks before w=1.0
+    assert und[-1] > und[0]
+    assert fr[0]["understatement_best"]["cs_gain"]["ci95"][0] <= 0
+    icb = d["breakpoints"]["ic_break_w_understatement"]
+    assert icb is not None and icb < 1.0
+    # peak-then-collapse of attested realized seller profit
+    peak = max(att)
+    assert att.index(peak) < len(att) - 1                     # peak before w=1.0
+    assert att[-1] < peak                                     # collapsed by w=1.0
+    # honest-region max is a real (CI-excludes-zero) seller-profit gain
+    assert d["breakpoints"]["max_honest_profit_vs_posted"]["ci95"][0] > 0

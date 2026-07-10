@@ -370,6 +370,11 @@ class A2APolicy:
     # control −$1.98 [−2.70,−1.25] AND full pool protection at ×1.25 with
     # the ~+$33/day harvest intact. Perfect calibration doesn't exist in
     # the field; the ~2% concession buys the customer base.
+    seller_weight: float = 0.5    # split-tilt knob (scenario.nash_quote): 0.5
+                                  # = symmetric Nash (default, byte-identical);
+                                  # >0.5 hands the seller more of the created
+                                  # surplus (the monetization frontier — see
+                                  # run.run_tilt / RESULTS.md "Split-tilt").
 
     def __post_init__(self):
         if self.learner is None:
@@ -399,7 +404,8 @@ class A2APolicy:
                           daily_fn=self.learner.daily,
                           min_gain=self.min_gain,
                           min_gain_frac=self.min_gain_frac,
-                          traffic_scale=self.traffic_scale), lied
+                          traffic_scale=self.traffic_scale,
+                          seller_weight=self.seller_weight), lied
 
 
 @dataclass

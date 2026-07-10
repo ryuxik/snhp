@@ -786,3 +786,110 @@ static,posted,a2a --sigma-cal 0.3 --sigma-rate 0.6 --sigma-wtp 0.3 --dow
 --glut 0.15 --calibrated-traffic` (and `--seed 7`), then read the a2a−posted
 paired block CI. `posted` = `StrongPostedPolicy`; the a2a−posted pairing is
 computed off the per-day series (the runner pairs every arm against arm[0]).
+
+## Split-tilt frontier (2026-07-10) — Task #65: "who pays us, and how far can we tilt before it breaks"
+
+**The business question.** The strong posted board TIES the engine on seller
+profit (a2a−posted −$0.05/day, CI includes zero — see the section above); the
+engine's durable edge is CONSUMER SURPLUS, not seller profit. A merchant pays
+for SELLER profit. `scenario.nash_quote` split the created surplus SYMMETRICALLY
+(Nash product `gs·gb`, no seller knob). So we added one: a seller bargaining
+weight **w ∈ [0.5, 1.0]** that generalizes the split to the ASYMMETRIC Nash
+solution — the chosen outcome maximizes `gs**w · gb**(1−w)`, where gs, gb are
+the seller/buyer gains ABOVE their disagreement points. w=0.5 = the symmetric
+split (default; **byte-identical** to the committed artifact — special-cased to
+the exact `gs·gb` and pinned by test); w=1.0 = seller takes ALL surplus above
+the buyer's floor. The tilt only reallocates surplus ABOVE the disagreement —
+feasibility still requires gs≥0 AND gb≥0, and the outcome space is still
+discount-only (floor…list) — so it **never** prices below the buyer's outside
+option or above the sticker (type-/test-enforced). It is the monetization knob:
+how much of the jointly-created pie the merchant keeps.
+
+**The sweep.** Realistic calibrated cell (`--sigma-cal 0.3 --sigma-rate 0.6
+--sigma-wtp 0.3 --dow --glut 0.15 --calibrated-traffic`), 90 days, both seeds
+(20260713, 7), pooled block-5 CIs. Baselines run once; the a2a arm re-run at
+each w; the liar battery (disclosed-WTP scale {0.55, 0.75, 1.0, 1.25, 1.5} ×
+free-outside-claim {no, yes}, every buyer deviating) re-run at each w to find
+the buyer's best-response gain-from-lying. `python3 -m vend.run --tilt`
+(→ `vend/tilt.json`).
+
+### The frontier (a2a arm vs the strong posted board, $/day, pooled both seeds)
+
+| w | SELLER Δ (a2a−posted) | CONSUMER-SURPLUS Δ (a2a−posted) | WTP-understatement lie gain | attested REALIZED seller Δ |
+|---|---|---|---|---|
+| 0.50 | −0.05 [−0.26, 0.16] | **+0.89** [0.56, 1.22] | −0.16 [−0.59, 0.26] | −0.05  (banked) |
+| 0.60 | +0.24 [0.03, 0.44] | +1.14 [0.77, 1.50] | +0.12 [−0.37, 0.61] | +0.24  (banked) |
+| **0.70** | **+0.61 [0.37, 0.85]** | **+1.04** [0.67, 1.41] | +0.39 [−0.02, 0.79] | **+0.61  (banked — PEAK)** |
+| 0.80 | +0.89 [0.65, 1.12] | +0.79 [0.38, 1.20] | **+0.69 [0.21, 1.17]** | −0.78  (COLLAPSED) |
+| 0.90 | +1.19 [0.93, 1.46] | +0.68 [0.27, 1.09] | +0.73 [0.28, 1.17] | −0.74  (COLLAPSED) |
+| 0.95 | +1.26 [0.98, 1.53] | +0.53 [0.12, 0.94] | +0.90 [0.46, 1.34] | −0.74  (COLLAPSED) |
+| 1.00 | +1.27 [1.04, 1.50] | +0.52 [0.19, 0.84] | +0.80 [0.41, 1.18] | −0.63  (COLLAPSED) |
+
+*SELLER Δ* is the HONEST (attested, truthtelling) a2a arm's profit over posted.
+*attested REALIZED seller Δ* is what the seller actually banks once the engine
+attests the OUTSIDE OPTION (blocking the w-robust free-walk leak, which is what
+attestation prices out) but WTP disclosure is only as good as the incentive to
+tell the truth: below the WTP-IC break buyers stay honest and the seller banks
+the honest number; at/after it buyers understate and the seller gets the
+understatement-arm profit. Bold CI = excludes zero. (Against the plain STATIC
+sticker the tilt looks even stronger — seller Δ +$0.42→+$1.74/day, CS Δ
++$1.35→+$1.97/day — but posted is the honest, referee-hardened baseline.)
+
+### The three break-points
+
+1. **CS crosses zero: NEVER (in [0.5, 1.0]).** The a2a−posted consumer-surplus
+   advantage falls with w (+$0.89 → +$0.52/day) but stays strictly positive
+   even at full seller-take (w=1.0). The tilt cannot turn the engine into a
+   pure-extraction tool RELATIVE TO THE POSTED BOARD: the disagreement discipline
+   floors every buyer at their outside option, and negotiation still grows the
+   pie (more deals recruited — 73→146 negotiated/day — better substitution,
+   bigger baskets), so buyers stay net-ahead of the discounted posted board.
+   "Both benefit" survives the whole dial. (CS even peaks at w=0.6, +$1.14 —
+   the extra recruited deals outrun the per-deal buyer-share erosion early.)
+2. **IC break (WTP disclosure): w ≈ 0.8.** At w=0.5 the pure WTP-understatement
+   attack LOSES the buyer money (−$0.16/day, CI includes zero — the "H3 inverted"
+   result holds: understating denies you deals the buffer would have cleared).
+   As the mechanism favors the seller, the incentive to claw surplus back by
+   understating grows monotonically (−0.16 → +0.90) and becomes the buyer's
+   significant best response (CI lower bound > 0) at **w=0.8**. The seller-favoring
+   mechanism destroys the WTP disclosure it runs on. (A SEPARATE, w-robust leak
+   — claiming a free outside option — pays a little at every w, +$0.49→+$1.16;
+   it is not created by the tilt and is exactly what outside-option attestation
+   prices out, so it is excluded from the WTP-IC break and handled by the
+   attestation tier.)
+3. **Profit peak: w = 1.0 on paper, w = 0.7 in reality.** The HONEST-arm profit
+   rises monotonically and saturates at w=1.0 (+$1.27/day) — but that number is
+   a MIRAGE if buyers can lie. The ATTESTED REALIZED profit peaks at **w = 0.7
+   (+$0.61/day [0.37, 0.85])** and then COLLAPSES to −$0.78/day at w=0.8 the
+   instant WTP-understatement becomes the buyer's best response. The predicted
+   peak-then-collapse is exactly here. (If the outside-option leak is ALSO
+   unattested, realized seller profit is negative at every w, −$0.6…−$0.9/day —
+   strategic buyers neutralize the tilt entirely from the start; attestation is
+   not optional garnish, it is what makes any of the tilt collectible.)
+
+### THE DELIVERABLE — max defensible seller-profit gain
+
+Honest region = {CS ≥ 0 (all of [0.5,1.0]) AND WTP-disclosure IC intact
+(w < 0.8) AND CS ≥ half the symmetric level ($0.45, satisfied through w=0.7)}.
+
+> **Max defensible seller-profit gain: +$0.61/day [0.37, 0.85] at w = 0.70**,
+> vs the strong posted board — a real, CI-excludes-zero seller gain (an ~+6%
+> lift on the ~$10.5/day realized profit), delivered WHILE consumers stay
+> +$1.04/day [0.67, 1.41] ahead and WTP disclosure stays incentive-compatible.
+
+That is the growth-sharing region — what a merchant pays for, banked as seller
+profit, without becoming RealPage: it never prices below a buyer's outside
+option, it leaves the buyer strictly better off than the best posted board, and
+it does not corrupt the disclosure it runs on. Push past w≈0.8 and all three
+guarantees fail together — the paper profit keeps rising but buyers begin to
+lie, and the REALIZED profit collapses below the symmetric tie. **The
+monetization mechanism is a BOUNDED tilt (w≈0.7), gated by attestation** (which
+banks the honest number by pricing out the outside-option leak). Pre-registered
+prediction — "a small tilt buys real seller profit while CS>0 and IC holds; a
+large tilt collapses disclosure and the profit evaporates as buyers lie" —
+**confirmed on all three axes.**
+
+Reproduce: `python3 -m vend.run --tilt --days 90` (writes `vend/tilt.json` with
+the full per-w frontier, per-deviation liar battery, and break-points). Tests:
+`vend/tests/test_vend.py::test_seller_weight_*`, `::test_run_tilt_is_deterministic`,
+`::test_tilt_frontier_artifact_shows_the_predicted_shape`.
