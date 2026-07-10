@@ -47,6 +47,10 @@ def disclosure_battery(true_wtp: dict[str, float], walk_cost: float, *,
     for name, factor, zero_walk in _BATTERY_SPEC:
         if attested and name != "honest":
             continue
+        if attested:
+            # mirror disclose(): an attested disclosure is verified-true, so the
+            # only reachable point is the honest report (factor 1, true walk).
+            factor, zero_walk = 1.0, False
         wtp = {s: v * factor for s, v in true_wtp.items()}
         out.append((name, Disclosure(wtp=wtp,
                                      walk_cost=0.0 if zero_walk else walk_cost,
@@ -92,6 +96,15 @@ class BuyerAgent:
         name = name or self.policy
         spec = {n: (f, z) for n, f, z in _BATTERY_SPEC}
         factor, zero_walk = spec.get(name, (1.0, False))
+        # Attestation = a VERIFIED-TRUE disclosure. An attested report carries
+        # the buyer's true wtp/walk by construction, so the policy's misreport
+        # factor CANNOT apply — there is no such thing as an "attested lie". This
+        # is what makes "regret = 0 under attestation" a property of the
+        # MECHANISM (an attested report can only be honest, so a lying policy
+        # under attestation collapses onto the honest frontier point) rather
+        # than an artifact of the experiment only ever trying policy='honest'.
+        if attested:
+            factor, zero_walk = 1.0, False
         reliability = getattr(self.wallet, "reliability", 0.0) if self.wallet else 0.0
         return Disclosure(wtp={s: v * factor for s, v in self.wtp.items()},
                           walk_cost=0.0 if zero_walk else self.walk_cost,

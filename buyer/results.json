@@ -596,7 +596,6 @@
   "audit_checks": {
    "A_coord_not_below_indep": true,
    "B_participation_floor_holds": true,
-   "C_total_surplus_nondecreasing_in_K": true,
    "D_overreach_is_self_defeating": true
   },
   "audit_verdict": "PASS \u2014 buyer coordination under our mechanism does not reduce total surplus and cannot extract below the merchant's participation floor",

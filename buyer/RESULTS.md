@@ -21,6 +21,19 @@ had no such number. Defined here:
   attested merchant only prices on verified truth). The gap between them is the
   honest crux: how much of the "reachable" buyer surplus is reachable only by
   gaming.
+- **Attestation is a MECHANISM constraint, not an experiment setting.** An
+  attested disclosure is a *verified-true* report: `BuyerAgent.disclose(attested=
+  True)` sends the buyer's true wtp/walk **regardless of the agent's disclosure
+  policy** (a lying policy's misreport factor is ignored under attestation).
+  There is therefore no such thing as an "attested lie" — a liar who flips the
+  attested bit to be served by an attested-only merchant is forced to send the
+  truth, so it realizes exactly the honest outcome and can never beat the
+  attested (honest) frontier. This is why `regret = 0 under attestation` is
+  enforced by the mechanism, not by the experiment happening to run only
+  `policy='honest'`. (Regression-tested: `test_lying_policy_under_attestation_
+  cannot_beat_frontier` — every liar policy realizes ≤ the attested frontier,
+  true regret ≥ 0 by construction; the `max(0,·)` floor is then a pure numeric
+  guard, not a mask over a negative.)
 
 Modeling choice (stated for attack): the population faces a **shared** merchant
 board (one machine, many buyers, no stock depletion between them). This makes
@@ -66,10 +79,18 @@ Verified (tests):
 ### Buyer-regret verdict (the honest test)
 
 - **Under our attested mechanism, a truthful buyer's agent sits EXACTLY at its
-  frontier — regret is 0.** There is no strategy in the attested space that
-  beats honest disclosure, so the surplus the buyer gets is the most reachable,
-  not the seller's leftover generosity. This is the strong form of "it's a real
-  buyer's tool, not a seller's tool wearing a buyer's badge."
+  frontier — regret is 0, and this is MECHANISM-enforced.** Attestation means the
+  disclosed value is *verified true*, so an attested report can only be the
+  honest one — a lying policy that flips the attested bit is forced to send the
+  truth and realizes the identical outcome (regression-tested). There is
+  therefore no strategy in the attested space that beats honest disclosure *by
+  construction*, not because the experiment only tried honest. So the surplus the
+  buyer gets is the most reachable, not the seller's leftover generosity. This is
+  the strong form of "it's a real buyer's tool, not a seller's tool wearing a
+  buyer's badge." (Earlier drafts of this doc stated regret-0 as if it might be
+  an artifact of the honest-only experiment; the disclosure primitive now binds
+  honesty under attestation, which *strengthens* the claim from "we observed 0"
+  to "0 is the only reachable value.")
 - **Without attestation, the honest agent leaves ~38% on the table** ($1.45
   regret against a $3.81 frontier) — but that residual is reachable ONLY by
   misreporting (the anchoring/liar strategies). The mechanism's job is to
@@ -254,8 +275,12 @@ across 3, friction 0), **$4.14/buyer**.
 ## Verdicts (the honest bottom line)
 
 1. **Are buyers near their frontier under our mechanism?** **Yes, when it is
-   attested — exactly at it (regret 0).** The buyer's-agent surplus is the most
-   reachable, not the seller's leftover generosity. Without attestation a
+   attested — exactly at it (regret 0), and the mechanism ENFORCES it.**
+   Attestation = a verified-true disclosure, so an attested report can only be
+   honest; a lying policy under attestation is forced to send the truth and
+   cannot beat the honest frontier (regression-tested — true regret ≥ 0 by
+   construction, not by a `max(0,·)` floor). The buyer's-agent surplus is the
+   most reachable, not the seller's leftover generosity. Without attestation a
    truthful agent leaves ~$1.45/buyer on the table, but that residual is
    reachable only by misreporting (the anchoring exploit), and attestation is
    precisely what forecloses it — so the "gap" is the dollar value of the

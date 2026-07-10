@@ -59,6 +59,48 @@ def test_attested_merchant_refuses_unverified():
     assert served_attested > 0                        # honest+attested is served
 
 
+def test_attested_disclosure_is_verified_true():
+    # MECHANISM invariant: an attested disclosure carries the buyer's TRUE
+    # wtp/walk no matter what (lying) policy the agent runs. There is no
+    # "attested lie" — the misreport factor cannot apply under attestation.
+    pop = draw_vend_population(20260710, 100)
+    for b in pop:
+        honest = BuyerAgent(b.uid, b.wtp, b.walk_cost, policy="honest")
+        d_honest = honest.disclose(attested=True)
+        for policy in ("under55", "under40_freewalk", "over130", "honest_freewalk"):
+            liar = BuyerAgent(b.uid, b.wtp, b.walk_cost, policy=policy)
+            d = liar.disclose(attested=True)
+            # attested report == true values == honest's attested report
+            assert d.attested is True
+            assert d.wtp == b.wtp
+            assert d.walk_cost == b.walk_cost
+            assert d.digest() == d_honest.digest()
+
+
+def test_lying_policy_under_attestation_cannot_beat_frontier():
+    # The closed exploit (agent.py:disclose): before the fix, an agent could set
+    # attested=True (which an attested_only merchant trusts) yet still send the
+    # policy's SCALED wtp — an "attested lie" that beat the honest attested
+    # frontier, making true regret negative and only masked to 0 by max(0,·).
+    # Post-fix, attestation forces truth, so a lying policy realizes EXACTLY the
+    # honest outcome and true regret is >= 0 by construction (not by floor).
+    m = VendMerchant.from_vend("m", seed=20260710, day=0, tick=40,
+                               attested_only=True)
+    pop = draw_vend_population(20260710, 300)
+    for b in pop:
+        fr = single_merchant_frontier(b.wtp, b.walk_cost, m, attested=True)
+        honest = BuyerAgent(b.uid, b.wtp, b.walk_cost, policy="honest")
+        _, honest_real, _ = honest.negotiate(m, attested=True)
+        for policy in ("under55", "under40_freewalk", "over130"):
+            liar = BuyerAgent(b.uid, b.wtp, b.walk_cost, policy=policy)
+            _, realized, _ = liar.negotiate(m, attested=True)
+            # (a) true regret >= 0: the lie cannot beat the attested frontier
+            #     (1e-6 tolerance absorbs the frontier's 6-decimal rounding)
+            assert realized <= fr.surplus + 1e-6
+            # (b) the lie gains NOTHING: it collapses onto the honest outcome
+            assert abs(realized - honest_real) < 1e-9
+
+
 def test_toy_path_no_vend():
     # The whole regret machinery runs with zero vend dependency.
     m = toy_merchant("toy", near_expiry_skus=("sandwich",))
