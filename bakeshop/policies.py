@@ -42,8 +42,8 @@ from dataclasses import dataclass, field
 
 from bakeshop.world import (QTY_CAP, TICKS_PER_HOUR, BakeshopConfig,
                             Consumer, DEFAULT_CONFIG, ShopState, Venue,
-                            best_board_basket, is_spike_day, ladder,
-                            outside_surplus, sf)
+                            arrivals_at, base_plan, best_board_basket,
+                            is_spike_day, ladder, outside_surplus, sf)
 
 PRICE_RUNGS = 8
 N_GRID = 24
@@ -425,3 +425,131 @@ def nego_quote(state: ShopState, venue: Venue, consumer: Consumer,
     return Deal(lines=ls, price=p, value=round(val, 4),
                 list_value=round(listv, 2), u_shop=u_s, d_shop=d_s,
                 u_buyer=val - p, d_buyer=d_b, why=tuple(why))
+
+
+# ── regime/1: the pre-registered regime-switching broker ─────────────────
+# CRITICAL-ANALYSIS §9 action (a): "the broker should detect flood/
+# clearance regimes (learned arrival pressure vs stock) and fall back to
+# its own posted-markdown mode — the mechanism containing the posted board
+# as a special case is strictly stronger than either alone; pre-registered
+# prediction: a regime-switching arm weakly dominates both at the
+# florist." The detector below sees ONLY what a real shopkeeper sees —
+# today's foot traffic so far, the current shelf, and the shop's own
+# delivery calendar — never `is_spike_day` and never the hidden day-shock
+# multiplier. That is the no-oracle constraint: computed/1 and nego/1 are
+# already handed the event calendar as "public knowledge" (see world.py);
+# regime/1 is deliberately NOT, so a positive result here is a strictly
+# harder claim than either pure arm's.
+FLOOD_ARRIVAL_RATIO = 1.8      # today's arrivals-so-far ≥ 1.8× the
+                               # calendar's OWN seasonal expectation for
+                               # the same elapsed hours -> flood
+CLEARANCE_CYCLE_RATIO = 1.5    # current stock ≥ 1.5× what the shop's own
+                               # base plan can sell before the next
+                               # resupply -> clearance
+CLEARANCE_AGED_FRACTION = 0.45 # ≥ 45% of current stock sitting in a tier
+                               # whose WTP has fallen below AGED_WTP_FRAC
+                               # of fresh -> clearance (catches a mid-week
+                               # quality-tier glut even when total stock
+                               # is in line with the delivery cycle)
+AGED_WTP_FRAC = 0.75           # a (sku, age) cell counts as "aged" once
+                               # its fresh_mult drops below this share
+ARRIVAL_PRIOR_COUNT = 2.0      # Bayesian shrinkage pseudo-count so one
+                               # early arrival can't swing the ratio
+                               # before there is enough same-day signal
+
+
+def flood_pressure(venue: Venue, master_seed: int, cfg: BakeshopConfig,
+                   day: int, tick: int) -> float:
+    """OWN observable state, no oracle: realized arrivals from open to now
+    TODAY, over the ticks that have already happened, ÷ the shop's own
+    seasonal calendar expectation for those same elapsed ticks (the base
+    hourly rate ONLY — never `is_spike_day`, never the hidden day-shock
+    multiplier). Shrunk toward 1.0 with a small prior pseudo-count."""
+    realized = sum(arrivals_at(venue, master_seed, day, t, cfg)
+                   for t in range(tick + 1))
+    expected = sum(venue.rate_at(t) / TICKS_PER_HOUR for t in range(tick + 1))
+    k = ARRIVAL_PRIOR_COUNT
+    return (realized + k) / (expected + k)
+
+
+def clearance_pressure(state: ShopState, venue: Venue) -> tuple:
+    """OWN learned state, two signals, either one enough to call it a
+    clearance regime: (a) current total stock ÷ (days left until the next
+    resupply × the shop's own base plan's expected daily sell-through at
+    list) — will the shelf clear on the calendar's own pace; (b) the SHARE
+    of current stock already sitting in an aged (WTP-degraded) tier — a
+    quality-tier glut that can appear mid-cycle, independent of the
+    delivery clock (the flower-shop finding: "mid-week the whole store is
+    aged inventory"). Daily-bake venues (delivery_every=1) resupply every
+    morning, so signal (a) is 0 by construction there; signal (b) still
+    applies (a real overbake glut IS a same-day clearance problem)."""
+    cells = state.cells()
+    total = sum(state.stock(s, a) for s, a in cells)
+    aged = sum(state.stock(s, a) for s, a in cells
+              if venue.item(s).fresh_mults[a] < AGED_WTP_FRAC)
+    aged_frac = aged / total if total > 0 else 0.0
+    if venue.delivery_every <= 1:
+        return 0.0, aged_frac
+    days_left = venue.delivery_every - (state.day % venue.delivery_every)
+    expected_daily = sum(base_plan(venue.name).values())
+    cycle_ratio = total / max(1e-6, days_left * expected_daily)
+    return cycle_ratio, aged_frac
+
+
+def detect_regime(state: ShopState, venue: Venue, master_seed: int,
+                  cfg: BakeshopConfig,
+                  flood_ratio: float = FLOOD_ARRIVAL_RATIO,
+                  clearance_ratio: float = CLEARANCE_CYCLE_RATIO,
+                  aged_fraction: float = CLEARANCE_AGED_FRACTION) -> str:
+    """"flood" | "clearance" | "hetero" — the broker's own regime call."""
+    if flood_pressure(venue, master_seed, cfg, state.day, state.tick) \
+            >= flood_ratio:
+        return "flood"
+    cycle_ratio, aged_frac = clearance_pressure(state, venue)
+    if cycle_ratio >= clearance_ratio or aged_frac >= aged_fraction:
+        return "clearance"
+    return "hetero"
+
+
+@dataclass
+class RegimePolicy:
+    """regime/1 — switches between two already-registered mechanisms on
+    its OWN detected regime (see `detect_regime`): flood/clearance -> post
+    ComputedPolicy's age-aware board, no bilateral channel, no buffer (the
+    H-B3 spike-day lesson AND the "whole board is a markdown problem"
+    florist lesson are the same lesson: TIME is the only variable, buyers
+    are interchangeable, splitting surplus is pure loss); hetero -> full
+    NegoPolicy bilateral Nash (buyer heterogeneity is the scarce
+    information there, so bargaining earns its keep). Falls back to the
+    control board when nego finds no mutual gain, exactly like nego/1 —
+    "never worse UX than the culture" is inherited, not re-derived."""
+    policy_id: str = "regime/1"
+    mode: str = "nego"                  # participates in run_day's nego branch
+    flood_ratio: float = FLOOD_ARRIVAL_RATIO
+    clearance_ratio: float = CLEARANCE_CYCLE_RATIO
+    aged_fraction: float = CLEARANCE_AGED_FRACTION
+    _computed: ComputedPolicy = field(default_factory=ComputedPolicy)
+    _nego: NegoPolicy = field(default_factory=NegoPolicy)
+    _last_regime: str = "hetero"        # diagnostics/tests only
+
+    def regime(self, state: ShopState, venue: Venue, master_seed: int,
+              cfg: BakeshopConfig) -> str:
+        r = detect_regime(state, venue, master_seed, cfg,
+                          self.flood_ratio, self.clearance_ratio,
+                          self.aged_fraction)
+        self._last_regime = r
+        return r
+
+    def board(self, state: ShopState, venue: Venue, master_seed: int,
+              cfg: BakeshopConfig) -> dict[tuple[str, int], float]:
+        if self.regime(state, venue, master_seed, cfg) in ("flood",
+                                                            "clearance"):
+            return self._computed.board(state, venue, master_seed, cfg)
+        return control_board(state, venue)
+
+    def quote_for(self, state: ShopState, venue: Venue, consumer: Consumer,
+                  master_seed: int, cfg: BakeshopConfig) -> Deal | None:
+        if self.regime(state, venue, master_seed, cfg) in ("flood",
+                                                            "clearance"):
+            return None              # posted-only: no bilateral, no buffer
+        return self._nego.quote_for(state, venue, consumer, master_seed, cfg)

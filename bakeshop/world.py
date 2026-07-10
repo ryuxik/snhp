@@ -94,6 +94,10 @@ class Venue:
     outside_markup: float
     walk_lo: float
     walk_hi: float
+    receiving_loss: float = 0.0   # fraction of each delivery culled as
+                                   # damaged/unsellable BEFORE any policy
+                                   # sees it — a pricing-independent shrink
+                                   # floor (CRITICAL-ANALYSIS §9 fix)
 
     @property
     def ticks_per_day(self) -> int:
@@ -190,24 +194,58 @@ def _build_bakery() -> Venue:
         walk_lo=cal.BAKERY_WALK[0], walk_hi=cal.BAKERY_WALK[1])
 
 
-def _build_flowers() -> Venue:
-    hours = sorted(cal.FLOWER_HOURLY_RATE)
-    w = [cal.FLOWER_HOURLY_RATE[h] for h in hours]
-    tot = sum(w)
-    weights = [x / tot for x in w]
-    mults = [cal.FLOWER_HOURLY_WTP[h] for h in hours]
+def markdown_ladder(display_days: int, life: int,
+                    steps: tuple = None) -> tuple:
+    """Quality-tiered cultural markdown ladder: full price through
+    `display_days` (the retail display life), then `steps` graduated
+    discount tiers spread evenly across the remaining vase-life-with-care
+    days — a florist marks down in stages as stock visibly ages, never in
+    one day-4 cliff. Returns a `life`-long tuple of price fractions."""
+    if steps is None:
+        steps = cal.FLOWER_MARKDOWN_STEPS
+    n_post = max(1, life - display_days)
+    fracs = []
+    for a in range(life):
+        if a < display_days:
+            fracs.append(1.0)
+        else:
+            idx = min(len(steps) - 1, (a - display_days) * len(steps) // n_post)
+            fracs.append(steps[idx])
+    return tuple(fracs)
+
+
+def _flower_items(catalog, weights, mults, ladder_fn) -> list:
     items = []
-    for sku, lp, cost, att, life in cal.FLOWER_CATALOG:
+    for row in catalog:
+        sku, lp, cost, att = row[0], row[1], row[2], row[3]
+        life = row[-1]
         # age-linear decay: a day-a stem has (life − a) of its vase days
         # left — the buyer values exactly the remaining fraction
         fresh = tuple(round((life - a) / life, 6) for a in range(life))
-        fracs = tuple(1.0 if a < cal.FLOWER_DUMP_AGE else cal.FLOWER_DUMP_FRAC
-                      for a in range(life))
+        fracs = ladder_fn(row, life)
         items.append(Item(
             sku=sku, list_price=lp, unit_cost=cost, attention=att, life=life,
             fresh_mults=fresh, control_fracs=fracs,
             appeal=_appeal_for_list(lp, cost, cal.FLOWER_WTP_SIGMA,
                                     weights, mults)))
+    return items
+
+
+def _flower_weights_mults():
+    hours = sorted(cal.FLOWER_HOURLY_RATE)
+    w = [cal.FLOWER_HOURLY_RATE[h] for h in hours]
+    tot = sum(w)
+    weights = [x / tot for x in w]
+    mults = [cal.FLOWER_HOURLY_WTP[h] for h in hours]
+    return weights, mults
+
+
+def _build_flowers() -> Venue:
+    weights, mults = _flower_weights_mults()
+    # catalog rows: (sku, list_price, unit_cost, attention, display_days, life)
+    items = _flower_items(
+        cal.FLOWER_CATALOG, weights, mults,
+        lambda row, life: markdown_ladder(row[4], life))
     return Venue(
         name="flowers", items=tuple(items),
         open_hour=cal.FLOWER_OPEN, close_hour=cal.FLOWER_CLOSE,
@@ -219,7 +257,35 @@ def _build_flowers() -> Venue:
         minibake_hour=None, minibake_trigger=0.0, minibake_frac=0.0,
         spike_mult=cal.FLOWER_SPIKE_MULT, supply_cap=cal.FLOWER_SUPPLY_CAP,
         outside_markup=cal.FLOWER_OUTSIDE_MARKUP,
-        walk_lo=cal.FLOWER_WALK[0], walk_hi=cal.FLOWER_WALK[1])
+        walk_lo=cal.FLOWER_WALK[0], walk_hi=cal.FLOWER_WALK[1],
+        receiving_loss=cal.FLOWER_RECEIVING_LOSS)
+
+
+def _build_flowers_legacy() -> Venue:
+    """The pre-2026-07-10 calibration (3/4/5-day hard cutoff, flat
+    single-cliff dump at day 4, no receiving loss) — kept ONLY as a
+    labeled "low-volume independent florist" comparison cell
+    (CALIBRATION-TARGETS §3); not the headline calibration."""
+    weights, mults = _flower_weights_mults()
+
+    def ladder(row, life):
+        return tuple(1.0 if a < cal.FLOWER_DUMP_AGE_LEGACY
+                     else cal.FLOWER_DUMP_FRAC_LEGACY for a in range(life))
+
+    items = _flower_items(cal.FLOWER_CATALOG_LEGACY, weights, mults, ladder)
+    return Venue(
+        name="flowers-legacy", items=tuple(items),
+        open_hour=cal.FLOWER_OPEN, close_hour=cal.FLOWER_CLOSE,
+        hourly_rate=tuple(sorted(cal.FLOWER_HOURLY_RATE.items())),
+        hourly_wtp=tuple(sorted(cal.FLOWER_HOURLY_WTP.items())),
+        wtp_sigma=cal.FLOWER_WTP_SIGMA, qty_decay=cal.FLOWER_QTY_DECAY,
+        aged_pull_hour=None,
+        overproduce=1.0, delivery_every=cal.FLOWER_DELIVERY_EVERY,
+        minibake_hour=None, minibake_trigger=0.0, minibake_frac=0.0,
+        spike_mult=cal.FLOWER_SPIKE_MULT, supply_cap=cal.FLOWER_SUPPLY_CAP,
+        outside_markup=cal.FLOWER_OUTSIDE_MARKUP,
+        walk_lo=cal.FLOWER_WALK[0], walk_hi=cal.FLOWER_WALK[1],
+        receiving_loss=0.0)
 
 
 _VENUES: dict[str, Venue] = {}
@@ -228,7 +294,8 @@ _VENUES: dict[str, Venue] = {}
 def get_venue(name: str) -> Venue:
     if name not in _VENUES:
         _VENUES[name] = {"bakery": _build_bakery,
-                         "flowers": _build_flowers}[name]()
+                         "flowers": _build_flowers,
+                         "flowers-legacy": _build_flowers_legacy}[name]()
     return _VENUES[name]
 
 
@@ -399,6 +466,11 @@ class ShopState:
     day: int = 0
     tick: int = 0
     lots: list = field(default_factory=list)
+    # receiving-loss units/cost culled at delivery, BEFORE any policy sees
+    # the stock — flushed into the day's waste totals at end_of_day (never
+    # a live, sellable cell; see begin_day / end_of_day)
+    pending_waste_units: int = 0
+    pending_waste_cost: float = 0.0
 
     def stock(self, sku: str, age: int) -> int:
         return sum(l.quantity for l in self.lots
@@ -462,8 +534,14 @@ def begin_day(state: ShopState, venue: Venue, master_seed: int,
     overbake, ×min(spike_mult, supply_cap) on a public event day. Florist
     (delivery_every=7): on delivery days order min(life, 7) days of the
     fresh plan per SKU; on event days a special drop of ×min(spike, cap)
-    one day's plan arrives fresh (the Valentine's truck). Returns
-    (today's morning quantities, produced units, produced cost $)."""
+    one day's plan arrives fresh (the Valentine's truck). If
+    `venue.receiving_loss` > 0, a Binomial(qty, receiving_loss) share of
+    EVERY delivery is culled as damaged/unsellable right here — before any
+    policy ever sees the stock, so it is a pricing-independent shrink
+    floor, booked into `state.pending_waste_*` for end_of_day to collect.
+    Returns (today's morning SELLABLE quantities, produced units [incl.
+    culled], produced cost $ [incl. culled — the wholesale bill is sunk
+    regardless])."""
     plan = base_plan(venue.name)
     spike = is_spike_day(master_seed, state.day, cfg)
     morning: dict[str, int] = {it.sku: 0 for it in venue.items}
@@ -483,9 +561,19 @@ def begin_day(state: ShopState, venue: Venue, master_seed: int,
                                             state.day, it.sku,
                                             cfg.sigma_miscal)))
         if qty > 0:
-            state.lots.append(Lot(sku=it.sku, quantity=qty,
-                                  baked_day=state.day))
-            morning[it.sku] = qty
+            culled = 0
+            if venue.receiving_loss > 0:
+                rng = np.random.default_rng(
+                    substream(master_seed, "recvloss", state.day, it.sku))
+                culled = int(rng.binomial(qty, venue.receiving_loss))
+            sellable = qty - culled
+            if sellable > 0:
+                state.lots.append(Lot(sku=it.sku, quantity=sellable,
+                                      baked_day=state.day))
+                morning[it.sku] = sellable
+            if culled > 0:
+                state.pending_waste_units += culled
+                state.pending_waste_cost += culled * it.unit_cost
             produced += qty
             cost += qty * it.unit_cost
     return morning, produced, round(cost, 2)
@@ -516,8 +604,13 @@ def maybe_minibake(state: ShopState, venue: Venue,
 def end_of_day(state: ShopState, venue: Venue) -> dict:
     """Close: lots on their last sellable day become waste AT COST (no
     salvage channel — day-old croissants past the shelf go to the bin,
-    dead stems to the compost). Everything else ages one day."""
-    waste_units, waste_cost = 0, 0.0
+    dead stems to the compost). Everything else ages one day. Any
+    receiving-loss units culled this morning (state.pending_waste_*) are
+    folded into today's waste totals here and the pending counters reset."""
+    waste_units = state.pending_waste_units
+    waste_cost = state.pending_waste_cost
+    state.pending_waste_units = 0
+    state.pending_waste_cost = 0.0
     keep = []
     for l in state.lots:
         if l.quantity <= 0:

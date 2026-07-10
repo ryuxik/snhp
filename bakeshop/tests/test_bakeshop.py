@@ -7,8 +7,9 @@ held at list on event days)."""
 import pytest
 
 from bakeshop.policies import (ComputedPolicy, ControlPolicy, NegoPolicy,
-                               MIN_GAIN_ABS, MIN_GAIN_FRAC, control_board,
-                               nego_quote)
+                               RegimePolicy, MIN_GAIN_ABS, MIN_GAIN_FRAC,
+                               clearance_pressure, control_board,
+                               detect_regime, flood_pressure, nego_quote)
 from bakeshop.run import ARMS, run_day, run_experiment
 from bakeshop.world import (BakeshopConfig, Consumer, DEFAULT_CONFIG, Lot,
                             ShopState, arrivals_at, begin_day, bundle_value,
@@ -108,10 +109,12 @@ def test_freshness_tier_wtp_math(bakery, flowers):
     assert bundle_value(bakery, c, [("croissant", 1, 2),
                                     ("cake-slice", 0, 1)]) == \
         pytest.approx(4.0 * 0.55 * 1.55 + 6.0)
-    roses = flowers.item("dozen-roses")           # vase life 5: linear
-    assert list(roses.fresh_mults) == pytest.approx([1.0, 0.8, 0.6, 0.4, 0.2])
-    stems = flowers.item("stems")                 # vase life 3
-    assert list(stems.fresh_mults) == pytest.approx([1.0, 2 / 3, 1 / 3])
+    roses = flowers.item("dozen-roses")    # vase life with care = 9: linear
+    assert list(roses.fresh_mults) == pytest.approx(
+        [1.0, 8 / 9, 7 / 9, 6 / 9, 5 / 9, 4 / 9, 3 / 9, 2 / 9, 1 / 9], abs=1e-5)
+    stems = flowers.item("stems")          # vase life with care = 6
+    assert list(stems.fresh_mults) == pytest.approx(
+        [1.0, 5 / 6, 4 / 6, 3 / 6, 2 / 6, 1 / 6], abs=1e-5)
 
 
 # ── the cultural control, honestly implemented ───────────────────────────
@@ -131,38 +134,58 @@ def test_day_old_shelf_timing_in_control(bakery):
     assert board[("croissant", 0)] == 4.75
 
 
-def test_flower_dump_calendar_and_its_blindness(flowers):
-    """Full price until day 4 of vase life, then −70% — one shop-wide rule.
-    Stems (3-day life) die before the dump day ever reaches them: the
-    calendar's blindness, implemented faithfully."""
-    state = ShopState("flowers", day=4)
-    state.lots = [Lot("bouquet", 5, baked_day=1),      # age 3: dump day
-                  Lot("dozen-roses", 5, baked_day=2),  # age 2: full price
-                  Lot("stems", 5, baked_day=2)]        # age 2: last day alive
+def test_flower_markdown_ladder_is_graduated_not_a_cliff(flowers):
+    """CRITICAL-ANALYSIS §9 fix: full price through the RETAIL DISPLAY LIFE
+    (the old 3/4/5-day numbers, relabeled), then a THREE-step graduated
+    markdown ladder across the rest of VASE LIFE WITH CARE (5-14 days) —
+    not one day-4 cliff. Extending vase life also closes the old
+    blindness: stems (display life 3) used to die before ever reaching
+    the dump; at vase life 6 they now walk the whole ladder."""
+    bouquet = flowers.item("bouquet")          # display 4, vase life 7
+    assert bouquet.control_fracs[:4] == (1.0, 1.0, 1.0, 1.0)
+    assert bouquet.control_fracs[4:] == (0.75, 0.5, 0.3)   # graduated steps
+    roses = flowers.item("dozen-roses")        # display 5, vase life 9
+    assert roses.control_fracs[:5] == (1.0,) * 5
+    assert len(set(roses.control_fracs[5:])) > 1    # more than one tier
+    assert roses.control_fracs[-1] == pytest.approx(0.3)
+    stems = flowers.item("stems")              # display 3, vase life 6
+    assert stems.control_fracs[:3] == (1.0, 1.0, 1.0)
+    assert stems.control_fracs[3:] == (0.75, 0.5, 0.3)    # reaches the ladder now
+
+    state = ShopState("flowers", day=6)
+    state.lots = [Lot("bouquet", 5, baked_day=0),      # age 6: deepest tier
+                  Lot("dozen-roses", 5, baked_day=2),  # age 4: still display life
+                  Lot("stems", 5, baked_day=1)]        # age 5: deepest tier
     board = control_board(state, flowers)
-    assert board[("bouquet", 3)] == pytest.approx(28.0 * 0.30)
-    assert board[("dozen-roses", 2)] == 95.0
-    assert board[("stems", 2)] == 4.0              # never discounted
-    stems = flowers.item("stems")
-    assert all(f == 1.0 for f in stems.control_fracs)
+    assert board[("bouquet", 6)] == pytest.approx(28.0 * 0.30)
+    assert board[("dozen-roses", 4)] == 95.0
+    assert board[("stems", 5)] == pytest.approx(4.0 * 0.30)
 
 
 def test_flowers_weekly_cycle_and_stem_death(flowers):
-    """Weekly wholesale delivery: stock arrives day 0 only; stems (3-day
-    vase life) are waste by the end of day 2 — at cost."""
+    """Weekly wholesale delivery: stock arrives day 0 only (net of the
+    receiving-loss cull, flushed as waste at the FIRST close); stems (vase
+    life with care = 6 days, the old hard 3-day cutoff relabeled as
+    display life) are waste at the close of day 5 → day 6 — at cost."""
     state = ShopState("flowers")
-    begin_day(state, flowers, 7)
+    morning, pu, _ = begin_day(state, flowers, 7)
     stems0 = state.stock("stems", 0)
     assert stems0 > 0
-    w0 = end_of_day(state, flowers)                # day 0 → 1
-    assert w0["waste_units"] == 0
-    m1, pu1, _ = begin_day(state, flowers, 7)      # day 1: no delivery
-    assert pu1 == 0
-    end_of_day(state, flowers)                     # day 1 → 2
-    w2 = end_of_day(state, flowers)                # day 2 → 3: stems die
-    assert w2["waste_units"] >= stems0
-    assert w2["waste_cost"] >= stems0 * flowers.item("stems").unit_cost - 1e-6
-    assert state.stock("stems", 3) == 0
+    assert stems0 == morning["stems"]              # morning IS the sellable count
+    culled0 = pu - sum(morning.values())
+    assert culled0 > 0                             # receiving loss actually fires
+    w0 = end_of_day(state, flowers)                # day 0 → 1: the cull only
+    assert w0["waste_units"] == culled0
+    for _ in range(1, 5):                          # days 1..4: no delivery,
+        _, pu_d, _ = begin_day(state, flowers, 7)  # nothing old enough to die
+        assert pu_d == 0
+        w = end_of_day(state, flowers)
+        assert w["waste_units"] == 0
+    begin_day(state, flowers, 7)                   # day 5: still no delivery
+    w6 = end_of_day(state, flowers)                # day 5 → 6: stems (life 6) die
+    assert w6["waste_units"] >= stems0
+    assert w6["waste_cost"] >= stems0 * flowers.item("stems").unit_cost - 1e-6
+    assert state.stock("stems", 6) == 0
 
 
 # ── discount-only, everywhere ────────────────────────────────────────────
@@ -262,8 +285,14 @@ def test_nego_bundles_convert_the_sub_list_second_item(bakery):
 def test_event_day_sellout_behavior(flowers):
     """On a spike day (public, ×6 demand vs ×2-capped supply) scarcity is
     real: computed holds every fresh cell at list, nego finds nothing to
-    negotiate with a rich buyer, and a spiked week wastes far less than a
-    calm one (sellout leaves nothing to die)."""
+    negotiate with a rich buyer, and the flood is real — a spike day moves
+    far more volume than a calm one through the SAME control board.
+    (The old "spiked WEEK wastes less than a calm week" comparison doesn't
+    hold cleanly any more now that vase life with care spans most of the
+    delivery cycle — a week of spike_prob=1.0 means a big daily drop
+    layered on top of carried-forward stock every day, so late-week
+    pileup can outweigh the single-day scarcity effect; the single-day
+    claim below is the one CRITICAL-ANALYSIS §9 actually rests on.)"""
     spike = BakeshopConfig(spike_prob=1.0)
     state = ShopState("flowers", day=3)           # mid-week: only the
     begin_day(state, flowers, 7, spike)           # ×2-capped drop lands
@@ -272,14 +301,13 @@ def test_event_day_sellout_behavior(flowers):
     assert board[("bouquet", 0)] == 28.0
     assert board[("dozen-roses", 0)] == 95.0
     assert nego_quote(state, flowers, _rich(flowers), 7, spike) is None
-    # spiked weeks waste less than calm weeks under the same control
+    # the flood is real: a spike day moves far more units than a calm one
     calm = BakeshopConfig(spike_prob=0.0)
-    waste = {}
-    for name, cfg in (("spike", spike), ("calm", calm)):
-        st = ShopState("flowers")
-        waste[name] = sum(run_day(ControlPolicy(), st, flowers, 5, d, cfg)
-                          ["waste_cost"] for d in range(7))
-    assert waste["spike"] < 0.5 * waste["calm"]
+    spike_units = run_day(ControlPolicy(), ShopState("flowers"), flowers,
+                          5, 0, spike)["units"]
+    calm_units = run_day(ControlPolicy(), ShopState("flowers"), flowers,
+                         5, 0, calm)["units"]
+    assert spike_units > 3 * calm_units
 
 
 def test_spike_supply_is_capped_not_scaled(flowers):
@@ -293,6 +321,140 @@ def test_spike_supply_is_capped_not_scaled(flowers):
     expect = sum(round(plan[it.sku] * 2.0) for it in flowers.items)
     assert abs(pu - expect) <= 3
     assert pu < 3.0 * sum(plan.values())
+
+
+# ── CRITICAL-ANALYSIS §9 Part 1: realized dollar shrink recalibration ────
+
+def test_receiving_loss_fires_and_is_paired_across_arms(flowers):
+    """The receiving-loss cull (CALIBRATION-TARGETS §3 fix) happens in
+    begin_day, before any policy sees the stock — it must fire (not a
+    no-op) and be IDENTICAL across two independent states given the same
+    seed (paired, like every other production draw)."""
+    s1, s2 = ShopState("flowers"), ShopState("flowers")
+    m1, pu1, _ = begin_day(s1, flowers, 7)
+    m2, pu2, _ = begin_day(s2, flowers, 7)
+    assert m1 == m2 and pu1 == pu2
+    assert pu1 > sum(m1.values())          # some of what was ordered was culled
+    assert s1.pending_waste_units == s2.pending_waste_units > 0
+    assert s1.pending_waste_cost == pytest.approx(s2.pending_waste_cost)
+
+
+def test_computed_realized_dollar_shrink_lands_in_the_ifpa_band():
+    """CRITICAL-ANALYSIS §9 / CALIBRATION-TARGETS §3: after the shrink
+    recalibration, the age-aware POSTED arm's own realized dollar shrink
+    (waste $ ÷ dollars handled) should land near the IFPA floral-shrink
+    target (~9-12%), not the ~0-2% an omniscient-demand pricer reaches
+    with zero receiving loss, and not the old ~30-50%+ dump-driven number
+    either. Checked at the grid's two miscalibration cells, calm days."""
+    flowers = get_venue("flowers")
+    for sigma in (0.15, 0.35):
+        cfg = BakeshopConfig(sigma_miscal=sigma, spike_prob=0.0)
+        policy = ComputedPolicy()
+        state = ShopState("flowers")
+        revenue = waste = 0.0
+        for d in range(30):
+            m = run_day(policy, state, flowers, 20260710, d, cfg)
+            revenue += m["revenue"]
+            waste += m["waste_cost"]
+        shrink = waste / (revenue + waste)
+        assert 0.06 <= shrink <= 0.15, (sigma, shrink)
+
+
+def test_legacy_flower_calibration_still_available_and_labeled():
+    """The old (pre-recalibration) 3/4/5-day hard-cutoff florist is kept
+    as a labeled 'low-volume independent' comparison cell, not deleted."""
+    legacy = get_venue("flowers-legacy")
+    assert legacy.receiving_loss == 0.0
+    assert legacy.item("bouquet").life == 4          # the old hard cutoff
+    assert legacy.item("stems").control_fracs == (1.0, 1.0, 1.0)  # never
+                                                        # reaches the dump
+
+
+# ── CRITICAL-ANALYSIS §9 Part 2: the regime/1 detector ───────────────────
+
+def test_flood_detector_fires_on_synthetic_flood_not_on_normal_day(flowers):
+    """The no-oracle constraint, exercised directly: `flood_pressure` sees
+    only realized arrivals-so-far and the shop's own seasonal calendar —
+    never `is_spike_day`. It must clear the flood threshold on an actual
+    ×6 spike day and stay well under it on an ordinary day, at the same
+    (day, tick)."""
+    calm = BakeshopConfig(sigma_miscal=0.15, spike_prob=0.0)
+    spike = BakeshopConfig(sigma_miscal=0.15, spike_prob=1.0)
+    from bakeshop.policies import FLOOD_ARRIVAL_RATIO
+    for tick in (2, 4, 8, 14):
+        p_calm = flood_pressure(flowers, 20260710, calm, 3, tick)
+        p_spike = flood_pressure(flowers, 20260710, spike, 3, tick)
+        assert p_calm < FLOOD_ARRIVAL_RATIO, (tick, p_calm)
+        assert p_spike >= FLOOD_ARRIVAL_RATIO, (tick, p_spike)
+        assert p_spike > 2 * p_calm
+
+
+def test_clearance_detector_fires_on_a_synthetic_glut(flowers):
+    """`clearance_pressure`'s aged-fraction signal: a shelf that is mostly
+    old stock reads as a glut regardless of the delivery calendar."""
+    state = ShopState("flowers", day=5)
+    state.lots = [Lot("bouquet", 2, baked_day=5),        # fresh (age 0)
+                  Lot("bouquet", 20, baked_day=0)]        # age 5: deep in
+                                                           # the markdown ladder
+    cycle_ratio, aged_frac = clearance_pressure(state, flowers)
+    assert aged_frac > 0.85
+    from bakeshop.policies import CLEARANCE_AGED_FRACTION
+    assert aged_frac >= CLEARANCE_AGED_FRACTION
+    cfg = BakeshopConfig()
+    assert detect_regime(state, flowers, 7, cfg) in ("clearance", "flood")
+
+
+def test_regime_matches_posted_behavior_during_a_detected_flood(flowers):
+    """Mechanism pin: once regime/1 calls "flood" or "clearance", it must
+    behave EXACTLY like computed/1 (same board) and refuse the bilateral
+    channel entirely (no buffer, no negotiated discount) — "post its own
+    markdown board (no bilateral, no buffer)", not a blend."""
+    spike = BakeshopConfig(sigma_miscal=0.15, spike_prob=1.0)
+    state = ShopState("flowers", day=3)
+    begin_day(state, flowers, 7, spike)
+    state.tick = 8
+    policy = RegimePolicy()
+    regime = policy.regime(state, flowers, 7, spike)
+    assert regime == "flood"
+    assert policy.board(state, flowers, 7, spike) == \
+        ComputedPolicy().board(state, flowers, 7, spike)
+    rich = _rich(flowers)
+    assert policy.quote_for(state, flowers, rich, 7, spike) is None
+
+
+def test_regime_matches_nego_behavior_in_hetero_conditions(bakery):
+    """When neither flood nor clearance pressure is detected, regime/1
+    must delegate to nego/1's bilateral quote exactly (same Deal) —
+    verified at the bakery, where clearance never fires by construction
+    (daily bake) and the calm-day arrival rate stays well under the flood
+    ratio."""
+    state = _baked_state("bakery", seed=23)
+    state.tick = 10
+    calm = DEFAULT_CONFIG
+    policy = RegimePolicy()
+    assert policy.regime(state, bakery, 23, calm) == "hetero"
+    c = _rich(bakery, scale=0.9)
+    regime_deal = policy.quote_for(state, bakery, c, 23, calm)
+    nego_deal = nego_quote(state, bakery, c, 23, calm)
+    assert regime_deal == nego_deal
+    assert policy.board(state, bakery, 23, calm) == control_board(state, bakery)
+
+
+def test_regime_bakery_calm_cells_are_byte_identical_to_nego():
+    """The pre-registered spillover check (CRITICAL-ANALYSIS §9(a)): at
+    the bakery, clearance pressure never fires (delivery_every=1) and calm
+    days never cross the flood ratio, so regime/1 must be indistinguishable
+    from nego/1 there — 'unchanged', the best-case spillover outcome."""
+    bakery = get_venue("bakery")
+    cfg = BakeshopConfig(sigma_miscal=0.15, spike_prob=0.0)
+    regime_profit, nego_profit = [], []
+    st_r, st_n = ShopState("bakery"), ShopState("bakery")
+    for d in range(10):
+        regime_profit.append(
+            run_day(RegimePolicy(), st_r, bakery, 20260710, d, cfg)["profit"])
+        nego_profit.append(
+            run_day(NegoPolicy(), st_n, bakery, 20260710, d, cfg)["profit"])
+    assert regime_profit == nego_profit
 
 
 # ── machine dynamics ─────────────────────────────────────────────────────

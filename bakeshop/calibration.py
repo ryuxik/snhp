@@ -44,11 +44,21 @@ BAKERY_WALK = (0.5, 2.0)     # $-equivalent hassle of going there instead
 BAKERY_DAILY_ITEMS = 300     # calibration target (units/day under control)
 
 # ── flower shop (Chelsea corner florist, 9:00–19:00) ─────────────────────
-# (sku, list_price $, unit_cost $ wholesale, attention, vase_life_days)
+# CALIBRATION-TARGETS §3 / CRITICAL-ANALYSIS §9 fix (2026-07-10): the old
+# single "3–5 day" field conflated two different real-world numbers —
+# RETAIL DISPLAY LIFE (how long the stock looks full-price-fresh on the
+# shop floor before it visibly needs a markdown) and VASE LIFE WITH CARE
+# (the total usable life, IFPA/floral-trade band 5–14 days). Relabeled:
+# `display_days` keeps the OLD "3/4/5" numbers verbatim (now correctly
+# named); `life` is the new, longer vase-life-with-care cutoff — the item
+# is sellable (at a graduated markdown, not a single day-4 cliff) all the
+# way through it, and only wasted at the true end of vase life.
+# (sku, list_price $, unit_cost $ wholesale, attention,
+#  display_days = retail display life, life = vase life with care)
 FLOWER_CATALOG = [
-    ("bouquet",     28.00, 10.50, 0.50, 4),
-    ("dozen-roses", 95.00, 38.00, 0.12, 5),
-    ("stems",        4.00,  1.30, 0.45, 3),   # single stems, mixed bucket
+    ("bouquet",     28.00, 10.50, 0.50, 4, 7),
+    ("dozen-roses", 95.00, 38.00, 0.12, 5, 9),
+    ("stems",        4.00,  1.30, 0.45, 3, 6),   # single stems, mixed bucket
 ]
 FLOWER_OPEN, FLOWER_CLOSE = 9, 19
 # Lunch browsers and the after-work "grab flowers on the way home" bump.
@@ -62,8 +72,12 @@ FLOWER_HOURLY_WTP = {
 }
 FLOWER_WTP_SIGMA = 0.40      # gift purchases: wider spread than croissants
 FLOWER_QTY_DECAY = 0.65      # a 2nd bunch is for the second vase
-FLOWER_DUMP_AGE = 3          # the CULTURAL practice: on day 4 of vase life
-FLOWER_DUMP_FRAC = 0.30      # ...dump unsold at −70%
+# Quality-tiered markdown ladder (replaces the old single "day 4, flat
+# −70%" cliff): full price through display_days, then THREE graduated
+# discount steps spread evenly across the rest of vase life, bottoming
+# out at the old dump depth on the item's last sellable days — a florist
+# marks down in stages as stock visibly ages, not in one jump.
+FLOWER_MARKDOWN_STEPS = (0.75, 0.50, 0.30)   # −25%, −50%, −70% of list
 FLOWER_DELIVERY_EVERY = 7    # weekly wholesale delivery (day 0, 7, 14, ...)
 FLOWER_SPIKE_MULT = 6.0      # Valentine's-like event day: ×6 arrivals
 FLOWER_SUPPLY_CAP = 2.0      # wholesaler allocation + cooler space: the
@@ -71,3 +85,27 @@ FLOWER_SUPPLY_CAP = 2.0      # wholesaler allocation + cooler space: the
                              # day's plan — ×6 demand meets ×2 supply
 FLOWER_OUTSIDE_MARKUP = 1.20 # delivery apps / the deli's roses: pricier
 FLOWER_WALK = (1.0, 3.0)
+# Receiving loss: floral shrink is not purely a pricing failure — a share
+# of every wholesale delivery arrives damaged/substandard and is culled
+# before it ever reaches the bucket (bent stems, bruised petals, transit
+# breakage — a well-documented floral-industry loss category, distinct
+# from markdown-driven waste). Applied identically to every arm (it fires
+# in `begin_day`, before any policy sees the stock), so it is a genuine
+# floor no pricing skill can sell around. Tuned (CALIBRATION-TARGETS §3,
+# CRITICAL-ANALYSIS §9) so the age-aware POSTED arm's realized dollar
+# shrink lands in the IFPA ballpark (~9–12% of dollars) instead of the
+# ~0–2% an omniscient-demand pricer reaches with zero receiving loss.
+FLOWER_RECEIVING_LOSS = 0.15
+
+# ── legacy flower calibration (pre-2026-07-10), kept for a labeled
+# "low-volume independent florist" comparison cell only — NOT the
+# headline. Old 3/4/5-day hard cutoff, flat single-cliff dump at day 4,
+# no receiving loss (CALIBRATION-TARGETS §3 flagged this combination as
+# defensible only for a low-volume shop, not the calibration target).
+FLOWER_CATALOG_LEGACY = [
+    ("bouquet",     28.00, 10.50, 0.50, 4),
+    ("dozen-roses", 95.00, 38.00, 0.12, 5),
+    ("stems",        4.00,  1.30, 0.45, 3),
+]
+FLOWER_DUMP_AGE_LEGACY = 3
+FLOWER_DUMP_FRAC_LEGACY = 0.30

@@ -174,6 +174,36 @@ tiers) goes in the paper as evidence that cultural pricing practices
 encode real constraints — controls must implement the culture, not a
 caricature of it.
 
+**OUTCOME (2026-07-10, post-registration): prediction REFUTED at the florist.**
+regime/1 (no-oracle detector: realized arrivals-so-far, current stock, own
+delivery calendar — never is_spike_day) never beats computed/1 (negative in
+all 4 cells, CI clear of zero in 2/4) and is indistinguishable from nego/1
+(CI includes zero in all 4). Two measured causes: (1) genuine detection
+latency — on real spike days regime recovers ~75–80% of nego's flood losses
+but still trails posted and even loses to doing nothing; (2) after the shrink
+recalibration (below) computed/1 dominates nego/1 in *every* florist cell, so
+the ~31% of transactions the detector routes to hetero/nego mode is pure
+forgone value, not a real trade-off. Bakery spillover: NOT trigger-happy —
+calm cells byte-identical to nego/1 (CI [0,0]); spike cells a small negative
+point estimate, CI includes zero. **Honest conclusion: a learned regime
+switch cannot beat always-posted at a venue where posted already wins
+outright — the containment idea only pays where the two pure arms genuinely
+trade blows, which the florist, once realistically calibrated, does not.** The
+sharpened boundary (bilateral wins on heterogeneity, posted wins on time)
+stands; the "mechanism contains posted as a special case and weakly
+dominates" claim does not, here.
+
+**Shrink recalibration side-finding (strengthens the boundary):** relabeling
+3–5-day cutoffs as retail *display* life, extending vase life to 6–9 days
+(IFPA band), replacing the −70% day-4 cliff with a graduated markdown ladder,
+and adding a pricing-independent 15% receiving loss brought realized dollar
+shrink to 9.5% (IFPA band). Effect on the computed-vs-nego gap: it did NOT
+shrink — it **more than doubled** (−$15–40/day → −$52–112/day, 2/4 cells now
+significant). The graduated ladder raises nego/1's calendar-recovery
+opportunity-cost floor (tighter buffer, less extractable margin) while
+computed/1, unconstrained by that reference, gets more runway from the longer
+vase life. The florist boundary is more robust at realistic shrink, not less.
+
 ## The meta-pattern
 
 Every real defect found so far is the same defect: **some term in the

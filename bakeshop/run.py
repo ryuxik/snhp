@@ -24,14 +24,18 @@ import sys
 
 import numpy as np
 
-from bakeshop.policies import (ComputedPolicy, ControlPolicy, NegoPolicy)
+from bakeshop.policies import (ComputedPolicy, ControlPolicy, NegoPolicy,
+                               RegimePolicy)
 from bakeshop.world import (BakeshopConfig, DEFAULT_CONFIG, ShopState,
                             arrivals_at, begin_day, best_board_basket,
                             end_of_day, get_venue, is_spike_day,
                             maybe_minibake, outside_surplus,
                             sample_consumer, TICKS_PER_HOUR)
 
-BAKESHOP_VERSION = 1
+BAKESHOP_VERSION = 2   # 2026-07-10: CRITICAL-ANALYSIS §9 fix — floral
+                       # shrink recalibration (receiving loss, quality-
+                       # tiered markdown ladder, extended vase life) +
+                       # the regime/1 regime-switching arm
 
 ARMS = {
     "control": ControlPolicy,
@@ -41,6 +45,7 @@ ARMS = {
     "nego": NegoPolicy,
     "nego-nopairs": lambda: NegoPolicy(policy_id="nego-nopairs/1",
                                        pairs=False),
+    "regime": RegimePolicy,
 }
 
 GRID_SIGMAS = (0.15, 0.35)       # bake/order gut miscalibration
@@ -185,7 +190,8 @@ def run_experiment(arm_names: list[str], venue_name: str, days: int,
     paired = {}
     base = arm_names[0]
     compare = [(name, base) for name in arm_names[1:]]
-    for a, b in (("nego", "computed"), ("nego", "nego-nopairs")):
+    for a, b in (("nego", "computed"), ("nego", "nego-nopairs"),
+                ("regime", "computed"), ("regime", "nego")):
         if a in arm_names and b in arm_names:
             compare.append((a, b))
     for name, ref in compare:
