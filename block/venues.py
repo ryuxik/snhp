@@ -113,6 +113,14 @@ class BlockConfig:
                                   # its negotiated procurement savings into the
                                   # SNHP world's COGS (the flywheel). Off by
                                   # default so B0/B1B2 artifacts stay byte-exact.
+    procurement: str = "static"   # dawn COGS source when wholesale=True:
+                                  # "static"     = WholesaleDawn (the reduced-form
+                                  #                haircut; byte-exact default),
+                                  # "endogenous" = EndogenousDawn (the venue's
+                                  #                ProcurementAgent negotiating —
+                                  #                reproduces "static" to the cent),
+                                  # "flywheel"   = + agent-mediated demand certainty
+                                  #                (S3: variance → lower COGS).
 
 
 def build_block_catalog(cfg: BlockConfig, master_seed: int) -> dict[str, Listing]:
@@ -1195,6 +1203,47 @@ class WholesaleDawn:
     def scale_for(self, world: str, venue: str) -> float:
         """Retail COGS multiplier for `venue` in `world`. Sticker buys the
         rate card (1.0); SNHP inherits the negotiated saving (≤ 1.0)."""
+        if world != "snhp":
+            return 1.0
+        return self.scales.get(venue, 1.0)
+
+
+class EndogenousDawn:
+    """The dawn tier with COGS made ENDOGENOUS (task #64, S2/S3): the per-venue
+    unit-cost multiplier is the OUTCOME of each venue's ProcurementAgent
+    negotiating against its supplier portfolio (the sea of suppliers, sharing
+    the truck's route density in route order), not a static haircut. Drop-in for
+    WholesaleDawn (same `scales` + `scale_for`), keyed on the identical wseed so
+    the two are comparable to the cent.
+
+    Modes:
+      "endogenous"  the base agent-stack negotiation. FAITHFUL: it reproduces
+                    WholesaleDawn's static ratio to the cent (the static haircut
+                    was already a correct reduced form) — the honest S2 result,
+                    so the block re-run does not move.
+      "flywheel"    the 3-tier flywheel (S3): agent-mediated demand certainty
+                    lets the venue commit forward volume, so the supplier sheds
+                    demand variance (noise `noise_flywheel` < the base) and prices
+                    closer to its floor. The venue rationally keeps the BETTER of
+                    the two COGS (a scale that flips to 1.0 under low variance is a
+                    buffer artifact — losing a variance-only deal — not a real COGS
+                    increase), so flywheel_scale = min(endogenous, certain)."""
+
+    def __init__(self, seed: int, days: int, *, mode: str = "endogenous",
+                 noise_flywheel: float = 0.075):
+        from wholesale.block_supply import endogenous_scales
+        weeks = max(2, -(-days // 7))
+        wseed = substream(seed, "wholesale")
+        self.mode = mode
+        self.endogenous = endogenous_scales(wseed, weeks)
+        if mode == "flywheel":
+            certain = endogenous_scales(wseed, weeks, noise=noise_flywheel)
+            self.scales = {v: round(min(self.endogenous[v], certain.get(v, 1.0)), 4)
+                           for v in self.endogenous}
+        else:
+            self.scales = dict(self.endogenous)
+
+    def scale_for(self, world: str, venue: str) -> float:
         if world != "snhp":
             return 1.0
         return self.scales.get(venue, 1.0)

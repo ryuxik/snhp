@@ -508,9 +508,13 @@ def run_twin(days: int, seed: int, cfg: BlockConfig = BlockConfig(),
     # the 6am dawn tier (shared across both worlds — it is itself a paired
     # twin market; each retail world reads its own side, rate card vs
     # negotiated) when any wholesale-served venue is on the block
-    dawn = (WholesaleDawn(seed, days)
-            if cfg.wholesale and any(v in WHOLESALE_SERVED for v in venues)
-            else None)
+    dawn = None
+    if cfg.wholesale and any(v in WHOLESALE_SERVED for v in venues):
+        if cfg.procurement == "static":
+            dawn = WholesaleDawn(seed, days)
+        else:                                  # "endogenous" | "flywheel"
+            from block.venues import EndogenousDawn
+            dawn = EndogenousDawn(seed, days, mode=cfg.procurement)
     worlds = {w: run_world(w, days, seed, cfg, ledger, venues=venues,
                            catalog=catalog, fashion_plan=fashion_plan,
                            dawn=dawn)
@@ -567,6 +571,11 @@ def run_twin(days: int, seed: int, cfg: BlockConfig = BlockConfig(),
                 ledger.block_day_delta(d, "margin") for d in range(days)), 2),
         },
     }
+    # the procurement mode is emitted ONLY when the dawn tier runs, so the
+    # default (wholesale-off) artifacts stay byte-exact against the committed
+    # reproducibility goldens (S2 wiring must not perturb B0/B1B2).
+    if cfg.wholesale:
+        results["config"]["procurement"] = cfg.procurement
     results["meta"] = {"elapsed_s": round(time.perf_counter() - t0, 2)}
     return results, ledger, worlds
 
@@ -612,13 +621,17 @@ def main(argv=None) -> int:
     ap.add_argument("--wholesale", action="store_true",
                     help="run the 6am dawn tier; SNHP world inherits negotiated "
                          "procurement savings on vending/bodega/boba/bakery")
+    ap.add_argument("--procurement", default="static",
+                    choices=("static", "endogenous", "flywheel"),
+                    help="dawn COGS source (with --wholesale): static haircut, "
+                         "endogenous ProcurementAgent, or +demand-certainty flywheel")
     ap.add_argument("--out", default=None)
     args = ap.parse_args(argv)
 
     venues = parse_venues(args.venues)
     cfg = BlockConfig(sigma_cal=args.sigma_cal, anchor_mult=args.anchor_mult,
                       regulars=args.regulars, bodega_adopts=args.bodega_adopts,
-                      wholesale=args.wholesale)
+                      wholesale=args.wholesale, procurement=args.procurement)
     results, ledger, _worlds = run_twin(args.days, args.seed, cfg,
                                         venues=venues)
 

@@ -63,7 +63,16 @@ class BoardItem:
 class Quote:
     """A negotiated quote as the buyer sees it. Carries the merchant-side
     accounting (d_machine / u_machine) so joint-surplus and the monopsony
-    audit can be computed without re-entering the merchant."""
+    audit can be computed without re-entering the merchant.
+
+    The symmetric buyer-side fields (u_buyer / d_buyer) default to 0.0 and are
+    UNUSED on the consumer interface (Vend/Toy merchants never set them, so the
+    consumer path stays byte-identical). They exist for the SUPPLY MIRROR: when
+    a Merchant's value model is not the consumer's linear-decay bundle_value but
+    a newsvendor (a Supplier selling cases to a venue), the adapter carries the
+    buyer/venue-side utility on the Quote — the same rationale as u_machine, so
+    the procurement agent can grade a deal without re-entering the supplier.
+    See wholesale/supply.py (the SupplierMerchant adapter)."""
     merchant_id: str
     sku: str
     qty: int
@@ -73,6 +82,8 @@ class Quote:
     d_machine: float = 0.0    # merchant disagreement margin (sticker counterfactual)
     u_machine: float = 0.0    # merchant margin of THIS outcome
     salvage_floor: float = 0.0
+    u_buyer: float = 0.0      # buyer/venue utility of THIS outcome (supply mirror)
+    d_buyer: float = 0.0      # buyer/venue disagreement utility (supply mirror)
 
     @property
     def total(self) -> float:
@@ -82,6 +93,11 @@ class Quote:
     def machine_gain(self) -> float:
         """Merchant surplus created over its no-deal counterfactual."""
         return self.u_machine - self.d_machine
+
+    @property
+    def buyer_gain(self) -> float:
+        """Buyer/venue surplus created over its no-deal event (supply mirror)."""
+        return self.u_buyer - self.d_buyer
 
 
 @runtime_checkable
