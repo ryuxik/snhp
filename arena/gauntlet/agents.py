@@ -296,7 +296,7 @@ class LLMSeat:
 
     def __init__(self, provider: str, model: str, *, base_url: str | None = None,
                  api_key_env: str | None = None, temperature: float | None = None,
-                 max_retries: int = 2):
+                 max_retries: int = 2, transport_retries: int = 8):
         # temperature defaults to None (provider default): newer Anthropic
         # models reject the param outright ("deprecated for this model")
         self.provider = provider
@@ -304,7 +304,8 @@ class LLMSeat:
         self.base_url = base_url
         self.api_key_env = api_key_env
         self.temperature = temperature
-        self.max_retries = max_retries
+        self.max_retries = max_retries          # format (unparseable-reply) retries
+        self.transport_retries = transport_retries
         self.name = model
         self.format_failures = 0
         self._naive = NaiveSeat()
@@ -340,6 +341,29 @@ class LLMSeat:
             return r.json()["choices"][0]["message"]["content"]
         raise ValueError(f"unknown provider {self.provider!r}")
 
+    def _complete_with_retry(self, system: str, user: str) -> str:
+        # A multi-hour run must survive a brief API incident: transient errors
+        # (rate limit, overload, connection) get exponential backoff — minutes
+        # of patience, not seconds. Hard client errors (bad request, auth,
+        # credits) abort on the first attempt: retrying can't fix them, and we
+        # NEVER fabricate the model's play.
+        delay = 2.0
+        for attempt in range(self.transport_retries + 1):
+            try:
+                return self._complete(system, user)
+            except Exception as e:
+                sc = getattr(e, "status_code", None)
+                if sc is None:
+                    sc = getattr(getattr(e, "response", None), "status_code", None)
+                retryable = sc is None or sc in (408, 409, 429) or sc >= 500
+                if not retryable or attempt == self.transport_retries:
+                    raise RuntimeError(
+                        f"transport failure for {self.model} after "
+                        f"{attempt + 1} attempts: {e}") from e
+                time.sleep(delay)
+                delay = min(delay * 2, 60.0)
+        raise AssertionError("unreachable")
+
     # -- parsing --------------------------------------------------------------
     @staticmethod
     def _parse(text: str, view: SeatView) -> Optional[Action]:
@@ -359,15 +383,10 @@ class LLMSeat:
         system = _SYSTEM.format(role=view.role, n=len(view.issues),
                                 batna=round(BATNA * 100), deadline=view.deadline)
         user = _render_turn(view)
-        last_err = None
         for attempt in range(self.max_retries + 1):
-            try:
-                text = self._complete(system, user)
-                last_err = None
-            except Exception as e:          # transport error — retry with backoff
-                last_err = e
-                time.sleep(1.5 * (attempt + 1))
-                continue
+            # transport failures abort inside the wrapper (patient backoff on
+            # transient errors first); this loop only retries unparseable output
+            text = self._complete_with_retry(system, user)
             action = self._parse(text, view)
             if action is not None:
                 if view.advisor is not None:
@@ -384,12 +403,6 @@ class LLMSeat:
             user = user + ("\n\nYour previous reply was not valid. Reply with ONE "
                            "valid JSON object exactly as specified, options copied "
                            "verbatim from the lists.")
-        if last_err is not None:
-            # transport failure: NEVER fabricate the model's play — a leaderboard
-            # row must be the model or nothing. Abort the run loudly.
-            raise RuntimeError(
-                f"transport failure for {self.model} after "
-                f"{self.max_retries + 1} attempts: {last_err}")
         # persistent FORMAT failure (transport fine, output unparseable): safest
         # legal fallback — repeat my last offer, else the naive baseline's move.
         # Counted per turn and reported on the leaderboard row.
