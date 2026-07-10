@@ -1,7 +1,9 @@
-"""BLOCK B0 tests: conservation laws hold to the float, determinism is
-byte-level, the population stream is world-independent by construction,
-NYC prices flow end-to-end, and the block composes (substitution, rents,
-fairness) instead of just co-locating two sims."""
+"""BLOCK B1/B2 tests: every B0 property holds for FOUR venues —
+conservation laws to the float, byte-level determinism, a world-independent
+population stream, NYC prices end-to-end, and real composition (substitution,
+rents, fairness). B1 adds boba queue conservation on the block; B2 adds
+fashion's week-boundary correctness and the one-buy season; the bodega
+adoption toggle is proven to touch ONLY the SNHP world."""
 import json
 import math
 import time
@@ -11,23 +13,36 @@ import pytest
 
 from block import calibration, population
 from block.ledger import BlockLedger
-from block.runner import run_twin, run_world
-from block.venues import (BlockConfig, BlockRegularPool, BodegaVenue,
-                          VendingVenue, build_block_catalog)
+from block.runner import parse_venues, run_twin, run_world
+from block.venues import (BlockConfig, BlockRegularPool, BobaVenue,
+                          BodegaVenue, FashionVenue, VendingVenue,
+                          build_block_catalog, build_fashion_plan)
+from boba import world as boba_world
 from vend.world import TICKS_PER_DAY, _profit_optimal_list_price, hour_of
 
 SEED = 20260710
 RENTS = {"vending": VendingVenue.rent_per_day,
-         "bodega": BodegaVenue.rent_per_day}
+         "bodega": BodegaVenue.rent_per_day,
+         "boba": BobaVenue.rent_per_day,
+         "fashion": FashionVenue.rent_per_day}
+FOUR = ("vending", "bodega", "boba", "fashion")
 
 
 @pytest.fixture(scope="module")
 def twin3():
-    """One 3-day twin run shared by the accounting tests."""
+    """One 3-day four-venue twin run shared by the accounting tests."""
     return run_twin(days=3, seed=SEED)
 
 
-# ── population: pairing, calibration, personas ───────────────────────────
+@pytest.fixture(scope="module")
+def adopt_pair():
+    """Two 2-day twins differing ONLY in bodega_adopts — the toggle probe."""
+    off = run_twin(days=2, seed=SEED, cfg=BlockConfig())
+    on = run_twin(days=2, seed=SEED, cfg=BlockConfig(bodega_adopts=True))
+    return off, on
+
+
+# ── population: pairing, calibration, personas, lanes ────────────────────
 
 def test_population_stream_is_paired_by_construction():
     """THE twin-worlds guarantee: the stream is a pure function of
@@ -40,35 +55,59 @@ def test_population_stream_is_paired_by_construction():
     assert n > 0
     uids = [s.uid for t in a for s in a[t]]
     assert len(set(uids)) == len(uids)          # stable, distinct identities
+    homes = {s.home for t in a for s in a[t]}
+    assert homes == {"vending", "bodega", "boba", "fashion"}
 
 
 def test_both_worlds_consumed_the_same_arrivals(twin3):
     """End-to-end pairing: the arrival events the two worlds actually
-    processed are identical (uid, persona, home, tick), day by day."""
+    processed are identical (uid, persona, home, tick), day by day.
+    Fashion waiter RETURNS are excluded: whether a waiter comes back next
+    week depends on whether this world's prices converted them — earned
+    divergence, not sampled (every other arrival must match exactly)."""
     _res, ledger, _worlds = twin3
     def stream(world):
         return [(e["day"], e["tick"], e["uid"], e["persona"], e["home"])
                 for e in ledger.events
-                if e["type"] == "arrival" and e["world"] == world]
+                if e["type"] == "arrival" and e["world"] == world
+                and e["kind"] != "return"]
     assert stream("sticker") == stream("snhp")
 
 
 def test_funnel_is_derived_from_calibration_targets():
-    """SHOPPER_FRACTION is derived, not tuned: analytic daily totals equal
-    the calibration targets exactly; simulated arrivals track them."""
+    """Every lane's scale is derived, not tuned: analytic street totals
+    equal the B0 targets exactly; the boba lane is boba/world's own curve
+    (377/day); the fashion lane's arrival scale is backed out of the
+    FASHION_DAILY_TX transactions target through the cliff-calendar
+    conversion. Simulated arrivals track all of them."""
     exp = population.expected_daily()
     assert exp["shoppers"] == pytest.approx(
         calibration.VENDING_DAILY_ARRIVALS + calibration.BODEGA_DAILY_TX)
     assert exp["vending_home"] == pytest.approx(calibration.VENDING_DAILY_ARRIVALS)
     assert exp["bodega_home"] == pytest.approx(calibration.BODEGA_DAILY_TX)
-    days = 10
-    tot = vend_home = 0
+    assert exp["boba_home"] == pytest.approx(sum(boba_world.HOURLY_RATE.values()))
+    # the derivation closes: W0 arrivals × conversion ≡ the tx target
+    season_tx = sum(
+        7.0 * population.FASHION_W0_DAILY
+        * population.fashion_world.ARRIVAL_TAPER ** w
+        * population._fashion_conversion(w)
+        for w in range(population.FASHION_SEASON_WEEKS))
+    assert season_tx / (population.FASHION_SEASON_WEEKS * 7) == pytest.approx(
+        calibration.FASHION_DAILY_TX)
+    days = 6
+    counts = {"street": 0, "vending": 0, "boba": 0, "fashion": 0}
     for d in range(days):
         for t, shoppers in population.day_stream(SEED, d).items():
-            tot += len(shoppers)
-            vend_home += sum(1 for s in shoppers if s.home == "vending")
-    assert tot / days == pytest.approx(exp["shoppers"], rel=0.10)
-    assert vend_home / days == pytest.approx(exp["vending_home"], rel=0.25)
+            for s in shoppers:
+                if s.home in ("vending", "bodega"):
+                    counts["street"] += 1
+                    counts["vending"] += s.home == "vending"
+                else:
+                    counts[s.home] += 1
+    assert counts["street"] / days == pytest.approx(exp["shoppers"], rel=0.10)
+    assert counts["vending"] / days == pytest.approx(exp["vending_home"], rel=0.25)
+    assert counts["boba"] / days == pytest.approx(exp["boba_home"], rel=0.10)
+    assert counts["fashion"] / days == pytest.approx(exp["fashion_home"], rel=0.15)
 
 
 def test_persona_schedules_shape_the_day():
@@ -87,14 +126,30 @@ def test_persona_schedules_shape_the_day():
 
 
 def test_wtp_covers_the_union_and_shares_overlapping_goods():
-    """One WTP per GOOD: vending SKUs + bodega items, overlap counted once
-    (cola-20oz and chips exist in both catalogs but appear once)."""
-    assert len(population.GOODS) == len(set(population.GOODS)) == 11
+    """One WTP per GOOD over the union of all four catalogs: 11 core goods
+    (vending ∪ bodega, overlap once) + 4 drinks + 4 toppings = 19. Boba
+    goods carry boba/world's structure: the favorite outdraws substitutes
+    (CROSS_DISCOUNT) and topping tastes are sparse (non-likers at zero)."""
+    assert len(population.GOODS) == len(set(population.GOODS)) == 19
+    assert len(population.CORE_GOODS) == 11
     assert "cola-20oz" in population.VENDING_GOODS
     assert "cola-20oz" in population.BODEGA_GOODS
-    sh = population.sample_shopper(SEED, 0, 30, "office-worker", 0)
-    assert set(sh.wtp) == set(population.GOODS)
     assert population.GOOD_MU["cola-20oz"] == 3.40   # vending mu wins overlap
+    sh = population.sample_shopper(SEED, 0, 30, "office-worker", 0)
+    assert set(sh.wtp) == set(population.CORE_GOODS) | set(population.BOBA_DRINKS)
+    assert set(sh.top_wtp) == set(population.BOBA_TOPPING_GOODS)
+    assert sh.boba_fav in population.BOBA_DRINKS
+    for d in population.BOBA_DRINKS:
+        if d != sh.boba_fav:      # substitutes at the cross discount, exactly
+            assert sh.wtp[d] == pytest.approx(
+                sh.wtp[sh.boba_fav] * boba_world.CROSS_DISCOUNT
+                * boba_world.DRINK_APPEAL[d]
+                / boba_world.DRINK_APPEAL[sh.boba_fav])
+    zeros = sum(1 for k in range(300)
+                for t, v in population.sample_shopper(SEED, 0, 30, "local",
+                                                      k).top_wtp.items()
+                if v == 0.0)
+    assert zeros > 300            # sparsity: plenty of true zeros in 1200 draws
 
 
 def test_persona_wtp_multiplier_orders_the_draws():
@@ -104,6 +159,47 @@ def test_persona_wtp_multiplier_orders_the_draws():
                  for k in range(200)]
         return float(np.mean(draws))
     assert mean_wtp("tourist") > mean_wtp("student") * 1.3
+
+
+def test_boba_lane_rides_bobas_own_curve():
+    """Boba-lane walkers exist ONLY inside shop hours (block ticks 18..89 =
+    10:00–22:00), at boba/world's arrival rates, with the taste structure
+    the cart engine was validated on (flexibility share, solo/group)."""
+    flex = solo = n = 0
+    for d in range(3):
+        for t, shoppers in population.day_stream(SEED, d).items():
+            for s in shoppers:
+                if s.home != "boba":
+                    continue
+                assert population.BOBA_OPEN_TICK <= t < population.BOBA_CLOSE_TICK
+                n += 1
+                flex += s.boba_flexible
+                solo += s.boba_decay == boba_world.SOLO_DECAY
+    assert n > 800
+    assert flex / n == pytest.approx(population.BOBA_FLEX_SHARE, abs=0.06)
+    assert solo / n == pytest.approx(1.0 - boba_world.GROUP_SHARE, abs=0.06)
+
+
+def test_fashion_lane_is_tourist_local_heavy():
+    """The boutique's crowd leans tourist/local; every fashion shopper has
+    ONE style, ONE size (their size only), and ~waiter_share are strategic
+    waiters; sizes follow fashion's size curve (M/L popular)."""
+    personas, sizes, waiters, n = {}, {}, 0, 0
+    for d in range(6):
+        for t, shoppers in population.day_stream(SEED, d).items():
+            for s in shoppers:
+                if s.home != "fashion":
+                    continue
+                n += 1
+                personas[s.persona] = personas.get(s.persona, 0) + 1
+                sizes[s.size] = sizes.get(s.size, 0) + 1
+                waiters += s.waiter
+                assert s.style in population.FASHION_STYLES
+                assert s.fashion_wtp > 0
+    assert n > 500
+    assert (personas.get("tourist", 0) + personas.get("local", 0)) / n > 0.6
+    assert waiters / n == pytest.approx(population.FASHION_WAITER_SHARE, abs=0.05)
+    assert sizes["M"] > sizes["S"] and sizes["L"] > sizes["XL"]
 
 
 # ── NYC prices flow end-to-end ───────────────────────────────────────────
@@ -128,11 +224,16 @@ def test_nyc_catalog_prices_and_outside_mapping():
 
 
 def test_bodega_prices_match_calibration_in_both_worlds():
-    """B0: the bodega has NOT adopted SNHP — same posted prices, both
-    worlds, straight from calibration."""
+    """Default config: the bodega has NOT adopted SNHP — same posted
+    prices, both worlds, straight from calibration. The posted board stays
+    the calibration prices even WHEN it adopts (negotiation surface only,
+    never a reprice)."""
     posted = {i: p for i, p, _ in calibration.BODEGA_CATALOG}
     assert BodegaVenue("sticker").prices == posted
     assert BodegaVenue("snhp").prices == posted
+    adopted = BodegaVenue("snhp", BlockConfig(bodega_adopts=True), SEED)
+    assert adopted.adopted and adopted.prices == posted
+    assert {i: l.list_price for i, l in adopted.catalog.items()} == posted
 
 
 def test_vending_quote_never_exceeds_nyc_list(twin3):
@@ -149,14 +250,54 @@ def test_vending_quote_never_exceeds_nyc_list(twin3):
 
 
 def test_negotiated_deals_beat_the_buyers_alternatives(twin3):
-    """Rational acceptance held: every negotiated deal left the buyer with
-    strictly positive net surplus (already net of any walk incurred)."""
+    """Rational acceptance held: every negotiated street deal left the
+    buyer strictly better off net of walks; boba cart deals leave the buyer
+    at least as well off as their event-consistent no-deal (the realized
+    surplus may touch zero at the boundary rung — never go below). No
+    negotiation surface exists anywhere in the sticker world."""
     _res, ledger, _worlds = twin3
     deals = [e for e in ledger.events
              if e["type"] == "deal" and e.get("negotiated")]
-    assert deals and all(e["surplus"] > 0 for e in deals)
-    assert all(e["world"] == "snhp" for e in deals)   # no negotiation surface
-                                                      # exists in the sticker world
+    assert deals and all(e["world"] == "snhp" for e in deals)
+    by_venue = {}
+    for e in deals:
+        by_venue.setdefault(e["venue"], []).append(e)
+    assert all(e["surplus"] > 0 for e in by_venue["vending"])
+    assert "boba" in by_venue and all(e["surplus"] >= -1e-9
+                                      for e in by_venue["boba"])
+    assert "fashion" not in by_venue      # fashion negotiates nothing:
+                                          # markdown/1 is a posted-price arm
+
+
+def test_boba_sticker_world_posts_the_calibration_menu(twin3):
+    """The sticker shop's product is the posted gut menu: every sticker-
+    world boba deal prices at exactly the calibration menu (drink + chosen
+    toppings), never negotiated, never deferred."""
+    _res, ledger, _worlds = twin3
+    n = 0
+    for e in ledger.events:
+        if e["type"] == "deal" and e["venue"] == "boba" \
+                and e["world"] == "sticker":
+            n += 1
+            assert not e["negotiated"] and e["slot_ticks"] == 0
+            menu = boba_world.DRINK_PRICE[e["sku"]] + sum(
+                boba_world.TOP_PRICE[t] for t in e["tops"])
+            assert e["unit_price"] == round(menu, 2)
+    assert n > 100
+
+
+def test_boba_cart_deals_are_discount_only(twin3):
+    """No cart prices above the menu: every negotiated boba deal's spend is
+    at or under the same cart's menu (list) value."""
+    _res, ledger, _worlds = twin3
+    n = 0
+    for e in ledger.events:
+        if e["type"] == "deal" and e["venue"] == "boba" and e["negotiated"]:
+            n += 1
+            listv = e["qty"] * (boba_world.DRINK_PRICE[e["sku"]] + sum(
+                boba_world.TOP_PRICE[t] for t in e["tops"]))
+            assert e["spend"] <= round(listv, 2) + 0.01   # 1¢ re-round slack
+    assert n > 100
 
 
 # ── conservation laws ────────────────────────────────────────────────────
@@ -164,11 +305,11 @@ def test_negotiated_deals_beat_the_buyers_alternatives(twin3):
 def test_money_conservation_is_exact(twin3):
     """Every consumer dollar spent equals some venue's revenue — venue-side
     per-day tills (accumulated at settle) match the ledger's event-side
-    aggregates with EXACT float equality, and each deal's spend is exactly
-    qty x unit_price (2dp)."""
+    aggregates with EXACT float equality across all FOUR venues, and each
+    deal's spend is exactly qty x unit_price (2dp)."""
     _res, ledger, worlds = twin3
     for w in ("sticker", "snhp"):
-        for v in ("vending", "bodega"):
+        for v in FOUR:
             venue = worlds[w]["venues"][v]
             for d in range(3):
                 assert (ledger.day_metrics(w, v, d)["revenue"]
@@ -181,20 +322,50 @@ def test_money_conservation_is_exact(twin3):
 
 
 def test_units_conservation(twin3):
-    """Units vended never exceed units stocked; the ledger's unit counts
-    reconcile with the venues' own counters."""
+    """Units vended never exceed units stocked (bought, for the one-buy
+    boutique); the ledger's unit counts reconcile with every venue's own
+    counters. Boba cups are made to order — their conservation law is the
+    queue test below."""
     _res, ledger, worlds = twin3
     for w in ("sticker", "snhp"):
-        for v in ("vending", "bodega"):
+        for v in FOUR:
             venue = worlds[w]["venues"][v]
-            assert venue.units_vended <= venue.units_stocked
+            if v != "boba":
+                assert venue.units_vended <= venue.units_stocked
             ledger_units = sum(ledger.day_metrics(w, v, d)["units"]
                                for d in range(3))
             assert ledger_units == venue.units_vended
 
 
+def test_boba_queue_conservation_on_the_block(twin3):
+    """No cup and no pearl vanishes: per day, cups ORDERED (revenue booked)
+    == cups SERVED by the bar + cups still in the queue/schedule at close;
+    over the run, pearl servings COOKED == TAKEN by orders + WASTED (batch
+    expiry + the 22:00 wash-up)."""
+    _res, _ledger, worlds = twin3
+    for w in ("sticker", "snhp"):
+        b = worlds[w]["venues"]["boba"]
+        for d in range(3):
+            assert b.ordered_by_day.get(d, 0) == \
+                b.served_by_day.get(d, 0) + b.leftover_by_day.get(d, 0)
+        assert b.units_vended == sum(b.ordered_by_day.values())
+        assert b.pearls_cooked == b.pearls_taken + b.pearls_wasted
+        assert b.pearls_cooked % boba_world.BATCH_SERVINGS == 0
+
+
+def test_boba_shop_hours_on_the_block_clock(twin3):
+    """All boba traffic lives inside 10:00–22:00 (block ticks 18..89) —
+    fashion's boutique and the street run the full block day around it."""
+    _res, ledger, _worlds = twin3
+    for e in ledger.events:
+        if e.get("home") == "boba" or e.get("venue") == "boba":
+            if e["type"] in ("arrival", "deal", "venue_entered"):
+                assert BobaVenue.OPEN_TICK <= e["tick"] < BobaVenue.CLOSE_TICK
+
+
 def test_every_arrival_resolves(twin3):
-    """No shopper vanishes: arrivals == deals + no_sales, per world."""
+    """No shopper vanishes: arrivals == deals + no_sales, per world —
+    including fashion waiter returns (each return is its own arrival)."""
     _res, ledger, _worlds = twin3
     for w in ("sticker", "snhp"):
         evs = [e for e in ledger.events if e["world"] == w]
@@ -205,36 +376,52 @@ def test_every_arrival_resolves(twin3):
 
 
 def test_delta_decomposition_is_exact(twin3):
-    """The HUD counters decompose: block delta == sum of per-venue deltas
-    (bitwise, by construction) and matches an independent recomputation."""
+    """The HUD counters decompose: block delta == sum of the FOUR per-venue
+    deltas (bitwise, by construction) and matches an independent
+    recomputation."""
     _res, ledger, _worlds = twin3
+    assert ledger.venues == FOUR
     for d in range(3):
         for m in ("margin", "revenue", "consumer_surplus", "units"):
-            parts = sum(ledger.day_delta(v, d, m) for v in ("vending", "bodega"))
+            parts = sum(ledger.day_delta(v, d, m) for v in FOUR)
             assert ledger.block_day_delta(d, m) == parts
             recomputed = (
-                sum(ledger.day_metrics("snhp", v, d)[m] for v in ("vending", "bodega"))
-                - sum(ledger.day_metrics("sticker", v, d)[m] for v in ("vending", "bodega")))
+                sum(ledger.day_metrics("snhp", v, d)[m] for v in FOUR)
+                - sum(ledger.day_metrics("sticker", v, d)[m] for v in FOUR))
             assert math.isclose(parts, recomputed, rel_tol=0, abs_tol=1e-9)
 
 
+def test_hud_sums_all_four_venues(twin3):
+    """The HUD counters are the season sums of the block-level per-day
+    deltas — i.e. all four venues, nothing else."""
+    res, ledger, _worlds = twin3
+    days = res["config"]["days"]
+    assert res["hud"]["shoppers_kept_usd"] == round(sum(
+        ledger.block_day_delta(d, "consumer_surplus") for d in range(days)), 2)
+    assert res["hud"]["merchants_earned_usd"] == round(sum(
+        ledger.block_day_delta(d, "margin") for d in range(days)), 2)
+
+
 def test_rents_subtract_from_margin(twin3):
-    """NYC margins read against fixed costs: bodega margin loses exactly
-    $400/day of rent; the rent-free machine loses only spoilage."""
+    """NYC margins read against fixed costs, venue by venue: bodega
+    $400/day, boba $330/day, fashion $620/day; the rent-free machine loses
+    only spoilage."""
     _res, ledger, _worlds = twin3
-    b = ledger.day_metrics("sticker", "bodega", 0)
-    assert b["rent"] == calibration.BODEGA_RENT_PER_DAY == 400
-    assert b["margin"] == b["revenue"] - b["cogs"] - b["spoilage_cost"] - 400
-    v = ledger.day_metrics("sticker", "vending", 0)
-    assert v["rent"] == 0.0
-    assert v["margin"] == v["revenue"] - v["cogs"] - v["spoilage_cost"]
+    expected = {"vending": 0.0,
+                "bodega": calibration.BODEGA_RENT_PER_DAY,
+                "boba": calibration.BOBA_RENT_PER_DAY,
+                "fashion": calibration.FASHION_RENT_PER_DAY}
+    for v, rent in expected.items():
+        m = ledger.day_metrics("sticker", v, 0)
+        assert m["rent"] == rent
+        assert m["margin"] == m["revenue"] - m["cogs"] - m["spoilage_cost"] - rent
 
 
 # ── determinism ──────────────────────────────────────────────────────────
 
 def test_full_twin_run_is_deterministic():
-    """Byte-identical: the entire results dict (minus wall-clock meta)
-    reproduces exactly, twice, from the same seed."""
+    """Byte-identical: the entire four-venue results dict (minus wall-clock
+    meta) reproduces exactly, twice, from the same seed."""
     r1, _, _ = run_twin(days=2, seed=11)
     r2, _, _ = run_twin(days=2, seed=11)
     r1.pop("meta"); r2.pop("meta")
@@ -242,16 +429,161 @@ def test_full_twin_run_is_deterministic():
     assert json.dumps(r1, sort_keys=True) == json.dumps(r2, sort_keys=True)
 
 
-# ── composition: the block is one economy, not two sims side by side ─────
+# ── fashion: the weekly season inside the daily block ────────────────────
+
+def test_fashion_season_advances_exactly_every_seven_days():
+    """Week boundaries land on day % 7 == 0 and nowhere else, for the whole
+    14-week season; the week index clamps at the season's last week."""
+    cfg = BlockConfig(sigma_cal=0.0)
+    plan = build_fashion_plan(cfg, SEED)
+    v = FashionVenue("sticker", cfg, SEED, plan=plan)
+    weeks_seen, prev = [], -1
+    for day in range(FashionVenue.SEASON_WEEKS * 7 + 7):
+        v.begin_day(day)
+        if v.week != prev:
+            assert day % 7 == 0            # boundaries land on week starts
+            weeks_seen.append(v.week)
+            prev = v.week
+        assert v.week == min(day // 7, FashionVenue.SEASON_WEEKS - 1)
+    assert weeks_seen == list(range(FashionVenue.SEASON_WEEKS))
+
+
+def test_fashion_cliff_schedule_respected_in_sticker_world():
+    """The sticker boutique posts the industry calendar exactly: MSRP weeks
+    0–6, −30% weeks 7–9, −50% weeks 10–12, −70% week 13 — per style,
+    uniform across sizes, blind to stock."""
+    cfg = BlockConfig(sigma_cal=0.0)
+    catalog, depth = build_fashion_plan(cfg, SEED)
+    v = FashionVenue("sticker", cfg, SEED, plan=(catalog, depth))
+    for day in range(FashionVenue.SEASON_WEEKS * 7):
+        v.begin_day(day)
+        week = day // 7
+        mult = population.fashion_cliff_mult(week)
+        assert {1.0: 1.0, 0.7: 0.7, 0.5: 0.5, 0.3: 0.3}[mult] == mult
+        for (style, size), price in v.board.items():
+            assert price == round(catalog[style].msrp * mult, 2)
+    assert population.fashion_cliff_mult(0) == 1.0
+    assert population.fashion_cliff_mult(6) == 1.0
+    assert population.fashion_cliff_mult(7) == 0.70
+    assert population.fashion_cliff_mult(10) == 0.50
+    assert population.fashion_cliff_mult(13) == 0.30
+
+
+def test_fashion_markdowns_are_permanent_and_discount_only():
+    """The SNHP boutique's weekly re-solve can only cut: per style×size,
+    prices never rise week over week and never exceed MSRP."""
+    cfg = BlockConfig(sigma_cal=0.15)
+    catalog, depth = build_fashion_plan(cfg, SEED)
+    v = FashionVenue("snhp", cfg, SEED, plan=(catalog, depth))
+    last = {}
+    for day in range(FashionVenue.SEASON_WEEKS * 7):
+        v.begin_day(day)
+        if day % 7:
+            continue
+        for cell, p in v.board.items():
+            assert p <= catalog[cell[0]].msrp + 1e-9
+            assert p <= last.get(cell, float("inf")) + 1e-9
+            last[cell] = p
+
+
+def test_fashion_one_buy_no_restock(twin3):
+    """ONE buy at block day 0: both worlds inherit the SAME depth (paired),
+    stocked units never grow, and inventory + sales reconcile exactly."""
+    _res, _ledger, worlds = twin3
+    st = worlds["sticker"]["venues"]["fashion"]
+    sn = worlds["snhp"]["venues"]["fashion"]
+    assert st.depth == sn.depth                      # the identical buy
+    for v in (st, sn):
+        assert v.units_stocked == sum(v.depth.values())
+        assert v.units_vended + sum(v.inv.values()) == v.units_stocked
+
+
+def test_fashion_week_boundary_prices_hold_within_the_week():
+    """Multi-timescale correctness end-to-end: an 9-day fashion-only twin —
+    every deal's price equals the standing weekly board (constant within a
+    week per cell, may change only at day 7), and waiter returns land
+    exactly at tick 0 of week boundaries."""
+    res, ledger, _worlds = run_twin(days=9, seed=SEED, venues=("fashion",))
+    seen = {}
+    for e in ledger.events:
+        if e["type"] == "deal":
+            key = (e["world"], e["day"] // 7, e["sku"], e["size"])
+            seen.setdefault(key, set()).add(e["unit_price"])
+        elif e["type"] == "arrival" and e["kind"] == "return":
+            assert e["day"] % 7 == 0 and e["tick"] == 0
+    assert seen
+    for key, prices in seen.items():
+        assert len(prices) == 1        # one price per (world, week, cell)
+    returns = [e for e in ledger.events
+               if e["type"] == "arrival" and e["kind"] == "return"]
+    assert returns                     # waiters actually came back on day 7
+
+
+def test_fashion_season_end_writedown_reconciles():
+    """A no-sales season books the whole buy as writedown on the last day:
+    (cost − salvage) per unit — which makes the ledger's season total equal
+    fashion/'s gross margin (revenue + salvage − buy cost) exactly."""
+    cfg = BlockConfig(sigma_cal=0.0)
+    catalog, depth = build_fashion_plan(cfg, SEED)
+    v = FashionVenue("sticker", cfg, SEED, plan=(catalog, depth))
+    for day in range(FashionVenue.SEASON_WEEKS * 7):
+        v.begin_day(day)
+        eod = v.end_day(day)
+        if day < FashionVenue.SEASON_WEEKS * 7 - 1:
+            assert eod == {"spoiled_units": 0, "spoilage_cost": 0.0}
+    assert eod["spoiled_units"] == sum(depth.values())
+    expected = sum(n * (catalog[st].unit_cost - catalog[st].salvage)
+                   for (st, _sz), n in depth.items())
+    assert eod["spoilage_cost"] == round(expected, 2)
+
+
+# ── the bodega adoption toggle (B2) ──────────────────────────────────────
+
+def test_bodega_adoption_changes_only_the_snhp_world(adopt_pair):
+    """The toggle's isolation guarantee: flipping bodega_adopts leaves the
+    sticker world's every event byte-identical; the SNHP world diverges,
+    and ONLY there do bodega-negotiated deals exist."""
+    (res_off, led_off, _), (res_on, led_on, _) = adopt_pair
+    def world_events(led, w):
+        return [e for e in led.events if e["world"] == w]
+    assert world_events(led_off, "sticker") == world_events(led_on, "sticker")
+    assert world_events(led_off, "snhp") != world_events(led_on, "snhp")
+    def bodega_negotiated(led):
+        return [e for e in led.events if e["type"] == "deal"
+                and e["venue"] == "bodega" and e.get("negotiated")]
+    assert not bodega_negotiated(led_off)          # default preserves B0
+    on = bodega_negotiated(led_on)
+    assert on and all(e["world"] == "snhp" for e in on)
+    assert res_off["config"]["bodega_adopts"] is False
+    assert res_on["config"]["bodega_adopts"] is True
+
+
+def test_adopted_bodega_quotes_are_discount_only_and_rational(adopt_pair):
+    """The adopted bodega's brokered quotes obey the same protocol
+    invariants as the machine's: at or under its own POSTED price, and the
+    buyer strictly better off net of the walk they actually incurred."""
+    _off, (res_on, led_on, _worlds) = adopt_pair
+    posted = {i: p for i, p, _ in calibration.BODEGA_CATALOG}
+    deals = [e for e in led_on.events if e["type"] == "deal"
+             and e["venue"] == "bodega" and e.get("negotiated")]
+    assert deals
+    for e in deals:
+        assert e["unit_price"] <= posted[e["sku"]] + 1e-9
+        assert e["surplus"] > 0
+
+
+# ── composition: the block is one economy, not four sims side by side ────
 
 def test_cross_venue_substitution_fires():
     """Raise the machine's prices (anchor probe) and the same seeded crowd
     walks: bodega deals rise, vending deals fall. The machine's outside
     option is the actual bodega — endogenously, not by formula."""
     def deals(anchor):
-        led = BlockLedger(rents=RENTS)
+        led = BlockLedger(rents={"vending": 0.0,
+                                 "bodega": calibration.BODEGA_RENT_PER_DAY})
         run_world("sticker", days=2, seed=SEED,
-                  cfg=BlockConfig(anchor_mult=anchor), ledger=led)
+                  cfg=BlockConfig(anchor_mult=anchor), ledger=led,
+                  venues=("vending", "bodega"))
         return {v: sum(led.day_metrics("sticker", v, d)["deals"]
                        for d in range(2)) for v in ("vending", "bodega")}
     base, anchored = deals(1.0), deals(1.5)
@@ -264,9 +596,10 @@ def test_regulars_churn_only_in_the_world_that_shocks_them():
     anchor the sticker world's regulars take sticker shock and churn; the
     SNHP world's regulars get brokered quotes near their reference and
     mostly stay. Same seeded pool, same visit draws — divergence is the
-    treatment."""
+    treatment. (Two-venue subset: the fairness pool rides the machine.)"""
     cfg = BlockConfig(anchor_mult=1.5, regulars=25)
-    res, _ledger, _worlds = run_twin(days=10, seed=SEED, cfg=cfg)
+    res, _ledger, _worlds = run_twin(days=10, seed=SEED, cfg=cfg,
+                                     venues=("vending", "bodega"))
     churn = {w: sum(c["churned"] for c in res["per_world"][w]["churn"])
              for w in ("sticker", "snhp")}
     assert churn["sticker"] > 0
@@ -288,14 +621,51 @@ def test_regular_pool_is_identical_across_worlds():
         assert a.ref == b.ref
 
 
-# ── performance budget ───────────────────────────────────────────────────
+def test_venues_flag_selects_subsets():
+    """--venues machinery: aliases resolve, junk rejects, and a two-venue
+    twin carries exactly those venues in the ledger, results, and HUD."""
+    assert parse_venues("vend,bodega") == ("vending", "bodega")
+    assert parse_venues("vend,bodega,boba,fashion") == FOUR
+    with pytest.raises(ValueError):
+        parse_venues("vend,discotheque")
+    with pytest.raises(ValueError):
+        parse_venues("")
+    res, ledger, worlds = run_twin(days=1, seed=SEED,
+                                   venues=("vending", "bodega"))
+    assert ledger.venues == ("vending", "bodega")
+    assert set(res["per_world"]["snhp"]["venues"]) == {"vending", "bodega"}
+    assert set(res["paired_deltas"]) == {"vending", "bodega", "block"}
+    homes = {e.get("home") for e in ledger.events if e["type"] == "arrival"}
+    assert homes <= {"vending", "bodega"}    # boba/fashion walkers ignored
+
+
+# ── performance budget & artifact reproducibility ────────────────────────
 
 @pytest.mark.slow
-def test_thirty_day_twin_fits_the_budget():
-    """A 30-day twin of the two-venue block on one core: target < 60s,
-    asserted at a generous 120s."""
+def test_thirty_day_four_venue_twin_fits_the_budget():
+    """A 30-day twin of the FOUR-venue block on one core: target < 30s,
+    asserted at the scoped 120s."""
     t0 = time.perf_counter()
     res, _ledger, _worlds = run_twin(days=30, seed=7)
     elapsed = time.perf_counter() - t0
     assert elapsed < 120.0
-    assert res["per_world"]["snhp"]["venues"]["vending"]["totals"]["deals"] > 0
+    for v in FOUR:
+        assert res["per_world"]["snhp"]["venues"][v]["totals"]["deals"] > 0
+
+
+@pytest.mark.slow
+def test_committed_results_stay_reproducible():
+    """block/results.json must remain exactly reproducible at the config IT
+    records (params read from the artifact, not hardcoded) — byte-level
+    minus the wall-clock meta."""
+    import pathlib
+    path = pathlib.Path(__file__).parents[1] / "results.json"
+    committed = json.load(open(path))
+    c = committed["config"]
+    cfg = BlockConfig(sigma_cal=c["sigma_cal"], anchor_mult=c["anchor_mult"],
+                      regulars=c["regulars"], bodega_adopts=c["bodega_adopts"])
+    res, _ledger, _worlds = run_twin(days=c["days"], seed=c["seed"], cfg=cfg,
+                                     venues=tuple(c["venues"]))
+    res.pop("meta")
+    committed.pop("meta")
+    assert json.dumps(res, sort_keys=True) == json.dumps(committed, sort_keys=True)

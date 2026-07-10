@@ -21,11 +21,16 @@ Event schema (all optional fields explicit at the emit site):
   venue_entered {type, world, venue, day, tick, uid, persona, kind}
   deal          {..., sku, qty, unit_price, spend, cogs, surplus,
                  raw_surplus, walk, negotiated}
+                 (+ boba: tops, slot_ticks · fashion: size — extra keys,
+                  same shape; the ledger reads only the core fields)
   no_sale       {type, world, day, tick, uid, persona, kind}
+                 (+ reason on the boba/fashion lanes: balk/lost/stockout/
+                  waiting)
 
-`surplus` is the buyer's realized utility NET of the cross-venue walk they
-actually incurred (raw_surplus is the at-the-counter number) — the HUD's
-"shoppers kept $X" counts hassle honestly.
+`surplus` is the buyer's realized utility NET of the cross-venue walk (or
+pickup-deferral disutility) they actually incurred (raw_surplus is the
+at-the-counter number) — the HUD's "shoppers kept $X" counts hassle
+honestly.
 """
 from __future__ import annotations
 
@@ -59,13 +64,16 @@ def paired_ci(diffs: list[float], block: int = 5) -> dict:
 
 
 class BlockLedger:
-    """Event log + per-(world, venue, day) aggregates + paired deltas."""
+    """Event log + per-(world, venue, day) aggregates + paired deltas.
+    The venue set is DERIVED from the rents injected at construction (the
+    runner reads them off the selected venue classes), so a two-venue B0
+    ledger and the four-venue block use the same code path."""
 
     WORLDS = ("sticker", "snhp")
-    VENUES = ("vending", "bodega")
 
     def __init__(self, rents: dict[str, float]):
         self.rents = dict(rents)
+        self.venues = tuple(rents)
         self.events: list[dict] = []
         self._agg: dict[tuple, dict] = {}
         self._traffic: dict[tuple, dict] = {}
@@ -128,11 +136,11 @@ class BlockLedger:
     def block_day_delta(self, day: int, metric: str) -> float:
         """The HUD counters' per-day increment — DEFINED as the sum of the
         per-venue deltas, so the decomposition is exact by construction."""
-        return sum(self.day_delta(v, day, metric) for v in self.VENUES)
+        return sum(self.day_delta(v, day, metric) for v in self.venues)
 
     def paired_deltas(self, days: int) -> dict:
         out: dict[str, dict] = {}
-        for venue in self.VENUES:
+        for venue in self.venues:
             out[venue] = {m: paired_ci([self.day_delta(venue, d, m)
                                         for d in range(days)])
                           for m in DELTA_METRICS}
