@@ -90,7 +90,10 @@ def run_day(policy, state, catalog, master_seed: int, day: int,
                     raw = buyer_value(reg.wtp, o.sku, o.qty) - o.qty * o.unit_price
                     fair = reg.fairness(o.sku, o.unit_price, o.qty,
                                         catalog[o.sku].list_price)
-                    if raw + fair > 0:
+                    # mental-model switch cost, habituating with exposure
+                    fric = cfg.quote_friction * (0.85 ** reg.quotes_seen)
+                    reg.quotes_seen += 1
+                    if raw + fair - fric > 0:
                         q = make_quote(state, policy.policy_id,
                                        seed=substream(master_seed, "rq", day, tick, reg.uid),
                                        items=[QuoteItem(o.sku, o.qty, o.unit_price,
@@ -186,7 +189,9 @@ def run_day(policy, state, catalog, master_seed: int, day: int,
                                 if state.stock(s) > 0}
                     b_stock = {s: state.stock(s) for s in b_prices}
                     _, _, s_board = consumer.best_bundle(b_prices, b_stock)
-                    if s_true > 0 and s_true >= max(s_out, s_board):
+                    # transients are perpetual first-timers: full switch cost
+                    if (s_true - cfg.quote_friction > 0
+                            and s_true - cfg.quote_friction >= max(s_out, s_board)):
                         settle_sale(o.sku, o.qty, o.unit_price, nq.why, s_true)
                         m["negotiated"] += 1
                         m["neg_machine_gain"] += nq.u_machine - nq.d_machine

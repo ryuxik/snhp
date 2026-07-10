@@ -47,6 +47,20 @@ The quote is delivered with a mandatory receipt (the "why"), an auditable contex
 
 **Statistics.** Every arm faces the identical customer stream (seeded substreams keyed on arrival identity, never on policy actions). Effects are paired daily differences; because learner state and inventory carry across days, confidence intervals use 5-day block means. Hypotheses and expected signs were written down before each run; results that contradicted them are reported (several were the most informative findings).
 
+#### 3.1 Rigor standards — why an independent reader should trust this
+
+Simulation papers earn distrust honestly; here is what we did about it, item by item, each verifiable from the repository:
+
+1. **Pre-registration in the artifact.** Hypotheses, expected signs, and experiment grids are written into committed design documents *before* results exist (`vend/DESIGN.md` §9b–9c and the dated sections of `vend/RESULTS.md`). Where a result contradicted the registration, the contradiction is the reported finding.
+2. **Paired counterfactuals by construction, tested as a property.** Randomness derives from `blake2b(seed, domain-tag, identity)` substreams keyed on *who arrives when* — never on anything a policy did — so every arm faces byte-identical customers. This is not a convention but a unit test (`test_arrival_and_consumer_streams_are_policy_independent`), as is full-run determinism (two executions produce identical result dictionaries).
+3. **Invariants live in types, not documentation.** A quote above list price is *unconstructible* (the constructor raises); a quote without its receipt is unconstructible; the quoting path has no buyer-identity parameter, and every quote carries a context hash making "same context + same disclosure → same price" auditable from artifacts alone. Tests pin each of these as behavior, not intention.
+4. **Strongest-baseline discipline.** The posted-price control is profit-optimal, and when a ceiling search revealed our "optimal" sticker undervalued the seller's local monopoly power (+$21/day available by anchor placement alone), we adopted the stronger baseline and re-ran everything — the mechanism's reported edge is against the best sticker we could construct, and the search itself is in the record.
+5. **Adversarial review with consequences.** A ten-angle independent review of this codebase surfaced 23 defects — including three simulation biases that all flattered the mechanism (an irrational consumer-acceptance rule, policy-coupled attacker identities, an inconsistent counterfactual) and one anti-conservative statistics choice. All were fixed and *every artifact regenerated*; the headline effect shrank at each step and the trajectory is preserved in `vend/RESULTS.md`, superseded numbers intact. A result that only survives its friendliest implementation is not a result.
+6. **Information discipline in code.** World truth and operator knowledge are separate values in separate fields (`WTP_MU` vs `Listing.wtp_mu_est`); a policy that touches ground truth raises. Dynamic arms observe only what a physical machine could: arrivals and its own sales.
+7. **Conservation and accounting tests.** Money and units are conserved across the ledger (consumer spend equals venue revenue; units vended never exceed units stocked); profit identities are pinned to rounding tolerance.
+8. **Tuned parameters are disclosed as frontiers.** The gain buffer is a policy parameter; we report its full trade-off curve (perfect-calibration concession vs customer-pool protection), name the in-sample tuning cell, and validate on held-out seeds — rather than presenting one tuned point as discovered truth.
+9. **One-command reproduction.** Every table regenerates from a fresh clone via the commands in Appendix A; committed JSON artifacts are byte-comparable against reruns and a regression test fails if the committed artifact drifts from what the code produces.
+
 ### 4. Results
 
 #### 4.1 The miscalibration channel: tie at the knife edge, win everywhere real
@@ -87,7 +101,20 @@ The ×1.25 anchor result poses an obvious danger: it prices captive surplus, and
 
 At the ×1.25 ceiling over 90 days (120 regulars): posted pricing earns the most short-run ($142/day late-window) while churning 81 regulars and *net-shrinking* its pool despite replenishment — survivor-bias whales and memory-free transients flatter its trajectory. The brokered mechanism earns $134/day late-window — **+$33/day above the pre-anchor world** — while ending with its regular pool *fully intact* (120/120 active; churn healed by below-reference deals and replaced by inflow). The protective channel is the one hypothesized: quotes fire widely for small baskets (the scaled buffer matters), the paid price stays near reference, and in a scan-first interface the customer's salient price is their quote, not the board. On any horizon longer than the window, or any customer-lifetime accounting, the mechanism's harvest dominates. We emphasize the behavioral parameters are literature-anchored but not fitted to human data; §7.
 
-#### 4.4 Supporting results
+#### 4.4 Pricing the mental-model switch
+
+Moving a population from "prices are fixed" to "prices are computed" has a cognitive cost — evaluating a quote is harder than recognizing a known price — and an adoption analysis that ignores it flatters the mechanism. We price it directly: a dollar-equivalent friction per negotiated transaction, charged in full to first-time buyers and decaying with habituation (0.85 per exposure) for repeat customers; a quote must now beat the buyer's alternatives by *more than the hassle*. The dose-response at the realistic-miscalibration cell (90 days, mixed regular/transient population):
+
+| friction per quoted transaction | mechanism's profit edge | consumer surplus edge |
+|---|---|---|
+| $0.00 | +0.79 [−0.21, 1.78] | +$9.64/day |
+| $0.25 | +0.79 [−0.21, 1.78] | +$9.64/day |
+| $0.50 | +0.79 [−0.21, 1.78] | +$9.64/day |
+| $1.00 | +0.39 [−0.53, 1.31] | +$8.78/day |
+
+The edge is friction-tolerant for a structural reason, not a fortunate one: the seller-side gain buffer already restricts the mechanism to deals meaningfully better than the buyer's alternative, so the surplus margin that protects the seller from forecast noise *also* absorbs the buyer's switch cost. Friction below the buffer scale is invisible; at $1 per transaction — a heavy estimate for tapping "accept" on a pre-computed price — the edge softens but persists, and habituation erodes the cost for anyone who returns.
+
+#### 4.5 Supporting results
 
 **Fashion markdowns.** A season simulation (one buy, no restock, style×size cells, strategic waiting consumers) finds weekly computed markdowns beat the industry's fixed markdown calendar in all nine tested cells (+9–21% gross margin/season), consistent with field results (Caro & Gallien, 2012); we treat this as a replication anchoring the simulator's realism, not a contribution.
 
@@ -99,7 +126,7 @@ Posted-price optimality and haggling (Riley & Zeckhauser, 1983); bilateral trade
 
 ### 6. Limitations
 
-Synthetic demand (lognormal WTP, Poisson arrivals) in one catalog family; the calibration-to-field step (public vending transaction corpora; a physical pilot) is planned but not done. The strongest-sticker baseline is the strongest *we found* — baseline search is itself an optimization we may have under-run. The buffer is a tuned policy parameter with a documented frontier; its in-sample tuning cell is disclosed. The IC result is empirical and best-response-within-class, not a theorem; adaptive and colluding deviations are untested. Fairness parameters are literature-anchored, not estimated; the quote-salience channel is a design hypothesis a human-subjects study must test. All results are single-venue; multi-venue competition (both sides running brokers) is future work.
+Synthetic demand (lognormal WTP, Poisson arrivals) in one catalog family; the calibration-to-field step (public vending transaction corpora; a physical pilot) is planned but not done. The switch-cost friction and its habituation rate are assumptions bounded by sweep, not estimates from human behavior. The strongest-sticker baseline is the strongest *we found* — baseline search is itself an optimization we may have under-run. The buffer is a tuned policy parameter with a documented frontier; its in-sample tuning cell is disclosed. The IC result is empirical and best-response-within-class, not a theorem; adaptive and colluding deviations are untested. Fairness parameters are literature-anchored, not estimated; the quote-salience channel is a design hypothesis a human-subjects study must test. All results are single-venue; multi-venue competition (both sides running brokers) is future work.
 
 ### 7. Future work
 

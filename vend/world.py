@@ -42,6 +42,12 @@ class WorldConfig:
     regulars: int = 0          # persistent repeat customers with reference
                                # prices + churn (vend/regulars.py) — the
                                # fairness model that gates the anchor harvest
+    quote_friction: float = 0.0  # $-equivalent mental-model switch cost per
+                                 # negotiated transaction: evaluating a quote
+                                 # vs recognizing a known price. Flat for
+                                 # first-timers (transients); decays 0.85^n
+                                 # with habituation for regulars. A quote
+                                 # must beat alternatives by MORE than this.
 
 
 DEFAULT_CONFIG = WorldConfig()

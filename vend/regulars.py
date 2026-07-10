@@ -48,6 +48,7 @@ class Regular:
     ref: dict[str, float] = field(default_factory=dict)
     dissat: float = 0.0
     active: bool = True
+    quotes_seen: int = 0     # habituation: quote friction decays 0.85^n
 
     def fairness(self, sku: str, unit_price: float, qty: int,
                  list_price: float | None) -> float:
