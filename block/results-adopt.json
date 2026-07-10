@@ -1892,16 +1892,16 @@
    "venues": {
     "vending": {
      "totals": {
-      "revenue": 6465.14,
+      "revenue": 6460.78,
       "cogs": 2514.1,
       "units": 1901,
-      "deals": 1235,
-      "negotiated": 174,
-      "consumer_surplus": 3479.52,
+      "deals": 1234,
+      "negotiated": 176,
+      "consumer_surplus": 3479.26,
       "spoiled_units": 0,
       "spoilage_cost": 0.0,
       "rent": 0.0,
-      "margin": 3951.04
+      "margin": 3946.68
      },
      "per_day": [
       {
@@ -2049,16 +2049,16 @@
        "margin": 135.45
       },
       {
-       "revenue": 216.03,
+       "revenue": 211.67,
        "cogs": 84.5,
        "units": 64,
-       "deals": 45,
-       "negotiated": 6,
-       "consumer_surplus": 117.39,
+       "deals": 44,
+       "negotiated": 8,
+       "consumer_surplus": 117.13,
        "spoiled_units": 0,
        "spoilage_cost": 0.0,
        "rent": 0.0,
-       "margin": 131.53
+       "margin": 127.17
       },
       {
        "revenue": 220.42,
@@ -2268,16 +2268,16 @@
     },
     "bodega": {
      "totals": {
-      "revenue": 176723.04,
-      "cogs": 69214.55,
-      "units": 23110,
-      "deals": 17064,
+      "revenue": 176715.79,
+      "cogs": 69211.7,
+      "units": 23109,
+      "deals": 17063,
       "negotiated": 2621,
-      "consumer_surplus": 80056.85,
+      "consumer_surplus": 80056.55,
       "spoiled_units": 0,
       "spoilage_cost": 0.0,
       "rent": 12000,
-      "margin": 95508.49
+      "margin": 95504.09
      },
      "per_day": [
       {
@@ -2425,16 +2425,16 @@
        "margin": 2925.97
       },
       {
-       "revenue": 5982.28,
-       "cogs": 2338.8,
-       "units": 776,
-       "deals": 573,
+       "revenue": 5975.03,
+       "cogs": 2335.95,
+       "units": 775,
+       "deals": 572,
        "negotiated": 88,
-       "consumer_surplus": 2770.31,
+       "consumer_surplus": 2770.01,
        "spoiled_units": 0,
        "spoilage_cost": 0.0,
        "rent": 400,
-       "margin": 3243.48
+       "margin": 3239.08
       },
       {
        "revenue": 5318.34,
@@ -3459,7 +3459,7 @@
     {
      "day": 12,
      "arrivals": 1041,
-     "no_sales": 75
+     "no_sales": 77
     },
     {
      "day": 13,
@@ -3704,28 +3704,28 @@
  "paired_deltas": {
   "vending": {
    "margin": {
-    "mean": -3.84,
+    "mean": -3.98,
     "ci95": [
-     -7.86,
-     0.18
+     -7.85,
+     -0.12
     ],
     "n": 6,
     "block": 5
    },
    "revenue": {
-    "mean": 1.92,
+    "mean": 1.77,
     "ci95": [
-     -2.59,
-     6.43
+     -2.58,
+     6.13
     ],
     "n": 6,
     "block": 5
    },
    "consumer_surplus": {
-    "mean": 8.0,
+    "mean": 7.99,
     "ci95": [
      3.38,
-     12.62
+     12.61
     ],
     "n": 6,
     "block": 5
@@ -3740,10 +3740,10 @@
     "block": 5
    },
    "deals": {
-    "mean": 0.87,
+    "mean": 0.83,
     "ci95": [
-     -0.52,
-     2.26
+     -0.53,
+     2.2
     ],
     "n": 6,
     "block": 5
@@ -3751,46 +3751,46 @@
   },
   "bodega": {
    "margin": {
-    "mean": 191.61,
+    "mean": 191.47,
     "ci95": [
-     181.48,
-     201.75
+     181.03,
+     201.91
     ],
     "n": 6,
     "block": 5
    },
    "revenue": {
-    "mean": 756.68,
+    "mean": 756.43,
     "ci95": [
-     726.97,
-     786.38
+     726.31,
+     786.55
     ],
     "n": 6,
     "block": 5
    },
    "consumer_surplus": {
-    "mean": 363.22,
+    "mean": 363.21,
     "ci95": [
-     341.35,
+     341.34,
      385.08
     ],
     "n": 6,
     "block": 5
    },
    "units": {
-    "mean": 142.3,
+    "mean": 142.27,
     "ci95": [
-     135.64,
-     148.96
+     135.58,
+     148.95
     ],
     "n": 6,
     "block": 5
    },
    "deals": {
-    "mean": 34.0,
+    "mean": 33.97,
     "ci95": [
-     32.08,
-     35.92
+     32.03,
+     35.91
     ],
     "n": 6,
     "block": 5
@@ -3892,46 +3892,46 @@
   },
   "block": {
    "margin": {
-    "mean": 544.6,
+    "mean": 544.31,
     "ci95": [
-     511.95,
-     577.25
+     511.97,
+     576.64
     ],
     "n": 6,
     "block": 5
    },
    "revenue": {
-    "mean": 1639.11,
+    "mean": 1638.73,
     "ci95": [
-     1588.65,
-     1689.58
+     1588.48,
+     1688.97
     ],
     "n": 6,
     "block": 5
    },
    "consumer_surplus": {
-    "mean": 955.22,
+    "mean": 955.2,
     "ci95": [
      923.83,
-     986.6
+     986.57
     ],
     "n": 6,
     "block": 5
    },
    "units": {
-    "mean": 407.5,
+    "mean": 407.47,
     "ci95": [
      399.57,
-     415.43
+     415.36
     ],
     "n": 6,
     "block": 5
    },
    "deals": {
-    "mean": 148.3,
+    "mean": 148.23,
     "ci95": [
-     145.57,
-     151.03
+     145.56,
+     150.9
     ],
     "n": 6,
     "block": 5
@@ -3939,10 +3939,10 @@
   }
  },
  "hud": {
-  "shoppers_kept_usd": 28656.51,
-  "merchants_earned_usd": 16337.98
+  "shoppers_kept_usd": 28655.94,
+  "merchants_earned_usd": 16329.22
  },
  "meta": {
-  "elapsed_s": 9.28
+  "elapsed_s": 9.27
  }
 }
