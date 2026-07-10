@@ -21,9 +21,9 @@ from vend.core import QuoteItem, make_quote, substream
 from vend.policies import (A2APolicy, GvrPolicy, PostedSurgePolicy, StaticPolicy,
                            StrongPostedPolicy)
 from vend.scenario import buyer_value
-from vend.world import (BODEGA_MARKUP, DEFAULT_CONFIG, TICKS_PER_DAY,
-                        WorldConfig, arrivals_at, build_catalog, day_state,
-                        end_of_day, fresh_machine, hour_of, rate_at,
+from vend.world import (BODEGA_MARKUP, DEFAULT_CONFIG, QTY_CAP, TICKS_PER_DAY,
+                        WorldConfig, arrivals_at, best_bundle, build_catalog,
+                        day_state, end_of_day, fresh_machine, hour_of, rate_at,
                         sample_consumer)
 
 VEND_VERSION = 1
@@ -100,7 +100,30 @@ def run_day(policy, state, catalog, master_seed: int, day: int,
                     # mental-model switch cost, habituating with exposure
                     fric = cfg.quote_friction * (0.85 ** reg.quotes_seen)
                     reg.quotes_seen += 1
-                    if raw + fair - fric > 0:
+                    # "never worse UX than the sticker board" — the SAME
+                    # max(s_out, s_board) guarantee the transient path enforces
+                    # (see below), extended to regulars: a regular can't be
+                    # routed into a quote worse for them than the sticker board
+                    # they can always access, nor the bodega. Both alternatives
+                    # are evaluated on the regular's OWN utility basis (the
+                    # board with its transaction utility, since the regular
+                    # experiences fairness on machine purchases; the bodega as
+                    # raw surplus − walk), and neither bears the quote's switch
+                    # cost — exactly parallel to the transient gate.
+                    o_sku, _, o_s = best_bundle(reg.wtp, outside_prices)
+                    s_out_reg = (o_s - reg.walk_cost) if o_sku else 0.0
+                    s_board_reg = 0.0
+                    for bsku, blst in catalog.items():
+                        if state.stock(bsku) <= 0:
+                            continue
+                        bp = blst.list_price
+                        for bq in range(1, min(QTY_CAP, state.stock(bsku)) + 1):
+                            bt = (buyer_value(reg.wtp, bsku, bq) - bq * bp
+                                  + reg.fairness(bsku, bp, bq, blst.list_price))
+                            if bt > s_board_reg:
+                                s_board_reg = bt
+                    accept = raw + fair - fric
+                    if accept > 0 and accept >= max(s_out_reg, s_board_reg):
                         q = make_quote(state, policy.policy_id,
                                        seed=substream(master_seed, "rq", day, tick, reg.uid),
                                        items=[QuoteItem(o.sku, o.qty, o.unit_price,
@@ -220,7 +243,14 @@ def run_day(policy, state, catalog, master_seed: int, day: int,
             else:
                 if s_out > 0:
                     m["lost_to_outside"] += 1
-                rng = np.random.default_rng(substream(master_seed, "ret", day, tick, k))
+                # Seed the return-defer roll on the PERSON (uid), not the
+                # positional index k: k depends on how many `due` returners sit
+                # ahead in the combined list, which diverges across paired arms
+                # (different buyers convert vs defer), so keying on k mis-pairs
+                # the return decision. uid is stable per person and policy-
+                # independent — the same pairing discipline as liar_roll above.
+                rng = np.random.default_rng(
+                    substream(master_seed, "ret", day, tick, consumer.uid))
                 if rng.random() < consumer.patience:
                     delay = int(rng.integers(6, 24))
                     if tick + delay < TICKS_PER_DAY:
@@ -368,11 +398,32 @@ TILT_LIAR_GRID = tuple((f, zw) for f in (0.55, 0.75, 1.0, 1.25, 1.5)
 
 
 def _pooled_ci(per_seed_diffs: list[list[float]], block: int = 5) -> dict:
-    """Block CI over the two seeds' paired daily-diff series, concatenated —
-    each day's diff is within-seed paired (same customer stream); the blocks
-    are then treated as the independent replicate units."""
-    flat = [x for series in per_seed_diffs for x in series]
-    return paired_ci(flat, block=block)
+    """Block CI treating each seed's paired daily-diff series as an INDEPENDENT
+    replicate. Block WITHIN each seed (block-means of `block` consecutive days,
+    remainder days dropped per seed), then pool the block-means and take the
+    t-interval over them. A block never straddles the seed boundary — the old
+    concatenate-then-block let a block span days from two seeds whenever a
+    seed's day count wasn't a multiple of `block` (mixing independent
+    replicate units into one). For a per-seed day count that IS a multiple of
+    `block`, this is identical to the concatenated version."""
+    blocks: list[float] = []
+    for series in per_seed_diffs:
+        d = np.asarray(series, dtype=float)
+        if block > 1 and len(d) >= 2 * block:
+            n_blocks = len(d) // block
+            d = d[:n_blocks * block].reshape(n_blocks, block).mean(axis=1)
+        blocks.extend(d.tolist())
+    b = np.asarray(blocks, dtype=float)
+    n = len(b)
+    mean = float(b.mean()) if n else 0.0
+    if n < 2:
+        return {"mean": round(mean, 2), "ci95": None, "n": n, "block": block}
+    se = float(b.std(ddof=1) / math.sqrt(n))
+    from scipy import stats
+    t = float(stats.t.ppf(0.975, n - 1))
+    return {"mean": round(mean, 2),
+            "ci95": [round(mean - t * se, 2), round(mean + t * se, 2)],
+            "n": n, "block": block}
 
 
 def run_tilt(seeds: list[int], days: int, cfg: WorldConfig, out: str,

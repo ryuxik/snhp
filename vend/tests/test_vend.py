@@ -542,7 +542,13 @@ def test_fairness_harvest_regression():
     number the intended mechanism produces. The static-mixture "old world"
     baseline (late profit 100.5) is drift-immune (static arm, no learner),
     so pinning the a2a arm alone pins the harvest. See RESULTS.md 'Fairness
-    v2' for the forensics."""
+    v2' for the forensics.
+
+    Re-pinned 2026-07-10 after the review-fix batch (regular acceptance gate,
+    return-defer re-pairing, disagreement stock-cap, escalator ceiling): the
+    regular gate now rejects quotes worse for a regular than the sticker board,
+    so a few fewer regular deals fire — reg_deals 1307->1325, and the aggregate
+    diagnostics move a hair (day90 108->107, churn 75->76)."""
     from vend.world import WorldConfig
     cfg = WorldConfig(regulars=120, anchor_peak=True, anchor_mult=1.25)
     res = run_experiment(["static", "a2a"], days=90, seed=2, cfg=cfg)
@@ -551,11 +557,11 @@ def test_fairness_harvest_regression():
     day90_active = pd[-1]["active_regulars"]
     churned = sum(d["churned"] for d in pd)
     late_profit = sum(d["profit"] for d in pd[60:90]) / 30
-    assert reg_deals == 1307, reg_deals          # was 1463 under the pre-fix learner
-    assert day90_active == 108, day90_active     # was 120/120 ("full") pre-fix
-    assert churned == 75, churned                # was 60 pre-fix
-    # harvest = a2a late - static-mixture late (100.5); ~ +$42.6/day corrected
-    assert 142.5 < late_profit < 143.5, late_profit
+    assert reg_deals == 1325, reg_deals          # was 1307 pre-review-fix (1463 pre-censoring-fix)
+    assert day90_active == 107, day90_active     # was 108 pre-review-fix
+    assert churned == 76, churned                # was 75 pre-review-fix
+    # harvest = a2a late - static-mixture late (100.5); ~ +$43.3/day corrected
+    assert 143.4 < late_profit < 144.3, late_profit
 
 
 # ── strong posted baseline (referee #48, CRITICAL-ANALYSIS §2) ──────────────
@@ -931,3 +937,147 @@ def test_run_surge_is_deterministic(tmp_path):
             run_surge([7], 6, str(p), anchors=[1.25], regulars=20)
         outs.append(json.load(open(p)))
     assert outs[0] == outs[1]
+
+
+# ── review-fix batch (2026-07-10): one test per fix ─────────────────────────
+
+def test_nash_disagreement_is_stock_capped(catalog):
+    """FIX (scenario.nash_quote): the buyer's BOARD disagreement must be
+    stock-capped, exactly like enumerate_outcomes / best_bundle. With cola
+    stock 1, the disagreement is the buyable 1-unit board surplus — NOT the
+    (unbuyable) 2-unit optimum. The un-capped loop credited d_buyer from a unit
+    the machine can't sell, inflating the disagreement and spuriously killing
+    real deals."""
+    from vend.scenario import nash_quote
+    from vend.world import bundle_value
+    from vend.core import Lot
+    state = machine(catalog)
+    state.tick = 50
+    state.lots = [Lot("cola", 1, expires_day=60)]     # only cola, stock 1
+    wtp = {s: 0.3 for s in catalog}
+    wtp["cola"] = 5.0                                  # cola is the board best
+    lp = catalog["cola"].list_price
+    q1 = wtp["cola"] - lp
+    q2 = bundle_value(wtp, "cola", 2) - 2 * lp
+    assert q2 > q1                                     # unconstrained optimum is 2 units…
+    nq = nash_quote(state, wtp, 2.0)                   # walk high ⇒ board wins disagreement
+    assert abs(nq.d_buyer - q1) < 1e-9                 # …but disagreement caps at buyable 1
+    # under the bug d_buyer would be q2 (the unbuyable 2-unit bundle)
+    assert nq.d_buyer < q2 - 1e-9
+
+
+def test_regular_gate_rejects_worse_than_board(catalog):
+    """FIX (run.py regular intent path): a regular can't be routed into a
+    negotiated quote worse for them than the sticker board they can always
+    access — the SAME max(s_out, s_board) guarantee the transient path
+    enforces. A stub engine offers a low-value regular a positive-surplus but
+    board-dominated quote (1 water); the regular must DECLINE it and take their
+    board optimum (2 cola) instead."""
+    from vend.scenario import Outcome, NashQuote
+    from vend.policies import sticker_board
+    from vend.regulars import Regular
+    from vend.world import WorldConfig
+
+    state = machine(catalog)
+    reg = Regular(uid=7, wtp={s: 0.3 for s in catalog}, walk_cost=1.0,
+                  visit_prob=1.0, home_tick=20,
+                  ref={s: catalog[s].list_price for s in catalog})
+    reg.wtp["cola"] = 5.0        # board optimum (2 cola at list) is very valuable
+    reg.wtp["water"] = 3.0       # water quote is positive-surplus but worse
+
+    class StubPolicy:
+        policy_id = "stub/1"
+        mode = "intent"
+        learner = None
+        dow_mult = 1.0
+        traffic_scale = 1.0
+        def price_board(self, st):
+            return sticker_board(st)
+        def quote_for(self, st, consumer, liar_roll):
+            wp = catalog["water"].list_price
+            return NashQuote(Outcome("water", 1, wp), 0.0, 0.0,
+                             wp - catalog["water"].unit_cost, 0.0, 0.0, 0.0,
+                             ["stub"]), False
+
+    class FakePool:
+        def visits_for_day(self, day): return {20: [reg]}
+        def end_day(self, day): return 0
+        def active_count(self): return 1
+
+    # traffic_scale=0 ⇒ zero transient arrivals: the run isolates the regular
+    cfg = WorldConfig(traffic_scale=0.0)
+    m = run_day(StubPolicy(), state, catalog, master_seed=1, day=0, cfg=cfg,
+                pool=FakePool())
+    assert m["reg_deals"] == 1                         # exactly the one regular
+    # the BAD water quote was declined; the regular took 2 cola from the board
+    assert state.stock("water") == catalog["water"].par_stock   # water untouched
+    assert m["units"] == 2                             # 2 cola (board), not 1 water
+    # under the bug (accept iff raw+fair-fric>0) the water quote would settle:
+    # m["units"] would be 1 and water stock would drop
+
+
+def test_censored_escalation_is_capped():
+    """FIX (DemandLearner.end_day): consecutive sellouts must not compound the
+    censored demand estimate 1.2^n without bound. With a constant censored
+    observation of 4/day, the estimate escalates but is CEILINGED at
+    censor_cap_mult × observed (3 × 4 = 12), not ~4·1.2^n → hundreds."""
+    from vend.policies import DemandLearner
+    import pytest
+    l = DemandLearner()
+    l.begin_day(1.0); l.sold("cola", 4); l.sold("chips", 1)
+    l.end_day()                                        # day 1: uncensored base
+    assert l.daily("cola") == pytest.approx(4.0)
+    for _ in range(30):                                # 30 straight sellouts
+        l.begin_day(1.0); l.sold("cola", 4); l.sold("chips", 1)
+        l.end_day(censored=frozenset({"cola"}))
+    assert l.daily("cola") > 4.0                       # it DID escalate (raise-only)
+    assert l.daily("cola") == pytest.approx(12.0)      # …but ceilinged at 3×obs
+    # uncapped 1.2^30 would be ~4·237 ≈ 950 — the ceiling prevents the runaway
+    assert l.daily("cola") < 4.0 * 1.2 ** 20
+
+
+def test_pooled_ci_blocks_within_seed_never_across():
+    """FIX (run._pooled_ci): block WITHIN each seed's series, never across the
+    seed boundary. A per-seed length that is a multiple of `block` is identical
+    to the old concatenate-then-block; a non-multiple must drop the remainder
+    PER SEED (no straddling block that mixes two seeds' days)."""
+    import numpy as np
+    from vend.run import _pooled_ci
+    rng = np.random.default_rng(0)
+    a = list(rng.normal(0, 1, 90)); b = list(rng.normal(0, 1, 90))
+    r = _pooled_ci([a, b], block=5)
+    assert r["n"] == 18 + 18 and r["block"] == 5       # multiple: 18 blocks/seed
+    a2 = list(rng.normal(0, 1, 88)); b2 = list(rng.normal(0, 1, 88))
+    r2 = _pooled_ci([a2, b2], block=5)
+    assert r2["n"] == 17 + 17                           # 88//5 each; NOT 35 (176//5)
+    # the old concatenate-then-block would have straddled the seam → n=35
+    assert r2["n"] != (88 + 88) // 5
+
+
+def test_strong_posted_panel_outside_option_matches_run_py(catalog):
+    """FIX (StrongPostedPolicy, referee #48 / §2): the synthetic-panel OUTSIDE
+    option must equal the real consumer's outside option in run.py:163 —
+    world.best_bundle(wtp, bodega_prices) over the WHOLE catalog at full
+    QTY_CAP with NO machine-stock cap — then − walk (0 if no positive bundle).
+    Pinned even with machine SKUs out of stock: the bug dropped out-of-stock
+    SKUs and stock-capped the quantities, understating s_out."""
+    import numpy as np
+    from vend.policies import StrongPostedPolicy
+    from vend.world import best_bundle, wtp_mult_at
+    state = machine(catalog)
+    state.tick = 30
+    for lot in state.lots:                             # two SKUs fully OUT of machine stock
+        if lot.sku in ("cola", "sandwich"):
+            lot.quantity = 0
+    pol = StrongPostedPolicy()
+    pol._build_panel(list(state.listings))
+    Zfull, walk, order = pol._panel
+    mult_now = wtp_mult_at(state.tick)
+    s_out = pol._panel_outside(state, order, mult_now, Zfull, walk)
+    outside_prices = {s: catalog[s].bodega_price for s in catalog}   # run.py:59
+    for c in range(0, Zfull.shape[0], 37):             # sample the panel
+        wtp = {s: Zfull[c, order.index(s)] * catalog[s].wtp_mu_est * mult_now
+               for s in order}
+        o_sku, _, o_s = best_bundle(wtp, outside_prices)   # NO stock cap (run.py:163)
+        expected = (o_s - walk[c]) if o_sku else 0.0       # run.py:164 (no clamp)
+        assert abs(s_out[c] - expected) < 1e-9, (c, s_out[c], expected)

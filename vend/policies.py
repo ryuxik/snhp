@@ -256,6 +256,23 @@ class StrongPostedPolicy:
             self._cache[key] = self._solve(state, live, mh, dm, ts)
         return self._cache[key]
 
+    def _panel_outside(self, state, order, mult_now, Zfull, walk):
+        """Each panel consumer's OUTSIDE option, computed EXACTLY as the real
+        consumer's in run.py:163 — best bodega bundle over the WHOLE catalog
+        (`order`) at full QTY_CAP with NO machine-stock cap, then − walk (and
+        0 when no bundle has positive bodega surplus). Returns [C]."""
+        import numpy as np
+        listings = state.listings
+        mu_all = np.array([listings[s].wtp_mu_est for s in order])      # [S_all]
+        bod_all = np.array([listings[s].bodega_price for s in order])   # [S_all]
+        qs = np.arange(1, QTY_CAP + 1)                                  # [Q]
+        G = np.cumsum(QTY_DECAY ** (qs - 1))
+        W_all = Zfull * (mu_all * mult_now)                            # [C, S_all]
+        BV_all = W_all[:, :, None] * G[None, None, :]                  # [C, S_all, Q]
+        sur = BV_all - qs[None, None, :] * bod_all[None, :, None]      # no mask
+        best = sur.reshape(Zfull.shape[0], -1).max(axis=1)            # [C]
+        return np.where(best > 0, best - walk, 0.0)
+
     def _solve(self, state, live, mh, dm, ts):
         import numpy as np
         from vend.scenario import c_eff as _c_eff, expected_list_demand
@@ -270,7 +287,6 @@ class StrongPostedPolicy:
         mu = np.array([listings[s].wtp_mu_est for s in live])
         lp = np.array([listings[s].list_price for s in live])
         ce = np.array([_c_eff(state, s) for s in live])
-        bod = np.array([listings[s].bodega_price for s in live])
         stk = np.array([state.stock(s) for s in live], dtype=float)
 
         # scarcity shadow value: same demand info the a2a arm uses (mult_hat,
@@ -287,15 +303,19 @@ class StrongPostedPolicy:
         qs = np.arange(1, QTY_CAP + 1)                      # [Q]
         G = np.cumsum(QTY_DECAY ** (qs - 1))                # bundle value multipliers
         BV = W[:, :, None] * G[None, None, :]               # [C, S, Q]
-        # stock cap: qty q infeasible where q > stock
+        # stock cap: qty q infeasible where q > stock (BOARD choice only —
+        # the machine's own stock caps what it can sell)
         qmask = qs[None, :] <= stk[:, None]                 # [S, Q]
         neg = -1e18
 
-        # outside option: best bodega bundle surplus − walk (exactly run.py's
-        # s_out; o_sku=None ⇒ s_out=0 handled by the >0 gate below)
-        sur_bod = np.where(qmask[None], BV - qs[None, None, :] * bod[None, :, None], neg)
-        best_bod = sur_bod.reshape(C, -1).max(axis=1)       # [C]
-        s_out = np.where(best_bod > 0, best_bod - walk, 0.0)
+        # outside option — matches run.py:163 (consumer.best_bundle(
+        # outside_prices)) EXACTLY: the panel buyer's best bodega bundle over
+        # the WHOLE catalog at full QTY_CAP with NO machine-stock cap (the
+        # bodega carries its own stock, not the machine's — an out-of-stock or
+        # low-stock SKU here is still buyable, in any quantity, at the bodega).
+        # Using the machine-stock mask / only-live SKUs understated s_out,
+        # which let the board hold prices UP on buyers who could in fact walk.
+        s_out = self._panel_outside(state, order, mult_now, Zfull, walk)
 
         def objective(p):
             sur = np.where(qmask[None], BV - qs[None, None, :] * p[None, :, None], neg)
@@ -508,6 +528,15 @@ class DemandLearner:
     WTP shocks stay unobserved (the machine sees feet, not wallets)."""
     prior_strength: float = 8.0     # pseudo-arrivals at multiplier 1
     share_ewma: float = 0.3
+    # censored-demand escalation (end_day): a sellout means true demand > the
+    # units we sold, so a censored day may only RAISE the level estimate. The
+    # per-day bump is multiplicative; the CEILING caps the *cumulative*
+    # escalation so consecutive sellouts don't compound 1.2^n without bound —
+    # the estimate can rise at most CENSOR_CAP_MULT× above the day's observed
+    # (censored) sellout level, past which we treat the stockout as a
+    # structural stock shortfall, not a forecast that must keep chasing.
+    censor_escalate: float = 1.2    # per-sellout-day multiplicative bump
+    censor_cap_mult: float = 3.0    # cumulative ceiling (× observed sellout level)
 
     def __post_init__(self):
         self._arr = 0.0
@@ -558,8 +587,14 @@ class DemandLearner:
             elif sku in censored:
                 # demand ≥ observed sales, strictly (we ran out): escalate
                 # until sellouts stop — under permanent censoring a flat
-                # max() anchors on the first truncated day forever
-                self._daily[sku] = max(old, obs) * 1.2
+                # max() anchors on the first truncated day forever. Bounded by
+                # a cumulative ceiling so consecutive sellouts don't compound
+                # 1.2^n unbounded: the censored estimate may exceed neither the
+                # escalated level NOR censor_cap_mult× the day's observed
+                # sellout level (true demand is above `obs`, but we cap how far
+                # the forecast chases it before calling the shortfall structural).
+                self._daily[sku] = min(max(old, obs) * self.censor_escalate,
+                                       self.censor_cap_mult * max(obs, 1e-9))
             else:
                 self._daily[sku] = (1 - self.share_ewma) * old \
                     + self.share_ewma * obs

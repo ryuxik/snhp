@@ -711,32 +711,51 @@ type-enforced like every arm.)
 ### Realistic cell — calibrated traffic, 90 days, block-5 CIs
 `--sigma-cal 0.3 --sigma-rate 0.6 --sigma-wtp 0.3 --dow --glut 0.15 --calibrated-traffic`
 
+(Updated 2026-07-10 for the review-fix batch — the MATERIAL fix here is the
+strong posted arm's synthetic-panel OUTSIDE option, which was machine-stock-
+masked and only over in-stock SKUs; it now ranges over the WHOLE catalog at
+full QTY_CAP with NO machine-stock cap, exactly like the real consumer's
+outside option at run.py:163. Net effect on the posted arm's *aggregate*
+profit is tiny [seed A 912.9→911.9 isolated, ≈−$0.01/day: it prices a hair
+more competitively where SKUs sell out, but the 12-rung discretization and
+the discount-only-from-a-calibrated-ceiling structure bound the change]; the
+a2a arm gained a bit more from the OTHER fixes [disagreement stock-cap +
+escalator ceiling], so the a2a−posted headline nudged from −$0.05 to
++$0.12/+$0.04 — still a TIE both seeds. The CS edge shrank modestly but stays
+significant everywhere. Numbers below are post-fix.)
+
 | pairing | seed 20260713 profit Δ/day | seed 7 profit Δ/day | CS Δ/day (A / 7) |
 |---|---|---|---|
-| posted − static | **+$0.65** [0.33, 0.98] | +$0.29 [−0.04, 0.61] | +1.02 / +0.64 |
-| a2a − static | **+$0.60** [0.23, 0.97] | +$0.24 [−0.11, 0.59] | +1.90 / +1.55 |
-| **a2a − posted** (the test) | **−$0.05** [−0.39, 0.29] | **−$0.05** [−0.31, 0.22] | **+0.88** [0.44,1.31] / **+0.90** [0.36,1.45] |
+| posted − static | **+$0.63** [0.27, 0.99] | +$0.32 [0.03, 0.60] | +1.06 / +0.68 |
+| a2a − static | **+$0.75** [0.43, 1.07] | +$0.35 [0.03, 0.68] | +1.87 / +1.33 |
+| **a2a − posted** (the test) | **+$0.12** [−0.19, 0.44] | **+$0.04** [−0.23, 0.30] | **+0.81** [0.28,1.35] / **+0.66** [0.21,1.11] |
 
-(The a2a−static row reproduces the committed recalibration table
-[+$0.60/+$0.24] to the cent — the harness is faithful; adding the posted
-arm did not perturb the paired streams, as it must not.)
+(The a2a−posted profit CI includes zero on BOTH seeds — still a tie, the sign
+merely flipped from the committed −$0.05. Was: a2a−posted −$0.05/−$0.05 profit,
+CS +0.88/+0.90. The tie survives; the CS win survives, at a slightly smaller
+margin on seed 7.)
 
 ### Robustness — hot "smart-store P90" profile, 90 days
 | pairing | seed 20260713 | seed 7 |
 |---|---|---|
-| posted − static | **+$3.55** [2.55, 4.54] | **+$2.59** [2.13, 3.05] |
-| a2a − static | +$2.45 [1.51, 3.40] | +$2.44 [1.87, 3.01] |
-| **a2a − posted** | **−$1.09** [−2.04, −0.14] | **−$0.15** [−0.65, 0.35] |
-| a2a − posted, CS | +$4.96 [3.45, 6.47] | +$5.44 [4.00, 6.88] |
+| posted − static | **+$3.70** [2.70, 4.70] | **+$2.60** [2.15, 3.05] |
+| a2a − static | +$2.55 [1.44, 3.66] | +$2.30 [1.58, 3.02] |
+| **a2a − posted** | **−$1.15** [−2.14, −0.16] | **−$0.30** [−0.83, 0.22] |
+| a2a − posted, CS | +$4.12 [2.87, 5.38] | +$5.49 [3.97, 7.00] |
+
+(Was: posted−static +3.55/+2.59, a2a−static +2.45/+2.44, a2a−posted
+−1.09/−0.15, CS +4.96/+5.44. The hot-seed-A story is UNCHANGED: the posted
+board still significantly out-earns nego [a2a−posted −$1.15, CI excludes zero],
+exactly as pre-fix. a2a still wins CS on all four seed×profile points.)
 
 ### The verdict (honest, both directions)
 
 1. **The strong posted arm CLOSES the profit gap — the disclosure-beats-
    inference claim does NOT survive as a SELLER-PROFIT claim.** On the
    realistic cell the a2a−posted profit CI includes zero on both seeds
-   (−$0.05/day); at the hot profile the posted board even significantly
-   *out-earns* nego on seed A (posted beats static by +$3.55 vs nego's
-   +$2.45; a2a−posted −$1.09 [−2.04, −0.14]). The entire "+$0.60/+$2.45
+   (+$0.12/+$0.04/day — a tie); at the hot profile the posted board even
+   significantly *out-earns* nego on seed A (posted beats static by +$3.70 vs
+   nego's +$2.55; a2a−posted −$1.15 [−2.14, −0.16]). The entire "+$0.60/+$2.45
    nego-beats-the-sticker" profit edge that earlier sections leaned on is
    reproduced — sometimes exceeded — by a posted price that merely models
    cross-SKU substitution and optimizes the board jointly. **This is the
@@ -747,7 +766,7 @@ arm did not perturb the paired streams, as it must not.)
 
 2. **What HARDENS instead: consumer surplus / total welfare.** On CS the a2a
    arm beats the strong posted arm on all four seed×profile points and every
-   CI excludes zero (+$0.88/+$0.90 calibrated, +$4.96/+$5.44 hot).
+   CI excludes zero (+$0.81/+$0.66 calibrated, +$4.12/+$5.49 hot).
    Negotiation grows the pie for BUYERS in a way a single posted price
    structurally cannot: it price-discriminates in the buyer's favor
    per-transaction (bigger baskets, each buyer's own best substitution,
@@ -790,8 +809,8 @@ computed off the per-day series (the runner pairs every arm against arm[0]).
 ## Split-tilt frontier (2026-07-10) — Task #65: "who pays us, and how far can we tilt before it breaks"
 
 **The business question.** The strong posted board TIES the engine on seller
-profit (a2a−posted −$0.05/day, CI includes zero — see the section above); the
-engine's durable edge is CONSUMER SURPLUS, not seller profit. A merchant pays
+profit (a2a−posted +$0.12/+$0.04/day, CI includes zero both seeds — see the
+section above); the engine's durable edge is CONSUMER SURPLUS, not seller profit. A merchant pays
 for SELLER profit. `scenario.nash_quote` split the created surplus SYMMETRICALLY
 (Nash product `gs·gb`, no seller knob). So we added one: a seller bargaining
 weight **w ∈ [0.5, 1.0]** that generalizes the split to the ASYMMETRIC Nash
@@ -815,15 +834,23 @@ the buyer's best-response gain-from-lying. `python3 -m vend.run --tilt`
 
 ### The frontier (a2a arm vs the strong posted board, $/day, pooled both seeds)
 
+(Updated 2026-07-10 for the review-fix batch; posted baseline + a2a dynamics
+both moved. The SHAPE is unchanged — tie at w=0.5, monotone-up seller profit,
+CS>0 throughout, IC breaks before w=1.0, attested-realized peak-then-collapse —
+but the honest region is TIGHTER: the WTP-understatement lie now becomes the
+buyer's significant best response one grid-point earlier, at w=0.70 [was 0.80],
+so the peak/collapse moves to w=0.60 and the deliverable shrinks from +$0.61 to
++$0.35/day.)
+
 | w | SELLER Δ (a2a−posted) | CONSUMER-SURPLUS Δ (a2a−posted) | WTP-understatement lie gain | attested REALIZED seller Δ |
 |---|---|---|---|---|
-| 0.50 | −0.05 [−0.26, 0.16] | **+0.89** [0.56, 1.22] | −0.16 [−0.59, 0.26] | −0.05  (banked) |
-| 0.60 | +0.24 [0.03, 0.44] | +1.14 [0.77, 1.50] | +0.12 [−0.37, 0.61] | +0.24  (banked) |
-| **0.70** | **+0.61 [0.37, 0.85]** | **+1.04** [0.67, 1.41] | +0.39 [−0.02, 0.79] | **+0.61  (banked — PEAK)** |
-| 0.80 | +0.89 [0.65, 1.12] | +0.79 [0.38, 1.20] | **+0.69 [0.21, 1.17]** | −0.78  (COLLAPSED) |
-| 0.90 | +1.19 [0.93, 1.46] | +0.68 [0.27, 1.09] | +0.73 [0.28, 1.17] | −0.74  (COLLAPSED) |
-| 0.95 | +1.26 [0.98, 1.53] | +0.53 [0.12, 0.94] | +0.90 [0.46, 1.34] | −0.74  (COLLAPSED) |
-| 1.00 | +1.27 [1.04, 1.50] | +0.52 [0.19, 0.84] | +0.80 [0.41, 1.18] | −0.63  (COLLAPSED) |
+| 0.50 | +0.08 [−0.12, 0.28] | **+0.73** [0.40, 1.07] | −0.14 [−0.50, 0.22] | +0.08  (banked) |
+| **0.60** | **+0.35 [0.13, 0.57]** | **+0.99** [0.59, 1.38] | +0.21 [−0.28, 0.70] | **+0.35  (banked — PEAK)** |
+| 0.70 | +0.66 [0.41, 0.91] | +0.97 [0.57, 1.37] | **+0.37 [0.02, 0.72]** | −0.98  (COLLAPSED) |
+| 0.80 | +0.95 [0.70, 1.21] | +0.66 [0.24, 1.08] | +0.79 [0.37, 1.21] | −0.86  (COLLAPSED) |
+| 0.90 | +1.24 [0.97, 1.50] | +0.52 [0.06, 0.98] | +0.92 [0.47, 1.38] | −0.80  (COLLAPSED) |
+| 0.95 | +1.30 [1.02, 1.58] | +0.46 [−0.00, 0.92] | +1.03 [0.59, 1.47] | −0.82  (COLLAPSED) |
+| 1.00 | +1.37 [1.11, 1.63] | +0.45 [0.01, 0.89] | +0.93 [0.52, 1.35] | −0.68  (COLLAPSED) |
 
 *SELLER Δ* is the HONEST (attested, truthtelling) a2a arm's profit over posted.
 *attested REALIZED seller Δ* is what the seller actually banks once the engine
@@ -832,58 +859,59 @@ attestation prices out) but WTP disclosure is only as good as the incentive to
 tell the truth: below the WTP-IC break buyers stay honest and the seller banks
 the honest number; at/after it buyers understate and the seller gets the
 understatement-arm profit. Bold CI = excludes zero. (Against the plain STATIC
-sticker the tilt looks even stronger — seller Δ +$0.42→+$1.74/day, CS Δ
-+$1.35→+$1.97/day — but posted is the honest, referee-hardened baseline.)
+sticker the tilt looks even stronger — seller Δ +$0.55→+$1.84/day, CS Δ
++$1.60→+$1.32/day — but posted is the honest, referee-hardened baseline.)
 
 ### The three break-points
 
 1. **CS crosses zero: NEVER (in [0.5, 1.0]).** The a2a−posted consumer-surplus
-   advantage falls with w (+$0.89 → +$0.52/day) but stays strictly positive
+   advantage falls with w (+$0.73 → +$0.45/day) but stays strictly positive
    even at full seller-take (w=1.0). The tilt cannot turn the engine into a
    pure-extraction tool RELATIVE TO THE POSTED BOARD: the disagreement discipline
    floors every buyer at their outside option, and negotiation still grows the
-   pie (more deals recruited — 73→146 negotiated/day — better substitution,
-   bigger baskets), so buyers stay net-ahead of the discounted posted board.
-   "Both benefit" survives the whole dial. (CS even peaks at w=0.6, +$1.14 —
-   the extra recruited deals outrun the per-deal buyer-share erosion early.)
-2. **IC break (WTP disclosure): w ≈ 0.8.** At w=0.5 the pure WTP-understatement
-   attack LOSES the buyer money (−$0.16/day, CI includes zero — the "H3 inverted"
+   pie (more deals recruited, better substitution, bigger baskets), so buyers
+   stay net-ahead of the discounted posted board. "Both benefit" survives the
+   whole dial. (CS even peaks at w=0.6, +$0.99 — the extra recruited deals
+   outrun the per-deal buyer-share erosion early.)
+2. **IC break (WTP disclosure): w ≈ 0.7.** At w=0.5 the pure WTP-understatement
+   attack LOSES the buyer money (−$0.14/day, CI includes zero — the "H3 inverted"
    result holds: understating denies you deals the buffer would have cleared).
    As the mechanism favors the seller, the incentive to claw surplus back by
-   understating grows monotonically (−0.16 → +0.90) and becomes the buyer's
-   significant best response (CI lower bound > 0) at **w=0.8**. The seller-favoring
+   understating grows monotonically (−0.14 → +0.93) and becomes the buyer's
+   significant best response (CI lower bound > 0) at **w=0.7** [was w=0.8 pre-fix;
+   the review-fix batch tightened it one grid-point earlier]. The seller-favoring
    mechanism destroys the WTP disclosure it runs on. (A SEPARATE, w-robust leak
-   — claiming a free outside option — pays a little at every w, +$0.49→+$1.16;
+   — claiming a free outside option — pays a little at every w, +$0.58→+$1.19;
    it is not created by the tilt and is exactly what outside-option attestation
    prices out, so it is excluded from the WTP-IC break and handled by the
    attestation tier.)
-3. **Profit peak: w = 1.0 on paper, w = 0.7 in reality.** The HONEST-arm profit
-   rises monotonically and saturates at w=1.0 (+$1.27/day) — but that number is
-   a MIRAGE if buyers can lie. The ATTESTED REALIZED profit peaks at **w = 0.7
-   (+$0.61/day [0.37, 0.85])** and then COLLAPSES to −$0.78/day at w=0.8 the
+3. **Profit peak: w = 1.0 on paper, w = 0.6 in reality.** The HONEST-arm profit
+   rises monotonically and saturates at w=1.0 (+$1.37/day) — but that number is
+   a MIRAGE if buyers can lie. The ATTESTED REALIZED profit peaks at **w = 0.6
+   (+$0.35/day [0.13, 0.57])** and then COLLAPSES to −$0.98/day at w=0.7 the
    instant WTP-understatement becomes the buyer's best response. The predicted
    peak-then-collapse is exactly here. (If the outside-option leak is ALSO
-   unattested, realized seller profit is negative at every w, −$0.6…−$0.9/day —
+   unattested, realized seller profit is negative at every w, −$0.7…−$1.0/day —
    strategic buyers neutralize the tilt entirely from the start; attestation is
    not optional garnish, it is what makes any of the tilt collectible.)
 
 ### THE DELIVERABLE — max defensible seller-profit gain
 
 Honest region = {CS ≥ 0 (all of [0.5,1.0]) AND WTP-disclosure IC intact
-(w < 0.8) AND CS ≥ half the symmetric level ($0.45, satisfied through w=0.7)}.
+(w < 0.7) AND CS ≥ half the symmetric level ($0.36, satisfied through w=0.6)}.
 
-> **Max defensible seller-profit gain: +$0.61/day [0.37, 0.85] at w = 0.70**,
-> vs the strong posted board — a real, CI-excludes-zero seller gain (an ~+6%
-> lift on the ~$10.5/day realized profit), delivered WHILE consumers stay
-> +$1.04/day [0.67, 1.41] ahead and WTP disclosure stays incentive-compatible.
+> **Max defensible seller-profit gain: +$0.35/day [0.13, 0.57] at w = 0.60**,
+> vs the strong posted board — a real, CI-excludes-zero seller gain (an ~+3%
+> lift on the ~$10.9/day realized profit), delivered WHILE consumers stay
+> +$0.99/day [0.59, 1.38] ahead and WTP disclosure stays incentive-compatible.
 
 That is the growth-sharing region — what a merchant pays for, banked as seller
 profit, without becoming RealPage: it never prices below a buyer's outside
 option, it leaves the buyer strictly better off than the best posted board, and
-it does not corrupt the disclosure it runs on. Push past w≈0.8 and all three
+it does not corrupt the disclosure it runs on. Push past w≈0.7 and all three
 guarantees fail together — the paper profit keeps rising but buyers begin to
 lie, and the REALIZED profit collapses below the symmetric tie. **The
-monetization mechanism is a BOUNDED tilt (w≈0.7), gated by attestation** (which
+monetization mechanism is a BOUNDED tilt (w≈0.6), gated by attestation** (which
 banks the honest number by pricing out the outside-option leak). Pre-registered
 prediction — "a small tilt buys real seller profit while CS>0 and IC holds; a
 large tilt collapses disclosure and the profit evaporates as buyers lie" —
@@ -937,13 +965,20 @@ churn; their difference is the fairness (churn) cost.
 | — | static | +0.00 | +0.00 | +0.00 | 0 / 0 | 120 / 120 | 0.00 |
 | — | **engine-ref** (never > ref) | **−0.10** [−0.25, 0.04] | −0.10 | +0.01 | **0 / 0** | **120 / 120** | 0.00 |
 | **×1.0** | surge (mild, profit-max) | +2.83 [2.73, 2.93] | +2.77 | −0.05 | 5 / 2 | 120 / 120 | −0.07 |
-| **×1.0** | surge (to ceiling) | +6.98 [6.91, 7.04] | +6.89 | +0.54 | 8 / 4 | 120 / 120 | −0.09 |
-| **×1.0** | **engine** | **+8.24** [8.01, 8.47] | **+8.24** | **+1.15** [0.51, 1.79] | 11 / 5 | 119 / 120 | 0.00 |
-| **×1.25** | surge (to ceiling) | +32.88 [31.7, 34.1] | **+29.75** [29.1, 30.4] | **−12.16** [−13.4, −11.0] | 48 / 47 | 118 / 118 | −3.14 |
-| **×1.25** | **engine** | +40.89 [38.3, 43.5] | **+36.69** [34.5, 38.9] | **−15.93** [−16.9, −15.0] | 72 / 71 | **102 / 114** | −4.20 |
+| **×1.0** | surge (to ceiling) | +6.97 [6.91, 7.04] | +6.89 | +0.54 | 8 / 4 | 120 / 120 | −0.09 |
+| **×1.0** | **engine** | **+8.24** [8.01, 8.47] | **+8.24** | **+1.15** [0.51, 1.80] | 11 / 5 | 119 / 120 | 0.00 |
+| **×1.25** | surge (to ceiling) | +32.92 [31.7, 34.2] | **+29.76** [29.0, 30.5] | **−12.15** [−13.3, −11.0] | 51 / 44 | 118 / 118 | −3.16 |
+| **×1.25** | **engine** | +41.11 [38.4, 43.8] | **+36.68** [34.5, 38.9] | **−15.39** [−16.5, −14.3] | 70 / 73 | **104 / 112** | −4.42 |
 
 Head-to-head (engine − surge, paired, pooled): at ×1.0 **net +$1.36/day [1.11,
-1.60]**, CS **+$0.61**; at ×1.25 net +$6.94 [5.17, 8.71], CS **−$3.76**.
+1.60]**, CS **+$0.61**; at ×1.25 net +$6.92 [5.17, 8.67], CS **−$3.25**.
+
+(Updated 2026-07-10 for the review-fix batch. The mild ×1.0 both-win and the
+×1.25 refutation are UNCHANGED. The one visible mechanism shift is at the ×1.25
+engine: the new REGULAR acceptance gate — a regular is never routed into a quote
+worse for them than the sticker board — cuts a few regular deals routed into
+harvest quotes, so the engine hurts consumers slightly LESS [CS −15.93→−15.39]
+while still churning MORE than the surge [143 vs 95] and retaining fewer.)
 
 ### The verdict — honest, both directions
 
@@ -957,8 +992,8 @@ Head-to-head (engine − surge, paired, pooled): at ×1.0 **net +$1.36/day [1.11
    supported by the model.**
 
 2. **The peak-anchor engine does NOT escape the surge's churn — it churns MORE.**
-   At ×1.25 the engine churns **143** (72+71) vs the surge's **95** (48+47) and
-   retains **fewer** regulars (102/114 vs 118/118). The reason is mechanical and
+   At ×1.25 the engine churns **143** (70+73) vs the surge's **95** (51+44) and
+   retains **fewer** regulars (104/112 vs 118/118). The reason is mechanical and
    fatal to the "no above-reference event" premise: the engine's *fallback board*
    IS the flat peak ceiling ($2.56 cola vs the $1.95 reference), so a no-quote
    regular faces an above-reference price **all day**, while the surge is above
@@ -972,12 +1007,13 @@ Head-to-head (engine − surge, paired, pooled): at ×1.0 **net +$1.36/day [1.11
    engine's aggregate churn is its FALLBACK board, not its discounts.
 
 3. **The engine still NETS MORE than the surge — but via VALUE (heterogeneity
-   capture), not retention.** engine−surge net is +$1.36/day (×1.0) / +$6.94/day
+   capture), not retention.** engine−surge net is +$1.36/day (×1.0) / +$6.92/day
    (×1.25), CIs clear, driven by the churn-off *captured*-value edge (+$1.27 /
-   +$8.01) — individual price discrimination extracts more per transaction. At
-   ×1.25 the engine's fairness cost (−$4.20/day) is WORSE than the surge's
-   (−$3.14), and it hurts consumers MORE (CS −$15.93 vs −$12.16): in the harvest
-   zone the engine is the *harsher* extractor, not the fairer one.
+   +$8.18) — individual price discrimination extracts more per transaction. At
+   ×1.25 the engine's fairness cost (−$4.42/day) is WORSE than the surge's
+   (−$3.16), and it hurts consumers MORE (CS −$15.39 vs −$12.15): in the harvest
+   zone the engine is the *harsher* extractor, not the fairer one (the review-fix
+   regular gate narrowed but did not close the gap).
 
 4. **What SURVIVES — the modest-anchor both-win is real.** At the mild peak-optimum
    anchor (×1.0) the engine captures modestly MORE value than the posted surge
@@ -992,8 +1028,8 @@ Head-to-head (engine − surge, paired, pooled): at ×1.0 **net +$1.36/day [1.11
 5. **"Fairness is the economic engine" — SUPPORTED in the load-bearing sense, and
    that still rebuts "delete fairness."** The fairness apparatus is the BINDING
    economic constraint on BOTH arms: churn, fairness cost, and CS all track the
-   *anchor / price level*, not the frame (churn 5→143, fairness cost $0→−$4.20/day,
-   CS +$1.15→−$15.93/day as the anchor climbs 1.0→1.25), for surge and engine
+   *anchor / price level*, not the frame (churn 5→143, fairness cost $0→−$4.42/day,
+   CS +$1.15→−$15.39/day as the anchor climbs 1.0→1.25), for surge and engine
    alike. Delete it (the Musk critique) and the model predicts the ×1.25 harvest is
    free and painless — contradicting the empirical Wendy's/Coke backlash the whole
    apparatus is calibrated to. And the ENGINE-REF diagnostic locates the ONE
@@ -1002,7 +1038,7 @@ Head-to-head (engine − surge, paired, pooled): at ×1.0 **net +$1.36/day [1.11
    world's all-day sticker is already profit-optimal, so the only extra value at a
    captive machine is captive HARVEST, which costs fairness in ANY frame. Where the
    sticker is genuinely MIS-SET (the realistic-miscalibration cells) that same
-   below-reference lever is worth +$0.60–2.45/day at CS-positive (referee #48's
+   below-reference lever is worth +$0.35–2.55/day at CS-positive (referee #48's
    result) — the fair value SNHP actually captures.
 
 **Sharpened, defensible claim (what the evidence supports):** the value a
@@ -1023,3 +1059,58 @@ the churn-on/off decomposition). Tests: `vend/tests/test_vend.py::test_surge_*`,
 `::test_worldconfig_churn_rate_matches_regulars_module`,
 `::test_regular_pool_honors_churn_rate`, `::test_posted_surge_is_a_visible_above_reference_board`,
 `::test_run_surge_is_deterministic`.
+
+## Review-fix batch (2026-07-10) — six correctness fixes; artifacts regenerated
+
+A code review flagged six issues; all six are fixed and every affected artifact
+(`results.json`, `grid.json`, `tilt.json`, `surge.json`) was regenerated
+deterministically. The sections above carry the post-fix numbers with inline
+"Updated 2026-07-10" notes. Summary:
+
+1. **(MATERIAL, §2) StrongPostedPolicy synthetic-panel OUTSIDE option**
+   (`policies.py::_panel_outside`). It reused the machine-stock feasibility
+   mask and only ranged over in-stock SKUs; the real consumer's outside option
+   (`run.py:163`, `consumer.best_bundle(outside_prices)`) ranges over the WHOLE
+   catalog at full QTY_CAP with NO machine-stock cap (the bodega carries its own
+   stock). Fixed to match run.py exactly, so the "strongest posted baseline" is
+   actually strongest. **Headline impact:** on the realistic calibrated cell the
+   a2a−posted profit Δ moved −$0.05 → **+$0.12 (seed A) / +$0.04 (seed 7)** — CI
+   includes zero on both seeds, i.e. **still a TIE** (sign flipped, not the
+   conclusion). a2a **still wins consumer surplus** on all four seed×profile
+   points (calibrated +$0.81/+$0.66, hot +$4.12/+$5.49; every CI excludes zero),
+   at a slightly smaller margin than the committed +$0.88/+$0.90. Note: fix 1's
+   *isolated* effect on posted profit is tiny (≈−$0.01/day — 12-rung
+   discretization + a discount-only-from-a-calibrated-ceiling bound it); most of
+   the a2a−posted shift is the a2a arm gaining from fixes 4 & 6. **The §2
+   conclusion (posted ties/wins profit; disclosure's durable edge is CS) HOLDS.**
+2. **Regular acceptance gate** (`run.py`, intent path). Regulars accepted any
+   quote with `raw+fair−fric>0`, never comparing against the sticker board /
+   bodega, while transients enforce `≥ max(s_out, s_board)`. Regulars now get the
+   same guarantee (evaluated on their own utility basis incl. transaction
+   utility) — a regular can't be routed into a deal worse than the board they can
+   always access. **Impact:** at the surge ×1.25 engine cell, a few fewer harvest
+   quotes fire (reg_deals ↓) and consumers are hurt slightly less (CS
+   −15.93→−15.39).
+3. **Return-defer roll re-pairing** (`run.py:223`). Seeded on positional `k`,
+   which diverges across paired arms; now seeds on `consumer.uid` (the liar_roll
+   pattern), so the return decision is stable per person and policy-independent.
+4. **nash_quote disagreement stock-cap** (`scenario.py`). The board-disagreement
+   loop iterated `1..QTY_CAP` with no stock cap while `enumerate_outcomes` /
+   `best_bundle` cap at `min(QTY_CAP, stock)`; a stock-constrained buyer got d_b
+   from an unbuyable unit (spurious no-deal). Now stock-capped (the comment
+   already claimed it).
+5. **_pooled_ci per-seed blocking** (`run.py`). Concatenated both seeds then
+   blocked, letting a block straddle the seed boundary for non-multiple day
+   counts. Now blocks WITHIN each seed and pools the block-means (byte-identical
+   for the committed 90-day, multiple-of-5 runs; correct for any day count).
+6. **DemandLearner censored-escalation ceiling** (`policies.py`). `max(old,obs)
+   *1.2` compounded 1.2^n unbounded over consecutive sellout days; now ceilinged
+   at `censor_cap_mult × observed` (3×), documented. Small a2a/posted dynamics
+   shift where slow SKUs sell out.
+
+Tests: one per fix (`test_nash_disagreement_is_stock_capped`,
+`test_regular_gate_rejects_worse_than_board`, `test_censored_escalation_is_capped`,
+`test_pooled_ci_blocks_within_seed_never_across`,
+`test_strong_posted_panel_outside_option_matches_run_py`), plus the
+`test_fairness_harvest_regression` pin re-baselined (reg_deals 1307→1325,
+day90 108→107, churn 75→76). Full suite: 64 passing.

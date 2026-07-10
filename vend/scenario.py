@@ -260,8 +260,12 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
     outside = max(0.0, outside_surplus(disclosed_wtp, disclosed_walk_cost, catalog))
     st_best, st_margin = None, 0.0
     for sku in sku_ctx:
-        lp = sku_ctx[sku][3]
-        for q in range(1, QTY_CAP + 1):
+        stock_s, _, _, lp = sku_ctx[sku]
+        # stock-capped, exactly like enumerate_outcomes / best_bundle: the
+        # board disagreement can only be a bundle the buyer could actually
+        # buy. Iterating to QTY_CAP past stock credited the buyer d_b from an
+        # unbuyable unit, inflating the disagreement and killing real deals.
+        for q in range(1, min(QTY_CAP, int(stock_s)) + 1):
             o = Outcome(sku, q, lp)
             if allowed is not None and not allowed(o):
                 continue
