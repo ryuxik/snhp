@@ -160,27 +160,48 @@ def _consumer(catalog, wtp_scale=1.0, walk=1.0):
                     walk_cost=walk, patience=0.0)
 
 
-def test_nash_quote_respects_both_disagreements(catalog):
-    from vend.scenario import nash_quote, sticker_choice, outside_surplus
+def _glut_state(catalog):
+    """Afternoon machine with genuinely excess stock — where discounts live."""
     state = machine(catalog)
+    state.tick = 50
+    state.lots = [Lot("sandwich", 12, expires_day=0),
+                  Lot("cola", 12, expires_day=60),
+                  Lot("chips", 10, expires_day=30)]
+    return state
+
+
+def test_nash_quote_respects_both_disagreements(catalog):
+    from vend.scenario import nash_quote
+    state = _glut_state(catalog)
     c = _consumer(catalog)
     nq = nash_quote(state, c.wtp, c.walk_cost)
     assert nq.outcome is not None
-    assert nq.u_machine >= nq.d_machine - 1e-9      # sticker sale never given away
-    assert nq.u_buyer_claimed >= nq.d_buyer - 1e-9  # buyer beats their bodega
+    assert nq.u_machine >= nq.d_machine - 1e-9      # no-deal event never given away
+    assert nq.u_buyer_claimed >= nq.d_buyer - 1e-9  # buyer beats their best alternative
 
 
 def test_cannibalization_guard_is_structural(catalog):
     """The P0 fix: a buyer who would have bought at list yields the machine
-    AT LEAST its shadow-priced sticker counterfactual — discounts only
-    carve newly created surplus."""
+    AT LEAST its no-deal counterfactual — discounts only carve newly
+    created surplus."""
     from vend.scenario import nash_quote, sticker_choice
-    state = machine(catalog)
+    state = _glut_state(catalog)
     c = _consumer(catalog)                       # rich buyer: buys at list for sure
     assert sticker_choice(c.wtp, state)[0] is not None
     nq = nash_quote(state, c.wtp, c.walk_cost)
     assert nq.outcome is not None
     assert nq.u_machine >= nq.d_machine - 1e-9
+
+
+def test_no_deal_when_the_sticker_is_already_optimal(catalog):
+    """Event-consistent honesty: a fully-stocked morning machine facing a
+    buyer whose board purchase is already their optimum has NOTHING to
+    negotiate — the engine says so instead of forcing a deal."""
+    from vend.scenario import nash_quote
+    state = machine(catalog)                     # tick 0, full stock, D high
+    c = _consumer(catalog)
+    nq = nash_quote(state, c.wtp, c.walk_cost)
+    assert nq.outcome is None
 
 
 def test_scarce_stock_is_not_discounted_to_early_birds(catalog):
@@ -200,8 +221,9 @@ def test_scarce_stock_is_not_discounted_to_early_birds(catalog):
 
 def test_quote_price_never_below_opportunity_cost(catalog):
     from vend.scenario import nash_quote, c_eff
-    state = machine(catalog)
+    state = _glut_state(catalog)
     nq = nash_quote(state, _consumer(catalog).wtp, 1.0)
+    assert nq.outcome is not None
     assert nq.outcome.unit_price >= c_eff(state, nq.outcome.sku) - 1e-9
 
 

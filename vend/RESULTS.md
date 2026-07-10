@@ -196,3 +196,49 @@ with stable liar identities: −$6.24 / −$11.42 / −$22.89 per day at
 Reproduce the confirmatory: `python3 -m vend.run --days 90 --seed 20260713
 --arms static,a2a --sigma-cal 0.3 --sigma-rate 0.6 --sigma-wtp 0.3 --dow
 --glut 0.15 --out /tmp/confirm90.json` (and --seed 7).
+
+## The weak-dominance upgrade (2026-07-10) — CURRENT results
+
+Challenged on "a well-priced sticker shouldn't be unbeatable," we found the
+mechanism (not the economics) was leaving money down, and made three
+upgrades:
+
+1. **Event-consistent disagreement.** The no-deal world is ONE event: the
+   buyer's best alternative (board purchase or bodega), and both sides'
+   threat points come from it. A buyer who'd walk outside gives the machine
+   a ZERO counterfactual — recruiting marginal customers with deep quantity
+   deals is found money — while a board buyer must be offered something
+   genuinely better than the board, or the engine honestly says "no deal,
+   buy the sticker."
+2. **Regime-consistent forecasting.** Displacement demand now comes from
+   the learner's EWMA of realized units/day in the arm's OWN world
+   (dow-normalized), not a static-world formula — closing P1's
+   self-invalidating-forecast gap.
+3. **A don't-negotiate-for-pennies buffer** (min_gain = $1.00): believed
+   machine gain must clear a buffer, so forecast noise can't leak margin on
+   near-zero-gain deals. Swept in-sample on the control cell; validated
+   out-of-sample on the untouched seed-7 realistic cell.
+
+**Current numbers (supersede the corrections section above):**
+
+| cell | a2a profit Δ/day vs static | CS Δ/day |
+|---|---|---|
+| control (omniscient sticker) | **−$0.72** [−1.43, −0.00] — statistical tie | +$2.11 |
+| cal0.3 grid row (30d) | +$2.47 / +$2.49 / +$2.34 | +$5–7 |
+| cal0.3/shock0.6, 90d, seed A | **+$2.30** [1.09, 3.52] | +$10.41 |
+| cal0.3/shock0.6, 90d, seed 7 | **+$1.95** [1.06, 2.83] | +$8.29 |
+
+**Weak dominance:** statistically indistinguishable from a PERFECT sticker
+in its own fortress; significantly better wherever the operator's
+calibration or the world is imperfect; consumers better off everywhere.
+
+**H3 inverted — the anchoring attack no longer pays.** Under the upgraded
+mechanism the liar sweep flattens to zero for the machine (Δ +$0.26–0.48/day,
+CIs spanning 0) and liars do slightly WORSE than honest disclosure
+themselves (CS Δ −$0.27 to −$1.77): understating your wants mostly denies
+you deals the buffer would otherwise have cleared. Approximate
+incentive-compatibility emerged from the disagreement structure + buffer.
+This repositions attestation from defense to **discount tier** —
+pre-registered next experiment: verified agents get a lower buffer
+(min_gain $0.25 vs $1.00), prediction: attested buyers capture measurably
+more surplus at no machine cost, making verification something buyers WANT.

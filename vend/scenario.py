@@ -85,16 +85,40 @@ def enumerate_outcomes(state: MachineState) -> list[Outcome]:
 _CUM_BASE_DEMAND: dict[tuple, list[float]] = {}
 
 
+_REMAINING_FRAC: list[float] | None = None
+
+
+def _remaining_frac(tick: int) -> float:
+    """Fraction of a standard day's arrivals still ahead of `tick`."""
+    global _REMAINING_FRAC
+    if _REMAINING_FRAC is None:
+        from vend.world import TICKS_PER_DAY, rate_at
+        rates = [rate_at(t) for t in range(TICKS_PER_DAY)]
+        total = sum(rates)
+        cum, acc = [], 0.0
+        for r in reversed(rates):
+            acc += r
+            cum.append(acc / total)
+        _REMAINING_FRAC = list(reversed(cum))
+    return _REMAINING_FRAC[tick]
+
+
 def expected_list_demand(state: MachineState, sku: str, *,
                          dow_mult: float = 1.0, mult_hat: float = 1.0,
-                         share: float | None = None) -> float:
+                         share: float | None = None,
+                         emp_daily: float | None = None) -> float:
     """Expected rest-of-day units of `sku` demanded AT LIST price — the
     machine's forecast from the operator's DEMAND ESTIMATE, scaled by what
     it can observe: the public calendar (dow_mult), today's inferred crowd
     (mult_hat, Gamma–Poisson from arrivals), and the SKU's demand share
     learned from the machine's own realized sales (regime-consistent — the
-    fix for P1's static-world displacement forecast). The per-arrival base
-    curve is cached per (sku, estimate, list)."""
+    fix for P1's static-world displacement forecast). When `emp_daily` is
+    given (the learner's EWMA of realized units/day in THIS arm's regime),
+    the level comes from lived history instead of the structural formula —
+    the forecast can no longer assume a world the mechanism abolished.
+    The per-arrival base curve is cached per (sku, estimate, list)."""
+    if emp_daily is not None:
+        return emp_daily * _remaining_frac(state.tick) * dow_mult * mult_hat
     listing = state.listings[sku]
     n = len(state.listings)
     mu_est = listing.wtp_mu_est
@@ -153,7 +177,8 @@ class NashQuote:
 def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
                disclosed_walk_cost: float, *,
                dow_mult: float = 1.0, mult_hat: float = 1.0,
-               share_fn=None, allowed=None) -> NashQuote:
+               share_fn=None, allowed=None, daily_fn=None,
+               min_gain: float = 0.0) -> NashQuote:
     """Nash bargaining over the enumerated outcome space, on the DISCLOSED
     buyer utilities. Machine surplus is measured against its sticker
     counterfactual; buyer surplus against their claimed outside option.
@@ -172,8 +197,10 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
     for sku in catalog:
         if state.stock(sku) <= 0:
             continue
+        emp = daily_fn(sku) if daily_fn is not None else None
         D = expected_list_demand(state, sku, dow_mult=dow_mult,
-                                 mult_hat=mult_hat, share=_share(sku))
+                                 mult_hat=mult_hat, share=_share(sku),
+                                 emp_daily=emp)
         sku_ctx[sku] = (float(state.stock(sku)), D, c_eff(state, sku),
                         catalog[sku].list_price)
 
@@ -188,12 +215,18 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
     bval = {(sku, q): buyer_value(disclosed_wtp, sku, q)
             for sku in sku_ctx for q in range(1, QTY_CAP + 1)}
 
-    d_b = max(0.0, outside_surplus(disclosed_wtp, disclosed_walk_cost, catalog))
-    # The sticker counterfactual is valued with the SAME shadow-priced
-    # margin function AND under the same intent constraint — a buyer who
-    # stated "one cola only" won't be held to a two-unit counterfactual
-    # their own intent rules out.
-    st_best, d_s = None, 0.0
+    # The disagreement point is the EVENT that happens with no deal — and it
+    # must be one consistent event for both sides. The buyer's best no-deal
+    # move is either their sticker-board purchase (intent-constrained,
+    # stock-capped) or the bodega:
+    #   board wins  → buyer keeps board surplus, machine keeps that margin
+    #   bodega wins → buyer keeps outside surplus, machine keeps NOTHING —
+    #                 which is exactly why marginal customers (weak board
+    #                 fit, strong outside option) are worth recruiting with
+    #                 deep quantity deals: every dollar above cost is found
+    #                 money against a zero counterfactual.
+    outside = max(0.0, outside_surplus(disclosed_wtp, disclosed_walk_cost, catalog))
+    st_best, st_margin = None, 0.0
     for sku in sku_ctx:
         lp = sku_ctx[sku][3]
         for q in range(1, QTY_CAP + 1):
@@ -202,7 +235,11 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
                 continue
             s = bval.get((sku, q), 0.0) - q * lp
             if s > 0 and (st_best is None or s > st_best):
-                st_best, d_s = s, margin(o)
+                st_best, st_margin = s, margin(o)
+    if st_best is not None and st_best >= outside:
+        d_b, d_s = st_best, st_margin      # no-deal world: they buy the board
+    else:
+        d_b, d_s = outside, 0.0            # no-deal world: they walk outside
 
     # Nash product, with a lexicographic tiebreak: when the machine is
     # exactly indifferent everywhere feasible (product pinned at 0), take
@@ -223,6 +260,12 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
                 best, best_score = o, score
     if best is not None and best_score[0] <= 0 and best_score[1] <= 1e-9:
         best = None   # nothing actually improves on the disagreement point
+    if best is not None and min_gain > 0:
+        # don't-negotiate-for-pennies: the machine's believed gain must
+        # clear a buffer, so forecast noise can't leak margin on deals
+        # that are barely better than no deal
+        if margin(best) - d_s < min_gain:
+            best = None
 
     if best is None:
         return NashQuote(None, d_s, d_b, 0.0, 0.0, joint_best, 0.0, [])

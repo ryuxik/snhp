@@ -58,7 +58,7 @@ def run_day(policy, state, catalog, master_seed: int, day: int,
     if hasattr(policy, "dow_mult"):
         policy.dow_mult = ds.dow_mult
     if learner:
-        learner.begin_day()
+        learner.begin_day(ds.dow_mult)
 
     for tick in range(TICKS_PER_DAY):
         state.tick = tick

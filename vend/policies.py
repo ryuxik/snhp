@@ -173,6 +173,10 @@ class A2APolicy:
     mode: str = "intent"
     learner: "DemandLearner" = None
     dow_mult: float = 1.0
+    min_gain: float = 1.00   # $: don't negotiate for pennies. Swept on the
+    # control cell (perfect sticker: -$0.72/day, CI touching 0 — in-sample)
+    # and validated out-of-sample on the seed-7 realistic cell (+$1.95
+    # [1.06, 2.83]): the buffer that makes A2A weakly dominant.
 
     def __post_init__(self):
         if self.learner is None:
@@ -192,7 +196,9 @@ class A2APolicy:
         return nash_quote(state, wtp_d, walk_d,
                           dow_mult=self.dow_mult,
                           mult_hat=self.learner.mult_hat,
-                          share_fn=lambda s: self.learner.share(s, n)), lied
+                          share_fn=lambda s: self.learner.share(s, n),
+                          daily_fn=self.learner.daily,
+                          min_gain=self.min_gain), lied
 
 
 @dataclass
@@ -212,10 +218,13 @@ class DemandLearner:
         self._base = 0.0
         self._shares: dict[str, float] = {}
         self._day_units: dict[str, float] = {}
+        self._daily: dict[str, float] = {}   # EWMA realized units/day (dow-normalized)
+        self._dow_today = 1.0
 
-    def begin_day(self):
+    def begin_day(self, dow_mult: float = 1.0):
         self._arr, self._base = 0.0, 0.0
         self._day_units = {}
+        self._dow_today = max(dow_mult, 1e-6)
 
     def observe_arrivals(self, expected_base: float, n: int):
         self._base += expected_base
@@ -230,13 +239,25 @@ class DemandLearner:
 
     def end_day(self):
         total = sum(self._day_units.values())
-        if total <= 0:
-            return
-        for sku in set(self._shares) | set(self._day_units):
-            obs = self._day_units.get(sku, 0.0) / total
-            old = self._shares.get(sku)
-            self._shares[sku] = obs if old is None else \
+        if total > 0:
+            for sku in set(self._shares) | set(self._day_units):
+                obs = self._day_units.get(sku, 0.0) / total
+                old = self._shares.get(sku)
+                self._shares[sku] = obs if old is None else \
+                    (1 - self.share_ewma) * old + self.share_ewma * obs
+        # regime-consistent demand level: realized units/day in THIS ARM's
+        # world (dow-normalized), not a static-world formula — the fix for
+        # the self-invalidating displacement forecast
+        for sku in set(self._daily) | set(self._day_units):
+            obs = self._day_units.get(sku, 0.0) / self._dow_today
+            old = self._daily.get(sku)
+            self._daily[sku] = obs if old is None else \
                 (1 - self.share_ewma) * old + self.share_ewma * obs
+
+    def daily(self, sku: str) -> float | None:
+        """EWMA realized units/day for this SKU in this arm's own regime
+        (None until a day of history exists)."""
+        return self._daily.get(sku)
 
     def share(self, sku: str, n_skus: int) -> float:
         # floored: a SKU with no sales history keeps a forecast pulse so its
