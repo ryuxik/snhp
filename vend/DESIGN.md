@@ -267,6 +267,42 @@ eventual visual page.
   doesn't"), Stripe/ACP pilot deck slide, and — if H1–H3 hold — the physical
   machine becomes a hardware project, not a research question.
 
+## 9b. P1.5 — when does negotiation pay? (realistic demand & customers)
+
+P0/P1's meta-result: an omniscient sticker in a stationary world is at the
+profit ceiling by construction — no mechanism finds surplus that isn't
+there. P1.5 restores the information structure of real retail. Every knob
+defaults OFF (P0/P1 artifacts stay reproducible) and is turned on
+explicitly by the experiment grid.
+
+**World realism (WorldConfig):**
+- *Day shocks*: per-day multipliers on arrival rate (lognormal, σ_rate) and
+  WTP (lognormal, σ_wtp) — weather, events, paydays.
+- *Day-of-week*: office-tower pattern (Fri lighter, weekends ~dead) with a
+  single all-week sticker — as real machines have.
+- *Operator miscalibration*: the sticker is profit-optimized against a
+  NOISY estimate of demand (μ̂ = μ · lognormal(0, σ_cal)) — a competent
+  operator with finite history, not an omniscient one. Note the asymmetry
+  the discount-only clamp creates: a sticker set too HIGH is recoverable by
+  dynamic arms; too LOW is not (nobody may price above list).
+- *Glut days*: perishable deliveries occasionally double (case deals) —
+  spoilage risk becomes real instead of never firing.
+
+**Policy realism (information, not omniscience):**
+- Dynamic arms get a `DemandLearner`: Gamma–Poisson posterior on today's
+  rate shock from arrivals observed so far (motion sensor — defensible),
+  plus EWMA per-SKU demand shares from realized sales *in their own
+  regime* — which is also the honest fix for P1's Lucas-critique bug: the
+  A2A arm's displacement forecast now comes from the world it actually
+  creates, not a static-world formula.
+- The static arm cannot react. That is not unfair; it is the definition.
+
+**Pre-registered expectations (grid: σ_cal × σ_shock × arms):**
+at (0, 0) the P0/P1 results replicate (static wins/ties); static degrades
+with miscalibration and shocks while learning-dynamic holds; A2A's edge
+over posted-dynamic appears where gluts/DOW create a bundle-and-expiry
+surface. If any cell disagrees, the cell is the result.
+
 ## 10. Non-goals (v1)
 
 Person-based pricing (never — it's a type-level non-goal, not a deferral);

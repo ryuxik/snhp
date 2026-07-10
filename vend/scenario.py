@@ -87,32 +87,43 @@ def enumerate_outcomes(state: MachineState) -> list[Outcome]:
     return outs
 
 
-_CUM_LIST_DEMAND: dict[str, list[float]] = {}
+_CUM_BASE_DEMAND: dict[tuple, list[float]] = {}
 
 
-def expected_list_demand(state: MachineState, sku: str) -> float:
+def expected_list_demand(state: MachineState, sku: str, *,
+                         dow_mult: float = 1.0, mult_hat: float = 1.0,
+                         share: float | None = None) -> float:
     """Expected rest-of-day units of `sku` demanded AT LIST price — the
-    machine's own forecast (hourly rates × WTP survival, uniform SKU-choice
-    share; the same approximations the GvR arm uses). Precomputed once per
-    SKU: rates and crowd multipliers are day-invariant."""
-    if sku not in _CUM_LIST_DEMAND:
+    machine's forecast from the operator's DEMAND ESTIMATE, scaled by what
+    it can observe: the public calendar (dow_mult), today's inferred crowd
+    (mult_hat, Gamma–Poisson from arrivals), and the SKU's demand share
+    learned from the machine's own realized sales (regime-consistent — the
+    fix for P1's static-world displacement forecast). The per-arrival base
+    curve is cached per (sku, estimate, list)."""
+    from vend.world import WTP_MU
+    listing = state.listings[sku]
+    n = len(state.listings)
+    mu_est = listing.wtp_mu_est or WTP_MU[sku]
+    key = (sku, round(mu_est, 4), round(listing.list_price, 2))
+    if key not in _CUM_BASE_DEMAND:
         from scipy import stats
-        from vend.world import TICKS_PER_DAY, WTP_MU, WTP_SIGMA, rate_at, wtp_mult_at
-        listing = state.listings[sku]
-        n = len(state.listings)
-        per_tick = [rate_at(t) / 6.0 / n
+        from vend.world import TICKS_PER_DAY, WTP_SIGMA, rate_at, wtp_mult_at
+        per_tick = [rate_at(t) / 6.0
                     * float(stats.lognorm.sf(listing.list_price, s=WTP_SIGMA,
-                                             scale=WTP_MU[sku] * wtp_mult_at(t)))
+                                             scale=mu_est * wtp_mult_at(t)))
                     for t in range(TICKS_PER_DAY)]
         cum, acc = [], 0.0
         for v in reversed(per_tick):
             acc += v
             cum.append(acc)
-        _CUM_LIST_DEMAND[sku] = list(reversed(cum))
-    return _CUM_LIST_DEMAND[sku][state.tick]
+        _CUM_BASE_DEMAND[key] = list(reversed(cum))
+    base = _CUM_BASE_DEMAND[key][state.tick]
+    return base * (share if share is not None else 1.0 / n) * dow_mult * mult_hat
 
 
-def machine_margin(state: MachineState, o: Outcome) -> float:
+def machine_margin(state: MachineState, o: Outcome, *,
+                   dow_mult: float = 1.0, mult_hat: float = 1.0,
+                   share: float | None = None) -> float:
     """Margin net of the stock's shadow value: a unit the machine expects to
     sell at list later today is worth list margin to keep — selling it
     discounted DISPLACES that sale (contribution price − list ≤ 0). Only
@@ -120,7 +131,8 @@ def machine_margin(state: MachineState, o: Outcome) -> float:
     price − c_eff). This is what stops early bargain-hunters from draining
     the stock the lunch crowd would have paid list for."""
     s = state.stock(o.sku)
-    D = expected_list_demand(state, o.sku)
+    D = expected_list_demand(state, o.sku, dow_mult=dow_mult,
+                             mult_hat=mult_hat, share=share)
     ce = c_eff(state, o.sku)
     lp = state.listings[o.sku].list_price
     excess = max(0.0, s - D)               # units nobody at list is coming for
@@ -142,11 +154,19 @@ class NashQuote:
 
 
 def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
-               disclosed_walk_cost: float) -> NashQuote:
+               disclosed_walk_cost: float, *,
+               dow_mult: float = 1.0, mult_hat: float = 1.0,
+               share_fn=None) -> NashQuote:
     """Nash bargaining over the enumerated outcome space, on the DISCLOSED
     buyer utilities. Machine surplus is measured against its sticker
-    counterfactual; buyer surplus against their claimed outside option."""
+    counterfactual; buyer surplus against their claimed outside option.
+    dow_mult / mult_hat / share_fn carry the machine's observable demand
+    context into the shadow prices (defaults reproduce the P1 setting)."""
     catalog = state.listings
+    n = len(catalog)
+    _share = share_fn if share_fn is not None else (lambda s: 1.0 / n)
+    ctx = lambda sku: {"dow_mult": dow_mult, "mult_hat": mult_hat,
+                       "share": _share(sku)}
     d_b = max(0.0, outside_surplus(disclosed_wtp, disclosed_walk_cost, catalog))
     st_sku, st_qty = sticker_choice(disclosed_wtp, state)
     # The sticker counterfactual is valued with the SAME shadow-priced
@@ -154,13 +174,14 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
     # sale, so its incremental value is ~0 and both sides of the
     # comparison stay consistent.
     d_s = (machine_margin(state, Outcome(st_sku, st_qty,
-                                         catalog[st_sku].list_price))
+                                         catalog[st_sku].list_price),
+                          **ctx(st_sku))
            if st_sku else 0.0)
 
     best, best_prod = None, 0.0
     joint_best = 0.0
     for o in enumerate_outcomes(state):
-        u_s = machine_margin(state, o)
+        u_s = machine_margin(state, o, **ctx(o.sku))
         u_b = buyer_value(disclosed_wtp, o.sku, o.qty) - o.qty * o.unit_price
         gs, gb = u_s - d_s, u_b - d_b
         if gs >= 0 and gb >= 0:
@@ -172,7 +193,7 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
     if best is None:
         return NashQuote(None, d_s, d_b, 0.0, 0.0, joint_best, 0.0, [])
 
-    u_s = machine_margin(state, best)
+    u_s = machine_margin(state, best, **ctx(best.sku))
     u_b = buyer_value(disclosed_wtp, best.sku, best.qty) \
         - best.qty * best.unit_price
     dte = state.days_to_expiry(best.sku)

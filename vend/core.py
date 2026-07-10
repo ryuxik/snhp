@@ -45,6 +45,8 @@ class Listing:
     salvage: float          # per-unit recovery at expiry
     shelf_life_days: int    # lot lifetime from stocking day
     par_stock: int          # nightly restock target
+    wtp_mu_est: float = 0.0  # the OPERATOR'S demand estimate (what set the
+                             # sticker; also what dynamic arms believe)
 
 
 @dataclass

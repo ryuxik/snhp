@@ -99,14 +99,16 @@ def test_offpeak_glut_discounts(catalog):
     assert _gvr_price(state, "chips") < catalog["chips"].list_price
 
 
-def test_expiry_lowers_the_floor(catalog, monkeypatch):
+def test_expiry_lowers_the_floor(catalog):
     """With nightly top-to-par restock, an unsold durable unit displaces
     tomorrow's restock purchase → its floor is unit_cost. A unit expiring
-    tonight is salvage-or-sold → its floor drops to salvage. Force a crowd
-    that values the sandwich below cost and watch the floors bind."""
-    import vend.policies as pol
-    monkeypatch.setitem(pol.WTP_MU, "sandwich", 2.0)   # p_hour ≈ $1.1 < cost $2.2
-    state = machine(catalog)
+    tonight is salvage-or-sold → its floor drops to salvage. Force an
+    operator estimate that prices the crowd below cost and watch the
+    floors bind."""
+    from dataclasses import replace
+    cheap = dict(catalog)
+    cheap["sandwich"] = replace(catalog["sandwich"], wtp_mu_est=2.0)
+    state = fresh_machine("test-floor", cheap)
     state.tick = 44
     state.lots = [Lot("sandwich", 6, expires_day=0)]      # expires tonight
     near = _gvr_price(state, "sandwich")
@@ -232,3 +234,61 @@ def test_a2a_arm_is_deterministic(catalog):
     r1 = run_experiment(["static", "a2a"], days=2, seed=13)
     r2 = run_experiment(["static", "a2a"], days=2, seed=13)
     assert r1 == r2
+
+
+# ── P1.5: realistic world (shocks, calendar, miscalibration) + learner ──
+
+def test_default_config_reproduces_committed_p0_artifact(catalog):
+    """The realism knobs default OFF: the committed results.json must stay
+    exactly reproducible after the P1.5 refactor."""
+    import json
+    committed = json.load(open("vend/results.json"))
+    res = run_experiment(["static"], days=30, seed=20260713)
+    assert res["arms"]["static"]["totals"] == committed["arms"]["static"]["totals"]
+
+
+def test_day_shocks_are_mean_one_and_deterministic():
+    from vend.world import WorldConfig, day_state
+    cfg = WorldConfig(sigma_rate=0.5, sigma_wtp=0.25)
+    states = [day_state(cfg, 42, d) for d in range(4000)]
+    assert states[7] == day_state(cfg, 42, 7)          # deterministic
+    import numpy as np
+    assert abs(np.mean([s.rate_mult for s in states]) - 1.0) < 0.03
+    assert abs(np.mean([s.wtp_mult for s in states]) - 1.0) < 0.03
+
+
+def test_miscalibration_moves_the_sticker():
+    from vend.world import WorldConfig, build_catalog
+    perfect = build_catalog()
+    noisy = build_catalog(WorldConfig(sigma_cal=0.3), master_seed=99)
+    assert any(perfect[s].list_price != noisy[s].list_price for s in perfect)
+    assert all(noisy[s].wtp_mu_est != perfect[s].wtp_mu_est for s in perfect)
+
+
+def test_dow_weekend_is_quiet():
+    from vend.world import WorldConfig, arrivals_at, TICKS_PER_DAY
+    cfg = WorldConfig(dow=True)
+    weekday = sum(arrivals_at(3, 0, t, cfg) for t in range(TICKS_PER_DAY))  # Mon
+    weekend = sum(arrivals_at(3, 6, t, cfg) for t in range(TICKS_PER_DAY))  # Sun
+    assert weekend < weekday * 0.4
+
+
+def test_learner_shares_track_sales():
+    from vend.policies import DemandLearner
+    l = DemandLearner()
+    for _ in range(5):
+        l.begin_day()
+        l.sold("cola", 8)
+        l.sold("chips", 2)
+        l.end_day()
+    assert l.share("cola", 8) > 3 * l.share("chips", 8)
+    assert l.share("sandwich", 8) >= 0.25 / 8   # unseen SKU keeps a pulse
+
+
+def test_glut_days_double_perishable_delivery():
+    from vend.world import WorldConfig, build_catalog, fresh_machine
+    cfg = WorldConfig(glut_prob=1.0)
+    cat = build_catalog()
+    state = fresh_machine("t", cat, cfg, master_seed=1)
+    assert state.stock("sandwich") == 2 * cat["sandwich"].par_stock
+    assert state.stock("cola") == cat["cola"].par_stock   # durables unaffected

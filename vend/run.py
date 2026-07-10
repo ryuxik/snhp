@@ -20,8 +20,9 @@ import numpy as np
 from vend.core import QuoteItem, make_quote, substream
 from vend.policies import A2APolicy, GvrPolicy, StaticPolicy
 from vend.scenario import buyer_value
-from vend.world import (TICKS_PER_DAY, arrivals_at, build_catalog, end_of_day,
-                        fresh_machine, hour_of, sample_consumer)
+from vend.world import (DEFAULT_CONFIG, TICKS_PER_DAY, WorldConfig,
+                        arrivals_at, build_catalog, day_state, end_of_day,
+                        fresh_machine, hour_of, rate_at, sample_consumer)
 
 VEND_VERSION = 1
 ARMS = {
@@ -34,20 +35,33 @@ ARMS = {
 }
 
 
-def run_day(policy, state, catalog, master_seed: int, day: int) -> dict:
+def run_day(policy, state, catalog, master_seed: int, day: int,
+            cfg: WorldConfig = DEFAULT_CONFIG) -> dict:
     m = {"revenue": 0.0, "cogs_sold": 0.0, "units": 0, "deals": 0,
          "arrivals": 0, "returns": 0, "stockouts": 0, "lost_to_outside": 0,
          "consumer_surplus": 0.0, "quotes": 0,
          "negotiated": 0, "neg_machine_gain": 0.0, "liar_deals": 0}
     return_queue: list[tuple[int, object]] = []
 
+    # what the policy may know today: the calendar (public) + its learner
+    ds = day_state(cfg, master_seed, day)
+    learner = getattr(policy, "learner", None)
+    if hasattr(policy, "dow_mult"):
+        policy.dow_mult = ds.dow_mult
+    if learner:
+        learner.begin_day()
+
     for tick in range(TICKS_PER_DAY):
         state.tick = tick
         due = [c for t, c in return_queue if t == tick]
         return_queue = [(t, c) for t, c in return_queue if t > tick]
 
-        n_new = arrivals_at(master_seed, day, tick)
-        consumers = ([sample_consumer(master_seed, day, tick, k, catalog)
+        n_new = arrivals_at(master_seed, day, tick, cfg)
+        if learner:
+            # base = the KNOWN expectation (rate curve × calendar); the
+            # posterior tracks the residual day shock
+            learner.observe_arrivals(rate_at(tick) / 6.0 * ds.dow_mult, n_new)
+        consumers = ([sample_consumer(master_seed, day, tick, k, catalog, cfg)
                       for k in range(n_new)] + due)
         m["arrivals"] += n_new
         m["returns"] += len(due)
@@ -81,6 +95,8 @@ def run_day(policy, state, catalog, master_seed: int, day: int) -> dict:
                                              catalog[o.sku].list_price)],
                             why=nq.why, hour=hour_of(tick))
                         state.take(o.sku, o.qty)
+                        if learner:
+                            learner.sold(o.sku, o.qty)
                         m["revenue"] += quote.total
                         m["cogs_sold"] += o.qty * catalog[o.sku].unit_cost
                         m["units"] += o.qty
@@ -110,6 +126,8 @@ def run_day(policy, state, catalog, master_seed: int, day: int) -> dict:
                                      list_price=catalog[sku].list_price)],
                     why=list(why), hour=hour_of(tick))
                 state.take(sku, qty)
+                if learner:
+                    learner.sold(sku, qty)
                 m["revenue"] += quote.total
                 m["cogs_sold"] += qty * catalog[sku].unit_cost
                 m["units"] += qty
@@ -124,7 +142,9 @@ def run_day(policy, state, catalog, master_seed: int, day: int) -> dict:
                     if tick + delay < TICKS_PER_DAY:
                         return_queue.append((tick + delay, consumer))
 
-    eod = end_of_day(state)
+    if learner:
+        learner.end_day()
+    eod = end_of_day(state, cfg, master_seed)
     m["spoiled_units"] = eod["spoiled_units"]
     m["spoilage_cost"] = eod["spoilage_cost"]
     m["profit"] = round(m["revenue"] - m["cogs_sold"] - m["spoilage_cost"], 2)
@@ -147,13 +167,15 @@ def paired_ci(diffs: list[float]) -> dict:
             "ci95": [round(mean - t * se, 2), round(mean + t * se, 2)], "n": n}
 
 
-def run_experiment(arm_names: list[str], days: int, seed: int) -> dict:
-    catalog = build_catalog()
+def run_experiment(arm_names: list[str], days: int, seed: int,
+                   cfg: WorldConfig = DEFAULT_CONFIG) -> dict:
+    catalog = build_catalog(cfg, seed)
     results = {}
     for name in arm_names:
         policy = ARMS[name]()
-        state = fresh_machine("sim-01", catalog)
-        per_day = [run_day(policy, state, catalog, seed, d) for d in range(days)]
+        state = fresh_machine("sim-01", catalog, cfg, seed)
+        per_day = [run_day(policy, state, catalog, seed, d, cfg)
+                   for d in range(days)]
         totals = {k: round(sum(m[k] for m in per_day), 2)
                   for k in per_day[0] if isinstance(per_day[0][k], (int, float))}
         results[name] = {"totals": totals, "per_day": per_day}
@@ -173,6 +195,9 @@ def run_experiment(arm_names: list[str], days: int, seed: int) -> dict:
         "vend_version": VEND_VERSION,
         "config": {
             "seed": seed, "days": days, "arms": arm_names,
+            "world": {"sigma_cal": cfg.sigma_cal, "sigma_rate": cfg.sigma_rate,
+                      "sigma_wtp": cfg.sigma_wtp, "dow": cfg.dow,
+                      "glut_prob": cfg.glut_prob},
             "list_prices": {s: l.list_price for s, l in catalog.items()},
             "notes": [
                 "static arm = PROFIT-optimal all-day single price (strong baseline)",
@@ -188,12 +213,49 @@ def run_experiment(arm_names: list[str], days: int, seed: int) -> dict:
     }
 
 
+def run_grid(arm_names: list[str], days: int, seed: int, out: str) -> int:
+    """The P1.5 pre-registered grid: operator miscalibration × demand shock,
+    with the office-tower calendar and glut days ON (that's the realistic
+    texture the sticker can't see). Cell (0, 0) with dow/glut off replicates
+    P0/P1 exactly and runs first as the control."""
+    cells = [("control", WorldConfig())]
+    for sc in (0.0, 0.15, 0.30):
+        for sr in (0.0, 0.30, 0.60):
+            cells.append((f"cal{sc:g}_shock{sr:g}",
+                          WorldConfig(sigma_cal=sc, sigma_rate=sr,
+                                      sigma_wtp=sr / 2, dow=True,
+                                      glut_prob=0.15)))
+    grid = {}
+    for name, cfg in cells:
+        res = run_experiment(arm_names, days, seed, cfg)
+        cell = {"world": res["config"]["world"],
+                "profit": {a: res["arms"][a]["totals"]["profit"] for a in arm_names},
+                "paired": {k: {"profit": v["profit"],
+                               "consumer_surplus": v["consumer_surplus"]}
+                           for k, v in res["paired"].items()}}
+        grid[name] = cell
+        deltas = {k: v["profit"]["mean"] for k, v in res["paired"].items()}
+        print(f"{name:<22} profit Δ/day vs {arm_names[0]}: {deltas}")
+    with open(out, "w") as f:
+        json.dump({"vend_version": VEND_VERSION, "days": days, "seed": seed,
+                   "arms": arm_names, "cells": grid}, f, indent=1)
+    print(f"wrote {out}")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--days", type=int, default=30)
     ap.add_argument("--seed", type=int, default=20260713)
     ap.add_argument("--arms", default="static,gvr")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--sigma-cal", type=float, default=0.0)
+    ap.add_argument("--sigma-rate", type=float, default=0.0)
+    ap.add_argument("--sigma-wtp", type=float, default=0.0)
+    ap.add_argument("--dow", action="store_true")
+    ap.add_argument("--glut", type=float, default=0.0)
+    ap.add_argument("--grid", action="store_true",
+                    help="run the P1.5 miscalibration × shock grid")
     args = ap.parse_args(argv)
 
     arm_names = [a.strip() for a in args.arms.split(",") if a.strip()]
@@ -202,7 +264,14 @@ def main(argv=None) -> int:
         print(f"unknown arms: {unknown} (have {sorted(ARMS)})", file=sys.stderr)
         return 2
 
-    res = run_experiment(arm_names, args.days, args.seed)
+    if args.grid:
+        return run_grid(arm_names, args.days, args.seed,
+                        args.out or "vend/grid.json")
+
+    cfg = WorldConfig(sigma_cal=args.sigma_cal, sigma_rate=args.sigma_rate,
+                      sigma_wtp=args.sigma_wtp, dow=args.dow,
+                      glut_prob=args.glut)
+    res = run_experiment(arm_names, args.days, args.seed, cfg)
     out = json.dumps(res, indent=1)
     if args.out:
         with open(args.out, "w") as f:
