@@ -344,27 +344,96 @@ exactly the small-basket regulars the anchor shocks). Plus exogenous pool
 replenishment (0.7 joins/day, market references) so churn has a real
 price. 120 regulars, 90 days, ×1.25 anchor:
 
+> **CORRECTED 2026-07-10 (reproducibility gate #55 — the headline drifted and this is the honest fix).**
+> The numbers first published here ($33/day harvest, pool 120/120 fully
+> intact) were measured on a since-fixed learner and **no longer reproduce
+> on current HEAD**. The corrected table is below; the two rows are kept
+> side by side because the *direction* of the correction matters — the
+> harvest got BIGGER but the "fully intact pool" claim did NOT survive.
+> Full drift forensics are in the boxed note that follows the table.
+
 | arm | late profit $/d | churned | active pool at day 90 | reg deals |
 |---|---:|---:|---:|---:|
 | static ×1.25 | 142.1 | 81 | 102 and falling | 1,145 |
-| **a2a ×1.25** | **133.5–133.9** | 49–60 | **120/120 — full** | 1,852 |
+| **a2a ×1.25 — CORRECTED (current HEAD)** | **143.1** | **75** | **108/120** | **1,307** |
+| ~~a2a ×1.25 — as first published (pre-fix learner)~~ | ~~133.9~~ | ~~60~~ | ~~120/120~~ | ~~1,463~~ |
 | static mixture (the old world) | 100.5 | 0 | 120 | 2,100 |
 
-**The safe-harvest answer: ≈ +$33/day over the old sticker world with the
-customer base fully intact.** Fairness-blind static harvests ~$8/day more
-on this horizon but burns the franchise (net churn despite replenishment,
-survivor-bias whales, fairness-immune transients cushioning the optics) —
-on any longer horizon or any customer-lifetime accounting, the negotiated
-harvest dominates. Quote protection works through exactly the hypothesized
-channel: quotes fire widely (1,852 vs 1,145 regular deals), the paid price
-stays near reference, good deals heal dissatisfaction.
+(seed 2, 90 days, `WorldConfig(regulars=120, anchor_peak=True,
+anchor_mult=1.25)`, default 0.75/15% buffer. The original table's "1,852"
+reg-deals figure does not reproduce even at the commit it was written
+against — that commit yields 1,463; the $33 / 120-120 / churn-60 headline
+figures do reproduce there exactly.)
 
-Buffer frontier (documented, not hidden): $1 flat → perfect-cal tie
-(−$0.72) but regulars unprotected; 0.25/10% → full protection, −$5.43
-control leak; **default 0.75/15% → control −$1.98 [−2.70, −1.25] AND full
-protection with the harvest intact** — a ~2% concession at a knife-edge
-world that doesn't exist in the field, buying the customer base wherever
-anchors are aggressive.
+**The corrected safe-harvest answer: ≈ +$42.6/day** (143.1 − 100.5) over
+the old sticker world — HIGHER than the $33 first published — **but the
+customer base is NOT fully intact: 108/120 active, churn 75.** This
+matches the Fairness parameter sweep's own λ=2.0/carryover=0.80 diagnostic
+cell (1,307 reg deals, 108 active, churn 75, ≈$41/day; the ~$1 gap to
+$42.6 is late-window bookkeeping). The honest reading is worse for the v2
+thesis than the original: under the corrected mechanism the a2a arm now
+protects only *marginally* better than the raw ×1.25 board (108 vs 102
+active, churn 75 vs 81, late profit 143.1 vs 142.1 — it harvests almost as
+aggressively as the fairness-blind sticker). Quote protection still fires
+more widely than the raw board (1,307 vs 1,145 reg deals) and good deals
+still heal dissatisfaction, but **"quote protection keeps the pool fully
+intact" is no longer supported** — it keeps ~6 more of 120 regulars than
+raw harvesting does, not all of them.
+
+### Drift forensics — WHICH commit moved it, WHY, and which number is right
+
+Bisected `4abecf8..HEAD` over the fairness/learner machinery (worktree
+checkout + a paired re-run of the diagnostic metrics at each commit). The
+harvest is $33.4 / 1,463 / 120-active / 60-churn at Fairness v2's own base
+commit (4abecf8), unchanged through the Attack-battery (36b5e20) and
+Whitepaper (13e39a5, which added `quote_friction`/`quotes_seen` but with a
+0.0 default they are behavior-neutral here) commits, and **flips to $42.6 /
+1,307 / 108-active / 75-churn at commit `3a8fc4d` ("BLOCK B0 + the
+censoring discovery")** — a *block*-focused commit that also edited
+`vend/policies.py` + `vend/run.py`. The traffic recalibration (7ccccb6)
+left it untouched, exactly as the sweep note suspected ("unrelated to the
+recalibration"): 7ccccb6 reproduces 3a8fc4d's number, and the fairness
+experiment runs at `traffic_scale=1.0`, which skips every recalibration
+knob.
+
+**Mechanism (causally isolated).** 3a8fc4d made `DemandLearner.end_day`
+censoring-aware: on a sellout day a SKU's demand estimate now escalates to
+`max(old, obs)·1.2` instead of the plain EWMA (a genuine, correct fix — a
+sellout truncates observed sales below true demand, and the old rule read
+that truncation as *weak* demand). The A2A shadow price consumes exactly
+this estimate (`daily_fn=self.learner.daily`): a higher demand forecast
+means less stock reads as "excess," so fewer/smaller protective
+discount-quotes fire to regulars (reg deals 1,463→1,307), more regulars
+face the raw ×1.25 board, churn rises (60→75), retention falls (120→108),
+and realized margin/harvest rises (133.9→143.1). Proof it is *this* change
+and nothing else: monkeypatching current HEAD to ignore the `censored` set
+(i.e. restore the pre-3a8fc4d plain-EWMA rule) reverts the experiment
+exactly to 133.9 / 1,463 / 120 / 60.
+
+**Which number is correct: the NEW one (~$42/day).** The censoring-aware
+learner is the intended, more-defensible mechanism — it fixed a real
+adverse-selection bug (validated on the block twin-run and the vend win
+cell, which rose to +$2.45 in the same commit). The original $33 headline
+was produced by the buggy pre-fix learner that over-discounted because it
+misread sellout truncation as slack demand. So $33 is stale and $42.6 is
+the value the intended mechanism produces. The correction is not free
+publicity, though: it *raises the harvest dollar figure while weakening the
+"safe" adjective* — the same conservatism that fixed the forecast also
+fires fewer protective quotes, so the "pool fully intact / quote protection
+works" story of the original v2 must be downgraded to "quote protection
+helps at the margin (108 vs 102 of 120) but does not shield the franchise
+the way first claimed." Reproduce:
+`scratchpad/repro_fairness.py` logic = `run_experiment(["static","a2a"], 90,
+2, WorldConfig(regulars=120, anchor_peak=True, anchor_mult=1.25))`, compare
+a2a late-window (days 60–89) profit against the static-mixture run.
+
+Buffer frontier (documented, not hidden; these were the pre-fix figures and
+the *relative* ordering is unaffected by the censoring fix): $1 flat →
+perfect-cal tie (−$0.72) but regulars unprotected; 0.25/10% → strongest
+protection, −$5.43 control leak; **default 0.75/15% → control −$1.98
+[−2.70, −1.25]** — a ~2% concession at a knife-edge world that doesn't
+exist in the field, buying whatever marginal franchise protection the
+mechanism can offer wherever anchors are aggressive.
 
 ## Calibrated traffic (2026-07-10) — priority #1: the machine was ~10x too hot
 
@@ -560,18 +629,24 @@ uncertainty. Pool retention likewise stays in a narrow band across the
 grid: 102–116 of 120 regulars active at day 90 (85–97%), churn 67–86 events
 over 90 days, regardless of the exact λ/carryover point.
 
-**Honest flag, unrelated to this sweep:** the grid's own λ=2.0/carryover=0.80
-cell ($41.38/day harvest, 108/120 active, churn 75, reg_deals 1307) does
-NOT reproduce the numbers this file's "Fairness v2" section headlined
-above ($33/day harvest, 120/120 — "full" retention, reg_deals 1852).
-Confirmed via `git stash` A/B on the identical config/seed that this is
-pre-existing drift in the current HEAD codebase, present with or without
-any change made for this task — something else changed the regulars
-mechanism's behavior between when that section was written and now. Not
-investigated or fixed here (out of scope for priority #3); flagged so the
-sweep's baseline is read against CURRENT code, not that section's snapshot.
-Reproduce: `vend/tests/test_vend.py`'s fairness-knob tests pin the plumbing;
-the sweep itself is a direct script over `WorldConfig(regulars=120,
+**Drift flag — NOW RESOLVED (see the corrected Fairness v2 section above,
+gate #55):** the grid's own λ=2.0/carryover=0.80 cell ($41.38/day harvest,
+108/120 active, churn 75, reg_deals 1307) does NOT reproduce the numbers
+this file's "Fairness v2" section originally headlined ($33/day harvest,
+120/120 "full" retention). Bisected to commit **`3a8fc4d` ("BLOCK B0 + the
+censoring discovery")**, which made `DemandLearner.end_day` censoring-aware
+(sellout days escalate the demand estimate instead of EWMA-ing it down).
+That raises the A2A arm's forecast, shrinks perceived "excess" stock, and
+fires fewer protective discount-quotes to regulars — hence more churn and a
+higher realized harvest. The recalibration (7ccccb6) is confirmed
+INNOCENT: it reproduces 3a8fc4d's number and the fairness run skips every
+recalibration knob (`traffic_scale=1.0`). **The corrected (post-fix) number
+is the right one** — the censoring fix repaired a real adverse-selection
+bug — so this sweep's $40.61–41.67/day band is measured against the CORRECT
+mechanism, and the original $33 was the stale/buggy figure. Reproduce:
+`vend/tests/test_vend.py`'s fairness-knob tests pin the plumbing, and
+`test_fairness_harvest_regression` now pins the harvest headline itself
+against drift; the sweep is a direct script over `WorldConfig(regulars=120,
 anchor_peak=True, anchor_mult=1.25, loss_aversion=λ, ref_alpha_paid=1-carryover)`.
 
 ## H4 (2026-07-10) — an LLM handed the machine (Project Vend, in sim)
@@ -606,3 +681,108 @@ at 90 days** — expected to shrink absolute deltas per the recalibration, with
 the LLM's zero-consumer-surplus signature the durable qualitative result.
 Artifact: `vend/h4-llm.json` (non-deterministic — API-priced; not a
 byte-reproducibility target).
+
+## The strongest posted baseline (2026-07-10) — referee item #48 / CRITICAL-ANALYSIS §2: **the disclosure claim weakens honestly on profit, hardens on welfare**
+
+Pre-registered gate: "disclosure beats inference" is only earned if
+inference gets its BEST shot. Every posted/computed arm so far was weak —
+`gvr` prices each SKU independently against a uniform per-SKU demand share
+(P0's diagnosis: it can't see cross-SKU cannibalization, and it LOST to
+static, −$1.71/−$2.07/day at the hot profile). So we built the posted arm
+that fixes exactly that and ran it against nego at the realistic cell.
+
+**`posted` (`vend/policies.py::StrongPostedPolicy`) — a choice-model-aware,
+JOINTLY-optimized board:** (a) it models each buyer as choosing the
+best-surplus bundle across the WHOLE board plus the bodega outside option
+(the same discrete choice `world.best_bundle` makes the simulated consumer
+make), via a seeded synthetic panel drawn from the operator's own lognormal
+WTP belief — so lowering one SKU's price steals demand from its substitutes;
+(b) it optimizes the entire price vector jointly by coordinate ascent over
+the panel's expected profit, warm-started at the calibrated list board;
+(c) it uses the SAME demand information the a2a arm has — the operator's
+`wtp_mu_est` (what set the sticker) for the crowd belief, and the IDENTICAL
+`expected_list_demand(mult_hat, share, daily)` call the a2a arm makes for
+the scarcity shadow value. It sees the crowd; it just never sees the
+individual buyer's wallet — and that missing signal is exactly the
+disclosure value this experiment isolates. (Deterministic; result invariant
+to panel size 200/400/800; discount-only and floored at opportunity cost,
+type-enforced like every arm.)
+
+### Realistic cell — calibrated traffic, 90 days, block-5 CIs
+`--sigma-cal 0.3 --sigma-rate 0.6 --sigma-wtp 0.3 --dow --glut 0.15 --calibrated-traffic`
+
+| pairing | seed 20260713 profit Δ/day | seed 7 profit Δ/day | CS Δ/day (A / 7) |
+|---|---|---|---|
+| posted − static | **+$0.65** [0.33, 0.98] | +$0.29 [−0.04, 0.61] | +1.02 / +0.64 |
+| a2a − static | **+$0.60** [0.23, 0.97] | +$0.24 [−0.11, 0.59] | +1.90 / +1.55 |
+| **a2a − posted** (the test) | **−$0.05** [−0.39, 0.29] | **−$0.05** [−0.31, 0.22] | **+0.88** [0.44,1.31] / **+0.90** [0.36,1.45] |
+
+(The a2a−static row reproduces the committed recalibration table
+[+$0.60/+$0.24] to the cent — the harness is faithful; adding the posted
+arm did not perturb the paired streams, as it must not.)
+
+### Robustness — hot "smart-store P90" profile, 90 days
+| pairing | seed 20260713 | seed 7 |
+|---|---|---|
+| posted − static | **+$3.55** [2.55, 4.54] | **+$2.59** [2.13, 3.05] |
+| a2a − static | +$2.45 [1.51, 3.40] | +$2.44 [1.87, 3.01] |
+| **a2a − posted** | **−$1.09** [−2.04, −0.14] | **−$0.15** [−0.65, 0.35] |
+| a2a − posted, CS | +$4.96 [3.45, 6.47] | +$5.44 [4.00, 6.88] |
+
+### The verdict (honest, both directions)
+
+1. **The strong posted arm CLOSES the profit gap — the disclosure-beats-
+   inference claim does NOT survive as a SELLER-PROFIT claim.** On the
+   realistic cell the a2a−posted profit CI includes zero on both seeds
+   (−$0.05/day); at the hot profile the posted board even significantly
+   *out-earns* nego on seed A (posted beats static by +$3.55 vs nego's
+   +$2.45; a2a−posted −$1.09 [−2.04, −0.14]). The entire "+$0.60/+$2.45
+   nego-beats-the-sticker" profit edge that earlier sections leaned on is
+   reproduced — sometimes exceeded — by a posted price that merely models
+   cross-SKU substitution and optimizes the board jointly. **This is the
+   pre-registered outcome that weakens the claim, and we report it.** It
+   also *completes P0's diagnosis*: gvr lost because of per-SKU
+   independence; the same posted-dynamic idea made choice-aware and jointly
+   optimized wins — the bug was the modeling, not the medium.
+
+2. **What HARDENS instead: consumer surplus / total welfare.** On CS the a2a
+   arm beats the strong posted arm on all four seed×profile points and every
+   CI excludes zero (+$0.88/+$0.90 calibrated, +$4.96/+$5.44 hot).
+   Negotiation grows the pie for BUYERS in a way a single posted price
+   structurally cannot: it price-discriminates in the buyer's favor
+   per-transaction (bigger baskets, each buyer's own best substitution,
+   marginal-customer recruitment against a zero counterfactual), delivering
+   more welfare at equal-or-lower seller profit — a Pareto improvement over
+   the posted board. **The realized value of disclosure at a vending machine
+   is a consumer-surplus edge, not a seller-profit edge.** That is a weaker
+   and more defensible claim than the one we started with, and it is the one
+   the evidence supports.
+
+3. **Note the information asymmetry cuts the RIGHT way.** The posted arm has
+   strictly LESS information than nego per transaction — it knows only the
+   operator's crowd belief `wtp_mu_est`, while nego sees each buyer's actual
+   disclosed WTP and walk cost. It ties nego on profit anyway. So the tie is
+   not bought with an information advantage; it hardens the finding — even
+   knowing strictly less, a choice-aware posted board matches nego's profit.
+
+### The parking asymmetry does NOT reproduce here (and why)
+
+The robustness finding to check: at parking, nego carrying the SAME wrong
+forecast beat posted because a bad quote is DECLINED while a bad posted
+price silently bleeds. Here both arms carry the same non-converging learner
+(this file's calibrated-traffic section documents per-SKU demand errors of
+−88%…+342% at day 90), yet posted TIES/BEATS nego on profit — the asymmetry
+is absent. The structural reason: the vend posted arm is **discount-only
+from a profit-CALIBRATED list ceiling**, so its downside is bounded by the
+strong static optimum — a "bad" posted price reverts *toward* the
+already-good sticker; it cannot bleed *below* static the way a mispriced
+parking meter can. The "bad posted price bleeds" channel that made nego win
+at parking is shut whenever the posted baseline is a discount-from-a-good-
+ceiling, so nego's decline-a-bad-quote advantage buys it nothing on profit
+in this venue. (Where it still pays: consumer surplus, per finding #2.)
+
+Reproduce: `python3 -m vend.run --days 90 --seed 20260713 --arms
+static,posted,a2a --sigma-cal 0.3 --sigma-rate 0.6 --sigma-wtp 0.3 --dow
+--glut 0.15 --calibrated-traffic` (and `--seed 7`), then read the a2a−posted
+paired block CI. `posted` = `StrongPostedPolicy`; the a2a−posted pairing is
+computed off the per-day series (the runner pairs every arm against arm[0]).

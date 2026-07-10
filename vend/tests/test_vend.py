@@ -530,3 +530,118 @@ def test_fairness_sweep_lambda_changes_loss_penalty():
     below_lo = lo.fairness("cola", 1.50, 1, None)
     below_hi = hi.fairness("cola", 1.50, 1, None)
     assert below_lo == below_hi                # GAIN_WEIGHT unaffected by lambda
+
+
+def test_fairness_harvest_regression():
+    """Reproducibility gate #55: pin the corrected Fairness v2 headline so a
+    silent mechanism change (like the censoring-learner drift traced to
+    commit 3a8fc4d, which moved the harvest $33->$42 by firing fewer
+    protective quotes) is caught by CI instead of a whitepaper reviewer.
+
+    These are the CORRECTED (post-censoring-fix) a2a x1.25 diagnostics — the
+    number the intended mechanism produces. The static-mixture "old world"
+    baseline (late profit 100.5) is drift-immune (static arm, no learner),
+    so pinning the a2a arm alone pins the harvest. See RESULTS.md 'Fairness
+    v2' for the forensics."""
+    from vend.world import WorldConfig
+    cfg = WorldConfig(regulars=120, anchor_peak=True, anchor_mult=1.25)
+    res = run_experiment(["static", "a2a"], days=90, seed=2, cfg=cfg)
+    pd = res["_per_day"]["a2a"]
+    reg_deals = sum(d["reg_deals"] for d in pd)
+    day90_active = pd[-1]["active_regulars"]
+    churned = sum(d["churned"] for d in pd)
+    late_profit = sum(d["profit"] for d in pd[60:90]) / 30
+    assert reg_deals == 1307, reg_deals          # was 1463 under the pre-fix learner
+    assert day90_active == 108, day90_active     # was 120/120 ("full") pre-fix
+    assert churned == 75, churned                # was 60 pre-fix
+    # harvest = a2a late - static-mixture late (100.5); ~ +$42.6/day corrected
+    assert 142.5 < late_profit < 143.5, late_profit
+
+
+# ── strong posted baseline (referee #48, CRITICAL-ANALYSIS §2) ──────────────
+
+def _posted_board(cfg, *, day=2, tick=66, remove=None, seed=20260713):
+    """Solve the StrongPostedPolicy board at a fixed state (deterministic)."""
+    from vend.policies import StrongPostedPolicy
+    cat = build_catalog(cfg, seed)
+    st = fresh_machine("m", cat, cfg, seed)
+    st.day, st.tick = day, tick
+    if remove:
+        for lot in st.lots:
+            if lot.sku == remove:
+                lot.quantity = 0
+    pol = StrongPostedPolicy()
+    pol.dow_mult = 1.0
+    return pol.price_board(st), cat
+
+
+def test_strong_posted_is_registered_board_arm_with_learner():
+    """run.py wires .learner / .dow_mult / .traffic_scale into every board
+    arm — the posted arm must expose them (that's how it gets the SAME demand
+    info the a2a arm has) and must be a board-mode (not intent) policy."""
+    from vend.run import ARMS
+    from vend.policies import StrongPostedPolicy, DemandLearner
+    assert "posted" in ARMS
+    pol = ARMS["posted"]()
+    assert isinstance(pol, StrongPostedPolicy)
+    assert pol.mode == "board"
+    assert isinstance(pol.learner, DemandLearner)
+    assert hasattr(pol, "dow_mult") and hasattr(pol, "traffic_scale")
+
+
+def test_strong_posted_is_deterministic():
+    from vend.world import WorldConfig
+    cfg = WorldConfig(sigma_cal=0.3, sigma_rate=0.6, sigma_wtp=0.3,
+                      dow=True, glut_prob=0.15)
+    r1 = run_experiment(["static", "posted"], days=4, seed=13, cfg=cfg)
+    r2 = run_experiment(["static", "posted"], days=4, seed=13, cfg=cfg)
+    assert r1["arms"]["posted"]["totals"] == r2["arms"]["posted"]["totals"]
+
+
+def test_strong_posted_is_discount_only_and_finds_discounts():
+    """Type-enforced never-above-list, AND it actually optimizes: warm-started
+    at the list board, the joint solve must move at least one SKU strictly
+    below list (otherwise it's just a static clone)."""
+    from vend.world import WorldConfig
+    cfg = WorldConfig(anchor_peak=True, anchor_mult=1.3)  # room to discount
+    board, cat = _posted_board(cfg)
+    assert board, "expected a non-empty board"
+    for s, (p, why) in board.items():
+        assert p <= cat[s].list_price + 1e-9, (s, p, cat[s].list_price)
+    assert any(p < cat[s].list_price - 1e-9 for s, (p, _) in board.items())
+
+
+def test_strong_posted_respects_opportunity_cost_floor():
+    from vend.world import WorldConfig
+    cfg = WorldConfig(anchor_peak=True, anchor_mult=1.3)
+    board, cat = _posted_board(cfg)
+    for s, (p, _) in board.items():
+        assert p >= cat[s].salvage - 1e-6, (s, p, cat[s].salvage)
+
+
+def test_strong_posted_models_cross_sku_substitution():
+    """The whole point of (a)+(b): the optimal price of one SKU depends on
+    what else is on the board. Removing a substitute (energy) from stock
+    reduces competition for the refreshment dollar, so the JOINT optimizer
+    prices its substitute (water) strictly HIGHER — a per-SKU optimizer, which
+    prices water against water alone, could never show this."""
+    from vend.world import WorldConfig
+    cfg = WorldConfig(anchor_peak=True, anchor_mult=1.3)
+    with_sub, _ = _posted_board(cfg)
+    without_sub, _ = _posted_board(cfg, remove="energy")
+    assert without_sub["water"][0] > with_sub["water"][0], (
+        with_sub["water"][0], without_sub["water"][0])
+
+
+def test_strong_posted_outearns_static_at_realistic_cell():
+    """The arm is genuinely STRONG (not a strawman): at the realistic
+    calibrated cell it out-earns the profit-optimal static sticker on the
+    reference seed — the committed +$0.65/day edge (see RESULTS.md #48). The
+    full both-seeds block-CI story lives in RESULTS; this pins the direction
+    so a regression that neutered the choice model would fail CI."""
+    from vend.world import WorldConfig, CALIBRATED_TRAFFIC_SCALE
+    cfg = WorldConfig(sigma_cal=0.3, sigma_rate=0.6, sigma_wtp=0.3, dow=True,
+                      glut_prob=0.15, traffic_scale=CALIBRATED_TRAFFIC_SCALE)
+    res = run_experiment(["static", "posted"], days=30, seed=20260713, cfg=cfg)
+    assert (res["arms"]["posted"]["totals"]["profit"]
+            > res["arms"]["static"]["totals"]["profit"])

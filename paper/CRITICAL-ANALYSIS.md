@@ -33,6 +33,41 @@ per-individual alternative-gating is robust to forecast error in a way no
 posted price can be, because a bad quote gets declined while a bad posted
 price silently bleeds.
 
+**OUTCOME (2026-07-10): the strong posted arm CLOSES the profit gap —
+"disclosure beats inference" does NOT survive as a seller-PROFIT claim; it
+survives as a CONSUMER-SURPLUS (welfare) claim. This corrects the abstract.**
+Built `StrongPostedPolicy` (arm `posted`): a discrete-choice model over the
+whole board from a synthetic WTP panel, joint coordinate-ascent price
+optimization, using the IDENTICAL demand call the a2a arm makes. Realistic
+calibrated cell, 90d, block CIs: **a2a − posted profit = −$0.05 [−0.39,0.29]
+(seed A) / −$0.05 [−0.31,0.22] (seed 7) — CI includes zero on both**; at the
+hot profile posted even out-earns nego (−$1.09 [−2.04,−0.14] seed A). The
+per-SKU-independence that made gvr lose was the whole story — a choice-model
+board optimized JOINTLY reproduces nego's profit edge over the sticker. So a
+competent operator with a good posted board is not beaten on profit. **What
+HARDENS instead: a2a beats posted on consumer surplus at all four
+seed×profile points, every CI excluding zero (+$0.88–5.44/day).** Disclosure's
+realized value at a committed-seller venue is a *welfare* edge — more buyer
+surplus at equal seller profit — not a seller-profit edge. This is
+information-theoretically the right cut: posted has LESS info per transaction
+(crowd belief only, no individual wallet) and still ties on profit, so the
+mechanism's disclosure advantage necessarily lands on the side that the
+disclosure is ABOUT — the buyer. Two consequences: (1) **the whitepaper
+abstract's "earns significantly more under realistic miscalibration" must be
+narrowed** — the robust profit result is the strong-posted TIE plus the
+miscalibration edge over a *weak/uncalibrated* operator (which is the real
+world, but must be labeled as "vs a typical mis-set sticker," not "vs the best
+possible posted board"); the durable *universal* claim is the consumer-surplus
+welfare gain. (2) It converges with H4 (LLM machine: +$0 consumer surplus vs
+engine +$9.46) and the whole buyer-agent thesis: **the value of SNHP is
+two-sided welfare, concentrated on the buyer** — exactly the moat the
+Bezos/Musk consult flagged as under-built. The parking asymmetry (nego's
+decline-a-bad-quote robustness) does NOT reproduce at vend on profit: the
+vend posted arm is discount-only from a profit-calibrated ceiling, so a bad
+posted price reverts toward the good sticker and cannot bleed below it —
+shutting the channel that made nego win at parking. Nego's gating still pays
+on consumer surplus.
+
 ## 3. Slots H-S2: the shift lever ≤ 0, no-shift beats full nego by ~$130/day at the bar — MECHANISM DEFECT, fix now
 
 The capacity-relief credit prices a freed peak seat at STATIC-regime list

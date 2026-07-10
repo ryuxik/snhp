@@ -18,7 +18,7 @@ import sys
 import numpy as np
 
 from vend.core import QuoteItem, make_quote, substream
-from vend.policies import A2APolicy, GvrPolicy, StaticPolicy
+from vend.policies import A2APolicy, GvrPolicy, StaticPolicy, StrongPostedPolicy
 from vend.scenario import buyer_value
 from vend.world import (BODEGA_MARKUP, DEFAULT_CONFIG, TICKS_PER_DAY,
                         WorldConfig, arrivals_at, build_catalog, day_state,
@@ -34,6 +34,7 @@ def _llm_arm():
 ARMS = {
     "static": StaticPolicy,
     "gvr": GvrPolicy,
+    "posted": StrongPostedPolicy,   # #48: choice-model, jointly-optimized posted board
     "a2a": A2APolicy,                                           # attested, all truthful
     "a2a-liars25": lambda: A2APolicy(attest=False, liar_share=0.25),
     "a2a-liars50": lambda: A2APolicy(attest=False, liar_share=0.50),
