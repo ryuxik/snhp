@@ -444,6 +444,1025 @@
    ],
    "names": {
     "seller": "SNHP ENGINE",
+    "buyer": "CLAUDE-OPUS-4-8"
+   },
+   "origins": {
+    "seller": "the shipped engine",
+    "buyer": "claude-opus-4-8 \u00b7 advised"
+   },
+   "subtitle": "a real recorded match: SNHP ENGINE (seller) vs CLAUDE-OPUS-4-8 (buyer)",
+   "truth": {
+    "wantS": {
+     "PRICE": 1.0,
+     "DELIVERY": 1.0,
+     "QUALITY": 1.0,
+     "TERMS": 1.0
+    },
+    "wantB": {
+     "PRICE": 0.0,
+     "DELIVERY": 0.0,
+     "QUALITY": 0.0,
+     "TERMS": 0.0
+    },
+    "weightS": {
+     "PRICE": 0.108,
+     "DELIVERY": 0.261,
+     "QUALITY": 0.276,
+     "TERMS": 0.356
+    },
+    "weightB": {
+     "PRICE": 0.274,
+     "DELIVERY": 0.101,
+     "QUALITY": 0.448,
+     "TERMS": 0.176
+    }
+   },
+   "turns": [
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 0.0,
+      "QUALITY": 0.514,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 0.0,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 0.853,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 0.136,
+      "QUALITY": 0.0,
+      "TERMS": 0.51
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 0.853,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 0.388,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    }
+   ],
+   "reveal": {
+    "naive": 1.007,
+    "snhp": 1.339,
+    "ceiling": 1.339,
+    "label": "this deal",
+    "line": "claude-opus-4-8 (buyer) settled with the SNHP engine in 8 rounds \u2014 $0 of $10,000 left on the table."
+   },
+   "meta": {
+    "model": "claude-opus-4-8",
+    "condition": "advised",
+    "role": "buyer",
+    "scenario_id": 2,
+    "deal": true,
+    "capture": 1.0,
+    "dollars_left": 0.0
+   }
+  },
+  {
+   "issues": [
+    "PRICE",
+    "DELIVERY",
+    "QUALITY",
+    "TERMS"
+   ],
+   "names": {
+    "seller": "CLAUDE-OPUS-4-8",
+    "buyer": "SNHP ENGINE"
+   },
+   "origins": {
+    "seller": "claude-opus-4-8 \u00b7 advised",
+    "buyer": "the shipped engine"
+   },
+   "subtitle": "a real recorded match: CLAUDE-OPUS-4-8 (seller) vs SNHP ENGINE (buyer)",
+   "truth": {
+    "wantS": {
+     "PRICE": 1.0,
+     "DELIVERY": 1.0,
+     "QUALITY": 1.0,
+     "TERMS": 1.0
+    },
+    "wantB": {
+     "PRICE": 0.0,
+     "DELIVERY": 0.0,
+     "QUALITY": 0.0,
+     "TERMS": 0.0
+    },
+    "weightS": {
+     "PRICE": 0.292,
+     "DELIVERY": 0.002,
+     "QUALITY": 0.298,
+     "TERMS": 0.408
+    },
+    "weightB": {
+     "PRICE": 0.284,
+     "DELIVERY": 0.494,
+     "QUALITY": 0.123,
+     "TERMS": 0.1
+    }
+   },
+   "turns": [
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.564,
+      "DELIVERY": 0.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.585,
+      "DELIVERY": 0.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.135,
+      "DELIVERY": 0.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.564,
+      "DELIVERY": 1.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 0.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.135,
+      "DELIVERY": 1.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 0.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    }
+   ],
+   "reveal": {
+    "naive": 1.046,
+    "snhp": 0.6,
+    "ceiling": 1.492,
+    "label": "this deal",
+    "line": "No deal \u2014 timeout walked. Both sides took their outside option; $5,979 of joint value evaporated."
+   },
+   "meta": {
+    "model": "claude-opus-4-8",
+    "condition": "advised",
+    "role": "seller",
+    "scenario_id": 25,
+    "deal": false,
+    "capture": 0.4021,
+    "dollars_left": 5978.5275
+   }
+  },
+  {
+   "issues": [
+    "PRICE",
+    "DELIVERY",
+    "QUALITY",
+    "TERMS"
+   ],
+   "names": {
+    "seller": "CLAUDE-OPUS-4-8",
+    "buyer": "SNHP ENGINE"
+   },
+   "origins": {
+    "seller": "claude-opus-4-8 \u00b7 solo",
+    "buyer": "the shipped engine"
+   },
+   "subtitle": "a real recorded match: CLAUDE-OPUS-4-8 (seller) vs SNHP ENGINE (buyer)",
+   "truth": {
+    "wantS": {
+     "PRICE": 1.0,
+     "DELIVERY": 1.0,
+     "QUALITY": 1.0,
+     "TERMS": 1.0
+    },
+    "wantB": {
+     "PRICE": 0.0,
+     "DELIVERY": 0.0,
+     "QUALITY": 0.0,
+     "TERMS": 0.0
+    },
+    "weightS": {
+     "PRICE": 0.108,
+     "DELIVERY": 0.261,
+     "QUALITY": 0.276,
+     "TERMS": 0.356
+    },
+    "weightB": {
+     "PRICE": 0.274,
+     "DELIVERY": 0.101,
+     "QUALITY": 0.448,
+     "TERMS": 0.176
+    }
+   },
+   "turns": [
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.582,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.822,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.514,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    }
+   ],
+   "reveal": {
+    "naive": 1.007,
+    "snhp": 1.339,
+    "ceiling": 1.339,
+    "label": "this deal",
+    "line": "claude-opus-4-8 (seller) settled with the SNHP engine in 7 rounds \u2014 $0 of $10,000 left on the table."
+   },
+   "meta": {
+    "model": "claude-opus-4-8",
+    "condition": "solo",
+    "role": "seller",
+    "scenario_id": 2,
+    "deal": true,
+    "capture": 1.0,
+    "dollars_left": 0.0
+   }
+  },
+  {
+   "issues": [
+    "PRICE",
+    "DELIVERY",
+    "QUALITY",
+    "TERMS"
+   ],
+   "names": {
+    "seller": "CLAUDE-OPUS-4-8",
+    "buyer": "SNHP ENGINE"
+   },
+   "origins": {
+    "seller": "claude-opus-4-8 \u00b7 solo",
+    "buyer": "the shipped engine"
+   },
+   "subtitle": "a real recorded match: CLAUDE-OPUS-4-8 (seller) vs SNHP ENGINE (buyer)",
+   "truth": {
+    "wantS": {
+     "PRICE": 1.0,
+     "DELIVERY": 1.0,
+     "QUALITY": 1.0,
+     "TERMS": 1.0
+    },
+    "wantB": {
+     "PRICE": 0.0,
+     "DELIVERY": 0.0,
+     "QUALITY": 0.0,
+     "TERMS": 0.0
+    },
+    "weightS": {
+     "PRICE": 0.288,
+     "DELIVERY": 0.433,
+     "QUALITY": 0.275,
+     "TERMS": 0.003
+    },
+    "weightB": {
+     "PRICE": 0.026,
+     "DELIVERY": 0.861,
+     "QUALITY": 0.097,
+     "TERMS": 0.016
+    }
+   },
+   "turns": [
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 1.0,
+      "TERMS": 0.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.663,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.663,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.356,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    }
+   ],
+   "reveal": {
+    "naive": 0.916,
+    "snhp": 0.6,
+    "ceiling": 1.44,
+    "label": "this deal",
+    "line": "No deal \u2014 timeout walked. Both sides took their outside option; $5,834 of joint value evaporated."
+   },
+   "meta": {
+    "model": "claude-opus-4-8",
+    "condition": "solo",
+    "role": "seller",
+    "scenario_id": 11,
+    "deal": false,
+    "capture": 0.4166,
+    "dollars_left": 5833.8696
+   }
+  },
+  {
+   "issues": [
+    "PRICE",
+    "DELIVERY",
+    "QUALITY",
+    "TERMS"
+   ],
+   "names": {
+    "seller": "SNHP ENGINE",
+    "buyer": "CLAUDE-SONNET-5"
+   },
+   "origins": {
+    "seller": "the shipped engine",
+    "buyer": "claude-sonnet-5 \u00b7 advised"
+   },
+   "subtitle": "a real recorded match: SNHP ENGINE (seller) vs CLAUDE-SONNET-5 (buyer)",
+   "truth": {
+    "wantS": {
+     "PRICE": 1.0,
+     "DELIVERY": 1.0,
+     "QUALITY": 1.0,
+     "TERMS": 1.0
+    },
+    "wantB": {
+     "PRICE": 0.0,
+     "DELIVERY": 0.0,
+     "QUALITY": 0.0,
+     "TERMS": 0.0
+    },
+    "weightS": {
+     "PRICE": 0.376,
+     "DELIVERY": 0.506,
+     "QUALITY": 0.045,
+     "TERMS": 0.073
+    },
+    "weightB": {
+     "PRICE": 0.184,
+     "DELIVERY": 0.483,
+     "QUALITY": 0.117,
+     "TERMS": 0.216
+    }
+   },
+   "turns": [
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.552,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 0.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.552,
+      "DELIVERY": 0.0,
+      "QUALITY": 0.0,
+      "TERMS": 0.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.593,
+      "QUALITY": 0.0,
+      "TERMS": 0.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.552,
+      "DELIVERY": 0.248,
+      "QUALITY": 0.0,
+      "TERMS": 0.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.816,
+      "QUALITY": 0.0,
+      "TERMS": 0.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.248,
+      "QUALITY": 0.0,
+      "TERMS": 0.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 0.0
+     }
+    }
+   ],
+   "reveal": {
+    "naive": 0.966,
+    "snhp": 1.215,
+    "ceiling": 1.215,
+    "label": "this deal",
+    "line": "claude-sonnet-5 (buyer) settled with the SNHP engine in 8 rounds \u2014 $0 of $10,000 left on the table."
+   },
+   "meta": {
+    "model": "claude-sonnet-5",
+    "condition": "advised",
+    "role": "buyer",
+    "scenario_id": 1,
+    "deal": true,
+    "capture": 1.0,
+    "dollars_left": 0.0
+   }
+  },
+  {
+   "issues": [
+    "PRICE",
+    "DELIVERY",
+    "QUALITY",
+    "TERMS"
+   ],
+   "names": {
+    "seller": "CLAUDE-SONNET-5",
+    "buyer": "SNHP ENGINE"
+   },
+   "origins": {
+    "seller": "claude-sonnet-5 \u00b7 advised",
+    "buyer": "the shipped engine"
+   },
+   "subtitle": "a real recorded match: CLAUDE-SONNET-5 (seller) vs SNHP ENGINE (buyer)",
+   "truth": {
+    "wantS": {
+     "PRICE": 1.0,
+     "DELIVERY": 1.0,
+     "QUALITY": 1.0,
+     "TERMS": 1.0
+    },
+    "wantB": {
+     "PRICE": 0.0,
+     "DELIVERY": 0.0,
+     "QUALITY": 0.0,
+     "TERMS": 0.0
+    },
+    "weightS": {
+     "PRICE": 0.075,
+     "DELIVERY": 0.178,
+     "QUALITY": 0.739,
+     "TERMS": 0.008
+    },
+    "weightB": {
+     "PRICE": 0.056,
+     "DELIVERY": 0.381,
+     "QUALITY": 0.334,
+     "TERMS": 0.23
+    }
+   },
+   "turns": [
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.0,
+      "QUALITY": 0.465,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.501,
+      "QUALITY": 0.815,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.0,
+      "QUALITY": 0.205,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.501,
+      "QUALITY": 0.815,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.0,
+      "QUALITY": 0.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.501,
+      "QUALITY": 0.815,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.0,
+      "QUALITY": 0.205,
+      "TERMS": 1.0
+     }
+    }
+   ],
+   "reveal": {
+    "naive": 1.074,
+    "snhp": 0.6,
+    "ceiling": 1.425,
+    "label": "this deal",
+    "line": "No deal \u2014 timeout walked. Both sides took their outside option; $5,788 of joint value evaporated."
+   },
+   "meta": {
+    "model": "claude-sonnet-5",
+    "condition": "advised",
+    "role": "seller",
+    "scenario_id": 20,
+    "deal": false,
+    "capture": 0.4212,
+    "dollars_left": 5787.8601
+   }
+  },
+  {
+   "issues": [
+    "PRICE",
+    "DELIVERY",
+    "QUALITY",
+    "TERMS"
+   ],
+   "names": {
+    "seller": "SNHP ENGINE",
+    "buyer": "CLAUDE-SONNET-5"
+   },
+   "origins": {
+    "seller": "the shipped engine",
+    "buyer": "claude-sonnet-5 \u00b7 solo"
+   },
+   "subtitle": "a real recorded match: SNHP ENGINE (seller) vs CLAUDE-SONNET-5 (buyer)",
+   "truth": {
+    "wantS": {
+     "PRICE": 1.0,
+     "DELIVERY": 1.0,
+     "QUALITY": 1.0,
+     "TERMS": 1.0
+    },
+    "wantB": {
+     "PRICE": 0.0,
+     "DELIVERY": 0.0,
+     "QUALITY": 0.0,
+     "TERMS": 0.0
+    },
+    "weightS": {
+     "PRICE": 0.376,
+     "DELIVERY": 0.506,
+     "QUALITY": 0.045,
+     "TERMS": 0.073
+    },
+    "weightB": {
+     "PRICE": 0.184,
+     "DELIVERY": 0.483,
+     "QUALITY": 0.117,
+     "TERMS": 0.216
+    }
+   },
+   "turns": [
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.552,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 0.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 0.0,
+      "QUALITY": 0.0,
+      "TERMS": 0.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.552,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 0.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.552,
+      "DELIVERY": 0.248,
+      "QUALITY": 0.0,
+      "TERMS": 0.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 0.816,
+      "QUALITY": 0.0,
+      "TERMS": 0.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.552,
+      "DELIVERY": 0.248,
+      "QUALITY": 0.0,
+      "TERMS": 0.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.0,
+      "TERMS": 0.0
+     }
+    }
+   ],
+   "reveal": {
+    "naive": 0.966,
+    "snhp": 1.215,
+    "ceiling": 1.215,
+    "label": "this deal",
+    "line": "claude-sonnet-5 (buyer) settled with the SNHP engine in 8 rounds \u2014 $0 of $10,000 left on the table."
+   },
+   "meta": {
+    "model": "claude-sonnet-5",
+    "condition": "solo",
+    "role": "buyer",
+    "scenario_id": 1,
+    "deal": true,
+    "capture": 1.0,
+    "dollars_left": 0.0
+   }
+  },
+  {
+   "issues": [
+    "PRICE",
+    "DELIVERY",
+    "QUALITY",
+    "TERMS"
+   ],
+   "names": {
+    "seller": "CLAUDE-SONNET-5",
+    "buyer": "SNHP ENGINE"
+   },
+   "origins": {
+    "seller": "claude-sonnet-5 \u00b7 solo",
+    "buyer": "the shipped engine"
+   },
+   "subtitle": "a real recorded match: CLAUDE-SONNET-5 (seller) vs SNHP ENGINE (buyer)",
+   "truth": {
+    "wantS": {
+     "PRICE": 1.0,
+     "DELIVERY": 1.0,
+     "QUALITY": 1.0,
+     "TERMS": 1.0
+    },
+    "wantB": {
+     "PRICE": 0.0,
+     "DELIVERY": 0.0,
+     "QUALITY": 0.0,
+     "TERMS": 0.0
+    },
+    "weightS": {
+     "PRICE": 0.118,
+     "DELIVERY": 0.727,
+     "QUALITY": 0.066,
+     "TERMS": 0.088
+    },
+    "weightB": {
+     "PRICE": 0.341,
+     "DELIVERY": 0.04,
+     "QUALITY": 0.217,
+     "TERMS": 0.402
+    }
+   },
+   "turns": [
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 1.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 1.0,
+      "TERMS": 1.0
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.326,
+      "DELIVERY": 1.0,
+      "QUALITY": 1.0,
+      "TERMS": 0.0
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.647,
+      "DELIVERY": 1.0,
+      "QUALITY": 0.753,
+      "TERMS": 0.86
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 1.0,
+      "TERMS": 0.455
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.647,
+      "DELIVERY": 1.0,
+      "QUALITY": 1.0,
+      "TERMS": 0.86
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 1.0,
+      "TERMS": 0.223
+     }
+    },
+    {
+     "actor": "prime",
+     "pos": {
+      "PRICE": 0.647,
+      "DELIVERY": 1.0,
+      "QUALITY": 1.0,
+      "TERMS": 0.86
+     }
+    },
+    {
+     "actor": "chal",
+     "pos": {
+      "PRICE": 0.0,
+      "DELIVERY": 1.0,
+      "QUALITY": 1.0,
+      "TERMS": 0.223
+     }
+    }
+   ],
+   "reveal": {
+    "naive": 1.048,
+    "snhp": 0.6,
+    "ceiling": 1.688,
+    "label": "this deal",
+    "line": "No deal \u2014 timeout walked. Both sides took their outside option; $6,444 of joint value evaporated."
+   },
+   "meta": {
+    "model": "claude-sonnet-5",
+    "condition": "solo",
+    "role": "seller",
+    "scenario_id": 54,
+    "deal": false,
+    "capture": 0.3556,
+    "dollars_left": 6444.4599
+   }
+  },
+  {
+   "issues": [
+    "PRICE",
+    "DELIVERY",
+    "QUALITY",
+    "TERMS"
+   ],
+   "names": {
+    "seller": "SNHP ENGINE",
     "buyer": "DEMO-GREEDY"
    },
    "origins": {

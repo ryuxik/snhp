@@ -4,7 +4,7 @@
  "scenarios": 60,
  "deadline": 8,
  "notional": 10000,
- "generated": "2026-07-09T23:32:56Z",
+ "generated": "2026-07-10T18:15:45Z",
  "rows": {
   "engine": {
    "provider": "engine",
@@ -91,6 +91,60 @@
     "engine_utility": 0.6188,
     "mean_rounds": 3.73,
     "advice_follow": 0.7181,
+    "format_failures": 0
+   }
+  },
+  "claude-sonnet-5": {
+   "provider": "anthropic",
+   "solo": {
+    "matches": 120,
+    "deal_rate": 0.7333,
+    "capture": 0.8188,
+    "logroll": 0.1854,
+    "dollars_left": 1812.08,
+    "own_utility": 0.6294,
+    "engine_utility": 0.5743,
+    "mean_rounds": 6.75,
+    "advice_follow": null,
+    "format_failures": 64
+   },
+   "advised": {
+    "matches": 120,
+    "deal_rate": 0.825,
+    "capture": 0.8683,
+    "logroll": 0.3604,
+    "dollars_left": 1317.03,
+    "own_utility": 0.6751,
+    "engine_utility": 0.5985,
+    "mean_rounds": 4.83,
+    "advice_follow": 0.4493,
+    "format_failures": 31
+   }
+  },
+  "claude-opus-4-8": {
+   "provider": "anthropic",
+   "solo": {
+    "matches": 120,
+    "deal_rate": 0.8583,
+    "capture": 0.884,
+    "logroll": 0.4961,
+    "dollars_left": 1160.49,
+    "own_utility": 0.6843,
+    "engine_utility": 0.608,
+    "mean_rounds": 5.76,
+    "advice_follow": null,
+    "format_failures": 0
+   },
+   "advised": {
+    "matches": 120,
+    "deal_rate": 0.8833,
+    "capture": 0.9084,
+    "logroll": 0.5761,
+    "dollars_left": 916.48,
+    "own_utility": 0.6925,
+    "engine_utility": 0.6346,
+    "mean_rounds": 5.23,
+    "advice_follow": 0.3583,
     "format_failures": 0
    }
   }
