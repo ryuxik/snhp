@@ -1,0 +1,230 @@
+"""VINTAGE tests: pairing is real, determinism holds, one-of-one is
+conserved, and the engine's decisions come from the right drivers —
+the accept floor, the counter bounds, and censoring-aware learning."""
+import math
+
+import pytest
+
+from vintage.calibration import (BUFFER_ABS, BUFFER_FRAC, MARKDOWN_FACTOR,
+                                 P_HUFF, RHO_PRIOR_MEAN)
+from vintage.core import substream
+from vintage.engine import (Beliefs, buffer, counter_response, decide_offer,
+                            solve_price)
+from vintage.policies import StickerPolicy
+from vintage.run import item_class, run_experiment, run_store, visit_offer
+from vintage.world import (Item, PairDraws, VintageConfig, browsers_for_day,
+                           items_for_day)
+
+
+def _item(uid=1, cost=20.0, appeal=50.0, tag=100.0, day=0):
+    return Item(uid=uid, cost=cost, appeal=appeal, tag=tag, arrival_day=day)
+
+
+# ── pairing & determinism ────────────────────────────────────────────────
+
+def test_item_and_browser_streams_are_policy_independent():
+    """Streams depend only on (seed, day, k) — never on anything an arm did."""
+    a = items_for_day(11, 4)
+    b = items_for_day(11, 4)
+    assert a == b
+    assert browsers_for_day(11, 4) == browsers_for_day(11, 4)
+
+
+def test_sigma_tag_moves_only_the_tag():
+    """Nested cells: cost and appeal are identical across tag-noise levels;
+    only the owner's guess changes. Shading moves only the browsers."""
+    lo = items_for_day(11, 4, VintageConfig(sigma_tag=0.3))
+    hi = items_for_day(11, 4, VintageConfig(sigma_tag=0.6))
+    assert [(i.cost, i.appeal) for i in lo] == [(i.cost, i.appeal) for i in hi]
+    assert any(x.tag != y.tag for x, y in zip(lo, hi))
+    b_lo = browsers_for_day(11, 4, VintageConfig(shading=0.75))
+    b_hi = browsers_for_day(11, 4, VintageConfig(shading=0.90))
+    assert all(abs((x.shading - 0.75) - (y.shading - 0.90)) < 1e-12
+               for x, y in zip(b_lo, b_hi))
+
+
+def test_pair_draws_key_on_identity_alone():
+    """The same person feels the same way about the same piece in every
+    arm: draws are memo-stable and reproducible across fresh caches."""
+    it = items_for_day(11, 0)[0]
+    br = browsers_for_day(11, 0)[0]
+    assert PairDraws().get(br, it) == PairDraws().get(br, it)
+
+
+def test_experiment_is_deterministic():
+    r1 = run_experiment(["sticker", "offer"], days=6, reps=1, seed=13)
+    r2 = run_experiment(["sticker", "offer"], days=6, reps=1, seed=13)
+    assert r1 == r2
+
+
+# ── one-of-one conservation ──────────────────────────────────────────────
+
+def test_one_of_one_conservation():
+    """An item sells AT MOST once; sold + ending inventory = sourced,
+    and a sold item never reappears on the rack."""
+    for arm in ("sticker", "offer", "hazard"):
+        from vintage.policies import ARMS
+        run = run_store(ARMS[arm](), VintageConfig(sigma_tag=0.6),
+                        master_seed=5, days=25, cache=PairDraws())
+        sold = [u for u, r in run["ledger"].items()
+                if r["sold_day"] is not None]
+        assert len(sold) == len(set(sold))
+        assert set(sold).isdisjoint(run["inventory"])
+        assert len(sold) + len(run["inventory"]) == len(run["ledger"])
+        assert sum(d["units_sold"] for d in run["per_day"]) == len(sold)
+
+
+# ── the engine: accept floor, counters, learning ─────────────────────────
+
+def test_buffer_floor():
+    assert buffer(10.0) == BUFFER_ABS            # $2 beats 8% of a $10 tag
+    assert buffer(100.0) == pytest.approx(BUFFER_FRAC * 100.0)
+
+
+def test_offer_accept_dominance():
+    """The engine NEVER accepts below its disagreement value plus the
+    buffer — swept across waiting values, asks, and offers."""
+    for v in (0.0, 5.0, 20.0, 40.0, 55.0, 80.0):
+        for offer in (1.0, 10.0, 25.0, 45.0, 60.0, 79.0):
+            for ask in (80.0, 120.0):
+                action, price = decide_offer(offer, ask, ask, v)
+                if action == "accept":
+                    assert price == offer
+                    assert offer >= v + buffer(ask) - 1e-9
+                else:
+                    assert action == "counter"
+                    assert offer < price <= ask + 1e-9
+
+
+def test_counter_logic():
+    """Counters live in (offer, ask], sit at/above the floor when one is
+    feasible, and go FIRM (counter = ask) when waiting beats any discount."""
+    action, price = decide_offer(50.0, 100.0, 100.0, 60.0)
+    assert action == "counter" and 60.0 + buffer(100.0) <= price <= 100.0
+    # waiting value so high no discount clears the floor -> firm at ask
+    action, price = decide_offer(50.0, 100.0, 100.0, 99.0)
+    assert (action, price) == ("counter", 100.0)
+    # a believed-hopeless lowball is also met with a firm tag
+    action, price = decide_offer(5.0, 100.0, 100.0, 40.0)
+    assert action == "counter" and price == 100.0
+
+
+def test_counter_response_is_tolerance_and_huff():
+    assert counter_response(wtp=50.0, counter=45.0, huff_roll=0.9)
+    assert not counter_response(wtp=50.0, counter=45.0, huff_roll=P_HUFF / 2)
+    assert not counter_response(wtp=40.0, counter=45.0, huff_roll=0.9)
+
+
+def test_hazard_learner_censoring():
+    """Unsold is NOT zero demand. An OVERPRICED survivor contributes almost
+    no rate exposure (its sitting says nothing about traffic) and keeps its
+    appeal posterior nearly intact; a CHEAP survivor is loud evidence and
+    drags its posterior down. The learned rate never hits zero."""
+    b_hi, b_lo = Beliefs(), Beliefs()
+    hi = _item(uid=1, tag=100.0)
+    b_hi.admit(hi)
+    b_lo.admit(hi)
+    prior_mean = b_hi.appeal_mean(1)
+    for _ in range(30):
+        b_hi.survival(1, 400.0, 40)      # priced far above any belief
+        b_lo.survival(1, 40.0, 40)       # priced under every belief
+    assert b_hi.appeal_mean(1) > 0.95 * prior_mean
+    assert b_lo.appeal_mean(1) < 0.60 * prior_mean
+    assert b_hi.rho == pytest.approx(RHO_PRIOR_MEAN, rel=0.02)  # no exposure
+    assert 0 < b_lo.rho < RHO_PRIOR_MEAN                        # much more
+    assert b_lo.hazard(1, 40.0) > 0                             # still alive
+
+
+def test_survival_lowers_the_waiting_value():
+    """The event-consistent disagreement: every unsold day at a credible
+    price is evidence the piece is over-tagged, so the engine's price to
+    beat falls with age — the learned analogue of the gut markdown."""
+    b = Beliefs()
+    b.admit(_item(uid=1, tag=100.0))
+    v0 = b.continuation(1, 100.0)
+    for _ in range(15):
+        b.survival(1, 100.0, 40)
+    assert b.continuation(1, 100.0) < 0.75 * v0
+    assert b.continuation(1, 100.0) >= 0.0   # free disposal floors it
+
+
+def test_markdown_calendar_in_control():
+    """sticker/1 is the cultural ritual, exactly: full tag to day 29,
+    −20% at 30, −36% at 60 (compounding)."""
+    pol = StickerPolicy()
+    it = _item(tag=100.0)
+    assert pol.price(it, 0) == 100.0
+    assert pol.price(it, 29) == 100.0
+    assert pol.price(it, 30) == pytest.approx(80.0)
+    assert pol.price(it, 59) == pytest.approx(80.0)
+    assert pol.price(it, 60) == pytest.approx(100.0 * MARKDOWN_FACTOR ** 2)
+
+
+def test_computed_markdown_is_discount_only_and_monotone():
+    """hazard/1's solve never raises, never exceeds the tag, and marks a
+    long-surviving piece down below a fresh one."""
+    b = Beliefs()
+    b.admit(_item(uid=1, tag=100.0))
+    fresh = solve_price(b, 1, 100.0, 100.0)
+    assert fresh <= 100.0
+    for _ in range(30):
+        b.survival(1, 100.0, 40)
+    stale = solve_price(b, 1, fresh, 100.0)
+    assert stale <= fresh
+    assert stale < 100.0
+    assert stale >= 0.35 * 100.0 - 1e-9
+
+
+def test_offer_arm_falls_back_to_the_sticker_board():
+    """Never worse UX than the board is ENFORCED: a browser whose target
+    negotiation dies (counter above WTP, no huff) still buys their best
+    positive-surplus alternative at the ask."""
+    from vintage.policies import OfferPolicy
+
+    class FirmPolicy(OfferPolicy):
+        def decide(self, offer, item):          # force the counter to fail
+            return ("counter", item.tag)
+
+    pol = FirmPolicy()
+    target = _item(uid=1, cost=20.0, appeal=50.0, tag=400.0)
+    cheap = _item(uid=2, cost=10.0, appeal=60.0, tag=30.0)
+    pol.admit(target)
+    pol.admit(cheap)
+
+    class FixedDraws:
+        def get(self, b, it):
+            #      connect, wtp,  huff_roll (never huffs)
+            return (True, 200.0 if it.uid == 1 else 55.0, 0.99)
+
+    from vintage.world import Browser
+    br = Browser(uid=1, shading=0.8)
+    # target = item 1 (optimistic surplus 200-160=40 beats 55-30=25)
+    n_conn, sale, flags = visit_offer(br, {1: target, 2: cheap}, pol, 0,
+                                      FixedDraws())
+    assert n_conn == 2
+    assert flags["reject"] == 1 and flags["fallback"] == 1
+    assert sale == (2, 30.0, "ask")
+
+
+def test_sales_never_above_tag_anywhere():
+    """Discount-only, end to end: no arm ever transacts above the tag."""
+    for arm in ("sticker", "offer", "hazard"):
+        from vintage.policies import ARMS
+        run = run_store(ARMS[arm](), VintageConfig(sigma_tag=0.6),
+                        master_seed=9, days=20, cache=PairDraws())
+        for r in run["ledger"].values():
+            if r["sold_day"] is not None:
+                assert r["price"] <= r["item"].tag + 1e-9
+
+
+def test_item_class_edges():
+    assert item_class(_item(tag=40.0, appeal=50.0)) == "under"   # 40 <= 50/1.2
+    assert item_class(_item(tag=50.0, appeal=50.0)) == "fair"
+    assert item_class(_item(tag=61.0, appeal=50.0)) == "over"    # >= 1.2x
+
+
+def test_uids_are_distinct_and_stable():
+    a = items_for_day(11, 0) + items_for_day(11, 1)
+    uids = [i.uid for i in a]
+    assert len(uids) == len(set(uids))
+    assert uids[0] == substream(11, "iuid", 0, 0)

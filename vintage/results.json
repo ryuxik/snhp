@@ -1,0 +1,1333 @@
+{
+ "vintage_version": 1,
+ "days": 60,
+ "reps": 8,
+ "seed": 20260710,
+ "arms": [
+  "sticker",
+  "offer",
+  "hazard"
+ ],
+ "cells": {
+  "tag0.3_shade0.75": {
+   "world": {
+    "sigma_tag": 0.3,
+    "shading": 0.75
+   },
+   "arms": {
+    "sticker": {
+     "per_rep_means": {
+      "sourced_units": 352.88,
+      "units_sold": 339.88,
+      "browsers": 2399.62,
+      "connections": 2166.12,
+      "sales_ask": 339.88,
+      "sales_offer": 0.0,
+      "sales_counter": 0.0,
+      "offers_made": 0.0,
+      "counters_made": 0.0,
+      "huffs": 0.0,
+      "counter_rejects": 0.0,
+      "fallback_sales": 0.0,
+      "inventory_eod": 13.0,
+      "revenue": 24152.53,
+      "cogs_sold": 6838.72,
+      "sourced_cost": 7111.88,
+      "holding_cost": 32.62,
+      "gross_margin": 17313.81,
+      "net_margin": 17281.18,
+      "ending_cost": 273.16,
+      "ending_appeal": 979.52,
+      "sell_through": 96.32,
+      "cohort_n": 181.0,
+      "median_dts": 0.0,
+      "median_dts_censored_reps": 0,
+      "share_sold_14d": 0.971
+     },
+     "classes": {
+      "under": {
+       "n": 96.75,
+       "sold": 96.75,
+       "revenue": 4836.38,
+       "margin": 2902.01,
+       "unsold_appeal": 0.0
+      },
+      "fair": {
+       "n": 156.62,
+       "sold": 156.12,
+       "revenue": 10817.38,
+       "margin": 7645.49,
+       "unsold_appeal": 17.54
+      },
+      "over": {
+       "n": 99.5,
+       "sold": 87.0,
+       "revenue": 8498.77,
+       "margin": 6766.31,
+       "unsold_appeal": 961.98
+      }
+     }
+    },
+    "offer": {
+     "per_rep_means": {
+      "sourced_units": 352.88,
+      "units_sold": 346.0,
+      "browsers": 2399.62,
+      "connections": 1620.12,
+      "sales_ask": 155.5,
+      "sales_offer": 11.0,
+      "sales_counter": 179.5,
+      "offers_made": 1043.12,
+      "counters_made": 1032.12,
+      "huffs": 243.62,
+      "counter_rejects": 609.0,
+      "fallback_sales": 38.0,
+      "inventory_eod": 6.88,
+      "revenue": 23972.75,
+      "cogs_sold": 6971.67,
+      "sourced_cost": 7111.88,
+      "holding_cost": 21.95,
+      "gross_margin": 17001.08,
+      "net_margin": 16979.12,
+      "ending_cost": 140.2,
+      "ending_appeal": 508.14,
+      "sell_through": 98.07,
+      "cohort_n": 181.0,
+      "median_dts": 0.0,
+      "median_dts_censored_reps": 0,
+      "share_sold_14d": 0.999
+     },
+     "classes": {
+      "under": {
+       "n": 96.75,
+       "sold": 96.75,
+       "revenue": 4830.0,
+       "margin": 2895.64,
+       "unsold_appeal": 0.0
+      },
+      "fair": {
+       "n": 156.62,
+       "sold": 156.12,
+       "revenue": 10675.5,
+       "margin": 7502.74,
+       "unsold_appeal": 12.38
+      },
+      "over": {
+       "n": 99.5,
+       "sold": 93.12,
+       "revenue": 8467.25,
+       "margin": 6602.7,
+       "unsold_appeal": 495.76
+      }
+     }
+    },
+    "hazard": {
+     "per_rep_means": {
+      "sourced_units": 352.88,
+      "units_sold": 344.12,
+      "browsers": 2399.62,
+      "connections": 1777.88,
+      "sales_ask": 344.12,
+      "sales_offer": 0.0,
+      "sales_counter": 0.0,
+      "offers_made": 0.0,
+      "counters_made": 0.0,
+      "huffs": 0.0,
+      "counter_rejects": 0.0,
+      "fallback_sales": 0.0,
+      "inventory_eod": 8.75,
+      "revenue": 24379.88,
+      "cogs_sold": 6936.98,
+      "sourced_cost": 7111.88,
+      "holding_cost": 25.3,
+      "gross_margin": 17442.89,
+      "net_margin": 17417.59,
+      "ending_cost": 174.89,
+      "ending_appeal": 646.81,
+      "sell_through": 97.53,
+      "cohort_n": 181.0,
+      "median_dts": 0.0,
+      "median_dts_censored_reps": 0,
+      "share_sold_14d": 0.993
+     },
+     "classes": {
+      "under": {
+       "n": 96.75,
+       "sold": 96.75,
+       "revenue": 4836.38,
+       "margin": 2902.01,
+       "unsold_appeal": 0.0
+      },
+      "fair": {
+       "n": 156.62,
+       "sold": 156.12,
+       "revenue": 10814.75,
+       "margin": 7642.86,
+       "unsold_appeal": 17.54
+      },
+      "over": {
+       "n": 99.5,
+       "sold": 91.25,
+       "revenue": 8728.75,
+       "margin": 6898.01,
+       "unsold_appeal": 629.27
+      }
+     }
+    }
+   },
+   "paired": {
+    "offer_vs_sticker": {
+     "net_margin": {
+      "mean": -302.06,
+      "ci95": [
+       -524.33,
+       -79.79
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "gross_margin": {
+      "mean": -312.73,
+      "ci95": [
+       -535.29,
+       -90.17
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "revenue": {
+      "mean": -179.77,
+      "ci95": [
+       -426.06,
+       66.51
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "units_sold": {
+      "mean": 6.12,
+      "ci95": [
+       4.75,
+       7.5
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "holding_cost": {
+      "mean": -10.67,
+      "ci95": [
+       -13.08,
+       -8.27
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "ending_cost": {
+      "mean": -132.96,
+      "ci95": [
+       -169.74,
+       -96.18
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "hazard_vs_sticker": {
+     "net_margin": {
+      "mean": 136.41,
+      "ci95": [
+       -46.65,
+       319.47
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "gross_margin": {
+      "mean": 129.08,
+      "ci95": [
+       -54.56,
+       312.72
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "revenue": {
+      "mean": 227.35,
+      "ci95": [
+       18.42,
+       436.28
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "units_sold": {
+      "mean": 4.25,
+      "ci95": [
+       2.93,
+       5.57
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "holding_cost": {
+      "mean": -7.33,
+      "ci95": [
+       -8.67,
+       -5.98
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "ending_cost": {
+      "mean": -98.27,
+      "ci95": [
+       -128.63,
+       -67.9
+      ],
+      "n": 8,
+      "block": 1
+     }
+    }
+   },
+   "h1": {
+    "d_margin_under": {
+     "mean": -6.38,
+     "ci95": [
+      -10.35,
+      -2.4
+     ],
+     "n": 8,
+     "block": 1
+    },
+    "d_margin_fair": {
+     "mean": -142.75,
+     "ci95": [
+      -166.8,
+      -118.71
+     ],
+     "n": 8,
+     "block": 1
+    },
+    "d_margin_over": {
+     "mean": -163.61,
+     "ci95": [
+      -397.14,
+      69.93
+     ],
+     "n": 8,
+     "block": 1
+    },
+    "under_minus_over": {
+     "mean": 157.23,
+     "ci95": [
+      -76.43,
+      390.89
+     ],
+     "n": 8,
+     "block": 1
+    }
+   },
+   "h2": {
+    "paired_both_sold_d_days": {
+     "mean": -0.37,
+     "ci95": [
+      -0.5,
+      -0.24
+     ],
+     "n": 8,
+     "block": 1
+    }
+   }
+  },
+  "tag0.3_shade0.9": {
+   "world": {
+    "sigma_tag": 0.3,
+    "shading": 0.9
+   },
+   "arms": {
+    "sticker": {
+     "per_rep_means": {
+      "sourced_units": 352.88,
+      "units_sold": 339.88,
+      "browsers": 2399.62,
+      "connections": 2166.12,
+      "sales_ask": 339.88,
+      "sales_offer": 0.0,
+      "sales_counter": 0.0,
+      "offers_made": 0.0,
+      "counters_made": 0.0,
+      "huffs": 0.0,
+      "counter_rejects": 0.0,
+      "fallback_sales": 0.0,
+      "inventory_eod": 13.0,
+      "revenue": 24152.53,
+      "cogs_sold": 6838.72,
+      "sourced_cost": 7111.88,
+      "holding_cost": 32.62,
+      "gross_margin": 17313.81,
+      "net_margin": 17281.18,
+      "ending_cost": 273.16,
+      "ending_appeal": 979.52,
+      "sell_through": 96.32,
+      "cohort_n": 181.0,
+      "median_dts": 0.0,
+      "median_dts_censored_reps": 0,
+      "share_sold_14d": 0.971
+     },
+     "classes": {
+      "under": {
+       "n": 96.75,
+       "sold": 96.75,
+       "revenue": 4836.38,
+       "margin": 2902.01,
+       "unsold_appeal": 0.0
+      },
+      "fair": {
+       "n": 156.62,
+       "sold": 156.12,
+       "revenue": 10817.38,
+       "margin": 7645.49,
+       "unsold_appeal": 17.54
+      },
+      "over": {
+       "n": 99.5,
+       "sold": 87.0,
+       "revenue": 8498.77,
+       "margin": 6766.31,
+       "unsold_appeal": 961.98
+      }
+     }
+    },
+    "offer": {
+     "per_rep_means": {
+      "sourced_units": 352.88,
+      "units_sold": 345.38,
+      "browsers": 2399.62,
+      "connections": 1624.5,
+      "sales_ask": 248.62,
+      "sales_offer": 28.25,
+      "sales_counter": 68.5,
+      "offers_made": 935.88,
+      "counters_made": 907.62,
+      "huffs": 217.38,
+      "counter_rejects": 621.75,
+      "fallback_sales": 21.38,
+      "inventory_eod": 7.5,
+      "revenue": 24370.62,
+      "cogs_sold": 6960.77,
+      "sourced_cost": 7111.88,
+      "holding_cost": 22.26,
+      "gross_margin": 17409.86,
+      "net_margin": 17387.6,
+      "ending_cost": 151.11,
+      "ending_appeal": 551.51,
+      "sell_through": 97.89,
+      "cohort_n": 181.0,
+      "median_dts": 0.0,
+      "median_dts_censored_reps": 0,
+      "share_sold_14d": 0.998
+     },
+     "classes": {
+      "under": {
+       "n": 96.75,
+       "sold": 96.75,
+       "revenue": 4835.12,
+       "margin": 2900.76,
+       "unsold_appeal": 0.0
+      },
+      "fair": {
+       "n": 156.62,
+       "sold": 156.0,
+       "revenue": 10775.5,
+       "margin": 7605.07,
+       "unsold_appeal": 20.54
+      },
+      "over": {
+       "n": 99.5,
+       "sold": 92.62,
+       "revenue": 8760.0,
+       "margin": 6904.03,
+       "unsold_appeal": 530.97
+      }
+     }
+    },
+    "hazard": {
+     "per_rep_means": {
+      "sourced_units": 352.88,
+      "units_sold": 344.12,
+      "browsers": 2399.62,
+      "connections": 1777.88,
+      "sales_ask": 344.12,
+      "sales_offer": 0.0,
+      "sales_counter": 0.0,
+      "offers_made": 0.0,
+      "counters_made": 0.0,
+      "huffs": 0.0,
+      "counter_rejects": 0.0,
+      "fallback_sales": 0.0,
+      "inventory_eod": 8.75,
+      "revenue": 24379.88,
+      "cogs_sold": 6936.98,
+      "sourced_cost": 7111.88,
+      "holding_cost": 25.3,
+      "gross_margin": 17442.89,
+      "net_margin": 17417.59,
+      "ending_cost": 174.89,
+      "ending_appeal": 646.81,
+      "sell_through": 97.53,
+      "cohort_n": 181.0,
+      "median_dts": 0.0,
+      "median_dts_censored_reps": 0,
+      "share_sold_14d": 0.993
+     },
+     "classes": {
+      "under": {
+       "n": 96.75,
+       "sold": 96.75,
+       "revenue": 4836.38,
+       "margin": 2902.01,
+       "unsold_appeal": 0.0
+      },
+      "fair": {
+       "n": 156.62,
+       "sold": 156.12,
+       "revenue": 10814.75,
+       "margin": 7642.86,
+       "unsold_appeal": 17.54
+      },
+      "over": {
+       "n": 99.5,
+       "sold": 91.25,
+       "revenue": 8728.75,
+       "margin": 6898.01,
+       "unsold_appeal": 629.27
+      }
+     }
+    }
+   },
+   "paired": {
+    "offer_vs_sticker": {
+     "net_margin": {
+      "mean": 106.41,
+      "ci95": [
+       -48.23,
+       261.06
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "gross_margin": {
+      "mean": 96.05,
+      "ci95": [
+       -59.54,
+       251.64
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "revenue": {
+      "mean": 218.1,
+      "ci95": [
+       40.1,
+       396.1
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "units_sold": {
+      "mean": 5.5,
+      "ci95": [
+       4.24,
+       6.76
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "holding_cost": {
+      "mean": -10.37,
+      "ci95": [
+       -12.74,
+       -7.99
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "ending_cost": {
+      "mean": -122.05,
+      "ci95": [
+       -153.49,
+       -90.61
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "hazard_vs_sticker": {
+     "net_margin": {
+      "mean": 136.41,
+      "ci95": [
+       -46.65,
+       319.47
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "gross_margin": {
+      "mean": 129.08,
+      "ci95": [
+       -54.56,
+       312.72
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "revenue": {
+      "mean": 227.35,
+      "ci95": [
+       18.42,
+       436.28
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "units_sold": {
+      "mean": 4.25,
+      "ci95": [
+       2.93,
+       5.57
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "holding_cost": {
+      "mean": -7.33,
+      "ci95": [
+       -8.67,
+       -5.98
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "ending_cost": {
+      "mean": -98.27,
+      "ci95": [
+       -128.63,
+       -67.9
+      ],
+      "n": 8,
+      "block": 1
+     }
+    }
+   },
+   "h1": {
+    "d_margin_under": {
+     "mean": -1.25,
+     "ci95": [
+      -2.49,
+      -0.01
+     ],
+     "n": 8,
+     "block": 1
+    },
+    "d_margin_fair": {
+     "mean": -40.42,
+     "ci95": [
+      -51.49,
+      -29.36
+     ],
+     "n": 8,
+     "block": 1
+    },
+    "d_margin_over": {
+     "mean": 137.72,
+     "ci95": [
+      -23.89,
+      299.33
+     ],
+     "n": 8,
+     "block": 1
+    },
+    "under_minus_over": {
+     "mean": -138.97,
+     "ci95": [
+      -300.94,
+      23.0
+     ],
+     "n": 8,
+     "block": 1
+    }
+   },
+   "h2": {
+    "paired_both_sold_d_days": {
+     "mean": -0.37,
+     "ci95": [
+      -0.49,
+      -0.25
+     ],
+     "n": 8,
+     "block": 1
+    }
+   }
+  },
+  "tag0.6_shade0.75": {
+   "world": {
+    "sigma_tag": 0.6,
+    "shading": 0.75
+   },
+   "arms": {
+    "sticker": {
+     "per_rep_means": {
+      "sourced_units": 352.88,
+      "units_sold": 298.38,
+      "browsers": 2399.62,
+      "connections": 6440.0,
+      "sales_ask": 298.38,
+      "sales_offer": 0.0,
+      "sales_counter": 0.0,
+      "offers_made": 0.0,
+      "counters_made": 0.0,
+      "huffs": 0.0,
+      "counter_rejects": 0.0,
+      "fallback_sales": 0.0,
+      "inventory_eod": 54.5,
+      "revenue": 19612.03,
+      "cogs_sold": 5993.11,
+      "sourced_cost": 7111.88,
+      "holding_cost": 113.05,
+      "gross_margin": 13618.91,
+      "net_margin": 13505.87,
+      "ending_cost": 1118.76,
+      "ending_appeal": 3965.39,
+      "sell_through": 84.59,
+      "cohort_n": 181.0,
+      "median_dts": 0.1,
+      "median_dts_censored_reps": 0,
+      "share_sold_14d": 0.835
+     },
+     "classes": {
+      "under": {
+       "n": 134.12,
+       "sold": 134.12,
+       "revenue": 5524.5,
+       "margin": 2832.16,
+       "unsold_appeal": 0.0
+      },
+      "fair": {
+       "n": 81.62,
+       "sold": 81.25,
+       "revenue": 5463.88,
+       "margin": 3835.88,
+       "unsold_appeal": 21.56
+      },
+      "over": {
+       "n": 137.12,
+       "sold": 83.0,
+       "revenue": 8623.65,
+       "margin": 6950.88,
+       "unsold_appeal": 3943.83
+      }
+     }
+    },
+    "offer": {
+     "per_rep_means": {
+      "sourced_units": 352.88,
+      "units_sold": 317.62,
+      "browsers": 2399.62,
+      "connections": 4702.75,
+      "sales_ask": 193.88,
+      "sales_offer": 15.38,
+      "sales_counter": 108.38,
+      "offers_made": 1848.12,
+      "counters_made": 1832.75,
+      "huffs": 441.5,
+      "counter_rejects": 1282.88,
+      "fallback_sales": 83.75,
+      "inventory_eod": 35.25,
+      "revenue": 20945.25,
+      "cogs_sold": 6382.79,
+      "sourced_cost": 7111.88,
+      "holding_cost": 80.28,
+      "gross_margin": 14562.46,
+      "net_margin": 14482.18,
+      "ending_cost": 729.09,
+      "ending_appeal": 2534.37,
+      "sell_through": 90.02,
+      "cohort_n": 181.0,
+      "median_dts": 0.2,
+      "median_dts_censored_reps": 0,
+      "share_sold_14d": 0.899
+     },
+     "classes": {
+      "under": {
+       "n": 134.12,
+       "sold": 134.12,
+       "revenue": 5520.38,
+       "margin": 2828.03,
+       "unsold_appeal": 0.0
+      },
+      "fair": {
+       "n": 81.62,
+       "sold": 81.0,
+       "revenue": 5385.12,
+       "margin": 3761.04,
+       "unsold_appeal": 32.49
+      },
+      "over": {
+       "n": 137.12,
+       "sold": 102.5,
+       "revenue": 10039.75,
+       "margin": 7973.39,
+       "unsold_appeal": 2501.88
+      }
+     }
+    },
+    "hazard": {
+     "per_rep_means": {
+      "sourced_units": 352.88,
+      "units_sold": 316.0,
+      "browsers": 2399.62,
+      "connections": 4917.5,
+      "sales_ask": 316.0,
+      "sales_offer": 0.0,
+      "sales_counter": 0.0,
+      "offers_made": 0.0,
+      "counters_made": 0.0,
+      "huffs": 0.0,
+      "counter_rejects": 0.0,
+      "fallback_sales": 0.0,
+      "inventory_eod": 36.88,
+      "revenue": 21140.0,
+      "cogs_sold": 6321.32,
+      "sourced_cost": 7111.88,
+      "holding_cost": 83.99,
+      "gross_margin": 14818.68,
+      "net_margin": 14734.69,
+      "ending_cost": 790.56,
+      "ending_appeal": 2819.56,
+      "sell_through": 89.56,
+      "cohort_n": 181.0,
+      "median_dts": 0.1,
+      "median_dts_censored_reps": 0,
+      "share_sold_14d": 0.882
+     },
+     "classes": {
+      "under": {
+       "n": 134.12,
+       "sold": 134.12,
+       "revenue": 5524.5,
+       "margin": 2832.16,
+       "unsold_appeal": 0.0
+      },
+      "fair": {
+       "n": 81.62,
+       "sold": 81.25,
+       "revenue": 5463.88,
+       "margin": 3835.88,
+       "unsold_appeal": 21.56
+      },
+      "over": {
+       "n": 137.12,
+       "sold": 100.62,
+       "revenue": 10151.62,
+       "margin": 8150.65,
+       "unsold_appeal": 2797.99
+      }
+     }
+    }
+   },
+   "paired": {
+    "offer_vs_sticker": {
+     "net_margin": {
+      "mean": 976.32,
+      "ci95": [
+       299.07,
+       1653.56
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "gross_margin": {
+      "mean": 943.55,
+      "ci95": [
+       271.13,
+       1615.96
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "revenue": {
+      "mean": 1333.22,
+      "ci95": [
+       564.46,
+       2101.99
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "units_sold": {
+      "mean": 19.25,
+      "ci95": [
+       13.46,
+       25.04
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "holding_cost": {
+      "mean": -32.77,
+      "ci95": [
+       -40.38,
+       -25.16
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "ending_cost": {
+      "mean": -389.68,
+      "ci95": [
+       -502.97,
+       -276.39
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "hazard_vs_sticker": {
+     "net_margin": {
+      "mean": 1228.83,
+      "ci95": [
+       456.13,
+       2001.52
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "gross_margin": {
+      "mean": 1199.77,
+      "ci95": [
+       432.44,
+       1967.1
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "revenue": {
+      "mean": 1527.97,
+      "ci95": [
+       660.38,
+       2395.57
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "units_sold": {
+      "mean": 17.62,
+      "ci95": [
+       11.53,
+       23.72
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "holding_cost": {
+      "mean": -29.05,
+      "ci95": [
+       -35.68,
+       -22.43
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "ending_cost": {
+      "mean": -328.2,
+      "ci95": [
+       -437.02,
+       -219.39
+      ],
+      "n": 8,
+      "block": 1
+     }
+    }
+   },
+   "h1": {
+    "d_margin_under": {
+     "mean": -4.12,
+     "ci95": [
+      -6.93,
+      -1.32
+     ],
+     "n": 8,
+     "block": 1
+    },
+    "d_margin_fair": {
+     "mean": -74.83,
+     "ci95": [
+      -87.53,
+      -62.14
+     ],
+     "n": 8,
+     "block": 1
+    },
+    "d_margin_over": {
+     "mean": 1022.51,
+     "ci95": [
+      347.74,
+      1697.28
+     ],
+     "n": 8,
+     "block": 1
+    },
+    "under_minus_over": {
+     "mean": -1026.63,
+     "ci95": [
+      -1702.39,
+      -350.87
+     ],
+     "n": 8,
+     "block": 1
+    }
+   },
+   "h2": {
+    "paired_both_sold_d_days": {
+     "mean": -0.85,
+     "ci95": [
+      -1.02,
+      -0.68
+     ],
+     "n": 8,
+     "block": 1
+    }
+   }
+  },
+  "tag0.6_shade0.9": {
+   "world": {
+    "sigma_tag": 0.6,
+    "shading": 0.9
+   },
+   "arms": {
+    "sticker": {
+     "per_rep_means": {
+      "sourced_units": 352.88,
+      "units_sold": 298.38,
+      "browsers": 2399.62,
+      "connections": 6440.0,
+      "sales_ask": 298.38,
+      "sales_offer": 0.0,
+      "sales_counter": 0.0,
+      "offers_made": 0.0,
+      "counters_made": 0.0,
+      "huffs": 0.0,
+      "counter_rejects": 0.0,
+      "fallback_sales": 0.0,
+      "inventory_eod": 54.5,
+      "revenue": 19612.03,
+      "cogs_sold": 5993.11,
+      "sourced_cost": 7111.88,
+      "holding_cost": 113.05,
+      "gross_margin": 13618.91,
+      "net_margin": 13505.87,
+      "ending_cost": 1118.76,
+      "ending_appeal": 3965.39,
+      "sell_through": 84.59,
+      "cohort_n": 181.0,
+      "median_dts": 0.1,
+      "median_dts_censored_reps": 0,
+      "share_sold_14d": 0.835
+     },
+     "classes": {
+      "under": {
+       "n": 134.12,
+       "sold": 134.12,
+       "revenue": 5524.5,
+       "margin": 2832.16,
+       "unsold_appeal": 0.0
+      },
+      "fair": {
+       "n": 81.62,
+       "sold": 81.25,
+       "revenue": 5463.88,
+       "margin": 3835.88,
+       "unsold_appeal": 21.56
+      },
+      "over": {
+       "n": 137.12,
+       "sold": 83.0,
+       "revenue": 8623.65,
+       "margin": 6950.88,
+       "unsold_appeal": 3943.83
+      }
+     }
+    },
+    "offer": {
+     "per_rep_means": {
+      "sourced_units": 352.88,
+      "units_sold": 317.12,
+      "browsers": 2399.62,
+      "connections": 4685.0,
+      "sales_ask": 237.75,
+      "sales_offer": 34.75,
+      "sales_counter": 44.62,
+      "offers_made": 1760.62,
+      "counters_made": 1725.88,
+      "huffs": 416.38,
+      "counter_rejects": 1264.88,
+      "fallback_sales": 42.88,
+      "inventory_eod": 35.75,
+      "revenue": 21315.38,
+      "cogs_sold": 6359.77,
+      "sourced_cost": 7111.88,
+      "holding_cost": 79.81,
+      "gross_margin": 14955.6,
+      "net_margin": 14875.8,
+      "ending_cost": 752.11,
+      "ending_appeal": 2648.42,
+      "sell_through": 89.89,
+      "cohort_n": 181.0,
+      "median_dts": 0.1,
+      "median_dts_censored_reps": 0,
+      "share_sold_14d": 0.904
+     },
+     "classes": {
+      "under": {
+       "n": 134.12,
+       "sold": 134.12,
+       "revenue": 5524.25,
+       "margin": 2831.91,
+       "unsold_appeal": 0.0
+      },
+      "fair": {
+       "n": 81.62,
+       "sold": 81.12,
+       "revenue": 5439.75,
+       "margin": 3814.42,
+       "unsold_appeal": 28.27
+      },
+      "over": {
+       "n": 137.12,
+       "sold": 101.88,
+       "revenue": 10351.38,
+       "margin": 8309.28,
+       "unsold_appeal": 2620.15
+      }
+     }
+    },
+    "hazard": {
+     "per_rep_means": {
+      "sourced_units": 352.88,
+      "units_sold": 316.0,
+      "browsers": 2399.62,
+      "connections": 4917.5,
+      "sales_ask": 316.0,
+      "sales_offer": 0.0,
+      "sales_counter": 0.0,
+      "offers_made": 0.0,
+      "counters_made": 0.0,
+      "huffs": 0.0,
+      "counter_rejects": 0.0,
+      "fallback_sales": 0.0,
+      "inventory_eod": 36.88,
+      "revenue": 21140.0,
+      "cogs_sold": 6321.32,
+      "sourced_cost": 7111.88,
+      "holding_cost": 83.99,
+      "gross_margin": 14818.68,
+      "net_margin": 14734.69,
+      "ending_cost": 790.56,
+      "ending_appeal": 2819.56,
+      "sell_through": 89.56,
+      "cohort_n": 181.0,
+      "median_dts": 0.1,
+      "median_dts_censored_reps": 0,
+      "share_sold_14d": 0.882
+     },
+     "classes": {
+      "under": {
+       "n": 134.12,
+       "sold": 134.12,
+       "revenue": 5524.5,
+       "margin": 2832.16,
+       "unsold_appeal": 0.0
+      },
+      "fair": {
+       "n": 81.62,
+       "sold": 81.25,
+       "revenue": 5463.88,
+       "margin": 3835.88,
+       "unsold_appeal": 21.56
+      },
+      "over": {
+       "n": 137.12,
+       "sold": 100.62,
+       "revenue": 10151.62,
+       "margin": 8150.65,
+       "unsold_appeal": 2797.99
+      }
+     }
+    }
+   },
+   "paired": {
+    "offer_vs_sticker": {
+     "net_margin": {
+      "mean": 1369.93,
+      "ci95": [
+       697.28,
+       2042.58
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "gross_margin": {
+      "mean": 1336.69,
+      "ci95": [
+       667.23,
+       2006.16
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "revenue": {
+      "mean": 1703.35,
+      "ci95": [
+       946.56,
+       2460.14
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "units_sold": {
+      "mean": 18.75,
+      "ci95": [
+       13.94,
+       23.56
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "holding_cost": {
+      "mean": -33.24,
+      "ci95": [
+       -38.25,
+       -28.23
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "ending_cost": {
+      "mean": -366.66,
+      "ci95": [
+       -474.24,
+       -259.07
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "hazard_vs_sticker": {
+     "net_margin": {
+      "mean": 1228.83,
+      "ci95": [
+       456.13,
+       2001.52
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "gross_margin": {
+      "mean": 1199.77,
+      "ci95": [
+       432.44,
+       1967.1
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "revenue": {
+      "mean": 1527.97,
+      "ci95": [
+       660.38,
+       2395.57
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "units_sold": {
+      "mean": 17.62,
+      "ci95": [
+       11.53,
+       23.72
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "holding_cost": {
+      "mean": -29.05,
+      "ci95": [
+       -35.68,
+       -22.43
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "ending_cost": {
+      "mean": -328.2,
+      "ci95": [
+       -437.02,
+       -219.39
+      ],
+      "n": 8,
+      "block": 1
+     }
+    }
+   },
+   "h1": {
+    "d_margin_under": {
+     "mean": -0.25,
+     "ci95": [
+      -0.64,
+      0.14
+     ],
+     "n": 8,
+     "block": 1
+    },
+    "d_margin_fair": {
+     "mean": -21.46,
+     "ci95": [
+      -35.15,
+      -7.76
+     ],
+     "n": 8,
+     "block": 1
+    },
+    "d_margin_over": {
+     "mean": 1358.4,
+     "ci95": [
+      683.89,
+      2032.91
+     ],
+     "n": 8,
+     "block": 1
+    },
+    "under_minus_over": {
+     "mean": -1358.65,
+     "ci95": [
+      -2033.1,
+      -684.2
+     ],
+     "n": 8,
+     "block": 1
+    }
+   },
+   "h2": {
+    "paired_both_sold_d_days": {
+     "mean": -0.91,
+     "ci95": [
+      -1.08,
+      -0.74
+     ],
+     "n": 8,
+     "block": 1
+    }
+   }
+  }
+ }
+}
