@@ -36,6 +36,32 @@ price silently bleeds.
 **OUTCOME (2026-07-10): the strong posted arm CLOSES the profit gap —
 "disclosure beats inference" does NOT survive as a seller-PROFIT claim; it
 survives as a CONSUMER-SURPLUS (welfare) claim. This corrects the abstract.**
+
+**CLARIFICATION (2026-07-10, review challenge — the tie is against an
+IDEALIZED operator, not a real sticker):** the `posted` arm is NOT a single
+all-day board — it re-solves the profit-optimal board EVERY HOUR at that hour's
+WTP multiplier and by day-of-week (policies.py:201), i.e. a competent operator
+who time-of-day-prices (NYC meters, happy hour). So it already fixes the
+time-of-day and cross-SKU mispricing; the ONLY mispricing left for the engine
+is WITHIN-HOUR individual heterogeneity, which no posted price can touch — and
+that is exactly why the engine's edge lands on consumer surplus, not profit.
+But the DEPLOYABLE merchant claim is against the price a real machine actually
+posts: `static` = the profit-optimal SINGLE all-day price, and a2a beats it
+**+$0.60/day [0.23,0.97] seed A** (CI excludes zero). That +$0.60 → $0 gap
+(a2a−static vs a2a−posted) IS the value of hourly repricing — the engine
+captures BOTH time-of-day variation AND heterogeneity over a single price; the
+hourly board closes the first but never the second. A real vending sticker is
+not even the optimal single price (a round number set once), so against the
+sticker a real operator posts, the profit edge is LARGER (the miscalibration
+cells: +$2.45/day). **Honest framing for the paper: the engine beats the price
+you actually post on profit (time-of-day + heterogeneity); it ties only a
+hypothetical operator who re-prices hourly by day-of-week; and its irreducible
+edge over even that is within-hour heterogeneity = consumer surplus. The
+strong-posted tie was against an operator stronger than any real vending
+machine — do not let it read as "the engine has no profit edge over a real
+seller."** This is also part of the "who pays us" answer: the merchant pays
+because we beat the single all-day price they run, not because we beat an
+optimizer they don't have.
 Built `StrongPostedPolicy` (arm `posted`): a discrete-choice model over the
 whole board from a synthetic WTP panel, joint coordinate-ascent price
 optimization, using the IDENTICAL demand call the a2a arm makes. Realistic
