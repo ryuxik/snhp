@@ -31,6 +31,10 @@ class WorldConfig:
     sigma_wtp: float = 0.0     # day-level WTP shock (lognormal)
     dow: bool = False          # office-tower day-of-week pattern, one sticker all week
     glut_prob: float = 0.0     # P(perishable delivery doubles) per SKU-day
+    anchor_peak: bool = False  # sticker optimized for the PEAK crowd (the
+                               # "surge value without surging" design: the
+                               # ceiling sits high, negotiation discounts
+                               # everywhere the crowd is softer)
 
 
 DEFAULT_CONFIG = WorldConfig()
@@ -162,11 +166,14 @@ def sample_consumer(master_seed: int, day: int, tick: int, k: int,
 WTP_MU = {sku: mu for sku, mu, *_ in CATALOG_SPEC}
 
 
-def _profit_optimal_list_price(sku_mu: float, unit_cost: float) -> float:
-    """PROFIT-optimal single price against the ALL-DAY arrival-weighted WTP
-    mixture — what a competent margin-maximizing operator posts. The static
-    arm is this strong baseline; dynamic arms get the same objective."""
-    ticks = [t for t in range(TICKS_PER_DAY)]
+def _profit_optimal_list_price(sku_mu: float, unit_cost: float,
+                               peak_only: bool = False) -> float:
+    """PROFIT-optimal single price against the arrival-weighted WTP mixture
+    (all-day, the competent operator's sticker) or, with peak_only, against
+    the PEAK crowd alone — the high-anchor ceiling for negotiation to
+    discount from."""
+    ticks = [t for t in range(TICKS_PER_DAY)
+             if not peak_only or wtp_mult_at(t) >= 1.0]
     weights = np.array([rate_at(t) for t in ticks])
     weights = weights / weights.sum()
     mults = np.array([wtp_mult_at(t) for t in ticks])
@@ -196,7 +203,8 @@ def build_catalog(cfg: WorldConfig = DEFAULT_CONFIG,
         else:
             mu_est = mu
         cat[sku] = Listing(sku=sku,
-                           list_price=_profit_optimal_list_price(mu_est, cost),
+                           list_price=_profit_optimal_list_price(
+                               mu_est, cost, peak_only=cfg.anchor_peak),
                            unit_cost=cost, salvage=salv,
                            shelf_life_days=life, par_stock=par,
                            wtp_mu_est=mu_est)
