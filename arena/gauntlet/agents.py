@@ -288,6 +288,45 @@ def _interleave(view: SeatView):
     return seq
 
 
+
+# ── shared transport retry: THE integrity rule for paid API calls ──────────
+# Patient on transient errors (rate limit, overload, connection): a
+# multi-hour run must survive a brief API incident. Fail-FAST on permanent
+# ones (bad request, auth, credits, config): retrying can't fix them, and we
+# NEVER fabricate a model's play. Used by the gauntlet seats AND vend's LLM
+# arm — one implementation, one rule.
+_TRANSIENT_NAME_HINTS = ("Timeout", "Connect", "Transport", "Network",
+                         "Broken", "Reset", "JSONDecode")
+
+
+def _status_of(e: Exception):
+    sc = getattr(e, "status_code", None)
+    if sc is None:
+        sc = getattr(getattr(e, "response", None), "status_code", None)
+    return sc
+
+
+def transport_retry(fn, what: str, retries: int = 8):
+    delay = 2.0
+    for attempt in range(retries + 1):
+        try:
+            return fn()
+        except Exception as e:
+            sc = _status_of(e)
+            if sc is not None:
+                retryable = sc in (408, 409, 429) or sc >= 500
+            else:
+                name = type(e).__name__
+                retryable = any(h in name for h in _TRANSIENT_NAME_HINTS)
+            if not retryable or attempt == retries:
+                raise RuntimeError(
+                    f"transport failure for {what} after "
+                    f"{attempt + 1} attempts: {e}") from e
+            time.sleep(delay)
+            delay = min(delay * 2, 60.0)
+    raise AssertionError("unreachable")
+
+
 class LLMSeat:
     """A frontier model in the seat. provider: "anthropic" | "openai-compat" |
     "scripted-naive" (offline testing — delegates to NaiveSeat). The advised
@@ -341,28 +380,11 @@ class LLMSeat:
             return r.json()["choices"][0]["message"]["content"]
         raise ValueError(f"unknown provider {self.provider!r}")
 
-    def _complete_with_retry(self, system: str, user: str) -> str:
-        # A multi-hour run must survive a brief API incident: transient errors
-        # (rate limit, overload, connection) get exponential backoff — minutes
-        # of patience, not seconds. Hard client errors (bad request, auth,
-        # credits) abort on the first attempt: retrying can't fix them, and we
-        # NEVER fabricate the model's play.
-        delay = 2.0
-        for attempt in range(self.transport_retries + 1):
-            try:
-                return self._complete(system, user)
-            except Exception as e:
-                sc = getattr(e, "status_code", None)
-                if sc is None:
-                    sc = getattr(getattr(e, "response", None), "status_code", None)
-                retryable = sc is None or sc in (408, 409, 429) or sc >= 500
-                if not retryable or attempt == self.transport_retries:
-                    raise RuntimeError(
-                        f"transport failure for {self.model} after "
-                        f"{attempt + 1} attempts: {e}") from e
-                time.sleep(delay)
-                delay = min(delay * 2, 60.0)
-        raise AssertionError("unreachable")
+    def _complete_with_retry(self, system: str, user: str,
+                             retries: int | None = None) -> str:
+        return transport_retry(lambda: self._complete(system, user),
+                               self.model,
+                               self.transport_retries if retries is None else retries)
 
     # -- parsing --------------------------------------------------------------
     @staticmethod

@@ -11,13 +11,14 @@ by construction. Budget-capped; not byte-deterministic (flagged in config).
 from __future__ import annotations
 
 import json
-import os
 import re
-import time
 from dataclasses import dataclass, field
 
+from arena.gauntlet.agents import transport_retry
+
 from vend.core import MachineState
-from vend.scenario import NashQuote, Outcome, buyer_value, c_eff
+from vend.scenario import (NashQuote, Outcome, buyer_value, c_eff,
+                           machine_margin, sticker_choice)
 from vend.world import hour_of
 
 _SYSTEM = (
@@ -36,9 +37,11 @@ class LLMQuotePolicy:
     policy_id: str = "llm/1"
     model: str = "claude-haiku-4-5-20251001"
     mode: str = "intent"
-    max_calls: int = 2000          # hard budget backstop
+    # A default 30-day run makes ~2,200 quote calls (~66 arrivals + returns
+    # per day); the backstop must sit ABOVE the documented run, not abort it.
+    max_calls: int = 4000
     transport_retries: int = 8
-    dow_mult: float = 1.0          # runner sets; forwarded to the prompt
+    dow_mult: float = 1.0          # runner sets; included in the prompt below
     format_failures: int = 0
     calls: int = 0
     _client: object = field(default=None, repr=False)
@@ -53,24 +56,12 @@ class LLMQuotePolicy:
         return "".join(b.text for b in resp.content if b.type == "text")
 
     def _complete_with_retry(self, user: str) -> str:
-        delay = 2.0
-        for attempt in range(self.transport_retries + 1):
-            try:
-                return self._complete(user)
-            except Exception as e:
-                sc = getattr(e, "status_code", None)
-                retryable = sc is None or sc in (408, 409, 429) or sc >= 500
-                if not retryable or attempt == self.transport_retries:
-                    raise RuntimeError(
-                        f"transport failure for {self.model} after "
-                        f"{attempt + 1} attempts: {e}") from e
-                time.sleep(delay)
-                delay = min(delay * 2, 60.0)
-        raise AssertionError("unreachable")
+        return transport_retry(lambda: self._complete(user), self.model,
+                               self.transport_retries)
 
     def price_board(self, state: MachineState):
-        return {sku: (l.list_price, ["list price"])
-                for sku, l in state.listings.items() if state.stock(sku) > 0}
+        from vend.policies import sticker_board
+        return sticker_board(state)
 
     def quote_for(self, state: MachineState, consumer,
                   liar_roll: float) -> tuple[NashQuote, bool]:
@@ -84,6 +75,7 @@ class LLMQuotePolicy:
                  for sku, l in state.listings.items() if state.stock(sku) > 0}
         user = json.dumps({
             "hour": hour_of(state.tick),
+            "day_of_week_traffic_mult": round(self.dow_mult, 2),
             "machine": board,
             "buyer_disclosure": {
                 "willing_to_pay_per_item": {s: round(v, 2)
@@ -99,10 +91,12 @@ class LLMQuotePolicy:
                 obj = json.loads(m.group(0))
             except json.JSONDecodeError:
                 obj = None
-        if not obj or obj.get("no_deal"):
-            if obj is None:
-                self.format_failures += 1
-            return NashQuote(None, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, []), False
+        no_quote = NashQuote(None, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, [])
+        if obj is None or obj == {}:
+            self.format_failures += 1        # unparseable OR contentless
+            return no_quote, False
+        if obj.get("no_deal") is True:       # explicit, boolean-true only
+            return no_quote, False
 
         sku = obj.get("sku")
         try:
@@ -110,14 +104,23 @@ class LLMQuotePolicy:
             price = round(float(obj.get("unit_price")), 2)
         except (TypeError, ValueError):
             self.format_failures += 1
-            return NashQuote(None, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, []), False
+            return no_quote, False
         listing = state.listings.get(sku)
         if (listing is None or qty < 1 or qty > state.stock(sku)
                 or price > listing.list_price + 1e-9 or price < 0):
             self.format_failures += 1   # incl. pricing above list: illegal
-            return NashQuote(None, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, []), False
+            return no_quote, False
 
         o = Outcome(sku, qty, price)
         u_b = buyer_value(consumer.wtp, sku, qty) - qty * price
-        return NashQuote(o, 0.0, 0.0, 0.0, u_b, 0.0, 0.0,
+        # Score the LLM's deal with the SAME machine-gain accounting the a2a
+        # arm reports — a real number, not a fabricated zero.
+        u_s = machine_margin(state, o, dow_mult=self.dow_mult)
+        st_sku, st_qty = sticker_choice(consumer.wtp, state)
+        d_s = (machine_margin(state,
+                              Outcome(st_sku, st_qty,
+                                      state.listings[st_sku].list_price),
+                              dow_mult=self.dow_mult)
+               if st_sku else 0.0)
+        return NashQuote(o, d_s, 0.0, u_s, u_b, 0.0, 0.0,
                          ["LLM-priced", f"{qty} unit{'s' if qty > 1 else ''}"]), False

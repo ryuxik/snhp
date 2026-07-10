@@ -89,17 +89,20 @@
     truth: {
       wantS: { PRICE: 1.0, ITEM: 1.0, QUANTITY: 1.0 },
       wantB: { PRICE: 0.0, ITEM: 0.0, QUANTITY: 0.0 },
-      weightS: { PRICE: 0.45, ITEM: 0.35, QUANTITY: 0.20 },
+      // the logroll: the machine's top priority is ITEM (move the expiring
+      // stock), the buyer's is PRICE — the final package pays each side in
+      // its own currency: buyer .5635 / machine .623, both above naive .50
+      weightS: { PRICE: 0.35, ITEM: 0.45, QUANTITY: 0.20 },
       weightB: { PRICE: 0.55, ITEM: 0.20, QUANTITY: 0.25 },
     },
     turns: [
       { actor: "prime", pos: { PRICE: 1.00, ITEM: 1.00, QUANTITY: 1.00 } },
-      { actor: "chal",  pos: { PRICE: 0.00, ITEM: 0.00, QUANTITY: 0.30 } },
-      { actor: "prime", pos: { PRICE: 0.72, ITEM: 1.00, QUANTITY: 0.85 } },
-      { actor: "chal",  pos: { PRICE: 0.12, ITEM: 0.55, QUANTITY: 0.55 } },
-      { actor: "prime", pos: { PRICE: 0.44, ITEM: 0.95, QUANTITY: 0.70 } },
-      { actor: "chal",  pos: { PRICE: 0.28, ITEM: 1.00, QUANTITY: 0.70 } },
-      { actor: "prime", pos: { PRICE: 0.31, ITEM: 1.00, QUANTITY: 0.70 } },
+      { actor: "chal",  pos: { PRICE: 0.00, ITEM: 0.00, QUANTITY: 0.25 } },
+      { actor: "prime", pos: { PRICE: 0.66, ITEM: 1.00, QUANTITY: 0.80 } },
+      { actor: "chal",  pos: { PRICE: 0.10, ITEM: 0.55, QUANTITY: 0.45 } },
+      { actor: "prime", pos: { PRICE: 0.34, ITEM: 1.00, QUANTITY: 0.60 } },
+      { actor: "chal",  pos: { PRICE: 0.18, ITEM: 1.00, QUANTITY: 0.55 } },
+      { actor: "prime", pos: { PRICE: 0.18, ITEM: 1.00, QUANTITY: 0.55 } },
     ],
     reveal: {
       naive: 0.61, snhp: 0.86, ceiling: 0.90, label: "this deal",
@@ -130,11 +133,14 @@
     s.src = src; s.onload = res; s.onerror = () => rej(new Error(src));
     document.head.appendChild(s);
   });
-  let loaded = false, mounted = false;
-  async function loadDuel() {
-    if (loaded) return;
-    for (const src of DUEL_SCRIPTS) await loadScript(src); // UMD chain: order matters
-    loaded = true;
+  let duelReady = null, mounted = false;   // promise memo: concurrent-click safe
+  function loadDuel() {
+    if (!duelReady) {
+      duelReady = (async () => {
+        for (const src of DUEL_SCRIPTS) await loadScript(src); // UMD chain: order matters
+      })().catch((e) => { duelReady = null; throw e; });       // failed load is retryable
+    }
+    return duelReady;
   }
 
   const theater = document.getElementById("theater");
@@ -143,7 +149,8 @@
   let realScripts = null;
   async function playScript(b, script) {
     b.disabled = true; const prev = b.textContent; b.textContent = "… loading the theater";
-    try { await loadDuel(); } catch (e) { b.textContent = "load failed — refresh?"; return; }
+    try { await loadDuel(); }
+    catch (e) { b.disabled = false; b.textContent = "load failed — tap to retry"; return; }
     b.disabled = false; b.textContent = prev;
     theater.classList.add("on"); closeBtn.classList.add("on");
     page.style.display = "none";
@@ -151,13 +158,21 @@
     Arena.duel3d.play(script);
   }
   document.getElementById("watch").addEventListener("click",
-    (ev) => playScript(ev.target, VEND_SCRIPT));
+    (ev) => playScript(ev.currentTarget, VEND_SCRIPT));
   document.getElementById("watchReal").addEventListener("click", async (ev) => {
+    const b = ev.currentTarget;
     if (!realScripts) {
-      try { realScripts = await (await fetch("vend-replays.json")).json(); }
-      catch (e) { ev.target.textContent = "replays unavailable"; return; }
+      try {
+        const res = await fetch("vend-replays.json");
+        if (!res.ok) throw new Error(res.status);
+        const arr = await res.json();
+        if (!Array.isArray(arr) || arr.length === 0) {
+          b.disabled = true; b.textContent = "no real replays yet"; return;
+        }
+        realScripts = arr;
+      } catch (e) { b.textContent = "replays unavailable — tap to retry"; return; }
     }
-    playScript(ev.target, realScripts[0]);
+    playScript(b, realScripts[0]);
   });
   closeBtn.addEventListener("click", () => {
     if (window.Arena && Arena.duel3d) Arena.duel3d.stop();

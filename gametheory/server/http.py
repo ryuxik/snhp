@@ -520,9 +520,13 @@ app.include_router(_a2a_router)
 
 # ─── VEND: snhp-price/1 — the price-link demo (quote/settle/machine) ─────────
 # The price a buyer sees is computed at request time (never above list,
-# receipt mandatory, context-hashed). See vend/DESIGN.md.
-from vend.api import router as _vend_router  # noqa: E402
-app.include_router(_vend_router)
+# receipt mandatory, context-hashed). See vend/DESIGN.md. Guarded: vend ships
+# in the repo/image but not the PyPI wheel — the core API must boot without it.
+try:
+    from vend.api import router as _vend_router  # noqa: E402
+    app.include_router(_vend_router)
+except ImportError:
+    pass
 
 # Hosted MCP server (streamable HTTP) at /mcp — same toolkit, MCP-native, so
 # agents/clients that speak MCP over HTTP can connect without installing the
@@ -1480,7 +1484,7 @@ def llms_txt() -> str:
     try:
         with open(product_map) as f:
             return f.read().rstrip() + "\n\n\n" + _LLMS_TXT
-    except FileNotFoundError:
+    except OSError:   # missing, unreadable, permissions — never 500 discovery
         return _LLMS_TXT
 
 

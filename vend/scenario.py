@@ -39,34 +39,29 @@ def c_eff(state: MachineState, sku: str) -> float:
     return listing.salvage if (dte is not None and dte <= 0) else listing.unit_cost
 
 
-def buyer_value(wtp: dict[str, float], sku: str, qty: int) -> float:
-    from vend.world import QTY_DECAY
-    return sum(wtp[sku] * (QTY_DECAY ** (i - 1)) for i in range(1, qty + 1))
+from vend.world import BODEGA_MARKUP, best_bundle, bundle_value as buyer_value
 
 
 def outside_surplus(wtp: dict[str, float], walk_cost: float,
                     catalog) -> float:
-    """Best surplus at the bodega (list × markup, − the walk)."""
-    best = 0.0
-    for sku, listing in catalog.items():
-        for n in range(1, QTY_CAP + 1):
-            s = buyer_value(wtp, sku, n) - n * listing.list_price * 1.15
-            best = max(best, s - walk_cost)
-    return best
+    """Best surplus at the bodega (list × BODEGA_MARKUP, − the walk) — the
+    SAME outside option the simulated consumer faces in run.py, via the
+    same canonical chooser."""
+    prices = {sku: l.list_price * BODEGA_MARKUP for sku, l in catalog.items()}
+    _, _, s = best_bundle(wtp, prices)
+    return max(0.0, s - walk_cost) if s > 0 else 0.0
 
 
 def sticker_choice(wtp: dict[str, float], state: MachineState
                    ) -> tuple[str | None, int]:
-    """What this buyer would purchase from the list-price board (their best
-    positive-surplus bundle among in-stock SKUs), or nothing."""
-    best, pick = 0.0, (None, 0)
-    for sku, listing in state.listings.items():
-        stock = state.stock(sku)
-        for n in range(1, min(QTY_CAP, stock) + 1):
-            s = buyer_value(wtp, sku, n) - n * listing.list_price
-            if s > best:
-                best, pick = s, (sku, n)
-    return pick
+    """What this buyer would purchase from the list-price board — the SAME
+    stock-capped chooser the simulated consumer uses, so the machine's
+    disagreement point is the purchase that would actually happen."""
+    prices = {sku: l.list_price for sku, l in state.listings.items()
+              if state.stock(sku) > 0}
+    stock = {sku: state.stock(sku) for sku in prices}
+    sku, qty, _ = best_bundle(wtp, prices, stock)
+    return (sku, qty)
 
 
 def enumerate_outcomes(state: MachineState) -> list[Outcome]:
@@ -100,10 +95,12 @@ def expected_list_demand(state: MachineState, sku: str, *,
     learned from the machine's own realized sales (regime-consistent — the
     fix for P1's static-world displacement forecast). The per-arrival base
     curve is cached per (sku, estimate, list)."""
-    from vend.world import WTP_MU
     listing = state.listings[sku]
     n = len(state.listings)
-    mu_est = listing.wtp_mu_est or WTP_MU[sku]
+    mu_est = listing.wtp_mu_est
+    if mu_est <= 0:
+        raise ValueError(f"Listing {sku!r} has no operator demand estimate "
+                         "— build catalogs via world.build_catalog")
     key = (sku, round(mu_est, 4), round(listing.list_price, 2))
     if key not in _CUM_BASE_DEMAND:
         from scipy import stats
@@ -156,44 +153,81 @@ class NashQuote:
 def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
                disclosed_walk_cost: float, *,
                dow_mult: float = 1.0, mult_hat: float = 1.0,
-               share_fn=None) -> NashQuote:
+               share_fn=None, allowed=None) -> NashQuote:
     """Nash bargaining over the enumerated outcome space, on the DISCLOSED
     buyer utilities. Machine surplus is measured against its sticker
     counterfactual; buyer surplus against their claimed outside option.
     dow_mult / mult_hat / share_fn carry the machine's observable demand
-    context into the shadow prices (defaults reproduce the P1 setting)."""
+    context into the shadow prices (defaults reproduce the P1 setting).
+    `allowed` (Outcome → bool) restricts the outcome space — e.g. to the
+    intent's SKU when the buyer forbids substitutes."""
     catalog = state.listings
     n = len(catalog)
     _share = share_fn if share_fn is not None else (lambda s: 1.0 / n)
-    ctx = lambda sku: {"dow_mult": dow_mult, "mult_hat": mult_hat,
-                       "share": _share(sku)}
-    d_b = max(0.0, outside_surplus(disclosed_wtp, disclosed_walk_cost, catalog))
-    st_sku, st_qty = sticker_choice(disclosed_wtp, state)
-    # The sticker counterfactual is valued with the SAME shadow-priced
-    # margin function — a list sale of scarce stock displaces another list
-    # sale, so its incremental value is ~0 and both sides of the
-    # comparison stay consistent.
-    d_s = (machine_margin(state, Outcome(st_sku, st_qty,
-                                         catalog[st_sku].list_price),
-                          **ctx(st_sku))
-           if st_sku else 0.0)
 
-    best, best_prod = None, 0.0
+    # Per-SKU context, hoisted: stock, expected list demand, opportunity
+    # cost, and list price are SKU-level facts recomputed identically for
+    # every (qty, rung) outcome otherwise.
+    sku_ctx: dict[str, tuple[float, float, float, float]] = {}
+    for sku in catalog:
+        if state.stock(sku) <= 0:
+            continue
+        D = expected_list_demand(state, sku, dow_mult=dow_mult,
+                                 mult_hat=mult_hat, share=_share(sku))
+        sku_ctx[sku] = (float(state.stock(sku)), D, c_eff(state, sku),
+                        catalog[sku].list_price)
+
+    def margin(o: Outcome) -> float:
+        s, D, ce, lp = sku_ctx[o.sku]
+        excess = max(0.0, s - D)
+        displaced = min(float(o.qty), max(0.0, o.qty - excess))
+        return (o.qty - displaced) * (o.unit_price - ce) \
+            + displaced * (o.unit_price - lp)
+
+    # Buyer bundle values, hoisted per (sku, qty) — price-independent.
+    bval = {(sku, q): buyer_value(disclosed_wtp, sku, q)
+            for sku in sku_ctx for q in range(1, QTY_CAP + 1)}
+
+    d_b = max(0.0, outside_surplus(disclosed_wtp, disclosed_walk_cost, catalog))
+    # The sticker counterfactual is valued with the SAME shadow-priced
+    # margin function AND under the same intent constraint — a buyer who
+    # stated "one cola only" won't be held to a two-unit counterfactual
+    # their own intent rules out.
+    st_best, d_s = None, 0.0
+    for sku in sku_ctx:
+        lp = sku_ctx[sku][3]
+        for q in range(1, QTY_CAP + 1):
+            o = Outcome(sku, q, lp)
+            if allowed is not None and not allowed(o):
+                continue
+            s = bval.get((sku, q), 0.0) - q * lp
+            if s > 0 and (st_best is None or s > st_best):
+                st_best, d_s = s, margin(o)
+
+    # Nash product, with a lexicographic tiebreak: when the machine is
+    # exactly indifferent everywhere feasible (product pinned at 0), take
+    # the feasible outcome with the greatest joint gain instead of
+    # discarding a legitimate boundary deal.
+    best, best_score = None, None
     joint_best = 0.0
     for o in enumerate_outcomes(state):
-        u_s = machine_margin(state, o, **ctx(o.sku))
-        u_b = buyer_value(disclosed_wtp, o.sku, o.qty) - o.qty * o.unit_price
+        if allowed is not None and not allowed(o):
+            continue
+        u_s = margin(o)
+        u_b = bval[(o.sku, o.qty)] - o.qty * o.unit_price
         gs, gb = u_s - d_s, u_b - d_b
-        if gs >= 0 and gb >= 0:
+        if gs >= -1e-9 and gb >= -1e-9:
             joint_best = max(joint_best, gs + gb)
-            prod = gs * gb
-            if prod > best_prod:
-                best, best_prod = o, prod
+            score = (gs * gb, gs + gb)
+            if best_score is None or score > best_score:
+                best, best_score = o, score
+    if best is not None and best_score[0] <= 0 and best_score[1] <= 1e-9:
+        best = None   # nothing actually improves on the disagreement point
 
     if best is None:
         return NashQuote(None, d_s, d_b, 0.0, 0.0, joint_best, 0.0, [])
 
-    u_s = machine_margin(state, best, **ctx(best.sku))
+    u_s = margin(best)
     u_b = buyer_value(disclosed_wtp, best.sku, best.qty) \
         - best.qty * best.unit_price
     dte = state.days_to_expiry(best.sku)

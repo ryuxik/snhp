@@ -18,11 +18,11 @@ from arena.gauntlet.replay import match_to_duel_script
 from arena.scenarios import BundleScenario
 
 from vend.core import substream
-from vend.world import (WorldConfig, build_catalog, fresh_machine, hour_of,
-                        sample_consumer)
+from vend.world import (WorldConfig, build_catalog, end_of_day, fresh_machine,
+                        hour_of, sample_consumer)
 
 DEADLINE = 12
-PRICE_RUNGS = 8
+REPLAY_RUNGS = 8   # theater price ladder (distinct from scenario.PRICE_RUNGS)
 # the logroll structure: buyer weights price; the machine weights which item
 # moves (expiring stock) and volume
 W_MACHINE = [0.25, 0.40, 0.35]   # price, item, quantity
@@ -34,15 +34,20 @@ def _norm(vals):
     return [0.5 if hi == lo else (v - lo) / (hi - lo) for v in vals]
 
 
-def vend_scenario(state, consumer, catalog) -> tuple[BundleScenario, list, float]:
+def vend_scenario(state, consumer, catalog) -> tuple[BundleScenario, list]:
     """A vend situation as a gauntlet scenario. Rail direction = machine-
     favorable (buyer utility is 1 − that, per BundleScenario semantics)."""
     skus = sorted(catalog, key=lambda s: -consumer.wtp[s])[:4]
-    skus.sort(key=lambda s: (state.days_to_expiry(s) or 99))
+    # expiring stock leads (dte 0 = expires TODAY = most urgent; None = never)
+    skus.sort(key=lambda s: 99 if state.days_to_expiry(s) is None
+              else state.days_to_expiry(s))
     lead = catalog[skus[0]]
-    floor = max(lead.salvage, 0.3 * lead.list_price)
-    rungs = [round(floor + i * (lead.list_price - floor) / (PRICE_RUNGS - 1), 2)
-             for i in range(PRICE_RUNGS)]
+    # The ladder must respect discount-only for EVERY offered item, so its
+    # ceiling is the CHEAPEST list price among the options.
+    ceiling = min(catalog[s].list_price for s in skus)
+    floor = min(max(lead.salvage, 0.3 * ceiling), 0.9 * ceiling)
+    rungs = [round(floor + i * (ceiling - floor) / (REPLAY_RUNGS - 1), 2)
+             for i in range(REPLAY_RUNGS)]
     dte = {s: state.days_to_expiry(s) for s in skus}
     item_dirs = _norm([(2.0 if (dte[s] is not None and dte[s] <= 1) else 0.0)
                        + state.stock(s) / 10.0 for s in skus])
@@ -50,11 +55,11 @@ def vend_scenario(state, consumer, catalog) -> tuple[BundleScenario, list, float
         issues=[("price", [f"${r:.2f}" for r in rungs]),
                 ("item", skus),
                 ("quantity", ["1", "2", "3"])],
-        seller_dirs=[[i / (PRICE_RUNGS - 1) for i in range(PRICE_RUNGS)],
+        seller_dirs=[[i / (REPLAY_RUNGS - 1) for i in range(REPLAY_RUNGS)],
                      item_dirs,
                      [0.2, 0.6, 1.0]],
         era="vend")
-    return sc, skus, floor
+    return sc, skus
 
 
 def main() -> int:
@@ -68,9 +73,11 @@ def main() -> int:
     for i in range(24):
         day, tick = i % 4, (18 + i * 9) % 90
         state = fresh_machine("replay", catalog, cfg, master_seed=20260713)
-        state.day, state.tick = day, tick
+        for _ in range(day):
+            end_of_day(state, cfg, 20260713)   # advance days FOR REAL: lots
+        state.tick = tick                      # expire/restock, dte stays sane
         consumer = sample_consumer(20260713, day, tick, i, catalog, cfg)
-        sc, skus, floor = vend_scenario(state, consumer, catalog)
+        sc, skus = vend_scenario(state, consumer, catalog)
         seed = substream(20260713, "vendreplay", i)
         mr = run_match(EngineSeat(seed), sc, W_MACHINE, W_BUYER,
                        role="buyer", condition="solo",
@@ -79,7 +86,20 @@ def main() -> int:
 
     deals = [c for c in candidates if c[0].deal and 3 <= c[0].rounds <= 10]
     deals.sort(key=lambda c: -c[0].capture)
-    picked = deals[:3] or [c for c in candidates if c[0].deal][:3]
+    if not deals:
+        print("note: no multi-round deals — engine self-play converges fast; "
+              "curating distinct quick closes instead")
+    # dedup by the settled package so the picker never ships near-clones
+    pool = deals or [c for c in candidates if c[0].deal]
+    seen, picked = set(), []
+    for c in pool:
+        key = tuple(sorted((c[0].package or {}).items()))
+        if key in seen:
+            continue
+        seen.add(key)
+        picked.append(c)
+        if len(picked) == 3:
+            break
 
     scripts = []
     for mr, sc, skus, state, consumer in picked:

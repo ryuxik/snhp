@@ -51,7 +51,7 @@
    "snhp": 1.094,
    "ceiling": 1.25,
    "label": "this deal",
-   "line": "Deal in 2 rounds: 1\u00d7 fruit-cup at $1.06 \u2014 88% of the frontier captured."
+   "line": "Deal in 2 rounds: 1\u00d7 fruit-cup at $1.02 \u2014 88% of the frontier captured."
   },
   "meta": {
    "model": "your agent",
@@ -74,7 +74,7 @@
    "buyer": "YOUR AGENT"
   },
   "origins": {
-   "seller": "stock 12 \u00b7 expires in -1d \u00b7 14:00",
+   "seller": "stock 12 \u00b7 expires in 0d \u00b7 14:00",
    "buyer": "your preferences \u00b7 walk cost $1.31"
   },
   "subtitle": "a real engine-vs-engine vend negotiation \u2014 every turn is the live engine",
@@ -111,11 +111,11 @@
    }
   ],
   "reveal": {
-   "naive": 0.956,
+   "naive": 0.947,
    "snhp": 1.094,
    "ceiling": 1.25,
    "label": "this deal",
-   "line": "Deal in 2 rounds: 1\u00d7 sandwich at $2.06 \u2014 88% of the frontier captured."
+   "line": "Deal in 2 rounds: 1\u00d7 fruit-cup at $0.84 \u2014 88% of the frontier captured."
   },
   "meta": {
    "model": "your agent",
@@ -179,7 +179,7 @@
    "snhp": 1.094,
    "ceiling": 1.25,
    "label": "this deal",
-   "line": "Deal in 2 rounds: 1\u00d7 sandwich at $2.06 \u2014 88% of the frontier captured."
+   "line": "Deal in 2 rounds: 1\u00d7 sandwich at $1.02 \u2014 88% of the frontier captured."
   },
   "meta": {
    "model": "your agent",

@@ -73,31 +73,23 @@ class MachineState:
         return None if not live else min(live) - self.day
 
     def take(self, sku: str, n: int) -> None:
-        """Vend n units, earliest-expiring lots first."""
+        """Vend n units, earliest-expiring lots first. Validates BEFORE
+        mutating — a failed take must never leave stock partially
+        decremented."""
+        if self.stock(sku) < n:
+            raise ValueError(f"insufficient stock for {sku}")
         for lot in sorted((l for l in self.lots if l.sku == sku), key=lambda l: l.expires_day):
             got = min(lot.quantity, n)
             lot.quantity -= got
             n -= got
             if n == 0:
                 return
-        raise ValueError(f"insufficient stock for {sku}")
 
     def state_hash(self) -> str:
         return _canon_hash({
             "machine": self.machine_id, "day": self.day, "tick": self.tick,
             "lots": sorted((l.sku, l.quantity, l.expires_day) for l in self.lots if l.quantity > 0),
         })
-
-
-@dataclass(frozen=True)
-class BuyerIntent:
-    """What the buyer's side reveals. In posted-price arms this is only the
-    arrival itself; in A2A mode it carries the agent's signed disclosure."""
-    sku: str
-    quantity: int = 1
-    substitutes_ok: bool = False
-    disclosure: dict | None = None   # A2A only (P1): utilities + BATNA
-    peer_proof: dict | None = None   # A2A only (P1): attestation
 
 
 class QuoteViolation(ValueError):
@@ -145,14 +137,19 @@ class Quote:
 
 def make_quote(state: MachineState, policy_id: str, seed: int,
                items: list[QuoteItem], why: list[str], hour: int,
-               ttl_ticks: int = 2) -> Quote:
+               ttl_ticks: int = 2, disclosure_digest: str | None = None) -> Quote:
     """The one constructor policies use. Context hash covers everything a
-    quote may lawfully depend on — machine state, the priced items, and the
-    hour — and nothing else."""
+    quote may lawfully depend on — machine state, the priced items, the
+    hour, and (for brokered quotes) a digest of the buyer's DISCLOSURE —
+    and nothing else. Posted prices are context-based (no disclosure);
+    negotiated prices lawfully depend on what the buyer's agent disclosed,
+    and the digest makes that auditable: same state + same disclosure →
+    same price, still nothing person-based."""
     ctx = _canon_hash({
         "state": state.state_hash(), "hour": hour,
         "items": [(i.sku, i.quantity) for i in items],
         "policy": policy_id,
+        "disclosure": disclosure_digest,
     })
     return Quote(
         quote_id="q_" + _canon_hash({"c": ctx, "s": seed})[3:15],
@@ -163,12 +160,7 @@ def make_quote(state: MachineState, policy_id: str, seed: int,
     )
 
 
-@dataclass(frozen=True)
-class Deal:
-    quote_id: str
-    day: int
-    tick: int
-    total: float
-    items: tuple[QuoteItem, ...]
-    consumer_surplus: float   # dollars: bundle utility minus paid
-    mandate: dict | None = None   # A2A settlements carry an AP2 cart mandate (P1)
+def disclosure_digest(utilities: dict, walk_cost: float) -> str:
+    """Canonical digest of a buyer disclosure, for the quote context hash."""
+    return _canon_hash({"u": {k: round(float(v), 4) for k, v in utilities.items()},
+                        "w": round(float(walk_cost), 4)})

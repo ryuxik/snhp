@@ -16,6 +16,7 @@ WORKDIR /build
 COPY pyproject.toml requirements.txt README.md ./
 COPY gametheory/ ./gametheory/
 COPY snhp/ ./snhp/
+COPY vend/ ./vend/
 
 # Install with the [prod] extras into a venv so we can copy a clean tree
 # into the final stage.
@@ -42,6 +43,7 @@ WORKDIR /app
 COPY --from=builder /venv /venv
 COPY --from=builder /build/gametheory ./gametheory
 COPY --from=builder /build/snhp ./snhp
+COPY --from=builder /build/vend ./vend
 COPY --from=builder /build/pyproject.toml ./pyproject.toml
 COPY --from=builder /build/README.md ./README.md
 

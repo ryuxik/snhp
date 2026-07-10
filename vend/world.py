@@ -2,7 +2,7 @@
 
 Honesty notes (these are the modeling choices reviewers should attack):
   * The static baseline is STRONG: list prices are calibrated to the
-    revenue-optimal single price for the whole arrival mixture — a competent
+    PROFIT-optimal single price for the whole arrival mixture — a competent
     operator, not a strawman. Dynamic arms may only ever discount from it.
   * Demand is genuinely time-varying (hourly WTP multiplier + hourly arrival
     rates). Under a discount-only clamp this is the whole reason dynamic
@@ -46,6 +46,10 @@ class DayState:
     dow_mult: float    # public calendar knowledge — policies may use it
 
 
+import functools
+
+
+@functools.lru_cache(maxsize=4096)
 def day_state(cfg: WorldConfig, master_seed: int, day: int) -> DayState:
     rng = np.random.default_rng(substream(master_seed, "shock", day))
     # mean-one lognormals: E[e^X]=1 with mu = -sigma^2/2 — average demand is
@@ -98,28 +102,44 @@ def wtp_mult_at(tick: int) -> float:
     return HOURLY_WTP_MULT.get(hour_of(tick), 0.85)
 
 
+def bundle_value(wtp: dict[str, float], sku: str, qty: int) -> float:
+    """THE canonical diminishing-marginal bundle value, in dollars — the one
+    implementation behind the consumer's choices, the Nash engine's buyer
+    utilities, and the runner's accounting."""
+    return sum(wtp[sku] * (QTY_DECAY ** (i - 1)) for i in range(1, qty + 1))
+
+
+def best_bundle(wtp: dict[str, float], prices: dict[str, float],
+                stock: dict[str, int] | None = None) -> tuple[str | None, int, float]:
+    """Utility-maximizing (sku, qty, surplus$) against a price board,
+    optionally capped by per-SKU stock DURING the search (so a short SKU
+    loses to a stocked alternative instead of being clamped after)."""
+    best = (None, 0, 0.0)
+    for sku, p in prices.items():
+        cap = QTY_CAP if stock is None else min(QTY_CAP, stock.get(sku, 0))
+        u = 0.0
+        for n in range(1, cap + 1):
+            u += wtp[sku] * (QTY_DECAY ** (n - 1))
+            s = u - n * p
+            if s > best[2]:
+                best = (sku, n, s)
+    return best
+
+
 @dataclass
 class Consumer:
     wtp: dict[str, float]       # per-SKU dollar value of the FIRST unit (hour-adjusted)
     walk_cost: float            # dollars of hassle to use the bodega instead
     patience: float
+    uid: int = 0                # stable identity from the FIRST arrival — survives returns
 
     def marginal(self, sku: str, i: int) -> float:
         """Dollar value of the i-th unit (1-based)."""
         return self.wtp[sku] * (QTY_DECAY ** (i - 1))
 
-    def best_bundle(self, prices: dict[str, float]) -> tuple[str | None, int, float]:
-        """Utility-maximizing (sku, qty, surplus$) against a price board.
-        Considers every SKU (self-substitution) and quantities 1..QTY_CAP."""
-        best = (None, 0, 0.0)
-        for sku, p in prices.items():
-            u = 0.0
-            for n in range(1, QTY_CAP + 1):
-                u += self.marginal(sku, n)
-                s = u - n * p
-                if s > best[2]:
-                    best = (sku, n, s)
-        return best
+    def best_bundle(self, prices: dict[str, float],
+                    stock: dict[str, int] | None = None) -> tuple[str | None, int, float]:
+        return best_bundle(self.wtp, prices, stock)
 
 
 def sample_consumer(master_seed: int, day: int, tick: int, k: int,
@@ -128,13 +148,15 @@ def sample_consumer(master_seed: int, day: int, tick: int, k: int,
     """Paired across arms: depends only on (master, day, tick, k, cfg) —
     never on anything a policy did. Consumers draw from the TRUE demand
     process (WTP_MU × hour × today's shock); only the operator's estimate
-    is noisy."""
+    is noisy. `uid` is the consumer's stable identity: liar assignment and
+    anything else person-level keys on it, so a returning consumer stays
+    the same person."""
     rng = np.random.default_rng(substream(master_seed, "cons", day, tick, k))
     mult = wtp_mult_at(tick) * day_state(cfg, master_seed, day).wtp_mult
     wtp = {sku: float(rng.lognormal(math.log(WTP_MU[sku] * mult), WTP_SIGMA))
            for sku in catalog}
     return Consumer(wtp=wtp, walk_cost=float(rng.uniform(0.5, 2.0)),
-                    patience=PATIENCE)
+                    patience=PATIENCE, uid=substream(master_seed, "uid", day, tick, k))
 
 
 WTP_MU = {sku: mu for sku, mu, *_ in CATALOG_SPEC}

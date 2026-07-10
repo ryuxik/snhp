@@ -153,3 +153,46 @@ optimization vendors claim retail price-setting errors at least this
 large); WTP shocks remain unobserved by all arms alike.
 
 Reproduce: `python3 -m vend.run --grid --days 30 --seed 20260713 --arms static,gvr,a2a`
+
+## Post-review corrections (2026-07-10) — the numbers above are SUPERSEDED
+
+A 10-angle adversarial code review found three rigor bugs in the sim, all
+biased in the A2A arm's favor, plus an anti-conservative statistics choice.
+Fixed, and every artifact regenerated:
+
+1. **Irrational acceptance**: consumers compared negotiated deals only
+   against the bodega, never against the machine's own sticker board — they
+   could accept deals worse than walking two feet to the stickers. Now
+   acceptance requires beating BOTH alternatives ("never worse UX than
+   static" is enforced, not assumed).
+2. **Unstable liar identity**: the anchoring roll re-randomized per
+   encounter and was policy-coupled through the return queue. Liars are now
+   stable people (keyed on consumer identity, paired across arms).
+3. **Divergent sticker counterfactual**: the machine's disagreement point
+   was computed with different stock-capping than the buyer's actual board
+   behavior, and ignored the buyer's stated intent constraints. One shared
+   chooser now backs both, and the counterfactual respects the intent.
+4. **CI honesty**: daily paired diffs are autocorrelated (learner state,
+   lots carry over); intervals now use 5-day block means.
+
+**Corrected results.** Control cell (omniscient sticker): a2a −$9.38/day —
+static still wins where the operator knows everything. The grid stays
+monotone in miscalibration; at σ_cal=0.3 the 30-day point estimates are
++$2.07/+$2.41/+$2.66/day (block CIs straddle zero at n=6 blocks — 30 days
+is underpowered under honest intervals). The **90-day confirmatory runs**
+settle it:
+
+| cal 0.3 / shock 0.6, 90 days | profit Δ/day vs static | CS Δ/day |
+|---|---|---|
+| seed 20260713 | **+$4.29** [2.68, 5.90] | +$7.43 |
+| seed 7 | **+$3.31** [1.82, 4.79] | +$8.19 |
+
+Both sides win, both seeds, intervals exclude zero under block CIs, with
+rational consumers. **H2 holds — and the corrected result is more
+defensible than the inflated one it replaces.** H3 likewise re-confirmed
+with stable liar identities: −$6.24 / −$11.42 / −$22.89 per day at
+25/50/100% liars (all significant), buyers pocketing the difference.
+
+Reproduce the confirmatory: `python3 -m vend.run --days 90 --seed 20260713
+--arms static,a2a --sigma-cal 0.3 --sigma-rate 0.6 --sigma-wtp 0.3 --dow
+--glut 0.15 --out /tmp/confirm90.json` (and --seed 7).

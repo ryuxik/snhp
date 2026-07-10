@@ -20,9 +20,10 @@ import numpy as np
 from vend.core import QuoteItem, make_quote, substream
 from vend.policies import A2APolicy, GvrPolicy, StaticPolicy
 from vend.scenario import buyer_value
-from vend.world import (DEFAULT_CONFIG, TICKS_PER_DAY, WorldConfig,
-                        arrivals_at, build_catalog, day_state, end_of_day,
-                        fresh_machine, hour_of, rate_at, sample_consumer)
+from vend.world import (BODEGA_MARKUP, DEFAULT_CONFIG, TICKS_PER_DAY,
+                        WorldConfig, arrivals_at, build_catalog, day_state,
+                        end_of_day, fresh_machine, hour_of, rate_at,
+                        sample_consumer)
 
 VEND_VERSION = 1
 def _llm_arm():
@@ -48,6 +49,8 @@ def run_day(policy, state, catalog, master_seed: int, day: int,
          "consumer_surplus": 0.0, "quotes": 0,
          "negotiated": 0, "neg_machine_gain": 0.0, "liar_deals": 0}
     return_queue: list[tuple[int, object]] = []
+    # the bodega: loop-invariant for the whole experiment (list prices fixed)
+    outside_prices = {s: catalog[s].list_price * BODEGA_MARKUP for s in catalog}
 
     # what the policy may know today: the calendar (public) + its learner
     ds = day_state(cfg, master_seed, day)
@@ -80,51 +83,10 @@ def run_day(policy, state, catalog, master_seed: int, day: int,
             if state.stock(fav) == 0:
                 m["stockouts"] += 1
 
-            outside_prices = {s: catalog[s].list_price * 1.15 for s in catalog}
             o_sku, o_qty, o_s = consumer.best_bundle(outside_prices)
             s_out = (o_s - consumer.walk_cost) if o_sku else 0.0
 
-            # ── intent arms: the brokered A2A negotiation happens first ──
-            if getattr(policy, "mode", "board") == "intent":
-                liar_roll = float(np.random.default_rng(
-                    substream(master_seed, "liar", day, tick, k)).random())
-                nq, lied = policy.quote_for(state, consumer, liar_roll)
-                if nq.outcome is not None:
-                    o = nq.outcome
-                    s_true = buyer_value(consumer.wtp, o.sku, o.qty) \
-                        - o.qty * o.unit_price
-                    if s_true > 0 and s_true >= s_out:
-                        quote = make_quote(
-                            state, policy.policy_id,
-                            seed=substream(master_seed, "q", day, tick, k),
-                            items=[QuoteItem(o.sku, o.qty, o.unit_price,
-                                             catalog[o.sku].list_price)],
-                            why=nq.why, hour=hour_of(tick))
-                        state.take(o.sku, o.qty)
-                        if learner:
-                            learner.sold(o.sku, o.qty)
-                        m["revenue"] += quote.total
-                        m["cogs_sold"] += o.qty * catalog[o.sku].unit_cost
-                        m["units"] += o.qty
-                        m["deals"] += 1
-                        m["negotiated"] += 1
-                        m["neg_machine_gain"] += nq.u_machine - nq.d_machine
-                        m["liar_deals"] += int(lied)
-                        m["consumer_surplus"] += s_true
-                        continue
-                # no mutual gain (or buyer declined): fall through to stickers
-
-            board = policy.price_board(state)
-            prices = {sku: p for sku, (p, _) in board.items()}
-
-            sku, qty, s_in = consumer.best_bundle(prices) if prices else (None, 0, 0.0)
-            if sku is not None:
-                qty = min(qty, state.stock(sku))
-                s_in = sum(consumer.marginal(sku, i) for i in range(1, qty + 1)) \
-                    - qty * prices[sku]
-
-            if sku is not None and s_in > 0 and s_in >= s_out:
-                unit_price, why = board[sku]
+            def settle_sale(sku, qty, unit_price, why, surplus):
                 quote = make_quote(
                     state, policy.policy_id,
                     seed=substream(master_seed, "q", day, tick, k),
@@ -138,7 +100,44 @@ def run_day(policy, state, catalog, master_seed: int, day: int,
                 m["cogs_sold"] += qty * catalog[sku].unit_cost
                 m["units"] += qty
                 m["deals"] += 1
-                m["consumer_surplus"] += s_in
+                m["consumer_surplus"] += surplus
+
+            # ── intent arms: the brokered A2A negotiation happens first ──
+            if getattr(policy, "mode", "board") == "intent":
+                # Liar identity is a property of the PERSON (stable across
+                # returns, policy-independent, paired across arms).
+                liar_roll = float(np.random.default_rng(
+                    substream(master_seed, "liarid", consumer.uid)).random())
+                nq, lied = policy.quote_for(state, consumer, liar_roll)
+                if nq.outcome is not None:
+                    o = nq.outcome
+                    s_true = buyer_value(consumer.wtp, o.sku, o.qty) \
+                        - o.qty * o.unit_price
+                    # Rational acceptance: the negotiated deal must beat the
+                    # buyer's BEST alternative — the bodega AND the sticker
+                    # board they could just buy from ("never worse UX than
+                    # static" is enforced here, not assumed).
+                    b_prices = {s: catalog[s].list_price for s in catalog
+                                if state.stock(s) > 0}
+                    b_stock = {s: state.stock(s) for s in b_prices}
+                    _, _, s_board = consumer.best_bundle(b_prices, b_stock)
+                    if s_true > 0 and s_true >= max(s_out, s_board):
+                        settle_sale(o.sku, o.qty, o.unit_price, nq.why, s_true)
+                        m["negotiated"] += 1
+                        m["neg_machine_gain"] += nq.u_machine - nq.d_machine
+                        m["liar_deals"] += int(lied)
+                        continue
+                # no mutual gain (or buyer declined): fall through to stickers
+
+            board = policy.price_board(state)
+            prices = {sku: p for sku, (p, _) in board.items()}
+            stock = {sku: state.stock(sku) for sku in prices}
+
+            sku, qty, s_in = (consumer.best_bundle(prices, stock)
+                              if prices else (None, 0, 0.0))
+
+            if sku is not None and s_in > 0 and s_in >= s_out:
+                settle_sale(sku, qty, prices[sku], board[sku][1], s_in)
             else:
                 if s_out > 0:
                     m["lost_to_outside"] += 1
@@ -159,9 +158,15 @@ def run_day(policy, state, catalog, master_seed: int, day: int,
     return m
 
 
-def paired_ci(diffs: list[float]) -> dict:
-    """Mean paired difference with a 95% t-interval."""
+def paired_ci(diffs: list[float], block: int = 1) -> dict:
+    """Mean paired difference with a 95% t-interval. Daily diffs are
+    serially dependent (learner state, leftover lots carry across days), so
+    the headline interval uses `block`-day means — fewer, more independent
+    observations — which widens the CI honestly."""
     d = np.asarray(diffs, dtype=float)
+    if block > 1 and len(d) >= 2 * block:
+        n_blocks = len(d) // block
+        d = d[:n_blocks * block].reshape(n_blocks, block).mean(axis=1)
     n = len(d)
     mean = float(d.mean())
     if n < 2:
@@ -170,7 +175,8 @@ def paired_ci(diffs: list[float]) -> dict:
     from scipy import stats
     t = float(stats.t.ppf(0.975, n - 1))
     return {"mean": round(mean, 2),
-            "ci95": [round(mean - t * se, 2), round(mean + t * se, 2)], "n": n}
+            "ci95": [round(mean - t * se, 2), round(mean + t * se, 2)],
+            "n": n, "block": block}
 
 
 def run_experiment(arm_names: list[str], days: int, seed: int,
@@ -192,7 +198,8 @@ def run_experiment(arm_names: list[str], days: int, seed: int,
         paired[f"{name}_vs_{base}"] = {
             metric: paired_ci([results[name]["per_day"][d][metric]
                                - results[base]["per_day"][d][metric]
-                               for d in range(days)])
+                               for d in range(days)],
+                              block=5)   # 5-day blocks vs learner/lot autocorrelation
             for metric in ("profit", "revenue", "consumer_surplus",
                            "spoilage_cost", "units")
         }

@@ -13,9 +13,15 @@ from vend.world import (TICKS_PER_DAY, WTP_MU, WTP_SIGMA, hour_of, rate_at,
                         wtp_mult_at)
 
 
+import functools
+
+
+@functools.lru_cache(maxsize=8192)
 def _profit_max_price(scale: float, cost: float) -> float:
     """argmax (p − cost) · SF(p) under the lognormal WTP prior — the
-    capacity-free profit-optimal posted price for one crowd."""
+    capacity-free profit-optimal posted price for one crowd. Cached: only
+    ~(skus × hour-multipliers × cost-states × mult-buckets) distinct inputs
+    exist, and the scipy solve is the expensive part."""
     from scipy import stats
     from scipy.optimize import minimize_scalar
     res = minimize_scalar(
@@ -25,15 +31,22 @@ def _profit_max_price(scale: float, cost: float) -> float:
 
 
 
+def sticker_board(state: MachineState) -> dict[str, tuple[float, list[str]]]:
+    """THE sticker board — the control arm's product and every intent arm's
+    fallback. One implementation so 'never worse UX than static' stays true
+    by construction."""
+    return {sku: (l.list_price, ["list price"])
+            for sku, l in state.listings.items() if state.stock(sku) > 0}
+
+
 @dataclass
 class StaticPolicy:
     """The control: a competent operator's fixed board (list = calibrated
-    revenue-optimal all-day price; see world._revenue_optimal_list_price)."""
+    PROFIT-optimal all-day price; see world._profit_optimal_list_price)."""
     policy_id: str = "static/1"
 
     def price_board(self, state: MachineState) -> dict[str, tuple[float, list[str]]]:
-        return {sku: (l.list_price, ["list price"])
-                for sku, l in state.listings.items() if state.stock(sku) > 0}
+        return sticker_board(state)
 
 
 @dataclass
@@ -42,7 +55,7 @@ class GvrPolicy:
 
         price = clamp( max(p_hour, p_scarcity), floor, list )
 
-    * p_hour — the unconstrained revenue-max price against the CURRENT
+    * p_hour — the unconstrained PROFIT-max price against the CURRENT
       hour's crowd (the 3pm stroller values a snack less than the lunch
       rush; when stock is slack, price each crowd on its own merits).
     * p_scarcity — the run-out price: the price at which expected demand
@@ -68,48 +81,54 @@ class GvrPolicy:
             self.learner = DemandLearner()
 
     def price_board(self, state: MachineState) -> dict[str, tuple[float, list[str]]]:
+        if getattr(self, "_cache_day", None) != state.day:
+            self._cache.clear()          # day-stamped entries can never recur
+            self._cache_day = state.day
         board = {}
+        # Quantized context: the SOLVE uses these exact rounded values, so
+        # the cache key fully determines the price (no first-tick-in-band
+        # path dependence).
         mh = round(self.learner.mult_hat, 1)
+        dm = round(self.dow_mult, 2)
         for sku, listing in state.listings.items():
             stock = state.stock(sku)
             if stock <= 0:
                 continue
             dte = state.days_to_expiry(sku)
-            key = (sku, stock, hour_of(state.tick), dte, state.day, mh,
-                   round(self.dow_mult, 2))
+            key = (sku, stock, hour_of(state.tick), dte, state.day, mh, dm)
             if key not in self._cache:
-                self._cache[key] = self._solve(state, sku, stock, dte)
+                self._cache[key] = self._solve(state, sku, stock, dte, mh, dm)
             board[sku] = self._cache[key]
         return board
 
     def _solve(self, state: MachineState, sku: str, stock: int,
-               dte: int | None) -> tuple[float, list[str]]:
+               dte: int | None, mh: float, dm: float) -> tuple[float, list[str]]:
         from scipy import stats
+
+        from vend.scenario import c_eff as _c_eff
 
         listing = state.listings[sku]
         n_skus = len(state.listings)
-
-        # A unit expiring tonight is salvage-or-sold: its opportunity cost
-        # is salvage. A durable unit displaces tomorrow's restock purchase:
-        # its opportunity cost is unit_cost.
-        c_eff = listing.salvage if (dte is not None and dte <= 0) else listing.unit_cost
+        c_eff = _c_eff(state, sku)
 
         # p_hour: PROFIT-max against this hour's crowd, capacity-free.
-        # Structural beliefs = the operator's estimate (not the truth).
-        mu_est = listing.wtp_mu_est or WTP_MU[sku]
+        # Structural beliefs = the operator's estimate (never the truth).
+        mu_est = listing.wtp_mu_est
+        if mu_est <= 0:
+            raise ValueError(f"Listing {sku!r} has no operator demand estimate "
+                             "— build catalogs via world.build_catalog")
         mult_now = wtp_mult_at(state.tick)
-        p_hour = _profit_max_price(mu_est * mult_now, c_eff)
+        p_hour = _profit_max_price(round(mu_est * mult_now, 6), round(c_eff, 6))
 
         # p_scarcity: the run-out price over the stock's sell-window.
         # Restock is nightly (top-to-par), so stock on hand only competes
-        # with the REST OF TODAY's demand; an unsold durable unit simply
-        # displaces tomorrow's restock purchase (carry value = unit_cost,
-        # which is already the floor). Expiry shows up in the floor, not
-        # the window.
-        window = list(range(state.tick, TICKS_PER_DAY))
+        # with the REST OF TODAY's demand. The window starts at the CURRENT
+        # HOUR's first tick — the same granularity as the cache key, so the
+        # cached price is a pure function of the key.
+        hour_start = (hour_of(state.tick) - 7) * 6
+        window = list(range(hour_start, TICKS_PER_DAY))
         share = self.learner.share(sku, n_skus)
-        scale_f = self.dow_mult * self.learner.mult_hat
-        rates = [rate_at(t) / 6.0 * share * scale_f for t in window]
+        rates = [rate_at(t) / 6.0 * share * dm * mh for t in window]
         lam_total = sum(rates)
         p_scar = 0.0
         if lam_total > 0 and stock < lam_total:
@@ -160,8 +179,7 @@ class A2APolicy:
             self.learner = DemandLearner()
 
     def price_board(self, state: MachineState) -> dict[str, tuple[float, list[str]]]:
-        return {sku: (l.list_price, ["list price"])
-                for sku, l in state.listings.items() if state.stock(sku) > 0}
+        return sticker_board(state)
 
     def quote_for(self, state: MachineState, consumer,
                   liar_roll: float) -> tuple[NashQuote, bool]:
