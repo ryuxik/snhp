@@ -75,6 +75,13 @@ class GvrPolicy:
     _cache: dict = field(default_factory=dict)
     learner: "DemandLearner" = None    # set in __post_init__
     dow_mult: float = 1.0              # public calendar; runner sets daily
+    traffic_scale: float = 1.0         # calibrated-traffic knob; runner sets
+                                       # daily from cfg (see run.py) — the
+                                       # p_scarcity solve below is built off
+                                       # the hot-profile rate_at() table, so a
+                                       # thinned machine must scale it down or
+                                       # scarcity pricing fires constantly
+                                       # (it always "looks" demand-constrained)
 
     def __post_init__(self):
         if self.learner is None:
@@ -90,19 +97,21 @@ class GvrPolicy:
         # path dependence).
         mh = round(self.learner.mult_hat, 1)
         dm = round(self.dow_mult, 2)
+        ts = round(self.traffic_scale, 3)
         for sku, listing in state.listings.items():
             stock = state.stock(sku)
             if stock <= 0:
                 continue
             dte = state.days_to_expiry(sku)
-            key = (sku, stock, hour_of(state.tick), dte, state.day, mh, dm)
+            key = (sku, stock, hour_of(state.tick), dte, state.day, mh, dm, ts)
             if key not in self._cache:
-                self._cache[key] = self._solve(state, sku, stock, dte, mh, dm)
+                self._cache[key] = self._solve(state, sku, stock, dte, mh, dm, ts)
             board[sku] = self._cache[key]
         return board
 
     def _solve(self, state: MachineState, sku: str, stock: int,
-               dte: int | None, mh: float, dm: float) -> tuple[float, list[str]]:
+               dte: int | None, mh: float, dm: float,
+               ts: float = 1.0) -> tuple[float, list[str]]:
         from scipy import stats
 
         from vend.scenario import c_eff as _c_eff
@@ -128,7 +137,7 @@ class GvrPolicy:
         hour_start = (hour_of(state.tick) - 7) * 6
         window = list(range(hour_start, TICKS_PER_DAY))
         share = self.learner.share(sku, n_skus)
-        rates = [rate_at(t) / 6.0 * share * dm * mh for t in window]
+        rates = [rate_at(t) / 6.0 * share * dm * mh * ts for t in window]
         lam_total = sum(rates)
         p_scar = 0.0
         if lam_total > 0 and stock < lam_total:
@@ -173,6 +182,12 @@ class A2APolicy:
     mode: str = "intent"
     learner: "DemandLearner" = None
     dow_mult: float = 1.0
+    traffic_scale: float = 1.0     # calibrated-traffic knob; runner sets
+                                   # daily from cfg (see run.py) — feeds the
+                                   # cold-start structural demand fallback in
+                                   # expected_list_demand (scenario.py) so an
+                                   # unsold SKU isn't read as list-bound
+                                   # excess=0 against a hot-profile forecast
     # don't-negotiate-for-pennies, SCALED with transaction size (fairness v2:
     # a flat $1 was a 50% margin floor on a $2 item — it gated quotes away
     # from exactly the small-basket regulars the anchor shocks)
@@ -212,7 +227,8 @@ class A2APolicy:
                           share_fn=lambda s: self.learner.share(s, n),
                           daily_fn=self.learner.daily,
                           min_gain=self.min_gain,
-                          min_gain_frac=self.min_gain_frac), lied
+                          min_gain_frac=self.min_gain_frac,
+                          traffic_scale=self.traffic_scale), lied
 
 
 @dataclass

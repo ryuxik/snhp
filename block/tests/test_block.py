@@ -196,7 +196,10 @@ def test_fashion_lane_is_tourist_local_heavy():
                 waiters += s.waiter
                 assert s.style in population.FASHION_STYLES
                 assert s.fashion_wtp > 0
-    assert n > 500
+    # threshold scales with calibration.FASHION_DAILY_TX (priority #2
+    # recalibration cut the fashion lane ~11x, see calibration.py) — margin
+    # below the ~71 arrivals/6-days this now realizes
+    assert n > 50
     assert (personas.get("tourist", 0) + personas.get("local", 0)) / n > 0.6
     assert waiters / n == pytest.approx(population.FASHION_WAITER_SHARE, abs=0.05)
     assert sizes["M"] > sizes["S"] and sizes["L"] > sizes["XL"]
@@ -391,6 +394,20 @@ def test_delta_decomposition_is_exact(twin3):
             assert math.isclose(parts, recomputed, rel_tol=0, abs_tol=1e-9)
 
 
+def test_fashion_paired_ci_uses_seven_day_blocks(twin3):
+    """Priority #2 recalibration (paper/CALIBRATION-TARGETS.md; pre-
+    registered CRITICAL-ANALYSIS.md §5): fashion reprices weekly, so a
+    5-day block CI aliases the cadence — fashion's venue-level paired delta
+    uses 7-day blocks; every other venue (and the block-level aggregate,
+    which mixes cadences) keeps the 5-day default."""
+    res, _ledger, _worlds = twin3
+    pd = res["paired_deltas"]
+    assert pd["fashion"]["margin"]["block"] == 7
+    for v in ("vending", "bodega", "boba"):
+        assert pd[v]["margin"]["block"] == 5
+    assert pd["block"]["margin"]["block"] == 5
+
+
 def test_hud_sums_all_four_venues(twin3):
     """The HUD counters are the season sums of the block-level per-day
     deltas — i.e. all four venues, nothing else."""
@@ -517,6 +534,20 @@ def test_fashion_week_boundary_prices_hold_within_the_week():
     returns = [e for e in ledger.events
                if e["type"] == "arrival" and e["kind"] == "return"]
     assert returns                     # waiters actually came back on day 7
+
+
+@pytest.mark.slow
+def test_fashion_full_season_sell_through_is_not_saturated():
+    """Priority #2 recalibration: BEFORE the fix, a full 98-day (14-week)
+    season sold 100.0% of the buy in BOTH worlds — a scarcity-mechanism-
+    killing artifact (RESULTS-B1B2.md Surprise 3). At the recalibrated
+    arrival scale the STICKER (cliff) arm's sell-through lands measurably
+    below 100%, in the standalone fashion/ sim's own realistic range."""
+    _res, _ledger, worlds = run_twin(
+        days=FashionVenue.SEASON_WEEKS * 7, seed=SEED, venues=("fashion",))
+    st = worlds["sticker"]["venues"]["fashion"]
+    sell_through = 100.0 * st.units_vended / st.units_stocked
+    assert 70.0 < sell_through < 99.0
 
 
 def test_fashion_season_end_writedown_reconciles():

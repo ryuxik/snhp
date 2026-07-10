@@ -53,7 +53,31 @@ FASHION_LINES = [
 ]
 FASHION_SALVAGE_FRAC = 0.15          # jobber/outlet recovery on cost
 FASHION_SEASON_WEEKS = 14
-FASHION_DAILY_TX = 34                # weekend-heavy
+# Priority #2 recalibration (paper/CALIBRATION-TARGETS.md, pre-registered
+# CRITICAL-ANALYSIS.md §5): at 34 (weekend-heavy, the original guess) the
+# block's fashion buy plan and its realized arrivals are driven by the SAME
+# analytic "loyal-now demand at the cliff calendar" formula
+# (population.FASHION_W0_DAILY / block.venues.build_fashion_plan), so buy ≈
+# E[demand] almost exactly — and at 34/day the per-(style,size)-cell volume
+# is large enough (~200 units/cell/season) that the law of large numbers
+# squashes the gap to ~0: BOTH worlds sold 100.0% of the buy every season
+# (RESULTS-B1B2.md Surprise 3), a scarcity-mechanism-killing artifact. The
+# standalone fashion/ sim (already validated against real full-price/
+# season-end sell-through, CALIBRATION-TARGETS.md row 2) runs the IDENTICAL
+# buy-vs-arrival formula at a much smaller scale (~226 units/season, ~14/
+# cell) and lands at 85-92% cliff sell-through purely from that scale's
+# demand variance (confirmed here: cliff sell-through is ~90% even at
+# sigma_buy=sigma_cal=waiter_share=0 — pure finite-sample noise, not any of
+# those knobs). 3/day reproduces the SAME per-cell scale on the block's
+# 14-week season and empirically lands the STICKER (cliff) arm at ~91%
+# sell-through (n=8 seeds, min 85%) — matching the standalone reference
+# band; the SNHP (markdown/1) arm lands ~97%, which also matches
+# standalone's own markdown-vs-cliff gap (markdown actively clears stock a
+# rigid calendar can't) rather than a new artifact. This is the SAME root
+# cause as the vending traffic fix (priority #1): the sim's per-lane volume,
+# not its mechanism, was calibrated far hotter than a single real storefront
+# — cut here by ~11x, same direction, same honesty as vending's ~10x.
+FASHION_DAILY_TX = 3
 FASHION_RENT_PER_DAY = 620
 
 # ── the block's people ───────────────────────────────────────────────────

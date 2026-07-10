@@ -49,6 +49,15 @@ class Regular:
     dissat: float = 0.0
     active: bool = True
     quotes_seen: int = 0     # habituation: quote friction decays 0.85^n
+    # Priority #3 sweep knobs (paper/CALIBRATION-TARGETS.md §5): per-Regular
+    # so RegularPool can construct a pool at any (loss_aversion, carryover)
+    # point without touching the module defaults committed artifacts use.
+    # loss_aversion = lambda (literature meta-analytic mean 1.955 [1.82,
+    # 2.10], median 1.69, price-specific 1.66 — Brown et al. JEL 2024 /
+    # Hardie-Johnson-Fader 1993); carryover = 1 - ref_alpha_paid (published
+    # band 0.47-0.65, Briesch et al. 1997 Table 6; HJF temporal 0.847).
+    loss_aversion: float = LOSS_AVERSION
+    ref_alpha_paid: float = REF_ALPHA_PAID
 
     def fairness(self, sku: str, unit_price: float, qty: int,
                  list_price: float | None) -> float:
@@ -58,7 +67,7 @@ class Regular:
         if unit_price <= r:
             t = GAIN_WEIGHT * (r - unit_price)
         else:
-            t = -LOSS_AVERSION * (unit_price - r)
+            t = -self.loss_aversion * (unit_price - r)
         if list_price is not None and unit_price < list_price:
             t += DEAL_FRAMING * (list_price - unit_price)
         return qty * t
@@ -74,13 +83,19 @@ class RegularPool:
                               # shrink against the pool that kept both
 
     def __init__(self, cfg: WorldConfig, master_seed: int, catalog,
-                 market_ref: dict[str, float]):
+                 market_ref: dict[str, float], *,
+                 loss_aversion: float = LOSS_AVERSION,
+                 ref_alpha_paid: float = REF_ALPHA_PAID):
         self.cfg = cfg
         self.seed = master_seed
         self.catalog = catalog
         self.market_ref = dict(market_ref)
         self.cap = cfg.regulars
         self._next_id = cfg.regulars
+        # priority #3 sweep knobs (see Regular docstring); every spawn
+        # (initial pool AND exogenous replenishment) inherits these
+        self.loss_aversion = loss_aversion
+        self.ref_alpha_paid = ref_alpha_paid
         self.pool: list[Regular] = [self._spawn(i) for i in range(cfg.regulars)]
 
     def _spawn(self, i: int) -> Regular:
@@ -94,7 +109,9 @@ class RegularPool:
             wtp=wtp, walk_cost=float(rng.uniform(0.5, 2.0)),
             visit_prob=float(rng.uniform(0.25, 0.75)),
             home_tick=home,
-            ref=dict(self.market_ref))
+            ref=dict(self.market_ref),
+            loss_aversion=self.loss_aversion,
+            ref_alpha_paid=self.ref_alpha_paid)
 
     def visits_for_day(self, day: int) -> dict[int, list[Regular]]:
         """tick → visiting regulars (deterministic, arm-independent draw of
@@ -179,7 +196,7 @@ def settle_regular(reg: Regular, sku: str, unit_price: float, qty: int):
     and — v2, symmetric per the transaction-utility literature — below-
     reference RELIEF: a good deal heals accumulated dissatisfaction."""
     r = reg.ref[sku]
-    reg.ref[sku] = (1 - REF_ALPHA_PAID) * r + REF_ALPHA_PAID * unit_price
+    reg.ref[sku] = (1 - reg.ref_alpha_paid) * r + reg.ref_alpha_paid * unit_price
     if unit_price > r:
         reg.dissat += (unit_price - r) / r
     else:

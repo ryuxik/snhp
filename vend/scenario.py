@@ -106,7 +106,8 @@ def _remaining_frac(tick: int) -> float:
 def expected_list_demand(state: MachineState, sku: str, *,
                          dow_mult: float = 1.0, mult_hat: float = 1.0,
                          share: float | None = None,
-                         emp_daily: float | None = None) -> float:
+                         emp_daily: float | None = None,
+                         traffic_scale: float = 1.0) -> float:
     """Expected rest-of-day units of `sku` demanded AT LIST price — the
     machine's forecast from the operator's DEMAND ESTIMATE, scaled by what
     it can observe: the public calendar (dow_mult), today's inferred crowd
@@ -116,7 +117,18 @@ def expected_list_demand(state: MachineState, sku: str, *,
     given (the learner's EWMA of realized units/day in THIS arm's regime),
     the level comes from lived history instead of the structural formula —
     the forecast can no longer assume a world the mechanism abolished.
-    The per-arrival base curve is cached per (sku, estimate, list)."""
+    The per-arrival base curve is cached per (sku, estimate, list).
+
+    `traffic_scale`: the calibrated-traffic knob (vend.world.WorldConfig).
+    The STRUCTURAL branch below is built off the hot-profile HOURLY_RATE
+    table (world.rate_at), so at a thinned machine it must be scaled down
+    too, or a cold-start SKU (no realized sales yet — exactly what happens
+    for slow SKUs at 7-8 vends/day) would see a ~1/traffic_scale-inflated
+    demand estimate, read all its own stock as list-bound ('excess' ≈ 0),
+    and refuse every discount until it happens to sell once. The regime-
+    consistent `emp_daily` branch is already built from REALIZED sales (at
+    the machine's true, already-thinned rate) — scaling it again would be
+    double-counting, so it's deliberately excluded."""
     if emp_daily is not None:
         return emp_daily * _remaining_frac(state.tick) * dow_mult * mult_hat
     listing = state.listings[sku]
@@ -139,7 +151,8 @@ def expected_list_demand(state: MachineState, sku: str, *,
             cum.append(acc)
         _CUM_BASE_DEMAND[key] = list(reversed(cum))
     base = _CUM_BASE_DEMAND[key][state.tick]
-    return base * (share if share is not None else 1.0 / n) * dow_mult * mult_hat
+    return (base * (share if share is not None else 1.0 / n)
+            * dow_mult * mult_hat * traffic_scale)
 
 
 def machine_margin(state: MachineState, o: Outcome, *,
@@ -178,12 +191,16 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
                disclosed_walk_cost: float, *,
                dow_mult: float = 1.0, mult_hat: float = 1.0,
                share_fn=None, allowed=None, daily_fn=None,
-               min_gain: float = 0.0, min_gain_frac: float = 0.0) -> NashQuote:
+               min_gain: float = 0.0, min_gain_frac: float = 0.0,
+               traffic_scale: float = 1.0) -> NashQuote:
     """Nash bargaining over the enumerated outcome space, on the DISCLOSED
     buyer utilities. Machine surplus is measured against its sticker
     counterfactual; buyer surplus against their claimed outside option.
     dow_mult / mult_hat / share_fn carry the machine's observable demand
     context into the shadow prices (defaults reproduce the P1 setting).
+    `traffic_scale` scales the cold-start structural demand estimate only
+    (see expected_list_demand) — irrelevant once a SKU has sold and the
+    regime-consistent emp_daily estimate takes over.
     `allowed` (Outcome → bool) restricts the outcome space — e.g. to the
     intent's SKU when the buyer forbids substitutes."""
     catalog = state.listings
@@ -200,7 +217,7 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
         emp = daily_fn(sku) if daily_fn is not None else None
         D = expected_list_demand(state, sku, dow_mult=dow_mult,
                                  mult_hat=mult_hat, share=_share(sku),
-                                 emp_daily=emp)
+                                 emp_daily=emp, traffic_scale=traffic_scale)
         sku_ctx[sku] = (float(state.stock(sku)), D, c_eff(state, sku),
                         catalog[sku].list_price)
 

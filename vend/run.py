@@ -60,6 +60,10 @@ def run_day(policy, state, catalog, master_seed: int, day: int,
     learner = getattr(policy, "learner", None)
     if hasattr(policy, "dow_mult"):
         policy.dow_mult = ds.dow_mult
+    if hasattr(policy, "traffic_scale"):
+        # the operator knows their machine's own traffic level (they read
+        # the meter weekly) — structural forecasts scale with it
+        policy.traffic_scale = cfg.traffic_scale
     if learner:
         learner.begin_day(ds.dow_mult)
 
@@ -135,9 +139,11 @@ def run_day(policy, state, catalog, master_seed: int, day: int,
 
         n_new = arrivals_at(master_seed, day, tick, cfg)
         if learner:
-            # base = the KNOWN expectation (rate curve × calendar); the
-            # posterior tracks the residual day shock
-            learner.observe_arrivals(rate_at(tick) / 6.0 * ds.dow_mult, n_new)
+            # base = the KNOWN expectation (rate curve × calendar × the
+            # machine's traffic level); the posterior tracks the residual
+            # day shock
+            learner.observe_arrivals(rate_at(tick) / 6.0 * ds.dow_mult
+                                     * cfg.traffic_scale, n_new)
         consumers = ([sample_consumer(master_seed, day, tick, k, catalog, cfg)
                       for k in range(n_new)] + due)
         m["arrivals"] += n_new
@@ -266,7 +272,9 @@ def run_experiment(arm_names: list[str], days: int, seed: int,
             from vend.world import _profit_optimal_list_price, CATALOG_SPEC
             market_ref = {s: _profit_optimal_list_price(mu, c)
                           for s, mu, c, *_ in CATALOG_SPEC}
-            pool = RegularPool(cfg, seed, catalog, market_ref)
+            pool = RegularPool(cfg, seed, catalog, market_ref,
+                              loss_aversion=cfg.loss_aversion,
+                              ref_alpha_paid=cfg.ref_alpha_paid)
         per_day = [run_day(policy, state, catalog, seed, d, cfg, pool)
                    for d in range(days)]
         totals = {k: round(sum(m[k] for m in per_day), 2)
@@ -291,7 +299,8 @@ def run_experiment(arm_names: list[str], days: int, seed: int,
             "seed": seed, "days": days, "arms": arm_names,
             "world": {"sigma_cal": cfg.sigma_cal, "sigma_rate": cfg.sigma_rate,
                       "sigma_wtp": cfg.sigma_wtp, "dow": cfg.dow,
-                      "glut_prob": cfg.glut_prob},
+                      "glut_prob": cfg.glut_prob,
+                      "traffic_scale": cfg.traffic_scale},
             "list_prices": {s: l.list_price for s, l in catalog.items()},
             "notes": [
                 "static arm = PROFIT-optimal all-day single price (strong baseline)",
@@ -348,6 +357,15 @@ def main(argv=None) -> int:
     ap.add_argument("--sigma-wtp", type=float, default=0.0)
     ap.add_argument("--dow", action="store_true")
     ap.add_argument("--glut", type=float, default=0.0)
+    ap.add_argument("--calibrated-traffic", action="store_true",
+                    help="thin arrivals to CALIBRATED_TRAFFIC_SCALE (~7-8 "
+                         "vends/day on the standard catalog, SOTI 2025 + "
+                         "Cantaloupe 2025) instead of the hot 'smart-store "
+                         "P90' profile (traffic_scale=1.0, ~74/day)")
+    ap.add_argument("--traffic-scale", type=float, default=None,
+                    help="override the arrival-thinning factor directly "
+                         "(1.0 = hot/smart-store-P90 profile, the default); "
+                         "takes precedence over --calibrated-traffic")
     ap.add_argument("--grid", action="store_true",
                     help="run the P1.5 miscalibration × shock grid")
     args = ap.parse_args(argv)
@@ -362,9 +380,17 @@ def main(argv=None) -> int:
         return run_grid(arm_names, args.days, args.seed,
                         args.out or "vend/grid.json")
 
+    if args.traffic_scale is not None:
+        traffic_scale = args.traffic_scale
+    elif args.calibrated_traffic:
+        from vend.world import CALIBRATED_TRAFFIC_SCALE
+        traffic_scale = CALIBRATED_TRAFFIC_SCALE
+    else:
+        traffic_scale = 1.0
+
     cfg = WorldConfig(sigma_cal=args.sigma_cal, sigma_rate=args.sigma_rate,
                       sigma_wtp=args.sigma_wtp, dow=args.dow,
-                      glut_prob=args.glut)
+                      glut_prob=args.glut, traffic_scale=traffic_scale)
     res = run_experiment(arm_names, args.days, args.seed, cfg)
     out = json.dumps(res, indent=1)
     if args.out:

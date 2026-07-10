@@ -147,3 +147,92 @@ the 16-week trade calendar compresses to 7/3/3/1.
   intraday curve until its learner has a day of history (same documented
   approximation the machine carries).
 - No day-of-week, day shocks, or same-day return queue (B0, carried).
+
+## Priority #2 recalibration (2026-07-10) — fashion arrival scale fix, 7-day CI blocks
+
+paper/CALIBRATION-TARGETS.md #2 / pre-registered CRITICAL-ANALYSIS.md §5:
+**the fashion row above is superseded.** The block's fashion buy plan
+(`block.venues.build_fashion_plan`) and its realized arrivals
+(`block.population.FASHION_W0_DAILY`) are driven by the SAME analytic
+"loyal-now demand at the cliff calendar" formula, so buy ≈ E[demand] almost
+exactly by construction; at the old `FASHION_DAILY_TX=34` the per-cell
+volume (~200 units/(style,size) cell/season) was large enough that the law
+of large numbers squashed the buy-vs-demand gap to ~0 — **both worlds sold
+100.0% of the buy every full season** (Surprise 3, below, as originally
+written), a scarcity-mechanism-killing artifact: when nothing goes unsold,
+no inventory-management mechanism can show an edge from managing inventory.
+
+**Fix: `calibration.FASHION_DAILY_TX` 34 → 3** (`block/calibration.py`),
+matching the SAME buy-vs-arrival formula down to the standalone `fashion/`
+sim's own scale (~226 units/season, ~14/cell) — already validated against
+real full-price/season-end sell-through in CALIBRATION-TARGETS.md row 2.
+Confirmed directly: the standalone sim's CLIFF arm sell-through is ~90%
+even at `sigma_buy=sigma_cal=waiter_share=0` (pure finite-sample demand
+variance, not any of those knobs) — it is a SCALE effect, and cutting the
+block's fashion volume to the same scale reproduces it. Same root cause,
+same honest direction as priority #1: the sim's per-lane VOLUME, not its
+mechanism, was calibrated far hotter than one real small-format storefront.
+
+**Sell-through, recalibrated** (BlockConfig default incl. σ_cal=0.15,
+8 independent seeds, full 98-day/14-week seasons):
+
+| arm | mean sell-through | min | max |
+|---|---:|---:|---:|
+| STICKER (cliff) | **91.1%** | 84.7% | 98.1% |
+| SNHP (markdown/1) | 96.8% | 90.5% | 100.0% |
+
+Sticker lands inside the 85-92% target band; the standalone sim's own
+directly comparable cell (σ_buy=0.15, σ_cal=0.15, waiters=15%) gives cliff
+90.2% / markdown 96.8% — both block arms track their standalone counterpart
+closely. It is *expected*, not a new artifact, that SNHP outsells STICKER:
+the standalone sim shows the identical gap (markdown actively re-solves to
+clear stock; a fixed calendar can't) at every comparable cell tested.
+
+**Full-season (98-day) fashion-only twin, committed seed 20260710** (the
+same check Surprise 3 ran, re-run at the fix): sticker sold 272/283 = 96.1%
+(this particular seed runs hot within the 84.7-98.1% band above), snhp sold
+282/283 = 99.7%. Season-end paired margin delta: **mean −$1.32/day, CI95
+[−32.56, 29.91]** (n=14 blocks of 7 days). **The fashion row does NOT
+become informative in the win/lose sense — the CI still includes zero —
+but for an honest reason now: real economic noise at a realistic sample
+size, not the 100%-sellout saturation artifact.** That is the actual
+deliverable of this fix: a CI that can move, even though this particular
+run doesn't move it away from zero.
+
+**7-day CI blocks** (`block/ledger.py`, `VENUE_CI_BLOCK = {"fashion": 7}`):
+fashion reprices weekly, so a 5-day block aliased that cadence (n=6 blocks
+over 30 days vs 4+ real week boundaries — this file's original Surprise 3
+flagged exactly this). Fashion's venue-level paired CI now blocks on 7
+days; every other venue (daily repricing) and the block-level aggregate
+(mixed cadences) keep the 5-day default.
+
+**Honest regression, not fixed here:** at `FASHION_DAILY_TX=3` the fashion
+venue's absolute economics collapse — both worlds run **negative margin**
+(sticker −$435/day, snhp −$415/day, 30-day headline) against the unchanged
+`FASHION_RENT_PER_DAY=$620` calibration target, because revenue fell ~11×
+with the volume cut while rent did not. Real NYC boutiques presumably carry
+far more than 4 style lines, so their AGGREGATE transaction volume can stay
+high (~34/day) while PER-SKU volume stays thin enough for realistic
+sell-through — a structural fix (more SKUs) this task did not make (scope
+was "recalibrate fashion arrivals", not re-architect the catalog). Read the
+fashion row's **Δ** (sticker vs snhp) as the informative mechanism
+comparison this task was scoped to fix; do not read either world's
+**absolute** margin as a standalone-boutique profitability claim at this
+catalog size.
+
+**Updated 30-day headline (both `block/results.json` and
+`block/results-adopt.json` regenerated; vending/bodega/boba rows are
+numerically UNCHANGED — fashion is the only venue this recalibration
+touches):**
+
+| venue | sticker margin/day | snhp margin/day | Δ margin (block=5 or 7) |
+|---|---:|---:|---|
+| vending | $135.54 | $138.55 | +3.01 [0.25, 5.78] |
+| bodega | $2,992.00 | $2,986.16 | −5.84 [−9.33, −2.35] |
+| boba | $1,022.30 | $1,358.75 | +336.45 [317.01, 355.89] |
+| **fashion** | **−$435.27** | **−$414.89** | **+20.47 [−36.39, 77.33]** (block=7, n=4) |
+
+Reproduce: `python3 -m block.runner --days 30 --seed 20260710 --regulars 25
+--out block/results.json` (and `--bodega-adopts` for the adoption artifact);
+`python3 -m pytest block/tests -q` (39 tests, incl. two new: 7-day CI block
+assertion, full-season sell-through-not-saturated).

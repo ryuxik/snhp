@@ -40,6 +40,17 @@ import numpy as np
 
 DELTA_METRICS = ("margin", "revenue", "consumer_surplus", "units", "deals")
 
+# Priority #2 (paper/CALIBRATION-TARGETS.md; pre-registered CRITICAL-
+# ANALYSIS.md §5): fashion's board reprices WEEKLY (every 7 block days),
+# not daily like the other three venues, so a 5-day block CI aliases
+# against that cadence (n=6 blocks over 30 days vs 4+ actual week
+# boundaries — RESULTS-B1B2.md's Surprise 3 flagged this as "indicative,
+# not sharp"). Fashion's venue-level paired CI uses 7-day blocks instead;
+# every other venue (and the block-level aggregate, which mixes daily and
+# weekly cadences) keeps the 5-day default.
+VENUE_CI_BLOCK = {"fashion": 7}
+DEFAULT_CI_BLOCK = 5
+
 
 def paired_ci(diffs: list[float], block: int = 5) -> dict:
     """Mean paired difference with a 95% t-interval — the same block-CI
@@ -141,10 +152,12 @@ class BlockLedger:
     def paired_deltas(self, days: int) -> dict:
         out: dict[str, dict] = {}
         for venue in self.venues:
+            block = VENUE_CI_BLOCK.get(venue, DEFAULT_CI_BLOCK)
             out[venue] = {m: paired_ci([self.day_delta(venue, d, m)
-                                        for d in range(days)])
+                                        for d in range(days)], block=block)
                           for m in DELTA_METRICS}
         out["block"] = {m: paired_ci([self.block_day_delta(d, m)
-                                      for d in range(days)])
+                                      for d in range(days)],
+                                     block=DEFAULT_CI_BLOCK)
                         for m in DELTA_METRICS}
         return out

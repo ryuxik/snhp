@@ -373,3 +373,160 @@ def test_context_hash_distinguishes_disclosures(catalog):
     d2 = disclosure_digest({"cola": 9.0}, 1.0)
     assert mk(d1).context_hash != mk(d2).context_hash
     assert mk(d1).context_hash == mk(d1).context_hash
+
+
+# ── calibrated traffic (priority #1, paper/CALIBRATION-TARGETS.md) ──────
+
+def test_traffic_scale_thins_arrivals_and_pars():
+    """traffic_scale=1.0 reproduces the hot 'smart-store P90' profile
+    exactly (par unaffected — the CATALOG_SPEC value); a thinned machine
+    gets both fewer arrivals AND velocity-sized (smaller) pars, never zero."""
+    from vend.world import WorldConfig, TICKS_PER_DAY, arrivals_at, build_catalog
+    hot = build_catalog()
+    cold = build_catalog(WorldConfig(traffic_scale=0.14))
+    assert all(cold[s].par_stock < hot[s].par_stock for s in hot)
+    assert all(cold[s].par_stock >= 1 for s in cold)
+    hot_arr = sum(arrivals_at(3, 0, t, WorldConfig()) for t in range(TICKS_PER_DAY))
+    cold_arr = sum(arrivals_at(3, 0, t, WorldConfig(traffic_scale=0.14))
+                   for t in range(TICKS_PER_DAY))
+    assert cold_arr < hot_arr * 0.3
+
+
+def test_calibrated_traffic_lands_static_in_the_7_to_8_band():
+    """The pre-registered target (paper/CALIBRATION-TARGETS.md #1): the
+    STATIC arm realizes 7-8 units ('vends')/day at CALIBRATED_TRAFFIC_SCALE
+    in the realistic miscalibration cell, on both committed seeds."""
+    from vend.world import CALIBRATED_TRAFFIC_SCALE, WorldConfig
+    cfg = WorldConfig(sigma_cal=0.3, sigma_rate=0.6, sigma_wtp=0.3, dow=True,
+                      glut_prob=0.15, traffic_scale=CALIBRATED_TRAFFIC_SCALE)
+    for seed in (20260713, 7):
+        res = run_experiment(["static"], days=90, seed=seed, cfg=cfg)
+        units_per_day = res["arms"]["static"]["totals"]["units"] / 90
+        assert 7.0 <= units_per_day <= 8.0
+
+
+def test_calibrated_traffic_cli_flag(tmp_path):
+    """--calibrated-traffic sets cfg.traffic_scale to the module constant;
+    --traffic-scale overrides it directly and takes precedence."""
+    from vend.run import main
+    from vend.world import CALIBRATED_TRAFFIC_SCALE
+    import json
+    out1 = tmp_path / "a.json"
+    assert main(["--days", "2", "--arms", "static", "--calibrated-traffic",
+                "--out", str(out1)]) == 0
+    d1 = json.load(open(out1))
+    assert d1["config"]["world"]["traffic_scale"] == CALIBRATED_TRAFFIC_SCALE
+
+    out2 = tmp_path / "b.json"
+    assert main(["--days", "2", "--arms", "static", "--calibrated-traffic",
+                "--traffic-scale", "0.5", "--out", str(out2)]) == 0
+    d2 = json.load(open(out2))
+    assert d2["config"]["world"]["traffic_scale"] == 0.5
+
+    out3 = tmp_path / "c.json"
+    assert main(["--days", "2", "--arms", "static", "--out", str(out3)]) == 0
+    d3 = json.load(open(out3))
+    assert d3["config"]["world"]["traffic_scale"] == 1.0   # unchanged default
+
+
+def test_cold_start_demand_scales_with_traffic():
+    """expected_list_demand's STRUCTURAL fallback (no realized-sales history
+    yet, emp_daily=None) must scale with traffic_scale — otherwise a thinned
+    machine's unsold SKUs read a hot-profile demand estimate, see excess≈0,
+    and refuse to discount until they happen to sell once (the cold-start
+    bug the traffic_scale plumbing exists to fix). The regime-consistent
+    emp_daily branch must NOT be scaled again (it's already realized sales
+    at the true, already-thinned rate)."""
+    from vend.scenario import expected_list_demand
+    from vend.world import build_catalog, fresh_machine
+    cat = build_catalog()
+    state = fresh_machine("t", cat)
+    hot = expected_list_demand(state, "cola", traffic_scale=1.0)
+    cold = expected_list_demand(state, "cola", traffic_scale=0.14)
+    assert cold == pytest.approx(hot * 0.14)
+    # emp_daily path: realized-sales estimate is regime-consistent already
+    emp_hot = expected_list_demand(state, "cola", emp_daily=5.0, traffic_scale=1.0)
+    emp_cold = expected_list_demand(state, "cola", emp_daily=5.0, traffic_scale=0.14)
+    assert emp_hot == emp_cold
+
+
+def test_a2a_traffic_scale_is_set_daily_from_cfg(catalog):
+    """run_day wires policy.traffic_scale from cfg every day (the operator-
+    knows-their-own-traffic mechanism) — GvrPolicy and A2APolicy both pick
+    it up (matching the existing dow_mult pattern)."""
+    from vend.policies import A2APolicy, GvrPolicy
+    from vend.world import WorldConfig, fresh_machine
+    cfg = WorldConfig(traffic_scale=0.3)
+    for policy in (A2APolicy(), GvrPolicy()):
+        state = fresh_machine("t", catalog, cfg, master_seed=1)
+        assert policy.traffic_scale == 1.0     # default, before any day runs
+        run_day(policy, state, catalog, master_seed=1, day=0, cfg=cfg)
+        assert policy.traffic_scale == 0.3
+
+
+# ── fairness parameter sweep (priority #3, paper/CALIBRATION-TARGETS.md) ─
+
+def test_worldconfig_fairness_defaults_match_regulars_module():
+    """WorldConfig.loss_aversion/ref_alpha_paid duplicate vend.regulars'
+    LOSS_AVERSION/REF_ALPHA_PAID constants (regulars.py imports world.py, so
+    the default can't be shared directly) — pinned so the two can't drift."""
+    from vend.world import WorldConfig
+    from vend import regulars
+    cfg = WorldConfig()
+    assert cfg.loss_aversion == regulars.LOSS_AVERSION
+    assert cfg.ref_alpha_paid == regulars.REF_ALPHA_PAID
+
+
+def test_regular_pool_honors_fairness_sweep_knobs():
+    """RegularPool(..., loss_aversion=, ref_alpha_paid=) propagates to every
+    spawned Regular — the priority #3 sweep knob — including new joins from
+    exogenous replenishment (both paths call _spawn)."""
+    from vend.regulars import RegularPool
+    from vend.world import WorldConfig, build_catalog, _profit_optimal_list_price, CATALOG_SPEC
+    cat = build_catalog()
+    market_ref = {s: _profit_optimal_list_price(mu, c)
+                  for s, mu, c, *_ in CATALOG_SPEC}
+    cfg = WorldConfig(regulars=10)
+    pool = RegularPool(cfg, 1, cat, market_ref,
+                       loss_aversion=1.66, ref_alpha_paid=0.15)
+    assert all(r.loss_aversion == 1.66 for r in pool.pool)
+    assert all(r.ref_alpha_paid == 0.15 for r in pool.pool)
+    # a replenishment join also inherits the pool's sweep knobs (run enough
+    # days that at least one Poisson(0.7/day) join is all but certain)
+    for r in pool.pool:
+        r.active = False
+    for day in range(15):
+        pool.end_day(day)
+    new = [r for r in pool.pool if r.active]
+    assert new and all(r.loss_aversion == 1.66 and r.ref_alpha_paid == 0.15
+                       for r in new)
+
+
+def test_fairness_sweep_knobs_change_reference_dynamics(catalog):
+    """A lower ref_alpha_paid (higher carryover) makes the reference price
+    track a paid price MORE slowly — the literature-band knob actually
+    moves the mechanism, not just a cosmetic field."""
+    from vend.regulars import Regular, settle_regular
+    fast = Regular(uid=1, wtp={"cola": 2.0}, walk_cost=1.0, visit_prob=0.5,
+                   home_tick=30, ref={"cola": 2.0}, ref_alpha_paid=0.50)
+    slow = Regular(uid=2, wtp={"cola": 2.0}, walk_cost=1.0, visit_prob=0.5,
+                   home_tick=30, ref={"cola": 2.0}, ref_alpha_paid=0.10)
+    settle_regular(fast, "cola", 1.00, 1)
+    settle_regular(slow, "cola", 1.00, 1)
+    assert fast.ref["cola"] < slow.ref["cola"]   # fast carryover moves further
+
+
+def test_fairness_sweep_lambda_changes_loss_penalty():
+    """loss_aversion scales the ABOVE-reference penalty only (below-reference
+    GAIN_WEIGHT is untouched — asymmetric by design)."""
+    from vend.regulars import Regular
+    lo = Regular(uid=1, wtp={"cola": 2.0}, walk_cost=1.0, visit_prob=0.5,
+                home_tick=30, ref={"cola": 2.0}, loss_aversion=1.66)
+    hi = Regular(uid=2, wtp={"cola": 2.0}, walk_cost=1.0, visit_prob=0.5,
+                home_tick=30, ref={"cola": 2.0}, loss_aversion=2.0)
+    above_lo = lo.fairness("cola", 2.50, 1, None)
+    above_hi = hi.fairness("cola", 2.50, 1, None)
+    assert above_hi < above_lo < 0             # both penalize; higher lambda hurts more
+    below_lo = lo.fairness("cola", 1.50, 1, None)
+    below_hi = hi.fairness("cola", 1.50, 1, None)
+    assert below_lo == below_hi                # GAIN_WEIGHT unaffected by lambda

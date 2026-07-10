@@ -365,3 +365,211 @@ control leak; **default 0.75/15% → control −$1.98 [−2.70, −1.25] AND ful
 protection with the harvest intact** — a ~2% concession at a knife-edge
 world that doesn't exist in the field, buying the customer base wherever
 anchors are aggressive.
+
+## Calibrated traffic (2026-07-10) — priority #1: the machine was ~10x too hot
+
+paper/CALIBRATION-TARGETS.md's worst violation: arrival→purchase conversion
+sat near 100% (nobody just browses), landing the STATIC arm at ~74
+vends/day against the real US-average machine's **7-8 vends/day** (~$15.8
+avg-machine revenue/day; SOTI 2025 + Cantaloupe Micropayment Trends 2025).
+Fixed as an arrival-thinning knob, `WorldConfig.traffic_scale` — arithmetic-
+ally identical to a price-independent conversion gate (most passers-by never
+engage the machine at all, which is where the ~100%-conversion violation
+actually lived): `CALIBRATED_TRAFFIC_SCALE = 0.14` (vend/world.py) lands
+STATIC at **7.4–7.8 units/day** ("vends" = individual dispenses; a qty>1
+sale is one deal, several vends) on both committed seeds, in the realistic
+miscalibration cell. **traffic_scale=1.0 (the original profile) is kept and
+RELABELED "smart-store P90"** — defensible only as a top-decile fresh-food
+Smart Store machine, never as the average, and used below purely as the
+pre-recalibration baseline for the proportional-shrink check.
+
+Par stocks now scale with realized velocity (`PAR_COVER_DAYS=2.0`, floor 1
+unit) — a competent operator sizes stock to what the machine actually
+sells; freezing smart-store-P90 pars at 0.14× traffic would drown the
+experiment in perishable spoilage no real operator accepts. The learner's
+cold-start structural demand fallback (`expected_list_demand` in
+scenario.py, used only before a SKU has any realized-sales history) is now
+also `traffic_scale`-aware — otherwise an unsold SKU at 7-8 vends/day would
+read a smart-store-P90-sized demand estimate, see zero "excess" stock, and
+refuse to discount until it happened to sell once. `GvrPolicy`'s scarcity
+solve got the same fix (not exercised by the run below, which is
+static/a2a only, but left half-fixed otherwise).
+
+### Per-machine deltas, calibrated traffic, realistic cell
+
+`python3 -m vend.run --days 90 --seed {20260713,7} --arms static,a2a
+--sigma-cal 0.3 --sigma-rate 0.6 --sigma-wtp 0.3 --dow --glut 0.15
+--calibrated-traffic`
+
+| seed | static units/day | a2a profit Δ/day (block=5 CI) | CS Δ/day |
+|---|---:|---|---:|
+| 20260713 | 7.70 | **+$0.60** [0.23, 0.97] | +1.90 |
+| 7 | 7.38 | +$0.24 [−0.11, 0.59] | +1.55 |
+
+**Honest reading:** seed 20260713's single-machine CI still clears zero;
+**seed 7's does not** — [−0.11, 0.59] straddles it. At real single-machine
+traffic, 90 days of ~7.4 vends/day is thin enough that one machine's paired
+CI can look like a coin flip even though (see the route framing below) the
+underlying effect is real and positive. This is the honest CI-touches-zero
+result the recalibration was pre-registered to risk, and it happened.
+
+Same cell at the current smart-store-P90 profile (traffic_scale=1.0), the
+pre-recalibration baseline, reproduced against CURRENT HEAD (not the commit
+this file's "weak-dominance" section above was written against — that
+section's $2.30/$1.95 no longer reproduce exactly on this codebase, a
+pre-existing drift unrelated to this recalibration, confirmed via `git
+stash` A/B and not investigated further here):
+
+| seed | a2a profit Δ/day (smart-store P90) |
+|---|---|
+| 20260713 | +$2.45 [1.51, 3.40] |
+| 7 | +$2.44 [1.87, 3.01] |
+
+### Does the delta shrink proportionally to traffic? Sub-proportionally
+
+Traffic itself was thinned ~7.1× (1/0.14). A 25-independent-seed-machine
+sweep (same cell, different customer-stream seed per "machine",
+`base_seed + i*1009`) averages out single-machine noise:
+
+| base seed | per-machine profit Δ/day (mean, sd, n=25) | % of static profit/day |
+|---|---|---:|
+| 20260713 | +$0.519 (sd 0.480), 24/25 machines positive | 5.99% |
+| 7 | +$0.531 (sd 0.623), 21/25 machines positive | 5.67% |
+
+vs. smart-store-P90's +$2.45/+$2.44 (≈4.6% of its own, much larger, static
+profit base). The **dollar** edge shrank ~4.6–4.7×, sub-proportional to the
+~7.1× traffic cut — and the **relative** edge (% of static profit) is
+essentially preserved, slightly larger if anything. Read honestly: the
+mechanism's per-vend edge holds up about as well in percentage terms at
+realistic traffic as at the hot profile; it is the ABSOLUTE dollar number
+that shrinks with the machine, exactly as paper/CALIBRATION-TARGETS.md
+predicted.
+
+### Route framing (what an operator running a fleet actually sees)
+
+The 25-machine sweep above is a real (not hand-waved) route: summing the
+daily a2a−static profit diff ACROSS the 25 independently-seeded machines
+per day, then running the same `paired_ci(block=5)` on that SUMMED daily
+series gives an honestly-computed route-level CI (no manufactured
+independence assumption — these are 25 fully independent customer
+streams):
+
+| base seed | route (N=25) profit Δ/day | CI95 |
+|---|---:|---|
+| 20260713 | **+$12.97** | [11.02, 14.91] |
+| 7 | **+$13.27** | [11.29, 15.25] |
+
+Both route-level CIs clear zero comfortably even though one of the two
+*single-machine* CIs above did not — exactly the CLT story: a single
+machine's 90-day sample is noisy at 7-8 vends/day, a 25-machine route
+averages it out. Projecting further (mean scales linearly with fleet size;
+CI half-width scales √(M/25) under cross-machine independence — the same
+approximation, not separately simulated at these sizes):
+
+| machines | seed 20260713 | seed 7 |
+|---:|---|---|
+| 50 | +$26/day [23, 29] | +$27/day [24, 29] |
+| 100 | +$52/day [48, 56] | +$53/day [49, 57] |
+| 200 | +$104/day [98, 109] | +$106/day [101, 112] |
+
+**Commercial story moves to the route, exactly as pre-registered**: a
+50-200-machine operator earns a robust, statistically unambiguous
+$26-106/day from the mechanism at real traffic, even though any ONE of
+their machines' 90-day report could plausibly show a CI touching zero.
+
+### Critical Q: does the censoring-aware learner converge at 7-8 vends/day? — NO, not within 90 days
+
+Instrumented the A2A arm's `DemandLearner` (seed 20260713, the calibrated
+cell) at checkpoints, and compared its day-90 per-SKU `daily()` estimate
+against a 2000-day ground truth (a `StaticPolicy` run wearing the same
+`DemandLearner` purely as an OBSERVER — static's board never reads it, so
+this is an unbiased-by-mechanism per-SKU realized-demand estimate under the
+identical catalog/traffic, on an independent customer-stream seed):
+
+| SKU | true daily (2000-day) | A2A day-90 estimate | error |
+|---|---:|---:|---:|
+| cola | 0.895 | 3.953 | +342% |
+| diet-cola | 1.764 | 4.965 | +181% |
+| water | 8.294 | 7.953 | −4% |
+| chips | 2.184 | 2.965 | +36% |
+| candy | ≈0.000 | 0.605 | (true demand ≈0 — % error degenerate) |
+| energy | 5.184 | 2.965 | −43% |
+| sandwich | 3.456 | 3.872 | +12% |
+| fruit-cup | 16.775 | 1.976 | **−88%** |
+
+The estimate does not settle, either: `candy`'s own trajectory across
+checkpoints is 0.98 → 2.96 → 17.64 → 0.14 → 0.04 → 1.57 → 0.61, day 10
+through day 90 — it is still swinging by an order of magnitude at the END
+of the 90-day run, not converging toward anything. **Verdict: no, the
+learner does not meaningfully converge in this regime.** At ~7.5 total
+vends/day spread over 8 SKUs, most SKUs see under one sale per day; the EWMA
+smoother (`share_ewma=0.3`, an effective memory of a few days) was tuned
+and validated at the smart-store-P90 profile (~74/day, ample per-SKU counts)
+and simply cannot average out Poisson noise this sparse in a short window.
+The machine-level `mult_hat` (today's-crowd posterior) fares somewhat
+better — `prior_strength=8` anchors it — but at calibrated traffic that
+prior is now comparable in size to a whole day's arrivals (5-8), so the
+posterior is heavily prior-shrunk and correspondingly LESS responsive to
+genuine day-to-day demand shocks than the same posterior was at the hot
+profile (observed range across checkpoints: 0.696–1.334, day 10 → day 90,
+consistent with real σ_shock=0.6 noise but likely still an under-reaction).
+
+**Why the route-level result survives this anyway:** the A2A mechanism's
+`min_gain`/`min_gain_frac` don't-negotiate-for-pennies buffer and
+event-consistent disagreement design mean a badly-mis-estimated `excess`
+mostly costs FOUND deals (a discount that should have cleared the buffer
+doesn't), not BAD deals (the buffer keeps a noisy-but-inflated demand
+estimate from leaking real margin) — so the mechanism degrades gracefully
+toward static's own behavior on the SKUs its learner can't see clearly, and
+the aggregate/route-level edge above is real. But per-SKU, per-machine
+tactical claims about A2A's WHERE-it-wins story (the "excess vs. list-bound
+stock" targeting P1.5/P1 sections describe) should not be trusted at
+real single-machine traffic — that precision was validated at ~74
+vends/day and does not transfer down.
+
+## Fairness parameter sweep (2026-07-10) — priority #3: harvestability holds across the evidence bands
+
+paper/CALIBRATION-TARGETS.md §5 flags the fairness model's two literature-
+sourced parameters as the single most attackable consumer-model choice:
+`loss_aversion` (λ, `vend/regulars.py`'s `LOSS_AVERSION=2.0` — meta-analytic
+mean 1.955 [1.82, 2.10], price-specific λ=1.66, Hardie–Johnson–Fader 1993)
+and reference-price `carryover` (`1 - REF_ALPHA_PAID`, currently 0.80 —
+published band 0.47–0.65, Briesch et al. 1997 Table 6; HJF temporal 0.847).
+Both are now `WorldConfig` fields (`loss_aversion`, `ref_alpha_paid`),
+threaded through `RegularPool` to every spawned `Regular` (including
+exogenous-replenishment joins), so the Fairness v2 experiment
+(`WorldConfig(regulars=120, anchor_peak=True, anchor_mult=1.25)`, 90 days,
+seed 2) is now sweepable without touching the module defaults committed
+artifacts rely on.
+
+Swept λ ∈ {1.66, 1.95, 2.00} × carryover ∈ {0.50, 0.65, 0.80, 0.85} — the
+2.0/0.80 cell is the current default, included as the reference point, not
+a new number:
+
+| harvest $/day (a2a ×1.25 late profit − static-mixture "old world" late profit) | range across all 12 cells |
+|---|---|
+| **min** | $40.61 (λ=1.66, carryover=0.85) |
+| **max** | $41.67 (λ=2.00, carryover=0.50) |
+| current default (λ=2.0, carryover=0.80) | $41.38 |
+
+**Harvestability holds across the full pre-registered evidence band — no
+corner kills it.** The spread is $1.06/day, ≈2.6% relative, across every
+combination of the published λ and carryover ranges: the safe-harvest
+result is not sensitive to either parameter within the literature's own
+uncertainty. Pool retention likewise stays in a narrow band across the
+grid: 102–116 of 120 regulars active at day 90 (85–97%), churn 67–86 events
+over 90 days, regardless of the exact λ/carryover point.
+
+**Honest flag, unrelated to this sweep:** the grid's own λ=2.0/carryover=0.80
+cell ($41.38/day harvest, 108/120 active, churn 75, reg_deals 1307) does
+NOT reproduce the numbers this file's "Fairness v2" section headlined
+above ($33/day harvest, 120/120 — "full" retention, reg_deals 1852).
+Confirmed via `git stash` A/B on the identical config/seed that this is
+pre-existing drift in the current HEAD codebase, present with or without
+any change made for this task — something else changed the regulars
+mechanism's behavior between when that section was written and now. Not
+investigated or fixed here (out of scope for priority #3); flagged so the
+sweep's baseline is read against CURRENT code, not that section's snapshot.
+Reproduce: `vend/tests/test_vend.py`'s fairness-knob tests pin the plumbing;
+the sweep itself is a direct script over `WorldConfig(regulars=120,
+anchor_peak=True, anchor_mult=1.25, loss_aversion=λ, ref_alpha_paid=1-carryover)`.

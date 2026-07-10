@@ -27,6 +27,23 @@ class WorldConfig:
     """P1.5 realism knobs. Everything defaults OFF so the P0/P1 committed
     artifacts stay exactly reproducible; the experiment grid turns them on."""
     sigma_cal: float = 0.0     # operator's WTP-estimate noise (sets the sticker)
+    traffic_scale: float = 1.0  # calibrated-traffic knob (2026-07, SOTI 2025 +
+                                # Cantaloupe 2025): thins the Poisson ARRIVAL
+                                # stream. Implemented as an arrival scale, which
+                                # is mathematically identical to a price-
+                                # independent conversion gate (most passers-by
+                                # never engage the machine) — that gate is where
+                                # the sim's ~100%-conversion violation lived.
+                                # 1.0 = the original hot profile (~74 vends/day),
+                                # defensible only as a top-decile "Smart Store"
+                                # fresh-food machine — labeled smart-store P90
+                                # in results docs. CALIBRATED_TRAFFIC_SCALE
+                                # lands the STATIC arm at the US-average
+                                # 7–8 vends/day. Par stocks scale with velocity
+                                # (see build_catalog) — a competent operator
+                                # sizes stock to realized traffic; frozen pars
+                                # at 0.1× traffic would drown the experiment in
+                                # perishable spoilage no real operator accepts.
     sigma_rate: float = 0.0    # day-level arrival-rate shock (lognormal)
     sigma_wtp: float = 0.0     # day-level WTP shock (lognormal)
     dow: bool = False          # office-tower day-of-week pattern, one sticker all week
@@ -48,9 +65,38 @@ class WorldConfig:
                                  # first-timers (transients); decays 0.85^n
                                  # with habituation for regulars. A quote
                                  # must beat alternatives by MORE than this.
+    # Priority #3 sweep knobs (paper/CALIBRATION-TARGETS.md §5; only used
+    # when regulars > 0). Literal defaults duplicate vend.regulars.
+    # LOSS_AVERSION / REF_ALPHA_PAID (regulars.py can't import world.py's
+    # WorldConfig back — the import runs the other way — so this is the one
+    # place the two constants must be kept in sync; guarded by a test).
+    loss_aversion: float = 2.0     # lambda: $ penalty per $ paid above
+                                   # reference (meta-analytic mean 1.955
+                                   # [1.82,2.10], price-specific 1.66)
+    ref_alpha_paid: float = 0.20   # 1 - carryover: EWMA weight a PAID price
+                                   # gets on the reference update (published
+                                   # carryover band 0.47-0.65; HJF 0.847)
 
 
 DEFAULT_CONFIG = WorldConfig()
+
+# The calibrated-traffic configuration (priority #1, paper/CALIBRATION-
+# TARGETS.md): empirically tuned (vend/run.py, grid-searched — see
+# vend/RESULTS.md) so the STATIC arm realizes 7.4-7.8 UNITS/day (the
+# industry's "vends" = individual dispense events, not transactions — a
+# qty>1 sale is one deal, multiple vends) on the standard catalog in the
+# realistic miscalibration cell (--sigma-cal 0.3 --sigma-rate 0.6
+# --sigma-wtp 0.3 --dow --glut 0.15, dow calendar ON — the weekly average
+# includes the dead office-tower weekend, as the US-average figure does),
+# across both committed seeds. Reality anchor: 7-8 vends/day, ~$15.8/day
+# average machine (SOTI 2025 + Cantaloupe Micropayment Trends 2025).
+CALIBRATED_TRAFFIC_SCALE = 0.14
+
+# Par cover (days of velocity) used when traffic_scale != 1: the original
+# pars are ~one-day cover at the hot profile; a slower machine carries a
+# couple of days of each SKU (nightly top-up keeps sellouts rare without
+# stranding perishables to spoil).
+PAR_COVER_DAYS = 2.0
 
 # Office tower: Mon..Sun. One sticker all week — as real machines have.
 DOW_RATE = [1.0, 1.0, 1.0, 1.0, 0.85, 0.15, 0.10]
@@ -210,6 +256,12 @@ def build_catalog(cfg: WorldConfig = DEFAULT_CONFIG,
     (level playing field: they adapt, they don't secretly know more)."""
     cat = {}
     for sku, mu, cost, salv, life, par in CATALOG_SPEC:
+        if cfg.traffic_scale != 1.0:
+            # velocity-sized pars: the spec pars are ~one-day cover at the
+            # hot profile; scale to PAR_COVER_DAYS of the machine's actual
+            # velocity (floor 1). Keeping hot-profile pars at 0.1× traffic
+            # would spoil ~85% of fresh stock — no operator does that.
+            par = max(1, math.ceil(par * cfg.traffic_scale * PAR_COVER_DAYS))
         if cfg.sigma_cal > 0:
             rng = np.random.default_rng(substream(master_seed, "cal", sku))
             mu_est = float(mu * rng.lognormal(0.0, cfg.sigma_cal))
@@ -275,4 +327,5 @@ def arrivals_at(master_seed: int, day: int, tick: int,
     """Poisson arrivals this tick — paired across arms by construction."""
     rng = np.random.default_rng(substream(master_seed, "arr", day, tick))
     ds = day_state(cfg, master_seed, day)
-    return int(rng.poisson(rate_at(tick) / 6.0 * ds.rate_mult * ds.dow_mult))
+    return int(rng.poisson(rate_at(tick) / 6.0 * ds.rate_mult * ds.dow_mult
+                           * cfg.traffic_scale))
