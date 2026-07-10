@@ -182,3 +182,7 @@ See `gametheory/evals/README.md` for the eval/tuning runbook.
   auction, Gallego-van Ryzin posted-price.
 
 Tier 4 (coalition games) deferred until a paying buyer asks for it.
+
+---
+
+mcp-name: io.github.ryuxik/snhp-negotiation
