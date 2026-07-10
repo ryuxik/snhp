@@ -54,9 +54,42 @@ P_HUFF = 0.58              # haggle friction: P(a countered browser walks out
 
 # ── economics of holding (why dead stock isn't free) ───────────────────────
 DAILY_DISCOUNT = 0.998     # per-day discount on future receipts (capital +
-                           # season staleness, ≈ 6%/month blended)
+                           # season staleness, ≈ 6%/month blended). NOTE: this
+                           # is the ACCOUNTING/legacy value; the engine's PV
+                           # SOLVE reads engine.SOLVE_DISCOUNT (v3 default =
+                           # this; v4 timeline-tuned = TIMELINE_DISCOUNT below).
 HOLDING_COST = 0.06        # $/item-day: rack space, steaming, dust — LES
-                           # square feet are the scarcest input
+                           # square feet are the scarcest input. This is the
+                           # REAL per-day charge run.py applies to EVERY arm's
+                           # actual inventory (unchanged in v4). The engine's PV
+                           # solve reads engine.SOLVE_HOLDING separately (v3
+                           # default = this; v4 = TIMELINE_HOLDING below).
+
+# ── v4 timeline-tuned discount SCHEDULE (CRITICAL-ANALYSIS §4, un-blocks the
+#    PROVISIONAL vintage claim). The v3 reversal (retag/1 significantly
+#    negative in every cell) was measured against a PV solve whose
+#    discount/holding were implicitly tuned for near-instant sales. The
+#    diagnosed fast-world artifact is the `_pv` closed form's UNBOUNDED-horizon
+#    holding term: it capitalizes the holding cost of a never-selling posterior
+#    tail at h·d/(1−d) ≈ 499·h ≈ $30/unit — a cost that only accrues if an item
+#    is literally held forever. Harmless when items sold in ≈0 days; at the
+#    realistic ~26–60-day life (median days-to-sale 26–33, ThredUp) it over-
+#    charges the TRUE expected holding (~$3/unit) by ~10×, so the solve reads a
+#    normal multi-week gap between browsers as overpricing and marks down.
+#    THE FIX IS ON THE HOLDING TERM, NOT THE DISCOUNT: the sweep (RESULTS.md v4)
+#    shows raising DAILY_DISCOUNT toward 1 (more "patience") BACKFIRES — it
+#    amplifies h·d/(1−d) and deepens the loss — so the discount is left at
+#    0.998 and the engine's held-forever holding belief is halved as a
+#    conservative partial correction for the unbounded-horizon over-count. The
+#    real accounting charge (HOLDING_COST) stays 0.06 — only the engine's PV
+#    BELIEF moves, so no arm is flattered by a cheaper world.
+TIMELINE_DISCOUNT = 0.998  # engine PV discount, UNCHANGED (raising it backfires)
+TIMELINE_HOLDING = 0.03    # engine PV holding belief, halved (v3 was 0.06)
+# The pre-registered sensitivity sweep the v4 verdict is read off of (never a
+# single cherry-picked point): the loss becomes a statistical null in every
+# cell around h≈0.045 and the under-tag class recovers monotonically to h=0,
+# but retag/1 never turns a significant WIN at any value.
+TIMELINE_HOLDING_SWEEP = (0.06, 0.045, 0.03, 0.02, 0.015, 0.0)
 
 # ── sticker/1, the cultural control ─────────────────────────────────────────
 MARKDOWN_AGE = 30          # the LES ritual: 30 days on the rack unsold →

@@ -3,13 +3,18 @@ cliff, markdown/1 only ever discounts, salvage accounting closes, and the
 strategic waiter responds to the right forces."""
 import pytest
 
+from collections import Counter
+
 from fashion.core import paired_ci, poisson_cdf, substream
-from fashion.policies import CliffPolicy, MarkdownPolicy
-from fashion.run import run_experiment, run_season
+import fashion.policies as policies
+from fashion.policies import (AppealLearner, CliffPolicy, MarkdownPolicy,
+                              OptMarkdownPolicy)
+from fashion.run import make_policy, run_experiment, run_season
 from fashion.world import (DEFAULT_CONFIG, SIZE_SHARE, SIZES, WEEKS,
                            FashionConfig, arrivals_at, build_catalog,
                            cliff_mult, planned_depth, planned_style_units,
-                           sample_return, sample_shopper, waiter_buys_now)
+                           return_lag_pmf, sample_return, sample_shopper,
+                           waiter_buys_now)
 
 
 @pytest.fixture(scope="module")
@@ -299,3 +304,117 @@ def test_paired_ci_plain_t():
     ci = paired_ci([1.0, 2.0, 3.0, 4.0], block=1)
     assert ci["mean"] == 2.5 and ci["n"] == 4
     assert ci["ci95"][0] < 2.5 < ci["ci95"][1]
+
+
+# ── v4 timeline-optimized markdown arm (CRITICAL-ANALYSIS §4, fashion) ─────
+
+def test_return_lag_pmf_matches_the_sampler():
+    """The engine's return-timing curve is DERIVED from the same days→weeks
+    mapping sample_return uses, so it can't drift: it sums to 1, lands on
+    {1,2,3}, and matches the empirical draw distribution."""
+    pmf = return_lag_pmf()
+    assert set(pmf) == {1, 2, 3}
+    assert sum(pmf.values()) == pytest.approx(1.0)
+    cfg = FashionConfig(return_rate=1.0)
+    c = Counter(sample_return(99, uid, cfg) for uid in range(40000))
+    tot = sum(c.values())
+    for wk, p in pmf.items():
+        assert c[wk] / tot == pytest.approx(p, abs=0.02)
+
+
+def test_optnl_reduces_to_markdown_at_r0(catalog, depth):
+    """The clean r=0 anchor: with returns off AND learning off, opt/1's
+    returns-aware machinery is inert and its solve is byte-identical to
+    markdown/1 — so the whole season (every metric) matches, and the r=0
+    opt−markdown gap can be attributed purely to the two upgrades."""
+    ms = 4242
+    md = run_season(MarkdownPolicy(), catalog, depth, ms,
+                    FashionConfig(0.15, 0.2, 0.15, 0.0))
+    opt = run_season(make_policy("optnl", catalog, FashionConfig(0.15, 0.2, 0.15, 0.0)),
+                     catalog, depth, ms, FashionConfig(0.15, 0.2, 0.15, 0.0))
+    assert opt["gross_margin"] == pytest.approx(md["gross_margin"], abs=0.01)
+    assert opt["units_sold"] == md["units_sold"]
+    assert opt["units_deep"] == md["units_deep"]
+
+
+def test_opt_experiment_is_deterministic():
+    r1 = run_experiment(["cliff", "markdown", "opt", "optnl"], seasons=2,
+                        seed=11, cfg=FashionConfig(0.15, 0.2, 0.15, 0.26))
+    r2 = run_experiment(["cliff", "markdown", "opt", "optnl"], seasons=2,
+                        seed=11, cfg=FashionConfig(0.15, 0.2, 0.15, 0.26))
+    assert r1 == r2
+
+
+def test_opt_never_above_msrp_and_monotone(catalog, depth):
+    """The timeline-optimized board obeys the same invariants as markdown/1:
+    prices stay in [salvage, MSRP] and never rise week-over-week, even under
+    the returns-aware forward-sim solve."""
+    pol = make_policy("opt", catalog, FashionConfig(0.15, 0.0, 0.15, 0.26))
+    inv = dict(depth)
+    prev = {}
+    for week in range(WEEKS):
+        board = pol.price_board(week, inv, catalog)
+        for cell, p in board.items():
+            listing = catalog[cell[0]]
+            assert listing.salvage - 1e-9 <= p <= listing.msrp + 1e-9
+            if cell in prev:
+                assert p <= prev[cell] + 1e-9
+            prev[cell] = p
+        for cell in inv:
+            inv[cell] = max(0, inv[cell] - max(1, depth[cell] // 4))
+
+
+def test_opt_discount_only_enforced_at_settlement(catalog, depth):
+    """End to end: opt/1 (returns-aware) never transacts above MSRP — the
+    runner's discount-only clamp holds for the new arm too."""
+    m = run_season(make_policy("opt", catalog, FashionConfig(0.15, 0.2, 0.15, 0.26)),
+                   catalog, depth, master_seed=3,
+                   cfg=FashionConfig(0.15, 0.2, 0.15, 0.26))
+    assert m["units_sold"] > 0        # it actually transacted
+
+
+def test_appeal_learner_holds_until_evidence_and_is_censoring_aware(catalog):
+    """The learner returns the buy-time estimate until LEARN_MIN_EXP evidence
+    accrues; a CENSORED (sold-out) week enters as a lower bound that can only
+    push the level UP, never down (dropping/face-valuing it would bias the
+    level down exactly where demand was strongest)."""
+    L = AppealLearner(catalog)
+    est = catalog["coat"].appeal_est
+    assert L.appeal("coat") == est                       # no evidence yet
+    # a sold-out week where the model predicted MORE than sold: censored, so it
+    # is capped at the units sold — it must NOT drag the level below the guess
+    L.accumulate("coat", obs_sales=3.0, exp_demand=9.0, censored=True)
+    L.accumulate("coat", obs_sales=3.0, exp_demand=9.0, censored=True)
+    L.accumulate("coat", obs_sales=3.0, exp_demand=9.0, censored=True)
+    assert L.appeal("coat") >= est - 1e-9                # only ever up, never down
+    # a clean run of under-predicted (obs > exp) demand raises the estimate
+    L2 = AppealLearner(catalog)
+    for _ in range(10):
+        L2.accumulate("coat", obs_sales=6.0, exp_demand=3.0, censored=False)
+    assert L2.appeal("coat") > est
+
+
+def test_returns_aware_solve_bounded_and_drift_sensitive(catalog):
+    """The returns-aware forward-sim solve stays in [salvage, MSRP] (whole
+    cents), and it genuinely USES the return-timing belief: changing the
+    anticipated markdown drift moves the posted price. That sensitivity is the
+    honest finding's flip side — the arm is FRAGILE to the drift belief (a
+    mis-set drift can even flip the sign of the price move), which is why the
+    verdict is reported with a drift sweep and never rests on one value."""
+    pol = OptMarkdownPolicy(return_rate=0.26)
+    pol.bind(catalog)
+    listing = catalog["coat"]
+    ah = listing.appeal_est
+    prices = {}
+    saved = policies.ANTICIPATED_DRIFT
+    try:
+        for drift in (1.0, 0.96, 0.85):
+            policies.ANTICIPATED_DRIFT = drift
+            p = pol._solve_returns_aware(listing, "M", week=2, stock=40,
+                                         appeal_hat=ah)
+            assert listing.salvage - 1e-9 <= p <= listing.msrp + 1e-9
+            assert round(p, 2) == p
+            prices[drift] = p
+    finally:
+        policies.ANTICIPATED_DRIFT = saved
+    assert len(set(prices.values())) > 1           # the drift belief matters

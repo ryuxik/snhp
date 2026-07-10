@@ -239,6 +239,23 @@ def arrivals_at(master_seed: int, week: int) -> int:
     return int(rng.poisson(arrival_rate(week)))
 
 
+def return_lag_pmf() -> dict[int, float]:
+    """The lag-in-WEEKS distribution a return follows, derived from the SAME
+    Uniform{7..21}-days → max(1, round(days/7)) mapping `sample_return` uses,
+    so it can never drift out of sync with the world's actual returns. This is
+    PUBLIC structural knowledge (a retailer knows its return-timing curve from
+    history, exactly as the arrival taper is known) — the timeline-optimized
+    markdown arm reads it to anticipate when sold units re-enter sellable
+    stock. Returns {week: probability} over {1, 2, 3}."""
+    lo, hi = RETURN_LAG_DAYS
+    days = range(lo, hi + 1)
+    pmf: dict[int, float] = {}
+    for d in days:
+        w = max(1, int(round(d / DAYS_PER_WEEK)))
+        pmf[w] = pmf.get(w, 0.0) + 1.0 / len(days)
+    return pmf
+
+
 def sample_return(master_seed: int, uid: int,
                   cfg: FashionConfig = DEFAULT_CONFIG) -> int | None:
     """Whether shopper `uid`'s purchase is returned, and if so the lag in

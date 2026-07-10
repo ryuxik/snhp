@@ -706,3 +706,174 @@ level here than it was designed against — it holds.
   key-for-key to v1/v2 (the world itself changed, not just the arms).
 * `paper/CALIBRATION-TARGETS.md` — untouched (source of the targets,
   not a target of this task).
+
+# v4 TIMELINE-TUNED (2026-07-10) — CRITICAL-ANALYSIS §4, un-blocks the PROVISIONAL
+
+*Everything above this line is the v1/v2/v3 record, preserved as-is
+(`vintage/results.json` = the frozen v3 grid; `vintage/results-v3.json` = a
+byte-identical backup). This section keeps the v3 WORLD (CONNECT_PROB,
+P_HUFF unchanged) and retunes ONLY the engine's PV-repricing discount SCHEDULE
+to be regime-consistent with the realistic (slow) hazard — a distinct axis from
+the price/quantity calibration v3 did, on the TIME axis. It answers the
+pre-registered blocker head-on: does a slow-aware retag RECOVER (tuning
+artifact) or still bleed (broadcast-vs-targeted asymmetry)?*
+Reproduce: `python3 -m vintage.run --grid --timeline-tuned --days 60 --reps 8
+--seed 20260710 --out vintage/results-v4.json` and
+`python3 -m vintage.run --holding-sweep --days 60 --reps 8 --seed 20260710
+--out vintage/results-v4-hsweep.json`.
+
+## What changed — and the correction to v3's diagnosis
+
+**The v3 analysis blamed `DAILY_DISCOUNT` ("more patience would recover
+retag"). A discount/holding SWEEP of the full arm table refutes that
+direction.** Two engine-belief knobs, cleanly separated from the real
+accounting charge (`engine.SOLVE_DISCOUNT`/`SOLVE_HOLDING`, new; run.py's
+`HOLDING_COST=0.06` charge on every arm's inventory is untouched, so no arm is
+flattered by a cheaper world):
+
+1. **`SOLVE_HOLDING`: 0.06 → 0.03** (the fix). The `_pv` closed form assumes
+   the chosen price is held FOREVER (the documented fixed-price-resolve
+   heuristic), so it capitalizes the holding cost of a never-selling posterior
+   tail at `h·d/(1−d) ≈ 499·h ≈ $30/unit`. That is a cost that only accrues if
+   an item is literally never sold and never disposed. Harmless when items sold
+   in ≈0 days (v1/v2); at the realistic ~26–60-day life it over-charges the
+   TRUE expected holding (~$3/unit) by ~10×, so the solve reads a normal
+   multi-week gap between browsers as *overpricing* and marks down. Halving the
+   engine's holding belief is a conservative partial correction for that
+   unbounded-horizon over-count. **This is the TIME-regime meta-pattern: the
+   term only mis-fires because the sale timescale changed ~53×, while the
+   holding belief didn't.**
+2. **`SOLVE_DISCOUNT`: 0.998 → 0.998 (UNCHANGED).** Raising the discount toward
+   1 ("more patience") *deepens* the loss, not heals it — because it inflates
+   the same `h·d/(1−d)` term (at d=0.9995, `1−d` falls 4×, so the never-selling
+   penalty quadruples). The sweep below and `test_v4_raising_discount_backfires`
+   both show it. v3's "DAILY_DISCOUNT alone is enough [to drive the grind]" is
+   true for the fair-item-grind diagnostic, but the ARM-TABLE lever is holding,
+   and patience backfires — recorded as a correction.
+
+Because the world and the accounting charge are unchanged, **sticker/1 and
+hazard/1's non-engine behavior and every arm's realized item/browser stream are
+byte-identical to v3**; only the engine arms' *pricing* moves. sticker/1's net
+margin is exactly v3's (6,845 at σ=0.3 / 4,509 at σ=0.6).
+
+## The v4 arm table: net margin Δ per 60-day store (arm − sticker/1), engine PV @ (d=0.998, h=0.03)
+
+8 reps, seed 20260710, block=1 paired t-CIs. **bold = CI excludes zero.**
+
+| cell (σ_tag / shading) | offer Δ | hazard Δ | retag Δ | retag+offer Δ |
+|---|---|---|---|---|
+| 0.3 / 0.75 | −206 [−435, +22] | −0 [−194, +194] | **−239** [−449, −28] | **−521** [−706, −336] |
+| 0.3 / 0.90 | **+1,301** [+975, +1,627] | −0 [−194, +194] | **−239** [−449, −28] | **+991** [+678, +1,305] |
+| 0.6 / 0.75 | +78 [−242, +397] | −41 [−233, +151] | −165 [−402, +71] | −169 [−396, +59] |
+| 0.6 / 0.90 | **+1,269** [+907, +1,632] | −41 [−233, +151] | −165 [−402, +71] | **+958** [+684, +1,231] |
+
+vs v3 (retag): σ=0.3 **−317→−239** (still a significant loss, upper bound −28),
+σ=0.6 **−268→−165** (now a NULL — CI includes zero, the loss is gone). The
+under-tag class Δ (the H-V1 recovery axis) moves **−208 → +15 (σ=0.3)** and
+**−402 → −54 (σ=0.6)**: the v3 under-tag *destruction* is essentially zeroed.
+
+## The sensitivity sweep the verdict is read off (no cherry-pick)
+
+retag/1 net Δ vs sticker/1, DAILY_DISCOUNT=0.998, engine holding belief swept
+(the v4 anchor h=0.03 is one column; **bold = significant loss**):
+
+| h (engine) | 0.3/0.75 | 0.3/0.90 | 0.6/0.75 | 0.6/0.90 | under-tag Δ (σ0.3 / σ0.6) |
+|---|---|---|---|---|---|
+| 0.06 (v3) | **−317** | **−317** | **−268** | **−268** | −208 / −402 |
+| 0.045 | −173 | −173 | −188 | −188 | −109 / −239 |
+| 0.03 (v4) | **−239** | **−239** | −165 | −165 | +15 / −54 |
+| 0.02 | **−273** | **−273** | −90 | −90 | +91 / +112 |
+| 0.015 | **−269** | **−269** | −62 | −62 | +141 / +187 |
+| 0.0 | **−247** | **−247** | +91 | +91 | +280 / +452 |
+
+Two robust reads and one fragile one:
+* **σ=0.6 (noisy tags): the loss is a tuning artifact.** retag/1 is a NULL at
+  every holding belief ≤ 0.045 (loss gone; point estimate crosses to +91 at
+  h=0), and the under-tag class recovers monotonically to significantly
+  positive. Where the owner's gut is noisy there are real under-tagged gems to
+  recover, and a less-impatient solve recovers them.
+* **σ=0.3 (accurate tags): the loss is largely tuning-ROBUST.** retag/1 is a
+  significant loss at the v4 anchor and at nearly every holding belief (only a
+  fragile null at h=0.045). With few mis-tagged gems to recover, retag's
+  bidirectional markups mostly *over-price correctly-tagged stock*, which sits
+  and bleeds — no holding belief fixes that.
+* **retag/1 never turns a significant WIN at any tuning, any cell.** The v2
+  headline ("recovers 98%/51%, dominates 3/4 cells") does not return either.
+
+## Verdict: PARTIAL recovery — half tuning artifact, half real asymmetry
+
+**The v3 claim "retag/1 significantly negative in EVERY cell" does NOT survive
+a defensible retune** — that magnitude was inflated by the fast-world
+unbounded-horizon holding over-charge. At the timeline-tuned schedule the loss
+becomes a statistical NULL in the σ=0.6 cells (robustly, across the sweep) and
+the under-tag class destruction the v3 section led with is zeroed. So the
+"broadcast markdown *fundamentally* bleeds" reading is retracted: a slow-aware
+retag is, in the high-tag-noise cells, a WASH against the sticker ritual, not a
+loss.
+
+**But the broadcast-vs-targeted asymmetry HARDENS where it can be isolated.**
+Three facts, all tuning-robust:
+1. retag/1 (broadcast) can at best be tuned to a wash; it **never wins** at any
+   holding belief, and in the low-tag-noise σ=0.3 cells it **stays a
+   significant loss** across essentially the whole sweep.
+2. offer/1 (targeted) carries the *same* retuned engine and is **never a
+   significant loss** in any v4 cell (worst: −206 [−435, +22], a null) and is a
+   large significant win at generous shading (+1,269 to +1,301). The retune
+   slightly *lowered* offer/1's wins vs v3 (its accept floor rose with the
+   waiting value) yet it still never bleeds — the private, per-counterparty
+   action absorbs the mis-calibration the broadcast one cannot.
+3. retag+offer/1 is significantly positive only where offer/1's shading upside
+   is large (the 0.90 cells, +958/+991); at 0.75 shading it is retag's drag
+   (σ=0.3 significantly negative −521; σ=0.6 a null −169).
+
+So the pre-registered question resolves **both ways, split by regime**: the
+*size* of the v3 reversal was a tuning artifact (holding, not discount), and
+retuning removes the loss and recovers the under-tag class in the noisy-tag
+cells; but the *direction* — broadcast can't be tuned to a win while targeted
+never loses — is real and tuning-robust. The whitepaper claim that survives:
+**at one-of-one, discount-only is a category error (retag/1 recovers real
+under-tag value where tags are noisy), but a broadcast re-tag's calibration
+errors are paid by every future browser, so the mechanism that ships is the
+per-counterparty offer — retag helps only as an offer-arm complement at
+generous shading, never as a standalone board.**
+
+## Honest qualifications (v4)
+
+1. **The anchor h=0.03 is conservative, not optimal-for-retag.** The
+   loss-is-a-null window for σ=0.3 is only around h=0.045; at the halving
+   anchor the σ=0.3 cells are still a (smaller) significant loss. Picking
+   h=0.045 would let us say "null in all four cells," but that hides the σ=0.3
+   fragility the sweep exposes — so the anchor is the round, defensible halving
+   and the sweep carries the nuance.
+2. **The retune is engine-wide, not retag-only.** offer/1, hazard/1 and the
+   offer half of retag+offer/1 all read the same `SOLVE_HOLDING`; the table
+   reflects the whole engine at (0.998, 0.03), not a retag-only knob. offer/1's
+   v3→v4 wins shrank a little as a result — flagged, and it still never loses.
+3. **The clean fix is structural, approximated by a constant.** The real
+   defect is the *unbounded* holding horizon in `_pv`; halving the constant
+   partly offsets it but a bounded-horizon `_pv` (cap the geometric sum at a
+   disposal horizon) would be the principled fix and is the natural follow-up.
+4. **hazard/1 stays ~null** (−0 / −41, CI includes zero) at the retune — the
+   computed discount-only markdown neither wins nor loses at the realistic
+   timeline once the holding over-charge is relaxed, consistent with the
+   discount-only-is-out-of-scope-for-one-of-one framing.
+
+## Files changed / test count (v4)
+
+* `vintage/calibration.py` — `DAILY_DISCOUNT`/`HOLDING_COST` re-annotated as
+  accounting/legacy; new `TIMELINE_DISCOUNT=0.998`, `TIMELINE_HOLDING=0.03`,
+  `TIMELINE_HOLDING_SWEEP` with the full rationale inline.
+* `vintage/engine.py` — `_pv` reads overridable module globals
+  `SOLVE_DISCOUNT`/`SOLVE_HOLDING` (default = the v3 values, so the v3 grid
+  reproduces byte-identically), decoupling the engine's PV belief from the real
+  accounting charge.
+* `vintage/run.py` — `set_solve_schedule`, `--timeline-tuned` /
+  `--solve-discount` / `--solve-holding` flags, `run_holding_sweep`
+  (`--holding-sweep`); the grid stamps its `solve_schedule` into the JSON.
+* `vintage/tests/test_vintage.py` — six v4 tests (schedule defaults are v3;
+  timeline constants; engine/accounting decoupling; lower-holding-marks-down-
+  less; raising-discount-backfires; grid records the schedule). **34 tests
+  total, all pass** (~13s).
+* `vintage/results-v4.json` (grid) + `vintage/results-v4-hsweep.json` (sweep) —
+  new v4 artifacts; `vintage/results.json` (v3) and `vintage/results-v3.json`
+  (backup) untouched.

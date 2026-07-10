@@ -45,6 +45,20 @@ _Z = np.linspace(-BELIEF_GRID_Z * BELIEF_SIGMA, BELIEF_GRID_Z * BELIEF_SIGMA,
 _PRIOR = np.exp(-0.5 * (_Z / BELIEF_SIGMA) ** 2)
 _PRIOR = _PRIOR / _PRIOR.sum()
 
+# The PV-repricing solve's discount SCHEDULE — the engine's model of the
+# future, distinct from the store's real per-day holding CHARGE
+# (run.py uses calibration.HOLDING_COST for that, applied to every arm's
+# actual inventory). These two roles were conflated at v3 (both read the
+# same DAILY_DISCOUNT/HOLDING_COST); v4 (CRITICAL-ANALYSIS §4, timeline-tuned
+# arm) separates them so the discount schedule can be made regime-consistent
+# with the realistic (slow) hazard WITHOUT touching the accounting charge —
+# lowering the real charge would spuriously flatter whichever arm holds the
+# most inventory (sticker/1) and confound the retag comparison. Module-level
+# so run.py/tests may rebind them per experiment (the v3 grid = the v3
+# defaults below, byte-identical; the v4 grid = calibration.TIMELINE_*).
+SOLVE_DISCOUNT = DAILY_DISCOUNT     # v3 default 0.998; v4 → TIMELINE_DISCOUNT
+SOLVE_HOLDING = HOLDING_COST        # v3 default 0.06;  v4 → TIMELINE_HOLDING
+
 
 def buffer(tag: float) -> float:
     """Don't-negotiate-for-pennies, scaled with the piece (vend's min_gain
@@ -54,10 +68,10 @@ def buffer(tag: float) -> float:
 
 def _pv(lam: np.ndarray | float, pay: float) -> np.ndarray | float:
     """Closed-form present value of holding one item: geometric sale time at
-    daily hazard lam, payment `pay` on sale, HOLDING_COST every unsold day,
-    DAILY_DISCOUNT on everything. Pure math:
+    daily hazard lam, payment `pay` on sale, SOLVE_HOLDING every unsold day,
+    SOLVE_DISCOUNT on everything. Pure math:
         V = [lam*d*pay − h*d*(1−lam)] / (1 − d*(1−lam))."""
-    d, h = DAILY_DISCOUNT, HOLDING_COST
+    d, h = SOLVE_DISCOUNT, SOLVE_HOLDING
     return (lam * d * pay - h * d * (1.0 - lam)) / (1.0 - d * (1.0 - lam))
 
 

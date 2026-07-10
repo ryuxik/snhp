@@ -217,6 +217,33 @@ to fashion (§5-adjacent): the markdown-beats-cliff result compares FIXED
 schedules, not an engine tuned to the true demand+return timeline — the
 stronger test is the timeline-optimized markdown, also owed.
 
+**RESOLVED (2026-07-10, v4 timeline-tuned): the challenge was HALF right —
+the MAGNITUDE was a tuning artifact, the DIRECTION hardens.** Decoupling the
+engine's PV-solve schedule from the accounting charge (so no arm is flattered
+by a cheaper world) and making it regime-consistent corrected v3's own
+diagnosis: raising DAILY_DISCOUNT ("more patience") BACKFIRES (it amplifies
+the unbounded-horizon holding term h·d/(1−d) ≈ 499·h → ~$30/never-selling
+unit); the right fix is the HOLDING belief (0.06→0.03), not the discount.
+Result: v3's "significantly negative in EVERY cell" does NOT survive — the
+σ_tag=0.6 cells become a robust null (−165 [−402,+71]) and the under-tag
+destruction zeroes (−208/−402 → +15/−54). BUT retag NEVER becomes a
+significant win at any tuning, and σ_tag=0.3 stays a significant loss. offer/1
+(targeted), carrying the SAME retuned engine, is never a significant loss
+(large wins at generous shading). **Shippable claim: a broadcast re-tag tunes
+to a wash at best and never wins; the per-counterparty offer never loses —
+retag is only an offer-arm complement, never a standalone board.** So the
+user was right that the −$268–654 magnitude was mis-tuning, and the
+broadcast-vs-targeted asymmetry is the durable finding, now earned rather than
+asserted. **Fashion RESOLVED too: the engine's best markdown arm IS the fixed
+markdown/1** — a learned-demand + returns-aware solve (opt/1) LOSES in 14/18
+cells (unbiased learner, but ~8% estimate noise on a single-buy 16-week season
+and margin is concave in the estimate), and the returns-timing-only arm
+(optnl/1) is a wash (markdown's early-shallow markdown already minimizes the
+overhold leak). markdown-beats-cliff survives all 27 cell×r combos,
+byte-identical to the record — it was NEVER a weak-fixed-ladder artifact. The
+lesson: on a thin-data single-buy season, a simple robust schedule beats a
+cleverer estimate-hungry one — a real boundary on "optimize everything."
+
 ## 5. Block fashion: full-season tie (−18.85) — METHODOLOGY ARTIFACT, two parts
 
 (a) The 30-day +$396/day was revenue timing (caught before publication;

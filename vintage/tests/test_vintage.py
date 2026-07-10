@@ -484,3 +484,108 @@ def test_v3_paired_ci_handles_empty_diffs():
     from vintage.core import paired_ci
     result = paired_ci([])
     assert result == {"mean": None, "ci95": None, "n": 0}
+
+
+# ── v4 timeline-tuned discount schedule (CRITICAL-ANALYSIS §4) ─────────────
+import vintage.engine as _engine
+from vintage.calibration import (DAILY_DISCOUNT, HOLDING_COST,
+                                 TIMELINE_DISCOUNT, TIMELINE_HOLDING,
+                                 TIMELINE_HOLDING_SWEEP)
+from vintage.run import set_solve_schedule
+
+
+@pytest.fixture
+def _restore_schedule():
+    """Save/restore the engine PV-solve schedule so a test that retunes it
+    can't leak into another (module-global by design)."""
+    d, h = _engine.SOLVE_DISCOUNT, _engine.SOLVE_HOLDING
+    yield
+    _engine.SOLVE_DISCOUNT, _engine.SOLVE_HOLDING = d, h
+
+
+def test_v4_solve_schedule_defaults_are_v3():
+    """The engine's PV schedule defaults to the v3 accounting values, so the
+    v3 grid reproduces BYTE-IDENTICALLY until a caller opts into v4."""
+    assert _engine.SOLVE_DISCOUNT == DAILY_DISCOUNT == 0.998
+    assert _engine.SOLVE_HOLDING == HOLDING_COST == 0.06
+
+
+def test_v4_timeline_constants_are_as_pre_registered():
+    """The retune is a HOLDING-belief cut, discount UNCHANGED (raising it
+    backfires — RESULTS.md v4); the sweep spans 0.06→0 for the sensitivity."""
+    assert TIMELINE_DISCOUNT == 0.998            # discount NOT raised
+    assert TIMELINE_HOLDING == 0.03              # holding belief halved
+    assert TIMELINE_HOLDING_SWEEP[0] == 0.06 and TIMELINE_HOLDING_SWEEP[-1] == 0.0
+
+
+def test_v4_set_schedule_decouples_engine_belief_from_accounting(
+        _restore_schedule):
+    """set_solve_schedule moves the ENGINE'S PV belief only; run.py's real
+    holding CHARGE (calibration.HOLDING_COST) is untouched, so no arm is
+    flattered by a cheaper world. The per-day holding charge stays 0.06 × the
+    inventory even when the engine believes 0.03."""
+    set_solve_schedule(TIMELINE_DISCOUNT, TIMELINE_HOLDING)
+    assert _engine.SOLVE_HOLDING == 0.03
+    import vintage.run as _run
+    assert _run.HOLDING_COST == 0.06             # accounting import unchanged
+    run = run_store(RetagPolicy(), VintageConfig(sigma_tag=0.6),
+                    master_seed=5, days=6, cache=PairDraws())
+    for d in run["per_day"]:
+        assert d["holding_cost"] == pytest.approx(0.06 * d["inventory_eod"], abs=0.02)
+
+
+def _slow_beliefs():
+    """A fresh belief with the connection rate PINNED at the realistic slow
+    hazard (~0.0015, the v3 converged rate) — the regime where the held-forever
+    holding term actually bites. At the untrained prior rate (0.05) items sell
+    fast and holding is negligible, so the retune has nothing to move."""
+    b = Beliefs()
+    b.admit(_item(uid=1, tag=100.0))
+    b._events, b._exposure = 0.0015 * 1e7, 1e7
+    return b
+
+
+def test_v4_lower_holding_belief_marks_down_less(_restore_schedule):
+    """The regime-consistency direction (slow hazard): the fast-world `_pv`
+    over-charges the never-selling tail at h·d/(1−d); halving the engine's
+    holding belief relaxes that, so the free retag solve posts a HIGHER price
+    on the same fresh item (less markdown pressure) — both on admission and
+    after a stale survival history."""
+    def fresh_and_stale():
+        b = _slow_beliefs()
+        fresh = solve_price_free(b, 1, 100.0)
+        for _ in range(28):
+            b.survival(1, fresh, 40)
+        stale = solve_price_free(b, 1, 100.0)
+        return fresh, stale
+    set_solve_schedule(0.998, 0.06)
+    f_hi, s_hi = fresh_and_stale()
+    set_solve_schedule(0.998, 0.03)
+    f_lo, s_lo = fresh_and_stale()
+    assert f_lo > f_hi                           # less markdown pressure
+    assert s_lo >= s_hi
+
+
+def test_v4_raising_discount_backfires(_restore_schedule):
+    """The counterintuitive mechanism behind the sweep: at the slow hazard,
+    raising the discount toward 1 ('more patience') does NOT lift the price —
+    it AMPLIFIES the unbounded-horizon holding term h·d/(1−d), so the free
+    solve marks a fresh item DOWN relative to the v3 discount. This is why the
+    v4 fix is on holding, not discount."""
+    set_solve_schedule(0.998, 0.06)
+    p_v3 = solve_price_free(_slow_beliefs(), 1, 100.0)
+    set_solve_schedule(0.9995, 0.06)
+    p_patient = solve_price_free(_slow_beliefs(), 1, 100.0)
+    assert p_patient < p_v3
+
+
+def test_v4_grid_records_solve_schedule(tmp_path, _restore_schedule):
+    """The v4 grid stamps the exact PV schedule it ran into results, so a
+    reader always knows which world/schedule a dollar figure is from."""
+    from vintage.run import run_grid
+    set_solve_schedule(TIMELINE_DISCOUNT, TIMELINE_HOLDING)
+    out = tmp_path / "v4.json"
+    run_grid(["sticker", "retag"], days=8, reps=2, seed=1, out=str(out))
+    import json
+    rec = json.load(open(out))["solve_schedule"]
+    assert rec == {"discount": 0.998, "holding": 0.03, "accounting_holding": 0.06}

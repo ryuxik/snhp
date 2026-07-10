@@ -31,9 +31,11 @@ import argparse
 import json
 import sys
 
+import vintage.engine as engine
 from vintage.calibration import (CLASS_EDGE, DTS_COHORT_MARGIN, GRID_SHADING,
                                  GRID_SIGMA_TAG, HOLDING_COST, P_HUFF,
-                                 TOLERANCE)
+                                 TIMELINE_DISCOUNT, TIMELINE_HOLDING,
+                                 TIMELINE_HOLDING_SWEEP, TOLERANCE)
 from vintage.core import paired_ci, substream
 from vintage.policies import ARMS
 from vintage.world import (Browser, Item, PairDraws, VintageConfig,
@@ -42,7 +44,20 @@ from vintage.world import (Browser, Item, PairDraws, VintageConfig,
 VINTAGE_VERSION = 3   # v3: recalibrated to CALIBRATION-TARGETS.md §2 evidence
                       # (time-on-shelf + eBay Best Offer mechanics); v2's
                       # post-reg fixes A/B (retag arms, learned shading) carry
-                      # forward unchanged
+                      # forward unchanged. v4 (--timeline-tuned) keeps this v3
+                      # WORLD and only retunes the engine's PV discount schedule
+                      # (engine.SOLVE_DISCOUNT/SOLVE_HOLDING) — see run_grid.
+
+
+def set_solve_schedule(discount: float | None, holding: float | None) -> None:
+    """Rebind the engine's PV-solve discount schedule (the v4 timeline-tuned
+    knobs) WITHOUT touching the real accounting HOLDING_COST. None keeps the
+    current value. Global-state by design: one experiment process, one
+    schedule; tests set/reset it explicitly."""
+    if discount is not None:
+        engine.SOLVE_DISCOUNT = discount
+    if holding is not None:
+        engine.SOLVE_HOLDING = holding
 
 _COUNT_KEYS = ("sourced_units", "units_sold", "browsers", "connections",
                "sales_ask", "sales_offer", "sales_counter", "offers_made",
@@ -482,7 +497,48 @@ def run_grid(arm_names: list[str], days: int, reps: int, seed: int,
     with open(out, "w") as f:
         json.dump({"vintage_version": VINTAGE_VERSION, "days": days,
                    "reps": reps, "seed": seed, "arms": arm_names,
+                   "solve_schedule": {"discount": engine.SOLVE_DISCOUNT,
+                                      "holding": engine.SOLVE_HOLDING,
+                                      "accounting_holding": HOLDING_COST},
                    "cells": cells}, f, indent=1)
+    print(f"wrote {out}")
+    return 0
+
+
+def run_holding_sweep(days: int, reps: int, seed: int, out: str) -> int:
+    """v4 sensitivity (CRITICAL-ANALYSIS §4): sweep the engine's held-forever
+    holding BELIEF (engine.SOLVE_HOLDING) at DAILY_DISCOUNT=0.998 over
+    TIMELINE_HOLDING_SWEEP, at every grid cell, reporting retag/1 and
+    retag+offer/1 net-margin Δ vs sticker/1 and the under-tag class Δ. The v4
+    verdict is read off THIS surface, not one point — no cherry-pick."""
+    arm_names = ["sticker", "retag", "retag+offer"]
+    cells = {}
+    for st in GRID_SIGMA_TAG:
+        for sh in GRID_SHADING:
+            name = f"tag{st:g}_shade{sh:g}"
+            by_h = {}
+            for h in TIMELINE_HOLDING_SWEEP:
+                set_solve_schedule(0.998, h)
+                res = run_experiment(arm_names, days, reps, seed,
+                                     VintageConfig(sigma_tag=st, shading=sh))
+                by_h[f"{h:g}"] = {
+                    "retag_vs_sticker":
+                        res["paired"]["retag_vs_sticker"]["net_margin"],
+                    "retag+offer_vs_sticker":
+                        res["paired"]["retag+offer_vs_sticker"]["net_margin"],
+                    "retag_under_class_delta":
+                        res["decomp"]["retag_vs_sticker"]["d_margin_under"]}
+            cells[name] = {"world": {"sigma_tag": st, "shading": sh},
+                           "by_holding": by_h}
+            r = cells[name]["by_holding"]
+            print(f"{name:<18} retag Δ @h: " + "  ".join(
+                f"{h:g}={r[f'{h:g}']['retag_vs_sticker']['mean']:>7.1f}"
+                for h in TIMELINE_HOLDING_SWEEP))
+    with open(out, "w") as f:
+        json.dump({"vintage_version": VINTAGE_VERSION, "days": days,
+                   "reps": reps, "seed": seed, "discount": 0.998,
+                   "holding_sweep": list(TIMELINE_HOLDING_SWEEP),
+                   "arms": arm_names, "cells": cells}, f, indent=1)
     print(f"wrote {out}")
     return 0
 
@@ -498,7 +554,26 @@ def main(argv=None) -> int:
     ap.add_argument("--out", default=None)
     ap.add_argument("--grid", action="store_true",
                     help="run the pre-registered sigma_tag x shading grid")
+    ap.add_argument("--timeline-tuned", action="store_true",
+                    help="v4: retune the engine PV solve to the realistic "
+                         "hazard (SOLVE_DISCOUNT/HOLDING = TIMELINE_*)")
+    ap.add_argument("--solve-discount", type=float, default=None,
+                    help="override the engine PV discount (else v3/v4 default)")
+    ap.add_argument("--solve-holding", type=float, default=None,
+                    help="override the engine PV holding belief")
+    ap.add_argument("--holding-sweep", action="store_true",
+                    help="v4 sensitivity: sweep the engine holding belief")
     args = ap.parse_args(argv)
+
+    # v4 engine PV-solve schedule (world stays v3). --timeline-tuned applies the
+    # calibrated TIMELINE_* pair; explicit --solve-* overrides win over it.
+    if args.timeline_tuned:
+        set_solve_schedule(TIMELINE_DISCOUNT, TIMELINE_HOLDING)
+    set_solve_schedule(args.solve_discount, args.solve_holding)
+
+    if args.holding_sweep:
+        return run_holding_sweep(args.days, args.reps, args.seed,
+                                 args.out or "vintage/results-v4-hsweep.json")
 
     arm_names = [a.strip() for a in args.arms.split(",") if a.strip()]
     unknown = [a for a in arm_names if a not in ARMS]

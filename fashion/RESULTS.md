@@ -306,3 +306,144 @@ un-modeled mechanism.
   independently on the buying shopper's uid), bounded by the ~16-week
   season and 1–3-week lag — the model doesn't cap this explicitly, it
   just runs out of season.
+
+# v4 TIMELINE-OPTIMIZED MARKDOWN (2026-07-10) — CRITICAL-ANALYSIS §4
+
+*Everything above is the P0 / returns record, preserved
+(`fashion/results.json` = the returns sweep). The markdown-beats-cliff result
+so far compares FIXED schedules — the engine solve vs a −70% cliff. The
+referee item: give the engine a markdown OPTIMIZED against its own LEARNED
+demand curve + RETURN timeline, then re-ask both questions at the returns grid
+r ∈ {0, 0.17, 0.26}. Reproduce:*
+`python3 -m fashion.run --timeline-sweep --seasons 40 --seed 20260710 --out fashion/results-v4.json`.
+
+**Two new arms** (`fashion/policies.py`):
+* **opt/1** — timeline-optimized. Two upgrades over markdown/1, both on the
+  TIME axis: (1) a LEARNED appeal level (cumulative, censoring-aware
+  sell-through, `AppealLearner`) replacing the frozen buy-time estimate; (2) a
+  RETURN-aware solve that forward-simulates the season under an anticipated
+  declining path, with returned units re-entering sellable stock at the
+  published lag (`world.return_lag_pmf`, derived from the same days→weeks map
+  the sampler uses) and reselling at the lower price they will actually fetch —
+  pricing the refund-vs-resale gap markdown/1 is blind to.
+* **optnl/1** — the ablation: the returns-aware solve on the STATIC estimate
+  (learning OFF). Isolates the RETURN-timing half from the LEARNING half. At
+  r=0 both arms' returns machinery is inert, so **optnl/1 is byte-identical to
+  markdown/1 at r=0** (verified: control-cell GM 11,887 = 11,887) and opt/1 is
+  exactly markdown/1 + learning — a clean decomposition.
+
+Return rate + lag curve are given as PUBLIC structural knowledge (a retailer
+knows both from history, like the arrival taper); only the appeal LEVEL is
+learned. All four arms (cliff, markdown, opt, optnl) share paired seeds per
+season; every Δ carries a paired t-CI; **no win claim where a CI includes
+zero.** `ANTICIPATED_DRIFT=0.96`, `LEARN_GAIN=0.7`.
+
+## Q1 — does the engine-optimized schedule beat the fixed ladder (markdown/1)? NO.
+
+Gross-margin Δ vs markdown/1 per season (**bold = CI excludes zero**; + = beats
+the ladder), 40 seasons:
+
+| cell (σ_buy/σ_cal/wait) | optnl−md r=0 | optnl−md r=.17 | optnl−md r=.26 | opt−md r=0 | opt−md r=.26 |
+|---|---:|---:|---:|---:|---:|
+| control (0/0/0) | 0 | +10 [−121,+141] | −34 [−155,+88] | **−1,689** | **−779** |
+| 0.15/0.0/0.15 | 0 | +29 [−115,+173] | −51 [−159,+57] | **−1,993** | **−748** |
+| 0.15/0.0/0.45 | 0 | **+93** [+1,+185] | +38 [−53,+129] | **−2,709** | **−1,161** |
+| 0.15/0.2/0.15 | 0 | −152 [−401,+97] | **−227** [−421,−33] | **−1,421** | −172 [null] |
+| 0.15/0.2/0.45 | 0 | −18 [−202,+167] | −72 [−214,+71] | **−1,925** | **−397** |
+| 0.35/0.0/0.15 | 0 | +96 [−45,+236] | −57 [−165,+51] | **−1,953** | **−719** |
+| 0.35/0.0/0.45 | 0 | +103 [−5,+211] | +28 [−51,+107] | **−2,616** | **−1,184** |
+| 0.35/0.2/0.15 | 0 | −176 [−409,+57] | −172 [−354,+9] | **−1,539** | −166 [null] |
+| 0.35/0.2/0.45 | 0 | +7 [−155,+170] | −21 [−147,+106] | **−1,912** | −286 [null] |
+
+**The RETURN-timing half is a WASH (optnl/1).** Exactly ties markdown/1 at r=0;
+at r>0 the Δ vs the ladder is a statistical NULL in 16 of 18 (cell × r>0)
+combinations — one marginal + (+93 [1,185]) and one − (−227 [−421,−33]), no
+consistent sign. And it is **FRAGILE to the drift belief**: a drift sensitivity
+sweep (`ANTICIPATED_DRIFT ∈ {1.0, 0.98, 0.96, 0.92}`, 20 seasons) shows its
+best case is a *tie* at ≈0.98 (Δ null), while a mis-set drift loses
+significantly (drift 1.0: −575 to −755; drift 0.92: −700 to −829 — both
+CI-clear-of-zero negative). **The economic reason it can't win: markdown/1's
+early-shallow markdown ALREADY minimizes the returns leak** — the same
+mechanism the returns section above diagnosed (returns hurt whoever OVERHOLDS
+full price; markdown/1 doesn't). There is no refund-vs-resale gap left for an
+explicit returns model to capture, so pricing it more elaborately only adds a
+fragile drift knob.
+
+**The LEARNED-demand half actively HURTS (opt/1).** opt−markdown is a
+significant LOSS in 14 of 18 cells (all r=0, most r>0), never a win; the four
+nulls are the high-σ_cal cells at r>0 where the level correction partly offsets
+its cost. Isolated at r=0 it is −1,421 to −2,709/season. **Root cause (not a
+bug — the learner is unbiased):** across 40 seasons at σ_cal=0 the learned
+appeal/true ratio averages 0.97–1.02 per style (sd ≈ 0.08). The damage is that
+a single-buy 16-week season yields only ~8% appeal-estimate NOISE, and season
+margin is CONCAVE in the estimate — over-estimate → overhold → salvage;
+under-estimate → over-discount — so symmetric noise costs margin either way.
+The fixed buy-time estimate wins precisely because it injects none. Even at
+σ_cal=0.2, where the level correction should pay most, opt/1 at best reaches a
+null vs markdown/1 (never a win): the correction and the noise roughly cancel.
+(A second, smaller confound: the sell-through signal also conflates
+strategic-waiter withholding with low appeal — but the control cell, zero
+waiters, still shows the loss, so concavity-on-noise is the primary driver.)
+
+## Q2 — does markdown-beats-cliff survive with the engine's BEST markdown arm? YES.
+
+Because **the engine's best markdown arm IS markdown/1** (neither upgrade beats
+it), and markdown/1 beats cliff **significantly in all 27 (cell × r)
+combinations**, the headline survives untouched — the control-cell edge is
+byte-identical to the existing returns table (r=0: +1,666 [1,382, 1,950], 16%;
+r=0.17: +3,211 [2,969, 3,454], 43%; r=0.26: +3,664 [3,400, 3,929], 61%), and it
+still GROWS with r. The result was never an artifact of comparing to a weak
+fixed ladder: **the fixed engine solve already IS the timeline-optimal answer
+on this axis.** Even the two handicapped arms clear cliff — optnl/1 beats cliff
+in all 27 combos (it ≈ markdown/1); opt/1, dragged by the learning cost, beats
+cliff at every r>0 and merely TIES cliff in several cells at r=0 (the learning
+loss ≈ the pure calendar-inefficiency edge markdown wins by).
+
+## Verdict
+
+**Neither ingredient of a "timeline-optimized" markdown beats the fixed
+ladder.** Explicit return-timing modeling is a wash (markdown/1 is already
+returns-robust by marking down early, so no leak remains to price) and is
+fragile to the drift belief; in-season demand learning actively hurts (thin
+single-season signal → ~8% estimate noise, and margin is concave in the
+estimate). **markdown-beats-cliff SURVIVES decisively** — the engine's best
+markdown arm is markdown/1 itself, and it beats cliff in every cell at every
+return rate, edge growing with r. This WEAKENS any "a smarter engine does even
+better" hope and STRENGTHENS the core reading: markdown/1's early-shallow
+markdown is already near the time-axis optimum; the win over the cliff comes
+from getting the TIMING right, which the fixed solve already does, not from
+out-learning or out-modeling returns.
+
+## Honest qualifications (v4)
+
+1. **The clean r=0 anchor is real:** optnl/1 = markdown/1 byte-for-byte at r=0,
+   so the decomposition (learning vs return-timing) is exact, not approximate.
+2. **The returns solve's drift is an anticipation, not knowledge**, and the
+   verdict is read off the whole {1.0, 0.98, 0.96, 0.92} sweep, never one
+   value — its best case is a tie, so no defensible drift rescues it.
+3. **The learner is genuinely unbiased** (verified over 40 seasons); this is
+   NOT a fixable estimator bug — it is the fundamental cost of estimating a
+   level from a thin single-season signal when margin is concave in that level.
+   A multi-season learner (appeal carried across seasons, out of P0 scope)
+   would have the sample size the single season lacks and is the natural place
+   the learned-demand idea could actually pay.
+4. **The return rate/lag are handed to the engine as public knowledge.** If it
+   had to LEARN them too (few returns early-season), the returns-aware arm
+   would be weaker still — so the wash verdict is, if anything, generous to it.
+
+## Files changed / test count (v4)
+
+* `fashion/world.py` — `return_lag_pmf()` (public lag-week curve, derived from
+  `sample_return`'s mapping so it can't drift).
+* `fashion/policies.py` — `AppealLearner` (cumulative, censoring-aware),
+  `OptMarkdownPolicy` (opt/1 + the `learn=False` optnl ablation),
+  `ANTICIPATED_DRIFT`, `LEARN_*` knobs with the fragility flagged inline.
+* `fashion/run.py` — `opt`/`optnl` arms, `make_policy` (hands the opt arm the
+  catalog + return rate), a weekly `observe_week` learner hook (duck-typed, so
+  cliff/markdown are untouched), `run_timeline_sweep` (`--timeline-sweep`).
+* `fashion/tests/test_fashion.py` — seven v4 tests (lag pmf matches the
+  sampler; optnl=markdown at r=0; determinism; opt bounds + monotone;
+  discount-only; learner holds-until-evidence + censoring-upward-only + recovers
+  an underestimate; returns-aware solve bounded + drift-sensitive). **29 tests
+  total, all pass** (~2.5s).
+* `fashion/results-v4.json` — the new sweep; `fashion/results.json` untouched.

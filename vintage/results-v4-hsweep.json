@@ -1,0 +1,750 @@
+{
+ "vintage_version": 3,
+ "days": 60,
+ "reps": 8,
+ "seed": 20260710,
+ "discount": 0.998,
+ "holding_sweep": [
+  0.06,
+  0.045,
+  0.03,
+  0.02,
+  0.015,
+  0.0
+ ],
+ "arms": [
+  "sticker",
+  "retag",
+  "retag+offer"
+ ],
+ "cells": {
+  "tag0.3_shade0.75": {
+   "world": {
+    "sigma_tag": 0.3,
+    "shading": 0.75
+   },
+   "by_holding": {
+    "0.06": {
+     "retag_vs_sticker": {
+      "mean": -317.37,
+      "ci95": [
+       -583.97,
+       -50.76
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": -653.56,
+      "ci95": [
+       -835.84,
+       -471.28
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": -207.6,
+      "ci95": [
+       -249.74,
+       -165.45
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0.045": {
+     "retag_vs_sticker": {
+      "mean": -172.99,
+      "ci95": [
+       -399.67,
+       53.69
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": -548.42,
+      "ci95": [
+       -782.95,
+       -313.9
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": -108.47,
+      "ci95": [
+       -172.18,
+       -44.76
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0.03": {
+     "retag_vs_sticker": {
+      "mean": -238.86,
+      "ci95": [
+       -449.34,
+       -28.37
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": -520.88,
+      "ci95": [
+       -705.99,
+       -335.78
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": 15.38,
+      "ci95": [
+       -66.53,
+       97.29
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0.02": {
+     "retag_vs_sticker": {
+      "mean": -273.29,
+      "ci95": [
+       -473.84,
+       -72.74
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": -497.85,
+      "ci95": [
+       -704.71,
+       -290.98
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": 90.47,
+      "ci95": [
+       -5.08,
+       186.03
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0.015": {
+     "retag_vs_sticker": {
+      "mean": -269.05,
+      "ci95": [
+       -464.28,
+       -73.81
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": -522.15,
+      "ci95": [
+       -728.33,
+       -315.96
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": 140.61,
+      "ci95": [
+       37.97,
+       243.26
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0": {
+     "retag_vs_sticker": {
+      "mean": -247.24,
+      "ci95": [
+       -440.19,
+       -54.3
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": -477.79,
+      "ci95": [
+       -706.89,
+       -248.68
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": 279.94,
+      "ci95": [
+       177.83,
+       382.06
+      ],
+      "n": 8,
+      "block": 1
+     }
+    }
+   }
+  },
+  "tag0.3_shade0.9": {
+   "world": {
+    "sigma_tag": 0.3,
+    "shading": 0.9
+   },
+   "by_holding": {
+    "0.06": {
+     "retag_vs_sticker": {
+      "mean": -317.37,
+      "ci95": [
+       -583.97,
+       -50.76
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": 725.29,
+      "ci95": [
+       438.2,
+       1012.37
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": -207.6,
+      "ci95": [
+       -249.74,
+       -165.45
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0.045": {
+     "retag_vs_sticker": {
+      "mean": -172.99,
+      "ci95": [
+       -399.67,
+       53.69
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": 826.42,
+      "ci95": [
+       552.82,
+       1100.02
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": -108.47,
+      "ci95": [
+       -172.18,
+       -44.76
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0.03": {
+     "retag_vs_sticker": {
+      "mean": -238.86,
+      "ci95": [
+       -449.34,
+       -28.37
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": 991.5,
+      "ci95": [
+       677.76,
+       1305.25
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": 15.38,
+      "ci95": [
+       -66.53,
+       97.29
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0.02": {
+     "retag_vs_sticker": {
+      "mean": -273.29,
+      "ci95": [
+       -473.84,
+       -72.74
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": 1018.86,
+      "ci95": [
+       733.3,
+       1304.43
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": 90.47,
+      "ci95": [
+       -5.08,
+       186.03
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0.015": {
+     "retag_vs_sticker": {
+      "mean": -269.05,
+      "ci95": [
+       -464.28,
+       -73.81
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": 1082.14,
+      "ci95": [
+       778.79,
+       1385.5
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": 140.61,
+      "ci95": [
+       37.97,
+       243.26
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0": {
+     "retag_vs_sticker": {
+      "mean": -247.24,
+      "ci95": [
+       -440.19,
+       -54.3
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": 1257.13,
+      "ci95": [
+       991.21,
+       1523.04
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": 279.94,
+      "ci95": [
+       177.83,
+       382.06
+      ],
+      "n": 8,
+      "block": 1
+     }
+    }
+   }
+  },
+  "tag0.6_shade0.75": {
+   "world": {
+    "sigma_tag": 0.6,
+    "shading": 0.75
+   },
+   "by_holding": {
+    "0.06": {
+     "retag_vs_sticker": {
+      "mean": -268.41,
+      "ci95": [
+       -477.14,
+       -59.68
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": -328.54,
+      "ci95": [
+       -660.7,
+       3.61
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": -402.41,
+      "ci95": [
+       -460.72,
+       -344.1
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0.045": {
+     "retag_vs_sticker": {
+      "mean": -187.59,
+      "ci95": [
+       -402.71,
+       27.54
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": -266.9,
+      "ci95": [
+       -577.79,
+       43.99
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": -238.91,
+      "ci95": [
+       -301.92,
+       -175.9
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0.03": {
+     "retag_vs_sticker": {
+      "mean": -165.43,
+      "ci95": [
+       -401.76,
+       70.89
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": -168.83,
+      "ci95": [
+       -396.53,
+       58.86
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": -54.04,
+      "ci95": [
+       -114.34,
+       6.26
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0.02": {
+     "retag_vs_sticker": {
+      "mean": -90.46,
+      "ci95": [
+       -343.45,
+       162.53
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": -128.81,
+      "ci95": [
+       -392.69,
+       135.07
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": 112.29,
+      "ci95": [
+       50.84,
+       173.74
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0.015": {
+     "retag_vs_sticker": {
+      "mean": -62.07,
+      "ci95": [
+       -306.7,
+       182.57
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": -77.17,
+      "ci95": [
+       -342.7,
+       188.35
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": 186.61,
+      "ci95": [
+       98.05,
+       275.16
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0": {
+     "retag_vs_sticker": {
+      "mean": 91.36,
+      "ci95": [
+       -163.48,
+       346.21
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": -11.68,
+      "ci95": [
+       -252.3,
+       228.94
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": 451.52,
+      "ci95": [
+       355.89,
+       547.16
+      ],
+      "n": 8,
+      "block": 1
+     }
+    }
+   }
+  },
+  "tag0.6_shade0.9": {
+   "world": {
+    "sigma_tag": 0.6,
+    "shading": 0.9
+   },
+   "by_holding": {
+    "0.06": {
+     "retag_vs_sticker": {
+      "mean": -268.41,
+      "ci95": [
+       -477.14,
+       -59.68
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": 762.26,
+      "ci95": [
+       431.01,
+       1093.51
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": -402.41,
+      "ci95": [
+       -460.72,
+       -344.1
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0.045": {
+     "retag_vs_sticker": {
+      "mean": -187.59,
+      "ci95": [
+       -402.71,
+       27.54
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": 883.42,
+      "ci95": [
+       545.65,
+       1221.18
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": -238.91,
+      "ci95": [
+       -301.92,
+       -175.9
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0.03": {
+     "retag_vs_sticker": {
+      "mean": -165.43,
+      "ci95": [
+       -401.76,
+       70.89
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": 957.89,
+      "ci95": [
+       684.3,
+       1231.47
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": -54.04,
+      "ci95": [
+       -114.34,
+       6.26
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0.02": {
+     "retag_vs_sticker": {
+      "mean": -90.46,
+      "ci95": [
+       -343.45,
+       162.53
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": 1019.62,
+      "ci95": [
+       788.75,
+       1250.5
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": 112.29,
+      "ci95": [
+       50.84,
+       173.74
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0.015": {
+     "retag_vs_sticker": {
+      "mean": -62.07,
+      "ci95": [
+       -306.7,
+       182.57
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": 1079.17,
+      "ci95": [
+       848.97,
+       1309.37
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": 186.61,
+      "ci95": [
+       98.05,
+       275.16
+      ],
+      "n": 8,
+      "block": 1
+     }
+    },
+    "0": {
+     "retag_vs_sticker": {
+      "mean": 91.36,
+      "ci95": [
+       -163.48,
+       346.21
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag+offer_vs_sticker": {
+      "mean": 1167.7,
+      "ci95": [
+       968.89,
+       1366.51
+      ],
+      "n": 8,
+      "block": 1
+     },
+     "retag_under_class_delta": {
+      "mean": 451.52,
+      "ci95": [
+       355.89,
+       547.16
+      ],
+      "n": 8,
+      "block": 1
+     }
+    }
+   }
+  }
+ }
+}

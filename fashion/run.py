@@ -18,7 +18,7 @@ import sys
 from collections import defaultdict
 
 from fashion.core import paired_ci, substream
-from fashion.policies import CliffPolicy, MarkdownPolicy
+from fashion.policies import CliffPolicy, MarkdownPolicy, OptMarkdownPolicy
 from fashion.world import (DEFAULT_CONFIG, SIZES, WEEKS, FashionConfig,
                            arrivals_at, build_catalog, planned_depth,
                            sample_return, sample_shopper, waiter_buys_now)
@@ -28,7 +28,24 @@ FASHION_VERSION = 1
 ARMS = {
     "cliff": CliffPolicy,
     "markdown": MarkdownPolicy,
+    "opt": OptMarkdownPolicy,   # timeline-optimized (learned demand + returns)
+    # opt with the learned-demand half OFF: returns-timing solve on the static
+    # buy-time estimate — the ablation that isolates return-timing from learning
+    "optnl": lambda: OptMarkdownPolicy(learn=False),
 }
+
+
+def make_policy(name: str, catalog: dict, cfg: FashionConfig):
+    """Construct an arm for one season. opt/1 needs the catalog (for its
+    learner) and the return rate (public structural knowledge, like the
+    arrival taper) — handed in here, duck-typed so cliff/markdown are
+    untouched and ARMS[name]() still works everywhere else."""
+    pol = ARMS[name]()
+    if hasattr(pol, "return_rate"):
+        pol.return_rate = cfg.return_rate
+    if hasattr(pol, "bind"):
+        pol.bind(catalog)
+    return pol
 
 # Units by realized discount depth off MSRP. Buckets align with the cliff's
 # rungs so "units at each markdown depth" reads the same for both arms.
@@ -90,6 +107,9 @@ def run_season(policy, catalog, depth, master_seed: int,
             if p > catalog[st].msrp + 1e-9:
                 raise ValueError(f"discount-only violated: {st} at {p} "
                                  f"above MSRP {catalog[st].msrp}")
+        # start-of-week available stock (post-returns, pre-sales) — the clean
+        # supply the learner needs to tell demand from a stockout censor
+        start_stock = {cell: inv.get(cell, 0) for cell in depth}
         sold_this = {cell: 0 for cell in depth}
         n_new = arrivals_at(master_seed, week)
         newcomers = [sample_shopper(master_seed, week, k, catalog, cfg)
@@ -132,6 +152,8 @@ def run_season(policy, catalog, depth, master_seed: int,
             elif c.waiter and week < WEEKS - 1:
                 still_waiting.append(c)     # returns weekly until sold out
 
+        if hasattr(policy, "observe_week"):    # opt/1 learns from this week
+            policy.observe_week(week, board, sold_this, start_stock)
         waiting = still_waiting
         sold_prev = sold_this
         for style in catalog:
@@ -198,7 +220,8 @@ def run_experiment(arm_names: list[str], seasons: int, seed: int,
         depth = planned_depth(catalog, cfg, ms)
         for name in arm_names:
             per_season[name].append(
-                run_season(ARMS[name](), catalog, depth, ms, cfg))
+                run_season(make_policy(name, catalog, cfg), catalog, depth,
+                           ms, cfg))
 
     arms = {}
     for name in arm_names:
@@ -375,6 +398,68 @@ def run_returns_sweep(arm_names: list[str], seasons: int, seed: int,
     return 0
 
 
+def run_timeline_sweep(seasons: int, seed: int, out: str) -> int:
+    """v4 (CRITICAL-ANALYSIS §4, fashion): the markdown-beats-cliff result so
+    far compares FIXED schedules; this gives the engine a markdown OPTIMIZED
+    against its own learned demand + return timeline and asks two things across
+    the 9-cell grid × return rates {0, 0.17, 0.26}:
+
+      (1) TIMELINE-OPTIMIZED vs FIXED LADDER — does opt/1 (learned appeal +
+          returns-aware solve) beat markdown/1? optnl/1 (returns-aware solve on
+          the STATIC estimate) isolates the return-timing half from the
+          learning half; at r=0 both reduce to markdown/1 by construction.
+      (2) MARKDOWN-BEATS-CLIFF survival with the engine's BEST markdown arm.
+
+    Paired seeds across ALL four arms per season; every Δ gets a paired t-CI;
+    no win claim where a CI includes zero (rigor, binding)."""
+    arms = ["cliff", "markdown", "opt", "optnl"]
+    sweep = {}
+    for name, cfg0 in _grid_cells(0.0):
+        world = {"sigma_buy": cfg0.sigma_buy, "sigma_cal": cfg0.sigma_cal,
+                 "waiter_share": cfg0.waiter_share}
+        by_r = {}
+        for r in RETURN_GRID:
+            cfg = FashionConfig(cfg0.sigma_buy, cfg0.sigma_cal,
+                                cfg0.waiter_share, r)
+            res = run_experiment(arms, seasons, seed, cfg)
+            ps = res["_per_season"]
+
+            def dpc(a, b):     # paired margin-Δ CI of arm a minus arm b
+                return paired_ci([ps[a][s]["gross_margin"]
+                                  - ps[b][s]["gross_margin"]
+                                  for s in range(seasons)], nd=2)
+
+            by_r[f"{r:g}"] = {
+                "gm": {a: res["arms"][a]["per_season_means"]["gross_margin"]
+                       for a in arms},
+                "markdown_vs_cliff": dpc("markdown", "cliff"),
+                "opt_vs_markdown": dpc("opt", "markdown"),
+                "optnl_vs_markdown": dpc("optnl", "markdown"),
+                "opt_vs_cliff": dpc("opt", "cliff"),
+                "optnl_vs_cliff": dpc("optnl", "cliff"),
+            }
+        sweep[name] = {"world_base": world, "by_r": by_r}
+        c = sweep[name]["by_r"]
+        print(f"{name:<24} opt-md Δ r0/0.17/0.26: "
+              + " / ".join(f"{c[f'{r:g}']['opt_vs_markdown']['mean']:>7.0f}"
+                           for r in RETURN_GRID)
+              + " | optnl-md: "
+              + " / ".join(f"{c[f'{r:g}']['optnl_vs_markdown']['mean']:>7.0f}"
+                           for r in RETURN_GRID)
+              + " | md-cliff: "
+              + " / ".join(f"{c[f'{r:g}']['markdown_vs_cliff']['mean']:>7.0f}"
+                           for r in RETURN_GRID))
+    from fashion.policies import ANTICIPATED_DRIFT, LEARN_GAIN
+    with open(out, "w") as f:
+        json.dump({"fashion_version": FASHION_VERSION, "seasons": seasons,
+                   "seed": seed, "arms": arms,
+                   "return_grid": list(RETURN_GRID),
+                   "anticipated_drift": ANTICIPATED_DRIFT,
+                   "learn_gain": LEARN_GAIN, "cells": sweep}, f, indent=1)
+    print(f"wrote {out}")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--seasons", type=int, default=40)
@@ -389,7 +474,14 @@ def main(argv=None) -> int:
                     help="run the pre-registered buy×cal×waiter grid")
     ap.add_argument("--returns-grid", action="store_true",
                     help="run the 9-cell grid at each return rate (0/0.17/0.26)")
+    ap.add_argument("--timeline-sweep", action="store_true",
+                    help="v4: opt/optnl (timeline-optimized) vs markdown/cliff "
+                         "across the returns grid")
     args = ap.parse_args(argv)
+
+    if args.timeline_sweep:
+        return run_timeline_sweep(args.seasons, args.seed,
+                                  args.out or "fashion/results-v4.json")
 
     arm_names = [a.strip() for a in args.arms.split(",") if a.strip()]
     unknown = [a for a in arm_names if a not in ARMS]
