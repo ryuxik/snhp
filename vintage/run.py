@@ -11,6 +11,11 @@ in core.paired_ci).
 
   python3 -m vintage.run --grid --days 60 --reps 8 --seed 20260710 \
       --out vintage/results.json
+
+Post-registration (2026-07-10, CRITICAL-ANALYSIS §4): offer/1 fixed (learned
+shading/huff/fallback, decline action), retag/1 and retag+offer/1 added
+(bidirectional posted retagging). Same seeds; sticker/1 and hazard/1 rows
+reproduce the v1 results exactly.
 """
 from __future__ import annotations
 
@@ -26,12 +31,12 @@ from vintage.policies import ARMS
 from vintage.world import (Browser, Item, PairDraws, VintageConfig,
                            browsers_for_day, items_for_day)
 
-VINTAGE_VERSION = 1
+VINTAGE_VERSION = 2   # v2: post-reg fixes A (retag arms) + B (offer/1 fixed)
 
 _COUNT_KEYS = ("sourced_units", "units_sold", "browsers", "connections",
                "sales_ask", "sales_offer", "sales_counter", "offers_made",
-               "counters_made", "huffs", "counter_rejects", "fallback_sales",
-               "inventory_eod")
+               "counters_made", "declines", "huffs", "counter_rejects",
+               "fallback_sales", "inventory_eod")
 _CASH_KEYS = ("revenue", "cogs_sold", "sourced_cost", "holding_cost")
 
 
@@ -56,15 +61,21 @@ def visit_board(browser: Browser, inventory: dict[int, Item], policy,
 
 def visit_offer(browser: Browser, inventory: dict[int, Item], policy,
                 day: int, cache: PairDraws) -> tuple[int, tuple | None, dict]:
-    """offer/1: the browser targets the connecting item with the greatest
-    OPTIMISTIC surplus (wtp − expected pay, where expected pay = the shaded
-    offer capped at the ask) — the piece a haggler actually walks up with.
-    Offers land in whole dollars. If the target's game dies on a rejected
-    counter they fall back to their best sticker-beating alternative (never
-    worse UX than the sticker board, enforced not assumed); a huffed
-    browser leaves the store."""
+    """offer/1 (and retag+offer/1): the browser targets the connecting item
+    with the greatest OPTIMISTIC surplus (wtp − expected pay, where expected
+    pay = the shaded offer capped at the ask) — the piece a haggler actually
+    walks up with. Offers land in whole dollars; the ceiling is the CURRENT
+    tag (policy.price). If the target's game dies on a rejected counter OR a
+    DECLINE they fall back to their best sticker-beating alternative among
+    the OTHER pieces (never worse UX than the sticker board, enforced not
+    assumed — and a decline is not a free conversion at ask: the declined
+    browser never buys the target that visit). A huffed browser leaves the
+    store; the huff attaches to being COUNTERED — 'they came with a number'
+    — never to a numberless decline. The policy's learner observes every
+    counter outcome and every non-huff dead negotiation's continuation."""
     from vintage.engine import counter_response
-    flags = {"offer": 0, "counter": 0, "huff": 0, "reject": 0, "fallback": 0}
+    flags = {"offer": 0, "counter": 0, "decline": 0, "huff": 0, "reject": 0,
+             "fallback": 0}
     conn = []
     for uid, item in inventory.items():
         connect, wtp, huff_roll = cache.get(browser, item)
@@ -77,6 +88,28 @@ def visit_offer(browser: Browser, inventory: dict[int, Item], policy,
         _, item, wtp, _ = t
         return wtp - min(policy.price(item, day), browser.shading * wtp)
 
+    def shop_on(dead_uid):
+        """The dead-negotiation continuation: best sticker-beating
+        alternative among the OTHER connecting pieces. Feeds the learner's
+        F-hat with the realized margin over the fallback piece's own
+        waiting value (0 when they buy nothing) — censoring-aware: huffed
+        browsers never reach here, so F-hat is learned purely from
+        observed continuations."""
+        fallback = None
+        for uid2, item2, wtp2, _ in conn:
+            if uid2 == dead_uid:
+                continue
+            s = wtp2 - policy.price(item2, day)
+            if s > 0 and (fallback is None or s > fallback[0]):
+                fallback = (s, uid2, policy.price(item2, day), item2)
+        if fallback is None:
+            policy.observe_continuation(0.0)
+            return None
+        policy.observe_continuation(fallback[2]
+                                    - policy.wait_value(fallback[3]))
+        flags["fallback"] = 1
+        return (fallback[1], fallback[2], "ask")
+
     uid, item, wtp, huff_roll = max(conn, key=optimistic)
     ask = policy.price(item, day)
     offer = min(ask, max(1.0, float(int(browser.shading * wtp))))
@@ -86,24 +119,20 @@ def visit_offer(browser: Browser, inventory: dict[int, Item], policy,
     action, price = policy.decide(offer, item)
     if action == "accept":
         return len(conn), (uid, offer, "offer"), flags
+    if action == "decline":                # no number given, no huff risked
+        flags["decline"] = 1
+        return len(conn), shop_on(uid), flags
     flags["counter"] = 1
     if counter_response(wtp, price, huff_roll):
+        policy.observe_counter(offer, price, "accept")
         return len(conn), (uid, price, "counter"), flags
     if huff_roll < P_HUFF:                 # walked out on being countered
+        policy.observe_counter(offer, price, "huff")
         flags["huff"] = 1
         return len(conn), None, flags
+    policy.observe_counter(offer, price, "reject")
     flags["reject"] = 1                    # counter above their WTP: shop on
-    fallback = None
-    for uid2, item2, wtp2, _ in conn:
-        if uid2 == uid:
-            continue
-        s = wtp2 - policy.price(item2, day)
-        if s > 0 and (fallback is None or s > fallback[0]):
-            fallback = (s, uid2, policy.price(item2, day))
-    if fallback is not None:
-        flags["fallback"] = 1
-        return len(conn), (fallback[1], fallback[2], "ask"), flags
-    return len(conn), None, flags
+    return len(conn), shop_on(uid), flags
 
 
 # ── one store-life of one arm ───────────────────────────────────────────────
@@ -127,10 +156,11 @@ def run_store(policy, cfg: VintageConfig, master_seed: int, days: int,
         browsers = browsers_for_day(master_seed, day, cfg)
         m["browsers"] = len(browsers)
         for b in browsers:
-            if policy.policy_id == "offer/1":
+            if policy.uses_offers:
                 n_conn, sale, flags = visit_offer(b, inventory, policy, day, cache)
                 m["offers_made"] += flags["offer"]
                 m["counters_made"] += flags["counter"]
+                m["declines"] += flags["decline"]
                 m["huffs"] += flags["huff"]
                 m["counter_rejects"] += flags["reject"]
                 m["fallback_sales"] += flags["fallback"]
@@ -139,8 +169,12 @@ def run_store(policy, cfg: VintageConfig, master_seed: int, days: int,
             m["connections"] += n_conn
             if sale is not None:
                 uid, price, channel = sale
-                item = inventory.pop(uid)
-                policy.on_sale(uid, price, len(browsers), ask=item.tag)
+                item = inventory[uid]
+                # f-hat learns price/ask against the CURRENT tag (for the
+                # retag arms the posted price, not the owner's original)
+                ask_now = policy.price(item, day)
+                del inventory[uid]
+                policy.on_sale(uid, price, len(browsers), ask=ask_now)
                 ledger[uid].update(sold_day=day, price=price, channel=channel)
                 m["revenue"] += price
                 m["cogs_sold"] += item.cost
@@ -292,6 +326,19 @@ def run_experiment(arm_names: list[str], days: int, reps: int, seed: int,
         h2 = {"paired_both_sold_d_days": paired_ci(
             [x for x in h2_paired if x is not None])}
 
+    # post-reg: the under/fair/over margin decomposition vs the base arm,
+    # for EVERY treatment arm (FIX A's pre-registered report is retag/1's
+    # under-tag recovery; classes are identical across arms — paired items)
+    decomp = {}
+    for name in arm_names[1:]:
+        d_cls = {cls: [per_rep[name][r]["classes"][cls]["margin"]
+                       - per_rep[base][r]["classes"][cls]["margin"]
+                       for r in range(reps)] for cls in ("under", "fair", "over")}
+        decomp[f"{name}_vs_{base}"] = {
+            **{f"d_margin_{cls}": paired_ci(d_cls[cls]) for cls in d_cls},
+            "under_minus_over": paired_ci(
+                [d_cls["under"][r] - d_cls["over"][r] for r in range(reps)])}
+
     return {
         "vintage_version": VINTAGE_VERSION,
         "config": {
@@ -305,15 +352,29 @@ def run_experiment(arm_names: list[str], days: int, reps: int, seed: int,
                 "engine learns rho + per-item appeal posteriors from its OWN "
                 "sales history (censoring-aware); it never sees the true "
                 "connection rate, tag noise, or shading center",
-                "engine DOES know sigma_wtp, the huff friction level, and the "
-                "store's mean traffic (flagged, house precedent)",
-                "discount-only: no arm transacts above the tag",
+                "post-reg FIX B: the offer engine LEARNS the population "
+                "shading center, huff rate, and fallback value from its own "
+                "counter-round history (censoring-aware: huffs update only "
+                "the huff rate) and may DECLINE without countering; a "
+                "decline carries no huff (the huff attaches to being handed "
+                "a NUMBER) and never converts the target at ask",
+                "post-reg FIX A: retag/1 and retag+offer/1 may re-tag "
+                "POSTED prices UP as well as down (at admission, then at "
+                "most weekly per item), bounded by the item's own appeal "
+                "posterior; one-of-one goods have no reference price, so "
+                "discount-only is out of scope for them by design",
+                "engine DOES know sigma_wtp and the store's mean traffic "
+                "(flagged, house precedent); the huff level is now only a "
+                "weak prior at the true mean",
+                "discount-only holds in sticker/offer/hazard: they never "
+                "transact above the owner's tag; the retag arms never "
+                "transact above their CURRENT posted tag",
                 f"counter tolerance {TOLERANCE} (rational boundary); huff "
                 f"P={P_HUFF}",
                 "replicates are independent stores -> plain t CIs (block=1)",
             ],
         },
-        "arms": arms, "paired": paired, "h1": h1, "h2": h2,
+        "arms": arms, "paired": paired, "h1": h1, "h2": h2, "decomp": decomp,
         "_per_rep": {n: [{k: v for k, v in row.items() if k != "classes"}
                          for row in rows] for n, rows in per_rep.items()},
     }
@@ -333,7 +394,8 @@ def run_grid(arm_names: list[str], days: int, reps: int, seed: int,
             cells[name] = {
                 "world": res["config"]["world"],
                 "arms": {a: res["arms"][a] for a in arm_names},
-                "paired": res["paired"], "h1": res["h1"], "h2": res["h2"]}
+                "paired": res["paired"], "h1": res["h1"], "h2": res["h2"],
+                "decomp": res["decomp"]}
             for k, v in res["paired"].items():
                 nm = v["net_margin"]
                 print(f"{name:<18} {k}: net Δ/store {nm['mean']:>8.2f} "
@@ -352,7 +414,7 @@ def main(argv=None) -> int:
     ap.add_argument("--days", type=int, default=60)
     ap.add_argument("--reps", type=int, default=8)
     ap.add_argument("--seed", type=int, default=20260710)
-    ap.add_argument("--arms", default="sticker,offer,hazard")
+    ap.add_argument("--arms", default="sticker,offer,hazard,retag,retag+offer")
     ap.add_argument("--sigma-tag", type=float, default=0.3)
     ap.add_argument("--shading", type=float, default=0.85)
     ap.add_argument("--out", default=None)

@@ -1,19 +1,23 @@
 """VINTAGE tests: pairing is real, determinism holds, one-of-one is
 conserved, and the engine's decisions come from the right drivers —
-the accept floor, the counter bounds, and censoring-aware learning."""
+the accept floor, the counter bounds, and censoring-aware learning.
+Post-reg (CRITICAL-ANALYSIS §4): the bidirectional retag is bounded by the
+posterior and weekly per item; the shading learner is censoring-aware and
+counter-aggression falls in learned huff risk."""
 import math
 
 import pytest
 
-from vintage.calibration import (BUFFER_ABS, BUFFER_FRAC, MARKDOWN_FACTOR,
-                                 P_HUFF, RHO_PRIOR_MEAN)
+from vintage.calibration import (BELIEF_GRID_Z, BELIEF_SIGMA, BUFFER_ABS,
+                                 BUFFER_FRAC, MARKDOWN_FACTOR, P_HUFF,
+                                 PRICE_FLOOR_FRAC, RHO_PRIOR_MEAN)
 from vintage.core import substream
-from vintage.engine import (Beliefs, buffer, counter_response, decide_offer,
-                            solve_price)
-from vintage.policies import StickerPolicy
+from vintage.engine import (Beliefs, ShadingLearner, buffer, counter_response,
+                            decide_offer, solve_price, solve_price_free)
+from vintage.policies import OfferPolicy, RetagPolicy, StickerPolicy
 from vintage.run import item_class, run_experiment, run_store, visit_offer
-from vintage.world import (Item, PairDraws, VintageConfig, browsers_for_day,
-                           items_for_day)
+from vintage.world import (Browser, Item, PairDraws, VintageConfig,
+                           browsers_for_day, items_for_day)
 
 
 def _item(uid=1, cost=20.0, appeal=50.0, tag=100.0, day=0):
@@ -62,7 +66,7 @@ def test_experiment_is_deterministic():
 def test_one_of_one_conservation():
     """An item sells AT MOST once; sold + ending inventory = sourced,
     and a sold item never reappears on the rack."""
-    for arm in ("sticker", "offer", "hazard"):
+    for arm in ("sticker", "offer", "hazard", "retag", "retag+offer"):
         from vintage.policies import ARMS
         run = run_store(ARMS[arm](), VintageConfig(sigma_tag=0.6),
                         master_seed=5, days=25, cache=PairDraws())
@@ -83,7 +87,9 @@ def test_buffer_floor():
 
 def test_offer_accept_dominance():
     """The engine NEVER accepts below its disagreement value plus the
-    buffer — swept across waiting values, asks, and offers."""
+    buffer — swept across waiting values, asks, and offers. With a fresh
+    learner F̂ = 0, so a counter (EV ≥ v_wait) weakly beats declining and
+    ties go to the counter: the unlearned engine never declines."""
     for v in (0.0, 5.0, 20.0, 40.0, 55.0, 80.0):
         for offer in (1.0, 10.0, 25.0, 45.0, 60.0, 79.0):
             for ask in (80.0, 120.0):
@@ -94,6 +100,31 @@ def test_offer_accept_dominance():
                 else:
                     assert action == "counter"
                     assert offer < price <= ask + 1e-9
+
+
+def test_accept_floor_holds_with_a_learned_model():
+    """The floor invariant survives FIX B: whatever the learner has seen —
+    heavy huffs, rich fallbacks, extreme shading evidence — the engine
+    never accepts below v_wait + buffer."""
+    scenarios = []
+    hot = ShadingLearner()
+    for _ in range(60):
+        hot.observe_counter(70.0, 95.0, "huff")
+        hot.observe_continuation(15.0)
+    cold = ShadingLearner()
+    for _ in range(60):
+        cold.observe_counter(70.0, 80.0, "accept")
+    scenarios = [hot, cold, ShadingLearner()]
+    for learner in scenarios:
+        for v in (0.0, 20.0, 55.0, 80.0):
+            for offer in (1.0, 25.0, 45.0, 60.0, 79.0):
+                action, price = decide_offer(offer, 80.0, 80.0, v, learner)
+                if action == "accept":
+                    assert offer >= v + buffer(80.0) - 1e-9
+                elif action == "counter":
+                    assert offer < price <= 80.0 + 1e-9
+                else:
+                    assert action == "decline"
 
 
 def test_counter_logic():
@@ -173,6 +204,148 @@ def test_computed_markdown_is_discount_only_and_monotone():
     assert stale <= fresh
     assert stale < 100.0
     assert stale >= 0.35 * 100.0 - 1e-9
+
+
+# ── FIX A: the bidirectional retag (post-registration) ───────────────────
+
+def test_retag_bidirectional_bounded_by_posterior():
+    """The free solve moves BOTH directions and never leaves the item's own
+    posterior support: a fresh piece (prior centered on the tag, demand-rich
+    world) re-tags UP but below the posterior ceiling; a piece that
+    survived at a CHEAP price (loud evidence) re-tags DOWN but never below
+    the house floor. The censoring rule carries over: surviving at an
+    over-belief price is quiet and does NOT trigger a deep markdown."""
+    ceiling = 100.0 * math.exp(BELIEF_GRID_Z * BELIEF_SIGMA)
+    b = Beliefs()
+    b.admit(_item(uid=1, tag=100.0))
+    fresh = solve_price_free(b, 1, 100.0)
+    assert fresh > 100.0                          # UP: no reference price
+    assert fresh <= ceiling + 0.5                 # bounded by the posterior
+    b_lo = Beliefs()
+    b_lo.admit(_item(uid=2, tag=100.0))
+    for _ in range(30):
+        b_lo.survival(2, 40.0, 40)                # cheap survivor: loud
+    down = solve_price_free(b_lo, 2, 100.0)
+    assert down < 100.0                           # DOWN: evidence bites
+    assert down >= PRICE_FLOOR_FRAC * 100.0 - 1e-9
+    b_hi = Beliefs()
+    b_hi.admit(_item(uid=3, tag=100.0))
+    for _ in range(30):
+        b_hi.survival(3, 400.0, 40)               # overpriced survivor: quiet
+    assert solve_price_free(b_hi, 3, 100.0) > 100.0
+
+
+def test_retag_weekly_cadence():
+    """Posted prices move at ADMISSION and then at most every RETAG_EVERY
+    days per item — never in between, whatever the evidence says."""
+    pol = RetagPolicy()
+    it = _item(uid=1, tag=100.0, day=0)
+    pol.admit(it)
+    inventory = {1: it}
+    seen = []
+    for day in range(15):
+        pol.day_start(day, inventory)
+        seen.append(pol.price(it, day))
+        pol.end_of_day(day, inventory, browsers=40)   # evidence accrues daily
+    assert seen[0] != 100.0                       # the admission-day retag
+    assert len(set(seen[0:7])) == 1               # frozen through the week
+    assert len(set(seen[7:14])) == 1
+    assert seen[7] != seen[0]                     # the weekly re-solve moved
+    assert seen[14] != seen[7]
+
+
+def test_retag_can_sell_above_the_original_tag():
+    """FIX A end to end: retag/1 recovers under-tag upside — some sales
+    land ABOVE the owner's tag — while nothing ever transacts above the
+    posterior ceiling (the current tag is bounded by it)."""
+    from vintage.policies import ARMS
+    for arm in ("retag", "retag+offer"):
+        run = run_store(ARMS[arm](), VintageConfig(sigma_tag=0.6),
+                        master_seed=5, days=25, cache=PairDraws())
+        sold = [r for r in run["ledger"].values() if r["sold_day"] is not None]
+        assert any(r["price"] > r["item"].tag + 1e-9 for r in sold), arm
+        cap = math.exp(BELIEF_GRID_Z * BELIEF_SIGMA)
+        assert all(r["price"] <= r["item"].tag * cap + 0.5 for r in sold), arm
+
+
+# ── FIX B: the learned counter round (post-registration) ─────────────────
+
+def test_shading_learner_updates_from_huffs_censoring_aware():
+    """A huff moves the learned huff RATE and nothing else — huffing is
+    price-blind, so it carries no shading information (the censoring rule).
+    Accepted counters raise the believed stick probability; rejects lower
+    it."""
+    L = ShadingLearner()
+    p0_huff, p0_stick = L.p_huff, float(L.p_stick(75.0, [90.0])[0])
+    for _ in range(30):
+        L.observe_counter(75.0, 90.0, "huff")
+    assert L.p_huff > 0.8 > p0_huff               # huff rate learned UP
+    assert float(L.p_stick(75.0, [90.0])[0]) == pytest.approx(p0_stick)
+    L_acc, L_rej = ShadingLearner(), ShadingLearner()
+    for _ in range(30):
+        L_acc.observe_counter(75.0, 90.0, "accept")   # s <= 0.833, repeatedly
+        L_rej.observe_counter(75.0, 90.0, "reject")   # s > 0.833, repeatedly
+    assert float(L_acc.p_stick(75.0, [90.0])[0]) > p0_stick
+    assert float(L_rej.p_stick(75.0, [90.0])[0]) < p0_stick
+
+
+def test_counter_aggression_monotone_in_learned_huff_risk():
+    """The pre-registered behavior: counter LESS where huff-cost x
+    walk-probability is high. With the fallback value F̂ held fixed, rising
+    huff evidence flips the below-floor response from counter to DECLINE —
+    monotonically, no flip-flops — and an above-floor offer that a fresh
+    engine would counter gets ACCEPTED instead."""
+    def learner(n_huffs):
+        L = ShadingLearner()
+        for _ in range(40):
+            L.observe_continuation(3.0)           # F-hat ~ 2.7 > 0
+        for _ in range(n_huffs):
+            L.observe_counter(70.0, 95.0, "huff")
+        return L
+
+    acts = [decide_offer(50.0, 100.0, 100.0, 60.0, learner(n))[0]
+            for n in (0, 1, 2, 3, 5, 10, 20, 40, 80)]
+    assert acts[0] == "counter"                   # prior huff risk: haggle
+    assert acts[-1] == "decline"                  # learned huff risk: don't
+    flipped = False
+    for a in acts:
+        assert a in ("counter", "decline")
+        if a == "decline":
+            flipped = True
+        else:
+            assert not flipped                    # monotone: no un-flip
+    # above the floor the same pressure resolves to taking the bird in hand
+    assert decide_offer(70.0, 100.0, 100.0, 60.0, learner(0))[0] == "counter"
+    assert decide_offer(70.0, 100.0, 100.0, 60.0, learner(40))[0] == "accept"
+
+
+def test_decline_keeps_the_browser_no_huff():
+    """A decline hands over no number, so it cannot huff: the browser shops
+    on and buys their best sticker-beating alternative — but NEVER the
+    declined target, even at the ask (no free conversion). The learner
+    observes the realized continuation (F̂ rises from zero)."""
+    class DecliningPolicy(OfferPolicy):
+        def decide(self, offer, item):
+            return ("decline", 0.0)
+
+    pol = DecliningPolicy()
+    target = _item(uid=1, cost=20.0, appeal=50.0, tag=400.0)
+    cheap = _item(uid=2, cost=10.0, appeal=60.0, tag=30.0)
+    pol.admit(target)
+    pol.admit(cheap)
+
+    class FixedDraws:
+        def get(self, b, it):
+            #      connect, wtp,  huff_roll (would huff if countered)
+            return (True, 450.0 if it.uid == 1 else 55.0, 0.01)
+
+    br = Browser(uid=1, shading=0.8)
+    n_conn, sale, flags = visit_offer(br, {1: target, 2: cheap}, pol, 0,
+                                      FixedDraws())
+    assert flags["decline"] == 1 and flags["huff"] == 0
+    assert flags["fallback"] == 1
+    assert sale == (2, 30.0, "ask")               # not the target at 400
+    assert pol.learner.fallback_value > 0.0       # continuation observed
 
 
 def test_offer_arm_falls_back_to_the_sticker_board():

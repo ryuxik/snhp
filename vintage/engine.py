@@ -16,7 +16,9 @@ future connecting browser. Its value is computed from
     survivor adds a lot (that silence is loud).
 The buyer's alternative is walking (their disagreement is zero surplus);
 their behavior — shading, counter tolerance, huff friction — lives in the
-world/runner, not here. The engine never sees appeal or WTP.
+world/runner, not here. The engine never sees appeal or WTP; post-reg FIX B
+lets it LEARN the population's shading distribution and huff rate from its
+own counter-round history (ShadingLearner), censoring-aware.
 """
 from __future__ import annotations
 
@@ -26,11 +28,15 @@ import numpy as np
 
 from vintage.calibration import (BELIEF_GRID_N, BELIEF_GRID_Z, BELIEF_SIGMA,
                                  BUFFER_ABS, BUFFER_FRAC, COUNTER_GRID_N,
-                                 DAILY_DISCOUNT, HOLDING_COST, HUFF_BELIEF,
-                                 P_HUFF, PRICE_FLOOR_FRAC, PRICE_GRID_N,
+                                 DAILY_DISCOUNT, FALLBACK_PRIOR_N,
+                                 HOLDING_COST, HUFF_BELIEF,
+                                 HUFF_PRIOR_STRENGTH, P_HUFF,
+                                 PRICE_FLOOR_FRAC, PRICE_GRID_N, RETAG_GRID_N,
                                  RHO_PRIOR_MEAN, RHO_PRIOR_STRENGTH,
-                                 SHADING_BELIEF_HI, SHADING_BELIEF_LO,
-                                 SIGMA_WTP, TOLERANCE, TRAFFIC_MEAN)
+                                 SHADE_CENTER_HI, SHADE_CENTER_LO,
+                                 SHADE_CENTER_N, SHADE_HALFWIDTH,
+                                 SHADE_LIK_EPS, SIGMA_WTP, TOLERANCE,
+                                 TRAFFIC_MEAN)
 from vintage.core import lognorm_sf_vec
 from vintage.world import Item
 
@@ -132,40 +138,114 @@ class Beliefs:
 
 # ── the offer decision ──────────────────────────────────────────────────────
 
-def p_counter_accept(offer: float, counter: float) -> float:
-    """The ENGINE'S BELIEF that a counter sticks: the browser walks with
-    HUFF_BELIEF regardless (haggle friction), else accepts iff their WTP ≥
-    counter. The offer implies WTP = offer/s with s believed uniform on
-    [SHADING_BELIEF_LO, SHADING_BELIEF_HI], so
-        P(WTP ≥ c) = P(s ≤ offer/c),
-    clamped. The engine does NOT know the true shading center."""
-    ps = (offer / counter - SHADING_BELIEF_LO) \
-        / (SHADING_BELIEF_HI - SHADING_BELIEF_LO)
-    return (1.0 - HUFF_BELIEF) * min(1.0, max(0.0, ps))
+class ShadingLearner:
+    """FIX B (post-registration, CRITICAL-ANALYSIS §4a): population-level
+    inference about the counter round, learned from the engine's OWN
+    accept/huff/reject/fallback history. Three learned quantities:
+
+    * The shading-CENTER posterior: a grid over centers m with the belief
+      s | m ~ U[m − W, m + W] (W = SHADE_HALFWIDTH). The counter round is
+      CENSORED evidence about s = offer/WTP: an ACCEPTED counter at c on
+      offer x reveals WTP ≥ c, i.e. s ≤ x/c (an upper bound); a non-huff
+      REJECT reveals WTP < c, i.e. s > x/c (a lower bound). A HUFF reveals
+      NOTHING about shading — huffing is price-blind ("they came with a
+      number") — so the shading update SKIPS it rather than mistaking
+      pride for poverty.
+    * The huff rate: a Beta posterior over counter outcomes (huff vs not),
+      prior worth HUFF_PRIOR_STRENGTH counters at mean HUFF_BELIEF.
+    * F̂, the browser's continuation value to the STORE: the mean realized
+      fallback margin (fallback price − the engine's own waiting value on
+      the fallback piece; zero when the browser buys nothing) over observed
+      non-huff dead negotiations. A huffed browser's continuation is
+      censored — never observed — so the reject-branch mean stands in for
+      it, which is exact because the huff roll is independent of price and
+      WTP. F̂ is what a counter gambles: huff-cost = F̂, walk-prob = ĥ.
+    """
+
+    def __init__(self):
+        self._m = np.linspace(SHADE_CENTER_LO, SHADE_CENTER_HI, SHADE_CENTER_N)
+        self._w = np.full(SHADE_CENTER_N, 1.0 / SHADE_CENTER_N)
+        self._huff_a = HUFF_PRIOR_STRENGTH * HUFF_BELIEF
+        self._huff_b = HUFF_PRIOR_STRENGTH * (1.0 - HUFF_BELIEF)
+        self._fb_sum = 0.0
+        self._fb_n = FALLBACK_PRIOR_N
+
+    @property
+    def p_huff(self) -> float:
+        """Posterior-mean P(a countered browser walks out regardless)."""
+        return self._huff_a / (self._huff_a + self._huff_b)
+
+    @property
+    def fallback_value(self) -> float:
+        """F̂: mean margin the store still earns from a browser whose
+        negotiation dies WITHOUT a huff (they shop the board)."""
+        return self._fb_sum / self._fb_n
+
+    def p_stick(self, offer: float, counters) -> np.ndarray:
+        """Posterior P(WTP ≥ c) = P(s ≤ offer/c), mixture over centers."""
+        r = offer / np.asarray(counters, dtype=float)
+        lik = np.clip((r[:, None] - (self._m[None, :] - SHADE_HALFWIDTH))
+                      / (2.0 * SHADE_HALFWIDTH), 0.0, 1.0)
+        return lik @ self._w
+
+    def observe_counter(self, offer: float, counter: float,
+                        outcome: str) -> None:
+        """One counter round's outcome: 'accept' | 'huff' | 'reject'."""
+        if outcome == "huff":
+            self._huff_a += 1.0
+            return                       # censored: says nothing about shading
+        self._huff_b += 1.0
+        r = offer / counter
+        p = np.clip((r - (self._m - SHADE_HALFWIDTH))
+                    / (2.0 * SHADE_HALFWIDTH),
+                    SHADE_LIK_EPS, 1.0 - SHADE_LIK_EPS)
+        w = self._w * (p if outcome == "accept" else 1.0 - p)
+        total = w.sum()
+        if total > 0:
+            self._w = w / total
+
+    def observe_continuation(self, value: float) -> None:
+        """Realized continuation margin of a non-huff dead negotiation
+        (fallback sale margin over that piece's waiting value, or 0)."""
+        self._fb_sum += value
+        self._fb_n += 1.0
 
 
-def decide_offer(offer: float, ask: float, tag: float,
-                 v_wait: float) -> tuple[str, float]:
-    """Accept / counter, event-consistently. The floor is the disagreement
-    value plus the buffer — the engine NEVER accepts below it (tested
-    invariant). Above the floor it plays expected value: accept the bird in
-    hand iff no counter beats it once walk-risk is priced in.
-
-    Returns ("accept", offer) or ("counter", price) with price in
-    (offer, ask]. A counter AT ask is the engine saying the tag is firm."""
+def decide_offer(offer: float, ask: float, tag: float, v_wait: float,
+                 learner: ShadingLearner | None = None) -> tuple[str, float]:
+    """Accept / counter / DECLINE, event-consistently, with the counter's
+    huff externality priced (FIX B). The floor is unchanged and tested: the
+    engine NEVER accepts below the disagreement value plus the buffer.
+    Above it, expected value decides between three actions:
+      accept  — the bird in hand: EV = offer (the browser buys THIS piece);
+      counter — EV = ĥ·v_wait + (1−ĥ)·[P̂(stick)·c + (1−P̂)·(v_wait + F̂)]:
+                a counter gambles the browser's continuation value F̂ on the
+                huff — the store-level cost the old engine ignored;
+      decline — no number, no huff: the piece waits, the browser shops the
+                board. EV = v_wait + F̂.
+    Returns ("accept", offer), ("counter", c) with c in (offer, ask], or
+    ("decline", 0.0). A counter AT ask is the engine saying the tag is firm;
+    ties prefer accept, then the counter (the pre-fix behavior)."""
+    if learner is None:
+        learner = ShadingLearner()       # prior beliefs: the unlearned engine
     floor = v_wait + buffer(tag)
+    h, fb = learner.p_huff, learner.fallback_value
+    ev_decline = v_wait + fb
     lo = max(floor, offer + 0.01)
     if lo >= ask:
-        return ("counter", ask)          # firm: waiting beats any discount
-    grid = np.linspace(lo, ask, COUNTER_GRID_N)
-    ev = np.array([p_counter_accept(offer, c) * c
-                   + (1.0 - p_counter_accept(offer, c)) * v_wait
-                   for c in grid])
+        cands = np.array([float(ask)])   # only the firm counter is legal
+    else:
+        cands = np.linspace(lo, ask, COUNTER_GRID_N)
+    p = learner.p_stick(offer, cands)
+    ev = h * v_wait + (1.0 - h) * (p * cands + (1.0 - p) * (v_wait + fb))
     j = int(np.argmax(ev[::-1]))         # ties resolve to the HIGHER price
-    c_star, ev_star = float(grid[::-1][j]), float(ev[::-1][j])
-    if offer >= floor and offer >= ev_star:
+    c_star, ev_star = float(cands[::-1][j]), float(ev[::-1][j])
+    ev_accept = offer if offer >= floor else -np.inf
+    if ev_accept >= ev_star and ev_accept >= ev_decline:
         return ("accept", offer)
-    return ("counter", min(ask, float(math.ceil(c_star))))
+    if ev_star >= ev_decline - 1e-12:
+        return ("counter", min(ask, float(math.ceil(c_star))))
+    return ("decline", 0.0)
 
 
 def counter_response(wtp: float, counter: float, huff_roll: float) -> bool:
@@ -200,3 +280,31 @@ def solve_price(beliefs: Beliefs, uid: int, current: float, tag: float,
         if v > best_v + 1e-9:
             best_p, best_v = float(p), v
     return min(current, max(lo, round(best_p)))
+
+
+# ── retag/1's bidirectional re-solve (FIX A, post-registration) ─────────────
+
+def solve_price_free(beliefs: Beliefs, uid: int, tag: float,
+                     traffic: float = TRAFFIC_MEAN) -> float:
+    """The SAME posterior-mean-PV objective as solve_price with the
+    discount-only shackle removed: the posted price may move UP as well as
+    DOWN, toward the posterior-optimal posted price. One-of-one goods have
+    no reference price to protect (CRITICAL-ANALYSIS §4b) — the ceiling
+    existed to protect reference prices, so nothing pins the price to the
+    owner's guess here. Bounded by the item's OWN appeal posterior: floor
+    PRICE_FLOOR_FRAC x tag (house floor, unchanged), ceiling the top of the
+    posterior support — the engine never posts a price its own beliefs give
+    zero probability of being worth. Whole dollars, like every tag."""
+    mu, w, rho = beliefs._mu[uid], beliefs._w[uid], beliefs.rho
+    lo = PRICE_FLOOR_FRAC * tag
+    hi = float(mu.max())
+    if hi <= lo:
+        return float(lo)
+    best_p, best_v = hi, -np.inf
+    for p in np.linspace(hi, lo, RETAG_GRID_N):        # from the top:
+        sf = lognorm_sf_vec(float(p), mu, SIGMA_WTP)   # ties keep price high
+        lam = 1.0 - (1.0 - rho * sf) ** traffic
+        v = float(w @ _pv(lam, float(p)))
+        if v > best_v + 1e-9:
+            best_p, best_v = float(p), v
+    return float(min(hi, max(lo, round(best_p))))

@@ -6,6 +6,12 @@ replicate stores per cell, seed 20260710. Reproduce:
 Replicates are independent stores (fresh sourcing, browsers, learner state),
 so CIs are plain paired t over rep-level totals (block=1).*
 
+*NOTE (2026-07-10): `results.json` is now v2 — same seeds, five arms — after
+the post-registration fixes recorded in the clearly-marked section at the
+bottom of this file. The v1 tables below are preserved as the record; their
+sticker/1 and hazard/1 rows reproduce exactly in v2, and their offer/1 rows
+describe the PRE-fix offer/1.*
+
 ## Pre-registration (written before the first grid run)
 
 **World.** Items are one-of-one: ~6/day sourced at $8–40 (log-uniform),
@@ -186,3 +192,171 @@ be.
   its own realized fractions) — a fixed-point approximation, not a solved
   dynamic program; same fixed-price-resolve heuristic as fashion's
   markdown/1 in the hazard arm's solve.
+
+---
+
+# POST-REGISTRATION FIXES (2026-07-10) — everything below was pre-registered in paper/CRITICAL-ANALYSIS.md §4 BEFORE implementation; results written after the v2 grid run
+
+Two fixes, two pre-registered predictions, same seeds (20260710), same
+60-day x 8-rep grid. sticker/1 and hazard/1 rows reproduce v1 exactly
+(verified key-for-key across all four cells) — the world and their code
+paths are untouched.
+
+**FIX A — `retag/1`, bidirectional retagging (§4b).** Discount-only is a
+category error for one-of-one goods: the ceiling exists to protect
+reference prices, and one-of-one items have none. `retag/1` is hazard/1's
+PV machinery with the shackle removed — the weekly per-item re-solve moves
+the POSTED, VISIBLE price UP as well as DOWN, toward the posterior-optimal
+posted price, bounded by the item's own appeal posterior support (floor
+0.35 x tag unchanged, ceiling the top of the posterior grid). Cadence: the
+first solve happens at ADMISSION, then at most weekly per item.
+*Interpretation disclosed:* the registration said "updated at most weekly
+per item"; an admission-day first solve satisfies that, and waiting a week
+would have protected nothing — the median piece sells the day it hits the
+rack, so a delayed retag cannot touch the under-tag upside the fix exists
+to recover. `retag+offer/1` adds the offer flow on top; the offer ceiling
+is the CURRENT tag (offers cap at the posted price, counters live under
+it). *Prediction:* recovers a large share of the under-tagged upside H-V1
+showed unrecoverable.
+
+**FIX B — shading-aware counters in `offer/1` (§4a).** The old engine
+believed shading ~ U[0.75, 0.95] by fiat, knew the huff rate, and could
+only accept or counter — so it countered into huffs it could not
+anticipate. The fixed engine LEARNS from its own history, censoring-aware:
+an accepted counter at c on offer x reveals shading ≤ x/c (WTP ≥ c), a
+non-huff reject reveals shading > x/c, and a huff reveals NOTHING about
+shading (huffing is price-blind — the update skips it rather than mistake
+pride for poverty) while updating the learned huff rate. It also learns
+F̂, the browser's continuation value to the store (realized fallback
+margin over the fallback piece's own waiting value when a non-huff
+negotiation dies; huffed continuations are censored, and the reject-branch
+mean stands in exactly because the huff roll is independent of price and
+WTP). Counters are charged the huff externality ĥ x F̂, and a DECLINE
+action exists: no number handed over, no huff risked, the browser shops
+the board — but never buys the declined target that visit (a decline is
+not a free conversion at ask). The accept floor (waiting value + buffer)
+is unchanged and still tested. *Prediction:* the −$302 cell (σ_tag 0.3 /
+shading 0.75) improves to ≥ 0 — the engine learns to mostly accept or
+decline rather than counter into huffs — and the winning cells keep most
+of their edge.
+
+## The v2 grid: net margin Δ per 60-day store (arm − sticker/1)
+
+| cell (σ_tag / shading) | sticker net | offer Δ (fixed) | hazard Δ | retag Δ | retag+offer Δ |
+|---|---:|---|---|---|---|
+| 0.3 / 0.75 | 17,281 | +40 [−167, +246] | +136 [−47, +319] | **+4,380** [+3,908, +4,853] | **+4,358** [+3,895, +4,822] |
+| 0.3 / 0.90 | 17,281 | +1 [−164, +165] | +136 [−47, +319] | **+4,380** [+3,908, +4,853] | **+4,673** [+4,355, +4,992] |
+| 0.6 / 0.75 | 13,506 | **+1,411** [+687, +2,135] | **+1,229** [+456, +2,002] | **+3,677** [+3,278, +4,076] | **+3,912** [+3,395, +4,430] |
+| 0.6 / 0.90 | 13,506 | **+1,679** [+1,001, +2,357] | **+1,229** [+456, +2,002] | **+3,677** [+3,278, +4,076] | **+4,329** [+3,792, +4,865] |
+
+(sticker/1, hazard/1, and retag/1 never see an offer, so their rows
+replicate across shading columns by construction.) The retag arms' wins
+survive both liquidation lenses from the v1 honesty check — at σ_tag 0.3
+retag/1 ends with MORE rack value than sticker (ending appeal 2,491 vs
+980), so crediting leftovers at cost (+4,794) or at full appeal (+5,892)
+only widens the edge; at σ_tag 0.6 the lenses give +3,734 / +3,885.
+
+## FIX A verdict: SUPPORTED — with the decomposition read honestly
+
+Under/over decomposition for retag/1 (Δ gross margin vs sticker/1 by item
+class, paired items; the pre-registered report):
+
+| class | σ_tag 0.3: retag Δ | σ_tag 0.6: retag Δ |
+|---|---|---|
+| under-tagged | **+2,031** [+1,831, +2,231] | **+2,011** [+1,751, +2,271] |
+| fair | **+3,073** [+2,852, +3,293] | **+1,485** [+1,296, +1,674] |
+| over-tagged | **−662** [−995, −328] | +213 [−319, +745] |
+| under − over | **+2,693** [+2,243, +3,142] | **+1,798** [+1,040, +2,557] |
+
+The under-tag upside H-V1 measured as unrecoverable — Σ(appeal − tag) over
+under-tagged sourcing, per store — is $2,076 at σ_tag 0.3 and $3,950 at
+σ_tag 0.6. retag/1's under-class Δ recovers **~98% of it at σ_tag 0.3 and
+~51% at σ_tag 0.6**: "a large share," as predicted, with CIs nowhere near
+zero. The prediction is supported.
+
+Two honest qualifications, both visible only because the decomposition was
+pre-registered as the report:
+
+1. **The biggest slice of retag/1's total edge at σ_tag 0.3 is the FAIR
+   class (+3,073), not the under class.** The bidirectional solve does not
+   merely repair the gut's per-piece mistakes — it reprices the entire
+   board to the PV optimum, and in this demand-rich world (3.2 connecting
+   browsers per item-day, lognormal WTP tails, cheap patience) that
+   optimum sits well ABOVE a correct tag. The headline Δ therefore
+   overstates the "fix the tagging errors" story; the v1 caveat
+   ("demand-rich world", "the sticker's patience is strong by
+   construction") now has a dollar figure attached. In a slower store the
+   fair-class slice would shrink; the under-class recovery is the part the
+   category-error argument actually predicts.
+2. **retag/1 is WORSE than hazard/1 on over-tagged stock at σ_tag 0.3
+   (−662 vs +132).** A fresh over-tagged piece gets retagged further UP
+   (the prior centers on the owner's tag), and the weekly evidence takes
+   weeks to walk it back down — bidirectional retagging trades markdown
+   speed for upside capture. The combined arm repairs this: retag+offer/1
+   turns the over class positive in every cell (+338 to +1,213) because
+   the offer flow moves stale stock UNDER the high board, and it
+   dominates or matches retag/1 in 3 of 4 cells.
+
+**Fairness exposure: none introduced.** Retags are posted and visible,
+identical for every browser, set at admission or weekly — never mid-
+negotiation, never per-person; no transaction ever exceeds the CURRENT
+posted tag (offers cap at it, counters live under it, both enforced in the
+runner and tested). The invariant's scope becomes the first-class finding
+pre-registered in §4: discount-only is per-category — it binds where
+reference prices exist and protects nothing where they don't.
+
+## FIX B verdict: SUPPORTED — both clauses, one wrinkle
+
+The −$302 cell (σ_tag 0.3 / shading 0.75), before → after:
+
+| metric (per store) | offer/1 v1 | offer/1 fixed |
+|---|---:|---:|
+| net Δ vs sticker | **−302** [−524, −80] | **+40** [−167, +246] |
+| counters made | 1,032 | 448 |
+| declines | — | 626 |
+| huffs (browsers lost) | 244 | 104 |
+| counter→rejects | 609 | 170 |
+| units sold | 346.0 | 345.4 |
+
+The pre-registered behavioral claim — "the engine should learn to mostly
+accept or decline rather than counter into huffs" — is literally what
+happens: counters fall 2.3–8.5x across the cells (1,833 → 326 at
+0.6/0.75), declines absorb the flow, and huffs fall 2.3–8.7x. The cell improves to a
+positive point estimate whose CI now includes zero instead of sitting
+significantly negative: ≥ 0 as predicted (as a point estimate; the CI does
+not exclude zero, so read it as "the loss is gone," not "a win appeared").
+The winning cells did better than keep their edge: +976 → **+1,411**
+[+687, +2,135] and +1,370 → **+1,679** [+1,001, +2,357] — learned shading
+places counters where they stick, and the huff externality ĥ x F̂ stops
+the engine gambling browsers it can't convert.
+
+The wrinkle, stated plainly: the OTHER σ_tag 0.3 cell (shading 0.9) fell
+from +106 [−48, +261] to +1 [−164, +165]. It was a null cell before and
+remains one, but the point estimate dropped: where huffs were affordable
+(light shading, decent tags), the learned caution also declines some
+counters that would have paid. The fix buys insurance against the −$302
+disaster at the price of a few points of upside in the benign cell —
+which is the correct trade, and also a real cost.
+
+## v2 mechanics and tests
+
+* Engine: `ShadingLearner` (censoring-aware shading-center posterior, Beta
+  huff rate, learned F̂) + a three-action `decide_offer`
+  (accept/counter/decline) in `vintage/engine.py`; `solve_price_free` (the
+  bidirectional re-solve, posterior-bounded) alongside the untouched
+  discount-only `solve_price`.
+* Arms: `retag/1` and `retag+offer/1` in `vintage/policies.py`; offer
+  arms observe every counter outcome and every non-huff dead negotiation's
+  continuation via runner hooks in `vintage/run.py`.
+* New/updated tests (`vintage/tests/test_vintage.py`, 24 pass): retag
+  bounded by the posterior in BOTH directions; retag cadence at most
+  weekly per item; shading learner updates from huffs (rate up, shading
+  posterior untouched — the censoring rule); counter-aggression monotone
+  in learned huff risk (counter → decline flip, no un-flip; accept above
+  the floor); decline carries no huff and never converts the target;
+  accept-floor invariant under any learner state; one-of-one conservation
+  and above-original-tag sales bounded by the posterior ceiling for the
+  retag arms.
+* `results.json` v2 adds a `decomp` block per cell (under/fair/over Δ
+  margin vs sticker for every arm) and a `declines` count; all v1 keys for
+  sticker/hazard are byte-identical.

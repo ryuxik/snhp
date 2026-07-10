@@ -50,10 +50,34 @@ BELIEF_SIGMA = 0.45        # engine's prior on appeal: lognormal around the
                            # the engine does NOT know the true tag-noise level
 BELIEF_GRID_N = 21         # per-item posterior support (log-spaced grid)
 BELIEF_GRID_Z = 2.5        # grid half-width in units of BELIEF_SIGMA
-SHADING_BELIEF_LO = 0.75   # engine's belief about offer shading: uniform on
-SHADING_BELIEF_HI = 0.95   # [0.75, 0.95] — it does NOT know the true center
-HUFF_BELIEF = 0.25         # engine's belief about haggle friction (= truth;
-                           # flagged: the one behavioral constant it knows)
+HUFF_BELIEF = 0.25         # PRIOR mean on the huff rate (happens to equal the
+                           # truth; post-reg FIX B demotes it from a known
+                           # constant to a weak Beta prior the data dominate)
+
+# ── FIX B (post-registration, CRITICAL-ANALYSIS §4a): the learned counter
+#    round. The old engine BELIEVED shading ~ U[0.75, 0.95] by fiat and knew
+#    the huff rate; the fixed engine LEARNS the population from its own
+#    accept/huff/reject/fallback history, censoring-aware. ─────────────────
+SHADE_CENTER_LO = 0.60     # posterior support for the population shading
+SHADE_CENTER_HI = 1.00     # CENTER m (offer = shading x WTP, s|m ~ U[m ± W])
+SHADE_CENTER_N = 41        # grid resolution over m
+SHADE_HALFWIDTH = 0.10     # believed within-population spread W (the old
+                           # fixed belief's half-width; the true spread 0.08
+                           # stays hidden — no truth smuggled in)
+SHADE_LIK_EPS = 0.02       # likelihood clamp on counter-round evidence:
+                           # robustness to the spread misspecification
+HUFF_PRIOR_STRENGTH = 2.0  # the Beta prior on the huff rate is worth 2
+                           # observed counters at mean HUFF_BELIEF (weak)
+FALLBACK_PRIOR_N = 5.0     # F-hat (the huffed browser's foregone continuation
+                           # value) starts as 5 pseudo-observations of $0
+
+# ── FIX A (post-registration, CRITICAL-ANALYSIS §4b): bidirectional retag ──
+RETAG_EVERY = 7            # retag cadence: at admission, then at most weekly
+                           # (a retag that waits a week protects nothing —
+                           # the under-tagged upside dies same-day)
+RETAG_GRID_N = 40          # price grid for the bidirectional re-solve; the
+                           # grid spans [PRICE_FLOOR_FRAC x tag, top of the
+                           # item's own appeal posterior support]
 RHO_PRIOR_MEAN = 0.05      # prior connection rate per browser per item
 RHO_PRIOR_STRENGTH = 2.0   # ...worth 2 pseudo-sales of evidence (weak);
                            # the engine LEARNS rho from its own sales history,
