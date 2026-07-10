@@ -35,6 +35,10 @@ class WorldConfig:
                                # "surge value without surging" design: the
                                # ceiling sits high, negotiation discounts
                                # everywhere the crowd is softer)
+    anchor_mult: float = 1.0   # extra ceiling multiplier. Large values make
+                               # the ceiling non-binding: the a2a arm becomes
+                               # the NO-STICKER (quote-only) machine, so the
+                               # gap vs anchored arms measures the sticker tax
 
 
 DEFAULT_CONFIG = WorldConfig()
@@ -202,12 +206,15 @@ def build_catalog(cfg: WorldConfig = DEFAULT_CONFIG,
             mu_est = float(mu * rng.lognormal(0.0, cfg.sigma_cal))
         else:
             mu_est = mu
+        # the competitor prices off TRUE demand, independent of our anchor
+        bodega = round(_profit_optimal_list_price(mu, cost) * BODEGA_MARKUP, 2)
         cat[sku] = Listing(sku=sku,
-                           list_price=_profit_optimal_list_price(
-                               mu_est, cost, peak_only=cfg.anchor_peak),
+                           list_price=round(_profit_optimal_list_price(
+                               mu_est, cost, peak_only=cfg.anchor_peak)
+                               * cfg.anchor_mult, 2),
                            unit_cost=cost, salvage=salv,
                            shelf_life_days=life, par_stock=par,
-                           wtp_mu_est=mu_est)
+                           wtp_mu_est=mu_est, bodega_price=bodega)
     return cat
 
 

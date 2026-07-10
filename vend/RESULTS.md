@@ -242,3 +242,44 @@ This repositions attestation from defense to **discount tier** —
 pre-registered next experiment: verified agents get a lower buffer
 (min_gain $0.25 vs $1.00), prediction: attested buyers capture measurably
 more surplus at no machine cost, making verification something buyers WANT.
+
+## The sticker question (2026-07-10) — "Uber has no sticker; why do we?"
+
+Asked whether the sticker is necessary at all, we made the ceiling a dial
+(`anchor_peak`, `anchor_mult`) and made the competitor price independently
+of our board (`Listing.bodega_price` from TRUE demand — previously the
+bodega copied our list, a modeling shortcut this experiment exposed).
+Perfect-calibration, stationary world, 30 paired days:
+
+| ceiling placement | static profit | a2a profit | a2a negotiated |
+|---|---:|---:|---:|
+| mixture-optimal sticker | $2,864 | $2,842 | 40 |
+| peak-anchored | $3,037 | $3,020 | 48 |
+| **×1.25 (the TRUE static optimum)** | **$3,511** | **$3,554** | 226 |
+| ×1.5 (ceiling ~never binds = no sticker) | $1,690 | $2,953 | 712 |
+
+**Findings, honestly:**
+1. Our "profit-optimal" stickers were never optimal — the single-price
+   optimizer prices the demand curve and ignores the machine's local
+   monopoly power (competitor price + walk cost). The true optimum sits
+   ~25% above the peak anchor and earns +$21/day more. Every "omniscient
+   operator" claim above inherits this asterisk.
+2. **At the true optimal anchor, quote-assisted pricing beats/ties the
+   best sticker even at perfect calibration**: +$1.44/day [−2.16, 5.03]
+   seed A, **+$2.56/day [1.23, 3.89] seed 7**, with consumer surplus
+   +$10–11/day in both — because the high anchor prices the captive
+   sticker lane while quotes recover everyone the anchor would lose.
+3. A fully sticker-less machine (ceiling never binds) holds 84% of peak
+   profit on 712 quotes — the sticker's real job is a ZERO-FRICTION
+   DEFAULT LANE, not consumer protection; the remaining gap is quote
+   friction (our $1 buffer, tuned for a world with a good sticker), not
+   economics. Uber's answer to the same problem is the binding upfront
+   quote.
+4. The unpriced risk: our consumers carry no reference-price/fairness
+   memory — the ×1.25 "optimum" harvests captivity that real humans
+   punish (the Wendy's zone) and regulators watch. Pre-registered:
+   a reference-price/churn response in the consumer model, to measure how
+   much of the +$21/day anchor value is safely harvestable, and whether
+   visible computed DISCOUNTS from a high anchor (our design) escape the
+   fairness penalty that visible increases trigger (the dual-entitlement
+   literature says yes).

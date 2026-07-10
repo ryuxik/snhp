@@ -44,10 +44,10 @@ from vend.world import BODEGA_MARKUP, best_bundle, bundle_value as buyer_value
 
 def outside_surplus(wtp: dict[str, float], walk_cost: float,
                     catalog) -> float:
-    """Best surplus at the bodega (list × BODEGA_MARKUP, − the walk) — the
-    SAME outside option the simulated consumer faces in run.py, via the
-    same canonical chooser."""
-    prices = {sku: l.list_price * BODEGA_MARKUP for sku, l in catalog.items()}
+    """Best surplus at the bodega (the competitor's OWN posted prices,
+    − the walk) — the SAME outside option the simulated consumer faces in
+    run.py, via the same canonical chooser."""
+    prices = {sku: l.bodega_price for sku, l in catalog.items()}
     _, _, s = best_bundle(wtp, prices)
     return max(0.0, s - walk_cost) if s > 0 else 0.0
 

@@ -47,6 +47,8 @@ class Listing:
     par_stock: int          # nightly restock target
     wtp_mu_est: float = 0.0  # the OPERATOR'S demand estimate (what set the
                              # sticker; also what dynamic arms believe)
+    bodega_price: float = 0.0  # the competitor's posted price — set by the
+                               # WORLD (true demand), independent of our anchor
 
 
 @dataclass

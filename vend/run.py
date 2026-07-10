@@ -49,8 +49,9 @@ def run_day(policy, state, catalog, master_seed: int, day: int,
          "consumer_surplus": 0.0, "quotes": 0,
          "negotiated": 0, "neg_machine_gain": 0.0, "liar_deals": 0}
     return_queue: list[tuple[int, object]] = []
-    # the bodega: loop-invariant for the whole experiment (list prices fixed)
-    outside_prices = {s: catalog[s].list_price * BODEGA_MARKUP for s in catalog}
+    # the bodega: the competitor's own posted prices (world-set, NOT a
+    # function of our sticker) — loop-invariant for the whole experiment
+    outside_prices = {s: catalog[s].bodega_price for s in catalog}
 
     # what the policy may know today: the calendar (public) + its learner
     ds = day_state(cfg, master_seed, day)

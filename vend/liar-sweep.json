@@ -37,82 +37,82 @@
  "arms": {
   "a2a": {
    "totals": {
-    "revenue": 4609.14,
-    "cogs_sold": 1766.8,
-    "units": 2133,
+    "revenue": 4610.22,
+    "cogs_sold": 1767.8,
+    "units": 2135,
     "deals": 1495,
     "arrivals": 1968,
-    "returns": 195,
-    "stockouts": 1148,
-    "lost_to_outside": 455,
-    "consumer_surplus": 2739.58,
-    "quotes": 2163,
-    "negotiated": 39,
-    "neg_machine_gain": 45.96,
+    "returns": 196,
+    "stockouts": 1149,
+    "lost_to_outside": 456,
+    "consumer_surplus": 2740.73,
+    "quotes": 2164,
+    "negotiated": 40,
+    "neg_machine_gain": 46.98,
     "liar_deals": 0,
     "spoiled_units": 0,
     "spoilage_cost": 0.0,
-    "profit": 2842.34
+    "profit": 2842.42
    }
   },
   "a2a-liars25": {
    "totals": {
-    "revenue": 4618.27,
-    "cogs_sold": 1765.1,
-    "units": 2128,
+    "revenue": 4619.35,
+    "cogs_sold": 1766.1,
+    "units": 2130,
     "deals": 1501,
     "arrivals": 1968,
-    "returns": 194,
-    "stockouts": 1146,
-    "lost_to_outside": 458,
-    "consumer_surplus": 2731.4,
-    "quotes": 2162,
-    "negotiated": 32,
-    "neg_machine_gain": 37.51,
+    "returns": 195,
+    "stockouts": 1147,
+    "lost_to_outside": 459,
+    "consumer_surplus": 2732.55,
+    "quotes": 2163,
+    "negotiated": 33,
+    "neg_machine_gain": 38.53,
     "liar_deals": 1,
     "spoiled_units": 0,
     "spoilage_cost": 0.0,
-    "profit": 2853.17
+    "profit": 2853.25
    }
   },
   "a2a-liars50": {
    "totals": {
-    "revenue": 4608.64,
-    "cogs_sold": 1758.5,
-    "units": 2114,
+    "revenue": 4609.72,
+    "cogs_sold": 1759.5,
+    "units": 2116,
     "deals": 1502,
     "arrivals": 1968,
-    "returns": 195,
-    "stockouts": 1146,
-    "lost_to_outside": 460,
-    "consumer_surplus": 2716.41,
-    "quotes": 2163,
-    "negotiated": 25,
-    "neg_machine_gain": 29.53,
+    "returns": 196,
+    "stockouts": 1147,
+    "lost_to_outside": 461,
+    "consumer_surplus": 2717.56,
+    "quotes": 2164,
+    "negotiated": 26,
+    "neg_machine_gain": 30.55,
     "liar_deals": 2,
     "spoiled_units": 0,
     "spoilage_cost": 0.0,
-    "profit": 2850.14
+    "profit": 2850.22
    }
   },
   "a2a-liars100": {
    "totals": {
-    "revenue": 4600.6,
-    "cogs_sold": 1744.0,
+    "revenue": 4600.45,
+    "cogs_sold": 1743.8,
     "units": 2083,
     "deals": 1505,
     "arrivals": 1968,
-    "returns": 193,
-    "stockouts": 1147,
-    "lost_to_outside": 465,
-    "consumer_surplus": 2686.45,
-    "quotes": 2161,
+    "returns": 194,
+    "stockouts": 1148,
+    "lost_to_outside": 466,
+    "consumer_surplus": 2686.34,
+    "quotes": 2162,
     "negotiated": 4,
     "neg_machine_gain": 4.7,
     "liar_deals": 4,
     "spoiled_units": 0,
     "spoilage_cost": 0.0,
-    "profit": 2856.6
+    "profit": 2856.65
    }
   }
  },
@@ -213,27 +213,27 @@
   },
   "a2a-liars100_vs_a2a": {
    "profit": {
-    "mean": 0.48,
+    "mean": 0.47,
     "ci95": [
-     -0.23,
-     1.18
+     -0.24,
+     1.19
     ],
     "n": 6,
     "block": 5
    },
    "revenue": {
-    "mean": -0.28,
+    "mean": -0.33,
     "ci95": [
-     -1.58,
+     -1.66,
      1.01
     ],
     "n": 6,
     "block": 5
    },
    "consumer_surplus": {
-    "mean": -1.77,
+    "mean": -1.81,
     "ci95": [
-     -3.29,
+     -3.37,
      -0.25
     ],
     "n": 6,
@@ -249,10 +249,10 @@
     "block": 5
    },
    "units": {
-    "mean": -1.67,
+    "mean": -1.73,
     "ci95": [
-     -2.82,
-     -0.51
+     -2.95,
+     -0.52
     ],
     "n": 6,
     "block": 5
@@ -352,22 +352,22 @@
     "profit": 89.89
    },
    {
-    "revenue": 152.5,
-    "cogs_sold": 59.1,
-    "units": 71,
+    "revenue": 153.58,
+    "cogs_sold": 60.1,
+    "units": 73,
     "deals": 50,
     "arrivals": 55,
-    "returns": 0,
-    "stockouts": 15,
-    "lost_to_outside": 4,
-    "consumer_surplus": 98.94,
-    "quotes": 55,
-    "negotiated": 2,
-    "neg_machine_gain": 2.8,
+    "returns": 1,
+    "stockouts": 16,
+    "lost_to_outside": 5,
+    "consumer_surplus": 100.09,
+    "quotes": 56,
+    "negotiated": 3,
+    "neg_machine_gain": 3.82,
     "liar_deals": 0,
     "spoiled_units": 0,
     "spoilage_cost": 0.0,
-    "profit": 93.4
+    "profit": 93.48
    },
    {
     "revenue": 155.23,
@@ -894,22 +894,22 @@
     "profit": 89.89
    },
    {
-    "revenue": 151.96,
-    "cogs_sold": 58.5,
-    "units": 69,
+    "revenue": 153.04,
+    "cogs_sold": 59.5,
+    "units": 71,
     "deals": 49,
     "arrivals": 55,
-    "returns": 1,
-    "stockouts": 16,
-    "lost_to_outside": 6,
-    "consumer_surplus": 94.81,
-    "quotes": 56,
-    "negotiated": 1,
-    "neg_machine_gain": 1.56,
+    "returns": 2,
+    "stockouts": 17,
+    "lost_to_outside": 7,
+    "consumer_surplus": 95.96,
+    "quotes": 57,
+    "negotiated": 2,
+    "neg_machine_gain": 2.58,
     "liar_deals": 0,
     "spoiled_units": 0,
     "spoilage_cost": 0.0,
-    "profit": 93.46
+    "profit": 93.54
    },
    {
     "revenue": 155.23,
@@ -1436,22 +1436,22 @@
     "profit": 89.89
    },
    {
-    "revenue": 150.15,
-    "cogs_sold": 57.1,
-    "units": 67,
+    "revenue": 151.23,
+    "cogs_sold": 58.1,
+    "units": 69,
     "deals": 48,
     "arrivals": 55,
-    "returns": 1,
-    "stockouts": 16,
-    "lost_to_outside": 7,
-    "consumer_surplus": 88.88,
-    "quotes": 56,
-    "negotiated": 0,
-    "neg_machine_gain": 0.0,
+    "returns": 2,
+    "stockouts": 17,
+    "lost_to_outside": 8,
+    "consumer_surplus": 90.03,
+    "quotes": 57,
+    "negotiated": 1,
+    "neg_machine_gain": 1.02,
     "liar_deals": 0,
     "spoiled_units": 0,
     "spoilage_cost": 0.0,
-    "profit": 93.05
+    "profit": 93.13
    },
    {
     "revenue": 155.23,
@@ -1978,22 +1978,22 @@
     "profit": 90.35
    },
    {
-    "revenue": 150.15,
-    "cogs_sold": 57.1,
-    "units": 67,
-    "deals": 48,
+    "revenue": 148.65,
+    "cogs_sold": 56.6,
+    "units": 66,
+    "deals": 47,
     "arrivals": 55,
-    "returns": 1,
-    "stockouts": 16,
-    "lost_to_outside": 7,
-    "consumer_surplus": 88.88,
-    "quotes": 56,
+    "returns": 2,
+    "stockouts": 17,
+    "lost_to_outside": 9,
+    "consumer_surplus": 87.77,
+    "quotes": 57,
     "negotiated": 0,
     "neg_machine_gain": 0.0,
     "liar_deals": 0,
     "spoiled_units": 0,
     "spoilage_cost": 0.0,
-    "profit": 93.05
+    "profit": 92.05
    },
    {
     "revenue": 154.75,
@@ -2086,22 +2086,22 @@
     "profit": 86.95
    },
    {
-    "revenue": 142.75,
-    "cogs_sold": 55.2,
-    "units": 62,
-    "deals": 49,
+    "revenue": 144.1,
+    "cogs_sold": 55.5,
+    "units": 63,
+    "deals": 50,
     "arrivals": 57,
     "returns": 5,
     "stockouts": 26,
-    "lost_to_outside": 13,
-    "consumer_surplus": 78.51,
+    "lost_to_outside": 12,
+    "consumer_surplus": 79.51,
     "quotes": 62,
     "negotiated": 0,
     "neg_machine_gain": 0.0,
     "liar_deals": 0,
     "spoiled_units": 0,
     "spoilage_cost": 0.0,
-    "profit": 87.55
+    "profit": 88.6
    },
    {
     "revenue": 160.9,
