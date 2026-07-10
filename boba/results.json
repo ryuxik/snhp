@@ -1,0 +1,641 @@
+{
+ "boba_version": 1,
+ "days": 30,
+ "seed": 20260710,
+ "arms": [
+  "static",
+  "computed",
+  "cart"
+ ],
+ "rent_per_day": 330,
+ "cells": {
+  "shock0_flex0.15": {
+   "world": {
+    "sigma_shock": 0.0,
+    "flexible_share": 0.15
+   },
+   "margin": {
+    "static": 45460.65,
+    "computed": 45559.88,
+    "cart": 54716.91
+   },
+   "totals": {
+    "static": {
+     "margin": 45460.65,
+     "cups": 7567,
+     "peak_balks": 830,
+     "waste_cost": 219.0,
+     "deferred": 0,
+     "attach_rate": 0.861,
+     "avg_peak_wait": 3.68,
+     "consumer_surplus": 32619.0
+    },
+    "computed": {
+     "margin": 45559.88,
+     "cups": 7764,
+     "peak_balks": 830,
+     "waste_cost": 203.6,
+     "deferred": 0,
+     "attach_rate": 0.87,
+     "avg_peak_wait": 3.68,
+     "consumer_surplus": 33542.13
+    },
+    "cart": {
+     "margin": 54716.91,
+     "cups": 14809,
+     "peak_balks": 643,
+     "waste_cost": 95.3,
+     "deferred": 2703,
+     "attach_rate": 1.395,
+     "avg_peak_wait": 4.29,
+     "consumer_surplus": 46667.09
+    }
+   },
+   "paired": {
+    "computed_vs_static": {
+     "margin": {
+      "mean": 3.31,
+      "ci95": [
+       -5.5,
+       12.12
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "consumer_surplus": {
+      "mean": 30.77,
+      "ci95": [
+       26.77,
+       34.77
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "peak_balks": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "waste_cost": {
+      "mean": -0.51,
+      "ci95": [
+       -0.64,
+       -0.38
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "toppings": {
+      "mean": 7.93,
+      "ci95": [
+       5.88,
+       9.99
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "deferred": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 6,
+      "block": 5
+     }
+    },
+    "cart_vs_static": {
+     "margin": {
+      "mean": 308.54,
+      "ci95": [
+       289.88,
+       327.2
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "consumer_surplus": {
+      "mean": 468.27,
+      "ci95": [
+       452.59,
+       483.95
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "peak_balks": {
+      "mean": -6.23,
+      "ci95": [
+       -6.7,
+       -5.77
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "waste_cost": {
+      "mean": -4.12,
+      "ci95": [
+       -5.03,
+       -3.22
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "toppings": {
+      "mean": 471.6,
+      "ci95": [
+       453.53,
+       489.67
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "deferred": {
+      "mean": 90.1,
+      "ci95": [
+       86.52,
+       93.68
+      ],
+      "n": 6,
+      "block": 5
+     }
+    }
+   }
+  },
+  "shock0_flex0.35": {
+   "world": {
+    "sigma_shock": 0.0,
+    "flexible_share": 0.35
+   },
+   "margin": {
+    "static": 45460.65,
+    "computed": 45559.88,
+    "cart": 55942.6
+   },
+   "totals": {
+    "static": {
+     "margin": 45460.65,
+     "cups": 7567,
+     "peak_balks": 830,
+     "waste_cost": 219.0,
+     "deferred": 0,
+     "attach_rate": 0.861,
+     "avg_peak_wait": 3.68,
+     "consumer_surplus": 32619.0
+    },
+    "computed": {
+     "margin": 45559.88,
+     "cups": 7764,
+     "peak_balks": 830,
+     "waste_cost": 203.6,
+     "deferred": 0,
+     "attach_rate": 0.87,
+     "avg_peak_wait": 3.68,
+     "consumer_surplus": 33542.13
+    },
+    "cart": {
+     "margin": 55942.6,
+     "cups": 15115,
+     "peak_balks": 632,
+     "waste_cost": 93.7,
+     "deferred": 3121,
+     "attach_rate": 1.405,
+     "avg_peak_wait": 4.24,
+     "consumer_surplus": 47889.43
+    }
+   },
+   "paired": {
+    "computed_vs_static": {
+     "margin": {
+      "mean": 3.31,
+      "ci95": [
+       -5.5,
+       12.12
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "consumer_surplus": {
+      "mean": 30.77,
+      "ci95": [
+       26.77,
+       34.77
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "peak_balks": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "waste_cost": {
+      "mean": -0.51,
+      "ci95": [
+       -0.64,
+       -0.38
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "toppings": {
+      "mean": 7.93,
+      "ci95": [
+       5.88,
+       9.99
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "deferred": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 6,
+      "block": 5
+     }
+    },
+    "cart_vs_static": {
+     "margin": {
+      "mean": 349.4,
+      "ci95": [
+       331.94,
+       366.86
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "consumer_surplus": {
+      "mean": 509.01,
+      "ci95": [
+       495.92,
+       522.1
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "peak_balks": {
+      "mean": -6.6,
+      "ci95": [
+       -7.28,
+       -5.92
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "waste_cost": {
+      "mean": -4.18,
+      "ci95": [
+       -4.63,
+       -3.72
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "toppings": {
+      "mean": 490.57,
+      "ci95": [
+       477.56,
+       503.57
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "deferred": {
+      "mean": 104.03,
+      "ci95": [
+       100.94,
+       107.13
+      ],
+      "n": 6,
+      "block": 5
+     }
+    }
+   }
+  },
+  "shock0.4_flex0.15": {
+   "world": {
+    "sigma_shock": 0.4,
+    "flexible_share": 0.15
+   },
+   "margin": {
+    "static": 48308.43,
+    "computed": 48419.69,
+    "cart": 56459.03
+   },
+   "totals": {
+    "static": {
+     "margin": 48308.43,
+     "cups": 8044,
+     "peak_balks": 1121,
+     "waste_cost": 195.3,
+     "deferred": 0,
+     "attach_rate": 0.851,
+     "avg_peak_wait": 4.4,
+     "consumer_surplus": 34598.09
+    },
+    "computed": {
+     "margin": 48419.69,
+     "cups": 8268,
+     "peak_balks": 1121,
+     "waste_cost": 186.0,
+     "deferred": 0,
+     "attach_rate": 0.853,
+     "avg_peak_wait": 4.4,
+     "consumer_surplus": 35601.31
+    },
+    "cart": {
+     "margin": 56459.03,
+     "cups": 15386,
+     "peak_balks": 931,
+     "waste_cost": 98.7,
+     "deferred": 3151,
+     "attach_rate": 1.396,
+     "avg_peak_wait": 4.87,
+     "consumer_surplus": 48792.97
+    }
+   },
+   "paired": {
+    "computed_vs_static": {
+     "margin": {
+      "mean": 3.71,
+      "ci95": [
+       -6.28,
+       13.69
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "consumer_surplus": {
+      "mean": 33.44,
+      "ci95": [
+       25.69,
+       41.19
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "peak_balks": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "waste_cost": {
+      "mean": -0.31,
+      "ci95": [
+       -0.68,
+       0.06
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "toppings": {
+      "mean": 6.93,
+      "ci95": [
+       5.31,
+       8.55
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "deferred": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 6,
+      "block": 5
+     }
+    },
+    "cart_vs_static": {
+     "margin": {
+      "mean": 271.69,
+      "ci95": [
+       213.86,
+       329.51
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "consumer_surplus": {
+      "mean": 473.16,
+      "ci95": [
+       388.23,
+       558.09
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "peak_balks": {
+      "mean": -6.33,
+      "ci95": [
+       -8.01,
+       -4.66
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "waste_cost": {
+      "mean": -3.22,
+      "ci95": [
+       -4.24,
+       -2.2
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "toppings": {
+      "mean": 488.0,
+      "ci95": [
+       421.76,
+       554.24
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "deferred": {
+      "mean": 105.03,
+      "ci95": [
+       78.73,
+       131.33
+      ],
+      "n": 6,
+      "block": 5
+     }
+    }
+   }
+  },
+  "shock0.4_flex0.35": {
+   "world": {
+    "sigma_shock": 0.4,
+    "flexible_share": 0.35
+   },
+   "margin": {
+    "static": 48308.43,
+    "computed": 48419.69,
+    "cart": 57634.86
+   },
+   "totals": {
+    "static": {
+     "margin": 48308.43,
+     "cups": 8044,
+     "peak_balks": 1121,
+     "waste_cost": 195.3,
+     "deferred": 0,
+     "attach_rate": 0.851,
+     "avg_peak_wait": 4.4,
+     "consumer_surplus": 34598.09
+    },
+    "computed": {
+     "margin": 48419.69,
+     "cups": 8268,
+     "peak_balks": 1121,
+     "waste_cost": 186.0,
+     "deferred": 0,
+     "attach_rate": 0.853,
+     "avg_peak_wait": 4.4,
+     "consumer_surplus": 35601.31
+    },
+    "cart": {
+     "margin": 57634.86,
+     "cups": 15645,
+     "peak_balks": 940,
+     "waste_cost": 103.0,
+     "deferred": 3554,
+     "attach_rate": 1.403,
+     "avg_peak_wait": 4.82,
+     "consumer_surplus": 49960.44
+    }
+   },
+   "paired": {
+    "computed_vs_static": {
+     "margin": {
+      "mean": 3.71,
+      "ci95": [
+       -6.28,
+       13.69
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "consumer_surplus": {
+      "mean": 33.44,
+      "ci95": [
+       25.69,
+       41.19
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "peak_balks": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "waste_cost": {
+      "mean": -0.31,
+      "ci95": [
+       -0.68,
+       0.06
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "toppings": {
+      "mean": 6.93,
+      "ci95": [
+       5.31,
+       8.55
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "deferred": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 6,
+      "block": 5
+     }
+    },
+    "cart_vs_static": {
+     "margin": {
+      "mean": 310.88,
+      "ci95": [
+       250.69,
+       371.07
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "consumer_surplus": {
+      "mean": 512.08,
+      "ci95": [
+       428.13,
+       596.02
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "peak_balks": {
+      "mean": -6.03,
+      "ci95": [
+       -7.26,
+       -4.81
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "waste_cost": {
+      "mean": -3.08,
+      "ci95": [
+       -4.03,
+       -2.12
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "toppings": {
+      "mean": 503.43,
+      "ci95": [
+       435.21,
+       571.65
+      ],
+      "n": 6,
+      "block": 5
+     },
+     "deferred": {
+      "mean": 118.47,
+      "ci95": [
+       91.23,
+       145.7
+      ],
+      "n": 6,
+      "block": 5
+     }
+    }
+   }
+  }
+ }
+}
