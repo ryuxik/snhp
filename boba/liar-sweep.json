@@ -1,0 +1,176 @@
+{
+ "20260713": {
+  "attack_version": 1,
+  "kind": "liar_share_sweep",
+  "days": 30,
+  "seed": 20260713,
+  "wtp_factor": 0.7,
+  "claim_walk": true,
+  "world": {
+   "sigma_shock": 0.0,
+   "flexible_share": 0.35
+  },
+  "notes": [
+   "liar identity is stable per person: keyed on consumer.uid via substream(seed,'liarid',uid), never on the policy",
+   "paired seeds, block=5 CI"
+  ],
+  "cells": {
+   "liars25": {
+    "liar_share": 0.25,
+    "margin": {
+     "mean": -257.08,
+     "ci95": [
+      -281.47,
+      -232.7
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "consumer_surplus": {
+     "mean": 268.54,
+     "ci95": [
+      246.68,
+      290.39
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "liar_deals_dev": 2008,
+    "deals_dev": 9489
+   },
+   "liars50": {
+    "liar_share": 0.5,
+    "margin": {
+     "mean": -532.04,
+     "ci95": [
+      -570.4,
+      -493.67
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "consumer_surplus": {
+     "mean": 539.69,
+     "ci95": [
+      505.72,
+      573.66
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "liar_deals_dev": 4034,
+    "deals_dev": 9355
+   },
+   "liars100": {
+    "liar_share": 1.0,
+    "margin": {
+     "mean": -1080.52,
+     "ci95": [
+      -1114.06,
+      -1046.97
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "consumer_surplus": {
+     "mean": 1099.06,
+     "ci95": [
+      1055.31,
+      1142.82
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "liar_deals_dev": 8130,
+    "deals_dev": 9119
+   }
+  }
+ },
+ "7": {
+  "attack_version": 1,
+  "kind": "liar_share_sweep",
+  "days": 30,
+  "seed": 7,
+  "wtp_factor": 0.7,
+  "claim_walk": true,
+  "world": {
+   "sigma_shock": 0.0,
+   "flexible_share": 0.35
+  },
+  "notes": [
+   "liar identity is stable per person: keyed on consumer.uid via substream(seed,'liarid',uid), never on the policy",
+   "paired seeds, block=5 CI"
+  ],
+  "cells": {
+   "liars25": {
+    "liar_share": 0.25,
+    "margin": {
+     "mean": -273.69,
+     "ci95": [
+      -290.22,
+      -257.16
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "consumer_surplus": {
+     "mean": 287.73,
+     "ci95": [
+      263.89,
+      311.58
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "liar_deals_dev": 2072,
+    "deals_dev": 9628
+   },
+   "liars50": {
+    "liar_share": 0.5,
+    "margin": {
+     "mean": -548.45,
+     "ci95": [
+      -569.54,
+      -527.35
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "consumer_surplus": {
+     "mean": 576.73,
+     "ci95": [
+      557.63,
+      595.84
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "liar_deals_dev": 4110,
+    "deals_dev": 9528
+   },
+   "liars100": {
+    "liar_share": 1.0,
+    "margin": {
+     "mean": -1108.5,
+     "ci95": [
+      -1152.42,
+      -1064.59
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "consumer_surplus": {
+     "mean": 1170.65,
+     "ci95": [
+      1136.99,
+      1204.31
+     ],
+     "n": 6,
+     "block": 5
+    },
+    "liar_deals_dev": 8259,
+    "deals_dev": 9312
+   }
+  }
+ }
+}

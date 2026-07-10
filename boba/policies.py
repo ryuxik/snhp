@@ -24,14 +24,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+import functools
+
 from boba.world import (DRINK_APPEAL, DRINK_COST, DRINK_PRICE, HOURLY_RATE,
-                        HOURLY_WTP_MULT, PEARL_COST, QTY_CAP,
+                        HOURLY_WTP_MULT, PEAK_HOURS, PEARL_COST, QTY_CAP,
                         TICKS_PER_DAY, TOP_APPEAL, TOP_COST, TOP_LIKE_PROB,
                         TOP_PRICE, TOP_SIGMA, WTP_SIGMA,
-                        Consumer, ShopState, _pstar_single, _sf, balk_prob,
-                        best_menu_order, bundle_value, capacity_relief,
+                        Consumer, ShopState, _pstar_single, _sf, _value_price,
+                        balk_prob, best_menu_order, bundle_value, capacity_relief,
                         expected_cups_per_arrival, hour_of, outside_surplus,
-                        service_rate_at, slot_capacity)
+                        qty_ladder, service_rate_at, slot_capacity)
 
 PRICE_RUNGS = 8
 BATCH_CLEARANCE_WINDOW = 6      # ticks (1 hour) before expiry counts as "soon"
@@ -170,6 +172,12 @@ class CartPolicy:
       salvage       — pearls from an expiring batch cost 0 (batch clearance)
       quote_lookers — negotiate with buyers who would NOT have bought at
                       the sticker (personalized sub-list conversion)
+
+    BOBA P1a liar-battery knobs (default OFF = byte-identical to P0):
+      attest             — False enables the attack (mirrors vend.A2APolicy)
+      liar_share         — fraction of buyers (by stable uid) who deviate
+      attack_wtp_factor  — strategic_disclosure's wtp_factor for liars
+      attack_claim_walk  — strategic_disclosure's claim_walk for liars
     """
     policy_id: str = "cart/1"
     mode: str = "cart"
@@ -178,6 +186,10 @@ class CartPolicy:
     defer_slots: bool = True
     salvage: bool = True
     quote_lookers: bool = True
+    attest: bool = True
+    liar_share: float = 0.0
+    attack_wtp_factor: float = 0.55
+    attack_claim_walk: bool = True
 
     def boards(self, state: ShopState) -> tuple[dict[str, float], dict[str, float]]:
         return sticker_boards()
@@ -193,7 +205,8 @@ def cart_nash(state: ShopState, consumer: Consumer,
               min_gain_frac: float = 0.10, *,
               defer_slots: bool = True,
               salvage: bool = True,
-              quote_lookers: bool = True) -> CartDeal | None:
+              quote_lookers: bool = True,
+              outside_consumer: Consumer | None = None) -> CartDeal | None:
     """Nash bargaining over the cart outcome space, in dollars.
 
     The disagreement point is one consistent no-deal EVENT for both sides:
@@ -211,10 +224,24 @@ def cart_nash(state: ShopState, consumer: Consumer,
     A buyer who would have paid the menu price gets a discount only out of
     newly created surplus (toppings above cost, freed peak capacity, pearls
     that would have been waste) — never out of margin the shop already had.
+
+    `outside_consumer` (BOBA P1 liar battery): the consumer object used to
+    price the OUTSIDE alternative (the coffee-shop-next-door surplus),
+    independent of `consumer` — the disclosed one used for everything else
+    (bundle value, the sticker counterfactual). Defaults to `consumer`
+    itself (honest disclosure, byte-identical to P0). This is boba's analog
+    of vend's zero-walk claim: vend's buyer can zero the walk-cost friction
+    that gates its bodega surplus, independent of its WTP lie; boba's
+    outside_surplus has no separate friction term (the 10% markup is the
+    world's, not the consumer's), so the equivalent lie is claiming a
+    DIFFERENT (typically truer, larger) valuation of the coffee shop next
+    door than the one used to lowball this counter — 'I don't want much of
+    this menu, but I'd happily pay full price two doors down.'
     """
     b = balk_prob(state)
     pearls_stocked = state.pearl_stock()
-    s_out = outside_surplus(consumer)
+    s_out = outside_surplus(outside_consumer if outside_consumer is not None
+                            else consumer)
 
     # the sticker counterfactual, via the same canonical chooser the
     # simulated walk-in uses (with the same pearls-availability rule)
@@ -305,3 +332,230 @@ def cart_nash(state: ShopState, consumer: Consumer,
     return CartDeal(drink=d, qty=q, tops=T, price=p, slot_ticks=s,
                     value=val, u_shop=u_s, d_shop=d_s, u_buyer=u_b,
                     d_buyer=d_b, relief=r, why=tuple(why))
+
+
+# ── BOBA P1a: the liar battery ───────────────────────────────────────────
+def strategic_disclosure(consumer: Consumer, wtp_factor: float = 1.0,
+                         claim_walk: bool = False
+                         ) -> tuple[Consumer, Consumer | None]:
+    """boba's analog of vend.scenario.strategic_disclosure(wtp_factor,
+    zero_walk): scale every disclosed drink AND topping WTP by wtp_factor
+    (<1 understates/anchors, >1 overstates) — the same lever vend sweeps.
+    `claim_walk` is boba's analog of vend's zero-walk claim: vend can
+    independently zero the walk-cost friction gating its bodega surplus;
+    boba's outside_surplus has no separate friction term to zero (the 10%
+    markup is the world's, not the consumer's), so the structurally
+    equivalent lie is decoupling the coffee-shop valuation from the
+    in-store anchoring lie — claim_walk=True reports it at TRUE (unscaled)
+    value regardless of wtp_factor, inflating the buyer's apparent BATNA
+    exactly the way zero_walk inflates vend's, independent of the anchor.
+
+    Returns (disclosed_consumer, outside_consumer): the first feeds every
+    other part of cart_nash (bundle value, the sticker counterfactual); the
+    second is what outside_surplus is priced against (None ⇒ honest, use
+    the disclosed consumer itself, byte-identical to not lying at all)."""
+    disclosed = Consumer(fav=consumer.fav,
+                         wtp={d: v * wtp_factor for d, v in consumer.wtp.items()},
+                         top_wtp={t: v * wtp_factor for t, v in consumer.top_wtp.items()},
+                         flexible=consumer.flexible, qty_decay=consumer.qty_decay,
+                         uid=consumer.uid)
+    return disclosed, (consumer if claim_walk else None)
+
+
+def buyer_disagreement(state: ShopState, consumer: Consumer) -> float:
+    """The buyer's TRUE no-deal payoff: the same event-consistent mixture
+    cart_nash computes internally for d_buyer (full-cart settings —
+    salvage doesn't enter d_buyer, only d_shop), exposed standalone so the
+    liar battery can check a lying buyer's REAL acceptance against their
+    REAL alternative, never the disclosed one they used to angle for a
+    quote, and so the menu-fairness arm (which never negotiates at all)
+    has the same honest yardstick to accept or decline a posted price
+    against."""
+    b = balk_prob(state)
+    s_out = outside_surplus(consumer)
+    pearls_stocked = state.pearl_stock()
+    d0, q0, t0, s_menu = best_menu_order(consumer, DRINK_PRICE, TOP_PRICE,
+                                         pearls_ok=pearls_stocked >= QTY_CAP)
+    if d0 is not None and s_menu > 0 and s_menu >= s_out:
+        return (1.0 - b) * s_menu + b * s_out
+    return s_out
+
+
+# ── BOBA P1b: menu fairness — a small, person-independent public menu ────
+@dataclass(frozen=True)
+class MenuTier:
+    """One posted price board on the menu-fairness broker's public list —
+    identical for every persona who sees it. `drink_prices`/`top_prices`
+    are plain dicts (never a function of who's asking); `slot_ticks` is 0
+    (now) or +30/+60 for a balk-free deferred pickup; `min_qty` is the
+    tier's screening friction for a same-time, same-drink markdown — a
+    flat discount with NO friction is not a menu, it's a price cut everyone
+    takes (P0's diagnosed cannibalization failure, one level up); requiring
+    qty≥2 makes it a real bulk deal, self-selected by who actually wants
+    more, exactly like a retail '2 for' rack."""
+    name: str
+    drink_prices: dict
+    top_prices: dict
+    slot_ticks: int = 0
+    min_qty: int = 1
+
+
+def _best_order_min_qty(consumer: Consumer, drink_prices: dict,
+                        top_prices: dict, min_qty: int,
+                        pearls_ok: bool = True
+                        ) -> tuple[str | None, int, tuple[str, ...], float]:
+    """world.best_menu_order restricted to qty >= min_qty — the bundle
+    tier's screening device: the discount only unlocks if the buyer
+    commits to the larger order, so it can't be harvested by everyone for
+    free (unlike a flat same-qty markdown, which any buyer trivially takes
+    regardless of whether they were ever price-sensitive)."""
+    best = (None, 0, (), 0.0)
+    avail = [t for t in top_prices if pearls_ok or t != "pearls"]
+    for q in range(min_qty, QTY_CAP + 1):
+        lad = qty_ladder(consumer.qty_decay, q)
+        chosen = tuple(t for t in avail
+                       if consumer.top_wtp[t] * lad > q * top_prices[t])
+        top_val = sum(consumer.top_wtp[t] for t in chosen)
+        top_price = sum(top_prices[t] for t in chosen)
+        for d, p in drink_prices.items():
+            s = (consumer.wtp[d] + top_val) * lad - q * (p + top_price)
+            if s > best[3]:
+                best = (d, q, chosen, s)
+    return best
+
+
+@functools.lru_cache(maxsize=None)
+def menu_for_context(hour: int) -> tuple[MenuTier, ...]:
+    """THE person-independent menu (BOBA P1's mitigation for the 45%
+    discrimination ceiling): a small set of PUBLIC price boards derived
+    ONLY from the hour — population WTP statistics (DRINK_APPEAL/TOP_APPEAL
+    at this hour's multiplier), never any individual's disclosed
+    willingness. Same hour ⇒ byte-identical tuple of tiers for every
+    persona (this function doesn't even accept a consumer argument) —
+    self-SELECTION off a fixed list, not price discrimination. Each tier
+    pairs one posted markdown (world._value_price, the person-independent
+    analog of the cart's personalized looker conversion) with a REAL
+    screening friction — a menu with none collapses into a flat discount
+    everyone takes, which is P0's cannibalization failure recurring at the
+    bundle level:
+
+      list       — the static board, always available, no friction.
+      topper     — drink at list, TOPPINGS at the value markdown. Self-
+                   limiting without a min_qty trick: best_menu_order only
+                   adds a topping the buyer actually wants above its
+                   price, so a buyer with no topping taste sees this tier
+                   collapse to identical-to-list; the friction here is
+                   genuine desire for a topping, not price sensitivity
+                   alone (a real, if partial, discrimination leak — see
+                   RESULTS.md).
+      bundle     — drink AND toppings at the value markdown, but ONLY at
+                   qty>=2 (`min_qty`) — a bulk deal. Screens on quantity:
+                   worth taking only if the decayed 2nd/3rd cup clears the
+                   discounted price, which a genuine solo buyer's low
+                   qty_decay makes unlikely.
+      value-defer30/60 — the SAME value prices plus a balk-free pickup
+                   slot, offered only in the structurally congested hours
+                   (PEAK_HOURS). Screens on flexibility (RIGID_DEFER costs
+                   real dollars) — the pre-registered fairness-CLEAN
+                   logistics lever.
+
+    Pearls-expiry salvage is deliberately omitted (P0 found it worth
+    ~$0.05/day — immaterial, and it's a live-batch signal that would force
+    a finer-grained, tick-level cache key for no measurable gain)."""
+    mult = HOURLY_WTP_MULT[hour]
+    value_drinks = {d: _value_price(round(DRINK_APPEAL[d] * mult, 6),
+                                    round(DRINK_COST[d], 6), DRINK_PRICE[d],
+                                    WTP_SIGMA)
+                    for d in DRINK_PRICE}
+    value_tops = {t: _value_price(round(TOP_APPEAL[t], 6),
+                                  round(TOP_COST[t], 6), TOP_PRICE[t],
+                                  TOP_SIGMA)
+                 for t in TOP_PRICE}
+    tiers = [MenuTier("list", DRINK_PRICE, TOP_PRICE, 0, 1),
+            MenuTier("topper", DRINK_PRICE, value_tops, 0, 1),
+            MenuTier("bundle", value_drinks, value_tops, 0, 2)]
+    if hour in PEAK_HOURS:
+        tiers.append(MenuTier("value-defer30", value_drinks, value_tops, 3, 1))
+        tiers.append(MenuTier("value-defer60", value_drinks, value_tops, 6, 1))
+    return tuple(tiers)
+
+
+def menu_pick(state: ShopState, consumer: Consumer, *,
+             defer_tiers: bool = True) -> CartDeal | None:
+    """The menu-fair quote: the buyer self-selects the best-for-THEM option
+    off menu_for_context's PUBLIC tiers, using their own TRUE preferences —
+    no disclosure, no negotiation, nothing keyed on who they are. Returns
+    the same CartDeal shape cart_nash does so the P0 runner's cart branch
+    (balk timing, settlement, accounting) works unmodified.
+
+    `defer_tiers=False` is the decomposition ablation (RESULTS.md): drop
+    the value-defer tiers to isolate the (topper + bundle) discrimination-
+    lite tiers from the capacity-smoothing logroll."""
+    b = balk_prob(state)
+    s_out = outside_surplus(consumer)
+    d_buyer = buyer_disagreement(state, consumer)
+    pearls_stocked = state.pearl_stock()
+    best = None
+    for tier in menu_for_context(hour_of(state.tick)):
+        if tier.slot_ticks > 0 and not defer_tiers:
+            continue
+        chooser = (_best_order_min_qty if tier.min_qty > 1 else best_menu_order)
+        args = (consumer, tier.drink_prices, tier.top_prices,
+                tier.min_qty) if tier.min_qty > 1 else (
+                consumer, tier.drink_prices, tier.top_prices)
+        drink, qty, tops, sval = chooser(
+            *args, pearls_ok=pearls_stocked >= QTY_CAP)
+        if drink is None or sval <= 0:
+            continue
+        if tier.slot_ticks > 0:
+            if slot_capacity(state, state.tick + tier.slot_ticks) < qty:
+                continue                    # that pickup slot is sold out
+        price = round(qty * (tier.drink_prices[drink]
+                             + sum(tier.top_prices[t] for t in tops)), 2)
+        val = bundle_value(consumer, drink, qty, tops)
+        surv = (1.0 - b) if tier.slot_ticks == 0 else 1.0
+        dis = consumer.defer_cost(tier.slot_ticks)
+        u_b = surv * (val - price) + (1.0 - surv) * s_out - dis
+        if u_b < d_buyer - 1e-9:
+            continue                        # not worth it to THIS buyer
+        ceff = {t: top_c_eff(state, t) for t in tops}
+        cost = qty * (DRINK_COST[drink] + sum(ceff[t] for t in tops))
+        relief = capacity_relief(state, qty, tier.slot_ticks) \
+            if tier.slot_ticks else 0.0
+        u_s = surv * (price - cost) + relief
+        # the buyer picks whichever tier maximizes THEIR OWN surplus — the
+        # broker never steers the choice, it only fixes the price boards
+        if best is None or u_b > best[0]:
+            best = (u_b, tier, drink, qty, tops, price, val, u_s, relief)
+    if best is None:
+        return None
+    u_b, tier, drink, qty, tops, price, val, u_s, relief = best
+    listv = qty * (DRINK_PRICE[drink] + sum(TOP_PRICE[t] for t in tops))
+    why = [f"menu: {tier.name}"]
+    if tier.slot_ticks > 0:
+        why.append(f"+{tier.slot_ticks * 10}-min pickup, same posted price")
+    if price < listv - 1e-9:
+        why.append(f"${listv - price:.2f} under the menu (posted, not personal)")
+    else:
+        why.append("at menu")
+    return CartDeal(drink=drink, qty=qty, tops=tops, price=price,
+                    slot_ticks=tier.slot_ticks, value=val, u_shop=u_s,
+                    d_shop=0.0, u_buyer=u_b, d_buyer=d_buyer, relief=relief,
+                    why=tuple(why))
+
+
+@dataclass
+class MenuPolicy:
+    """BOBA P1b: the menu-fair broker. `boards()` fallback and `mode` match
+    CartPolicy exactly so the P0 runner's cart branch handles it with zero
+    changes — the only difference is HOW the quote is produced (self-
+    selection off a small public menu, not a bespoke Nash search)."""
+    policy_id: str = "menu/1"
+    mode: str = "cart"
+    defer_tiers: bool = True
+
+    def boards(self, state: ShopState) -> tuple[dict[str, float], dict[str, float]]:
+        return sticker_boards()
+
+    def quote_for(self, state: ShopState, consumer: Consumer) -> CartDeal | None:
+        return menu_pick(state, consumer, defer_tiers=self.defer_tiers)

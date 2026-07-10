@@ -220,6 +220,28 @@ def _sf(x: float, scale: float, sigma: float) -> float:
     return 0.5 * math.erfc((math.log(x / scale)) / (sigma * math.sqrt(2)))
 
 
+@functools.lru_cache(maxsize=None)
+def _value_price(appeal: float, cost: float, list_price: float,
+                 sigma: float) -> float:
+    """BOBA P1 menu fairness: the ONE posted markdown that profit-maximizes
+    over the sub-list segment alone —
+        argmax_{cost<p<list} (p-cost)·(SF(p) − SF(list))
+    i.e. only the demand a discount newly unlocks, never the buyers who'd
+    already pay list. This is the person-INDEPENDENT analog of the cart's
+    personalized looker conversion (RESULTS.md #2, ~45% of its edge): one
+    number for the whole population instead of a Nash split keyed on each
+    buyer's disclosed WTP. Falls back to list when there's no room below it
+    (already at cost, or nothing to markdown into)."""
+    if list_price <= cost + 0.02:
+        return list_price
+    from scipy.optimize import minimize_scalar
+    sf_list = _sf(list_price, appeal, sigma)
+    res = minimize_scalar(
+        lambda p: -(p - cost) * (_sf(p, appeal, sigma) - sf_list),
+        bounds=(cost + 0.01, list_price - 0.01), method="bounded")
+    return round(float(res.x), 2)
+
+
 def expected_cups_per_arrival(hour: int) -> float:
     """E[cups] per arrival at LIST prices in this hour: the i-th cup sells
     iff wtp·decay^(i-1) > list, mixed over the solo/group split. Ignores

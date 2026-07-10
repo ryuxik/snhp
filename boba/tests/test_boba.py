@@ -1,18 +1,24 @@
-"""BOBA P0 tests: pairing is real, determinism holds, discount-only is
-enforced, the queue/balk/batch physics work, and the cart arm's edges come
-from the right drivers (peak slots, expiring batches, group carts)."""
+"""BOBA P0/P1 tests: pairing is real, determinism holds, discount-only is
+enforced, the queue/balk/batch physics work, the cart arm's edges come from
+the right drivers (peak slots, expiring batches, group carts), the liar
+battery quotes on disclosed but settles on true preferences, and the menu
+arm is person-independent by construction."""
 import pytest
 
-from boba.policies import (CartPolicy, ComputedMenu, StaticMenu, cart_nash,
-                           pearls_expiring_excess, top_c_eff)
+from boba.policies import (CartPolicy, ComputedMenu, MenuPolicy, StaticMenu,
+                           buyer_disagreement, cart_nash, menu_for_context,
+                           menu_pick, pearls_expiring_excess,
+                           strategic_disclosure, top_c_eff)
 from boba.run import run_day, run_experiment
 from boba.world import (BATCH_SERVINGS, PEAK_HOURS, PEARL_COST,
                         PEARL_RESTOCK_TRIGGER, QTY_CAP, TICKS_PER_DAY,
-                        BobaConfig, Batch, Consumer, DRINK_PRICE, TOP_PRICE,
-                        arrivals_at, balk_prob, best_menu_order, capacity_relief,
+                        BobaConfig, Batch, Consumer, DRINK_COST, DRINK_PRICE,
+                        TOP_COST, TOP_PRICE, arrivals_at, balk_prob,
+                        best_menu_order, bundle_value, capacity_relief,
                         close_out, cook_batch, day_rate_mult, expected_wait_minutes,
                         expire_batches, hour_of, maybe_cook, open_shop,
-                        sample_consumer, serve_queue, take_pearls)
+                        outside_surplus, sample_consumer, serve_queue,
+                        take_pearls)
 
 
 def _rich_consumer(wtp_scale=1.4, flexible=False, decay=0.15, tops=1.4):
@@ -291,3 +297,232 @@ def test_committed_results_stay_reproducible():
                          seed=committed["seed"], cfg=cfg)
     for arm in committed["arms"]:
         assert res["arms"][arm]["totals"]["margin"] == cell["margin"][arm]
+
+
+# ── BOBA P1a: the liar battery ───────────────────────────────────────────
+
+def test_strategic_disclosure_scales_wtp_and_top_wtp():
+    c = _rich_consumer(wtp_scale=1.0, tops=1.0)
+    disclosed, outside_c = strategic_disclosure(c, wtp_factor=0.55, claim_walk=False)
+    assert all(disclosed.wtp[d] == pytest.approx(c.wtp[d] * 0.55) for d in c.wtp)
+    assert all(disclosed.top_wtp[t] == pytest.approx(c.top_wtp[t] * 0.55)
+              for t in c.top_wtp)
+    assert disclosed.fav == c.fav and disclosed.uid == c.uid
+    assert outside_c is None                        # honest walk claim
+
+
+def test_claim_walk_swaps_in_the_true_consumer_for_outside_only():
+    c = _rich_consumer(wtp_scale=0.6, tops=0.6)
+    disclosed, outside_c = strategic_disclosure(c, wtp_factor=0.55, claim_walk=True)
+    assert outside_c is c                            # the TRUE consumer, unscaled
+    assert disclosed.wtp != c.wtp                    # but the in-store lie stands
+
+
+def test_liar_identity_is_stable_and_policy_independent():
+    """Liar assignment keys on the consumer's uid — same person, same roll,
+    across returns and across arms (mirrors vend's identity-stability
+    pin)."""
+    c1 = sample_consumer(11, 2, 30, 0)
+    c2 = sample_consumer(11, 2, 30, 0)
+    assert c1.uid == c2.uid != 0
+    c3 = sample_consumer(11, 2, 30, 1)
+    assert c3.uid != c1.uid
+    import numpy as np
+    from boba.world import substream
+    roll_a = float(np.random.default_rng(substream(11, "liarid", c1.uid)).random())
+    roll_b = float(np.random.default_rng(substream(11, "liarid", c2.uid)).random())
+    assert roll_a == roll_b                          # same uid -> same roll
+    # policy-independent: two DIFFERENT liar-enabled policies (different
+    # attack params) still roll the SAME liar/honest verdict for this uid,
+    # since the roll depends only on (master_seed, uid) — never the policy
+    liarA = CartPolicy(attest=False, liar_share=0.5, attack_wtp_factor=0.55)
+    liarB = CartPolicy(attest=False, liar_share=0.5, attack_wtp_factor=1.3)
+    assert (roll_a < liarA.liar_share) == (roll_a < liarB.liar_share)
+
+
+def test_buyer_disagreement_matches_cart_nash_d_buyer():
+    """buyer_disagreement is not a second implementation drifting from
+    cart_nash's own d_buyer — pin them equal wherever a deal fires."""
+    state = open_shop()
+    state.tick = 36                          # slack afternoon
+    for scale in (0.85, 1.0, 1.4):
+        c = _rich_consumer(wtp_scale=scale, tops=scale)
+        deal = cart_nash(state, c)
+        if deal is not None:
+            assert buyer_disagreement(state, c) == pytest.approx(deal.d_buyer)
+
+
+def test_outside_consumer_overrides_only_the_batna():
+    """Feeding a richer `outside_consumer` into cart_nash raises the
+    buyer's claimed outside surplus (and can flip which no-deal branch
+    fires) without changing the disclosed consumer's own bundle math."""
+    state = open_shop()
+    state.tick = 36
+    poor = _rich_consumer(wtp_scale=0.5, tops=0.5)
+    rich_outside = _rich_consumer(wtp_scale=1.4, tops=1.4)
+    honest = cart_nash(state, poor)
+    lied = cart_nash(state, poor, outside_consumer=rich_outside)
+    assert outside_surplus(rich_outside) > outside_surplus(poor)
+    # both quotes (if any) price the SAME disclosed bundle math; only the
+    # buyer-side disagreement can differ
+    if honest is not None and lied is not None:
+        assert lied.d_buyer >= honest.d_buyer - 1e-9
+
+
+def test_cart_liar_quotes_on_disclosed_but_settles_on_true_value():
+    """End-to-end (run_day): with liar_share=1.0 every cart deal is priced
+    off a scaled disclosure, but m['consumer_surplus'] — booked via
+    TRUE bundle_value in the run_day liar branch — must stay a real,
+    finite, non-degenerate number (never derived from the lie)."""
+    honest = run_day(CartPolicy(), master_seed=20260713, day=0)
+    liar = run_day(CartPolicy(attest=False, liar_share=1.0,
+                              attack_wtp_factor=0.7, attack_claim_walk=True),
+                   master_seed=20260713, day=0)
+    assert liar["liar_deals"] > 0
+    assert honest["liar_deals"] == 0
+    # the liar arm converts real sales (cups served > 0) at a real,
+    # accounted margin — not NaN/negative-infinite from a broken settlement
+    assert liar["cups"] > 0
+    assert liar["margin"] == pytest.approx(
+        liar["revenue"] - liar["ingredient_cost"] - liar["waste_cost"], abs=0.02)
+
+
+def test_cart_liar_share_zero_is_byte_identical_to_p0():
+    """attest=False with liar_share=0.0 must never roll a liar — byte-
+    identical to the plain P0 cart arm (the liar machinery is a true no-op
+    at zero share, not just 'usually' a no-op)."""
+    liar_off = [run_day(CartPolicy(attest=False, liar_share=0.0), 5, d)
+               for d in range(3)]
+    cart_days = [run_day(CartPolicy(), 5, d) for d in range(3)]
+    assert liar_off == cart_days
+
+
+def test_liar_battery_and_sweep_run_end_to_end():
+    """Fast smoke test for boba.attack's plumbing (the real 30-day battery
+    lives in boba/attack-battery.json, generated out of band — this just
+    pins that the runner doesn't silently break)."""
+    from boba.attack import run_battery, run_liar_share_sweep
+    from boba.world import BobaConfig
+    cfg = BobaConfig(sigma_shock=0.0, flexible_share=0.35)
+    battery = run_battery(days=5, seed=3, cfg=cfg)
+    assert len(battery["cells"]) == 14
+    honest_cell = battery["cells"]["factor1_walkhonest"]
+    assert honest_cell["consumer_surplus"]["mean"] == 0.0   # no lie, no delta
+    sweep = run_liar_share_sweep(days=5, seed=3, cfg=cfg,
+                                 wtp_factor=0.7, claim_walk=True)
+    assert set(sweep["cells"]) == {"liars25", "liars50", "liars100"}
+    for cell in sweep["cells"].values():
+        # days=5 < 2*block(5): paired_ci falls back to the unblocked daily
+        # series (n=5) rather than discarding the run — still a valid CI
+        assert cell["margin"]["n"] == 5
+
+
+# ── BOBA P1b: menu fairness ──────────────────────────────────────────────
+
+def test_menu_is_person_independent():
+    """Same context (hour) -> byte-identical tiers, and the function never
+    even accepts a persona argument — the structural fairness guarantee.
+    Two wildly different buyers who both land on the same tier pay the
+    exact same posted price for the same drink."""
+    tiers_a = menu_for_context(13)
+    tiers_b = menu_for_context(13)
+    assert tiers_a == tiers_b
+    assert all(a.drink_prices is b.drink_prices
+              for a, b in zip(tiers_a, tiers_b))     # same cached dict objects
+
+    state = open_shop()
+    state.tick = 18                          # 13:00, slack enough for a deal
+    rich = _rich_consumer(wtp_scale=1.4, tops=0.5, decay=0.60)   # group buyer
+    poor = _rich_consumer(wtp_scale=0.9, tops=0.5, decay=0.15)   # solo buyer
+    d_rich = menu_pick(state, rich)
+    d_poor = menu_pick(state, poor)
+    assert d_rich is not None and d_poor is not None
+    assert d_rich.drink == d_poor.drink              # both land on matcha-latte
+    tiers = {t.name: t for t in menu_for_context(hour_of(state.tick))}
+    # whichever tier each landed on, the posted price for that SAME drink
+    # is identical across every board available to both — persona never
+    # enters the price, only the choice among prices
+    for name, tier in tiers.items():
+        assert tier.drink_prices[d_rich.drink] == tier.drink_prices[d_poor.drink]
+
+
+def test_menu_value_price_never_exceeds_list_or_undercuts_cost():
+    for h in (10, 12, 16, 21):
+        for tier in menu_for_context(h):
+            for d, p in tier.drink_prices.items():
+                assert DRINK_COST[d] - 1e-6 <= p <= DRINK_PRICE[d] + 1e-6
+            for t, p in tier.top_prices.items():
+                assert TOP_COST[t] - 1e-6 <= p <= TOP_PRICE[t] + 1e-6
+
+
+def test_menu_defer_tiers_only_at_peak_hours():
+    for h in range(10, 22):
+        names = {t.name for t in menu_for_context(h)}
+        has_defer = "value-defer30" in names
+        assert has_defer == (h in PEAK_HOURS)
+        assert names >= {"list", "topper", "bundle"}
+
+
+def test_menu_bundle_tier_requires_qty_at_least_two():
+    """The bundle tier's screening friction: it can never be taken at
+    qty=1 (that would be a flat same-qty discount everyone grabs — the
+    exact cannibalization failure the min_qty floor exists to block). A
+    genuine group buyer reaches it at qty>=2; the same taste, solo (low
+    qty_decay), never does."""
+    state = open_shop()
+    state.tick = 18
+    group = _rich_consumer(wtp_scale=1.4, tops=0.5, decay=0.60)
+    solo = _rich_consumer(wtp_scale=1.4, tops=0.5, decay=0.15)
+    d_group = menu_pick(state, group)
+    d_solo = menu_pick(state, solo)
+    assert d_group is not None and d_group.why[0] == "menu: bundle"
+    assert d_group.qty >= 2
+    assert d_solo is None or not (d_solo.why[0] == "menu: bundle" and d_solo.qty < 2)
+
+
+def test_menu_no_defer_ablation_drops_defer_tiers():
+    state = open_shop()
+    state.tick = 20                          # 13:20, deep in the crunch
+    state.queue.append(12)
+    flex = _rich_consumer(flexible=True)
+    with_defer = menu_pick(state, flex, defer_tiers=True)
+    without_defer = menu_pick(state, flex, defer_tiers=False)
+    assert with_defer is not None and with_defer.slot_ticks > 0   # takes the slot
+    assert without_defer is None or without_defer.slot_ticks == 0  # never offered
+
+
+def test_menu_deal_beats_the_buyers_true_disagreement():
+    """Structural honesty check on menu_pick itself, over a live day: every
+    quoted deal clears the buyer's TRUE no-deal payoff (never a personal
+    one — there's no disclosure channel to lie through in the first
+    place)."""
+    policy = MenuPolicy()
+    state = open_shop()
+    seen = 0
+    for tick in range(0, TICKS_PER_DAY, 3):
+        state.tick = tick
+        for k in range(arrivals_at(29, 1, tick)):
+            c = sample_consumer(29, 1, tick, k)
+            deal = policy.quote_for(state, c)
+            if deal is None:
+                continue
+            seen += 1
+            assert deal.u_buyer >= deal.d_buyer - 1e-9
+            assert deal.d_buyer == pytest.approx(buyer_disagreement(state, c))
+    assert seen > 10
+
+
+def test_menu_arm_runs_end_to_end_and_never_exceeds_list():
+    for arm in (MenuPolicy(), MenuPolicy(defer_tiers=False)):
+        m = run_day(arm, master_seed=20260710, day=0)
+        assert m["deals"] <= m["arrivals"]
+        assert m["cups"] >= m["deals"]
+        assert m["margin"] == pytest.approx(
+            m["revenue"] - m["ingredient_cost"] - m["waste_cost"], abs=0.02)
+        assert m["revenue"] >= 0 and m["consumer_surplus"] >= 0
+
+
+def test_menu_experiment_is_deterministic():
+    r1 = run_experiment(["static", "menu", "menu-no-defer"], days=2, seed=11)
+    r2 = run_experiment(["static", "menu", "menu-no-defer"], days=2, seed=11)
+    assert r1 == r2

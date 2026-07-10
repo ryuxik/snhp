@@ -204,6 +204,52 @@ opportunity-cost floor (tighter buffer, less extractable margin) while
 computed/1, unconstrained by that reference, gets more runway from the longer
 vase life. The florist boundary is more robust at realistic shrink, not less.
 
+## 10. Emergent incentive-compatibility is NOT universal — it is a property of finite-stock shadow pricing (boba breaks it) — SCOPE BOUNDARY, corrects a lead claim
+
+The whitepaper's lead claim (abstract + §4.2) is that a best-response search
+over misreporting finds honesty at the buyer's optimum *without verification*
+— "the disagreement structure prices lies." **That result is vend-specific.**
+Boba's liar battery (7×2 deviation grid + 25/50/100% share sweep, block CIs,
+two seeds) finds the opposite: understating WTP (~0.55–0.85×) while claiming a
+strong outside option flips `cart_nash`'s disagreement branch, so the shop
+believes it has nothing to lose even facing a genuine buyer. A true
+$10.71-surplus buyer extracts $23.66 and collapses shop margin $11.30→$0. The
+best-response deviation (wtp≈0.7, claim_walk) nets buyers **+$1,099–1,171/day
+pooled** (tight CIs, both seeds); erosion is near-linear in liar share and
+**~32–34% liars wipe out the entire +$270–350/day cart headline** (25% already
+costs −$257 to −$274/day; 50% flips the cart to a net loser vs static).
+
+**Root cause (diagnosed, not hand-waved): vend's honesty is protected by
+finite-stock shadow pricing that boba's capacity world lacks.** In vend the
+seller's disagreement point is anchored by a genuinely scarce resource — a
+sold unit is gone — so understating your alternative cannot manufacture a
+"nothing to lose" seller; the shadow price holds the floor. Boba's constraint
+is soft capacity (a freed slot is worth only its resale, which the buyer's
+claimed outside option can talk down), so the disagreement branch is
+manipulable. **The sharpened, more honest claim for the paper: emergent IC is
+a property of the shadow-price structure, not of Nash bargaining in general —
+it holds where the seller's no-deal value is pinned by a scarce stock, and
+fails where it rests on a manipulable capacity/outside-option comparison.**
+
+**The safe fallback exists and is measured (Task B, menu fairness):** a
+person-independent public menu (list / topper / bundle / value-defer),
+computed only from hour-level population stats with a real screening friction
+on each markdown, is **structurally immune to the entire liar battery** (no
+disclosure channel to exploit) — but keeps only ~9–10% of the cart's
+$346–357/day (discrimination component ~0% survival, i.e. a tie vs static;
+the fairness-clean pickup-time smoothing survives partially, ~21–22% of its
+$206/day). So the honest tradeoff at a capacity venue is stark: the
+discriminating cart is large but exploitable and fairness-exposed; the menu is
+safe and fair but keeps a tenth. **Action (pre-registered): (a) whitepaper
+abstract + §4.2 must state the finite-stock scope boundary — emergent IC is
+NOT claimed for capacity venues; (b) at capacity venues, verification
+(attested disclosure) moves from optional discount-tier back to a security
+requirement, or the broker falls back to the liar-immune menu; (c) test
+whether a shadow-price analog for capacity (pre-committing the freed-slot
+resale value so the outside-option claim cannot move it) restores IC — if it
+does, the unifying claim becomes "emergent IC wherever the disagreement point
+is pinned to a pre-committed value."**
+
 ## The meta-pattern
 
 Every real defect found so far is the same defect: **some term in the

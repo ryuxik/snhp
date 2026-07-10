@@ -1,0 +1,2550 @@
+{
+ "grid": {
+  "20260710": {
+   "boba_version": 1,
+   "days": 30,
+   "seed": 20260710,
+   "arms": [
+    "static",
+    "cart",
+    "menu",
+    "menu-no-defer"
+   ],
+   "rent_per_day": 330,
+   "cells": {
+    "shock0_flex0.15": {
+     "world": {
+      "sigma_shock": 0.0,
+      "flexible_share": 0.15
+     },
+     "margin": {
+      "static": 45460.65,
+      "cart": 54716.91,
+      "menu": 46349.13,
+      "menu-no-defer": 45266.34
+     },
+     "totals": {
+      "static": {
+       "margin": 45460.65,
+       "cups": 7567,
+       "peak_balks": 830,
+       "waste_cost": 219.0,
+       "deferred": 0,
+       "attach_rate": 0.861,
+       "avg_peak_wait": 3.68,
+       "consumer_surplus": 32619.0
+      },
+      "cart": {
+       "margin": 54716.91,
+       "cups": 14809,
+       "peak_balks": 643,
+       "waste_cost": 95.3,
+       "deferred": 2703,
+       "attach_rate": 1.395,
+       "avg_peak_wait": 4.29,
+       "consumer_surplus": 46667.09
+      },
+      "menu": {
+       "margin": 46349.13,
+       "cups": 10649,
+       "peak_balks": 652,
+       "waste_cost": 107.9,
+       "deferred": 845,
+       "attach_rate": 1.273,
+       "avg_peak_wait": 3.94,
+       "consumer_surplus": 44783.46
+      },
+      "menu-no-defer": {
+       "margin": 45266.34,
+       "cups": 10116,
+       "peak_balks": 1102,
+       "waste_cost": 111.6,
+       "deferred": 0,
+       "attach_rate": 1.264,
+       "avg_peak_wait": 4.89,
+       "consumer_surplus": 41819.83
+      }
+     },
+     "paired": {
+      "cart_vs_static": {
+       "margin": {
+        "mean": 308.54,
+        "ci95": [
+         289.88,
+         327.2
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 468.27,
+        "ci95": [
+         452.59,
+         483.95
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": -6.23,
+        "ci95": [
+         -6.7,
+         -5.77
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -4.12,
+        "ci95": [
+         -5.03,
+         -3.22
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 471.6,
+        "ci95": [
+         453.53,
+         489.67
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 90.1,
+        "ci95": [
+         86.52,
+         93.68
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "menu_vs_static": {
+       "margin": {
+        "mean": 29.62,
+        "ci95": [
+         -2.48,
+         61.71
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 405.48,
+        "ci95": [
+         383.98,
+         426.99
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": -5.93,
+        "ci95": [
+         -7.44,
+         -4.43
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -3.7,
+        "ci95": [
+         -4.85,
+         -2.56
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 234.53,
+        "ci95": [
+         223.9,
+         245.17
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 28.17,
+        "ci95": [
+         26.18,
+         30.15
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "menu-no-defer_vs_static": {
+       "margin": {
+        "mean": -6.48,
+        "ci95": [
+         -41.86,
+         28.91
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 306.69,
+        "ci95": [
+         279.56,
+         333.83
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": 9.07,
+        "ci95": [
+         7.6,
+         10.54
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -3.58,
+        "ci95": [
+         -4.42,
+         -2.74
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 209.2,
+        "ci95": [
+         198.14,
+         220.26
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 0.0,
+        "ci95": [
+         0.0,
+         0.0
+        ],
+        "n": 6,
+        "block": 5
+       }
+      }
+     }
+    },
+    "shock0_flex0.35": {
+     "world": {
+      "sigma_shock": 0.0,
+      "flexible_share": 0.35
+     },
+     "margin": {
+      "static": 45460.65,
+      "cart": 55942.6,
+      "menu": 46512.87,
+      "menu-no-defer": 45266.34
+     },
+     "totals": {
+      "static": {
+       "margin": 45460.65,
+       "cups": 7567,
+       "peak_balks": 830,
+       "waste_cost": 219.0,
+       "deferred": 0,
+       "attach_rate": 0.861,
+       "avg_peak_wait": 3.68,
+       "consumer_surplus": 32619.0
+      },
+      "cart": {
+       "margin": 55942.6,
+       "cups": 15115,
+       "peak_balks": 632,
+       "waste_cost": 93.7,
+       "deferred": 3121,
+       "attach_rate": 1.405,
+       "avg_peak_wait": 4.24,
+       "consumer_surplus": 47889.43
+      },
+      "menu": {
+       "margin": 46512.87,
+       "cups": 10718,
+       "peak_balks": 596,
+       "waste_cost": 116.0,
+       "deferred": 981,
+       "attach_rate": 1.271,
+       "avg_peak_wait": 3.66,
+       "consumer_surplus": 45359.64
+      },
+      "menu-no-defer": {
+       "margin": 45266.34,
+       "cups": 10116,
+       "peak_balks": 1102,
+       "waste_cost": 111.6,
+       "deferred": 0,
+       "attach_rate": 1.264,
+       "avg_peak_wait": 4.89,
+       "consumer_surplus": 41819.83
+      }
+     },
+     "paired": {
+      "cart_vs_static": {
+       "margin": {
+        "mean": 349.4,
+        "ci95": [
+         331.94,
+         366.86
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 509.01,
+        "ci95": [
+         495.92,
+         522.1
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": -6.6,
+        "ci95": [
+         -7.28,
+         -5.92
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -4.18,
+        "ci95": [
+         -4.63,
+         -3.72
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 490.57,
+        "ci95": [
+         477.56,
+         503.57
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 104.03,
+        "ci95": [
+         100.94,
+         107.13
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "menu_vs_static": {
+       "margin": {
+        "mean": 35.07,
+        "ci95": [
+         6.2,
+         63.95
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 424.69,
+        "ci95": [
+         397.13,
+         452.25
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": -7.8,
+        "ci95": [
+         -8.81,
+         -6.79
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -3.43,
+        "ci95": [
+         -4.44,
+         -2.43
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 236.77,
+        "ci95": [
+         227.48,
+         246.05
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 32.7,
+        "ci95": [
+         30.22,
+         35.18
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "menu-no-defer_vs_static": {
+       "margin": {
+        "mean": -6.48,
+        "ci95": [
+         -41.86,
+         28.91
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 306.69,
+        "ci95": [
+         279.56,
+         333.83
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": 9.07,
+        "ci95": [
+         7.6,
+         10.54
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -3.58,
+        "ci95": [
+         -4.42,
+         -2.74
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 209.2,
+        "ci95": [
+         198.14,
+         220.26
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 0.0,
+        "ci95": [
+         0.0,
+         0.0
+        ],
+        "n": 6,
+        "block": 5
+       }
+      }
+     }
+    },
+    "shock0.4_flex0.15": {
+     "world": {
+      "sigma_shock": 0.4,
+      "flexible_share": 0.15
+     },
+     "margin": {
+      "static": 48308.43,
+      "cart": 56459.03,
+      "menu": 48722.4,
+      "menu-no-defer": 47065.28
+     },
+     "totals": {
+      "static": {
+       "margin": 48308.43,
+       "cups": 8044,
+       "peak_balks": 1121,
+       "waste_cost": 195.3,
+       "deferred": 0,
+       "attach_rate": 0.851,
+       "avg_peak_wait": 4.4,
+       "consumer_surplus": 34598.09
+      },
+      "cart": {
+       "margin": 56459.03,
+       "cups": 15386,
+       "peak_balks": 931,
+       "waste_cost": 98.7,
+       "deferred": 3151,
+       "attach_rate": 1.396,
+       "avg_peak_wait": 4.87,
+       "consumer_surplus": 48792.97
+      },
+      "menu": {
+       "margin": 48722.4,
+       "cups": 11188,
+       "peak_balks": 900,
+       "waste_cost": 114.3,
+       "deferred": 896,
+       "attach_rate": 1.269,
+       "avg_peak_wait": 4.77,
+       "consumer_surplus": 46915.28
+      },
+      "menu-no-defer": {
+       "margin": 47065.28,
+       "cups": 10525,
+       "peak_balks": 1452,
+       "waste_cost": 124.6,
+       "deferred": 0,
+       "attach_rate": 1.256,
+       "avg_peak_wait": 5.74,
+       "consumer_surplus": 43425.74
+      }
+     },
+     "paired": {
+      "cart_vs_static": {
+       "margin": {
+        "mean": 271.69,
+        "ci95": [
+         213.86,
+         329.51
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 473.16,
+        "ci95": [
+         388.23,
+         558.09
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": -6.33,
+        "ci95": [
+         -8.01,
+         -4.66
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -3.22,
+        "ci95": [
+         -4.24,
+         -2.2
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 488.0,
+        "ci95": [
+         421.76,
+         554.24
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 105.03,
+        "ci95": [
+         78.73,
+         131.33
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "menu_vs_static": {
+       "margin": {
+        "mean": 13.8,
+        "ci95": [
+         -16.02,
+         43.62
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 410.57,
+        "ci95": [
+         345.63,
+         475.52
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": -7.37,
+        "ci95": [
+         -9.28,
+         -5.45
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -2.7,
+        "ci95": [
+         -3.95,
+         -1.45
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 244.93,
+        "ci95": [
+         205.7,
+         284.16
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 29.87,
+        "ci95": [
+         25.89,
+         33.84
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "menu-no-defer_vs_static": {
+       "margin": {
+        "mean": -41.44,
+        "ci95": [
+         -89.72,
+         6.85
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 294.25,
+        "ci95": [
+         249.83,
+         338.68
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": 11.03,
+        "ci95": [
+         7.21,
+         14.86
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -2.36,
+        "ci95": [
+         -2.96,
+         -1.75
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 212.4,
+        "ci95": [
+         182.07,
+         242.73
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 0.0,
+        "ci95": [
+         0.0,
+         0.0
+        ],
+        "n": 6,
+        "block": 5
+       }
+      }
+     }
+    },
+    "shock0.4_flex0.35": {
+     "world": {
+      "sigma_shock": 0.4,
+      "flexible_share": 0.35
+     },
+     "margin": {
+      "static": 48308.43,
+      "cart": 57634.86,
+      "menu": 48824.77,
+      "menu-no-defer": 47065.28
+     },
+     "totals": {
+      "static": {
+       "margin": 48308.43,
+       "cups": 8044,
+       "peak_balks": 1121,
+       "waste_cost": 195.3,
+       "deferred": 0,
+       "attach_rate": 0.851,
+       "avg_peak_wait": 4.4,
+       "consumer_surplus": 34598.09
+      },
+      "cart": {
+       "margin": 57634.86,
+       "cups": 15645,
+       "peak_balks": 940,
+       "waste_cost": 103.0,
+       "deferred": 3554,
+       "attach_rate": 1.403,
+       "avg_peak_wait": 4.82,
+       "consumer_surplus": 49960.44
+      },
+      "menu": {
+       "margin": 48824.77,
+       "cups": 11246,
+       "peak_balks": 838,
+       "waste_cost": 116.8,
+       "deferred": 1031,
+       "attach_rate": 1.265,
+       "avg_peak_wait": 4.48,
+       "consumer_surplus": 47438.11
+      },
+      "menu-no-defer": {
+       "margin": 47065.28,
+       "cups": 10525,
+       "peak_balks": 1452,
+       "waste_cost": 124.6,
+       "deferred": 0,
+       "attach_rate": 1.256,
+       "avg_peak_wait": 5.74,
+       "consumer_surplus": 43425.74
+      }
+     },
+     "paired": {
+      "cart_vs_static": {
+       "margin": {
+        "mean": 310.88,
+        "ci95": [
+         250.69,
+         371.07
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 512.08,
+        "ci95": [
+         428.13,
+         596.02
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": -6.03,
+        "ci95": [
+         -7.26,
+         -4.81
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -3.08,
+        "ci95": [
+         -4.03,
+         -2.12
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 503.43,
+        "ci95": [
+         435.21,
+         571.65
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 118.47,
+        "ci95": [
+         91.23,
+         145.7
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "menu_vs_static": {
+       "margin": {
+        "mean": 17.21,
+        "ci95": [
+         -12.83,
+         47.25
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 428.0,
+        "ci95": [
+         358.14,
+         497.87
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": -9.43,
+        "ci95": [
+         -12.46,
+         -6.41
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -2.62,
+        "ci95": [
+         -3.76,
+         -1.47
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 245.93,
+        "ci95": [
+         206.1,
+         285.76
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 34.37,
+        "ci95": [
+         29.5,
+         39.23
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "menu-no-defer_vs_static": {
+       "margin": {
+        "mean": -41.44,
+        "ci95": [
+         -89.72,
+         6.85
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 294.25,
+        "ci95": [
+         249.83,
+         338.68
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": 11.03,
+        "ci95": [
+         7.21,
+         14.86
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -2.36,
+        "ci95": [
+         -2.96,
+         -1.75
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 212.4,
+        "ci95": [
+         182.07,
+         242.73
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 0.0,
+        "ci95": [
+         0.0,
+         0.0
+        ],
+        "n": 6,
+        "block": 5
+       }
+      }
+     }
+    }
+   }
+  },
+  "7": {
+   "boba_version": 1,
+   "days": 30,
+   "seed": 7,
+   "arms": [
+    "static",
+    "cart",
+    "menu",
+    "menu-no-defer"
+   ],
+   "rent_per_day": 330,
+   "cells": {
+    "shock0_flex0.15": {
+     "world": {
+      "sigma_shock": 0.0,
+      "flexible_share": 0.15
+     },
+     "margin": {
+      "static": 45588.91,
+      "cart": 55000.05,
+      "menu": 46658.62,
+      "menu-no-defer": 45225.93
+     },
+     "totals": {
+      "static": {
+       "margin": 45588.91,
+       "cups": 7596,
+       "peak_balks": 927,
+       "waste_cost": 225.1,
+       "deferred": 0,
+       "attach_rate": 0.856,
+       "avg_peak_wait": 3.72,
+       "consumer_surplus": 32735.1
+      },
+      "cart": {
+       "margin": 55000.05,
+       "cups": 14905,
+       "peak_balks": 704,
+       "waste_cost": 105.0,
+       "deferred": 2781,
+       "attach_rate": 1.389,
+       "avg_peak_wait": 4.19,
+       "consumer_surplus": 47180.74
+      },
+      "menu": {
+       "margin": 46658.62,
+       "cups": 10752,
+       "peak_balks": 692,
+       "waste_cost": 103.5,
+       "deferred": 880,
+       "attach_rate": 1.27,
+       "avg_peak_wait": 3.82,
+       "consumer_surplus": 45473.88
+      },
+      "menu-no-defer": {
+       "margin": 45225.93,
+       "cups": 10131,
+       "peak_balks": 1202,
+       "waste_cost": 101.2,
+       "deferred": 0,
+       "attach_rate": 1.266,
+       "avg_peak_wait": 4.86,
+       "consumer_surplus": 41917.5
+      }
+     },
+     "paired": {
+      "cart_vs_static": {
+       "margin": {
+        "mean": 313.7,
+        "ci95": [
+         296.55,
+         330.85
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 481.52,
+        "ci95": [
+         469.13,
+         493.92
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": -7.43,
+        "ci95": [
+         -9.47,
+         -5.39
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -4.0,
+        "ci95": [
+         -4.67,
+         -3.34
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 473.4,
+        "ci95": [
+         453.54,
+         493.26
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 92.7,
+        "ci95": [
+         88.31,
+         97.09
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "menu_vs_static": {
+       "margin": {
+        "mean": 35.66,
+        "ci95": [
+         23.49,
+         47.83
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 424.63,
+        "ci95": [
+         408.04,
+         441.21
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": -7.83,
+        "ci95": [
+         -9.31,
+         -6.35
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -4.05,
+        "ci95": [
+         -5.12,
+         -2.99
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 238.6,
+        "ci95": [
+         232.15,
+         245.05
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 29.33,
+        "ci95": [
+         28.23,
+         30.43
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "menu-no-defer_vs_static": {
+       "margin": {
+        "mean": -12.1,
+        "ci95": [
+         -24.81,
+         0.61
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 306.08,
+        "ci95": [
+         292.34,
+         319.82
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": 9.17,
+        "ci95": [
+         7.88,
+         10.45
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -4.13,
+        "ci95": [
+         -5.27,
+         -2.99
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 210.83,
+        "ci95": [
+         203.42,
+         218.24
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 0.0,
+        "ci95": [
+         0.0,
+         0.0
+        ],
+        "n": 6,
+        "block": 5
+       }
+      }
+     }
+    },
+    "shock0_flex0.35": {
+     "world": {
+      "sigma_shock": 0.0,
+      "flexible_share": 0.35
+     },
+     "margin": {
+      "static": 45588.91,
+      "cart": 56121.93,
+      "menu": 46782.06,
+      "menu-no-defer": 45225.93
+     },
+     "totals": {
+      "static": {
+       "margin": 45588.91,
+       "cups": 7596,
+       "peak_balks": 927,
+       "waste_cost": 225.1,
+       "deferred": 0,
+       "attach_rate": 0.856,
+       "avg_peak_wait": 3.72,
+       "consumer_surplus": 32735.1
+      },
+      "cart": {
+       "margin": 56121.93,
+       "cups": 15198,
+       "peak_balks": 706,
+       "waste_cost": 95.5,
+       "deferred": 3169,
+       "attach_rate": 1.403,
+       "avg_peak_wait": 4.1,
+       "consumer_surplus": 48141.32
+      },
+      "menu": {
+       "margin": 46782.06,
+       "cups": 10808,
+       "peak_balks": 631,
+       "waste_cost": 105.9,
+       "deferred": 1007,
+       "attach_rate": 1.271,
+       "avg_peak_wait": 3.59,
+       "consumer_surplus": 46110.35
+      },
+      "menu-no-defer": {
+       "margin": 45225.93,
+       "cups": 10131,
+       "peak_balks": 1202,
+       "waste_cost": 101.2,
+       "deferred": 0,
+       "attach_rate": 1.266,
+       "avg_peak_wait": 4.86,
+       "consumer_surplus": 41917.5
+      }
+     },
+     "paired": {
+      "cart_vs_static": {
+       "margin": {
+        "mean": 351.1,
+        "ci95": [
+         331.71,
+         370.49
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 513.54,
+        "ci95": [
+         499.75,
+         527.33
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": -7.37,
+        "ci95": [
+         -9.39,
+         -5.34
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -4.32,
+        "ci95": [
+         -5.38,
+         -3.26
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 494.17,
+        "ci95": [
+         474.27,
+         514.06
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 105.63,
+        "ci95": [
+         100.43,
+         110.83
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "menu_vs_static": {
+       "margin": {
+        "mean": 39.77,
+        "ci95": [
+         26.06,
+         53.48
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 445.84,
+        "ci95": [
+         429.53,
+         462.15
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": -9.87,
+        "ci95": [
+         -10.99,
+         -8.74
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -3.97,
+        "ci95": [
+         -5.02,
+         -2.92
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 241.17,
+        "ci95": [
+         234.97,
+         247.37
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 33.57,
+        "ci95": [
+         32.38,
+         34.75
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "menu-no-defer_vs_static": {
+       "margin": {
+        "mean": -12.1,
+        "ci95": [
+         -24.81,
+         0.61
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 306.08,
+        "ci95": [
+         292.34,
+         319.82
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": 9.17,
+        "ci95": [
+         7.88,
+         10.45
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -4.13,
+        "ci95": [
+         -5.27,
+         -2.99
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 210.83,
+        "ci95": [
+         203.42,
+         218.24
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 0.0,
+        "ci95": [
+         0.0,
+         0.0
+        ],
+        "n": 6,
+        "block": 5
+       }
+      }
+     }
+    },
+    "shock0.4_flex0.15": {
+     "world": {
+      "sigma_shock": 0.4,
+      "flexible_share": 0.15
+     },
+     "margin": {
+      "static": 46183.17,
+      "cart": 55249.81,
+      "menu": 47138.69,
+      "menu-no-defer": 45618.98
+     },
+     "totals": {
+      "static": {
+       "margin": 46183.17,
+       "cups": 7687,
+       "peak_balks": 1036,
+       "waste_cost": 207.9,
+       "deferred": 0,
+       "attach_rate": 0.858,
+       "avg_peak_wait": 3.94,
+       "consumer_surplus": 32929.25
+      },
+      "cart": {
+       "margin": 55249.81,
+       "cups": 14988,
+       "peak_balks": 851,
+       "waste_cost": 88.5,
+       "deferred": 2913,
+       "attach_rate": 1.402,
+       "avg_peak_wait": 4.44,
+       "consumer_surplus": 47369.9
+      },
+      "menu": {
+       "margin": 47138.69,
+       "cups": 10862,
+       "peak_balks": 798,
+       "waste_cost": 106.3,
+       "deferred": 896,
+       "attach_rate": 1.275,
+       "avg_peak_wait": 4.07,
+       "consumer_surplus": 45741.68
+      },
+      "menu-no-defer": {
+       "margin": 45618.98,
+       "cups": 10221,
+       "peak_balks": 1323,
+       "waste_cost": 119.4,
+       "deferred": 0,
+       "attach_rate": 1.267,
+       "avg_peak_wait": 5.18,
+       "consumer_surplus": 42148.6
+      }
+     },
+     "paired": {
+      "cart_vs_static": {
+       "margin": {
+        "mean": 302.22,
+        "ci95": [
+         272.04,
+         332.4
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 481.36,
+        "ci95": [
+         429.78,
+         532.93
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": -6.17,
+        "ci95": [
+         -8.52,
+         -3.81
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -3.98,
+        "ci95": [
+         -4.33,
+         -3.63
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 480.5,
+        "ci95": [
+         419.23,
+         541.77
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 97.1,
+        "ci95": [
+         82.58,
+         111.62
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "menu_vs_static": {
+       "margin": {
+        "mean": 31.85,
+        "ci95": [
+         20.77,
+         42.93
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 427.08,
+        "ci95": [
+         401.11,
+         453.05
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": -7.93,
+        "ci95": [
+         -9.88,
+         -5.98
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -3.39,
+        "ci95": [
+         -3.54,
+         -3.23
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 241.67,
+        "ci95": [
+         222.14,
+         261.19
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 29.87,
+        "ci95": [
+         28.11,
+         31.63
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "menu-no-defer_vs_static": {
+       "margin": {
+        "mean": -18.81,
+        "ci95": [
+         -32.21,
+         -5.4
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 307.31,
+        "ci95": [
+         293.71,
+         320.92
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": 9.57,
+        "ci95": [
+         6.4,
+         12.74
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -2.95,
+        "ci95": [
+         -3.23,
+         -2.67
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 211.63,
+        "ci95": [
+         193.86,
+         229.41
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 0.0,
+        "ci95": [
+         0.0,
+         0.0
+        ],
+        "n": 6,
+        "block": 5
+       }
+      }
+     }
+    },
+    "shock0.4_flex0.35": {
+     "world": {
+      "sigma_shock": 0.4,
+      "flexible_share": 0.35
+     },
+     "margin": {
+      "static": 46183.17,
+      "cart": 56419.7,
+      "menu": 47254.96,
+      "menu-no-defer": 45618.98
+     },
+     "totals": {
+      "static": {
+       "margin": 46183.17,
+       "cups": 7687,
+       "peak_balks": 1036,
+       "waste_cost": 207.9,
+       "deferred": 0,
+       "attach_rate": 0.858,
+       "avg_peak_wait": 3.94,
+       "consumer_surplus": 32929.25
+      },
+      "cart": {
+       "margin": 56419.7,
+       "cups": 15276,
+       "peak_balks": 847,
+       "waste_cost": 94.8,
+       "deferred": 3304,
+       "attach_rate": 1.408,
+       "avg_peak_wait": 4.37,
+       "consumer_surplus": 48414.82
+      },
+      "menu": {
+       "margin": 47254.96,
+       "cups": 10918,
+       "peak_balks": 744,
+       "waste_cost": 105.6,
+       "deferred": 1023,
+       "attach_rate": 1.273,
+       "avg_peak_wait": 3.88,
+       "consumer_surplus": 46359.9
+      },
+      "menu-no-defer": {
+       "margin": 45618.98,
+       "cups": 10221,
+       "peak_balks": 1323,
+       "waste_cost": 119.4,
+       "deferred": 0,
+       "attach_rate": 1.267,
+       "avg_peak_wait": 5.18,
+       "consumer_surplus": 42148.6
+      }
+     },
+     "paired": {
+      "cart_vs_static": {
+       "margin": {
+        "mean": 341.22,
+        "ci95": [
+         310.41,
+         372.03
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 516.19,
+        "ci95": [
+         464.81,
+         567.56
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": -6.3,
+        "ci95": [
+         -8.91,
+         -3.69
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -3.77,
+        "ci95": [
+         -4.73,
+         -2.81
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 496.9,
+        "ci95": [
+         433.64,
+         560.16
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 110.13,
+        "ci95": [
+         94.68,
+         125.58
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "menu_vs_static": {
+       "margin": {
+        "mean": 35.73,
+        "ci95": [
+         24.91,
+         46.54
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 447.69,
+        "ci95": [
+         430.16,
+         465.22
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": -9.73,
+        "ci95": [
+         -11.34,
+         -8.13
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -3.41,
+        "ci95": [
+         -3.66,
+         -3.16
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 243.3,
+        "ci95": [
+         225.86,
+         260.74
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 34.1,
+        "ci95": [
+         32.94,
+         35.26
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "menu-no-defer_vs_static": {
+       "margin": {
+        "mean": -18.81,
+        "ci95": [
+         -32.21,
+         -5.4
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 307.31,
+        "ci95": [
+         293.71,
+         320.92
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "peak_balks": {
+        "mean": 9.57,
+        "ci95": [
+         6.4,
+         12.74
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -2.95,
+        "ci95": [
+         -3.23,
+         -2.67
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "toppings": {
+        "mean": 211.63,
+        "ci95": [
+         193.86,
+         229.41
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "deferred": {
+        "mean": 0.0,
+        "ci95": [
+         0.0,
+         0.0
+        ],
+        "n": 6,
+        "block": 5
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "confirm60_shock0_flex0.35": {
+  "20260710": {
+   "boba_version": 1,
+   "config": {
+    "seed": 20260710,
+    "days": 60,
+    "arms": [
+     "static",
+     "cart",
+     "menu",
+     "menu-no-defer"
+    ],
+    "world": {
+     "sigma_shock": 0.0,
+     "flexible_share": 0.35
+    },
+    "menu": {
+     "classic-milk-tea": 6.25,
+     "fruit-tea": 6.75,
+     "brown-sugar": 7.25,
+     "matcha-latte": 7.5
+    },
+    "rent_per_day": 330,
+    "notes": [
+     "static arm = the posted calibration menu; appeal is inverted so that menu IS the profit-optimal all-day posted price",
+     "discount-only: no arm prices above the menu",
+     "paired seeds: identical arrival/WTP/flexibility streams",
+     "computed arm's demand model = the true process (favorable)",
+     "cart quotes fire BEFORE the walk-in balk (app ordering); now-slot deals still face the same balk roll",
+     "margin is pre-rent; rent reported alongside"
+    ]
+   },
+   "arms": {
+    "static": {
+     "totals": {
+      "revenue": 115662.0,
+      "ingredient_cost": 24872.37,
+      "waste_cost": 446.2,
+      "cups": 15044,
+      "toppings": 12960,
+      "deals": 13473,
+      "arrivals": 22745,
+      "balks": 3816,
+      "peak_balks": 1682,
+      "lost": 5456,
+      "deferred": 0,
+      "negotiated": 0,
+      "neg_shop_gain": 0.0,
+      "consumer_surplus": 64224.73,
+      "peak_wait_sum": 21127.97,
+      "peak_arrivals": 5729,
+      "batches_cooked": 240,
+      "liar_deals": 0,
+      "margin": 90343.43,
+      "rent": 19800,
+      "attach_rate": 0.861,
+      "avg_peak_wait": 3.69
+     }
+    },
+    "cart": {
+     "totals": {
+      "revenue": 164385.65,
+      "ingredient_cost": 52446.99,
+      "waste_cost": 196.1,
+      "cups": 30223,
+      "toppings": 42356,
+      "deals": 19300,
+      "arrivals": 22745,
+      "balks": 3021,
+      "peak_balks": 1310,
+      "lost": 424,
+      "deferred": 6237,
+      "negotiated": 10243,
+      "neg_shop_gain": 30351.94,
+      "consumer_surplus": 95001.68,
+      "peak_wait_sum": 24565.36,
+      "peak_arrivals": 5729,
+      "batches_cooked": 456,
+      "liar_deals": 0,
+      "margin": 111742.56,
+      "rent": 19800,
+      "attach_rate": 1.401,
+      "avg_peak_wait": 4.29
+     }
+    },
+    "menu": {
+     "totals": {
+      "revenue": 129050.31,
+      "ingredient_cost": 36502.23,
+      "waste_cost": 219.3,
+      "cups": 21282,
+      "toppings": 27087,
+      "deals": 14847,
+      "arrivals": 22745,
+      "balks": 4263,
+      "peak_balks": 1228,
+      "lost": 3635,
+      "deferred": 1917,
+      "negotiated": 14847,
+      "neg_shop_gain": 81627.13,
+      "consumer_surplus": 89724.27,
+      "peak_wait_sum": 21180.03,
+      "peak_arrivals": 5729,
+      "batches_cooked": 319,
+      "liar_deals": 0,
+      "margin": 92328.78,
+      "rent": 19800,
+      "attach_rate": 1.273,
+      "avg_peak_wait": 3.7
+     }
+    },
+    "menu-no-defer": {
+     "totals": {
+      "revenue": 124273.21,
+      "ingredient_cost": 34376.36,
+      "waste_cost": 222.8,
+      "cups": 20058,
+      "toppings": 25420,
+      "deals": 13801,
+      "arrivals": 22745,
+      "balks": 5241,
+      "peak_balks": 2228,
+      "lost": 3703,
+      "deferred": 0,
+      "negotiated": 13801,
+      "neg_shop_gain": 74239.76,
+      "consumer_surplus": 82746.8,
+      "peak_wait_sum": 28213.37,
+      "peak_arrivals": 5729,
+      "batches_cooked": 304,
+      "liar_deals": 0,
+      "margin": 89674.05,
+      "rent": 19800,
+      "attach_rate": 1.267,
+      "avg_peak_wait": 4.92
+     }
+    }
+   },
+   "paired": {
+    "cart_vs_static": {
+     "margin": {
+      "mean": 356.65,
+      "ci95": [
+       344.61,
+       368.7
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "revenue": {
+      "mean": 812.06,
+      "ci95": [
+       793.46,
+       830.66
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "cups": {
+      "mean": 252.98,
+      "ci95": [
+       247.96,
+       258.0
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "consumer_surplus": {
+      "mean": 512.95,
+      "ci95": [
+       503.25,
+       522.65
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "peak_balks": {
+      "mean": -6.2,
+      "ci95": [
+       -6.85,
+       -5.55
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "waste_cost": {
+      "mean": -4.17,
+      "ci95": [
+       -4.4,
+       -3.93
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "deferred": {
+      "mean": 103.95,
+      "ci95": [
+       101.56,
+       106.34
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "toppings": {
+      "mean": 489.93,
+      "ci95": [
+       481.13,
+       498.74
+      ],
+      "n": 12,
+      "block": 5
+     }
+    },
+    "menu_vs_static": {
+     "margin": {
+      "mean": 33.09,
+      "ci95": [
+       18.02,
+       48.16
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "revenue": {
+      "mean": 223.14,
+      "ci95": [
+       203.38,
+       242.9
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "cups": {
+      "mean": 103.97,
+      "ci95": [
+       100.83,
+       107.11
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "consumer_surplus": {
+      "mean": 424.99,
+      "ci95": [
+       411.82,
+       438.17
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "peak_balks": {
+      "mean": -7.57,
+      "ci95": [
+       -8.43,
+       -6.71
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "waste_cost": {
+      "mean": -3.78,
+      "ci95": [
+       -4.39,
+       -3.18
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "deferred": {
+      "mean": 31.95,
+      "ci95": [
+       30.67,
+       33.23
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "toppings": {
+      "mean": 235.45,
+      "ci95": [
+       229.72,
+       241.18
+      ],
+      "n": 12,
+      "block": 5
+     }
+    },
+    "menu-no-defer_vs_static": {
+     "margin": {
+      "mean": -11.16,
+      "ci95": [
+       -29.24,
+       6.93
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "revenue": {
+      "mean": 143.52,
+      "ci95": [
+       119.81,
+       167.23
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "cups": {
+      "mean": 83.57,
+      "ci95": [
+       80.07,
+       87.06
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "consumer_surplus": {
+      "mean": 308.7,
+      "ci95": [
+       296.55,
+       320.85
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "peak_balks": {
+      "mean": 9.1,
+      "ci95": [
+       8.41,
+       9.79
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "waste_cost": {
+      "mean": -3.72,
+      "ci95": [
+       -4.28,
+       -3.17
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "deferred": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "toppings": {
+      "mean": 207.67,
+      "ci95": [
+       201.78,
+       213.55
+      ],
+      "n": 12,
+      "block": 5
+     }
+    }
+   }
+  },
+  "7": {
+   "boba_version": 1,
+   "config": {
+    "seed": 7,
+    "days": 60,
+    "arms": [
+     "static",
+     "cart",
+     "menu",
+     "menu-no-defer"
+    ],
+    "world": {
+     "sigma_shock": 0.0,
+     "flexible_share": 0.35
+    },
+    "menu": {
+     "classic-milk-tea": 6.25,
+     "fruit-tea": 6.75,
+     "brown-sugar": 7.25,
+     "matcha-latte": 7.5
+    },
+    "rent_per_day": 330,
+    "notes": [
+     "static arm = the posted calibration menu; appeal is inverted so that menu IS the profit-optimal all-day posted price",
+     "discount-only: no arm prices above the menu",
+     "paired seeds: identical arrival/WTP/flexibility streams",
+     "computed arm's demand model = the true process (favorable)",
+     "cart quotes fire BEFORE the walk-in balk (app ordering); now-slot deals still face the same balk roll",
+     "margin is pre-rent; rent reported alongside"
+    ]
+   },
+   "arms": {
+    "static": {
+     "totals": {
+      "revenue": 115854.85,
+      "ingredient_cost": 24931.74,
+      "waste_cost": 455.9,
+      "cups": 15075,
+      "toppings": 12825,
+      "deals": 13501,
+      "arrivals": 22728,
+      "balks": 3844,
+      "peak_balks": 1756,
+      "lost": 5383,
+      "deferred": 0,
+      "negotiated": 0,
+      "neg_shop_gain": 0.0,
+      "consumer_surplus": 65288.96,
+      "peak_wait_sum": 21350.61,
+      "peak_arrivals": 5877,
+      "batches_cooked": 240,
+      "liar_deals": 0,
+      "margin": 90467.21,
+      "rent": 19800,
+      "attach_rate": 0.851,
+      "avg_peak_wait": 3.63
+     }
+    },
+    "cart": {
+     "totals": {
+      "revenue": 163692.91,
+      "ingredient_cost": 52267.12,
+      "waste_cost": 195.9,
+      "cups": 30153,
+      "toppings": 42101,
+      "deals": 19257,
+      "arrivals": 22728,
+      "balks": 3056,
+      "peak_balks": 1356,
+      "lost": 415,
+      "deferred": 6237,
+      "negotiated": 10130,
+      "neg_shop_gain": 29898.77,
+      "consumer_surplus": 95408.41,
+      "peak_wait_sum": 24224.05,
+      "peak_arrivals": 5877,
+      "batches_cooked": 458,
+      "liar_deals": 0,
+      "margin": 111229.89,
+      "rent": 19800,
+      "attach_rate": 1.396,
+      "avg_peak_wait": 4.12
+     }
+    },
+    "menu": {
+     "totals": {
+      "revenue": 129362.32,
+      "ingredient_cost": 36658.27,
+      "waste_cost": 215.0,
+      "cups": 21378,
+      "toppings": 27112,
+      "deals": 14910,
+      "arrivals": 22728,
+      "balks": 4231,
+      "peak_balks": 1234,
+      "lost": 3587,
+      "deferred": 1995,
+      "negotiated": 14910,
+      "neg_shop_gain": 81735.15,
+      "consumer_surplus": 91407.32,
+      "peak_wait_sum": 20512.0,
+      "peak_arrivals": 5877,
+      "batches_cooked": 321,
+      "liar_deals": 0,
+      "margin": 92489.05,
+      "rent": 19800,
+      "attach_rate": 1.268,
+      "avg_peak_wait": 3.49
+     }
+    },
+    "menu-no-defer": {
+     "totals": {
+      "revenue": 124408.06,
+      "ingredient_cost": 34447.84,
+      "waste_cost": 211.3,
+      "cups": 20112,
+      "toppings": 25360,
+      "deals": 13812,
+      "arrivals": 22728,
+      "balks": 5254,
+      "peak_balks": 2284,
+      "lost": 3662,
+      "deferred": 0,
+      "negotiated": 13812,
+      "neg_shop_gain": 74439.88,
+      "consumer_surplus": 83795.98,
+      "peak_wait_sum": 27997.31,
+      "peak_arrivals": 5877,
+      "batches_cooked": 304,
+      "liar_deals": 0,
+      "margin": 89748.92,
+      "rent": 19800,
+      "attach_rate": 1.261,
+      "avg_peak_wait": 4.76
+     }
+    }
+   },
+   "paired": {
+    "cart_vs_static": {
+     "margin": {
+      "mean": 346.04,
+      "ci95": [
+       331.42,
+       360.67
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "revenue": {
+      "mean": 797.3,
+      "ci95": [
+       772.21,
+       822.4
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "cups": {
+      "mean": 251.3,
+      "ci95": [
+       245.16,
+       257.44
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "consumer_surplus": {
+      "mean": 501.99,
+      "ci95": [
+       487.68,
+       516.3
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "peak_balks": {
+      "mean": -6.67,
+      "ci95": [
+       -7.76,
+       -5.57
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "waste_cost": {
+      "mean": -4.33,
+      "ci95": [
+       -4.89,
+       -3.78
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "deferred": {
+      "mean": 103.95,
+      "ci95": [
+       100.77,
+       107.13
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "toppings": {
+      "mean": 487.93,
+      "ci95": [
+       472.22,
+       503.65
+      ],
+      "n": 12,
+      "block": 5
+     }
+    },
+    "menu_vs_static": {
+     "margin": {
+      "mean": 33.7,
+      "ci95": [
+       21.1,
+       46.3
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "revenue": {
+      "mean": 225.12,
+      "ci95": [
+       208.7,
+       241.54
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "cups": {
+      "mean": 105.05,
+      "ci95": [
+       102.16,
+       107.94
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "consumer_surplus": {
+      "mean": 435.31,
+      "ci95": [
+       421.7,
+       448.91
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "peak_balks": {
+      "mean": -8.7,
+      "ci95": [
+       -9.79,
+       -7.61
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "waste_cost": {
+      "mean": -4.02,
+      "ci95": [
+       -4.67,
+       -3.36
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "deferred": {
+      "mean": 33.25,
+      "ci95": [
+       32.38,
+       34.12
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "toppings": {
+      "mean": 238.12,
+      "ci95": [
+       232.52,
+       243.72
+      ],
+      "n": 12,
+      "block": 5
+     }
+    },
+    "menu-no-defer_vs_static": {
+     "margin": {
+      "mean": -11.97,
+      "ci95": [
+       -24.03,
+       0.09
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "revenue": {
+      "mean": 142.55,
+      "ci95": [
+       127.21,
+       157.89
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "cups": {
+      "mean": 83.95,
+      "ci95": [
+       81.42,
+       86.48
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "consumer_surplus": {
+      "mean": 308.45,
+      "ci95": [
+       299.58,
+       317.32
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "peak_balks": {
+      "mean": 8.8,
+      "ci95": [
+       7.79,
+       9.81
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "waste_cost": {
+      "mean": -4.08,
+      "ci95": [
+       -4.57,
+       -3.58
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "deferred": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 12,
+      "block": 5
+     },
+     "toppings": {
+      "mean": 208.92,
+      "ci95": [
+       203.28,
+       214.56
+      ],
+      "n": 12,
+      "block": 5
+     }
+    }
+   }
+  }
+ }
+}

@@ -19,19 +19,28 @@ import sys
 
 import numpy as np
 
-from boba.policies import CartPolicy, ComputedMenu, StaticMenu
+from boba.policies import (CartPolicy, ComputedMenu, MenuPolicy, StaticMenu,
+                           buyer_disagreement, cart_nash, strategic_disclosure)
 from boba.world import (DRINK_COST, DRINK_PRICE, PEAK_HOURS, QTY_CAP,
                         RENT_PER_DAY,
                         TICKS_PER_DAY, TOP_COST, BobaConfig, DEFAULT_CONFIG,
-                        arrivals_at, balk_prob, best_menu_order, close_out,
-                        expected_wait_minutes, expire_batches, hour_of,
-                        maybe_cook, open_shop, outside_surplus,
+                        arrivals_at, balk_prob, best_menu_order, bundle_value,
+                        close_out, expected_wait_minutes, expire_batches,
+                        hour_of, maybe_cook, open_shop, outside_surplus,
                         release_scheduled, sample_consumer, serve_queue,
                         substream, take_pearls)
 
 BOBA_VERSION = 1
 
-ARMS = {"static": StaticMenu, "computed": ComputedMenu, "cart": CartPolicy}
+ARMS = {
+    "static": StaticMenu, "computed": ComputedMenu, "cart": CartPolicy,
+    "menu": MenuPolicy,
+    "menu-no-defer": lambda: MenuPolicy(defer_tiers=False),
+    # BOBA P1a: stable-identity liar sweep (mirrors vend's a2a-liarsNN)
+    "cart-liars25": lambda: CartPolicy(attest=False, liar_share=0.25),
+    "cart-liars50": lambda: CartPolicy(attest=False, liar_share=0.50),
+    "cart-liars100": lambda: CartPolicy(attest=False, liar_share=1.00),
+}
 
 
 def _settle(state, m, drink, qty, tops, price, surplus, slot_ticks=0):
@@ -62,7 +71,8 @@ def run_day(policy, master_seed: int, day: int,
          "cups": 0, "toppings": 0, "deals": 0, "arrivals": 0,
          "balks": 0, "peak_balks": 0, "lost": 0, "deferred": 0,
          "negotiated": 0, "neg_shop_gain": 0.0, "consumer_surplus": 0.0,
-         "peak_wait_sum": 0.0, "peak_arrivals": 0, "batches_cooked": 0}
+         "peak_wait_sum": 0.0, "peak_arrivals": 0, "batches_cooked": 0,
+         "liar_deals": 0}
     state = open_shop(day)
 
     for tick in range(TICKS_PER_DAY):
@@ -83,27 +93,71 @@ def run_day(policy, master_seed: int, day: int,
 
             # ── cart arm: the app quote happens BEFORE the walk-in balk ──
             if getattr(policy, "mode", "board") == "cart":
-                deal = policy.quote_for(state, consumer)
-                if deal is not None and deal.u_buyer >= deal.d_buyer - 1e-9:
-                    # rational acceptance, enforced not assumed (true
-                    # utilities — identical to disclosed in P0, no liars)
-                    if deal.slot_ticks == 0:
-                        # a right-now app order still means standing in that
-                        # line: it faces the SAME balk roll as a walk-in
-                        roll = float(np.random.default_rng(
-                            substream(master_seed, "balk", day, tick, k)).random())
-                        if roll < balk_prob(state):
-                            m["balks"] += 1
-                            if peak:
-                                m["peak_balks"] += 1
-                            continue
-                    realized = deal.value - deal.price \
-                        - consumer.defer_cost(deal.slot_ticks)
-                    _settle(state, m, deal.drink, deal.qty, deal.tops,
-                            deal.price, realized, deal.slot_ticks)
-                    m["negotiated"] += 1
-                    m["neg_shop_gain"] += deal.u_shop - deal.d_shop
-                    continue
+                # BOBA P1a: liar identity is a property of the PERSON
+                # (stable across the day, keyed on uid, policy-independent
+                # like vend's "liarid" stream) — never a property of the
+                # policy's own randomness. attest defaults True (P0
+                # arms, and MenuPolicy, which has no attest attr at all)
+                # so this branch is a no-op — byte-identical to P0.
+                attest = getattr(policy, "attest", True)
+                liar_share = getattr(policy, "liar_share", 0.0)
+                lied = False
+                if not attest and liar_share > 0.0:
+                    liar_roll = float(np.random.default_rng(
+                        substream(master_seed, "liarid", consumer.uid)).random())
+                    lied = liar_roll < liar_share
+                if lied:
+                    disclosed, outside_c = strategic_disclosure(
+                        consumer, policy.attack_wtp_factor,
+                        policy.attack_claim_walk)
+                    deal = cart_nash(state, disclosed, policy.min_gain_abs,
+                                     policy.min_gain_frac,
+                                     defer_slots=policy.defer_slots,
+                                     salvage=policy.salvage,
+                                     quote_lookers=policy.quote_lookers,
+                                     outside_consumer=outside_c)
+                else:
+                    deal = policy.quote_for(state, consumer)
+                if deal is not None:
+                    if lied:
+                        # the deal was PRICED on a lie; the real person
+                        # accepts/consumes on REAL preferences — never
+                        # trust deal.value/u_buyer/d_buyer for a liar
+                        true_value = bundle_value(consumer, deal.drink,
+                                                  deal.qty, deal.tops)
+                        surv = (1.0 - balk_prob(state)) \
+                            if deal.slot_ticks == 0 else 1.0
+                        u_buyer = surv * (true_value - deal.price) \
+                            + (1.0 - surv) * outside_surplus(consumer) \
+                            - consumer.defer_cost(deal.slot_ticks)
+                        d_buyer = buyer_disagreement(state, consumer)
+                        deal_value = true_value
+                    else:
+                        u_buyer, d_buyer, deal_value = \
+                            deal.u_buyer, deal.d_buyer, deal.value
+                    if u_buyer >= d_buyer - 1e-9:
+                        # rational acceptance, enforced not assumed (TRUE
+                        # utilities, always — a lie can win a quote, never
+                        # a sale the buyer's real self wouldn't take)
+                        if deal.slot_ticks == 0:
+                            # a right-now app order still means standing in
+                            # that line: it faces the SAME balk roll as a
+                            # walk-in
+                            roll = float(np.random.default_rng(
+                                substream(master_seed, "balk", day, tick, k)).random())
+                            if roll < balk_prob(state):
+                                m["balks"] += 1
+                                if peak:
+                                    m["peak_balks"] += 1
+                                continue
+                        realized = deal_value - deal.price \
+                            - consumer.defer_cost(deal.slot_ticks)
+                        _settle(state, m, deal.drink, deal.qty, deal.tops,
+                                deal.price, realized, deal.slot_ticks)
+                        m["negotiated"] += 1
+                        m["neg_shop_gain"] += deal.u_shop - deal.d_shop
+                        m["liar_deals"] += int(lied)
+                        continue
 
             # ── walk-in: balk BEFORE ordering, then shop the board ──
             b = balk_prob(state)
