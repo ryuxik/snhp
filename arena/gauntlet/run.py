@@ -197,6 +197,10 @@ def main(argv=None) -> int:
         if not raw.isdigit():
             p.error("--eval needs GAUNTLET_EVAL_SEED set in the environment "
                     "(a private integer seed — keep it out of git)")
+        if not args.out:
+            # an eval run costs real API money; never let its results
+            # evaporate into stdout (this has happened)
+            p.error("--eval requires --out (e.g. --out arena/web/leaderboard.json)")
         seed, seed_label = int(raw), "held-out-v1"
     else:
         seed, seed_label = SCENARIO_SEED, SCENARIO_SEED
