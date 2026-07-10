@@ -24,6 +24,9 @@
   Install: `claude mcp add snhp -- uvx snhp` (PyPI, zero-install)
   Repo: https://github.com/ryuxik/snhp
 - Dispute copilot (consumer refunds): https://snhp.dev/dispute.html
+- Research — Transfer Market Mechanics: https://snhp.dev/research — the engine
+  applied to football (transfer pricing, clause auctions, World Cup ticket
+  premiums), with interactive widgets and public simulation code in the repo.
 
 ## Hire the engine
 
