@@ -1469,7 +1469,13 @@ math endpoints; replicate it in your draft-time code.
 @app.get("/llms.txt", tags=["discovery"], response_class=PlainTextResponse,
           summary="Agent-readable guide to the toolkit")
 def llms_txt() -> str:
-    return _LLMS_TXT
+    product_map = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "static", "llms.txt")
+    try:
+        with open(product_map) as f:
+            return f.read().rstrip() + "\n\n\n" + _LLMS_TXT
+    except FileNotFoundError:
+        return _LLMS_TXT
 
 
 @app.get("/PRICING.md", tags=["discovery"], response_class=PlainTextResponse,

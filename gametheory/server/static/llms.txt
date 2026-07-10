@@ -3,9 +3,10 @@
 > LLMs are measurably bad at multi-issue negotiation: on a Pareto-frontier
 > benchmark, frontier models playing solo score below a naive
 > split-the-difference bot (Claude Haiku solo takes $5,731 of a $10,000
-> notional vs the splitter's $7,135, on a held-out scenario set). SNHP is a game-theory engine (logrolling, Bayesian
-> opponent inference, Nash bargaining) that computes the moves — "LLM talks,
-> engine decides" — plus the public leaderboard that proves it.
+> notional vs the splitter's $7,135, on a held-out scenario set). SNHP is
+> a game-theory engine (logrolling, Bayesian opponent inference, Nash
+> bargaining) that computes the moves — "LLM talks, engine decides" —
+> plus the public leaderboard that proves it.
 
 ## Products
 
@@ -36,3 +37,6 @@ point. To benchmark a negotiating agent, enter the gauntlet — spec at
 https://arena.snhp.dev/llms.txt.
 
 Contact: DM @ryuxik on X, or ryuxik@gmail.com
+
+The full guide to the hosted HTTP API (tools, privacy contract, discovery)
+follows below.
