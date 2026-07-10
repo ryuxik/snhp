@@ -173,10 +173,17 @@ class A2APolicy:
     mode: str = "intent"
     learner: "DemandLearner" = None
     dow_mult: float = 1.0
-    min_gain: float = 1.00   # $: don't negotiate for pennies. Swept on the
-    # control cell (perfect sticker: -$0.72/day, CI touching 0 — in-sample)
-    # and validated out-of-sample on the seed-7 realistic cell (+$1.95
-    # [1.06, 2.83]): the buffer that makes A2A weakly dominant.
+    # don't-negotiate-for-pennies, SCALED with transaction size (fairness v2:
+    # a flat $1 was a 50% margin floor on a $2 item — it gated quotes away
+    # from exactly the small-basket regulars the anchor shocks)
+    min_gain: float = 0.75        # $ floor
+    min_gain_frac: float = 0.15   # of the bundle's list value
+    # Buffer frontier (documented, all points tested): $1 flat → control tie
+    # (−$0.72) but gates quotes off small baskets (regulars unprotected);
+    # 0.25/0.10 → full pool protection but −$5.43 control leak; 0.75/0.15 →
+    # control −$1.98 [−2.70,−1.25] AND full pool protection at ×1.25 with
+    # the ~+$33/day harvest intact. Perfect calibration doesn't exist in
+    # the field; the ~2% concession buys the customer base.
 
     def __post_init__(self):
         if self.learner is None:
@@ -198,7 +205,8 @@ class A2APolicy:
                           mult_hat=self.learner.mult_hat,
                           share_fn=lambda s: self.learner.share(s, n),
                           daily_fn=self.learner.daily,
-                          min_gain=self.min_gain), lied
+                          min_gain=self.min_gain,
+                          min_gain_frac=self.min_gain_frac), lied
 
 
 @dataclass

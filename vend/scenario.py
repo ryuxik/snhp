@@ -178,7 +178,7 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
                disclosed_walk_cost: float, *,
                dow_mult: float = 1.0, mult_hat: float = 1.0,
                share_fn=None, allowed=None, daily_fn=None,
-               min_gain: float = 0.0) -> NashQuote:
+               min_gain: float = 0.0, min_gain_frac: float = 0.0) -> NashQuote:
     """Nash bargaining over the enumerated outcome space, on the DISCLOSED
     buyer utilities. Machine surplus is measured against its sticker
     counterfactual; buyer surplus against their claimed outside option.
@@ -260,11 +260,14 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
                 best, best_score = o, score
     if best is not None and best_score[0] <= 0 and best_score[1] <= 1e-9:
         best = None   # nothing actually improves on the disagreement point
-    if best is not None and min_gain > 0:
+    if best is not None and (min_gain > 0 or min_gain_frac > 0):
         # don't-negotiate-for-pennies: the machine's believed gain must
-        # clear a buffer, so forecast noise can't leak margin on deals
-        # that are barely better than no deal
-        if margin(best) - d_s < min_gain:
+        # clear a buffer, so forecast noise can't leak margin. The buffer
+        # SCALES with transaction size (a flat $1 is a 50% floor on a $2
+        # item and a rounding error on a $30 basket).
+        thr = max(min_gain,
+                  min_gain_frac * sku_ctx[best.sku][3] * best.qty)
+        if margin(best) - d_s < thr:
             best = None
 
     if best is None:

@@ -323,3 +323,35 @@ on visits, dissatisfaction → permanent churn. 120 regulars, 90 days, seed 2:
 VERDICT SO FAR: do not ship the ×1.25 anchor on fairness-blind numbers;
 the safe-harvest number awaits v2's three fixes plus pool replenishment.
 Reproduce: WorldConfig(regulars=120, anchor_peak=True, anchor_mult=1.25).
+
+## Fairness v2 — the safe harvest, measured
+
+The three pre-registered fixes are in: symmetric dissatisfaction relief
+(good deals heal), quote-salience (a fired quote is the salient price —
+the scan-first UX as fairness technology), and a size-scaled buffer
+(floor $0.75 + 15% of bundle list; the flat $1 was gating quotes off
+exactly the small-basket regulars the anchor shocks). Plus exogenous pool
+replenishment (0.7 joins/day, market references) so churn has a real
+price. 120 regulars, 90 days, ×1.25 anchor:
+
+| arm | late profit $/d | churned | active pool at day 90 | reg deals |
+|---|---:|---:|---:|---:|
+| static ×1.25 | 142.1 | 81 | 102 and falling | 1,145 |
+| **a2a ×1.25** | **133.5–133.9** | 49–60 | **120/120 — full** | 1,852 |
+| static mixture (the old world) | 100.5 | 0 | 120 | 2,100 |
+
+**The safe-harvest answer: ≈ +$33/day over the old sticker world with the
+customer base fully intact.** Fairness-blind static harvests ~$8/day more
+on this horizon but burns the franchise (net churn despite replenishment,
+survivor-bias whales, fairness-immune transients cushioning the optics) —
+on any longer horizon or any customer-lifetime accounting, the negotiated
+harvest dominates. Quote protection works through exactly the hypothesized
+channel: quotes fire widely (1,852 vs 1,145 regular deals), the paid price
+stays near reference, good deals heal dissatisfaction.
+
+Buffer frontier (documented, not hidden): $1 flat → perfect-cal tie
+(−$0.72) but regulars unprotected; 0.25/10% → full protection, −$5.43
+control leak; **default 0.75/15% → control −$1.98 [−2.70, −1.25] AND full
+protection with the harvest intact** — a ~2% concession at a knife-edge
+world that doesn't exist in the field, buying the customer base wherever
+anchors are aggressive.

@@ -68,24 +68,32 @@ class RegularPool:
     (seeded); references and churn evolve per-arm — that endogeneity IS the
     experiment."""
 
+    REPLENISH_PER_DAY = 0.7   # exogenous inflow (new tenants/hires); joins
+                              # happen regardless of policy — churn is a NET
+                              # shrink against the pool that kept both
+
     def __init__(self, cfg: WorldConfig, master_seed: int, catalog,
                  market_ref: dict[str, float]):
         self.cfg = cfg
         self.seed = master_seed
-        rng = np.random.default_rng(substream(master_seed, "regpool"))
-        self.pool: list[Regular] = []
-        for i in range(cfg.regulars):
-            home = int(rng.choice(TICKS_PER_DAY,
-                                  p=_visit_time_weights()))
-            mult = wtp_mult_at(home)
-            wtp = {s: float(rng.lognormal(np.log(WTP_MU[s] * mult), WTP_SIGMA))
-                   for s in catalog}
-            self.pool.append(Regular(
-                uid=substream(master_seed, "reg", i),
-                wtp=wtp, walk_cost=float(rng.uniform(0.5, 2.0)),
-                visit_prob=float(rng.uniform(0.25, 0.75)),
-                home_tick=home,
-                ref=dict(market_ref)))
+        self.catalog = catalog
+        self.market_ref = dict(market_ref)
+        self.cap = cfg.regulars
+        self._next_id = cfg.regulars
+        self.pool: list[Regular] = [self._spawn(i) for i in range(cfg.regulars)]
+
+    def _spawn(self, i: int) -> Regular:
+        rng = np.random.default_rng(substream(self.seed, "regpool", i))
+        home = int(rng.choice(TICKS_PER_DAY, p=_visit_time_weights()))
+        mult = wtp_mult_at(home)
+        wtp = {s: float(rng.lognormal(np.log(WTP_MU[s] * mult), WTP_SIGMA))
+               for s in self.catalog}
+        return Regular(
+            uid=substream(self.seed, "reg", i),
+            wtp=wtp, walk_cost=float(rng.uniform(0.5, 2.0)),
+            visit_prob=float(rng.uniform(0.25, 0.75)),
+            home_tick=home,
+            ref=dict(self.market_ref))
 
     def visits_for_day(self, day: int) -> dict[int, list[Regular]]:
         """tick → visiting regulars (deterministic, arm-independent draw of
@@ -103,7 +111,9 @@ class RegularPool:
         return out
 
     def end_day(self, day: int) -> int:
-        """Forgiveness + churn draws. Returns how many churned today."""
+        """Forgiveness + churn draws + exogenous replenishment (fresh
+        regulars join with MARKET references — and immediately face
+        whatever board this arm posts). Returns how many churned today."""
         churned = 0
         for i, reg in enumerate(self.pool):
             if not reg.active:
@@ -114,6 +124,13 @@ class RegularPool:
             if rng.random() < p:
                 reg.active = False
                 churned += 1
+        rng = np.random.default_rng(substream(self.seed, "join", day))
+        joins = int(rng.poisson(self.REPLENISH_PER_DAY))
+        for _ in range(joins):
+            if self.active_count() >= self.cap:
+                break
+            self.pool.append(self._spawn(self._next_id))
+            self._next_id += 1
         return churned
 
     def active_count(self) -> int:
@@ -157,8 +174,12 @@ def regular_board_decision(reg: Regular, prices: dict[str, float],
 
 
 def settle_regular(reg: Regular, sku: str, unit_price: float, qty: int):
-    """Post-purchase psychology: reference update + above-reference pain."""
+    """Post-purchase psychology: reference update, above-reference pain,
+    and — v2, symmetric per the transaction-utility literature — below-
+    reference RELIEF: a good deal heals accumulated dissatisfaction."""
     r = reg.ref[sku]
     reg.ref[sku] = (1 - REF_ALPHA_PAID) * r + REF_ALPHA_PAID * unit_price
     if unit_price > r:
         reg.dissat += (unit_price - r) / r
+    else:
+        reg.dissat = max(0.0, reg.dissat - (r - unit_price) / r)
