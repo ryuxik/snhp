@@ -73,6 +73,25 @@ from vend.world import (TICKS_PER_DAY, WTP_SIGMA, WorldConfig as VendWorldConfig
                         _profit_optimal_list_price, end_of_day, fresh_machine,
                         hour_of)
 
+# ── the six shipped standalone sims wrapped as block storefronts ─────────
+# (DESIGN §4b-2 composition guarantee). Every symbol below is imported and
+# reused VERBATIM — the adapters never reimplement a mechanism, they only
+# translate the block's 10-min clock, key the sim on a block-derived seed
+# (so both twin worlds see the identical population — paired by construction,
+# since every draw in these packages keys on (master_seed, day, tick, ...)),
+# and return receipts the runner books into the shared ledger.
+from bakeshop import world as bake_world
+from bakeshop.policies import ControlPolicy as BakeControl, NegoPolicy as BakeNego
+from slots import world as slot_world
+from slots.policies import StaticPolicy as SlotStatic, NegoPolicy as SlotNego
+from vintage import world as vin_world
+from vintage.core import substream as vin_substream
+from vintage.policies import StickerPolicy as VinSticker, OfferPolicy as VinOffer
+from vintage.run import visit_board as vin_visit_board, visit_offer as vin_visit_offer
+from vintage.calibration import HOLDING_COST as VIN_HOLDING_COST
+
+BLOCK_BASE_HOUR = 7                 # block tick 0 == 07:00 (vend.world.hour_of)
+
 NON_OVERLAP_OUTSIDE_MARKUP = 1.15   # vend.world.BODEGA_MARKUP, kept explicit
 
 
@@ -90,6 +109,10 @@ class BlockConfig:
     anchor_mult: float = 1.0
     regulars: int = 0
     bodega_adopts: bool = False
+    wholesale: bool = False       # run the 6am dawn tier (wholesale/) and feed
+                                  # its negotiated procurement savings into the
+                                  # SNHP world's COGS (the flywheel). Off by
+                                  # default so B0/B1B2 artifacts stay byte-exact.
 
 
 def build_block_catalog(cfg: BlockConfig, master_seed: int) -> dict[str, Listing]:
@@ -722,3 +745,456 @@ class BlockRegularPool(RegularPool):
                        walk_cost=float(rng.uniform(0.5, 2.0)),
                        visit_prob=float(rng.uniform(0.25, 0.75)),
                        home_tick=home, ref=dict(self.market_ref))
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# The remaining six storefronts (DESIGN §4b-2 composition guarantee).
+#
+# Each wraps a shipped standalone sim VERBATIM and runs ITS OWN day loop —
+# these are self-contained venues whose consumer models (day-old bakery
+# shoppers, appointment/slot seekers, one-of-one hagglers) do not fit the
+# street lane's GOODS-WTP Shopper, so — exactly as BobaVenue uses boba/'s own
+# validated arrival curve rather than forcing it onto persona schedules — each
+# venue drives its package's own calibrated population, keyed on a
+# block-derived seed. Both twin worlds share that seed, so the population is
+# paired BY CONSTRUCTION (every draw in these packages keys on
+# (master_seed, day, tick, ...), never on a policy), which is the same
+# variance-reduction guarantee as the street lane. Cross-substitution between
+# these venues and the street is DEFERRED and documented (DESIGN §5), the same
+# shortcut B1/B2 carried for boba/fashion.
+#
+# The uniform adapter contract: `simulate_day(day, cost_scale=1.0)` returns
+# (events, eod) — a list of plain ledger-event dicts (the venue never touches
+# the ledger; the runner records what it returns) and the {spoiled_units,
+# spoilage_cost} close. Venue-side revenue_by_day / units_vended / units_stocked
+# counters accumulate the SAME per-line spends the events carry, so the
+# ledger's money- and unit-conservation laws hold to the cent. `cost_scale` is
+# the wholesale dawn tier's SNHP-world unit-cost multiplier (≤ 1.0 = negotiated
+# procurement savings); it multiplies COGS and defaults to 1.0 (no dawn tier).
+# ══════════════════════════════════════════════════════════════════════════
+
+
+def _block_tick_of(open_hour: int, local_tick: int, ticks_per_hour: int) -> int:
+    """Map a package-local tick (its own ticks/hour) to a block tick
+    (6/hour, tick 0 == 07:00), clamped to the 90-tick block day. Purely a
+    cosmetic event annotation — the venue's own economics use its native
+    tick; the ledger aggregates by DAY, not tick."""
+    hour = open_hour + local_tick // ticks_per_hour
+    within = local_tick % ticks_per_hour
+    btick = (hour - BLOCK_BASE_HOUR) * 6 + int(within * 6 / ticks_per_hour)
+    return min(89, max(0, btick))
+
+
+# ── bakeshop: bakery + florist (batch-perishable, day-old / graduated-markdown)
+
+class _BakeshopVenue:
+    """bakeshop/'s ShopState + committed policies on the block clock. Sticker
+    world → ControlPolicy (the cultural day-old shelf / graduated markdown
+    calendar); SNHP world → NegoPolicy (per-arrival Nash bundles, discount-
+    only vs list). ShopState carries overnight (the day-old shelf / the
+    florist's aging week), so it is NOT reset between days. Waste books as
+    spoilage (at cost — bakeshop takes no salvage)."""
+
+    package_venue = ""           # "bakery" | "flowers"
+    name = ""                    # block ledger key
+    rent_per_day = 0.0
+
+    def __init__(self, world: str, seed: int):
+        if world not in ("sticker", "snhp"):
+            raise ValueError(f"unknown world {world!r}")
+        self.world = world
+        self.seed = seed
+        self.venue = bake_world.get_venue(self.package_venue)
+        self.cfg = bake_world.DEFAULT_CONFIG
+        self.policy = BakeControl() if world == "sticker" else BakeNego()
+        self.state = bake_world.ShopState(self.venue.name)
+        self._open_tick = (self.venue.open_hour - BLOCK_BASE_HOUR) * 6
+        self.revenue_by_day: dict[int, float] = {}
+        self.units_vended = 0
+        self.units_stocked = 0        # cumulative produced (baked/delivered)
+
+    def _btick(self, tick: int) -> int:
+        return _block_tick_of(self.venue.open_hour, tick,
+                              bake_world.TICKS_PER_HOUR)
+
+    def _emit_lines(self, events, base, priced, surplus, negotiated,
+                    cost_scale):
+        """Emit one venue_entered + one deal per LINE, where `priced` is
+        [(sku, age, qty, unit_price)] with an EXACT per-line unit price
+        (spend == round(qty·unit, 2), the ledger's conservation law). The
+        whole basket surplus rides the first line so the ledger's
+        consumer-surplus sum is exact."""
+        events.append({"type": "venue_entered", "venue": self.name, **base})
+        for i, (sku, age, qty, unit) in enumerate(priced):
+            spend = round(qty * unit, 2)
+            cogs = qty * self.venue.item(sku).unit_cost * cost_scale
+            self.units_vended += qty
+            self.revenue_by_day[base["day"]] = round(
+                self.revenue_by_day.get(base["day"], 0.0) + spend, 2)
+            events.append({"type": "deal", "venue": self.name, "sku": sku,
+                           "qty": qty, "unit_price": unit, "spend": spend,
+                           "cogs": cogs, "surplus": surplus if i == 0 else 0.0,
+                           "raw_surplus": surplus if i == 0 else 0.0,
+                           "walk": 0.0, "negotiated": negotiated,
+                           "age": age, **base})
+
+    @staticmethod
+    def _split_bundle(lines, listvals, total_price):
+        """Split a nego bundle TOTAL across its lines proportional to each
+        line's list value, re-rounded per line to keep spend == round(qty·
+        unit, 2). Returns [(sku, age, qty, unit_price)]."""
+        tot = sum(listvals) or 1.0
+        return [(sku, age, qty,
+                 round(total_price * listvals[i] / tot / qty, 2))
+                for i, (sku, age, qty) in enumerate(lines)]
+
+    def simulate_day(self, day: int, cost_scale: float = 1.0):
+        events: list[dict] = []
+        v, st, seed, cfg = self.venue, self.state, self.seed, self.cfg
+        morning, pu, _pc = bake_world.begin_day(st, v, seed, cfg)
+        self.units_stocked += pu
+        for tick in range(v.ticks_per_day):
+            st.tick = tick
+            if (v.minibake_hour is not None
+                    and v.hour_of(tick) == v.minibake_hour
+                    and tick % bake_world.TICKS_PER_HOUR == 0):
+                xu, _xc = bake_world.maybe_minibake(st, v, morning)
+                self.units_stocked += xu
+            btick = self._btick(tick)
+            n = bake_world.arrivals_at(v, seed, day, tick, cfg)
+            for k in range(n):
+                consumer = bake_world.sample_consumer(v, seed, day, tick, k, cfg)
+                uid = substream(seed, self.name, "uid", day, tick, k)
+                base = {"world": self.world, "day": day, "tick": btick,
+                        "uid": uid, "persona": "walkin", "kind": "walkin",
+                        "home": self.name}
+                events.append({"type": "arrival", **base})
+                s_out = bake_world.outside_surplus(v, consumer)
+                board = self.policy.board(st, v, seed, cfg)
+                stock = {c: st.stock(*c) for c in board}
+                b_lines, s_board = bake_world.best_board_basket(
+                    v, consumer, board, stock)
+                if getattr(self.policy, "mode", "board") == "nego":
+                    deal = self.policy.quote_for(st, v, consumer, seed, cfg)
+                    if deal is not None:
+                        s_true = deal.value - deal.price
+                        if s_true > 1e-9 and s_true >= max(s_out, s_board) - 1e-9:
+                            for sku, age, qty in deal.lines:
+                                st.take(sku, age, qty)
+                            listvals = [q * v.item(sku).list_price
+                                        for sku, _a, q in deal.lines]
+                            self._emit_lines(
+                                events, base,
+                                self._split_bundle(list(deal.lines), listvals,
+                                                   deal.price),
+                                s_true, True, cost_scale)
+                            continue
+                if b_lines and s_board > 1e-9 and s_board >= s_out:
+                    for sku, age, qty, _p in b_lines:
+                        st.take(sku, age, qty)
+                    self._emit_lines(events, base, list(b_lines),
+                                     s_board, False, cost_scale)
+                else:
+                    events.append({"type": "no_sale", **base})
+        eod = bake_world.end_of_day(st, v)
+        return events, {"spoiled_units": eod["waste_units"],
+                        "spoilage_cost": round(eod["waste_cost"], 2)}
+
+
+class BakeryVenue(_BakeshopVenue):
+    package_venue = "bakery"
+    name = "bakery"
+    rent_per_day = calibration.BAKERY_RENT_PER_DAY
+
+
+class FloristVenue(_BakeshopVenue):
+    package_venue = "flowers"
+    name = "florist"
+    rent_per_day = calibration.FLORIST_RENT_PER_DAY
+
+
+# ── slots: barbershop + parking + happy-hour bar (appointment capacity) ───
+
+class _SlotsVenue:
+    """slots/'s VenueState + committed policies on the block clock. Sticker
+    world → StaticPolicy (the posted list board); SNHP world → NegoPolicy
+    (per-arrival Nash quote over the duration × start-time yield bundle,
+    discount-only). No overnight state (the occupancy grid resets at open).
+    A booking's revenue books at SERVICE (walk-in = now; a reservation waits
+    for its person-stable no-show roll), so a flaked reservation is a
+    no_sale, not a deal — dead slot-time, no cost line. slots 'units' in the
+    block ledger means BOOKINGS (one deal per shown booking, qty=1)."""
+
+    package_venue = ""           # "barber" | "parking" | "bar"
+    name = ""
+    rent_per_day = 0.0
+
+    def __init__(self, world: str, seed: int):
+        if world not in ("sticker", "snhp"):
+            raise ValueError(f"unknown world {world!r}")
+        self.world = world
+        self.seed = seed
+        self.venue = slot_world.venue(self.package_venue)
+        self.cfg = slot_world.DEFAULT_CONFIG
+        self.policy = SlotStatic() if world == "sticker" else SlotNego()
+        self._open_tick = (self.venue.open_hour - BLOCK_BASE_HOUR) * 6
+        self.revenue_by_day: dict[int, float] = {}
+        self.units_vended = 0         # shown bookings
+        self.units_stocked = 0        # capacity·ticks offered (unit-ticks)
+
+    def _btick(self, tick: int) -> int:
+        return _block_tick_of(self.venue.open_hour, tick, 6)
+
+    def simulate_day(self, day: int, cost_scale: float = 1.0):
+        events: list[dict] = []
+        v, seed, cfg = self.venue, self.seed, self.cfg
+        st = slot_world.fresh_day(v, day)
+        self.units_stocked += v.capacity * v.ticks
+        hm: dict[int, float] = {}
+        # customer identity + arrival base carried to the settle tick so a
+        # reservation's deal/no_sale lands where (and if) it actually shows
+        pend: list = []               # (booking, base)
+
+        def settle(b, b_base):
+            self.units_vended += 1
+            price = round(b.price, 2)
+            self.revenue_by_day[day] = round(
+                self.revenue_by_day.get(day, 0.0) + price, 2)
+            sbase = dict(b_base)
+            sbase["tick"] = self._btick(b.start)
+            events.append({"type": "venue_entered", "venue": self.name,
+                           **sbase})
+            events.append({"type": "deal", "venue": self.name,
+                           "sku": b.kind, "qty": 1, "unit_price": price,
+                           "spend": price, "cogs": b.cost * cost_scale,
+                           "surplus": b.cs, "raw_surplus": b.cs, "walk": 0.0,
+                           "negotiated": b.negotiated, **sbase})
+            per_tick = (b.price - b.cost) / b.dur
+            for t in range(b.start, b.start + b.dur):
+                h = v.hour_of(t)
+                hm[h] = hm.get(h, 0.0) + per_tick
+
+        def book(cust, base, start, n, price, cs, negotiated):
+            dur = n * v.step_ticks
+            slot_world.occupy(st, start, dur)
+            b = SimpleNamespace(uid=cust.uid, start=start, dur=dur,
+                                price=price, cost=v.unit_cost(n, cust.kind),
+                                cs=cs, kind=cust.kind, negotiated=negotiated)
+            if start == st.tick:
+                settle(b, base)
+            else:
+                pend.append((b, base))
+
+        for tick in range(v.ticks):
+            st.tick = tick
+            still = []
+            for b, b_base in pend:
+                if b.start > st.tick:
+                    still.append((b, b_base))
+                elif slot_world.noshow_roll(v, seed, st.day, b.uid):
+                    slot_world.release(st, b.start, b.dur)
+                    nbase = dict(b_base)
+                    nbase["tick"] = self._btick(b.start)
+                    events.append({"type": "no_sale", "reason": "noshow",
+                                   **nbase})
+                else:
+                    settle(b, b_base)
+            pend = still
+
+            n_new = slot_world.arrivals_at(v, seed, day, tick, cfg)
+            btick = self._btick(tick)
+            for k in range(n_new):
+                cust = slot_world.sample_customer(v, seed, day, tick, k, cfg)
+                uid = (cust.uid if cust is not None
+                       else substream(seed, self.name, "u", day, tick, k))
+                base = {"world": self.world, "day": day, "tick": btick,
+                        "uid": uid, "persona": self.package_venue,
+                        "kind": "walkin", "home": self.name}
+                events.append({"type": "arrival", **base})
+                if cust is None:
+                    events.append({"type": "no_sale", "reason": "lost", **base})
+                    continue
+                if getattr(self.policy, "mode", "board") == "nego":
+                    deal = self.policy.quote_for(st, cust)
+                    if deal is not None and deal.u_buyer >= deal.d_buyer - 1e-9:
+                        book(cust, base, deal.start, deal.n, deal.price,
+                             deal.cs, True)
+                        continue
+                mult = self.policy.mult_of(st)
+                start, n, price, sur = slot_world.best_board_booking(
+                    st, cust, mult)
+                if start is not None and sur > 0 and sur >= cust.outside:
+                    book(cust, base, start, n, price, sur, False)
+                else:
+                    events.append({"type": "no_sale",
+                                   "reason": ("outside" if cust.outside > 0
+                                              else "lost"), **base})
+        assert not pend, "slots reservations survived the block day"
+        if hasattr(self.policy, "end_day"):
+            self.policy.end_day(v, day, hm, st.occupied)
+        return events, {"spoiled_units": 0, "spoilage_cost": 0.0}
+
+
+class BarbershopVenue(_SlotsVenue):
+    package_venue = "barber"
+    name = "barbershop"
+    rent_per_day = calibration.BARBER_RENT_PER_DAY
+
+
+class ParkingVenue(_SlotsVenue):
+    package_venue = "parking"
+    name = "parking"
+    rent_per_day = calibration.PARKING_RENT_PER_DAY
+
+
+class BarVenue(_SlotsVenue):
+    package_venue = "bar"
+    name = "bar"
+    rent_per_day = calibration.BAR_RENT_PER_DAY
+
+
+# ── vintage: one-of-one second-hand, make-an-offer native ────────────────
+
+class VintageVenue:
+    """vintage/'s make-an-offer store on the block clock. Sticker world →
+    StickerPolicy (the LES −20%/30-days posted-price ritual); SNHP world →
+    OfferPolicy (the offer/counter engine — the fashion offer arm's true
+    home). Day-atomic by nature (one sourcing draw + one browser pass +
+    one belief update per day), so the block day IS one vintage day and
+    ticks are cosmetic; inventory, the offer engine's beliefs, and the
+    ledger all CARRY across days (one-of-one items persist until sold).
+    The per-item holding cost enters the block ledger through the spoilage
+    line (it is the carrying cost of unsold stock, not literal waste)."""
+
+    name = "vintage"
+    rent_per_day = calibration.VINTAGE_RENT_PER_DAY
+    OPEN_TICK = (10 - BLOCK_BASE_HOUR) * 6      # cosmetic browse window 10-18
+    CLOSE_TICK = (18 - BLOCK_BASE_HOUR) * 6
+
+    def __init__(self, world: str, seed: int):
+        if world not in ("sticker", "snhp"):
+            raise ValueError(f"unknown world {world!r}")
+        self.world = world
+        self.seed = seed
+        self.cfg = vin_world.DEFAULT_CONFIG
+        self.policy = VinSticker() if world == "sticker" else VinOffer()
+        self.cache = vin_world.PairDraws()      # deterministic; paired by uid
+        self.inventory: dict[int, vin_world.Item] = {}
+        self.ledger: dict[int, dict] = {}
+        self.revenue_by_day: dict[int, float] = {}
+        self.units_vended = 0
+        self.units_stocked = 0                  # cumulative sourced
+        self._n_browsers = 0
+
+    def simulate_day(self, day: int, cost_scale: float = 1.0):
+        events: list[dict] = []
+        seed, cfg, pol = self.seed, self.cfg, self.policy
+        for item in vin_world.items_for_day(seed, day, cfg):
+            self.inventory[item.uid] = item
+            self.ledger[item.uid] = {"item": item, "sold_day": None}
+            pol.admit(item)
+            self.units_stocked += 1
+        pol.day_start(day, self.inventory)
+        browsers = vin_world.browsers_for_day(seed, day, cfg)
+        # spread the browser pass across the cosmetic 10-18 window for the
+        # event tick annotation (the sim itself is order-only, day-atomic)
+        span = max(1, self.CLOSE_TICK - self.OPEN_TICK)
+        for i, b in enumerate(browsers):
+            btick = min(self.CLOSE_TICK - 1,
+                        self.OPEN_TICK + (i * span) // max(1, len(browsers)))
+            base = {"world": self.world, "day": day, "tick": btick,
+                    "uid": b.uid, "persona": "browser", "kind": "browser",
+                    "home": "vintage"}
+            events.append({"type": "arrival", **base})
+            if pol.uses_offers:
+                _nc, sale, _flags = vin_visit_offer(b, self.inventory, pol,
+                                                    day, self.cache)
+            else:
+                _nc, sale = vin_visit_board(b, self.inventory, pol, day,
+                                            self.cache)
+            if sale is None:
+                events.append({"type": "no_sale", **base})
+                continue
+            uid, price, channel = sale
+            item = self.inventory[uid]
+            wtp = self.cache.get(b, item)[1]
+            ask_now = pol.price(item, day)
+            del self.inventory[uid]
+            pol.on_sale(uid, price, len(browsers), ask=ask_now)
+            self.ledger[uid]["sold_day"] = day
+            price2 = round(price, 2)
+            self.units_vended += 1
+            self.revenue_by_day[day] = round(
+                self.revenue_by_day.get(day, 0.0) + price2, 2)
+            events.append({"type": "venue_entered", "venue": "vintage", **base})
+            events.append({"type": "deal", "venue": "vintage",
+                           "sku": f"item-{uid}", "qty": 1,
+                           "unit_price": price2, "spend": price2,
+                           "cogs": item.cost * cost_scale,
+                           "surplus": round(wtp - price, 4),
+                           "raw_surplus": round(wtp - price, 4), "walk": 0.0,
+                           "negotiated": channel in ("offer", "counter"),
+                           "channel": channel, **base})
+        pol.end_of_day(day, self.inventory, len(browsers))
+        holding = round(VIN_HOLDING_COST * len(self.inventory), 2)
+        return events, {"spoiled_units": 0, "spoilage_cost": holding}
+
+
+# ── wholesale: the 6am dawn tier feeding venue unit costs (DESIGN §4b/§4b-2)
+
+class WholesaleDawn:
+    """The block's 6am layer: wholesale/'s trucks, delivery windows, and
+    route density run as a paired twin-world procurement market ABOVE the
+    retail day (wholesale/run VERBATIM — coordinated Nash bundles over
+    price × window × case size × terms × spoilage-share vs the rate card).
+    Its OUTPUT is a per-venue SNHP-world unit-cost multiplier: the realized
+    negotiated procurement dollars over the rate-card dollars for that venue,
+    averaged across the wholesalers that serve it and the block's weeks. The
+    sticker retail world buys at the rate card (scale 1.0); the SNHP retail
+    world inherits the dawn tier's negotiated savings (scale ≤ 1.0) — the
+    flywheel (better wholesale terms → lower COGS → the margin stacks across
+    tiers) made concrete and decomposable.
+
+    Only the four venues wholesale/ calibrates (vending, bodega, boba,
+    bakery) receive a scale; every other venue stays at 1.0 (documented
+    coverage gap — a pilot would extend the wholesaler catalog)."""
+
+    def __init__(self, seed: int, days: int):
+        from wholesale import calibration as wcal
+        from wholesale.run import run_cell
+        weeks = max(2, -(-days // 7))          # ceil, ≥2 for a CI
+        wseed = substream(seed, "wholesale")
+        cell = run_cell(wcal.BASE_NOISE, wcal.BASE_FLEX, weeks, [wseed],
+                        arms=("ratecard", "nego"), keep_records=True)
+        self.cell = cell
+        # match rate-card vs negotiated unit price per (week, wholesaler, venue)
+        def by_rel(arm):
+            out: dict[tuple, float] = {}
+            for blk in cell["_records"][arm]:
+                for rec in blk["records"]:
+                    out[(blk["week"], rec["wholesaler"], rec["venue"])] = \
+                        rec["unit_price"]
+                    out.setdefault(("qty", blk["week"], rec["wholesaler"],
+                                    rec["venue"]), rec["qty"])
+            return out
+        rc, ng = by_rel("ratecard"), by_rel("nego")
+        num: dict[str, float] = {}
+        den: dict[str, float] = {}
+        for key, rc_unit in rc.items():
+            if not isinstance(key, tuple) or key[0] == "qty":
+                continue
+            wk, whole, ven = key
+            ng_unit = ng.get(key, rc_unit)
+            w = wcal.DEMAND_MU.get((whole, ven), 1.0)
+            if rc_unit > 0:
+                num[ven] = num.get(ven, 0.0) + w * ng_unit
+                den[ven] = den.get(ven, 0.0) + w * rc_unit
+        self.scales = {v: round(num[v] / den[v], 4)
+                       for v in num if den.get(v, 0.0) > 0}
+
+    def scale_for(self, world: str, venue: str) -> float:
+        """Retail COGS multiplier for `venue` in `world`. Sticker buys the
+        rate card (1.0); SNHP inherits the negotiated saving (≤ 1.0)."""
+        if world != "snhp":
+            return 1.0
+        return self.scales.get(venue, 1.0)

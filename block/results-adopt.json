@@ -13,6 +13,8 @@
   "anchor_mult": 1.0,
   "regulars": 25,
   "bodega_adopts": true,
+  "wholesale": false,
+  "wholesale_cost_scales": {},
   "shopper_fraction": 0.1476,
   "p_vending_home": 0.1129,
   "expected_daily": {
@@ -66,8 +68,11 @@
    "boba: cart quotes fire BEFORE the walk-in balk; now-slot deals face the same balk roll; queue/batches are boba/world verbatim on block ticks 18..89",
    "fashion: weekly season tick every 7 block days, 14-week season; ONE buy at day 0 planned against the cliff; cogs booked at sale, season-end salvage writedown on the last day (runs < 98 days show margin gross of clearance risk)",
    "consumer_surplus is net of the cross-venue walk (or pickup-defer disutility) actually incurred",
-   "vending pays no rent in calibration (lobby machine); bodega $400/day, boba $330/day, fashion $620/day",
-   "no day-of-week / day shocks / same-day return queue (B0, carried)"
+   "vending pays no rent in calibration (lobby machine); bodega $400/day, boba $330/day, fashion $620/day; bakery $500, florist $350, barbershop $250, parking $900, bar $800, vintage $300 (block-level rent TARGETS; the standalone sims model margin gross of rent)",
+   "bakery/florist/barbershop/parking/bar/vintage are the shipped standalone sims wrapped VERBATIM: they run each package's OWN validated population (arrivals, WTP, no-show, offers) keyed on a block-derived per-venue seed, paired across worlds by construction; cross-substitution with the street lane is DEFERRED (documented, same shortcut as boba/fashion). Their block-adapters match their standalone sims on a shared seed (asserted in tests: slots/vintage exact, bakeshop within a cent from bundle re-rounding)",
+   "the bar carries its OWN day-of-week structure (slots weekend surge) \u2014 day 0 = Monday; every other lane stays day-of-week-agnostic (B0 carried). vintage is day-atomic (one sourcing draw + one browser pass/day); its per-item holding cost books through the ledger's spoilage line",
+   "wholesale dawn tier (cfg.wholesale): the 6am procurement market runs paired (rate card vs negotiated); the SNHP retail world inherits its negotiated per-venue COGS savings on vending/bodega/boba/bakery (the flywheel). Off by default so B0/B1B2 artifacts stay byte-exact",
+   "no day-of-week (except the bar) / day-level demand shocks on the street lane / same-day return queue (B0, carried)"
   ]
  },
  "per_world": {
@@ -3938,6 +3943,6 @@
   "merchants_earned_usd": 16337.98
  },
  "meta": {
-  "elapsed_s": 9.3
+  "elapsed_s": 9.28
  }
 }

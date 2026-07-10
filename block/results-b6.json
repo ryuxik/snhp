@@ -1,0 +1,2081 @@
+{
+ "network_version": 1,
+ "config": {
+  "alpha0": 3.0,
+  "days": 60,
+  "seeds": 8,
+  "disc_sens": 0.6,
+  "disc_max": 0.4,
+  "n_adopters": 8,
+  "roster": [
+   "bodega",
+   "bakery",
+   "vending",
+   "boba",
+   "barbershop",
+   "parking",
+   "florist",
+   "bar"
+  ]
+ },
+ "discount": {
+  "mode": "discount",
+  "cells": [
+   {
+    "k": 1,
+    "mode": "discount",
+    "adopters": [
+     "bodega"
+    ],
+    "profit": {
+     "shared": {
+      "mean": 104.6295,
+      "ci95": [
+       94.0311,
+       115.2278
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 104.6295,
+      "ci95": [
+       94.0311,
+       115.2278
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 8
+     }
+    },
+    "consumer_surplus": {
+     "shared": {
+      "mean": 84.7167,
+      "ci95": [
+       80.7468,
+       88.6865
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 84.7167,
+      "ci95": [
+       80.7468,
+       88.6865
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 8
+     }
+    },
+    "forecast_abs_err": {
+     "shared": {
+      "mean": 0.1098,
+      "ci95": [
+       0.1029,
+       0.1166
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 0.1098,
+      "ci95": [
+       0.1029,
+       0.1166
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 8
+     }
+    },
+    "price": {
+     "shared": {
+      "mean": 2.7737,
+      "ci95": [
+       2.7234,
+       2.824
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 2.7737,
+      "ci95": [
+       2.7234,
+       2.824
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 8
+     }
+    }
+   },
+   {
+    "k": 2,
+    "mode": "discount",
+    "adopters": [
+     "bodega",
+     "bakery"
+    ],
+    "profit": {
+     "shared": {
+      "mean": 92.9323,
+      "ci95": [
+       84.5193,
+       101.3453
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 92.1074,
+      "ci95": [
+       83.4434,
+       100.7714
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.8249,
+      "ci95": [
+       0.3676,
+       1.2823
+      ],
+      "n": 8
+     }
+    },
+    "consumer_surplus": {
+     "shared": {
+      "mean": 72.5756,
+      "ci95": [
+       69.1133,
+       76.038
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 72.4925,
+      "ci95": [
+       69.2028,
+       75.7822
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.0831,
+      "ci95": [
+       -0.1565,
+       0.3227
+      ],
+      "n": 8
+     }
+    },
+    "forecast_abs_err": {
+     "shared": {
+      "mean": 0.0843,
+      "ci95": [
+       0.0725,
+       0.0961
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 0.1214,
+      "ci95": [
+       0.1119,
+       0.131
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.0371,
+      "ci95": [
+       -0.049,
+       -0.0252
+      ],
+      "n": 8
+     }
+    },
+    "price": {
+     "shared": {
+      "mean": 3.4155,
+      "ci95": [
+       3.3508,
+       3.4802
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 3.4253,
+      "ci95": [
+       3.3562,
+       3.4943
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.0097,
+      "ci95": [
+       -0.0152,
+       -0.0042
+      ],
+      "n": 8
+     }
+    }
+   },
+   {
+    "k": 3,
+    "mode": "discount",
+    "adopters": [
+     "bodega",
+     "bakery",
+     "vending"
+    ],
+    "profit": {
+     "shared": {
+      "mean": 65.6183,
+      "ci95": [
+       59.4948,
+       71.7417
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 64.9138,
+      "ci95": [
+       58.6955,
+       71.1321
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.7045,
+      "ci95": [
+       0.4371,
+       0.9718
+      ],
+      "n": 8
+     }
+    },
+    "consumer_surplus": {
+     "shared": {
+      "mean": 51.8667,
+      "ci95": [
+       49.556,
+       54.1773
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 51.7369,
+      "ci95": [
+       49.4205,
+       54.0534
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.1297,
+      "ci95": [
+       0.0098,
+       0.2496
+      ],
+      "n": 8
+     }
+    },
+    "forecast_abs_err": {
+     "shared": {
+      "mean": 0.08,
+      "ci95": [
+       0.0707,
+       0.0894
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 0.1479,
+      "ci95": [
+       0.1358,
+       0.16
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.0679,
+      "ci95": [
+       -0.0795,
+       -0.0562
+      ],
+      "n": 8
+     }
+    },
+    "price": {
+     "shared": {
+      "mean": 3.0648,
+      "ci95": [
+       3.0044,
+       3.1252
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 3.077,
+      "ci95": [
+       3.0141,
+       3.1399
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.0122,
+      "ci95": [
+       -0.0168,
+       -0.0075
+      ],
+      "n": 8
+     }
+    }
+   },
+   {
+    "k": 4,
+    "mode": "discount",
+    "adopters": [
+     "bodega",
+     "bakery",
+     "vending",
+     "boba"
+    ],
+    "profit": {
+     "shared": {
+      "mean": 60.2044,
+      "ci95": [
+       54.4615,
+       65.9473
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 59.2214,
+      "ci95": [
+       53.4113,
+       65.0314
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.983,
+      "ci95": [
+       0.7042,
+       1.2618
+      ],
+      "n": 8
+     }
+    },
+    "consumer_surplus": {
+     "shared": {
+      "mean": 48.0257,
+      "ci95": [
+       45.9335,
+       50.1178
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 47.9658,
+      "ci95": [
+       45.8962,
+       50.0355
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.0598,
+      "ci95": [
+       -0.0499,
+       0.1696
+      ],
+      "n": 8
+     }
+    },
+    "forecast_abs_err": {
+     "shared": {
+      "mean": 0.0772,
+      "ci95": [
+       0.0683,
+       0.086
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 0.1682,
+      "ci95": [
+       0.1569,
+       0.1795
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.0911,
+      "ci95": [
+       -0.1003,
+       -0.0818
+      ],
+      "n": 8
+     }
+    },
+    "price": {
+     "shared": {
+      "mean": 3.2371,
+      "ci95": [
+       3.1727,
+       3.3014
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 3.254,
+      "ci95": [
+       3.1853,
+       3.3226
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.0169,
+      "ci95": [
+       -0.0237,
+       -0.0101
+      ],
+      "n": 8
+     }
+    }
+   },
+   {
+    "k": 5,
+    "mode": "discount",
+    "adopters": [
+     "bodega",
+     "bakery",
+     "vending",
+     "boba",
+     "barbershop"
+    ],
+    "profit": {
+     "shared": {
+      "mean": 75.8081,
+      "ci95": [
+       69.5255,
+       82.0907
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 74.6709,
+      "ci95": [
+       68.5,
+       80.8418
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 1.1373,
+      "ci95": [
+       0.7685,
+       1.506
+      ],
+      "n": 8
+     }
+    },
+    "consumer_surplus": {
+     "shared": {
+      "mean": 56.8601,
+      "ci95": [
+       54.4037,
+       59.3165
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 56.6422,
+      "ci95": [
+       54.1018,
+       59.1825
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.2179,
+      "ci95": [
+       0.0056,
+       0.4302
+      ],
+      "n": 8
+     }
+    },
+    "forecast_abs_err": {
+     "shared": {
+      "mean": 0.076,
+      "ci95": [
+       0.0675,
+       0.0845
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 0.188,
+      "ci95": [
+       0.1749,
+       0.2011
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.112,
+      "ci95": [
+       -0.1213,
+       -0.1027
+      ],
+      "n": 8
+     }
+    },
+    "price": {
+     "shared": {
+      "mean": 6.7848,
+      "ci95": [
+       6.5989,
+       6.9706
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 6.9198,
+      "ci95": [
+       6.7438,
+       7.0958
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.135,
+      "ci95": [
+       -0.1911,
+       -0.0789
+      ],
+      "n": 8
+     }
+    }
+   },
+   {
+    "k": 6,
+    "mode": "discount",
+    "adopters": [
+     "bodega",
+     "bakery",
+     "vending",
+     "boba",
+     "barbershop",
+     "parking"
+    ],
+    "profit": {
+     "shared": {
+      "mean": 141.0266,
+      "ci95": [
+       130.6033,
+       151.45
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 138.9868,
+      "ci95": [
+       128.697,
+       149.2767
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 2.0398,
+      "ci95": [
+       1.195,
+       2.8846
+      ],
+      "n": 8
+     }
+    },
+    "consumer_surplus": {
+     "shared": {
+      "mean": 102.2367,
+      "ci95": [
+       97.8169,
+       106.6565
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 102.4142,
+      "ci95": [
+       98.0114,
+       106.817
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.1775,
+      "ci95": [
+       -1.1868,
+       0.8317
+      ],
+      "n": 8
+     }
+    },
+    "forecast_abs_err": {
+     "shared": {
+      "mean": 0.0737,
+      "ci95": [
+       0.066,
+       0.0813
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 0.1927,
+      "ci95": [
+       0.1795,
+       0.2059
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.119,
+      "ci95": [
+       -0.1301,
+       -0.108
+      ],
+      "n": 8
+     }
+    },
+    "price": {
+     "shared": {
+      "mean": 8.1326,
+      "ci95": [
+       7.8947,
+       8.3706
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 8.2692,
+      "ci95": [
+       8.0462,
+       8.4921
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.1365,
+      "ci95": [
+       -0.179,
+       -0.094
+      ],
+      "n": 8
+     }
+    }
+   },
+   {
+    "k": 7,
+    "mode": "discount",
+    "adopters": [
+     "bodega",
+     "bakery",
+     "vending",
+     "boba",
+     "barbershop",
+     "parking",
+     "florist"
+    ],
+    "profit": {
+     "shared": {
+      "mean": 131.6262,
+      "ci95": [
+       121.6742,
+       141.5781
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 129.5176,
+      "ci95": [
+       119.7413,
+       139.294
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 2.1085,
+      "ci95": [
+       1.3656,
+       2.8514
+      ],
+      "n": 8
+     }
+    },
+    "consumer_surplus": {
+     "shared": {
+      "mean": 96.9192,
+      "ci95": [
+       92.7303,
+       101.108
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 97.3685,
+      "ci95": [
+       93.1366,
+       101.6003
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.4493,
+      "ci95": [
+       -1.41,
+       0.5114
+      ],
+      "n": 8
+     }
+    },
+    "forecast_abs_err": {
+     "shared": {
+      "mean": 0.0731,
+      "ci95": [
+       0.0648,
+       0.0814
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 0.2078,
+      "ci95": [
+       0.1936,
+       0.2221
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.1347,
+      "ci95": [
+       -0.1455,
+       -0.124
+      ],
+      "n": 8
+     }
+    },
+    "price": {
+     "shared": {
+      "mean": 8.2493,
+      "ci95": [
+       8.0019,
+       8.4967
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 8.3591,
+      "ci95": [
+       8.1337,
+       8.5845
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.1098,
+      "ci95": [
+       -0.1553,
+       -0.0642
+      ],
+      "n": 8
+     }
+    }
+   },
+   {
+    "k": 8,
+    "mode": "discount",
+    "adopters": [
+     "bodega",
+     "bakery",
+     "vending",
+     "boba",
+     "barbershop",
+     "parking",
+     "florist",
+     "bar"
+    ],
+    "profit": {
+     "shared": {
+      "mean": 175.2863,
+      "ci95": [
+       164.1852,
+       186.3874
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 168.8889,
+      "ci95": [
+       157.5451,
+       180.2327
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 6.3974,
+      "ci95": [
+       5.229,
+       7.5657
+      ],
+      "n": 8
+     }
+    },
+    "consumer_surplus": {
+     "shared": {
+      "mean": 123.648,
+      "ci95": [
+       118.7421,
+       128.554
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 120.0634,
+      "ci95": [
+       114.5051,
+       125.6218
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 3.5846,
+      "ci95": [
+       2.6894,
+       4.4798
+      ],
+      "n": 8
+     }
+    },
+    "forecast_abs_err": {
+     "shared": {
+      "mean": 0.0731,
+      "ci95": [
+       0.0648,
+       0.0814
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 0.2377,
+      "ci95": [
+       0.2196,
+       0.2559
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.1646,
+      "ci95": [
+       -0.1793,
+       -0.1499
+      ],
+      "n": 8
+     }
+    },
+    "price": {
+     "shared": {
+      "mean": 8.5677,
+      "ci95": [
+       8.3325,
+       8.8029
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 8.8267,
+      "ci95": [
+       8.6295,
+       9.024
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.259,
+      "ci95": [
+       -0.3031,
+       -0.2148
+      ],
+      "n": 8
+     }
+    },
+    "bar_profit": {
+     "shared": {
+      "mean": 480.9072,
+      "ci95": [
+       457.931,
+       503.8834
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 444.4878,
+      "ci95": [
+       419.7462,
+       469.2295
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 36.4193,
+      "ci95": [
+       30.8299,
+       42.0088
+      ],
+      "n": 8
+     }
+    }
+   }
+  ],
+  "P1_forecast_error_falls_with_adopters": {
+   "shared_err_by_k": [
+    0.1098,
+    0.0843,
+    0.08,
+    0.0772,
+    0.076,
+    0.0737,
+    0.0731,
+    0.0731
+   ],
+   "monotone_nonincreasing": true,
+   "k1_vs_kmax": [
+    0.1098,
+    0.0731
+   ]
+  },
+  "P2_profit_premium_rises_with_adopters": {
+   "premium_by_k": [
+    0.0,
+    0.8249,
+    0.7045,
+    0.983,
+    1.1373,
+    2.0398,
+    2.1085,
+    6.3974
+   ],
+   "k1_vs_kmax": [
+    0.0,
+    6.3974
+   ],
+   "rises": true,
+   "strict_monotone_nondecreasing": false
+  },
+  "bar_free_rider": {
+   "shared": {
+    "mean": 480.9072,
+    "ci95": [
+     457.931,
+     503.8834
+    ],
+    "n": 8
+   },
+   "private": {
+    "mean": 444.4878,
+    "ci95": [
+     419.7462,
+     469.2295
+    ],
+    "n": 8
+   },
+   "shared_minus_private": {
+    "mean": 36.4193,
+    "ci95": [
+     30.8299,
+     42.0088
+    ],
+    "n": 8
+   }
+  },
+  "collusion_audit": {
+   "metric": "consumer_surplus (shared \u2212 private) per adopter-day, full adoption",
+   "paired_cs_diff": {
+    "mean": 3.5846,
+    "ci95": [
+     2.6894,
+     4.4798
+    ],
+    "n": 8
+   },
+   "paired_price_diff": {
+    "mean": -0.259,
+    "ci95": [
+     -0.3031,
+     -0.2148
+    ],
+    "n": 8
+   },
+   "non_decreasing": true,
+   "strict_pro_consumer": true,
+   "verdict": "PASS \u2014 shared demand-state telemetry does NOT lower consumer surplus"
+  }
+ },
+ "ration": {
+  "mode": "ration",
+  "cells": [
+   {
+    "k": 1,
+    "mode": "ration",
+    "adopters": [
+     "bodega"
+    ],
+    "profit": {
+     "shared": {
+      "mean": 118.747,
+      "ci95": [
+       110.0731,
+       127.421
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 118.747,
+      "ci95": [
+       110.0731,
+       127.421
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 8
+     }
+    },
+    "consumer_surplus": {
+     "shared": {
+      "mean": 56.9235,
+      "ci95": [
+       53.9619,
+       59.8851
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 56.9235,
+      "ci95": [
+       53.9619,
+       59.8851
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 8
+     }
+    },
+    "forecast_abs_err": {
+     "shared": {
+      "mean": 0.1098,
+      "ci95": [
+       0.1029,
+       0.1166
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 0.1098,
+      "ci95": [
+       0.1029,
+       0.1166
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 8
+     }
+    },
+    "price": {
+     "shared": {
+      "mean": 3.5812,
+      "ci95": [
+       3.5619,
+       3.6004
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 3.5812,
+      "ci95": [
+       3.5619,
+       3.6004
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 8
+     }
+    }
+   },
+   {
+    "k": 2,
+    "mode": "ration",
+    "adopters": [
+     "bodega",
+     "bakery"
+    ],
+    "profit": {
+     "shared": {
+      "mean": 102.7792,
+      "ci95": [
+       95.4234,
+       110.1349
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 102.6165,
+      "ci95": [
+       95.3125,
+       109.9205
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.1627,
+      "ci95": [
+       0.0361,
+       0.2893
+      ],
+      "n": 8
+     }
+    },
+    "consumer_surplus": {
+     "shared": {
+      "mean": 49.0773,
+      "ci95": [
+       46.6549,
+       51.4998
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 49.1881,
+      "ci95": [
+       46.6636,
+       51.7126
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.1108,
+      "ci95": [
+       -0.2421,
+       0.0205
+      ],
+      "n": 8
+     }
+    },
+    "forecast_abs_err": {
+     "shared": {
+      "mean": 0.0843,
+      "ci95": [
+       0.0725,
+       0.0961
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 0.1214,
+      "ci95": [
+       0.1119,
+       0.131
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.0371,
+      "ci95": [
+       -0.049,
+       -0.0252
+      ],
+      "n": 8
+     }
+    },
+    "price": {
+     "shared": {
+      "mean": 4.4224,
+      "ci95": [
+       4.394,
+       4.4508
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 4.4193,
+      "ci95": [
+       4.3934,
+       4.4453
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.003,
+      "ci95": [
+       0.0001,
+       0.006
+      ],
+      "n": 8
+     }
+    }
+   },
+   {
+    "k": 3,
+    "mode": "ration",
+    "adopters": [
+     "bodega",
+     "bakery",
+     "vending"
+    ],
+    "profit": {
+     "shared": {
+      "mean": 73.0744,
+      "ci95": [
+       67.814,
+       78.3349
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 72.9295,
+      "ci95": [
+       67.7387,
+       78.1204
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.1449,
+      "ci95": [
+       0.0528,
+       0.237
+      ],
+      "n": 8
+     }
+    },
+    "consumer_surplus": {
+     "shared": {
+      "mean": 34.9,
+      "ci95": [
+       33.1367,
+       36.6633
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 35.0174,
+      "ci95": [
+       33.186,
+       36.8487
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.1174,
+      "ci95": [
+       -0.2319,
+       -0.0028
+      ],
+      "n": 8
+     }
+    },
+    "forecast_abs_err": {
+     "shared": {
+      "mean": 0.08,
+      "ci95": [
+       0.0707,
+       0.0894
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 0.1479,
+      "ci95": [
+       0.1358,
+       0.16
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.0679,
+      "ci95": [
+       -0.0795,
+       -0.0562
+      ],
+      "n": 8
+     }
+    },
+    "price": {
+     "shared": {
+      "mean": 3.9704,
+      "ci95": [
+       3.948,
+       3.9929
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 3.9667,
+      "ci95": [
+       3.9472,
+       3.9861
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.0038,
+      "ci95": [
+       0.0004,
+       0.0072
+      ],
+      "n": 8
+     }
+    }
+   },
+   {
+    "k": 4,
+    "mode": "ration",
+    "adopters": [
+     "bodega",
+     "bakery",
+     "vending",
+     "boba"
+    ],
+    "profit": {
+     "shared": {
+      "mean": 67.4785,
+      "ci95": [
+       62.5798,
+       72.3772
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 67.2755,
+      "ci95": [
+       62.5126,
+       72.0384
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.203,
+      "ci95": [
+       0.0588,
+       0.3472
+      ],
+      "n": 8
+     }
+    },
+    "consumer_surplus": {
+     "shared": {
+      "mean": 32.2942,
+      "ci95": [
+       30.6476,
+       33.9407
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 32.4663,
+      "ci95": [
+       30.7055,
+       34.2271
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.1721,
+      "ci95": [
+       -0.3078,
+       -0.0364
+      ],
+      "n": 8
+     }
+    },
+    "forecast_abs_err": {
+     "shared": {
+      "mean": 0.0772,
+      "ci95": [
+       0.0683,
+       0.086
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 0.1682,
+      "ci95": [
+       0.1569,
+       0.1795
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.0911,
+      "ci95": [
+       -0.1003,
+       -0.0818
+      ],
+      "n": 8
+     }
+    },
+    "price": {
+     "shared": {
+      "mean": 4.1864,
+      "ci95": [
+       4.1643,
+       4.2086
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 4.1808,
+      "ci95": [
+       4.1626,
+       4.199
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.0057,
+      "ci95": [
+       0.001,
+       0.0103
+      ],
+      "n": 8
+     }
+    }
+   },
+   {
+    "k": 5,
+    "mode": "ration",
+    "adopters": [
+     "bodega",
+     "bakery",
+     "vending",
+     "boba",
+     "barbershop"
+    ],
+    "profit": {
+     "shared": {
+      "mean": 80.1988,
+      "ci95": [
+       74.3879,
+       86.0098
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 79.6958,
+      "ci95": [
+       74.2052,
+       85.1864
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.503,
+      "ci95": [
+       0.156,
+       0.85
+      ],
+      "n": 8
+     }
+    },
+    "consumer_surplus": {
+     "shared": {
+      "mean": 38.3823,
+      "ci95": [
+       36.4534,
+       40.3113
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 38.7761,
+      "ci95": [
+       36.5853,
+       40.9669
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.3938,
+      "ci95": [
+       -0.7076,
+       -0.0799
+      ],
+      "n": 8
+     }
+    },
+    "forecast_abs_err": {
+     "shared": {
+      "mean": 0.076,
+      "ci95": [
+       0.0675,
+       0.0845
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 0.188,
+      "ci95": [
+       0.1749,
+       0.2011
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.112,
+      "ci95": [
+       -0.1213,
+       -0.1027
+      ],
+      "n": 8
+     }
+    },
+    "price": {
+     "shared": {
+      "mean": 9.4813,
+      "ci95": [
+       9.412,
+       9.5505
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 9.4469,
+      "ci95": [
+       9.3978,
+       9.4961
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.0343,
+      "ci95": [
+       0.0033,
+       0.0654
+      ],
+      "n": 8
+     }
+    }
+   },
+   {
+    "k": 6,
+    "mode": "ration",
+    "adopters": [
+     "bodega",
+     "bakery",
+     "vending",
+     "boba",
+     "barbershop",
+     "parking"
+    ],
+    "profit": {
+     "shared": {
+      "mean": 140.1981,
+      "ci95": [
+       129.8259,
+       150.5702
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 139.1277,
+      "ci95": [
+       129.3738,
+       148.8817
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 1.0704,
+      "ci95": [
+       0.3577,
+       1.783
+      ],
+      "n": 8
+     }
+    },
+    "consumer_surplus": {
+     "shared": {
+      "mean": 67.6596,
+      "ci95": [
+       63.8026,
+       71.5166
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 68.4276,
+      "ci95": [
+       64.0519,
+       72.8033
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.768,
+      "ci95": [
+       -1.5165,
+       -0.0196
+      ],
+      "n": 8
+     }
+    },
+    "forecast_abs_err": {
+     "shared": {
+      "mean": 0.0737,
+      "ci95": [
+       0.066,
+       0.0813
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 0.1927,
+      "ci95": [
+       0.1795,
+       0.2059
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.119,
+      "ci95": [
+       -0.1301,
+       -0.108
+      ],
+      "n": 8
+     }
+    },
+    "price": {
+     "shared": {
+      "mean": 11.7132,
+      "ci95": [
+       11.6403,
+       11.7861
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 11.6729,
+      "ci95": [
+       11.6213,
+       11.7246
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.0403,
+      "ci95": [
+       0.004,
+       0.0766
+      ],
+      "n": 8
+     }
+    }
+   },
+   {
+    "k": 7,
+    "mode": "ration",
+    "adopters": [
+     "bodega",
+     "bakery",
+     "vending",
+     "boba",
+     "barbershop",
+     "parking",
+     "florist"
+    ],
+    "profit": {
+     "shared": {
+      "mean": 131.0789,
+      "ci95": [
+       121.3688,
+       140.789
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 130.1418,
+      "ci95": [
+       120.9636,
+       139.32
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.9371,
+      "ci95": [
+       0.3226,
+       1.5515
+      ],
+      "n": 8
+     }
+    },
+    "consumer_surplus": {
+     "shared": {
+      "mean": 63.4495,
+      "ci95": [
+       59.7412,
+       67.1578
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 64.1206,
+      "ci95": [
+       59.9521,
+       68.2891
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.671,
+      "ci95": [
+       -1.3134,
+       -0.0287
+      ],
+      "n": 8
+     }
+    },
+    "forecast_abs_err": {
+     "shared": {
+      "mean": 0.0731,
+      "ci95": [
+       0.0648,
+       0.0814
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 0.2078,
+      "ci95": [
+       0.1936,
+       0.2221
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.1347,
+      "ci95": [
+       -0.1455,
+       -0.124
+      ],
+      "n": 8
+     }
+    },
+    "price": {
+     "shared": {
+      "mean": 12.1341,
+      "ci95": [
+       12.0698,
+       12.1983
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 12.0982,
+      "ci95": [
+       12.0539,
+       12.1425
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.0359,
+      "ci95": [
+       0.0045,
+       0.0673
+      ],
+      "n": 8
+     }
+    }
+   },
+   {
+    "k": 8,
+    "mode": "ration",
+    "adopters": [
+     "bodega",
+     "bakery",
+     "vending",
+     "boba",
+     "barbershop",
+     "parking",
+     "florist",
+     "bar"
+    ],
+    "profit": {
+     "shared": {
+      "mean": 182.9633,
+      "ci95": [
+       170.9642,
+       194.9624
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 174.4204,
+      "ci95": [
+       164.2379,
+       184.6029
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 8.5429,
+      "ci95": [
+       6.4057,
+       10.6802
+      ],
+      "n": 8
+     }
+    },
+    "consumer_surplus": {
+     "shared": {
+      "mean": 79.8269,
+      "ci95": [
+       76.3042,
+       83.3495
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 88.1912,
+      "ci95": [
+       82.8154,
+       93.5669
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -8.3643,
+      "ci95": [
+       -10.6666,
+       -6.062
+      ],
+      "n": 8
+     }
+    },
+    "forecast_abs_err": {
+     "shared": {
+      "mean": 0.0731,
+      "ci95": [
+       0.0648,
+       0.0814
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 0.2377,
+      "ci95": [
+       0.2196,
+       0.2559
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": -0.1646,
+      "ci95": [
+       -0.1793,
+       -0.1499
+      ],
+      "n": 8
+     }
+    },
+    "price": {
+     "shared": {
+      "mean": 12.3064,
+      "ci95": [
+       12.2204,
+       12.3925
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 12.1574,
+      "ci95": [
+       12.1186,
+       12.1961
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 0.149,
+      "ci95": [
+       0.0932,
+       0.2049
+      ],
+      "n": 8
+     }
+    },
+    "bar_profit": {
+     "shared": {
+      "mean": 546.1543,
+      "ci95": [
+       517.1182,
+       575.1903
+      ],
+      "n": 8
+     },
+     "private": {
+      "mean": 484.3704,
+      "ci95": [
+       463.4491,
+       505.2916
+      ],
+      "n": 8
+     },
+     "shared_minus_private": {
+      "mean": 61.7839,
+      "ci95": [
+       48.8434,
+       74.7243
+      ],
+      "n": 8
+     }
+    }
+   }
+  ],
+  "P1_forecast_error_falls_with_adopters": {
+   "shared_err_by_k": [
+    0.1098,
+    0.0843,
+    0.08,
+    0.0772,
+    0.076,
+    0.0737,
+    0.0731,
+    0.0731
+   ],
+   "monotone_nonincreasing": true,
+   "k1_vs_kmax": [
+    0.1098,
+    0.0731
+   ]
+  },
+  "P2_profit_premium_rises_with_adopters": {
+   "premium_by_k": [
+    0.0,
+    0.1627,
+    0.1449,
+    0.203,
+    0.503,
+    1.0704,
+    0.9371,
+    8.5429
+   ],
+   "k1_vs_kmax": [
+    0.0,
+    8.5429
+   ],
+   "rises": true,
+   "strict_monotone_nondecreasing": false
+  },
+  "bar_free_rider": {
+   "shared": {
+    "mean": 546.1543,
+    "ci95": [
+     517.1182,
+     575.1903
+    ],
+    "n": 8
+   },
+   "private": {
+    "mean": 484.3704,
+    "ci95": [
+     463.4491,
+     505.2916
+    ],
+    "n": 8
+   },
+   "shared_minus_private": {
+    "mean": 61.7839,
+    "ci95": [
+     48.8434,
+     74.7243
+    ],
+    "n": 8
+   }
+  },
+  "collusion_audit": {
+   "metric": "consumer_surplus (shared \u2212 private) per adopter-day, full adoption",
+   "paired_cs_diff": {
+    "mean": -8.3643,
+    "ci95": [
+     -10.6666,
+     -6.062
+    ],
+    "n": 8
+   },
+   "paired_price_diff": {
+    "mean": 0.149,
+    "ci95": [
+     0.0932,
+     0.2049
+    ],
+    "n": 8
+   },
+   "non_decreasing": false,
+   "strict_pro_consumer": false,
+   "verdict": "FAIL \u2014 sharing raises consumer prices; the feature dies"
+  }
+ }
+}

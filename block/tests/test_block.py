@@ -700,3 +700,407 @@ def test_committed_results_stay_reproducible():
     res.pop("meta")
     committed.pop("meta")
     assert json.dumps(res, sort_keys=True) == json.dumps(committed, sort_keys=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# B5 — the full 10-venue street (DESIGN §4b-2 composition guarantee): the six
+# remaining shipped sims (bakeshop/, slots/, vintage/) wrapped as block
+# storefronts, plus the wholesale/ dawn tier feeding venue COGS. Every B0/B1/B2
+# property must still hold, each adapter must MATCH its standalone sim on a
+# shared seed, and the wholesale flywheel must not raise consumer prices.
+# ══════════════════════════════════════════════════════════════════════════
+
+from block.runner import ALL_VENUES, STANDALONE_VENUES, WHOLESALE_SERVED
+from block.venues import (BakeryVenue, BarbershopVenue, BarVenue, FloristVenue,
+                          ParkingVenue, VintageVenue, WholesaleDawn)
+
+TEN = ALL_VENUES
+_STANDALONE_CLS = {"bakery": BakeryVenue, "florist": FloristVenue,
+                   "barbershop": BarbershopVenue, "parking": ParkingVenue,
+                   "bar": BarVenue, "vintage": VintageVenue}
+
+
+@pytest.fixture(scope="module")
+def twin10():
+    """One 7-day ten-venue twin shared by the composition tests (7 days so a
+    full bar day-of-week week and a fashion/bar week boundary are exercised)."""
+    return run_twin(days=7, seed=SEED, cfg=BlockConfig(regulars=10),
+                    venues=TEN)
+
+
+# ── each adapter reproduces its standalone sim on a shared seed ───────────
+
+def _adapter_totals(cls, world, seed, days):
+    v = cls(world, seed)
+    rev = units = 0.0
+    for d in range(days):
+        events, _eod = v.simulate_day(d)
+        for e in events:
+            if e["type"] == "deal":
+                rev += e["spend"]
+                units += e["qty"]
+    return rev, units
+
+
+def test_bakeshop_adapters_match_standalone():
+    """Bakery + florist block-adapters reproduce bakeshop/'s own run on the
+    same seed: the STICKER (control) arm is EXACT to the cent, the SNHP
+    (nego) arm within a cent (per-line bundle re-rounding), units exact."""
+    import bakeshop.run as bkr
+    from bakeshop.world import ShopState, get_venue, DEFAULT_CONFIG as BCFG
+    from bakeshop.policies import ControlPolicy, NegoPolicy
+    for pkg, cls in (("bakery", BakeryVenue), ("flowers", FloristVenue)):
+        for arm, world, Pol in (("control", "sticker", ControlPolicy),
+                                ("nego", "snhp", NegoPolicy)):
+            v = get_venue(pkg)
+            st = ShopState(v.name)
+            pol = Pol()
+            srev = sunits = 0.0
+            for d in range(15):
+                m = bkr.run_day(pol, st, v, SEED, d, BCFG)
+                srev += m["revenue"]
+                sunits += m["units"]
+            arev, aunits = _adapter_totals(cls, world, SEED, 15)
+            assert aunits == sunits
+            tol = 0.005 if arm == "control" else 0.02 * max(1.0, srev)
+            assert abs(arev - srev) <= tol, (pkg, arm, arev, srev)
+
+
+def test_slots_adapters_match_standalone():
+    """Barbershop + parking + bar block-adapters reproduce slots/'s own run
+    on the same seed: revenue EXACT to the cent, shown bookings exact."""
+    import slots.run as slr
+    from slots.world import DEFAULT_CONFIG as SCFG
+    from slots.policies import StaticPolicy, NegoPolicy
+    for pkg, cls in (("barber", BarbershopVenue), ("parking", ParkingVenue),
+                     ("bar", BarVenue)):
+        for arm, world, Pol in (("static", "sticker", StaticPolicy),
+                                ("nego", "snhp", NegoPolicy)):
+            pol = Pol()
+            srev = sshows = 0.0
+            for d in range(15):
+                m = slr.run_day(pol, pkg, SEED, d, SCFG)
+                srev += m["revenue"]
+                sshows += m["shows"]
+            arev, aunits = _adapter_totals(cls, world, SEED, 15)
+            assert aunits == sshows
+            assert abs(arev - srev) <= 0.005, (pkg, arm, arev, srev)
+
+
+def test_vintage_adapter_matches_standalone():
+    """The vintage block-adapter reproduces vintage/'s own run_store on the
+    same seed EXACTLY (revenue + units), for both the sticker (posted-price)
+    and SNHP (make-an-offer) arms."""
+    import vintage.run as vnr
+    from vintage.world import DEFAULT_CONFIG as VCFG, PairDraws
+    from vintage.policies import StickerPolicy, OfferPolicy
+    for arm, world, Pol in (("sticker", "sticker", StickerPolicy),
+                            ("offer", "snhp", OfferPolicy)):
+        run = vnr.run_store(Pol(), VCFG, SEED, 30, PairDraws())
+        srev = sum(d["revenue"] for d in run["per_day"])
+        sunits = sum(d["units_sold"] for d in run["per_day"])
+        arev, aunits = _adapter_totals(VintageVenue, world, SEED, 30)
+        assert aunits == sunits
+        assert abs(arev - srev) <= 0.005, (arm, arev, srev)
+
+
+# ── the ten-venue block still obeys every conservation law ────────────────
+
+def test_ten_venue_money_and_unit_conservation(twin10):
+    """Across all TEN venues and both worlds: venue-side per-day tills equal
+    the ledger's event-side revenue to the microcent, ledger unit counts
+    reconcile with each venue's own counter, no venue oversells its stock
+    (boba is made-to-order), and every deal's spend == round(qty·price, 2)."""
+    _res, ledger, worlds = twin10
+    for w in ("sticker", "snhp"):
+        for v in TEN:
+            venue = worlds[w]["venues"][v]
+            for d in range(7):
+                assert math.isclose(ledger.day_metrics(w, v, d)["revenue"],
+                                    venue.revenue_by_day.get(d, 0.0),
+                                    rel_tol=0, abs_tol=1e-6)
+            lu = sum(ledger.day_metrics(w, v, d)["units"] for d in range(7))
+            assert lu == venue.units_vended
+            if v != "boba":
+                assert venue.units_vended <= venue.units_stocked
+    for e in ledger.events:
+        if e["type"] == "deal":
+            assert e["spend"] == round(e["qty"] * e["unit_price"], 2)
+
+
+def test_ten_venue_arrivals_resolve_per_venue(twin10):
+    """No shopper vanishes at any storefront: for each self-contained venue
+    and world, arrivals == venue_entered + no_sale (baskets book one
+    venue_entered but one deal PER LINE, so deals ≥ venue_entered)."""
+    from collections import Counter
+    _res, ledger, _worlds = twin10
+    for v in STANDALONE_VENUES:
+        for w in ("sticker", "snhp"):
+            c = Counter(e["type"] for e in ledger.events
+                        if e["world"] == w and e.get("home") == v)
+            assert c["arrival"] == c["venue_entered"] + c["no_sale"], (v, w)
+            assert c["venue_entered"] <= c["deal"]
+
+
+def test_ten_venue_delta_decomposition_is_exact(twin10):
+    """The HUD counters decompose across all TEN venues (bitwise, by
+    construction) and match an independent recomputation."""
+    _res, ledger, _worlds = twin10
+    assert ledger.venues == TEN
+    for d in range(7):
+        for m in ("margin", "revenue", "consumer_surplus", "units"):
+            parts = sum(ledger.day_delta(v, d, m) for v in TEN)
+            assert ledger.block_day_delta(d, m) == parts
+            rec = (sum(ledger.day_metrics("snhp", v, d)[m] for v in TEN)
+                   - sum(ledger.day_metrics("sticker", v, d)[m] for v in TEN))
+            assert math.isclose(parts, rec, rel_tol=0, abs_tol=1e-9)
+
+
+def test_new_venues_are_paired_across_worlds(twin10):
+    """Both worlds walk the identical population into each new storefront:
+    the arrival stream (day, tick, uid) is byte-identical across the sticker
+    and SNHP worlds — the same variance-reduction guarantee as the street
+    lane, earned because every draw keys on the block seed, never a policy."""
+    _res, ledger, _worlds = twin10
+    for v in STANDALONE_VENUES:
+        def arr(world):
+            return sorted((e["day"], e["uid"]) for e in ledger.events
+                          if e["type"] == "arrival" and e["world"] == world
+                          and e.get("home") == v)
+        assert arr("sticker") == arr("snhp")
+        assert arr("sticker")            # the venue actually saw traffic
+
+
+def test_ten_venue_rents_and_ci_blocks(twin10):
+    """Each new storefront carries its NYC rent line, and the two
+    weekly-cadence venues (fashion's weekly reprice, the bar's day-of-week
+    surge) block their CIs on 7 days; every daily/day-atomic venue keeps 5."""
+    res, ledger, _worlds = twin10
+    expected_rent = {"bakery": calibration.BAKERY_RENT_PER_DAY,
+                     "florist": calibration.FLORIST_RENT_PER_DAY,
+                     "barbershop": calibration.BARBER_RENT_PER_DAY,
+                     "parking": calibration.PARKING_RENT_PER_DAY,
+                     "bar": calibration.BAR_RENT_PER_DAY,
+                     "vintage": calibration.VINTAGE_RENT_PER_DAY}
+    for v, rent in expected_rent.items():
+        assert ledger.day_metrics("sticker", v, 0)["rent"] == rent
+    for v in ("fashion", "bar"):
+        assert res["paired_deltas"][v]["margin"]["block"] == 7
+    for v in ("vending", "bodega", "boba", "bakery", "florist",
+              "barbershop", "parking", "vintage"):
+        assert res["paired_deltas"][v]["margin"]["block"] == 5
+
+
+def test_no_negotiation_surface_in_the_sticker_world(twin10):
+    """The sticker world has NO negotiation anywhere on the ten-venue block:
+    every negotiated deal (vending/bodega quotes, boba carts, bakery/florist
+    nego bundles, slot Nash quotes, vintage offers/counters) lives only in
+    the SNHP world."""
+    _res, ledger, _worlds = twin10
+    neg = [e for e in ledger.events
+           if e["type"] == "deal" and e.get("negotiated")]
+    assert neg and all(e["world"] == "snhp" for e in neg)
+    venues_that_negotiated = {e["venue"] for e in neg}
+    # every venue with a negotiation surface actually used it
+    assert {"vending", "boba", "bakery", "florist", "parking",
+            "bar"} <= venues_that_negotiated
+
+
+# ── the wholesale dawn tier (the flywheel) + its collusion-style audit ────
+
+def test_wholesale_dawn_feeds_costs_without_raising_consumer_prices():
+    """The 6am dawn tier's negotiated procurement savings are ≤ the rate card
+    (scale ≤ 1.0) for every served venue, they stack MERCHANT margin on those
+    venues (vending/bodega/boba/bakery), and — the audit that matters — the
+    SNHP world's consumer surplus is NON-DECREASING vs the no-wholesale run
+    (the flywheel lowers COGS, it never raises a consumer price)."""
+    off = run_twin(days=7, seed=SEED, cfg=BlockConfig(), venues=WHOLESALE_SERVED)
+    on = run_twin(days=7, seed=SEED,
+                  cfg=BlockConfig(wholesale=True), venues=WHOLESALE_SERVED)
+    scales = on[0]["config"]["wholesale_cost_scales"]
+    assert set(scales) == set(WHOLESALE_SERVED)
+    assert all(s <= 1.0 + 1e-9 for s in scales.values())
+    assert any(s < 1.0 for s in scales.values())     # something was negotiated
+    _res_off, led_off, _ = off
+    _res_on, led_on, _ = on
+    for v in WHOLESALE_SERVED:
+        moff = sum(led_off.day_metrics("snhp", v, d)["margin"] for d in range(7))
+        mon = sum(led_on.day_metrics("snhp", v, d)["margin"] for d in range(7))
+        assert mon >= moff - 1e-6              # margin stacks (never falls)
+    # THE audit: consumer surplus does not fall when procurement is shared
+    cs_off = sum(led_off.day_metrics("snhp", v, d)["consumer_surplus"]
+                 for v in WHOLESALE_SERVED for d in range(7))
+    cs_on = sum(led_on.day_metrics("snhp", v, d)["consumer_surplus"]
+                for v in WHOLESALE_SERVED for d in range(7))
+    assert cs_on >= cs_off - 1e-6
+
+
+def test_wholesale_leaves_the_sticker_world_untouched():
+    """The dawn tier only changes the SNHP world's COGS (it inherits
+    negotiated terms); the sticker world buys the rate card in both runs, so
+    its every event is byte-identical — the same isolation the bodega toggle
+    has."""
+    off = run_twin(days=3, seed=SEED, cfg=BlockConfig(), venues=WHOLESALE_SERVED)
+    on = run_twin(days=3, seed=SEED, cfg=BlockConfig(wholesale=True),
+                  venues=WHOLESALE_SERVED)
+    def sticker(res):
+        return [e for e in res[1].events if e["world"] == "sticker"]
+    assert sticker(off) == sticker(on)
+
+
+# ── determinism & artifact reproducibility for the ten-venue block ────────
+
+def test_ten_venue_twin_is_deterministic():
+    """Byte-identical: the whole ten-venue results dict (minus wall-clock
+    meta) reproduces exactly from the same seed."""
+    r1, _, _ = run_twin(days=2, seed=99, venues=TEN)
+    r2, _, _ = run_twin(days=2, seed=99, venues=TEN)
+    r1.pop("meta"); r2.pop("meta")
+    assert json.dumps(r1, sort_keys=True) == json.dumps(r2, sort_keys=True)
+
+
+def test_venues_all_alias_selects_the_full_street():
+    assert parse_venues("all") == ALL_VENUES
+    assert len(ALL_VENUES) == 10
+    assert parse_venues("bakery,vintage,bar") == ("bakery", "vintage", "bar")
+
+
+@pytest.mark.slow
+def test_committed_block10_results_stay_reproducible():
+    """block/results-block10.json (the full ten-venue street) must remain
+    exactly reproducible at the config it records — byte-level minus the
+    wall-clock meta."""
+    import pathlib
+    path = pathlib.Path(__file__).parents[1] / "results-block10.json"
+    committed = json.load(open(path))
+    c = committed["config"]
+    cfg = BlockConfig(sigma_cal=c["sigma_cal"], anchor_mult=c["anchor_mult"],
+                      regulars=c["regulars"], bodega_adopts=c["bodega_adopts"],
+                      wholesale=c["wholesale"])
+    res, _ledger, _worlds = run_twin(days=c["days"], seed=c["seed"], cfg=cfg,
+                                     venues=tuple(c["venues"]))
+    res.pop("meta")
+    committed.pop("meta")
+    assert json.dumps(res, sort_keys=True) == json.dumps(committed,
+                                                         sort_keys=True)
+
+
+@pytest.mark.slow
+def test_thirty_day_ten_venue_twin_fits_the_budget():
+    """A 30-day twin of the full ten-venue street on one core: target < 30s,
+    asserted at the scoped 120s; every venue transacts in the SNHP world."""
+    t0 = time.perf_counter()
+    res, _ledger, _worlds = run_twin(days=30, seed=7, venues=TEN)
+    assert time.perf_counter() - t0 < 120.0
+    for v in TEN:
+        assert res["per_world"]["snhp"]["venues"][v]["totals"]["deals"] > 0
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# B6.1 — the shared block demand-state posterior (NETWORK.md §B.1): the
+# smallest, biggest network effect, with its pre-registered collusion audit.
+# ══════════════════════════════════════════════════════════════════════════
+
+from block import network
+
+
+@pytest.fixture(scope="module")
+def b6():
+    """The committed B6.1 sweep (both pricing regimes) — the same config
+    block/results-b6.json records; the whole sweep runs in ~1s."""
+    return network.run_sweep(network.NetConfig(days=60, seeds=8), seed0=SEED)
+
+
+def test_b6_posterior_is_pure_demand_state_telemetry():
+    """The guardrail, mechanized: the shared posterior is a function of
+    arrival COUNTS and public expected-arrival scales ONLY — pooling more
+    morning counts strictly SHARPENS the estimate (lower variance), and no
+    price ever enters it."""
+    a0 = 3.0
+    # a single count vs the same count pooled with a second venue: the pooled
+    # posterior mean is the count-weighted blend, never a function of any price
+    one = network._posterior_mean(a0, 40, 40)          # one venue, m=E=40
+    pooled = network._posterior_mean(a0, 40 + 8, 40 + 8)  # + a second venue
+    assert one == pytest.approx((a0 + 40) / (a0 + 40))
+    assert pooled == pytest.approx((a0 + 48) / (a0 + 48))
+    # more pooled expected-arrivals ⇒ the prior weight shrinks ⇒ the estimate
+    # tracks data more tightly (the increasing-returns mechanism)
+    assert (a0 / (a0 + 88)) < (a0 / (a0 + 40))
+
+
+def test_b6_p1_forecast_error_falls_with_adopter_count(b6):
+    """P1 (both regimes): the SHARED posterior's forecast error is monotone
+    non-increasing in adopter count — each adopter's morning sharpens every
+    adopter's demand read."""
+    for mode in ("discount", "ration"):
+        err = b6[mode]["P1_forecast_error_falls_with_adopters"]
+        assert err["monotone_nonincreasing"]
+        assert err["k1_vs_kmax"][1] < err["k1_vs_kmax"][0]
+
+
+def test_b6_p2_profit_premium_rises_with_adopter_count(b6):
+    """P2: the per-adopter profit PREMIUM of sharing over private is 0 at k=1
+    (a lone pool is its own posterior) and rises with adopter count — the
+    increasing-returns signature."""
+    for mode in ("discount", "ration"):
+        p2 = b6[mode]["P2_profit_premium_rises_with_adopters"]
+        assert p2["premium_by_k"][0] == 0.0
+        assert p2["rises"]
+        assert p2["k1_vs_kmax"][1] > p2["k1_vs_kmax"][0]
+
+
+def test_b6_free_rider_bar_gains_from_the_pool(b6):
+    """The vivid network effect: the bar sees NO morning of its own (closed
+    until 15:00), so under private telemetry it prices its whole evening off
+    the prior; under the shared pool it inherits the block's morning read and
+    earns strictly more (CI clears zero)."""
+    bar = b6["discount"]["bar_free_rider"]
+    assert bar["shared_minus_private"]["ci95"][0] > 0.0
+
+
+def test_b6_collusion_audit_passes_under_discount_only(b6):
+    """THE pre-registered collusion audit. Under the block's actual guardrail
+    (discount-only — every SNHP policy can only cut off a fixed sticker), the
+    shared-telemetry arm's consumer surplus is NON-DECREASING vs private
+    (here strictly higher, and average prices fall): sharing does not raise
+    consumer prices, so the feature LIVES."""
+    audit = b6["discount"]["collusion_audit"]
+    assert audit["non_decreasing"]
+    assert audit["strict_pro_consumer"]                 # CS strictly rises
+    # the direct read: shared prices are not higher than private
+    assert b6["discount"]["cells"][-1]["price"][
+        "shared_minus_private"]["ci95"][1] <= 0.0 + 1e-9
+
+
+def test_b6_ration_counterfactual_fails_the_audit(b6):
+    """The honest counterfactual that JUSTIFIES the discount-only guardrail:
+    if venues used the shared estimate for unconstrained yield RATIONING
+    (raising prices on believed-busy days), the audit FAILS — consumer
+    surplus falls and prices rise. This is why the block's discount-only
+    constraint is the non-negotiable condition for demand-state sharing."""
+    audit = b6["ration"]["collusion_audit"]
+    assert not audit["non_decreasing"]
+    assert audit["paired_cs_diff"]["ci95"][1] < 0.0    # CS strictly falls
+    assert b6["ration"]["cells"][-1]["price"][
+        "shared_minus_private"]["mean"] > 0.0          # prices rise
+
+
+def test_b6_is_deterministic():
+    """The whole sweep reproduces byte-identically from the same seed."""
+    r1 = network.run_sweep(network.NetConfig(days=10, seeds=3), seed0=5)
+    r2 = network.run_sweep(network.NetConfig(days=10, seeds=3), seed0=5)
+    assert json.dumps(r1, sort_keys=True) == json.dumps(r2, sort_keys=True)
+
+
+def test_committed_b6_results_stay_reproducible():
+    """block/results-b6.json must remain exactly reproducible at the config it
+    records — byte-level."""
+    import pathlib
+    path = pathlib.Path(__file__).parents[1] / "results-b6.json"
+    committed = json.load(open(path))
+    c = committed["config"]
+    res = network.run_sweep(
+        network.NetConfig(alpha0=c["alpha0"], days=c["days"], seeds=c["seeds"]),
+        seed0=SEED)
+    assert json.dumps(res, sort_keys=True) == json.dumps(committed,
+                                                         sort_keys=True)

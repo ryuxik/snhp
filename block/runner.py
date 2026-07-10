@@ -60,9 +60,10 @@ import numpy as np
 
 from block import calibration, population
 from block.ledger import BlockLedger
-from block.venues import (BlockConfig, BlockRegularPool, BobaVenue,
-                          BodegaVenue, FashionVenue, VendingVenue,
-                          build_block_catalog, build_fashion_plan)
+from block.venues import (BakeryVenue, BarbershopVenue, BarVenue, BlockConfig,
+                          BlockRegularPool, BobaVenue, BodegaVenue, FashionVenue,
+                          FloristVenue, ParkingVenue, VendingVenue, VintageVenue,
+                          WholesaleDawn, build_block_catalog, build_fashion_plan)
 from boba import world as boba_world
 from fashion.world import decay as fashion_decay, waiter_buys_now
 from vend.core import substream
@@ -71,7 +72,17 @@ from vend.world import TICKS_PER_DAY, best_bundle, bundle_value
 
 BLOCK_VERSION = 2
 WORLDS = ("sticker", "snhp")
+# the original four "street/queue/season" venues, driven by the shared street
+# population inside the tick loop (B0/B1/B2 — the default artifact set)
 VENUE_NAMES = ("vending", "bodega", "boba", "fashion")
+# the six shipped storefronts wrapped as self-contained block venues (they run
+# their package's own validated population on the block clock; DESIGN §4b-2)
+STANDALONE_VENUES = ("bakery", "florist", "barbershop", "parking", "bar",
+                     "vintage")
+# the full street: every shipped sim as a storefront (the 10-venue block)
+ALL_VENUES = VENUE_NAMES + STANDALONE_VENUES
+# which venues the wholesale dawn tier serves (its calibrated catalog)
+WHOLESALE_SERVED = ("vending", "bodega", "boba", "bakery")
 
 
 # ── one street shopper's resolution ──────────────────────────────────────
@@ -82,7 +93,8 @@ def _settle_vending(vend_v, ledger, base, sku, qty, price, why,
     q = vend_v.settle(sku, qty, price, why, base["day"], base["tick"], base["uid"])
     ledger.record({"type": "deal", "venue": "vending", "sku": sku, "qty": qty,
                    "unit_price": price, "spend": q.total,
-                   "cogs": qty * vend_v.catalog[sku].unit_cost,
+                   "cogs": qty * vend_v.catalog[sku].unit_cost
+                   * getattr(vend_v, "cost_scale", 1.0),
                    "surplus": surplus, "raw_surplus": raw, "walk": walk,
                    "negotiated": negotiated, **base})
 
@@ -92,7 +104,8 @@ def _settle_bodega(bodega, ledger, base, item, qty, surplus, raw, walk):
     spend, cogs = bodega.settle(item, qty, base["day"])
     ledger.record({"type": "deal", "venue": "bodega", "sku": item, "qty": qty,
                    "unit_price": bodega.prices[item], "spend": spend,
-                   "cogs": cogs, "surplus": surplus, "raw_surplus": raw,
+                   "cogs": cogs * getattr(bodega, "cost_scale", 1.0),
+                   "surplus": surplus, "raw_surplus": raw,
                    "walk": walk, "negotiated": False, **base})
 
 
@@ -103,7 +116,8 @@ def _settle_bodega_quote(bodega, ledger, base, item, qty, price, why,
                             base["uid"])
     ledger.record({"type": "deal", "venue": "bodega", "sku": item, "qty": qty,
                    "unit_price": price, "spend": q.total,
-                   "cogs": qty * bodega.costs[item],
+                   "cogs": qty * bodega.costs[item]
+                   * getattr(bodega, "cost_scale", 1.0),
                    "surplus": surplus, "raw_surplus": raw, "walk": walk,
                    "negotiated": True, **base})
 
@@ -244,7 +258,8 @@ def _settle_boba(boba_v, ledger, base, drink, qty, tops, unit_price, spend,
     ledger.record({"type": "deal", "venue": "boba", "sku": drink, "qty": qty,
                    "unit_price": unit_price, "spend": spend,
                    "cogs": qty * (boba_world.DRINK_COST[drink]
-                                  + sum(boba_world.TOP_COST[t] for t in tops)),
+                                  + sum(boba_world.TOP_COST[t] for t in tops))
+                   * getattr(boba_v, "cost_scale", 1.0),
                    "surplus": surplus, "raw_surplus": raw, "walk": 0.0,
                    "negotiated": negotiated, "tops": list(tops),
                    "slot_ticks": slot_ticks, "why": list(why), **base})
@@ -342,9 +357,14 @@ def _resolve_fashion(world, sh, fash_v, ledger, day, tick, kind):
 
 # ── world & twin loops ───────────────────────────────────────────────────
 
+_STANDALONE_CLASSES = {"bakery": BakeryVenue, "florist": FloristVenue,
+                       "barbershop": BarbershopVenue, "parking": ParkingVenue,
+                       "bar": BarVenue, "vintage": VintageVenue}
+
+
 def run_world(world: str, days: int, seed: int, cfg: BlockConfig,
               ledger: BlockLedger, venues=VENUE_NAMES, catalog=None,
-              fashion_plan=None) -> dict:
+              fashion_plan=None, dawn=None) -> dict:
     has = set(venues)
     vend_v = VendingVenue(world, cfg, seed, catalog=catalog) \
         if "vending" in has else None
@@ -354,6 +374,17 @@ def run_world(world: str, days: int, seed: int, cfg: BlockConfig,
     boba_v = BobaVenue(world, seed) if "boba" in has else None
     fash_v = FashionVenue(world, cfg, seed, plan=fashion_plan) \
         if "fashion" in has else None
+    # the six shipped storefronts run their package's own population on the
+    # block clock, each keyed on its own block-derived seed (so bakery and
+    # florist — which share bakeshop's arrival-substream tags — don't collide)
+    standalone = {name: cls(world, substream(seed, "venue", name))
+                  for name, cls in _STANDALONE_CLASSES.items() if name in has}
+    # wholesale dawn tier: the SNHP world inherits negotiated procurement
+    # savings on the served venues' COGS (sticker world stays at the rate card)
+    for name in ("vending", "bodega", "boba"):
+        obj = {"vending": vend_v, "bodega": bodega, "boba": boba_v}[name]
+        if obj is not None and dawn is not None:
+            obj.cost_scale = dawn.scale_for(world, name)
     pool = (BlockRegularPool(cfg.regulars, seed, vend_v.catalog)
             if vend_v is not None and cfg.regulars > 0 else None)
     churn = []
@@ -419,6 +450,16 @@ def run_world(world: str, days: int, seed: int, cfg: BlockConfig,
             eodf = fash_v.end_day(day)
             ledger.close_day(world, "fashion", day,
                              eodf["spoiled_units"], eodf["spoilage_cost"])
+        # the self-contained storefronts each run their whole block day and
+        # hand back ledger events (the venue never touches the ledger — the
+        # layering rule) plus their spoilage close
+        for name, nv in standalone.items():
+            scale = dawn.scale_for(world, name) if dawn is not None else 1.0
+            events, eod = nv.simulate_day(day, cost_scale=scale)
+            for e in events:
+                ledger.record(e)
+            ledger.close_day(world, name, day,
+                             eod["spoiled_units"], eod["spoilage_cost"])
         if pool is not None:
             churn.append({"day": day, "churned": pool.end_day(day),
                           "active": pool.active_count()})
@@ -427,6 +468,7 @@ def run_world(world: str, days: int, seed: int, cfg: BlockConfig,
                       ("boba", boba_v), ("fashion", fash_v)):
         if obj is not None:
             venue_objs[name] = obj
+    venue_objs.update(standalone)
     return {"venues": venue_objs, "churn": churn}
 
 
@@ -446,7 +488,10 @@ def _venue_block(ledger: BlockLedger, world: str, venue: str, days: int) -> dict
 
 
 _VENUE_CLASSES = {"vending": VendingVenue, "bodega": BodegaVenue,
-                  "boba": BobaVenue, "fashion": FashionVenue}
+                  "boba": BobaVenue, "fashion": FashionVenue,
+                  "bakery": BakeryVenue, "florist": FloristVenue,
+                  "barbershop": BarbershopVenue, "parking": ParkingVenue,
+                  "bar": BarVenue, "vintage": VintageVenue}
 
 
 def run_twin(days: int, seed: int, cfg: BlockConfig = BlockConfig(),
@@ -460,8 +505,15 @@ def run_twin(days: int, seed: int, cfg: BlockConfig = BlockConfig(),
                                 for v in venues})
     catalog = build_block_catalog(cfg, seed) if "vending" in venues else None
     fashion_plan = build_fashion_plan(cfg, seed) if "fashion" in venues else None
+    # the 6am dawn tier (shared across both worlds — it is itself a paired
+    # twin market; each retail world reads its own side, rate card vs
+    # negotiated) when any wholesale-served venue is on the block
+    dawn = (WholesaleDawn(seed, days)
+            if cfg.wholesale and any(v in WHOLESALE_SERVED for v in venues)
+            else None)
     worlds = {w: run_world(w, days, seed, cfg, ledger, venues=venues,
-                           catalog=catalog, fashion_plan=fashion_plan)
+                           catalog=catalog, fashion_plan=fashion_plan,
+                           dawn=dawn)
               for w in WORLDS}
 
     per_world = {}
@@ -478,6 +530,8 @@ def run_twin(days: int, seed: int, cfg: BlockConfig = BlockConfig(),
             "seed": seed, "days": days, "venues": list(venues),
             "sigma_cal": cfg.sigma_cal, "anchor_mult": cfg.anchor_mult,
             "regulars": cfg.regulars, "bodega_adopts": cfg.bodega_adopts,
+            "wholesale": cfg.wholesale,
+            "wholesale_cost_scales": (dawn.scales if dawn is not None else {}),
             "shopper_fraction": round(population.SHOPPER_FRACTION, 4),
             "p_vending_home": round(population.P_VENDING_HOME, 4),
             "expected_daily": {k: round(v, 2)
@@ -496,8 +550,11 @@ def run_twin(days: int, seed: int, cfg: BlockConfig = BlockConfig(),
                 "boba: cart quotes fire BEFORE the walk-in balk; now-slot deals face the same balk roll; queue/batches are boba/world verbatim on block ticks 18..89",
                 "fashion: weekly season tick every 7 block days, 14-week season; ONE buy at day 0 planned against the cliff; cogs booked at sale, season-end salvage writedown on the last day (runs < 98 days show margin gross of clearance risk)",
                 "consumer_surplus is net of the cross-venue walk (or pickup-defer disutility) actually incurred",
-                "vending pays no rent in calibration (lobby machine); bodega $400/day, boba $330/day, fashion $620/day",
-                "no day-of-week / day shocks / same-day return queue (B0, carried)",
+                "vending pays no rent in calibration (lobby machine); bodega $400/day, boba $330/day, fashion $620/day; bakery $500, florist $350, barbershop $250, parking $900, bar $800, vintage $300 (block-level rent TARGETS; the standalone sims model margin gross of rent)",
+                "bakery/florist/barbershop/parking/bar/vintage are the shipped standalone sims wrapped VERBATIM: they run each package's OWN validated population (arrivals, WTP, no-show, offers) keyed on a block-derived per-venue seed, paired across worlds by construction; cross-substitution with the street lane is DEFERRED (documented, same shortcut as boba/fashion). Their block-adapters match their standalone sims on a shared seed (asserted in tests: slots/vintage exact, bakeshop within a cent from bundle re-rounding)",
+                "the bar carries its OWN day-of-week structure (slots weekend surge) — day 0 = Monday; every other lane stays day-of-week-agnostic (B0 carried). vintage is day-atomic (one sourcing draw + one browser pass/day); its per-item holding cost books through the ledger's spoilage line",
+                "wholesale dawn tier (cfg.wholesale): the 6am procurement market runs paired (rate card vs negotiated); the SNHP retail world inherits its negotiated per-venue COGS savings on vending/bodega/boba/bakery (the flywheel). Off by default so B0/B1B2 artifacts stay byte-exact",
+                "no day-of-week (except the bar) / day-level demand shocks on the street lane / same-day return queue (B0, carried)",
             ],
         },
         "per_world": per_world,
@@ -515,10 +572,15 @@ def run_twin(days: int, seed: int, cfg: BlockConfig = BlockConfig(),
 
 
 _VENUE_ALIASES = {"vend": "vending", "vending": "vending", "bodega": "bodega",
-                  "boba": "boba", "fashion": "fashion"}
+                  "boba": "boba", "fashion": "fashion", "bakery": "bakery",
+                  "florist": "florist", "flowers": "florist",
+                  "barbershop": "barbershop", "barber": "barbershop",
+                  "parking": "parking", "bar": "bar", "vintage": "vintage"}
 
 
 def parse_venues(spec: str) -> tuple[str, ...]:
+    if spec.strip().lower() == "all":
+        return ALL_VENUES
     out = []
     for tok in spec.split(","):
         tok = tok.strip().lower()
@@ -526,7 +588,7 @@ def parse_venues(spec: str) -> tuple[str, ...]:
             continue
         if tok not in _VENUE_ALIASES:
             raise ValueError(f"unknown venue {tok!r} "
-                             f"(have {sorted(set(_VENUE_ALIASES))})")
+                             f"(have {sorted(set(_VENUE_ALIASES))} or 'all')")
         name = _VENUE_ALIASES[tok]
         if name not in out:
             out.append(name)
@@ -543,15 +605,20 @@ def main(argv=None) -> int:
     ap.add_argument("--sigma-cal", type=float, default=0.15)
     ap.add_argument("--anchor-mult", type=float, default=1.0)
     ap.add_argument("--venues", default="vend,bodega,boba,fashion",
-                    help="comma list: vend,bodega,boba,fashion (default all)")
+                    help="comma list (vend,bodega,boba,fashion,bakery,florist,"
+                         "barbershop,parking,bar,vintage) or 'all' (10-venue)")
     ap.add_argument("--bodega-adopts", action="store_true",
                     help="SNHP world's bodega runs its own brokered-quote arm")
+    ap.add_argument("--wholesale", action="store_true",
+                    help="run the 6am dawn tier; SNHP world inherits negotiated "
+                         "procurement savings on vending/bodega/boba/bakery")
     ap.add_argument("--out", default=None)
     args = ap.parse_args(argv)
 
     venues = parse_venues(args.venues)
     cfg = BlockConfig(sigma_cal=args.sigma_cal, anchor_mult=args.anchor_mult,
-                      regulars=args.regulars, bodega_adopts=args.bodega_adopts)
+                      regulars=args.regulars, bodega_adopts=args.bodega_adopts,
+                      wholesale=args.wholesale)
     results, ledger, _worlds = run_twin(args.days, args.seed, cfg,
                                         venues=venues)
 

@@ -48,7 +48,12 @@ DELTA_METRICS = ("margin", "revenue", "consumer_surplus", "units", "deals")
 # not sharp"). Fashion's venue-level paired CI uses 7-day blocks instead;
 # every other venue (and the block-level aggregate, which mixes daily and
 # weekly cadences) keeps the 5-day default.
-VENUE_CI_BLOCK = {"fashion": 7}
+# The bar (slots/) carries its own 7-day day-of-week cycle (weekend surge),
+# so — exactly like fashion's weekly reprice — a 5-day block CI aliases that
+# cadence; the bar's venue-level paired CI blocks on 7 days too. Every other
+# venue reprices daily (or is day-atomic) and keeps the 5-day default; the
+# block-level aggregate mixes cadences and also keeps 5.
+VENUE_CI_BLOCK = {"fashion": 7, "bar": 7}
 DEFAULT_CI_BLOCK = 5
 
 

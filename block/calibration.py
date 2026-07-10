@@ -80,6 +80,23 @@ FASHION_SEASON_WEEKS = 14
 FASHION_DAILY_TX = 3
 FASHION_RENT_PER_DAY = 620
 
+# ── the remaining storefronts (composition guarantee, DESIGN §4b-2) ──────
+# Each of these six venues is an already-shipped standalone sim (bakeshop/,
+# slots/, vintage/) wrapped verbatim onto the block clock. Their catalogs,
+# costs, arrival curves, and mechanisms live in their OWN calibration.py (the
+# RECALIBRATED numbers — vending ~7-8/day scale, fashion 91% sell-through,
+# florist IFPA receiving-loss shrink, slots peak-anchored/no-show-calibrated
+# — are used as-is; the block does NOT re-tune them). The ONLY block-level
+# calibration each needs is a NYC rent line, so "+$X/day" reads honestly
+# against fixed costs (DESIGN §3). Each rent is a pilot-data TARGET like every
+# other constant here; the standalone sims model margin gross of rent.
+BAKERY_RENT_PER_DAY  = 500     # Village neighborhood bakery storefront
+FLORIST_RENT_PER_DAY = 350     # Chelsea corner florist
+BARBER_RENT_PER_DAY  = 250     # 2-chair shop
+PARKING_RENT_PER_DAY = 900     # 40-space lot (land cost, not a storefront)
+BAR_RENT_PER_DAY     = 800     # 60-seat bar
+VINTAGE_RENT_PER_DAY = 300     # second-hand store
+
 # ── the block's people ───────────────────────────────────────────────────
 # personas: (name, share, wtp_mult, walk_cost $, schedule)
 PERSONAS = [
