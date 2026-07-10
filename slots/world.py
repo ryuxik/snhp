@@ -107,6 +107,14 @@ class Segment:
     n_weights: tuple
     lead_max: int
     gamma: float
+    sigma: float                # per-segment WTP-ratio spread (CALIBRATION-
+                                # TARGETS §4 priority #8: elasticity is
+                                # STRUCTURAL — a tight sigma means little
+                                # WTP mass near the margin, hence a
+                                # discount converts few who would not have
+                                # paid list. Was a single venue-wide
+                                # constant; segments (e.g. parking's
+                                # commuter vs errand) now carry their own.
 
 
 @dataclass
@@ -130,6 +138,31 @@ class Venue:
     flex_cost: float
     rigid_cost: float
     hassle: tuple
+    # day-of-week calendar structure (CALIBRATION-TARGETS §4 priority #7,
+    # the bar weekend curve): dow_rate_mult and dow_wtp_mult are each an
+    # EXTRA per-(day, hour) multiplier layered on top of the hourly
+    # rate/wtp_mult profile (missing day or hour defaults to 1.0, so
+    # barber and parking — empty dicts — are byte-unaffected). Rate needs
+    # its OWN per-hour shape, not a flat per-day scalar: the bar's peak
+    # hours (19-22h) are already capacity-saturated on an ordinary
+    # weekday, so a uniform Saturday rate bump mostly turns AWAY the extra
+    # demand rather than converting it — the real "Sat >25% of weekly
+    # sales" story is Saturday's OTHERWISE-QUIET 15:00-18:00 becoming
+    # genuinely busy (slack capacity to actually absorb), not a bigger
+    # crowd fighting over the same already-full peak.
+    # Known calendar structure, like vend's `dow` flag — NOT a random day
+    # shock (day_rate_mult already models that): the operator knows the
+    # week's shape and still posts ONE sticker all week (static does not
+    # reprice by weekday). The import-time mixture (ratio_appeal, D-hat,
+    # mstar) blends across all 7 days weighted by their own dow_rate_mult
+    # — "the profit-optimal all-WEEK posted price" — but the blend is a
+    # per-tick average across the week, not a per-day-of-week forecast:
+    # computed/1 and nego/1's D-hat is calendar-coarse (an honestly flagged
+    # simplification, symmetric across both dynamic arms). mstar is the
+    # one exception — it IS keyed by (day%7, hour), so computed/1 reprices
+    # Saturday's true peak correctly.
+    dow_rate_mult: dict = field(default_factory=dict)   # day%7 -> {hour: mult}
+    dow_wtp_mult: dict = field(default_factory=dict)   # day%7 -> {hour: mult}
     # derived (filled by venue())
     ticks: int = 0
     hours: tuple = ()
@@ -138,7 +171,7 @@ class Venue:
     peak_hours: tuple = ()
     mean_margin_per_tick: float = 0.0
     suffix_demand: np.ndarray | None = None   # (ticks+1, n_hours) unit-ticks
-    mstar: dict = field(default_factory=dict)  # hour -> computed/1 multiplier
+    mstar: dict = field(default_factory=dict)  # (day%7, hour) -> computed/1 mult
 
     def hour_of(self, tick: int) -> int:
         return self.open_hour + tick // 6
@@ -146,8 +179,15 @@ class Venue:
     def hidx(self, hour: int) -> int:
         return hour - self.open_hour
 
-    def rate_at(self, tick: int) -> float:
-        return self.rate[self.hour_of(tick)] / 6.0
+    def dow_rate_at(self, day: int, hour: int) -> float:
+        return self.dow_rate_mult.get(day % 7, {}).get(hour, 1.0)
+
+    def dow_wtp_at(self, day: int, hour: int) -> float:
+        return self.dow_wtp_mult.get(day % 7, {}).get(hour, 1.0)
+
+    def rate_at(self, tick: int, day: int = 0) -> float:
+        hour = self.hour_of(tick)
+        return self.rate[hour] / 6.0 * self.dow_rate_at(day, hour)
 
     def max_steps_from(self, start: int) -> int:
         return (self.ticks - start) // self.step_ticks
@@ -223,14 +263,17 @@ def sample_customer(venue: Venue, master_seed: int, day: int, tick: int,
     lead = int(rng.integers(0, seg.lead_max + 1))
     desired = min(tick + lead, venue.ticks - 1)
     n_req = min(n_req, venue.max_steps_from(desired))
-    # WTP ratio: lognormal around the venue appeal x the SLOT hour's mult
-    eps = float(rng.lognormal(0.0, venue.sigma))
+    # WTP ratio: lognormal around the venue appeal x the SLOT hour's mult x
+    # the SLOT day-of-week's extra mult, spread by the segment's OWN sigma
+    # (CALIBRATION-TARGETS §4 #8: elasticity is structural, per segment)
+    eps = float(rng.lognormal(0.0, seg.sigma))
     flexible = bool(rng.random() < cfg.flexible_share)
     hassle = float(rng.uniform(*venue.hassle))
     if n_req < 1:
         return None                 # cannot fit before close: lost arrival
     slot_hour = venue.hour_of(desired)
-    ratio = venue.ratio_appeal * venue.wtp_mult[slot_hour] * eps
+    dow_mult = venue.dow_wtp_at(day, slot_hour)
+    ratio = venue.ratio_appeal * venue.wtp_mult[slot_hour] * dow_mult * eps
     L = venue.list_price(n_req, kind)
     wtp = ratio * L
     outside = max(0.0, wtp - C.OUTSIDE_MARKUP * L - hassle)
@@ -247,8 +290,8 @@ def arrivals_at(venue: Venue, master_seed: int, day: int, tick: int,
     """Poisson arrivals this tick — paired across arms by construction."""
     rng = np.random.default_rng(substream(master_seed, "arr", venue.name,
                                           day, tick))
-    rate = venue.rate_at(tick) * day_rate_mult(venue.name, cfg.sigma_shock,
-                                               master_seed, day)
+    rate = venue.rate_at(tick, day) * day_rate_mult(venue.name, cfg.sigma_shock,
+                                                     master_seed, day)
     return int(rng.poisson(rate))
 
 
@@ -415,25 +458,18 @@ def _best_n_at_list(wtp: float, n_req: int, gamma: float, venue: Venue,
     return best_n
 
 
-def _pstar_mixture(R: float, cost_ratio: float, sigma: float,
-                   weights: np.ndarray, mults: np.ndarray) -> float:
-    """Profit-max posted multiplier against the start-hour-weighted WTP
-    ratio mixture — the competent all-day sticker, on the ratio scale."""
+def _pstar_mixture(R: float, cost_ratio: float,
+                   weights: np.ndarray, mults: np.ndarray,
+                   sigmas: np.ndarray) -> float:
+    """Profit-max posted multiplier against a weighted WTP ratio mixture —
+    the competent sticker, on the ratio scale. `sigmas` is per-observation
+    (CALIBRATION-TARGETS §4 #8: elasticity is structural, per segment, not
+    one venue-wide spread) — a single-cell mixture (weights=[1.0]) is
+    exactly the old `_pstar_single` hourly re-solve."""
     from scipy.optimize import minimize_scalar
     res = minimize_scalar(
         lambda m: -(m - cost_ratio) * float(sum(
-            w * _sf(m, R * mu, sigma) for w, mu in zip(weights, mults))),
-        bounds=(cost_ratio + 0.01, 4.0), method="bounded")
-    return float(res.x)
-
-
-def _pstar_single(R: float, cost_ratio: float, sigma: float,
-                  mult: float) -> float:
-    """Profit-max multiplier against a single hour's ratio crowd (the
-    computed arm's hourly re-solve)."""
-    from scipy.optimize import minimize_scalar
-    res = minimize_scalar(
-        lambda m: -(m - cost_ratio) * _sf(m, R * mult, sigma),
+            w * _sf(m, R * mu, sg) for w, mu, sg in zip(weights, mults, sigmas))),
         bounds=(cost_ratio + 0.01, 4.0), method="bounded")
     return float(res.x)
 
@@ -475,7 +511,9 @@ def _raw_venue(name: str) -> Venue:
                      seg_weights=C.BAR_SEG_WEIGHTS,
                      shift_choices=C.BAR_SHIFT_CHOICES, window=C.BAR_WINDOW,
                      flex_cost=C.BAR_FLEX_COST, rigid_cost=C.BAR_RIGID_COST,
-                     hassle=C.BAR_HASSLE)
+                     hassle=C.BAR_HASSLE,
+                     dow_rate_mult=C.BAR_DOW_RATE_MULT,
+                     dow_wtp_mult=C.BAR_DOW_WTP_MULT)
     raise KeyError(f"unknown venue {name!r}")
 
 
@@ -495,54 +533,81 @@ def venue(name: str) -> Venue:
     v.ticks = (v.close_hour - v.open_hour) * 6
     v.hours = tuple(range(v.open_hour, v.close_hour))
     n_hours = len(v.hours)
+    DOW = range(7)   # the calendar blend: barber/parking have trivial dow
+                     # multipliers, so this loop is a 7x-redundant no-op for
+                     # them (self-cancels in every ratio); the bar's real
+                     # weekend curve makes it load-bearing.
 
-    # pass 1 — start-hour weights + arrival-weighted cost ratio (conv-free)
+    # pass 1 — start-hour weights + arrival-weighted cost ratio (conv-free),
+    # blended across the week's own calendar volume (a busier Saturday
+    # naturally counts for more, via dow_rate_mult inside rate_at)
     start_w = np.zeros(n_hours)
     list_sum = cost_sum = 0.0
     kind_shares = [(kd, sh) for kd, (_, _, sh) in v.kinds.items()]
-    for a in range(v.ticks):
-        ra = v.rate_at(a)
-        for seg_name, w_seg in v.seg_weights[v.hour_of(a)].items():
-            seg = v.segments[seg_name]
-            for lead in range(seg.lead_max + 1):
-                p_lead = 1.0 / (seg.lead_max + 1)
-                start = min(a + lead, v.ticks - 1)
-                for n, p_n in zip(seg.n_choices, seg.n_weights):
-                    n_eff = min(n, v.max_steps_from(start))
-                    if n_eff < 1:
-                        continue
-                    w = ra * w_seg * p_lead * p_n
-                    start_w[v.hidx(v.hour_of(start))] += w
-                    for kd, sh in kind_shares:
-                        list_sum += w * sh * v.list_price(n_eff, kd)
-                        cost_sum += w * sh * v.unit_cost(n_eff, kd)
+    cell_w: dict = {}    # (day, start_hour, seg_name) -> weight
+    for day_idx in DOW:
+        for a in range(v.ticks):
+            ra = v.rate_at(a, day_idx)
+            for seg_name, w_seg in v.seg_weights[v.hour_of(a)].items():
+                seg = v.segments[seg_name]
+                for lead in range(seg.lead_max + 1):
+                    p_lead = 1.0 / (seg.lead_max + 1)
+                    start = min(a + lead, v.ticks - 1)
+                    start_hour = v.hour_of(start)
+                    for n, p_n in zip(seg.n_choices, seg.n_weights):
+                        n_eff = min(n, v.max_steps_from(start))
+                        if n_eff < 1:
+                            continue
+                        w = ra * w_seg * p_lead * p_n
+                        start_w[v.hidx(start_hour)] += w
+                        key = (day_idx, start_hour, seg_name)
+                        cell_w[key] = cell_w.get(key, 0.0) + w
+                        for kd, sh in kind_shares:
+                            list_sum += w * sh * v.list_price(n_eff, kd)
+                            cost_sum += w * sh * v.unit_cost(n_eff, kd)
     v.cost_ratio = cost_sum / list_sum
-    mults = np.array([v.wtp_mult[h] for h in v.hours])
-    weights = start_w / start_w.sum()
+    weights = np.array(list(cell_w.values()))
+    weights = weights / weights.sum()
+    mults = np.array([v.wtp_mult[h] * v.dow_wtp_at(d, h)
+                      for d, h, _s in cell_w])
+    sigmas = np.array([v.segments[s].sigma for _d, _h, s in cell_w])
 
-    # pass 2 — invert R so the mixture-optimal multiplier is exactly 1
+    # pass 2 — invert R so the mixture-optimal multiplier is exactly 1,
+    # against the per-(day, hour, segment) mixture (real elasticity
+    # heterogeneity, real weekly demand shape)
     lo, hi = 0.2, 4.0
     for _ in range(28):
         mid = (lo + hi) / 2
-        if _pstar_mixture(mid, v.cost_ratio, v.sigma, weights, mults) < 1.0:
+        if _pstar_mixture(mid, v.cost_ratio, weights, mults, sigmas) < 1.0:
             lo = mid
         else:
             hi = mid
     v.ratio_appeal = (lo + hi) / 2
 
     # pass 3 — D-hat: expected converted unit-ticks per hour, with the
-    # duration choice marginalized over the lognormal WTP grid
-    eps_grid = _eps_grid(v.sigma)
+    # duration choice marginalized over the lognormal WTP grid AND blended
+    # across the week (average-day forecast: known simplification, flagged
+    # in the module docstring — symmetric across computed/1 and nego/1)
+    eps_grid_cache: dict = {}
+
+    def eps_grid_for(sigma: float):
+        if sigma not in eps_grid_cache:
+            eps_grid_cache[sigma] = _eps_grid(sigma)
+        return eps_grid_cache[sigma]
+
     profile_cache: dict = {}
 
-    def profile(slot_hour: int, n_req: int, kind: str, gamma: float):
+    def profile(mult: float, n_req: int, kind: str, gamma: float,
+               sigma: float):
         """P(buys ≥ j steps at list) for j = 1..n_req, plus expected list
-        margin per arrival — the board chooser run over the WTP grid."""
-        key = (slot_hour, n_req, kind, gamma)
+        margin per arrival — the board chooser run over the WTP grid, at
+        one (day, hour)'s resolved multiplier and the segment's sigma."""
+        key = (mult, n_req, kind, gamma, sigma)
         if key not in profile_cache:
             p_ge = np.zeros(n_req)
             e_margin = 0.0
-            scale = v.ratio_appeal * v.wtp_mult[slot_hour]
+            eps_grid = eps_grid_for(sigma)
+            scale = v.ratio_appeal * mult
             for eps in eps_grid:
                 wtp = scale * eps * v.list_price(n_req, kind)
                 n_star = _best_n_at_list(wtp, n_req, gamma, v, kind)
@@ -553,50 +618,64 @@ def venue(name: str) -> Venue:
             profile_cache[key] = (p_ge, e_margin)
         return profile_cache[key]
 
-    contrib = np.zeros((v.ticks, n_hours))   # unit-ticks per hour, per tick
+    contrib = np.zeros((v.ticks, n_hours))   # SUM over 7 days of rate-
+                                             # weighted unit-ticks; /7'd below
     margin_sum = tick_sum = 0.0
-    for a in range(v.ticks):
-        ra = v.rate_at(a)
-        for seg_name, w_seg in v.seg_weights[v.hour_of(a)].items():
-            seg = v.segments[seg_name]
-            for lead in range(seg.lead_max + 1):
-                p_lead = 1.0 / (seg.lead_max + 1)
-                start = min(a + lead, v.ticks - 1)
-                for n, p_n in zip(seg.n_choices, seg.n_weights):
-                    n_eff = min(n, v.max_steps_from(start))
-                    if n_eff < 1:
-                        continue
-                    for kd, sh in kind_shares:
-                        w = w_seg * p_lead * p_n * sh
-                        p_ge, e_margin = profile(v.hour_of(start), n_eff,
-                                                 kd, seg.gamma)
-                        margin_sum += ra * w * e_margin
-                        for j in range(n_eff):       # step j+1 of the span
-                            t0 = start + j * v.step_ticks
-                            t1 = min(t0 + v.step_ticks, v.ticks)
-                            tick_sum += ra * w * p_ge[j] * (t1 - t0)
-                            for h in range(v.hidx(v.hour_of(t0)),
-                                           v.hidx(v.hour_of(max(t0, t1 - 1))) + 1):
-                                h0, h1 = h * 6, (h + 1) * 6
-                                ov = min(t1, h1) - max(t0, h0)
-                                if ov > 0:
-                                    contrib[a, h] += w * p_ge[j] * ov
-    rates = np.array([v.rate_at(a) for a in range(v.ticks)])
-    weighted = contrib * rates[:, None]
+    for day_idx in DOW:
+        for a in range(v.ticks):
+            ra = v.rate_at(a, day_idx)
+            for seg_name, w_seg in v.seg_weights[v.hour_of(a)].items():
+                seg = v.segments[seg_name]
+                for lead in range(seg.lead_max + 1):
+                    p_lead = 1.0 / (seg.lead_max + 1)
+                    start = min(a + lead, v.ticks - 1)
+                    start_hour = v.hour_of(start)
+                    mult = v.wtp_mult[start_hour] * v.dow_wtp_at(day_idx, start_hour)
+                    for n, p_n in zip(seg.n_choices, seg.n_weights):
+                        n_eff = min(n, v.max_steps_from(start))
+                        if n_eff < 1:
+                            continue
+                        for kd, sh in kind_shares:
+                            w = w_seg * p_lead * p_n * sh
+                            p_ge, e_margin = profile(mult, n_eff, kd,
+                                                     seg.gamma, seg.sigma)
+                            margin_sum += ra * w * e_margin
+                            for j in range(n_eff):   # step j+1 of the span
+                                t0 = start + j * v.step_ticks
+                                t1 = min(t0 + v.step_ticks, v.ticks)
+                                tick_sum += ra * w * p_ge[j] * (t1 - t0)
+                                for h in range(v.hidx(v.hour_of(t0)),
+                                               v.hidx(v.hour_of(max(t0, t1 - 1))) + 1):
+                                    h0, h1 = h * 6, (h + 1) * 6
+                                    ov = min(t1, h1) - max(t0, h0)
+                                    if ov > 0:
+                                        contrib[a, h] += ra * w * p_ge[j] * ov
+    contrib /= 7.0
+    margin_sum /= 7.0
+    tick_sum /= 7.0
     suffix = np.zeros((v.ticks + 1, n_hours))
-    suffix[:-1] = weighted[::-1].cumsum(axis=0)[::-1]
+    suffix[:-1] = contrib[::-1].cumsum(axis=0)[::-1]
     v.suffix_demand = suffix
     v.mean_margin_per_tick = margin_sum / tick_sum
     v.peak_hours = tuple(
         h for h in v.hours
         if suffix[0, v.hidx(h)] >= PEAK_THRESHOLD * v.capacity * 6)
 
-    # pass 4 — computed/1's per-hour multipliers (state-independent part)
-    v.mstar = {
-        h: min(1.0, max(v.cost_ratio,
-                        _pstar_single(v.ratio_appeal, v.cost_ratio,
-                                      v.sigma, v.wtp_mult[h])))
-        for h in v.hours}
+    # pass 4 — computed/1's per-(day, hour) multipliers (state-independent
+    # part): a real mixture over that hour's segment mix (its own sigmas),
+    # at that day-of-week's resolved WTP multiplier — so computed/1 reprices
+    # Saturday's true peak correctly, not a calendar-blind average.
+    v.mstar = {}
+    for day_idx in DOW:
+        for h in v.hours:
+            seg_mix = [(w_seg, v.segments[sn].sigma)
+                      for sn, w_seg in v.seg_weights[h].items()]
+            hour_weights = np.array([w for w, _ in seg_mix])
+            hour_sigmas = np.array([sg for _, sg in seg_mix])
+            mult = v.wtp_mult[h] * v.dow_wtp_at(day_idx, h)
+            m = _pstar_mixture(v.ratio_appeal, v.cost_ratio, hour_weights,
+                               np.full(len(seg_mix), mult), hour_sigmas)
+            v.mstar[(day_idx, h)] = min(1.0, max(v.cost_ratio, m))
     return v
 
 

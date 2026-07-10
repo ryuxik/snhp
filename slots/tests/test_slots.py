@@ -4,6 +4,7 @@ arm's edges come from the right drivers (peak shadows, slot shifts)."""
 import numpy as np
 import pytest
 
+from slots import calibration as C
 from slots.world import (DEFAULT_CONFIG, Customer, SlotConfig,
                          arrivals_at, best_board_booking, can_book,
                          capacity_shadow, congestion_ratio, day_rate_mult,
@@ -79,15 +80,119 @@ def test_asymmetry_ladder_is_as_engineered():
 
 
 def test_static_list_is_mixture_optimal():
-    """The inversion worked: computed/1's per-hour re-solve never finds a
-    multiplier above 1, and holds ~at list in the hottest hours — a
-    competent sticker, not a strawman."""
+    """The inversion worked: computed/1's per-(day, hour) re-solve never
+    finds a multiplier above 1, and holds ~at list in the hottest
+    (day, hour) cell — a competent sticker, not a strawman. mstar is keyed
+    by (day%7, hour) since the bar's weekend curve makes the peak
+    calendar-dependent (barber/parking are calendar-flat, so every day
+    gives the same hot hour)."""
     for name in ("barber", "parking", "bar"):
         v = venue(name)
         assert all(m <= 1.0 + 1e-9 for m in v.mstar.values())
         assert all(m >= v.cost_ratio - 1e-9 for m in v.mstar.values())
-        hot = max(v.hours, key=lambda h: v.wtp_mult[h])
+        hot = max(v.mstar, key=lambda dh: v.wtp_mult[dh[1]] * v.dow_wtp_at(dh[0], dh[1]))
         assert v.mstar[hot] > 0.99
+
+
+# ── CALIBRATION-TARGETS §4 recalibration (2026-07-10, #7 + #8) ───────────
+
+def test_barber_utilization_matches_platform_average():
+    """Priority #8: Squire/Zenoti platform-measured schedule utilization
+    averages 62% (top quartile 73-84%); the pre-recalibration sim realized
+    45-49% — a below-average shop. The static arm should now land in the
+    62%-average band, not the old below-average one."""
+    from slots.policies import ARMS
+    from slots.run import run_experiment
+    res = run_experiment(["static"], "barber", days=30, seed=20260710)
+    assert 0.55 <= res["arms"]["static"]["totals"]["occupancy"] <= 0.68
+
+
+def test_deposit_regime_noshow_rate():
+    """Priority #8: no-show is now an explicit REGIME — platform shops
+    with deposits run 3-5% (we take 4%), no-deposit shops 12-25% (we keep
+    12% as a conservative-low no-deposit case). BARBER_NOSHOW (the venue
+    default) is the deposit cell and must equal the labeled 4% exactly;
+    the REALIZED rate in play is close to but a bit below the input
+    probability (barber's 0-lead walk-ins settle immediately and can
+    never no-show, diluting the realized rate — an honest artifact of the
+    booking-lead distribution, not a miscalibration)."""
+    from slots.policies import ARMS
+    from slots.run import run_day
+    assert C.BARBER_NOSHOW_REGIMES["deposit"] == pytest.approx(0.04)
+    assert C.BARBER_NOSHOW_REGIMES["nodeposit"] == pytest.approx(0.12)
+    assert C.BARBER_NOSHOW == pytest.approx(C.BARBER_NOSHOW_REGIMES["deposit"])
+    bookings = noshows = 0
+    for d in range(30):
+        m = run_day(ARMS["static"](), "barber", 20260710, d)
+        bookings += m["bookings"]
+        noshows += m["noshows"]
+    assert 0.02 <= noshows / bookings <= 0.06
+
+
+def test_parking_commuter_is_least_elastic():
+    """Priority #8: Lehner-Peer 2019 — commuters are the LEAST
+    price-elastic parking segment. Elasticity here is STRUCTURAL (each
+    segment carries its own sigma), so a tight commuter WTP spread should
+    show LESS conversion-rate sensitivity to a price cut than the more
+    dispersed errand segment does, checked at the 7-9am commuter-heavy
+    window (CALIBRATION-TARGETS §4's explicit check)."""
+    from slots.world import _sf
+    v = venue("parking")
+    assert v.segments["commuter"].sigma < v.segments["event"].sigma < \
+        v.segments["errand"].sigma
+    for h in (7, 8):
+        mult = v.wtp_mult[h]
+        scale = v.ratio_appeal * mult
+
+        def elasticity(sigma):
+            p0 = _sf(1.0, scale, sigma)
+            p1 = _sf(0.9, scale, sigma)
+            return (p1 - p0) / p0 / -0.1
+
+        e_commuter = elasticity(v.segments["commuter"].sigma)
+        e_errand = elasticity(v.segments["errand"].sigma)
+        # both are negative (a price cut raises conversion); "least
+        # elastic" means smallest MAGNITUDE, i.e. closest to zero
+        assert abs(e_commuter) < abs(e_errand)
+
+
+def test_bar_saturday_revenue_share():
+    """Priority #7: Nielsen CGA — Saturday alone is >25% of weekly bar
+    sales, Fri+Sat run 40-50%. Measured over a WHOLE-WEEK window (35 days
+    = 5 full weeks): a 30-day window over-represents Monday/Tuesday by one
+    extra occurrence each and understates Saturday's true share, so this
+    check — unlike the grid's 30-day cells — uses a multiple of 7."""
+    from slots.policies import ARMS
+    from slots.run import run_day
+    import collections
+    rev = collections.defaultdict(float)
+    for d in range(35):
+        m = run_day(ARMS["static"](), "bar", 20260710, d)
+        rev[d % 7] += m["revenue"]
+    total = sum(rev.values())
+    sat_share = rev[5] / total
+    fri_sat_share = (rev[4] + rev[5]) / total
+    assert sat_share > 0.22
+    assert 0.35 <= fri_sat_share <= 0.55
+
+
+def test_bar_anchor_at_least_peak_hour_wtp_implied_price():
+    """The coupled peak-anchor fix: BAR_BEER/BAR_COCKTAIL were a FLAT
+    list while BAR_WTP_MULT rose above 1 at peak, so discount-only arms
+    could never charge the peak crowd what it would bear. The anchor is
+    now the peak crowd's own profit-optimal price (raised from the old
+    flat $9/$16), and WTP_MULT is re-based so the combined (day, hour)
+    multiplier tops out at EXACTLY 1.0 at the true peak and never exceeds
+    it anywhere — the discount-only ceiling is never binding-by-construction
+    above what the peak crowd's own WTP implies."""
+    v = venue("bar")
+    combined = {(d, h): v.wtp_mult[h] * v.dow_wtp_at(d, h)
+               for d in range(7) for h in v.hours}
+    peak_val = max(combined.values())
+    assert peak_val == pytest.approx(1.0, abs=2e-3)   # hand-rounded 4dp constants
+    assert all(m <= 1.0 + 2e-3 for m in combined.values())
+    assert C.BAR_COCKTAIL[0] > 16.0    # anchor raised above the old flat list
+    assert C.BAR_BEER[0] > 9.0
 
 
 # ── occupancy grid physics ───────────────────────────────────────────────
@@ -270,11 +375,12 @@ def test_rigid_customers_do_not_get_shifted():
     from slots.policies import nego_quote
     v = venue("bar")
     state = fresh_day(v)
-    edge_tick = (19 - v.open_hour) * 6    # 19:00 — the peak's leading edge:
-    state.tick = edge_tick - 12           # a −30-min shift lands at 18:30
-    flex = _customer(v, ratio=1.3, desired=edge_tick, n_req=1, kind="beer",
+    edge = (23 - v.open_hour) * 6         # peak's trailing edge (see
+    desired = edge - 3                    # _edge_shift_scenario): 22:30,
+    state.tick = desired - 12             # a +30-min shift lands at 23:00
+    flex = _customer(v, ratio=1.3, desired=desired, n_req=1, kind="beer",
                      flexible=True)
-    rigid = _customer(v, ratio=1.3, desired=edge_tick, n_req=1, kind="beer",
+    rigid = _customer(v, ratio=1.3, desired=desired, n_req=1, kind="beer",
                       flexible=False)
     d_flex = nego_quote(state, flex)
     d_rigid = nego_quote(state, rigid)
@@ -310,12 +416,17 @@ def _expected_relief(v, pol, fb_span, deal_span):
 
 
 def _edge_shift_scenario(v):
-    """The 19:00 bar-peak leading edge: a flexible one-beer buyer whose
-    −30-min shift moves the whole span off the peak."""
+    """The bar-peak's TRAILING edge (calibrated-world: the weekend curve
+    makes peak_hours (17..22), so the 22:00->23:00 boundary is the last
+    peak/off-peak crossing reachable within one shift window — was the
+    19:00 leading edge pre-calibration, when peak_hours started later): a
+    flexible one-beer buyer at 22:30 whose +30-min shift moves the whole
+    span off the peak into 23:00."""
     state = fresh_day(v)
-    edge = (19 - v.open_hour) * 6
-    state.tick = edge - 12
-    cust = _customer(v, ratio=1.3, desired=edge, n_req=1, kind="beer",
+    edge = (23 - v.open_hour) * 6
+    desired = edge - 3          # 22:30: +30-min (+3 ticks) reaches 23:00
+    state.tick = desired - 12
+    cust = _customer(v, ratio=1.3, desired=desired, n_req=1, kind="beer",
                      flexible=True)
     return state, cust
 

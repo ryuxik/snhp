@@ -93,7 +93,7 @@ class ComputedPolicy:
                         >= free_unit_ticks(state, h)):
                     board[h] = 1.0          # run-out shadow: will fill at list
                 else:
-                    board[h] = v.mstar[h]
+                    board[h] = v.mstar[(state.day % 7, h)]
             self._cache[key] = board
         board = self._cache[key]
         return lambda h: board.get(h, 1.0)

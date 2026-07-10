@@ -58,11 +58,40 @@ still beats full nego at the bar by $79–101/day (significant, all four
 cells), robust to average-vs-marginal basis. Per-buyer decomposition:
 +$184/day genuine walkaway rescues vs −$110/day discounts to would-pay-list
 buyers and −$154/day displacement of later list walk-ins — within-day
+[see CALIBRATED-WORLD UPDATE below for why this magnitude is now suspect]
+—
 local-window state no day-level learned slot value can carry. The honest
 conclusion above stands and goes in the whitepaper: slot-shifting logrolls
 are boba-shaped; at short-peak walk-in venues the correct broker plays
 no-shift. Parking/barber-noshift artifacts byte-identical (never hit the
 swap path).
+
+**CALIBRATED-WORLD UPDATE (2026-07-10): the bar was mis-anchored AND the
+shift machinery is calendar-blind — the "no-shift wins" verdict survives
+directionally but its magnitude is not yet trustworthy.** Two things landed
+together. (1) *The anchor was wrong, as suspected.* The bar list ($16/$9)
+sat near the average while WTP rose to 1.10× at peak, so the discount-only
+nego arm was capped exactly when leverage was highest. Peak-anchoring it
+(vend's pattern; list raised to $21.67/$12.19) is the right fix — but a
+documented ~37% residual headroom remains that no finite anchor closes under
+the shared full-mixture ratio-appeal inversion, so peak-anchoring alone does
+not rescue full-nego. (2) *A first-order defect was exposed by adding the
+real weekend curve:* `peak_hours` / `HourMarginLearner` are CALENDAR-BLIND.
+Harmless before day-of-week variance existed; now Saturday 16:00 is one of
+the week's busiest hours yet never flags "peak," so the relief learner
+assigns it $0.52/tick vs hour-20's $3.75/tick — it prices freed weekend
+shoulder slots as near-worthless. Under this, the shift component *deepened*
+from −$79–101/day to **−$367–406/day** (significant, all cells). **That
+−$400 is an artifact of the calendar-blind learner, not a clean economic
+verdict** — the machinery is systematically undervaluing exactly the
+weekend-afternoon slots the calibration just made valuable. Pre-registered
+follow-up: make `peak_hours`/relief calendar-aware (key on (day%7, hour), as
+`computed/1`'s mstar already is post-calibration) and re-run; only then is
+the bar no-shift magnitude trustworthy. Directional conclusion (no-shift ≥
+full-nego at the bar) is unchanged and consistent across every version;
+the *size* is on hold. Parking nego survives the elasticity fix unchanged
+(+$106–180/day, all significant; commuters confirmed least-elastic |e|=0.81);
+barber σ=0 positive holds (+$11–16/day, significant).
 
 ## 4. Vintage offer/1: −$302 at decent tags + deep shading; H-V1 refuted — HALF DEFECT, HALF CATEGORY ERROR, fix now
 

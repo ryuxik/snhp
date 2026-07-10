@@ -312,3 +312,324 @@ same-day state trajectory, not on any learnable day-level average.
   end-of-day feed is settled-bookings-only and bounded by realized
   margin.
 
+---
+
+## Calibrated-world (2026-07-10) — CALIBRATION-TARGETS §4, priorities #7+#8
+
+*30 paired days per grid cell (35 for the two whole-week bar checks),
+seed 20260710, `slots_version 3`. Reproduce with
+`python3 -m slots.run --grid --days 30 --seed 20260710`.*
+
+Three coupled recalibrations, all sourced in `paper/CALIBRATION-TARGETS.md`
+§4:
+
+- **Barber (#8).** Platform-measured (Squire 13.9M appointments, Zenoti
+  30k businesses) schedule utilization averages 62%; the old rate profile
+  realized 45–49% — a below-average shop. `BARBER_RATE`'s shoulders (not
+  peaks, to keep the H-S1 ladder intact) are raised so static realizes
+  ~62%. No-show is now an explicit REGIME
+  (`BARBER_NOSHOW_REGIMES = {"deposit": 0.04, "nodeposit": 0.12}`); the
+  venue default (`BARBER_NOSHOW`) is the deposit cell — platform shops
+  with reminders/deposits run 3–5%, no-deposit shops 15–25% (12% kept as
+  a conservative-low no-deposit case). The deposit IS the venue's
+  incumbent negotiation mechanism (CRITICAL-ANALYSIS §6).
+- **Parking (#8).** Lehner–Peer 2019: commuters are the LEAST
+  price-elastic segment; the old model gave every segment the same WTP
+  spread (`PARKING_SIGMA`), so the commuter's low elasticity was only an
+  artifact of its high `wtp_mult` and tied with the event crowd.
+  Elasticity is now STRUCTURAL: `Segment.sigma` (commuter 0.30 < event
+  0.42 < errand 0.48), wired through `world.py`'s mixture inversion,
+  D-hat forecast, and `computed/1`'s per-hour multiplier (previously all
+  three used one venue-wide sigma). Occupancy (68%) is unchanged and
+  explicitly LABELED a hottest-subarea facility (Seattle benchmark: 58%
+  core / 48% outside).
+- **Bar (#7, coupled to the peak-anchor fix).** Nielsen CGA: Saturday
+  alone is >25% of weekly sales, Fri+Sat run 40–50%, Sat 5–6pm checks run
+  ~40% above Sat 10pm, and happy-hour checks average ~$8 higher than other
+  dayparts — the old flat "dead 5–7pm" profile was wrong on weekends.
+  `world.py` gained a real day-of-week dimension (`Venue.dow_rate_mult`,
+  `Venue.dow_wtp_mult`, both per-(day, hour); trivial/empty for
+  barber and parking, so they are byte-unaffected): the mixture inversion,
+  D-hat forecast, and `computed/1`'s per-hour multiplier now blend across
+  all 7 days (barber/parking see the same day 7 times over, a no-op by
+  construction); `mstar` is additionally keyed by `(day % 7, hour)` so
+  `computed/1` reprices Saturday's true peak correctly. Coupled to this:
+  the PEAK-ANCHOR fix — before, `BAR_BEER`/`BAR_COCKTAIL` were a flat
+  list while `BAR_WTP_MULT` rose above 1 at peak, so every arm being
+  discount-only meant the venue could never charge the peak crowd what it
+  would bear (capped at list exactly when leverage was highest). Ported
+  the concept behind `vend/world.py`'s `anchor_peak` +
+  `_profit_optimal_list_price(peak_only=True)`: the dollar list was
+  raised to the peak crowd's own profit-optimal price ($16 → $21.67
+  cocktail, $9 → $12.19 beer — $16 is now a standing happy-hour discount
+  off the new anchor), and `BAR_WTP_MULT`/`BAR_DOW_WTP_MULT` were
+  re-based so the combined (day, hour) multiplier tops out at exactly 1.0
+  at the true peak (Saturday 17:00) and never exceeds it anywhere.
+  **Honest residual** (see the calibration note in `slots/calibration.py`):
+  this venue's `ratio_appeal` is re-inverted against the full WEEK's
+  blended mixture every build — the same mechanism barber/parking use,
+  kept unchanged rather than special-cased for the bar — so no FINITE
+  anchor makes the peak's own unclamped profit-optimal multiplier exactly
+  1.0 (verified: iterating the anchor upward does not converge; the
+  unclamped multiplier approaches ≈1.42 asymptotically as cost becomes
+  negligible relative to list). The anchor is a single-shot
+  profit-optimization at the pre-fix ratio appeal, same spirit as vend's
+  function, not a re-inverted fixed point: it closes the bulk of the gap
+  ($16 → $21.67) but ≈37% relative unclamped headroom remains — reported,
+  not hidden.
+
+### Calibration sim-vs-target table
+
+| venue | metric | target (source) | sim (calibrated-world) |
+|---|---|---|---|
+| barber | utilization, static | ~62% avg (Squire/Zenoti) | 0.62–0.65 across the grid (0.6361 at seed cell) |
+| barber | no-show, deposit regime | 3–5% (platform-measured) | input 4.0% exactly; realized 2.97% (0-lead walk-ins can't flake, diluting the realized rate — an honest artifact of the lead-time mix, not a miscalibration) |
+| barber | no-show, no-deposit regime | 15–25% | 12% kept, LABELED conservative-low (unchanged, not re-run as the venue default) |
+| barber | Bed-Stuy cut price | $38 confirmed | $38 (unchanged) |
+| parking | commuter elasticity rank | LEAST elastic segment (Lehner–Peer) | confirmed at 7–9am: \|e_commuter\|=0.81 < \|e_errand\|=0.90 (structural, sigma-driven) |
+| parking | occupancy | 58% core / 48% outside (Seattle) vs sim's hottest-subarea | 68.2–68.4%, LABELED high-demand facility (unchanged) |
+| parking | NYC price points | $18/hr, $45 day max confirmed | unchanged |
+| bar | Saturday revenue share | >25% of week (Nielsen CGA) | 22.8% over a whole-week (35-day) window — short of target, capacity-saturation-bounded (see honest surprises) |
+| bar | Fri+Sat revenue share | 40–50% | 45.2% |
+| bar | Sat 5–6pm vs Sat 10pm check | ~40% higher | +42.2% (combined WTP multiplier 1.000 vs 0.703) |
+| bar | happy-hour vs other dayparts | ~$8 higher checks | qualitatively directional (general weekday happy-hour bump built into the rescaled base profile); not separately validated as a dollar figure |
+| bar | cocktail / beer list | $16 / $8–9 confirmed as the OLD flat list | new peak anchor $21.67 / $12.19; $16/$9 now sub-anchor happy-hour prices |
+
+### Headline: margin Δ/day vs static (paired, 95% CI on 5-day blocks) — calibrated-world
+
+**Barber** (static occupancy 0.62–0.65, deposit no-show regime):
+
+| cell | computed/1 | nego/1 | nego-noshift/1 |
+|---|---|---|---|
+| σ=0.0, flex=0.15 | −$6.26 [−13.68, 1.16] | **+$11.16** [1.56, 20.76] | **+$13.20** [8.00, 18.40] |
+| σ=0.0, flex=0.35 | −$7.61 [−17.23, 2.00] | **+$15.56** [5.03, 26.08] | **+$14.46** [10.83, 18.09] |
+| σ=0.4, flex=0.15 | **−$8.25** [−13.80, −2.71] | −$10.22 [−23.80, 3.37] | +$0.63 [−7.92, 9.18] |
+| σ=0.4, flex=0.35 | −$9.00 [−21.72, 3.72] | −$10.22 [−28.56, 8.13] | +$3.46 [−3.07, 9.98] |
+
+**Parking** (static occupancy 68.2–68.4%, structural per-segment elasticity):
+
+| cell | computed/1 | nego/1 | nego-noshift/1 |
+|---|---|---|---|
+| σ=0.0, flex=0.15 | **−$24.59** [−40.36, −8.82] | **+$179.70** [150.90, 208.50] | **+$169.47** [139.81, 199.13] |
+| σ=0.0, flex=0.35 | **−$29.17** [−47.06, −11.28] | **+$179.29** [147.81, 210.78] | **+$167.26** [138.33, 196.19] |
+| σ=0.4, flex=0.15 | **−$30.03** [−39.10, −20.95] | **+$106.33** [40.62, 172.04] | **+$115.60** [56.88, 174.33] |
+| σ=0.4, flex=0.35 | **−$32.83** [−48.53, −17.13] | **+$109.74** [43.81, 175.66] | **+$117.91** [57.02, 178.81] |
+
+**Bar** (static occupancy 0.53–0.58, peak-anchored $21.67 cocktail / $12.19 beer, real weekend curve):
+
+| cell | computed/1 | nego/1 | nego-noshift/1 |
+|---|---|---|---|
+| σ=0.0, flex=0.15 | **−$183.58** [−318.73, −48.43] | **−$384.87** [−665.84, −103.90] | +$20.96 [−127.82, 169.74] |
+| σ=0.0, flex=0.35 | **−$171.14** [−288.92, −53.37] | **−$327.19** [−544.60, −109.78] | +$52.87 [−51.62, 157.36] |
+| σ=0.4, flex=0.15 | **−$176.34** [−311.43, −41.26] | −$295.40 [−724.42, 133.63] | +$90.10 [−91.45, 271.65] |
+| σ=0.4, flex=0.35 | **−$170.77** [−310.58, −30.96] | −$262.92 [−653.96, 128.12] | +$104.46 [−64.34, 273.27] |
+
+Bar's own consumer surplus under nego, previously positive everywhere, is
+now NEGATIVE in both shock cells (−$40.12, −$83.91): mispriced shift
+trades don't just cost the venue, they displace later list-paying
+walk-ins who get nothing in exchange (see honest surprises).
+
+### Shift component of the edge (full nego − noshift), $/day — before vs after this calibration
+
+BEFORE is the post-relief-fix artifact (this file's "Relief fix" section
+above, `slots_version 2`); AFTER is this calibration (`slots_version 3`).
+CI95 is the DIRECT paired (nego − noshift) interval, 5-day blocks —
+tighter than differencing the two vs-static CIs above, since nego and
+noshift share the same non-shift mechanics and most of their noise
+cancels.
+
+| venue | cell | before | after | CI95 (after) | after excludes 0? |
+|---|---|---:|---:|---|---|
+| barber | σ=0.0, flex=0.15 | +5.19 | −2.04 | [−10.24, 6.15] | no |
+| barber | σ=0.0, flex=0.35 | +1.89 | +1.10 | [−6.32, 8.52] | no |
+| barber | σ=0.4, flex=0.15 | −9.90 | −10.84 | [−21.24, −0.45] | **yes** |
+| barber | σ=0.4, flex=0.35 | −10.53 | −13.67 | [−27.31, −0.04] | **yes** |
+| parking | σ=0.0, flex=0.15 | +7.95 | +10.23 | [−1.91, 22.37] | no |
+| parking | σ=0.0, flex=0.35 | +10.09 | +12.03 | [7.73, 16.34] | **yes** |
+| parking | σ=0.4, flex=0.15 | −9.72 | −9.28 | [−29.50, 10.94] | no |
+| parking | σ=0.4, flex=0.35 | −7.00 | −8.18 | [−30.62, 14.27] | no |
+| bar | σ=0.0, flex=0.15 | −100.88 | **−405.83** | [−552.50, −259.16] | **yes** |
+| bar | σ=0.0, flex=0.35 | −90.27 | **−380.06** | [−530.37, −229.75] | **yes** |
+| bar | σ=0.4, flex=0.15 | −79.35 | **−385.50** | [−641.00, −129.99] | **yes** |
+| bar | σ=0.4, flex=0.35 | −78.59 | **−367.38** | [−611.29, −123.47] | **yes** |
+
+Barber and parking are statistically indistinguishable from their
+pre-calibration values (same sign pattern, overlapping CIs, no cell
+changes its significance story in a way that flips a headline claim).
+**The bar's shift lever is a different story: it did not merely stay
+negative, it got roughly 4× MORE negative ($79–101/day → $367–406/day),
+significant in all four cells** (the paired nego-vs-noshift CI excludes
+zero everywhere, even in the two shock cells where nego-vs-static alone
+is too noisy to call).
+
+### The three verdicts
+
+**(1) Does parking nego (+$100–169/day) survive the commuter-elasticity
+fix? YES, essentially unchanged.** Post-fix: +$179.70/+$179.29/+$106.33/
++$109.74 per day, all four cells significant (CIs exclude 0). The
+commuter segment is now confirmed structurally least-elastic
+(|e_commuter|=0.81 < |e_errand|=0.90 at 7–9am, sigma-driven, not a
+`wtp_mult` artifact), but this barely moves the top-line nego edge: the
+mechanism's advantage at parking was never about exploiting a
+mispriced-elasticity commuter in the first place (per-arrival Nash
+gating is robust to which segment shows up), so fixing the elasticity
+bug left the headline result intact while making the underlying
+mechanism honest.
+
+**(2) Does "no-shift beats full-nego at the bar" survive a properly
+peak-anchored bar + realistic weekend curve? YES — it survives and
+DEEPENS SUBSTANTIALLY.** The pre-registered H-S2 fallback conclusion
+(paper/CRITICAL-ANALYSIS.md §3: "slot-shifting logrolls are a
+boba-shaped result that does not generalize to short-peak walk-in
+venues") not only holds after this recalibration, it strengthens by
+roughly 4×: the shift component went from −$79 to −$101/day
+(post-relief-fix) to −$367 to −$406/day (calibrated-world), significant
+in all four cells. Full nego is now significantly WORSE than static
+itself in the two σ=0 cells (−$384.87, −$327.19, CIs exclude 0); in the
+shock cells the point estimate is similarly large-negative but the CI
+widens enough to straddle zero for the nego-vs-STATIC comparison
+specifically — the direct nego-vs-noshift comparison stays significant
+throughout because pairing cancels the shared noise. **Root cause,
+diagnosed (not fixed in this pass):** `world.py`'s `peak_hours` and the
+`HourMarginLearner` are CALENDAR-BLIND by design (flagged as a known
+simplification when the day-of-week machinery was built earlier in this
+same session — "computed/1 and nego/1's D-hat is calendar-coarse...
+symmetric across both dynamic arms"). That simplification was harmless
+before this recalibration, because no real day-of-week demand variance
+existed to blend across. It is not harmless now: hour 16, for instance,
+is one of the busiest hours of the week on Saturday (part of the
+deliberate afternoon build-out, priority #7) but is NEVER flagged
+"peak" (the blended-week average dilutes it below the 85%-of-capacity
+threshold) and its learned relief value sits at $0.52/tick — a fraction
+of hour 20's $3.75/tick — even on the Saturdays where hour 16 is
+genuinely as valuable as hour 20. Nego reads this stale, blended signal
+and offers shift+discount deals that look individually rational against
+its own (mispriced) disagreement point — `neg_venue_gain` (the
+per-deal, self-referential accounting) stays positive, +$18,552 over 30
+days — while the AGGREGATE `relief_credited` term is deeply negative
+(−$13,417 over 30 days): the arm is systematically crediting relief that
+isn't real on the days it matters most. This is the same Lucas-critique
+pattern CRITICAL-ANALYSIS §3 already fixed twice (the demand forecast,
+then the relief basis) — a natural fourth fix would make `peak_hours`
+and the learner keyed on `(day % 7, hour)` rather than `hour` alone, but
+that is a further architecture extension, pre-registered here as a
+follow-up rather than attempted in this pass (out of this task's scope:
+a bar-side pricing/curve recalibration, not a relief-mechanism rebuild).
+**Said plainly: the refuted-prediction conclusion doesn't just hold —
+recalibrating the world to be more realistic made the case against
+slot-shifting at short-peak walk-in venues sharper, not weaker.**
+
+**(3) At 62% barber utilization, does the σ=0 positive barber result
+strengthen or vanish? It HOLDS, magnitude essentially unchanged.**
+Full nego/1 vs static at σ=0: +$11.16 [1.56, 20.76] and +$15.56 [5.03,
+26.08] — both significant, both close to the post-relief-fix values
+(+$14.61 in both σ=0 cells, per this file's "Relief fix" section). The
+σ=0.4 (shock) cells stay statistically indistinguishable from zero in
+both the old and new calibration (CIs straddle 0 in every case,
+point estimate flipped from modestly positive to modestly negative but
+never significant either way). Recalibrating to an average (not
+below-average) shop with a realistic deposit no-show regime did not
+change the qualitative story: a two-chair shop with mild peaks still has
+a small but real (σ=0) nego edge, and shock-day noise still swamps it —
+the ≈0 barber finding from CRITICAL-ANALYSIS §6 ("little spot-market
+surplus exists, and the mechanism correctly finds little... real
+barbershops monetize no-shows via deposits") is unchanged by this
+recalibration; if anything it is reinforced, since the recalibrated
+world explicitly models the deposit as the venue's incumbent
+negotiation mechanism and STILL finds only a few-dollar residual edge
+for spot bargaining on top of it.
+
+### Honest surprises (calibrated-world)
+
+- **The peak-anchor fix could not close its own gap.** Raising
+  `BAR_COCKTAIL` from $16 to $21.67 was meant to let discount-only arms
+  approach the peak crowd's true profit-optimal price. Iterating the
+  anchor upward to find a fixed point DIVERGES (verified numerically,
+  `slots/calibration.py`'s note): as list rises, fixed-dollar cost
+  becomes negligible relative to it, and the unclamped profit-optimal
+  multiplier for the peak cell APPROACHES ≈1.42 asymptotically rather
+  than converging to 1.0, because `ratio_appeal` is re-inverted against
+  the full week's blended mixture on every build (the same mechanism
+  barber and parking use) rather than against the peak subset alone —
+  unlike vend's `anchor_peak`, which sets list directly off a
+  dollar-denominated, list-independent WTP_MU. A genuinely closed fix
+  would need an analogous fixed, dollar-denominated "true peak WTP"
+  input independent of the ratio-scale architecture every other venue
+  parameter here shares — out of scope for this pass; the single-shot
+  anchor is reported with its ≈37% residual headroom rather than
+  disguised as a full closure.
+- **Bar's Saturday revenue share landed at 22.8%, short of the >25%
+  Nielsen target, for an architectural reason, not a tuning failure.**
+  19:00–22:00 is already capacity-saturated on an ORDINARY weekday
+  (D-hat there runs 340–610 unit-ticks against each hour's 360-tick
+  ceiling), and static charges a flat per-tick rate regardless of hour,
+  so a capacity-saturated block's revenue is CAPPED at capacity × price
+  no matter how much extra demand is queued behind it — pushing the
+  Saturday afternoon arrival-rate multiplier far higher (tested up to
+  36×) showed sharply diminishing returns once 15:00–18:00 approached
+  its own ≈3,240-unit-tick capacity ceiling (Saturday is already at ≈92%
+  of its OWN theoretical max revenue). Closing the rest of the gap to
+  25%+ would need a lever this pass didn't build: day-of-week kind-mix
+  (more cocktails on Saturday night) or genuinely extended hours, either
+  of which raises the ALREADY-saturated evening block's $/tick rather
+  than fighting for slack afternoon capacity. Flagged as a pre-registered
+  follow-up alongside the peak-anchor residual above.
+- **The recalibration is bounded by its own H-S1 ladder.** Every
+  attempt to push the bar's Saturday afternoon further toward the 25%+
+  target also raises `congestion_ratio("bar")`; several tried
+  configurations pushed it PAST parking's 2.33, which would have broken
+  the pre-registered demand-asymmetry ladder (parking > bar > barber).
+  The shipped calibration lands at bar congestion 2.21 — real margin
+  below parking's 2.33, but visibly closer than the pre-calibration
+  1.62. The two constraints (Nielsen's revenue-share target and H-S1's
+  engineered ladder) are close to binding simultaneously; a much hotter
+  Saturday would need either a higher parking congestion ratio or an
+  explicit decoupling of the ladder from the bar's calendar-real
+  recalibration.
+- **`computed/1` now fails significantly at the bar too, not just
+  parking.** Pre-calibration bar computed/1 was never significant
+  (small numbers, CIs straddling 0). Post-calibration it is significantly
+  NEGATIVE in all four cells (−$171 to −$184/day, every CI excludes 0) —
+  the same calendar-blind D-hat/mstar mechanism implicated in the
+  bar's shift-lever deepening (verdict 2) also degrades `computed/1`'s
+  hourly re-solve, since its run-out-hold and discount decisions read
+  the same blended-week forecast. H-S3 ("computed ties static... fails
+  at parking") now also fails at the bar — a second venue, not a
+  reversal of the parking finding, but a widening of it.
+
+### Tests added (all in `slots/tests/test_slots.py`)
+
+- `test_barber_utilization_matches_platform_average` — static occupancy
+  in [0.55, 0.68] (Squire/Zenoti ~62% average-shop band).
+- `test_deposit_regime_noshow_rate` — the deposit/no-deposit regime
+  constants (4%/12%) and the venue default equal the deposit cell;
+  realized no-show rate in [0.02, 0.06].
+- `test_parking_commuter_is_least_elastic` — segment sigma ordering
+  (commuter < event < errand) and the empirical conversion-rate
+  elasticity ordering at the 7–9am commuter window.
+- `test_bar_saturday_revenue_share` — Saturday >22% and Fri+Sat in
+  [0.35, 0.55] of a whole-week (35-day) revenue window.
+- `test_bar_anchor_at_least_peak_hour_wtp_implied_price` — the combined
+  (day, hour) WTP multiplier grid tops out at exactly 1.0 and the new
+  dollar anchor exceeds the old flat list on both kinds.
+- `test_asymmetry_ladder_is_as_engineered` (pre-existing, unchanged
+  assertion) — re-verified to still pass at bar congestion 2.21 <
+  parking's 2.33.
+- Updated `test_static_list_is_mixture_optimal` for `mstar`'s new
+  `(day % 7, hour)` keying (the bar's peak is now calendar-dependent).
+- Updated `_edge_shift_scenario` and `test_rigid_customers_do_not_get_shifted`
+  to probe the bar's new TRAILING peak/off-peak boundary (22:00→23:00,
+  a +30-min shift) — the old 19:00 LEADING edge is no longer a
+  peak/off-peak crossing once the weekend curve makes 17:00 peak too.
+
+### Files changed
+
+`slots/calibration.py` (barber/parking/bar recalibration, all three
+venues' notes), `slots/world.py` (per-segment sigma; day-of-week
+`dow_rate_mult`/`dow_wtp_mult` machinery; `mstar` keyed by
+`(day % 7, hour)`; generalized `_pstar_mixture`), `slots/policies.py`
+(`ComputedPolicy.mult_of` reads the day-keyed `mstar`), `slots/run.py`
+(`SLOTS_VERSION` 2 → 3), `slots/tests/test_slots.py` (5 new tests, 2
+updated for the new calibration), `slots/results.json` (regenerated,
+`slots_version 3`).
+

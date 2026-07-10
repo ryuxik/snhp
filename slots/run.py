@@ -29,7 +29,10 @@ from slots.world import (DEFAULT_CONFIG, SlotConfig, VENUE_NAMES, Booking,
                          fresh_day, noshow_roll, occupy, release,
                          sample_customer, venue)
 
-SLOTS_VERSION = 2      # v2: relief fix (post-registration, CRITICAL-ANALYSIS §3)
+SLOTS_VERSION = 3      # v3: calibrated-world (CALIBRATION-TARGETS §4 #7+#8):
+                       # bar weekend curve + peak-anchor fix, barber
+                       # utilization/deposit no-show regime, parking
+                       # structural per-segment elasticity
 
 
 def _book(state, m, cust, start, n, price, cs):
