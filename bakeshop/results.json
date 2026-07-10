@@ -1,0 +1,2606 @@
+{
+ "bakeshop_version": 1,
+ "days": 30,
+ "seed": 20260710,
+ "arms": [
+  "control",
+  "computed",
+  "computed-agedonly",
+  "nego",
+  "nego-nopairs"
+ ],
+ "venues": {
+  "bakery": {
+   "cells": {
+    "cal0.15_spike0": {
+     "world": {
+      "sigma_miscal": 0.15,
+      "spike_prob": 0.0,
+      "sigma_day": 0.2
+     },
+     "n_spike_days": 0,
+     "totals": {
+      "control": {
+       "profit": 33107.2,
+       "revenue": 51084.3,
+       "units": 8335,
+       "aged_units": 873,
+       "waste_cost": 2409.3,
+       "waste_units": 1312,
+       "depth": 0.0521,
+       "consumer_surplus": 20688.08,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "computed": {
+       "profit": 35328.32,
+       "revenue": 55416.12,
+       "units": 10662,
+       "aged_units": 435,
+       "waste_cost": 94.3,
+       "waste_units": 53,
+       "depth": 0.1996,
+       "consumer_surplus": 29423.5,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "computed-agedonly": {
+       "profit": 32231.3,
+       "revenue": 49429.2,
+       "units": 9129,
+       "aged_units": 2705,
+       "waste_cost": 156.7,
+       "waste_units": 78,
+       "depth": 0.162,
+       "consumer_surplus": 21497.55,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "nego": {
+       "profit": 38092.49,
+       "revenue": 58340.39,
+       "units": 10827,
+       "aged_units": 791,
+       "waste_cost": 0.0,
+       "waste_units": 0,
+       "depth": 0.1678,
+       "consumer_surplus": 24280.09,
+       "pair_deals": 560,
+       "negotiated": 1601
+      },
+      "nego-nopairs": {
+       "profit": 36895.52,
+       "revenue": 56598.62,
+       "units": 10526,
+       "aged_units": 971,
+       "waste_cost": 8.4,
+       "waste_units": 4,
+       "depth": 0.1698,
+       "consumer_surplus": 23694.2,
+       "pair_deals": 0,
+       "negotiated": 1605
+      }
+     },
+     "paired": {
+      "computed_vs_control": {
+       "profit": {
+        "mean": 74.04,
+        "ci95": [
+         40.59,
+         107.49
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 291.18,
+        "ci95": [
+         228.09,
+         354.27
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -77.17,
+        "ci95": [
+         -106.39,
+         -47.94
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -14.6,
+        "ci95": [
+         -22.38,
+         -6.82
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "computed-agedonly_vs_control": {
+       "profit": {
+        "mean": -29.2,
+        "ci95": [
+         -50.29,
+         -8.1
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 26.98,
+        "ci95": [
+         13.25,
+         40.71
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -75.09,
+        "ci95": [
+         -103.05,
+         -47.13
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 61.07,
+        "ci95": [
+         38.18,
+         83.96
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_control": {
+       "profit": {
+        "mean": 166.18,
+        "ci95": [
+         131.37,
+         200.99
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 119.73,
+        "ci95": [
+         86.32,
+         153.14
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -80.31,
+        "ci95": [
+         -110.88,
+         -49.74
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -2.73,
+        "ci95": [
+         -14.17,
+         8.7
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego-nopairs_vs_control": {
+       "profit": {
+        "mean": 126.28,
+        "ci95": [
+         99.03,
+         153.52
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 100.2,
+        "ci95": [
+         78.17,
+         122.24
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -80.03,
+        "ci95": [
+         -110.53,
+         -49.53
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 3.27,
+        "ci95": [
+         -6.69,
+         13.22
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_computed": {
+       "profit": {
+        "mean": 92.14,
+        "ci95": [
+         83.77,
+         100.51
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": -171.45,
+        "ci95": [
+         -206.14,
+         -136.75
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -3.14,
+        "ci95": [
+         -5.56,
+         -0.73
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 11.87,
+        "ci95": [
+         7.67,
+         16.06
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_nego-nopairs": {
+       "profit": {
+        "mean": 39.9,
+        "ci95": [
+         26.51,
+         53.28
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 19.53,
+        "ci95": [
+         6.5,
+         32.56
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -0.28,
+        "ci95": [
+         -0.64,
+         0.08
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -6.0,
+        "ci95": [
+         -9.5,
+         -2.5
+        ],
+        "n": 6,
+        "block": 5
+       }
+      }
+     },
+     "spike_split": {
+      "computed_vs_control": {
+       "calm": 74.04
+      },
+      "computed-agedonly_vs_control": {
+       "calm": -29.2
+      },
+      "nego_vs_control": {
+       "calm": 166.18
+      },
+      "nego-nopairs_vs_control": {
+       "calm": 126.28
+      },
+      "nego_vs_computed": {
+       "calm": 92.14
+      },
+      "nego_vs_nego-nopairs": {
+       "calm": 39.9
+      }
+     }
+    },
+    "cal0.15_spike0.1": {
+     "world": {
+      "sigma_miscal": 0.15,
+      "spike_prob": 0.1,
+      "sigma_day": 0.2
+     },
+     "n_spike_days": 5,
+     "totals": {
+      "control": {
+       "profit": 41655.67,
+       "revenue": 63064.67,
+       "units": 10265,
+       "aged_units": 983,
+       "waste_cost": 2274.8,
+       "waste_units": 1235,
+       "depth": 0.0479,
+       "consumer_surplus": 25565.91,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "computed": {
+       "profit": 43613.21,
+       "revenue": 67114.61,
+       "units": 12483,
+       "aged_units": 462,
+       "waste_cost": 96.4,
+       "waste_units": 54,
+       "depth": 0.1719,
+       "consumer_surplus": 34186.56,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "computed-agedonly": {
+       "profit": 41110.62,
+       "revenue": 61879.02,
+       "units": 11067,
+       "aged_units": 2717,
+       "waste_cost": 166.7,
+       "waste_units": 83,
+       "depth": 0.1322,
+       "consumer_surplus": 26324.91,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "nego": {
+       "profit": 46462.64,
+       "revenue": 70289.34,
+       "units": 12764,
+       "aged_units": 859,
+       "waste_cost": 0.0,
+       "waste_units": 0,
+       "depth": 0.1479,
+       "consumer_surplus": 29122.5,
+       "pair_deals": 557,
+       "negotiated": 1624
+      },
+      "nego-nopairs": {
+       "profit": 45452.97,
+       "revenue": 68792.07,
+       "units": 12486,
+       "aged_units": 1021,
+       "waste_cost": 6.3,
+       "waste_units": 3,
+       "depth": 0.1483,
+       "consumer_surplus": 28570.84,
+       "pair_deals": 0,
+       "negotiated": 1644
+      }
+     },
+     "paired": {
+      "computed_vs_control": {
+       "profit": {
+        "mean": 65.25,
+        "ci95": [
+         32.86,
+         97.65
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 287.35,
+        "ci95": [
+         219.86,
+         354.85
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -72.61,
+        "ci95": [
+         -98.58,
+         -46.64
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -17.37,
+        "ci95": [
+         -25.13,
+         -9.61
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "computed-agedonly_vs_control": {
+       "profit": {
+        "mean": -18.17,
+        "ci95": [
+         -32.93,
+         -3.41
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 25.3,
+        "ci95": [
+         16.68,
+         33.92
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -70.27,
+        "ci95": [
+         -94.91,
+         -45.63
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 57.8,
+        "ci95": [
+         35.92,
+         79.68
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_control": {
+       "profit": {
+        "mean": 160.23,
+        "ci95": [
+         120.96,
+         199.5
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 118.55,
+        "ci95": [
+         82.23,
+         154.87
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -75.83,
+        "ci95": [
+         -103.12,
+         -48.53
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -4.13,
+        "ci95": [
+         -16.58,
+         8.31
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego-nopairs_vs_control": {
+       "profit": {
+        "mean": 126.58,
+        "ci95": [
+         98.82,
+         154.33
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 100.16,
+        "ci95": [
+         75.25,
+         125.07
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -75.62,
+        "ci95": [
+         -102.9,
+         -48.33
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 1.27,
+        "ci95": [
+         -10.58,
+         13.11
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_computed": {
+       "profit": {
+        "mean": 94.98,
+        "ci95": [
+         81.24,
+         108.72
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": -168.8,
+        "ci95": [
+         -207.38,
+         -130.22
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -3.21,
+        "ci95": [
+         -5.71,
+         -0.72
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 13.23,
+        "ci95": [
+         7.52,
+         18.94
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_nego-nopairs": {
+       "profit": {
+        "mean": 33.66,
+        "ci95": [
+         21.27,
+         46.04
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 18.39,
+        "ci95": [
+         5.44,
+         31.34
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -0.21,
+        "ci95": [
+         -0.58,
+         0.16
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -5.4,
+        "ci95": [
+         -10.01,
+         -0.79
+        ],
+        "n": 6,
+        "block": 5
+       }
+      }
+     },
+     "spike_split": {
+      "computed_vs_control": {
+       "spike": 2.64,
+       "calm": 77.77
+      },
+      "computed-agedonly_vs_control": {
+       "spike": -3.67,
+       "calm": -21.07
+      },
+      "nego_vs_control": {
+       "spike": 102.57,
+       "calm": 171.77
+      },
+      "nego-nopairs_vs_control": {
+       "spike": 77.05,
+       "calm": 136.48
+      },
+      "nego_vs_computed": {
+       "spike": 99.93,
+       "calm": 93.99
+      },
+      "nego_vs_nego-nopairs": {
+       "spike": 25.52,
+       "calm": 35.28
+      }
+     }
+    },
+    "cal0.35_spike0": {
+     "world": {
+      "sigma_miscal": 0.35,
+      "spike_prob": 0.0,
+      "sigma_day": 0.2
+     },
+     "n_spike_days": 0,
+     "totals": {
+      "control": {
+       "profit": 31047.25,
+       "revenue": 48735.55,
+       "units": 7929,
+       "aged_units": 762,
+       "waste_cost": 2900.1,
+       "waste_units": 1553,
+       "depth": 0.0483,
+       "consumer_surplus": 19667.32,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "computed": {
+       "profit": 32749.14,
+       "revenue": 52495.14,
+       "units": 10415,
+       "aged_units": 541,
+       "waste_cost": 202.8,
+       "waste_units": 108,
+       "depth": 0.224,
+       "consumer_surplus": 28920.36,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "computed-agedonly": {
+       "profit": 29876.75,
+       "revenue": 47163.75,
+       "units": 9178,
+       "aged_units": 3216,
+       "waste_cost": 189.7,
+       "waste_units": 87,
+       "depth": 0.2029,
+       "consumer_surplus": 21297.19,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "nego": {
+       "profit": 35527.96,
+       "revenue": 55561.46,
+       "units": 10692,
+       "aged_units": 787,
+       "waste_cost": 2.8,
+       "waste_units": 2,
+       "depth": 0.1986,
+       "consumer_surplus": 24003.92,
+       "pair_deals": 614,
+       "negotiated": 1621
+      },
+      "nego-nopairs": {
+       "profit": 34680.07,
+       "revenue": 54020.77,
+       "units": 10253,
+       "aged_units": 850,
+       "waste_cost": 3.5,
+       "waste_units": 2,
+       "depth": 0.1932,
+       "consumer_surplus": 23330.87,
+       "pair_deals": 0,
+       "negotiated": 1562
+      }
+     },
+     "paired": {
+      "computed_vs_control": {
+       "profit": {
+        "mean": 56.73,
+        "ci95": [
+         15.53,
+         97.93
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 308.43,
+        "ci95": [
+         232.66,
+         384.21
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -89.91,
+        "ci95": [
+         -144.07,
+         -35.75
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -7.37,
+        "ci95": [
+         -20.84,
+         6.11
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "computed-agedonly_vs_control": {
+       "profit": {
+        "mean": -39.02,
+        "ci95": [
+         -93.37,
+         15.34
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 54.33,
+        "ci95": [
+         25.35,
+         83.31
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -90.35,
+        "ci95": [
+         -147.09,
+         -33.6
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 81.8,
+        "ci95": [
+         22.96,
+         140.64
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_control": {
+       "profit": {
+        "mean": 149.36,
+        "ci95": [
+         99.22,
+         199.49
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 144.55,
+        "ci95": [
+         106.56,
+         182.55
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -96.58,
+        "ci95": [
+         -155.96,
+         -37.2
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 0.83,
+        "ci95": [
+         -14.54,
+         16.2
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego-nopairs_vs_control": {
+       "profit": {
+        "mean": 121.09,
+        "ci95": [
+         83.93,
+         158.25
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 122.12,
+        "ci95": [
+         98.7,
+         145.54
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -96.55,
+        "ci95": [
+         -156.04,
+         -37.07
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 2.93,
+        "ci95": [
+         -9.24,
+         15.1
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_computed": {
+       "profit": {
+        "mean": 92.63,
+        "ci95": [
+         69.04,
+         116.21
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": -163.88,
+        "ci95": [
+         -207.11,
+         -120.66
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -6.67,
+        "ci95": [
+         -12.53,
+         -0.8
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 8.2,
+        "ci95": [
+         1.76,
+         14.64
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_nego-nopairs": {
+       "profit": {
+        "mean": 28.26,
+        "ci95": [
+         12.44,
+         44.08
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 22.43,
+        "ci95": [
+         5.95,
+         38.92
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -0.02,
+        "ci95": [
+         -0.26,
+         0.21
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -2.1,
+        "ci95": [
+         -9.36,
+         5.16
+        ],
+        "n": 6,
+        "block": 5
+       }
+      }
+     },
+     "spike_split": {
+      "computed_vs_control": {
+       "calm": 56.73
+      },
+      "computed-agedonly_vs_control": {
+       "calm": -39.02
+      },
+      "nego_vs_control": {
+       "calm": 149.36
+      },
+      "nego-nopairs_vs_control": {
+       "calm": 121.09
+      },
+      "nego_vs_computed": {
+       "calm": 92.63
+      },
+      "nego_vs_nego-nopairs": {
+       "calm": 28.26
+      }
+     }
+    },
+    "cal0.35_spike0.1": {
+     "world": {
+      "sigma_miscal": 0.35,
+      "spike_prob": 0.1,
+      "sigma_day": 0.2
+     },
+     "n_spike_days": 5,
+     "totals": {
+      "control": {
+       "profit": 38380.63,
+       "revenue": 59487.93,
+       "units": 9647,
+       "aged_units": 797,
+       "waste_cost": 3173.3,
+       "waste_units": 1699,
+       "depth": 0.042,
+       "consumer_surplus": 24002.74,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "computed": {
+       "profit": 40184.47,
+       "revenue": 63316.67,
+       "units": 12201,
+       "aged_units": 597,
+       "waste_cost": 229.6,
+       "waste_units": 119,
+       "depth": 0.2014,
+       "consumer_surplus": 33762.6,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "computed-agedonly": {
+       "profit": 37586.16,
+       "revenue": 58277.46,
+       "units": 11027,
+       "aged_units": 3391,
+       "waste_cost": 206.6,
+       "waste_units": 95,
+       "depth": 0.178,
+       "consumer_surplus": 25817.85,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "nego": {
+       "profit": 42900.04,
+       "revenue": 66461.14,
+       "units": 12590,
+       "aged_units": 846,
+       "waste_cost": 2.8,
+       "waste_units": 2,
+       "depth": 0.185,
+       "consumer_surplus": 28695.2,
+       "pair_deals": 654,
+       "negotiated": 1730
+      },
+      "nego-nopairs": {
+       "profit": 41922.82,
+       "revenue": 64791.12,
+       "units": 12151,
+       "aged_units": 930,
+       "waste_cost": 3.5,
+       "waste_units": 2,
+       "depth": 0.1817,
+       "consumer_surplus": 28013.26,
+       "pair_deals": 0,
+       "negotiated": 1677
+      }
+     },
+     "paired": {
+      "computed_vs_control": {
+       "profit": {
+        "mean": 60.13,
+        "ci95": [
+         19.84,
+         100.41
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 325.33,
+        "ci95": [
+         246.42,
+         404.23
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -98.12,
+        "ci95": [
+         -145.58,
+         -50.66
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -6.67,
+        "ci95": [
+         -20.14,
+         6.81
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "computed-agedonly_vs_control": {
+       "profit": {
+        "mean": -26.48,
+        "ci95": [
+         -68.19,
+         15.22
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 60.5,
+        "ci95": [
+         32.26,
+         88.75
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -98.89,
+        "ci95": [
+         -149.83,
+         -47.95
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 86.47,
+        "ci95": [
+         36.05,
+         136.88
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_control": {
+       "profit": {
+        "mean": 150.65,
+        "ci95": [
+         97.14,
+         204.16
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 156.42,
+        "ci95": [
+         108.56,
+         204.28
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -105.68,
+        "ci95": [
+         -159.15,
+         -52.22
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 1.63,
+        "ci95": [
+         -13.8,
+         17.07
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego-nopairs_vs_control": {
+       "profit": {
+        "mean": 118.07,
+        "ci95": [
+         78.98,
+         157.16
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 133.68,
+        "ci95": [
+         97.82,
+         169.55
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -105.66,
+        "ci95": [
+         -159.25,
+         -52.07
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 4.43,
+        "ci95": [
+         -9.43,
+         18.3
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_computed": {
+       "profit": {
+        "mean": 90.52,
+        "ci95": [
+         52.07,
+         128.96
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": -168.91,
+        "ci95": [
+         -206.67,
+         -131.15
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -7.56,
+        "ci95": [
+         -14.0,
+         -1.12
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 8.3,
+        "ci95": [
+         0.97,
+         15.63
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_nego-nopairs": {
+       "profit": {
+        "mean": 32.57,
+        "ci95": [
+         7.51,
+         57.64
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 22.73,
+        "ci95": [
+         6.54,
+         38.92
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -0.02,
+        "ci95": [
+         -0.26,
+         0.21
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -2.8,
+        "ci95": [
+         -10.92,
+         5.32
+        ],
+        "n": 6,
+        "block": 5
+       }
+      }
+     },
+     "spike_split": {
+      "computed_vs_control": {
+       "spike": -9.72,
+       "calm": 74.1
+      },
+      "computed-agedonly_vs_control": {
+       "spike": 38.77,
+       "calm": -39.53
+      },
+      "nego_vs_control": {
+       "spike": 79.91,
+       "calm": 164.8
+      },
+      "nego-nopairs_vs_control": {
+       "spike": 35.76,
+       "calm": 134.54
+      },
+      "nego_vs_computed": {
+       "spike": 89.63,
+       "calm": 90.7
+      },
+      "nego_vs_nego-nopairs": {
+       "spike": 44.14,
+       "calm": 30.26
+      }
+     }
+    }
+   }
+  },
+  "flowers": {
+   "cells": {
+    "cal0.15_spike0": {
+     "world": {
+      "sigma_miscal": 0.15,
+      "spike_prob": 0.0,
+      "sigma_day": 0.2
+     },
+     "n_spike_days": 0,
+     "totals": {
+      "control": {
+       "profit": -1090.4,
+       "revenue": 6679.3,
+       "units": 285,
+       "aged_units": 45,
+       "waste_cost": 4496.9,
+       "waste_units": 413,
+       "depth": 0.2123,
+       "consumer_surplus": 3129.0,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "computed": {
+       "profit": 4957.64,
+       "revenue": 13910.84,
+       "units": 771,
+       "aged_units": 326,
+       "waste_cost": 198.0,
+       "waste_units": 11,
+       "depth": 0.3884,
+       "consumer_surplus": 9371.42,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "computed-agedonly": {
+       "profit": 5334.07,
+       "revenue": 14042.17,
+       "units": 756,
+       "aged_units": 516,
+       "waste_cost": 220.3,
+       "waste_units": 14,
+       "depth": 0.3635,
+       "consumer_surplus": 8278.56,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "nego": {
+       "profit": 4368.7,
+       "revenue": 13619.6,
+       "units": 804,
+       "aged_units": 209,
+       "waste_cost": 21.0,
+       "waste_units": 2,
+       "depth": 0.4319,
+       "consumer_surplus": 7500.24,
+       "pair_deals": 69,
+       "negotiated": 242
+      },
+      "nego-nopairs": {
+       "profit": 4109.63,
+       "revenue": 13301.53,
+       "units": 801,
+       "aged_units": 244,
+       "waste_cost": 21.0,
+       "waste_units": 2,
+       "depth": 0.4417,
+       "consumer_surplus": 7577.91,
+       "pair_deals": 0,
+       "negotiated": 269
+      }
+     },
+     "paired": {
+      "computed_vs_control": {
+       "profit": {
+        "mean": 201.6,
+        "ci95": [
+         102.65,
+         300.55
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 208.08,
+        "ci95": [
+         154.29,
+         261.87
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -143.3,
+        "ci95": [
+         -235.62,
+         -50.97
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 9.37,
+        "ci95": [
+         3.05,
+         15.68
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "computed-agedonly_vs_control": {
+       "profit": {
+        "mean": 214.15,
+        "ci95": [
+         110.29,
+         318.0
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 171.65,
+        "ci95": [
+         55.88,
+         287.42
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -142.55,
+        "ci95": [
+         -235.07,
+         -50.04
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 15.7,
+        "ci95": [
+         6.56,
+         24.84
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_control": {
+       "profit": {
+        "mean": 181.97,
+        "ci95": [
+         78.66,
+         285.28
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 145.71,
+        "ci95": [
+         103.09,
+         188.33
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -149.2,
+        "ci95": [
+         -244.04,
+         -54.35
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 5.47,
+        "ci95": [
+         0.54,
+         10.39
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego-nopairs_vs_control": {
+       "profit": {
+        "mean": 173.33,
+        "ci95": [
+         66.29,
+         280.38
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 148.3,
+        "ci95": [
+         102.61,
+         193.98
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -149.2,
+        "ci95": [
+         -244.04,
+         -54.35
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 6.63,
+        "ci95": [
+         1.53,
+         11.74
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_computed": {
+       "profit": {
+        "mean": -19.63,
+        "ci95": [
+         -46.08,
+         6.82
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": -62.37,
+        "ci95": [
+         -100.06,
+         -24.69
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -5.9,
+        "ci95": [
+         -12.3,
+         0.5
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -3.9,
+        "ci95": [
+         -6.53,
+         -1.27
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_nego-nopairs": {
+       "profit": {
+        "mean": 8.64,
+        "ci95": [
+         1.7,
+         15.57
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": -2.59,
+        "ci95": [
+         -15.89,
+         10.71
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": 0.0,
+        "ci95": [
+         0.0,
+         0.0
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -1.17,
+        "ci95": [
+         -2.46,
+         0.12
+        ],
+        "n": 6,
+        "block": 5
+       }
+      }
+     },
+     "spike_split": {
+      "computed_vs_control": {
+       "calm": 201.6
+      },
+      "computed-agedonly_vs_control": {
+       "calm": 214.15
+      },
+      "nego_vs_control": {
+       "calm": 181.97
+      },
+      "nego-nopairs_vs_control": {
+       "calm": 173.33
+      },
+      "nego_vs_computed": {
+       "calm": -19.63
+      },
+      "nego_vs_nego-nopairs": {
+       "calm": 8.64
+      }
+     }
+    },
+    "cal0.15_spike0.1": {
+     "world": {
+      "sigma_miscal": 0.15,
+      "spike_prob": 0.1,
+      "sigma_day": 0.2
+     },
+     "n_spike_days": 5,
+     "totals": {
+      "control": {
+       "profit": 9473.2,
+       "revenue": 21410.7,
+       "units": 888,
+       "aged_units": 63,
+       "waste_cost": 2773.1,
+       "waste_units": 274,
+       "depth": 0.1027,
+       "consumer_surplus": 9293.36,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "computed": {
+       "profit": 14214.0,
+       "revenue": 27335.0,
+       "units": 1240,
+       "aged_units": 256,
+       "waste_cost": 90.5,
+       "waste_units": 6,
+       "depth": 0.1945,
+       "consumer_surplus": 14168.18,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "computed-agedonly": {
+       "profit": 14636.93,
+       "revenue": 27512.83,
+       "units": 1226,
+       "aged_units": 401,
+       "waste_cost": 111.5,
+       "waste_units": 8,
+       "depth": 0.1727,
+       "consumer_surplus": 13159.07,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "nego": {
+       "profit": 13029.04,
+       "revenue": 26447.74,
+       "units": 1268,
+       "aged_units": 166,
+       "waste_cost": 21.0,
+       "waste_units": 2,
+       "depth": 0.242,
+       "consumer_surplus": 12702.81,
+       "pair_deals": 50,
+       "negotiated": 191
+      },
+      "nego-nopairs": {
+       "profit": 12833.72,
+       "revenue": 26193.42,
+       "units": 1265,
+       "aged_units": 186,
+       "waste_cost": 21.0,
+       "waste_units": 2,
+       "depth": 0.2461,
+       "consumer_surplus": 12692.02,
+       "pair_deals": 0,
+       "negotiated": 214
+      }
+     },
+     "paired": {
+      "computed_vs_control": {
+       "profit": {
+        "mean": 158.03,
+        "ci95": [
+         37.15,
+         278.91
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 162.49,
+        "ci95": [
+         47.51,
+         277.47
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -89.42,
+        "ci95": [
+         -184.21,
+         5.37
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 6.43,
+        "ci95": [
+         -2.22,
+         15.09
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "computed-agedonly_vs_control": {
+       "profit": {
+        "mean": 172.12,
+        "ci95": [
+         40.5,
+         303.75
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 128.86,
+        "ci95": [
+         -29.15,
+         286.87
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -88.72,
+        "ci95": [
+         -183.21,
+         5.77
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 11.27,
+        "ci95": [
+         -0.47,
+         23.01
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_control": {
+       "profit": {
+        "mean": 118.53,
+        "ci95": [
+         -3.47,
+         240.52
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 113.65,
+        "ci95": [
+         24.54,
+         202.76
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -91.74,
+        "ci95": [
+         -190.82,
+         7.35
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 3.43,
+        "ci95": [
+         -3.08,
+         9.94
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego-nopairs_vs_control": {
+       "profit": {
+        "mean": 112.02,
+        "ci95": [
+         -7.04,
+         231.08
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 113.29,
+        "ci95": [
+         20.57,
+         206.01
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -91.74,
+        "ci95": [
+         -190.82,
+         7.35
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 4.1,
+        "ci95": [
+         -2.69,
+         10.89
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_computed": {
+       "profit": {
+        "mean": -39.5,
+        "ci95": [
+         -105.55,
+         26.55
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": -48.85,
+        "ci95": [
+         -89.06,
+         -8.63
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -2.32,
+        "ci95": [
+         -7.27,
+         2.64
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -3.0,
+        "ci95": [
+         -5.49,
+         -0.51
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_nego-nopairs": {
+       "profit": {
+        "mean": 6.51,
+        "ci95": [
+         -0.05,
+         13.08
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 0.36,
+        "ci95": [
+         -9.72,
+         10.44
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": 0.0,
+        "ci95": [
+         0.0,
+         0.0
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -0.67,
+        "ci95": [
+         -1.69,
+         0.36
+        ],
+        "n": 6,
+        "block": 5
+       }
+      }
+     },
+     "spike_split": {
+      "computed_vs_control": {
+       "spike": 349.48,
+       "calm": 119.74
+      },
+      "computed-agedonly_vs_control": {
+       "spike": 384.99,
+       "calm": 129.55
+      },
+      "nego_vs_control": {
+       "spike": 187.34,
+       "calm": 104.77
+      },
+      "nego-nopairs_vs_control": {
+       "spike": 187.06,
+       "calm": 97.01
+      },
+      "nego_vs_computed": {
+       "spike": -162.14,
+       "calm": -14.97
+      },
+      "nego_vs_nego-nopairs": {
+       "spike": 0.28,
+       "calm": 7.76
+      }
+     }
+    },
+    "cal0.35_spike0": {
+     "world": {
+      "sigma_miscal": 0.35,
+      "spike_prob": 0.0,
+      "sigma_day": 0.2
+     },
+     "n_spike_days": 0,
+     "totals": {
+      "control": {
+       "profit": -783.7,
+       "revenue": 6679.3,
+       "units": 285,
+       "aged_units": 45,
+       "waste_cost": 4190.2,
+       "waste_units": 382,
+       "depth": 0.2123,
+       "consumer_surplus": 3129.0,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "computed": {
+       "profit": 4742.89,
+       "revenue": 13245.19,
+       "units": 715,
+       "aged_units": 295,
+       "waste_cost": 160.0,
+       "waste_units": 10,
+       "depth": 0.3882,
+       "consumer_surplus": 9005.77,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "computed-agedonly": {
+       "profit": 4829.41,
+       "revenue": 13186.21,
+       "units": 702,
+       "aged_units": 462,
+       "waste_cost": 251.8,
+       "waste_units": 17,
+       "depth": 0.3733,
+       "consumer_surplus": 7940.8,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "nego": {
+       "profit": 4294.47,
+       "revenue": 13132.37,
+       "units": 741,
+       "aged_units": 209,
+       "waste_cost": 21.0,
+       "waste_units": 2,
+       "depth": 0.4256,
+       "consumer_surplus": 7282.2,
+       "pair_deals": 58,
+       "negotiated": 214
+      },
+      "nego-nopairs": {
+       "profit": 3989.01,
+       "revenue": 12767.91,
+       "units": 738,
+       "aged_units": 231,
+       "waste_cost": 21.0,
+       "waste_units": 2,
+       "depth": 0.4379,
+       "consumer_surplus": 7315.06,
+       "pair_deals": 0,
+       "negotiated": 237
+      }
+     },
+     "paired": {
+      "computed_vs_control": {
+       "profit": {
+        "mean": 184.22,
+        "ci95": [
+         65.29,
+         303.15
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 195.89,
+        "ci95": [
+         151.24,
+         240.54
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -134.34,
+        "ci95": [
+         -240.38,
+         -28.3
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 8.33,
+        "ci95": [
+         2.68,
+         13.99
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "computed-agedonly_vs_control": {
+       "profit": {
+        "mean": 187.1,
+        "ci95": [
+         68.6,
+         305.61
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 160.39,
+        "ci95": [
+         41.42,
+         279.37
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -131.28,
+        "ci95": [
+         -237.64,
+         -24.92
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 13.9,
+        "ci95": [
+         5.22,
+         22.58
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_control": {
+       "profit": {
+        "mean": 169.27,
+        "ci95": [
+         47.45,
+         291.09
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 138.44,
+        "ci95": [
+         113.16,
+         163.72
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -138.97,
+        "ci95": [
+         -248.43,
+         -29.52
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 5.47,
+        "ci95": [
+         0.79,
+         10.14
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego-nopairs_vs_control": {
+       "profit": {
+        "mean": 159.09,
+        "ci95": [
+         34.48,
+         283.7
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 139.54,
+        "ci95": [
+         120.26,
+         158.81
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -138.97,
+        "ci95": [
+         -248.43,
+         -29.52
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 6.2,
+        "ci95": [
+         1.54,
+         10.86
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_computed": {
+       "profit": {
+        "mean": -14.95,
+        "ci95": [
+         -28.13,
+         -1.76
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": -57.45,
+        "ci95": [
+         -95.54,
+         -19.37
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -4.63,
+        "ci95": [
+         -11.4,
+         2.14
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -2.87,
+        "ci95": [
+         -5.45,
+         -0.28
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_nego-nopairs": {
+       "profit": {
+        "mean": 10.18,
+        "ci95": [
+         4.91,
+         15.46
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": -1.1,
+        "ci95": [
+         -12.5,
+         10.31
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": 0.0,
+        "ci95": [
+         0.0,
+         0.0
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -0.73,
+        "ci95": [
+         -1.84,
+         0.37
+        ],
+        "n": 6,
+        "block": 5
+       }
+      }
+     },
+     "spike_split": {
+      "computed_vs_control": {
+       "calm": 184.22
+      },
+      "computed-agedonly_vs_control": {
+       "calm": 187.1
+      },
+      "nego_vs_control": {
+       "calm": 169.27
+      },
+      "nego-nopairs_vs_control": {
+       "calm": 159.09
+      },
+      "nego_vs_computed": {
+       "calm": -14.95
+      },
+      "nego_vs_nego-nopairs": {
+       "calm": 10.18
+      }
+     }
+    },
+    "cal0.35_spike0.1": {
+     "world": {
+      "sigma_miscal": 0.35,
+      "spike_prob": 0.1,
+      "sigma_day": 0.2
+     },
+     "n_spike_days": 5,
+     "totals": {
+      "control": {
+       "profit": 8513.7,
+       "revenue": 19803.0,
+       "units": 857,
+       "aged_units": 62,
+       "waste_cost": 2753.5,
+       "waste_units": 259,
+       "depth": 0.109,
+       "consumer_surplus": 8707.04,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "computed": {
+       "profit": 12786.47,
+       "revenue": 25115.07,
+       "units": 1168,
+       "aged_units": 228,
+       "waste_cost": 90.5,
+       "waste_units": 6,
+       "depth": 0.2113,
+       "consumer_surplus": 13574.63,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "computed-agedonly": {
+       "profit": 12994.53,
+       "revenue": 25177.63,
+       "units": 1157,
+       "aged_units": 362,
+       "waste_cost": 143.0,
+       "waste_units": 11,
+       "depth": 0.1965,
+       "consumer_surplus": 12802.44,
+       "pair_deals": 0,
+       "negotiated": 0
+      },
+      "nego": {
+       "profit": 11897.45,
+       "revenue": 24561.65,
+       "units": 1190,
+       "aged_units": 170,
+       "waste_cost": 21.0,
+       "waste_units": 2,
+       "depth": 0.253,
+       "consumer_surplus": 12205.47,
+       "pair_deals": 41,
+       "negotiated": 167
+      },
+      "nego-nopairs": {
+       "profit": 11671.6,
+       "revenue": 24276.8,
+       "units": 1187,
+       "aged_units": 182,
+       "waste_cost": 21.0,
+       "waste_units": 2,
+       "depth": 0.2583,
+       "consumer_surplus": 12153.82,
+       "pair_deals": 0,
+       "negotiated": 181
+      }
+     },
+     "paired": {
+      "computed_vs_control": {
+       "profit": {
+        "mean": 142.43,
+        "ci95": [
+         1.81,
+         283.04
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 162.25,
+        "ci95": [
+         59.3,
+         265.2
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -88.77,
+        "ci95": [
+         -214.6,
+         37.07
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 5.53,
+        "ci95": [
+         -2.4,
+         13.47
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "computed-agedonly_vs_control": {
+       "profit": {
+        "mean": 149.36,
+        "ci95": [
+         8.14,
+         290.58
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 136.51,
+        "ci95": [
+         -18.01,
+         291.04
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -87.02,
+        "ci95": [
+         -210.89,
+         36.85
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 10.0,
+        "ci95": [
+         -1.66,
+         21.66
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_control": {
+       "profit": {
+        "mean": 112.79,
+        "ci95": [
+         -37.54,
+         263.13
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 116.61,
+        "ci95": [
+         48.42,
+         184.81
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -91.08,
+        "ci95": [
+         -221.14,
+         38.97
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 3.6,
+        "ci95": [
+         -2.93,
+         10.13
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego-nopairs_vs_control": {
+       "profit": {
+        "mean": 105.26,
+        "ci95": [
+         -42.84,
+         253.37
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 114.89,
+        "ci95": [
+         47.09,
+         182.7
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -91.08,
+        "ci95": [
+         -221.14,
+         38.97
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": 4.0,
+        "ci95": [
+         -2.76,
+         10.76
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_computed": {
+       "profit": {
+        "mean": -29.63,
+        "ci95": [
+         -74.04,
+         14.77
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": -45.64,
+        "ci95": [
+         -88.78,
+         -2.5
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": -2.32,
+        "ci95": [
+         -7.27,
+         2.64
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -1.93,
+        "ci95": [
+         -3.83,
+         -0.03
+        ],
+        "n": 6,
+        "block": 5
+       }
+      },
+      "nego_vs_nego-nopairs": {
+       "profit": {
+        "mean": 7.53,
+        "ci95": [
+         1.64,
+         13.42
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "consumer_surplus": {
+        "mean": 1.72,
+        "ci95": [
+         -5.54,
+         8.99
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "waste_cost": {
+        "mean": 0.0,
+        "ci95": [
+         0.0,
+         0.0
+        ],
+        "n": 6,
+        "block": 5
+       },
+       "aged_units": {
+        "mean": -0.4,
+        "ci95": [
+         -1.23,
+         0.43
+        ],
+        "n": 6,
+        "block": 5
+       }
+      }
+     },
+     "spike_split": {
+      "computed_vs_control": {
+       "spike": 229.22,
+       "calm": 125.07
+      },
+      "computed-agedonly_vs_control": {
+       "spike": 259.15,
+       "calm": 127.4
+      },
+      "nego_vs_control": {
+       "spike": 105.75,
+       "calm": 114.2
+      },
+      "nego-nopairs_vs_control": {
+       "spike": 106.03,
+       "calm": 105.11
+      },
+      "nego_vs_computed": {
+       "spike": -123.47,
+       "calm": -10.87
+      },
+      "nego_vs_nego-nopairs": {
+       "spike": -0.28,
+       "calm": 9.09
+      }
+     }
+    }
+   }
+  }
+ }
+}
