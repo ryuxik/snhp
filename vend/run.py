@@ -18,18 +18,27 @@ import sys
 import numpy as np
 
 from vend.core import QuoteItem, make_quote, substream
-from vend.policies import GvrPolicy, StaticPolicy
+from vend.policies import A2APolicy, GvrPolicy, StaticPolicy
+from vend.scenario import buyer_value
 from vend.world import (TICKS_PER_DAY, arrivals_at, build_catalog, end_of_day,
                         fresh_machine, hour_of, sample_consumer)
 
 VEND_VERSION = 1
-ARMS = {"static": StaticPolicy, "gvr": GvrPolicy}
+ARMS = {
+    "static": StaticPolicy,
+    "gvr": GvrPolicy,
+    "a2a": A2APolicy,                                           # attested, all truthful
+    "a2a-liars25": lambda: A2APolicy(attest=False, liar_share=0.25),
+    "a2a-liars50": lambda: A2APolicy(attest=False, liar_share=0.50),
+    "a2a-liars100": lambda: A2APolicy(attest=False, liar_share=1.00),
+}
 
 
 def run_day(policy, state, catalog, master_seed: int, day: int) -> dict:
     m = {"revenue": 0.0, "cogs_sold": 0.0, "units": 0, "deals": 0,
          "arrivals": 0, "returns": 0, "stockouts": 0, "lost_to_outside": 0,
-         "consumer_surplus": 0.0, "quotes": 0}
+         "consumer_surplus": 0.0, "quotes": 0,
+         "negotiated": 0, "neg_machine_gain": 0.0, "liar_deals": 0}
     return_queue: list[tuple[int, object]] = []
 
     for tick in range(TICKS_PER_DAY):
@@ -44,8 +53,6 @@ def run_day(policy, state, catalog, master_seed: int, day: int) -> dict:
         m["returns"] += len(due)
 
         for k, consumer in enumerate(consumers):
-            board = policy.price_board(state)
-            prices = {sku: p for sku, (p, _) in board.items()}
             m["quotes"] += 1
 
             # Stockout accounting: their favorite (at list) is unstocked.
@@ -53,15 +60,46 @@ def run_day(policy, state, catalog, master_seed: int, day: int) -> dict:
             if state.stock(fav) == 0:
                 m["stockouts"] += 1
 
+            outside_prices = {s: catalog[s].list_price * 1.15 for s in catalog}
+            o_sku, o_qty, o_s = consumer.best_bundle(outside_prices)
+            s_out = (o_s - consumer.walk_cost) if o_sku else 0.0
+
+            # ── intent arms: the brokered A2A negotiation happens first ──
+            if getattr(policy, "mode", "board") == "intent":
+                liar_roll = float(np.random.default_rng(
+                    substream(master_seed, "liar", day, tick, k)).random())
+                nq, lied = policy.quote_for(state, consumer, liar_roll)
+                if nq.outcome is not None:
+                    o = nq.outcome
+                    s_true = buyer_value(consumer.wtp, o.sku, o.qty) \
+                        - o.qty * o.unit_price
+                    if s_true > 0 and s_true >= s_out:
+                        quote = make_quote(
+                            state, policy.policy_id,
+                            seed=substream(master_seed, "q", day, tick, k),
+                            items=[QuoteItem(o.sku, o.qty, o.unit_price,
+                                             catalog[o.sku].list_price)],
+                            why=nq.why, hour=hour_of(tick))
+                        state.take(o.sku, o.qty)
+                        m["revenue"] += quote.total
+                        m["cogs_sold"] += o.qty * catalog[o.sku].unit_cost
+                        m["units"] += o.qty
+                        m["deals"] += 1
+                        m["negotiated"] += 1
+                        m["neg_machine_gain"] += nq.u_machine - nq.d_machine
+                        m["liar_deals"] += int(lied)
+                        m["consumer_surplus"] += s_true
+                        continue
+                # no mutual gain (or buyer declined): fall through to stickers
+
+            board = policy.price_board(state)
+            prices = {sku: p for sku, (p, _) in board.items()}
+
             sku, qty, s_in = consumer.best_bundle(prices) if prices else (None, 0, 0.0)
             if sku is not None:
                 qty = min(qty, state.stock(sku))
                 s_in = sum(consumer.marginal(sku, i) for i in range(1, qty + 1)) \
                     - qty * prices[sku]
-
-            outside_prices = {s: catalog[s].list_price * 1.15 for s in catalog}
-            o_sku, o_qty, o_s = consumer.best_bundle(outside_prices)
-            s_out = (o_s - consumer.walk_cost) if o_sku else 0.0
 
             if sku is not None and s_in > 0 and s_in >= s_out:
                 unit_price, why = board[sku]
@@ -90,7 +128,7 @@ def run_day(policy, state, catalog, master_seed: int, day: int) -> dict:
     m["spoiled_units"] = eod["spoiled_units"]
     m["spoilage_cost"] = eod["spoilage_cost"]
     m["profit"] = round(m["revenue"] - m["cogs_sold"] - m["spoilage_cost"], 2)
-    for k in ("revenue", "cogs_sold", "consumer_surplus"):
+    for k in ("revenue", "cogs_sold", "consumer_surplus", "neg_machine_gain"):
         m[k] = round(m[k], 2)
     return m
 

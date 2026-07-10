@@ -148,3 +148,87 @@ def test_run_day_accounting_consistency(catalog):
     assert m["revenue"] >= 0 and m["consumer_surplus"] >= 0
     assert m["profit"] == pytest.approx(
         m["revenue"] - m["cogs_sold"] - m["spoilage_cost"], abs=0.02)
+
+
+# ── P1: brokered A2A (Nash quotes, attestation, the anchoring attack) ────
+
+def _consumer(catalog, wtp_scale=1.0, walk=1.0):
+    from vend.world import Consumer
+    return Consumer(wtp={s: catalog[s].list_price * 1.4 * wtp_scale for s in catalog},
+                    walk_cost=walk, patience=0.0)
+
+
+def test_nash_quote_respects_both_disagreements(catalog):
+    from vend.scenario import nash_quote, sticker_choice, outside_surplus
+    state = machine(catalog)
+    c = _consumer(catalog)
+    nq = nash_quote(state, c.wtp, c.walk_cost)
+    assert nq.outcome is not None
+    assert nq.u_machine >= nq.d_machine - 1e-9      # sticker sale never given away
+    assert nq.u_buyer_claimed >= nq.d_buyer - 1e-9  # buyer beats their bodega
+
+
+def test_cannibalization_guard_is_structural(catalog):
+    """The P0 fix: a buyer who would have bought at list yields the machine
+    AT LEAST its shadow-priced sticker counterfactual — discounts only
+    carve newly created surplus."""
+    from vend.scenario import nash_quote, sticker_choice
+    state = machine(catalog)
+    c = _consumer(catalog)                       # rich buyer: buys at list for sure
+    assert sticker_choice(c.wtp, state)[0] is not None
+    nq = nash_quote(state, c.wtp, c.walk_cost)
+    assert nq.outcome is not None
+    assert nq.u_machine >= nq.d_machine - 1e-9
+
+
+def test_scarce_stock_is_not_discounted_to_early_birds(catalog):
+    """The stock-drain fix: when expected list demand covers the stock on
+    hand, the negotiated price stays AT list — the machine won't displace
+    a full-margin lunch sale for a morning bargain."""
+    from vend.scenario import nash_quote, expected_list_demand
+    state = machine(catalog)
+    state.tick = 0                                # whole day's demand ahead
+    state.lots = [Lot("cola", 2, expires_day=60)] # scarce vs the day
+    assert expected_list_demand(state, "cola") > 2
+    c = _consumer(catalog)
+    nq = nash_quote(state, c.wtp, c.walk_cost)
+    if nq.outcome is not None and nq.outcome.sku == "cola":
+        assert nq.outcome.unit_price == catalog["cola"].list_price
+
+
+def test_quote_price_never_below_opportunity_cost(catalog):
+    from vend.scenario import nash_quote, c_eff
+    state = machine(catalog)
+    nq = nash_quote(state, _consumer(catalog).wtp, 1.0)
+    assert nq.outcome.unit_price >= c_eff(state, nq.outcome.sku) - 1e-9
+
+
+def test_anchoring_attack_pays_without_attestation(catalog):
+    """H3's mechanism: where a discount surface exists at all (excess /
+    expiring stock — shadow pricing holds scarce stock at list for honest
+    and liar alike), the liar's disclosure buys strictly cheaper."""
+    from vend.scenario import nash_quote, liar_disclosure
+    state = machine(catalog)
+    state.tick = 50                                   # afternoon lull
+    state.lots = [Lot("sandwich", 6, expires_day=0),  # glut, dies tonight
+                  Lot("cola", 12, expires_day=60)]
+    c = _consumer(catalog)
+    honest = nash_quote(state, c.wtp, c.walk_cost)
+    wtp_l, walk_l = liar_disclosure(c.wtp, c.walk_cost)
+    liar = nash_quote(state, wtp_l, walk_l)
+    assert honest.outcome is not None and liar.outcome is not None
+    assert liar.outcome.unit_price < honest.outcome.unit_price
+
+
+def test_no_mutual_gain_falls_back(catalog):
+    from vend.scenario import nash_quote
+    state = machine(catalog)
+    pauper = {s: 0.01 for s in catalog}
+    nq = nash_quote(state, pauper, 5.0)
+    assert nq.outcome is None
+
+
+def test_a2a_arm_is_deterministic(catalog):
+    r1 = run_experiment(["static", "a2a"], days=2, seed=13)
+    r2 = run_experiment(["static", "a2a"], days=2, seed=13)
+    assert r1 == r2

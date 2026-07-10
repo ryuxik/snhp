@@ -8,6 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from vend.core import MachineState
+from vend.scenario import NashQuote, liar_disclosure, nash_quote
 from vend.world import (TICKS_PER_DAY, WTP_MU, WTP_SIGMA, hour_of, rate_at,
                         wtp_mult_at)
 
@@ -121,3 +122,34 @@ class GvrPolicy:
             if dte is not None and dte <= 2:
                 why.append(f"expires in {dte} day{'s' if dte != 1 else ''}")
         return price, why
+
+
+@dataclass
+class A2APolicy:
+    """Brokered A2A: every arrival's agent discloses to the neutral engine,
+    which quotes the Nash point over the true joint frontier (scenario.py).
+    The machine-face fallback is the plain sticker board — a consumer whose
+    negotiation finds no mutual gain just shops the stickers, so the arm is
+    never worse UX than static.
+
+    attest=True: disclosures are verified (all truthful).
+    attest=False: a `liar_share` of buyer agents run the anchoring attack
+    (understate WTP, claim a free outside option) — the H3 experiment.
+    """
+    policy_id: str = "a2a-snhp/1"
+    attest: bool = True
+    liar_share: float = 0.0
+    mode: str = "intent"
+
+    def price_board(self, state: MachineState) -> dict[str, tuple[float, list[str]]]:
+        return {sku: (l.list_price, ["list price"])
+                for sku, l in state.listings.items() if state.stock(sku) > 0}
+
+    def quote_for(self, state: MachineState, consumer,
+                  liar_roll: float) -> tuple[NashQuote, bool]:
+        lied = (not self.attest) and liar_roll < self.liar_share
+        if lied:
+            wtp_d, walk_d = liar_disclosure(consumer.wtp, consumer.walk_cost)
+        else:
+            wtp_d, walk_d = consumer.wtp, consumer.walk_cost
+        return nash_quote(state, wtp_d, walk_d), lied
