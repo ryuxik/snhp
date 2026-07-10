@@ -272,22 +272,40 @@ def _mean_ci(xs: list[float]) -> dict:
 
 def _audit(full: dict) -> dict:
     """The collusion audit for one regime's full-adoption cell: consumer
-    surplus under SHARED must be NON-DECREASING vs private (upper CI ≥ 0).
-    A strict pro-consumer win is the lower CI > 0. Also reports the price
-    move — the direct 'did sharing raise prices?' read."""
+    surplus under SHARED must be NON-DECREASING vs private. The honest
+    one-sided read of 'non-decreasing' is the POINT ESTIMATE not showing a
+    drop (mean ≥ 0); a strict pro-consumer WIN is the lower CI > 0.
+
+    NB the earlier `upper CI ≥ 0` gate was too lenient — a strongly-negative
+    mean under a WIDE CI whose top merely grazes 0 would still have 'PASSED'
+    despite the data pointing at a CS drop. We require mean ≥ 0 instead. On the
+    committed 8-seed artifact this is unambiguous (discount mean +3.58 with the
+    whole CI > 0; ration mean −8.36 with the whole CI < 0), so the verdict — and
+    the byte-for-byte artifact — is unchanged; the tighter test only bites the
+    marginal wide-CI case the old one would have waved through.
+
+    Also reports the price move (the direct 'did sharing raise prices?' read),
+    and degrades gracefully when there is NO interval (seeds < 2): rather than
+    a hard FAIL it returns an INCONCLUSIVE verdict off the lone point estimate."""
     cs = full["consumer_surplus"]["shared_minus_private"]
     ci = cs["ci95"]
-    non_dec = ci is not None and ci[1] >= 0.0
-    strict = ci is not None and ci[0] > 0.0
+    mean = cs["mean"]
+    non_dec = mean >= 0.0                         # honest one-sided: no CS drop
+    strict = ci is not None and ci[0] > 0.0       # a strict pro-consumer win
+    if ci is None:                                # seeds < 2: no interval to test
+        verdict = ("INCONCLUSIVE — n<2 seeds, no CI; point estimate "
+                   + ("non-decreasing" if non_dec else "shows a CS drop"))
+    else:
+        verdict = ("PASS — shared demand-state telemetry does NOT lower "
+                   "consumer surplus" if non_dec else
+                   "FAIL — sharing raises consumer prices; the feature dies")
     return {
         "metric": "consumer_surplus (shared − private) per adopter-day, full adoption",
         "paired_cs_diff": cs,
         "paired_price_diff": full["price"]["shared_minus_private"],
         "non_decreasing": bool(non_dec),
         "strict_pro_consumer": bool(strict),
-        "verdict": ("PASS — shared demand-state telemetry does NOT lower "
-                    "consumer surplus" if non_dec else
-                    "FAIL — sharing raises consumer prices; the feature dies"),
+        "verdict": verdict,
     }
 
 

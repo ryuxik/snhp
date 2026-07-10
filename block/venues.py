@@ -737,6 +737,14 @@ class FashionVenue:
             units = sum(self.inv.values())
             cost = sum(n * (self.catalog[st].unit_cost - self.catalog[st].salvage)
                        for (st, _sz), n in self.inv.items())
+            # The unsold rack is GONE to the jobber — zero it so a multi-season
+            # run (--days ≥ 99) can never re-sell already-written-down stock
+            # (which would double-book revenue/COGS and drive units_vended past
+            # units_stocked). Post-season fashion arrivals now hit the runner's
+            # stock<=0 stockout path. Within a single season this is a no-op:
+            # the last season day's sales settle in _resolve_fashion BEFORE
+            # end_day runs.
+            self.inv = {cell: 0 for cell in self.inv}
             return {"spoiled_units": units, "spoilage_cost": round(cost, 2)}
         return {"spoiled_units": 0, "spoilage_cost": 0.0}
 

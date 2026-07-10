@@ -15,9 +15,10 @@ import pytest
 
 from block.agentdemand import (block_commit, block_coordinate, block_regime,
                                commodity_stress, run_antagonism,
-                               resolve_shopper_agentic)
+                               resolve_shopper_agentic,
+                               _coordinate_audit_checks, _quote_at_outside)
 from block.runner import run_twin
-from block.venues import BlockConfig
+from block.venues import BlockConfig, VendingVenue
 
 SEED = 20260710
 STREET = ("vending", "bodega")
@@ -184,3 +185,73 @@ def test_commodity_endgame_competes_margin_down_but_not_below_zero():
     assert cs["margin_transfer_day"] < 0                 # margin competed down
     assert cs["bertrand_margin_day"] >= 0                # but not below the floor
     assert cs["bertrand_cs_day"] > cs["passive_cs_day"]  # buyer gains
+
+
+# ── the monopsony audit's check D is a REAL (non-vacuous) gate ────────────────
+
+def test_audit_check_D_is_nonvacuous_and_can_fail():
+    """check D ('over-extraction is self-defeating') must be ABLE to fail. The
+    old `overreach_units_spoiled >= 0` predicate was vacuous (a unit count is
+    always ≥ 0). The corrected predicate keys on participation_fail_frac > 0,
+    which is True only when extraction=1.2 ACTUALLY breaches the salvage floor
+    in every k — and FALSE on a synthetic sweep where it never breached."""
+    ks = (2, 5)
+    base = {"d_coord_minus_indep": {"mean": 0.1},
+            "fair_merchant_margin_min": 1.0,
+            "monopsony_merchant_margin_min": 0.0}
+    self_defeating = {k: {**base, "overreach_participation_fail_frac": 1.0}
+                      for k in ks}
+    assert _coordinate_audit_checks(self_defeating, ks)[
+        "D_overreach_self_defeating"] is True
+    # a NON-self-defeating sweep: k=5's over-extraction never breached (frac 0).
+    # The old vacuous check would have 'passed'; the corrected one FAILS.
+    not_self_defeating = dict(self_defeating)
+    not_self_defeating[5] = {**base, "overreach_participation_fail_frac": 0.0}
+    assert _coordinate_audit_checks(not_self_defeating, ks)[
+        "D_overreach_self_defeating"] is False
+
+
+def test_coordinate_overextraction_actually_breaches_the_floor_on_the_block():
+    """On the block's own sweep, extraction=1.2 breaches participation in EVERY
+    k (fail_frac == 1.0), so the corrected check D genuinely PASSES on merit —
+    not by the old vacuity."""
+    co = block_coordinate(SEED, 600)
+    for k in co["ks"]:
+        assert co["sweep"][k]["overreach_participation_fail_frac"] > 0.0
+    assert co["audit_checks"]["D_overreach_self_defeating"] is True
+    assert co["audit_verdict"] == "PASS"
+
+
+# ── coordinate guards the empty-population (n < k) case (parity with commit) ──
+
+def test_coordinate_handles_population_smaller_than_k():
+    """block_coordinate must not raise when a cluster size k exceeds the
+    population (min() over an empty margin list) — the same guard block_commit
+    uses (`if r1_merch else 0.0`), defaulting the empty-k margin mins to 0.0
+    while the fitting k still reports real margins."""
+    co = block_coordinate(SEED, 40, ks=(2, 100000))
+    assert co["sweep"][100000]["clusters"] == 0            # no cluster fits
+    assert co["sweep"][100000]["fair_merchant_margin_min"] == 0.0
+    assert co["sweep"][100000]["monopsony_merchant_margin_min"] == 0.0
+    assert co["sweep"][2]["clusters"] > 0                  # the real k still works
+
+
+# ── the Bertrand outside-inversion is ASSERTED, not silently assumed ─────────
+
+def test_outside_inversion_holds_and_catches_vend_drift(monkeypatch):
+    """_quote_at_outside inverts vend.scenario.outside_surplus to inject the
+    rival's at-floor threat as the buyer's disagreement. The added assertion
+    verifies the inversion actually landed: it passes on vend's true formula and
+    FIRES if vend's disagreement math ever drifts, so the antagonism numbers
+    can't move silently underneath us."""
+    import vend.scenario as vs
+    V = VendingVenue("snhp", BlockConfig(), SEED)
+    disc = {s: V.catalog[s].list_price * 1.5 for s in V.catalog}  # WTP > list
+    # true formula: the inversion holds, no raise
+    _quote_at_outside(V, disc, 3.0, "vending")
+    # drift vend's disagreement math by a fixed offset -> the assertion fires
+    orig = vs.outside_surplus
+    monkeypatch.setattr(vs, "outside_surplus",
+                        lambda wtp, walk, cat: orig(wtp, walk, cat) + 5.0)
+    with pytest.raises(AssertionError, match="outside inversion drifted"):
+        _quote_at_outside(V, disc, 3.0, "vending")

@@ -101,6 +101,22 @@ def _quote_at_outside(venue, disclosed: dict, x_at_counter: float, kind: str):
         disc = {s: disclosed[s] for s in venue.prices}
     s_believed = _believed_outside_surplus(disc, believed)
     walk = s_believed - max(0.0, x_at_counter)
+    # Verify the inversion actually held. vend prices the buyer toward
+    #   outside = max(0, outside_surplus(disc, walk, catalog))
+    # as the disagreement point (vend.scenario.nash_quote); we chose `walk` so
+    # that equals the threat we inject (x_at_counter). Recompute it through
+    # vend's OWN formula (not our algebra) so a future change to vend's
+    # disagreement math trips here loudly instead of silently drifting the
+    # antagonism numbers. Only checkable when the buyer HAS a positive believed
+    # outside: with none (s_believed==0) vend's outside is 0 regardless of walk
+    # and the injection is a no-op.
+    if s_believed > 1e-12:
+        from vend.scenario import outside_surplus as _vend_outside
+        cat = {s: venue.catalog[s] for s in disc}
+        realized = max(0.0, _vend_outside(disc, walk, cat))
+        assert abs(realized - max(0.0, x_at_counter)) < 1e-9, (
+            f"outside inversion drifted: injected {x_at_counter!r} but vend's "
+            f"disagreement math yields {realized!r}")
     return venue.quote(disc, walk)
 
 
@@ -398,6 +414,27 @@ def block_commit(seed: int, n: int, *, p_spoil: float = 0.40,
 
 # ── COORDINATE + the buyer-side monopsony audit (growth leg + floor) ─────────
 
+def _coordinate_audit_checks(sweep: dict, ks) -> dict:
+    """The pre-registered monopsony-audit predicates over a coordination
+    `sweep` (extracted so a synthetic sweep can exercise them directly).
+
+    D is the load-bearing one: over-extraction (extraction=1.2) prices BELOW
+    the merchant's salvage floor, so the merchant refuses and the unit spoils —
+    it must ACTUALLY breach participation in every k. The old
+    `overreach_units_spoiled >= 0` was vacuous (a unit count is always ≥ 0);
+    `overreach_participation_fail_frac > 0` genuinely verifies the floor bit and
+    can FAIL if over-extraction ever stops being self-defeating."""
+    return {
+        "A_coord_not_below_indep": all(
+            sweep[k]["d_coord_minus_indep"]["mean"] >= -1e-9 for k in ks),
+        "B_participation_floor_holds": all(
+            sweep[k]["fair_merchant_margin_min"] >= -1e-9
+            and sweep[k]["monopsony_merchant_margin_min"] >= -1e-9 for k in ks),
+        "D_overreach_self_defeating": all(
+            sweep[k]["overreach_participation_fail_frac"] > 0.0 for k in ks),
+    }
+
+
 def block_coordinate(seed: int, n: int, *, target: str = "sandwich",
                      p_spoil: float = 0.40, ks=(2, 5, 10, 20),
                      scarcity: float = 0.5) -> dict:
@@ -441,20 +478,12 @@ def block_coordinate(seed: int, n: int, *, target: str = "sandwich",
             "indep_growth_pc": mean_ci(indep_g),
             "coord_fair_growth_pc": mean_ci(fair_g),
             "d_coord_minus_indep": paired_ci([f - i for f, i in zip(fair_g, indep_g)]),
-            "fair_merchant_margin_min": round(min(fair_merch), 6),
-            "monopsony_merchant_margin_min": round(min(mono_merch), 6),
+            "fair_merchant_margin_min": round(min(fair_merch) if fair_merch else 0.0, 6),
+            "monopsony_merchant_margin_min": round(min(mono_merch) if mono_merch else 0.0, 6),
             "overreach_participation_fail_frac": round(over_fail / max(1, clusters), 4),
             "overreach_units_spoiled": over_spoiled,
         }
-    checks = {
-        "A_coord_not_below_indep": all(sweep[k]["d_coord_minus_indep"]["mean"] >= -1e-9
-                                       for k in ks),
-        "B_participation_floor_holds": all(
-            sweep[k]["fair_merchant_margin_min"] >= -1e-9
-            and sweep[k]["monopsony_merchant_margin_min"] >= -1e-9 for k in ks),
-        "D_overreach_self_defeating": all(sweep[k]["overreach_units_spoiled"] >= 0
-                                          for k in ks),
-    }
+    checks = _coordinate_audit_checks(sweep, ks)
     verdict = ("PASS" if all(checks.values()) else "FAIL")
     return {"n": len(pop), "target": target, "p_spoil": p_spoil, "ks": list(ks),
             "sweep": sweep, "audit_checks": checks, "audit_verdict": verdict}

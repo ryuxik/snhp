@@ -356,6 +356,38 @@ def test_boba_queue_conservation_on_the_block(twin3):
         assert b.pearls_cooked % boba_world.BATCH_SERVINGS == 0
 
 
+def test_fashion_multi_season_conservation():
+    """A run PAST the season end (day ≥ 98) must not re-sell the unsold rack
+    that was already written down to the jobber at day 97. After the salvage
+    writedown the boutique zeroes its inventory, so post-season fashion
+    arrivals hit the runner's stockout path and the conservation law
+    units_vended + spoiled_units == units_stocked holds EXACTLY — no unit both
+    salvaged AND sold (the double-book regression). Verified in BOTH worlds
+    (the sticker cliff discounts deepest at season end, so it draws the most
+    post-season buyers)."""
+    days = 105                                   # one 98-day season + a week
+    _res, ledger, worlds = run_twin(days=days, seed=SEED,
+                                    cfg=BlockConfig(regulars=0),
+                                    venues=("fashion",))
+    season_days = FashionVenue.SEASON_WEEKS * 7  # 98
+    for w in ("sticker", "snhp"):
+        fv = worlds[w]["venues"]["fashion"]
+        spoiled = sum(ledger.day_metrics(w, "fashion", d)["spoiled_units"]
+                      for d in range(days))
+        # everything bought is accounted for exactly once — vended or salvaged
+        assert fv.units_vended + spoiled == fv.units_stocked
+        assert fv.units_vended <= fv.units_stocked
+        # the salvaged rack is gone: no phantom post-season sales
+        post_units = sum(ledger.day_metrics(w, "fashion", d)["units"]
+                         for d in range(season_days, days))
+        assert post_units == 0
+        # money conservation stays exact across the whole multi-season run
+        rev_ledger = sum(ledger.day_metrics(w, "fashion", d)["revenue"]
+                         for d in range(days))
+        assert math.isclose(rev_ledger, sum(fv.revenue_by_day.values()),
+                            rel_tol=0, abs_tol=1e-9)
+
+
 def test_boba_shop_hours_on_the_block_clock(twin3):
     """All boba traffic lives inside 10:00–22:00 (block ticks 18..89) —
     fashion's boutique and the street run the full block day around it."""
