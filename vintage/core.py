@@ -38,6 +38,12 @@ def paired_ci(diffs: list[float], block: int = 1, nd: int = 2) -> dict:
         n_blocks = len(d) // block
         d = d[:n_blocks * block].reshape(n_blocks, block).mean(axis=1)
     n = len(d)
+    if n == 0:
+        # v3: realistic (slow) time-on-shelf makes an EMPTY paired cohort a
+        # real case (e.g. "sold in both arms" over a short window) rather
+        # than a theoretical one — fail honestly (None) instead of a NaN
+        # mean that silently breaks equality/serialization downstream.
+        return {"mean": None, "ci95": None, "n": 0}
     mean = float(d.mean())
     if n < 2:
         return {"mean": round(mean, nd), "ci95": None, "n": n}

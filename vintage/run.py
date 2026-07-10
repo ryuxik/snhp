@@ -16,6 +16,14 @@ Post-registration (2026-07-10, CRITICAL-ANALYSIS §4): offer/1 fixed (learned
 shading/huff/fallback, decline action), retag/1 and retag+offer/1 added
 (bidirectional posted retagging). Same seeds; sticker/1 and hazard/1 rows
 reproduce the v1 results exactly.
+
+v3 recalibration (2026-07-10, CALIBRATION-TARGETS.md §2 / #5): CONNECT_PROB
+cut ~53x (fit against sticker/1's 30-day cohort sell-through -> ThredUp
+FY2025 ~50%) and P_HUFF/HUFF_BELIEF moved 0.25 -> 0.58 (Backus et al., QJE
+2020, eBay Best Offer). Same code paths, same seeds, DIFFERENT world — the
+headline dollar figures are NOT comparable to v1/v2 (this world is far less
+liquid by design); see RESULTS.md's "v3 RECALIBRATION" section for the
+sim-vs-evidence read and the re-run arm table.
 """
 from __future__ import annotations
 
@@ -31,13 +39,17 @@ from vintage.policies import ARMS
 from vintage.world import (Browser, Item, PairDraws, VintageConfig,
                            browsers_for_day, items_for_day)
 
-VINTAGE_VERSION = 2   # v2: post-reg fixes A (retag arms) + B (offer/1 fixed)
+VINTAGE_VERSION = 3   # v3: recalibrated to CALIBRATION-TARGETS.md §2 evidence
+                      # (time-on-shelf + eBay Best Offer mechanics); v2's
+                      # post-reg fixes A/B (retag arms, learned shading) carry
+                      # forward unchanged
 
 _COUNT_KEYS = ("sourced_units", "units_sold", "browsers", "connections",
                "sales_ask", "sales_offer", "sales_counter", "offers_made",
                "counters_made", "declines", "huffs", "counter_rejects",
                "fallback_sales", "inventory_eod")
-_CASH_KEYS = ("revenue", "cogs_sold", "sourced_cost", "holding_cost")
+_CASH_KEYS = ("revenue", "cogs_sold", "sourced_cost", "holding_cost",
+              "offer_ratio_sum")
 
 
 # ── one browser's visit ─────────────────────────────────────────────────────
@@ -75,7 +87,7 @@ def visit_offer(browser: Browser, inventory: dict[int, Item], policy,
     counter outcome and every non-huff dead negotiation's continuation."""
     from vintage.engine import counter_response
     flags = {"offer": 0, "counter": 0, "decline": 0, "huff": 0, "reject": 0,
-             "fallback": 0}
+             "fallback": 0, "offer_ratio": 0.0}
     conn = []
     for uid, item in inventory.items():
         connect, wtp, huff_roll = cache.get(browser, item)
@@ -116,6 +128,9 @@ def visit_offer(browser: Browser, inventory: dict[int, Item], policy,
     if offer >= ask:                       # they'd pay the tag: plain sale
         return len(conn), (uid, ask, "ask"), flags
     flags["offer"] = 1
+    flags["offer_ratio"] = offer / ask     # v3 calibration read: Backus
+                                            # et al.'s "first offer ≈ 60.8%
+                                            # of list" is this ratio's mean
     action, price = policy.decide(offer, item)
     if action == "accept":
         return len(conn), (uid, offer, "offer"), flags
@@ -148,7 +163,8 @@ def run_store(policy, cfg: VintageConfig, master_seed: int, days: int,
         for item in items_for_day(master_seed, day, cfg):
             inventory[item.uid] = item
             ledger[item.uid] = {"item": item, "sold_day": None,
-                                "price": None, "channel": None}
+                                "price": None, "channel": None,
+                                "ask_at_sale": None}
             policy.admit(item)
             m["sourced_units"] += 1
             m["sourced_cost"] += item.cost
@@ -159,6 +175,7 @@ def run_store(policy, cfg: VintageConfig, master_seed: int, days: int,
             if policy.uses_offers:
                 n_conn, sale, flags = visit_offer(b, inventory, policy, day, cache)
                 m["offers_made"] += flags["offer"]
+                m["offer_ratio_sum"] += flags["offer_ratio"]
                 m["counters_made"] += flags["counter"]
                 m["declines"] += flags["decline"]
                 m["huffs"] += flags["huff"]
@@ -171,11 +188,14 @@ def run_store(policy, cfg: VintageConfig, master_seed: int, days: int,
                 uid, price, channel = sale
                 item = inventory[uid]
                 # f-hat learns price/ask against the CURRENT tag (for the
-                # retag arms the posted price, not the owner's original)
+                # retag arms the posted price, not the owner's original);
+                # also the "list" reference for the price-to-list read
+                # (Backus et al.: bargained ≈73% of list, unbargained ≈83%)
                 ask_now = policy.price(item, day)
                 del inventory[uid]
                 policy.on_sale(uid, price, len(browsers), ask=ask_now)
-                ledger[uid].update(sold_day=day, price=price, channel=channel)
+                ledger[uid].update(sold_day=day, price=price, channel=channel,
+                                   ask_at_sale=ask_now)
                 m["revenue"] += price
                 m["cogs_sold"] += item.cost
                 m["units_sold"] += 1
@@ -238,6 +258,48 @@ def aggregate(run: dict, days: int) -> dict:
         if r["sold_day"] is not None
         and r["sold_day"] - r["item"].arrival_day <= 14) / len(cohort), 3) \
         if cohort else None
+    # v3 calibration target (CALIBRATION-TARGETS.md §2): ThredUp FY2025 —
+    # ~50% of resale listings sell within 30 days. Same fair-exposure
+    # cohort as share_sold_14d/median_dts (DTS_COHORT_MARGIN=30 IS the
+    # 30-day fair-exposure window).
+    t["share_sold_30d"] = round(sum(
+        1 for r in cohort
+        if r["sold_day"] is not None
+        and r["sold_day"] - r["item"].arrival_day <= 30) / len(cohort), 3) \
+        if cohort else None
+    # v3 offer-mechanics calibration read (Backus et al., QJE 2020, eBay
+    # Best Offer): first-offer ratio, seller response mix, buyer
+    # decline-after-counter, thread deal rate, price-to-list. All derived
+    # from existing counters + the new offer_ratio_sum/ask_at_sale instrumentation;
+    # None (not 0) when the arm makes no offers, so it doesn't get averaged
+    # as a spurious zero.
+    t["first_offer_ratio"] = round(t["offer_ratio_sum"] / t["offers_made"], 3) \
+        if t["offers_made"] else None
+    t["thread_deal_rate"] = round(
+        (t["sales_offer"] + t["sales_counter"]) / t["offers_made"], 3) \
+        if t["offers_made"] else None
+    t["decline_after_counter_rate"] = round(t["huffs"] / t["counters_made"], 3) \
+        if t["counters_made"] else None
+    t["response_accept_rate"] = round(t["sales_offer"] / t["offers_made"], 3) \
+        if t["offers_made"] else None
+    t["response_counter_rate"] = round(t["counters_made"] / t["offers_made"], 3) \
+        if t["offers_made"] else None
+    t["response_decline_rate"] = round(t["declines"] / t["offers_made"], 3) \
+        if t["offers_made"] else None
+    # "list" = the ORIGINAL owner's tag (Backus et al.'s "list price" is set
+    # once at posting and doesn't move under Best Offer negotiation — the
+    # correct analog here is item.tag, NOT ask_at_sale, which for the retag
+    # arms tracks the engine's own repriced board and would make even a
+    # non-negotiated "ask" sale trivially 1.00 by construction).
+    bargained = [r["price"] / r["item"].tag for r in ledger.values()
+                if r["sold_day"] is not None
+                and r["channel"] in ("offer", "counter")]
+    unbargained = [r["price"] / r["item"].tag for r in ledger.values()
+                   if r["sold_day"] is not None and r["channel"] == "ask"]
+    t["price_to_list_bargained"] = round(sum(bargained) / len(bargained), 3) \
+        if bargained else None
+    t["price_to_list_unbargained"] = round(sum(unbargained) / len(unbargained), 3) \
+        if unbargained else None
     classes = {}
     for cls in ("under", "fair", "over"):
         recs = [r for r in ledger.values() if item_class(r["item"]) == cls]
@@ -285,21 +347,31 @@ def run_experiment(arm_names: list[str], days: int, reps: int, seed: int,
             h2_paired.append(_h2_paired_days(ledgers["offer"],
                                              ledgers["sticker"], days))
 
+    # v3: metrics that are None (not 0) for arms/reps with no qualifying
+    # events (no cohort, no offer threads, no negotiated sales) — averaged
+    # over only the reps where they're defined, like share_sold_14d always
+    # was; a rep-count of "how many reps had nothing to report" rides along.
+    _NONE_SAFE = ("share_sold_14d", "share_sold_30d", "first_offer_ratio",
+                  "thread_deal_rate", "decline_after_counter_rate",
+                  "response_accept_rate", "response_counter_rate",
+                  "response_decline_rate", "price_to_list_bargained",
+                  "price_to_list_unbargained")
+
     arms = {}
     for name in arm_names:
         rows = per_rep[name]
         totals = {k: round(sum(r[k] for r in rows) / reps, 2)
                   for k in rows[0]
-                  if k not in ("median_dts", "share_sold_14d", "classes")
+                  if k not in ("median_dts", "classes") and k not in _NONE_SAFE
                   and isinstance(rows[0][k], (int, float))}
         meds = [r["median_dts"] for r in rows]
         known = [m for m in meds if m is not None]
         totals["median_dts"] = round(sum(known) / len(known), 1) if known else None
         totals["median_dts_censored_reps"] = meds.count(None)
-        shares = [r["share_sold_14d"] for r in rows
-                  if r["share_sold_14d"] is not None]
-        totals["share_sold_14d"] = round(sum(shares) / len(shares), 3) \
-            if shares else None
+        for k in _NONE_SAFE:
+            vals = [r[k] for r in rows if r[k] is not None]
+            totals[k] = round(sum(vals) / len(vals), 3) if vals else None
+            totals[f"{k}_n"] = len(vals)
         arms[name] = {"per_rep_means": totals,
                       "classes": {cls: {k: round(sum(
                           r["classes"][cls][k] for r in rows) / reps, 2)
@@ -372,6 +444,12 @@ def run_experiment(arm_names: list[str], days: int, reps: int, seed: int,
                 f"counter tolerance {TOLERANCE} (rational boundary); huff "
                 f"P={P_HUFF}",
                 "replicates are independent stores -> plain t CIs (block=1)",
+                "v3 recalibration (CALIBRATION-TARGETS.md #5): CONNECT_PROB "
+                "cut ~53x to match ThredUp FY2025's ~50% 30-day sell-through "
+                "(median days-to-sale was ~0, now weeks); P_HUFF/HUFF_BELIEF "
+                "moved 0.25 -> 0.58 (Backus et al. QJE 2020, eBay Best "
+                "Offer decline-after-counter); dollar totals are NOT "
+                "comparable to the v1/v2 tables in this file's history",
             ],
         },
         "arms": arms, "paired": paired, "h1": h1, "h2": h2, "decomp": decomp,

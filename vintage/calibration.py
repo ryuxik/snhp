@@ -18,9 +18,23 @@ SIGMA_SOURCE = 0.40        # the sourcing lottery: TRUE market value (appeal) =
 # tags are within one sigma — "some pieces tagged half their value, some double".
 
 # ── demand ──────────────────────────────────────────────────────────────────
+# v3 RECALIBRATION (2026-07-10, CALIBRATION-TARGETS.md §2 / #5): the v1/v2
+# world sold a fairly-tagged item to ~half its connectors THE SAME DAY (3.2
+# connecting browsers/item-day at CONNECT_PROB=0.08 x TRAFFIC_MEAN=40) —
+# median days-to-sale ~0, flatly contradicted by ThredUp FY2025 (~50% sell
+# within 30 days, tail to 90+ days). CONNECT_PROB is the lever: dropped
+# ~53x so a fairly-tagged item's daily sale hazard lands near ln(2)/30 ≈
+# 2.3%/day (fit empirically against the sticker/1 30-day cohort share, see
+# RESULTS.md v3 section) instead of ~90%/day. TRAFFIC_MEAN (real LES foot
+# traffic) and SIGMA_WTP (the "market is right on average" WTP spread) are
+# UNCHANGED — the fix is "browsers connect with far fewer pieces per visit"
+# (an LES vintage rack is browsed, not exhaustively evaluated item-by-item),
+# not "fewer people walk in" or "buyers lowball intrinsically."
 TRAFFIC_MEAN = 40.0        # browsers/day through the door
-CONNECT_PROB = 0.08        # sparse item-buyer match: a browser "connects"
-                           # with ~8% of the rack — the piece speaks to them
+CONNECT_PROB = 0.0015      # sparse item-buyer match: a browser "connects"
+                           # with ~0.15% of the rack per item (v3; was 8%) —
+                           # fit so sticker/1's 30-day cohort sell-through
+                           # lands at ~45-50% (ThredUp target), see RESULTS.md
 SIGMA_WTP = 0.25           # connecting browser's WTP ~ lognormal around the
                            # item's hidden appeal (connection strength)
 SHADING_SPREAD = 0.08      # per-browser haggling style: shading factor =
@@ -29,8 +43,14 @@ SHADING_SPREAD = 0.08      # per-browser haggling style: shading factor =
                            # offer" inference; hagglers differ)
 TOLERANCE = 1.0            # browser accepts a counter iff counter ≤ WTP x this
                            # (1.0 = the rational boundary; kept explicit)
-P_HUFF = 0.25              # haggle friction: P(a countered browser walks out
+# v3: Backus et al. (QJE 2020, eBay Best Offer, 88M listings) measure buyer
+# decline-after-counter at 58% — our old P_HUFF=0.25 was "too low" per
+# CALIBRATION-TARGETS.md §2. Moved to the published figure; HUFF_BELIEF
+# (engine's prior, below) moves with it so the prior keeps "happening to
+# equal the truth" before the data dominate it (the v2 design pattern).
+P_HUFF = 0.58              # haggle friction: P(a countered browser walks out
                            # regardless of price — "they came with a number")
+                           # (v3: Backus et al. QJE 2020, was 0.25)
 
 # ── economics of holding (why dead stock isn't free) ───────────────────────
 DAILY_DISCOUNT = 0.998     # per-day discount on future receipts (capital +
@@ -50,9 +70,10 @@ BELIEF_SIGMA = 0.45        # engine's prior on appeal: lognormal around the
                            # the engine does NOT know the true tag-noise level
 BELIEF_GRID_N = 21         # per-item posterior support (log-spaced grid)
 BELIEF_GRID_Z = 2.5        # grid half-width in units of BELIEF_SIGMA
-HUFF_BELIEF = 0.25         # PRIOR mean on the huff rate (happens to equal the
+HUFF_BELIEF = 0.58         # PRIOR mean on the huff rate (happens to equal the
                            # truth; post-reg FIX B demotes it from a known
                            # constant to a weak Beta prior the data dominate)
+                           # (v3: moves with P_HUFF, Backus et al. QJE 2020)
 
 # ── FIX B (post-registration, CRITICAL-ANALYSIS §4a): the learned counter
 #    round. The old engine BELIEVED shading ~ U[0.75, 0.95] by fiat and knew

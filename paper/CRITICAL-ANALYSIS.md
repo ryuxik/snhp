@@ -94,6 +94,30 @@ error-fixing, and pure retag *hurts* over-tagged stock until the offer arm
 repairs it. No fairness exposure: retags posted, visible, uniform, at most
 weekly, before any offer.
 
+**REVERSAL (2026-07-10, v3 realistic-calibration): retag/1 loses under
+realistic time-on-shelf — the v2 win was a fast-sale artifact.** Recalibrating
+to the real resale hazard (ThredUp ~50% sell-through at 30 days; median
+days-to-sale 26–33 days, not ≈0 — CONNECT_PROB cut ~53×) flips retag/1 from
++$3.7–4.4k to **significantly negative in every cell** (−$268 to −$654);
+the under-tag class Δ goes +2,031/+2,011 → −208/−402. Root cause (isolated by
+diagnostic — NOT a rate-prior mismatch; pinning the true rate barely moves
+it): the PV-repricing solve's DAILY_DISCOUNT/HOLDING_COST were implicitly
+tuned for near-instant sales, so against a hazard ~53× slower it reads a
+normal multi-week gap between browsers as *overpricing* and marks a
+correctly-tagged item down to ~63% of tag by week 8 — almost as fast as
+sticker's crude ritual. **This is the meta-pattern once more: retag's
+objective was measured in a fast-sale world that doesn't exist.** offer/1
+survives (zero significantly-negative cells at the realistic 58% huff rate)
+for the same reason parking's nego survives a wrong forecast (§2): it
+discounts only to the specific browser negotiating, so a bad price is
+declined by one person, whereas retag *broadcasts* the markdown to every
+future visitor and bleeds. **New honest conclusion for the paper: the retag
+recovery does not generalize past a fast-sale regime; the durable vintage
+finding is that bilateral targeting beats broadcast markdown when arrivals
+are slow.** Pre-registered follow-up (not yet run): retune HOLDING_COST/
+DAILY_DISCOUNT to the realistic hazard and re-test whether a slow-aware retag
+solve recovers — if it doesn't, the broadcast-bleed conclusion hardens.
+
 ## 5. Block fashion: full-season tie (−18.85) — METHODOLOGY ARTIFACT, two parts
 
 (a) The 30-day +$396/day was revenue timing (caught before publication;

@@ -291,19 +291,26 @@ def test_shading_learner_updates_from_huffs_censoring_aware():
 
 def test_counter_aggression_monotone_in_learned_huff_risk():
     """The pre-registered behavior: counter LESS where huff-cost x
-    walk-probability is high. With the fallback value F̂ held fixed, rising
-    huff evidence flips the below-floor response from counter to DECLINE —
-    monotonically, no flip-flops — and an above-floor offer that a fresh
-    engine would counter gets ACCEPTED instead."""
-    def learner(n_huffs):
+    walk-probability is high. (v3: HUFF_BELIEF moved to 0.58 — Backus et al.
+    QJE 2020 — so the PRIOR alone already prices in real huff risk; a fresh
+    engine starts cautious rather than learning caution the hard way.) With
+    the fallback value F̂ held fixed, rising huff evidence flips the
+    below-floor response from counter to DECLINE — monotonically, no
+    flip-flops. Above the floor, the fresh/prior-only engine now takes the
+    bird in hand (accept) by default — countering a modest offer isn't
+    worth a 58%-likely walkout — and only dares to hold out for a counter
+    once it LEARNS the population is more forgiving than the prior assumes
+    (a run of accepted counters lowers the believed huff rate); that flip
+    is monotone too."""
+    def learner_huffs(n_huffs):
         L = ShadingLearner()
         for _ in range(40):
-            L.observe_continuation(3.0)           # F-hat ~ 2.7 > 0
+            L.observe_continuation(0.5)           # a small but real fallback
         for _ in range(n_huffs):
             L.observe_counter(70.0, 95.0, "huff")
         return L
 
-    acts = [decide_offer(50.0, 100.0, 100.0, 60.0, learner(n))[0]
+    acts = [decide_offer(50.0, 100.0, 100.0, 60.0, learner_huffs(n))[0]
             for n in (0, 1, 2, 3, 5, 10, 20, 40, 80)]
     assert acts[0] == "counter"                   # prior huff risk: haggle
     assert acts[-1] == "decline"                  # learned huff risk: don't
@@ -314,9 +321,31 @@ def test_counter_aggression_monotone_in_learned_huff_risk():
             flipped = True
         else:
             assert not flipped                    # monotone: no un-flip
-    # above the floor the same pressure resolves to taking the bird in hand
-    assert decide_offer(70.0, 100.0, 100.0, 60.0, learner(0))[0] == "counter"
-    assert decide_offer(70.0, 100.0, 100.0, 60.0, learner(40))[0] == "accept"
+
+    def learner_accepts(n_accepts):
+        L = ShadingLearner()
+        for _ in range(40):
+            L.observe_continuation(0.5)
+        for _ in range(n_accepts):
+            L.observe_counter(70.0, 90.0, "accept")   # low huff, high stick
+        return L
+
+    # above the floor: the realistic PRIOR alone resolves to bird-in-hand...
+    assert decide_offer(70.0, 100.0, 100.0, 60.0, learner_accepts(0))[0] \
+        == "accept"
+    # ...and only flips to holding out for a counter once the engine has
+    # learned this population huffs far less than the 58% prior assumes,
+    # monotonically (no un-flip back to accept).
+    acts2 = [decide_offer(70.0, 100.0, 100.0, 60.0, learner_accepts(n))[0]
+             for n in (0, 1, 2, 3, 5, 10, 20, 40, 80)]
+    assert acts2[0] == "accept" and acts2[-1] == "counter"
+    flipped2 = False
+    for a in acts2:
+        assert a in ("accept", "counter")
+        if a == "counter":
+            flipped2 = True
+        else:
+            assert not flipped2                   # monotone: no un-flip
 
 
 def test_decline_keeps_the_browser_no_huff():
@@ -401,3 +430,57 @@ def test_uids_are_distinct_and_stable():
     uids = [i.uid for i in a]
     assert len(uids) == len(set(uids))
     assert uids[0] == substream(11, "iuid", 0, 0)
+
+
+# ── v3 recalibration (CALIBRATION-TARGETS.md §2 / #5) ─────────────────────
+# One shared 60-day, 4-rep run at a real grid cell (sigma_tag=0.3,
+# shading=0.75) backs all three targets below — one ~8s run instead of
+# three. sticker/1's time-on-shelf and offer/1's negotiation-thread stats
+# are read off the SAME store-life (paired seeds), matching how the full
+# arm-table grid is actually run.
+@pytest.fixture(scope="module")
+def _v3_calibration_run():
+    return run_experiment(["sticker", "offer"], days=60, reps=4, seed=20260710,
+                          cfg=VintageConfig(sigma_tag=0.3, shading=0.75))
+
+
+def test_v3_thirty_day_sellthrough_matches_thredup(_v3_calibration_run):
+    """ThredUp FY2025 (10-K): ~50% of resale listings sell within 30 days.
+    The pre-v3 world sold a fairly-tagged item to ~half its connectors THE
+    SAME DAY (median days-to-sale ~0) — flatly contradicted. CONNECT_PROB
+    was cut ~53x (calibration.py) to fit sticker/1's 30-day fair-exposure
+    cohort share into this band."""
+    share = _v3_calibration_run["arms"]["sticker"]["per_rep_means"]["share_sold_30d"]
+    assert share is not None
+    assert 0.40 <= share <= 0.60
+
+
+def test_v3_first_offer_ratio_near_ebay_evidence(_v3_calibration_run):
+    """Backus et al. (QJE 2020, 88M eBay Best Offer listings): the average
+    first offer is ≈60.8% of list. Not forced to an exact match (shading is
+    a swept EXPERIMENT variable, {0.75, 0.9}, not a free calibration knob —
+    see RESULTS.md) but the emergent ratio (offer/ask over every below-ask
+    thread, selection and all) should land in the neighborhood."""
+    ratio = _v3_calibration_run["arms"]["offer"]["per_rep_means"]["first_offer_ratio"]
+    assert ratio is not None
+    assert 0.45 <= ratio <= 0.80
+
+
+def test_v3_post_counter_decline_near_ebay_evidence(_v3_calibration_run):
+    """Backus et al.: buyers decline (walk from) 58% of seller counters —
+    P_HUFF moved from 0.25 (labeled "too low" in CALIBRATION-TARGETS.md §2)
+    to 0.58. This should land close to the parameter almost by construction
+    (the huff roll is independent of the engine's counter strategy), so the
+    band is tight."""
+    rate = _v3_calibration_run["arms"]["offer"]["per_rep_means"]["decline_after_counter_rate"]
+    assert rate is not None
+    assert 0.45 <= rate <= 0.70
+
+
+def test_v3_paired_ci_handles_empty_diffs():
+    """core.paired_ci must not NaN out on an empty paired cohort — a real
+    possibility now that sales are realistically rare over short windows
+    (this broke test_experiment_is_deterministic under v3 until fixed)."""
+    from vintage.core import paired_ci
+    result = paired_ci([])
+    assert result == {"mean": None, "ci95": None, "n": 0}
