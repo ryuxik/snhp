@@ -119,3 +119,190 @@ higher — it does not chase sell-through for its own sake.
   adaptive arm.
 * Consumer surplus is booked at purchase-week WTP (staleness applied), and
   a shopper's outside option is simply not buying — no competing retailer.
+
+## Returns (CALIBRATION-TARGETS #6: NRF 2024 — 16.9% retail, ~26% online apparel)
+
+*Same 40 seasons/cell, seed 20260710, paired seeds — plus a THIRD dimension,
+return rate r ∈ {0 (P0 repro), 0.17, 0.26}, swept across the full
+pre-registered 9-cell buy×cal×waiter grid. Reproduce:*
+`python3 -m fashion.run --seasons 40 --seed 20260710 --arms cliff,markdown --returns-grid --out fashion/results.json`.
+
+**Mechanism.** A sale at price p returns with probability r after a lag
+drawn Uniform{7..21} days → `max(1, round(days/7))` ∈ {1, 2, 3} weeks
+(documented, world.py `sample_return`). It is refunded at the **PAID**
+price and re-enters sellable stock at *that week's* price if a selling week
+remains, else it salvages. The return draw is keyed on the shopper's
+**identity** (uid), never on price or arm, so a shopper who buys in both
+arms draws the identical return flag + lag — only the refund price and the
+resale week differ across arms, isolating the timing mechanism cleanly.
+r=0 reproduces the pre-returns grid byte-for-byte (verified: `results.json`
+control-cell Δ at r=0 is identical to the pre-returns table above, 1,666.18
+[1,382, 1,950]).
+
+### Headline: does markdown-beats-cliff survive returns?
+
+**Yes — in every one of the 9 cells at both return rates, and the edge
+GROWS with r rather than shrinking.** No CI touches zero anywhere in the
+27 (cell × r) combinations.
+
+| cell (σ_buy / σ_cal / waiters) | Δ% r=0 | Δ% r=0.17 | Δ% r=0.26 | DiD: edge growth @ r=0.26 vs r=0 (95% CI) |
+|---|---:|---:|---:|---|
+| control (0 / 0 / 0) | +16.3 | +43.1 | +60.9 | +1,998 [1,792, 2,205] |
+| 0.15 / 0.0 / 15% | +14.4 | +34.2 | +47.7 | +1,572 [1,386, 1,759] |
+| 0.15 / 0.0 / 45% | +9.8 | +22.2 | +30.0 | +1,039 [901, 1,177] |
+| 0.15 / 0.2 / 15% | +20.1 | +37.9 | +52.0 | +849 [575, 1,123] |
+| 0.15 / 0.2 / 45% | +9.4 | +18.5 | +25.2 | +555 [351, 759] |
+| 0.35 / 0.0 / 15% | +16.2 | +35.5 | +47.5 | +1,280 [1,058, 1,501] |
+| 0.35 / 0.0 / 45% | +10.5 | +22.7 | +29.7 | +880 [728, 1,032] |
+| 0.35 / 0.2 / 15% | +21.4 | +38.8 | +51.8 | +645 [382, 907] |
+| 0.35 / 0.2 / 45% | +10.2 | +19.1 | +25.1 | +430 [230, 631] |
+
+The "DiD" column is a paired difference-in-differences: `(markdown−cliff
+edge at r) − (markdown−cliff edge at r=0)`, computed per season (same buy +
+shopper stream at every r, since `build_catalog`/`planned_depth` don't
+depend on `return_rate`) then given a plain paired t-CI. Every cell's CI at
+r=0.26 is strictly positive — the edge growth is not a fluke of the control
+cell. r=0's own margin-Δ CIs are in the pre-returns table at the top of
+this file; the raw (not DiD) margin-Δ 95% CIs at the two return rates,
+same paired-t construction, for the record:
+
+| cell | Δ mean, CI95 @ r=0.17 | Δ mean, CI95 @ r=0.26 |
+|---|---|---|
+| control | 3,211 [2,969, 3,454] | 3,664 [3,400, 3,929] |
+| 0.15 / 0.0 / 15% | 2,617 [2,379, 2,854] | 3,024 [2,787, 3,261] |
+| 0.15 / 0.0 / 45% | 1,732 [1,552, 1,911] | 2,002 [1,803, 2,201] |
+| 0.15 / 0.2 / 15% | 2,358 [1,865, 2,851] | 2,577 [2,140, 3,014] |
+| 0.15 / 0.2 / 45% | 1,220 [877, 1,563] | 1,370 [1,052, 1,688] |
+| 0.35 / 0.0 / 15% | 2,525 [2,270, 2,781] | 2,805 [2,561, 3,050] |
+| 0.35 / 0.0 / 45% | 1,664 [1,460, 1,868] | 1,852 [1,628, 2,076] |
+| 0.35 / 0.2 / 15% | 2,206 [1,767, 2,646] | 2,339 [1,943, 2,735] |
+| 0.35 / 0.2 / 45% | 1,159 [851, 1,467] | 1,251 [951, 1,552] |
+
+All 18 (cell × r) CIs are strictly above zero — no win claim in this
+section rests on a CI that touches zero.
+
+### The mechanism, confirmed: returns hit the cliff harder because the cliff overholds full price
+
+Control cell, per-season means:
+
+| r | cliff GM | cliff Δ vs r=0 | markdown GM | markdown Δ vs r=0 | cliff returns | markdown returns |
+|---|---:|---:|---:|---:|---:|---:|
+| 0.00 | 10,221 | — | 11,887 | — | 0.0 | 0.0 |
+| 0.17 | 7,443 | −27.2% | 10,654 | −10.4% | 36.9 | 44.3 |
+| 0.26 | 6,020 | **−41.1%** | 9,684 | **−18.5%** | 56.4 | 73.5 |
+
+cliff/1 loses margin roughly **2.2× faster (relative)** than markdown/1 as
+returns rise from 0 to 26%, even though markdown/1 actually logs *more*
+raw return events (73.5 vs 56.4/season) — markdown sells more units overall
+(no MSRP-holding stalls) so it has more transactions exposed to the same
+per-transaction return draw. What matters is the refund-vs-resale **price
+gap**, not the return count:
+
+* cliff/1 holds MSRP for 8 of 16 weeks and sells ~100 units/season at full
+  price (`units_full`, from the pre-returns table). A full-price sale that
+  returns during weeks 9+ is refunded at MSRP but the unit re-shelves into
+  a −30/−50/−70% week — a large, near-certain loss on every such return.
+  `units_deep` (−70%-and-below units) for cliff climbs 23.6 → 32.2 → 35.1
+  as r rises, precisely because returned full-price stock keeps cascading
+  into deep clearance.
+* markdown/1 essentially never sells at full price (`units_full` ≈ 0 in
+  every P0 cell — its earlier-shallower-markdown strategy means paid
+  prices already track close to what the unit will fetch on any resale).
+  Its `units_deep` also grows with r (2.6 → 10.5 → 20.6) but from a far
+  smaller base and a much smaller paid-vs-resale gap per event.
+
+This is exactly the pre-registered hypothesis — "an item sold full-price
+and returned during clearance re-sells at clearance, so early-season
+overselling is penalized" — except the effect is **asymmetric across
+arms**, not merely present: it penalizes the policy that overholds full
+price (the cliff, by calendar construction) far more than the one that
+doesn't. Returns turn out to be a second, independent argument for
+markdown/1 beyond the original timing story, not a threat to it.
+
+### H-F3 (waiters) under returns
+
+**15% waiter share: the original H-F3 direction is robust to returns.**
+Cliff-arm waiters keep capturing significantly more surplus than
+markdown-arm waiters at every r (CI excludes zero in all 4 fifteen-percent
+cells, all 3 return rates) — e.g. `buy0.15_cal0_wait0.15`: cs_waiter Δ
+(markdown − cliff) −338 [−412, −264] at r=0, shrinking to −213 [−268,
+−158] at r=0.26. Direction holds, magnitude shrinks (returns give waiters
+in the markdown arm a bit of the "free option" back, since a
+returned-then-resold unit sometimes lands at a price they'd have waited
+for anyway).
+
+**45% waiter share: still the noisy washout zone documented in surprise
+#3, and two of four cells drift to a significant sign flip at higher r —
+flagged, not claimed as a finding.** `buy0.15_cal0_wait0.45` goes from
+insignificant (Δ −17 [−104, 70]) at r=0 to significantly *positive* (Δ
++111 [33, 189]) at r=0.26 — a real reversal, not noise, at the highest
+return rate only. `buy0.35_cal0_wait0.45` was ALREADY borderline-positive
+at r=0 (Δ +104 [−4, 211], CI just touching zero — this cell was the one
+partial exception noted in the pre-returns surprise #3) and returns push
+it to clearly significant positive at both r=0.17 (Δ +143 [37, 248]) and
+r=0.26 (Δ +251 [156, 346]). The other two 45%-waiter cells
+(`buy0.15_cal0.2_wait0.45`, `buy0.35_cal0.2_wait0.45`) stay negative or
+insignificant throughout. Net read: returns do NOT reverse H-F3 at 15%
+waiters (robust); at 45% waiters, where the pre-returns result was already
+inconsistent across cells, returns push 2 of 4 cells toward a "waiters do
+better under markdown" reversal — plausibly because more returns mean more
+mid-season restocks landing at markdown's already-discounted prices,
+which is exactly what a waiter wants, while the cliff's calendar can't
+offer an equivalent early discount. This is a real, cell-level signal
+(the CIs are genuinely tight), but calling it a season-level headline
+would need a dedicated waiter-share × return-rate grid (finer than
+{15%, 45%}) before it's pre-registered as a claim.
+
+### Scope: the consumer model cannot express strategic price-protection returns
+
+The return draw in `sample_return` is **exogenous and price-independent**
+— it fires off shopper identity alone ("changed my mind / didn't fit"),
+never off the price the shopper paid or the price path they observe. It
+therefore does **not** model the behavior CALIBRATION-TARGETS' waiter
+section gestures at — a shopper who buys early, watches the price drop,
+and returns-and-rebuys (or simply returns) purely to capture the lower
+price ("buy-early-return-if-cheaper" strategic behavior, sometimes called
+price-protection returns in retail). Building that would require making
+the return decision endogenous to the price trajectory (e.g., return iff
+current price < paid price − hassle cost) and is out of scope for #6 — it
+is a natural P1 extension that would sit on top of the existing waiter
+machinery (`waiter_buys_now`) rather than replace it, and would likely
+*shrink* the markdown edge somewhat (it gives strategic shoppers a second
+lever against the engine's price cuts, symmetric to how waiting already
+does). Flagging rather than estimating: no number is claimed for this
+un-modeled mechanism.
+
+### Caveats (attack here)
+
+* **`return_rate_realized`, `sell_through`, `units_full`/`units_deep` are
+  all GROSS metrics under returns** — a physical unit that sells, returns,
+  and resells is counted (and independently return-eligible) at every leg
+  of that chain. `sell_through` exceeding 100% (markdown hits 129% at
+  r=0.26 in the control cell) is resells, not an accounting error; net
+  units kept by customers = `units_sold − returns`, which the
+  refund-conservation identity (tested) ties to `salvage_units`.
+* **Returns are frictionless for the consumer** in this model: a returned
+  purchase nets the shopper ~$0 surplus (refund reverses exactly what they
+  paid), with no modeled hassle cost, shipping cost, or time cost of
+  returning. Real returns carry friction on both sides (NRF's shrink/
+  processing-cost literature is a separate line item this sim doesn't
+  touch) — this likely makes returns slightly too easy/frequent relative
+  to a friction-priced reality, which if anything means the leakage
+  documented above is an upper bound.
+* **The lag window (Uniform 7–21 days) is a labeled assumption**, not a
+  fitted hazard — CALIBRATION-TARGETS §2 gives a return-RATE source (NRF
+  2024) but no published lag-distribution shape for fashion apparel
+  specifically. A front-loaded (e.g. geometric/exponential) hazard would
+  pull returns earlier in the season and *reduce* the cliff-vs-markdown
+  gap studied above (less time for a full-price sale to land deep in
+  clearance); a back-loaded one would widen it. Uniform is the neutral
+  choice absent evidence either way.
+* **No channel split.** NRF's 26% figure is online apparel specifically;
+  this sim has no store/e-comm channel mix, so the r=0.26 cells should be
+  read as "if this catalog's ENTIRE season behaved like online apparel,"
+  not a blended estimate for a store with both channels.
+* **Cascading returns are possible but rare by construction**: a
+  returned-then-resold unit can itself be returned again (each sale draws
+  independently on the buying shopper's uid), bounded by the ~16-week
+  season and 1–3-week lag — the model doesn't cap this explicitly, it
+  just runs out of season.

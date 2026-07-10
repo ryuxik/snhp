@@ -6,32 +6,23 @@
   "cliff",
   "markdown"
  ],
+ "return_grid": [
+  0.0,
+  0.17,
+  0.26
+ ],
  "cells": {
   "control_perfect": {
-   "world": {
+   "world_base": {
     "sigma_buy": 0.0,
     "sigma_cal": 0.0,
     "waiter_share": 0.0
    },
-   "gross_margin": {
-    "cliff": 10220.69,
-    "markdown": 11886.87
-   },
-   "sell_through": {
-    "cliff": 89.9,
-    "markdown": 99.64
-   },
-   "units_deep": {
-    "cliff": 23.57,
-    "markdown": 2.6
-   },
-   "cs_waiter": {
-    "cliff": 0.0,
-    "markdown": 0.0
-   },
-   "paired": {
-    "markdown_vs_cliff": {
-     "gross_margin": {
+   "by_r": {
+    "0": {
+     "cliff_gm": 10220.69,
+     "markdown_gm": 11886.87,
+     "delta": {
       "mean": 1666.18,
       "ci95": [
        1382.13,
@@ -40,25 +31,25 @@
       "n": 40,
       "block": 1
      },
-     "revenue": {
-      "mean": 1854.45,
-      "ci95": [
-       1557.52,
-       2151.37
-      ],
-      "n": 40,
-      "block": 1
+     "delta_pct": 16.3,
+     "survives": true,
+     "sell_through": {
+      "cliff": 89.9,
+      "markdown": 99.64
      },
-     "consumer_surplus": {
-      "mean": 1881.26,
-      "ci95": [
-       1740.73,
-       2021.79
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 0.0,
+      "markdown": 0.0
      },
-     "cs_waiter": {
+     "returns": {
+      "cliff": 0.0,
+      "markdown": 0.0
+     },
+     "units_deep": {
+      "cliff": 23.57,
+      "markdown": 2.6
+     },
+     "cs_waiter_delta": {
       "mean": 0.0,
       "ci95": [
        0.0,
@@ -66,71 +57,121 @@
       ],
       "n": 40,
       "block": 1
+     }
+    },
+    "0.17": {
+     "cliff_gm": 7442.48,
+     "markdown_gm": 10653.54,
+     "delta": {
+      "mean": 3211.06,
+      "ci95": [
+       2968.52,
+       3453.6
+      ],
+      "n": 40,
+      "block": 1
      },
+     "delta_pct": 43.1,
+     "survives": true,
      "sell_through": {
-      "mean": 9.74,
-      "ci95": [
-       8.66,
-       10.82
-      ],
-      "n": 40,
-      "block": 1
+      "cliff": 95.86,
+      "markdown": 118.01
      },
-     "units_full": {
-      "mean": -100.33,
-      "ci95": [
-       -103.29,
-       -97.36
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 17.48,
+      "markdown": 17.02
+     },
+     "returns": {
+      "cliff": 36.92,
+      "markdown": 44.3
      },
      "units_deep": {
-      "mean": -20.98,
+      "cliff": 32.25,
+      "markdown": 10.53
+     },
+     "cs_waiter_delta": {
+      "mean": 0.0,
       "ci95": [
-       -22.45,
-       -19.5
+       0.0,
+       0.0
+      ],
+      "n": 40,
+      "block": 1
+     }
+    },
+    "0.26": {
+     "cliff_gm": 6020.13,
+     "markdown_gm": 9684.44,
+     "delta": {
+      "mean": 3664.31,
+      "ci95": [
+       3399.53,
+       3929.1
       ],
       "n": 40,
       "block": 1
      },
-     "salvage_units": {
-      "mean": -21.43,
+     "delta_pct": 60.9,
+     "survives": true,
+     "sell_through": {
+      "cliff": 97.9,
+      "markdown": 129.03
+     },
+     "return_rate_realized": {
+      "cliff": 26.15,
+      "markdown": 25.83
+     },
+     "returns": {
+      "cliff": 56.35,
+      "markdown": 73.5
+     },
+     "units_deep": {
+      "cliff": 35.1,
+      "markdown": 20.6
+     },
+     "cs_waiter_delta": {
+      "mean": 0.0,
       "ci95": [
-       -23.8,
-       -19.05
+       0.0,
+       0.0
       ],
       "n": 40,
       "block": 1
      }
     }
+   },
+   "edge_did": {
+    "0.17": {
+     "mean": 1544.88,
+     "ci95": [
+      1383.08,
+      1706.68
+     ],
+     "n": 40,
+     "block": 1
+    },
+    "0.26": {
+     "mean": 1998.14,
+     "ci95": [
+      1791.56,
+      2204.72
+     ],
+     "n": 40,
+     "block": 1
+    }
    }
   },
   "buy0.15_cal0_wait0.15": {
-   "world": {
+   "world_base": {
     "sigma_buy": 0.15,
     "sigma_cal": 0.0,
     "waiter_share": 0.15
    },
-   "gross_margin": {
-    "cliff": 10094.41,
-    "markdown": 11545.89
-   },
-   "sell_through": {
-    "cliff": 95.68,
-    "markdown": 99.8
-   },
-   "units_deep": {
-    "cliff": 30.25,
-    "markdown": 4.28
-   },
-   "cs_waiter": {
-    "cliff": 1627.98,
-    "markdown": 1290.19
-   },
-   "paired": {
-    "markdown_vs_cliff": {
-     "gross_margin": {
+   "by_r": {
+    "0": {
+     "cliff_gm": 10094.41,
+     "markdown_gm": 11545.89,
+     "delta": {
       "mean": 1451.48,
       "ci95": [
        1192.52,
@@ -139,25 +180,25 @@
       "n": 40,
       "block": 1
      },
-     "revenue": {
-      "mean": 1535.09,
-      "ci95": [
-       1263.8,
-       1806.38
-      ],
-      "n": 40,
-      "block": 1
+     "delta_pct": 14.4,
+     "survives": true,
+     "sell_through": {
+      "cliff": 95.68,
+      "markdown": 99.8
      },
-     "consumer_surplus": {
-      "mean": 1893.85,
-      "ci95": [
-       1722.24,
-       2065.46
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 0.0,
+      "markdown": 0.0
      },
-     "cs_waiter": {
+     "returns": {
+      "cliff": 0.0,
+      "markdown": 0.0
+     },
+     "units_deep": {
+      "cliff": 30.25,
+      "markdown": 4.28
+     },
+     "cs_waiter_delta": {
       "mean": -337.79,
       "ci95": [
        -411.87,
@@ -165,71 +206,121 @@
       ],
       "n": 40,
       "block": 1
+     }
+    },
+    "0.17": {
+     "cliff_gm": 7658.78,
+     "markdown_gm": 10275.52,
+     "delta": {
+      "mean": 2616.74,
+      "ci95": [
+       2379.45,
+       2854.04
+      ],
+      "n": 40,
+      "block": 1
      },
+     "delta_pct": 34.2,
+     "survives": true,
      "sell_through": {
-      "mean": 4.12,
-      "ci95": [
-       3.34,
-       4.91
-      ],
-      "n": 40,
-      "block": 1
+      "cliff": 106.21,
+      "markdown": 118.11
      },
-     "units_full": {
-      "mean": -89.45,
-      "ci95": [
-       -92.28,
-       -86.62
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 17.21,
+      "markdown": 16.84
+     },
+     "returns": {
+      "cliff": 40.2,
+      "markdown": 43.83
      },
      "units_deep": {
-      "mean": -25.98,
+      "cliff": 46.95,
+      "markdown": 14.45
+     },
+     "cs_waiter_delta": {
+      "mean": -268.05,
       "ci95": [
-       -28.51,
-       -23.44
+       -327.52,
+       -208.58
+      ],
+      "n": 40,
+      "block": 1
+     }
+    },
+    "0.26": {
+     "cliff_gm": 6335.26,
+     "markdown_gm": 9359.05,
+     "delta": {
+      "mean": 3023.79,
+      "ci95": [
+       2786.52,
+       3261.06
       ],
       "n": 40,
       "block": 1
      },
-     "salvage_units": {
-      "mean": -9.1,
+     "delta_pct": 47.7,
+     "survives": true,
+     "sell_through": {
+      "cliff": 110.45,
+      "markdown": 129.52
+     },
+     "return_rate_realized": {
+      "cliff": 25.92,
+      "markdown": 25.69
+     },
+     "returns": {
+      "cliff": 62.9,
+      "markdown": 73.3
+     },
+     "units_deep": {
+      "cliff": 54.3,
+      "markdown": 24.85
+     },
+     "cs_waiter_delta": {
+      "mean": -212.95,
       "ci95": [
-       -10.87,
-       -7.33
+       -267.81,
+       -158.09
       ],
       "n": 40,
       "block": 1
      }
     }
+   },
+   "edge_did": {
+    "0.17": {
+     "mean": 1165.27,
+     "ci95": [
+      1027.2,
+      1303.34
+     ],
+     "n": 40,
+     "block": 1
+    },
+    "0.26": {
+     "mean": 1572.31,
+     "ci95": [
+      1386.06,
+      1758.57
+     ],
+     "n": 40,
+     "block": 1
+    }
    }
   },
   "buy0.15_cal0_wait0.45": {
-   "world": {
+   "world_base": {
     "sigma_buy": 0.15,
     "sigma_cal": 0.0,
     "waiter_share": 0.45
    },
-   "gross_margin": {
-    "cliff": 9815.77,
-    "markdown": 10779.02
-   },
-   "sell_through": {
-    "cliff": 99.56,
-    "markdown": 99.95
-   },
-   "units_deep": {
-    "cliff": 22.27,
-    "markdown": 7.15
-   },
-   "cs_waiter": {
-    "cliff": 4044.13,
-    "markdown": 4027.42
-   },
-   "paired": {
-    "markdown_vs_cliff": {
-     "gross_margin": {
+   "by_r": {
+    "0": {
+     "cliff_gm": 9815.77,
+     "markdown_gm": 10779.02,
+     "delta": {
       "mean": 963.25,
       "ci95": [
        763.92,
@@ -238,25 +329,25 @@
       "n": 40,
       "block": 1
      },
-     "revenue": {
-      "mean": 970.13,
-      "ci95": [
-       769.1,
-       1171.15
-      ],
-      "n": 40,
-      "block": 1
+     "delta_pct": 9.8,
+     "survives": true,
+     "sell_through": {
+      "cliff": 99.56,
+      "markdown": 99.95
      },
-     "consumer_surplus": {
-      "mean": 2072.27,
-      "ci95": [
-       1926.88,
-       2217.66
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 0.0,
+      "markdown": 0.0
      },
-     "cs_waiter": {
+     "returns": {
+      "cliff": 0.0,
+      "markdown": 0.0
+     },
+     "units_deep": {
+      "cliff": 22.27,
+      "markdown": 7.15
+     },
+     "cs_waiter_delta": {
       "mean": -16.71,
       "ci95": [
        -103.91,
@@ -264,71 +355,121 @@
       ],
       "n": 40,
       "block": 1
+     }
+    },
+    "0.17": {
+     "cliff_gm": 7804.75,
+     "markdown_gm": 9536.26,
+     "delta": {
+      "mean": 1731.5,
+      "ci95": [
+       1551.8,
+       1911.2
+      ],
+      "n": 40,
+      "block": 1
      },
+     "delta_pct": 22.2,
+     "survives": true,
      "sell_through": {
-      "mean": 0.4,
-      "ci95": [
-       0.22,
-       0.58
-      ],
-      "n": 40,
-      "block": 1
+      "cliff": 114.92,
+      "markdown": 118.7
      },
-     "units_full": {
-      "mean": -72.12,
-      "ci95": [
-       -74.39,
-       -69.86
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 16.84,
+      "markdown": 17.0
+     },
+     "returns": {
+      "cliff": 42.58,
+      "markdown": 44.45
      },
      "units_deep": {
-      "mean": -15.12,
+      "cliff": 46.08,
+      "markdown": 18.4
+     },
+     "cs_waiter_delta": {
+      "mean": -13.8,
       "ci95": [
-       -18.89,
-       -11.36
+       -95.96,
+       68.36
+      ],
+      "n": 40,
+      "block": 1
+     }
+    },
+    "0.26": {
+     "cliff_gm": 6682.96,
+     "markdown_gm": 8685.25,
+     "delta": {
+      "mean": 2002.29,
+      "ci95": [
+       1803.45,
+       2201.12
       ],
       "n": 40,
       "block": 1
      },
-     "salvage_units": {
-      "mean": -0.88,
+     "delta_pct": 30.0,
+     "survives": true,
+     "sell_through": {
+      "cliff": 122.83,
+      "markdown": 130.56
+     },
+     "return_rate_realized": {
+      "cliff": 25.63,
+      "markdown": 25.8
+     },
+     "returns": {
+      "cliff": 69.22,
+      "markdown": 74.17
+     },
+     "units_deep": {
+      "cliff": 59.48,
+      "markdown": 32.55
+     },
+     "cs_waiter_delta": {
+      "mean": 111.01,
       "ci95": [
-       -1.28,
-       -0.47
+       33.22,
+       188.8
       ],
       "n": 40,
       "block": 1
      }
     }
+   },
+   "edge_did": {
+    "0.17": {
+     "mean": 768.25,
+     "ci95": [
+      652.73,
+      883.77
+     ],
+     "n": 40,
+     "block": 1
+    },
+    "0.26": {
+     "mean": 1039.03,
+     "ci95": [
+      901.22,
+      1176.85
+     ],
+     "n": 40,
+     "block": 1
+    }
    }
   },
   "buy0.15_cal0.2_wait0.15": {
-   "world": {
+   "world_base": {
     "sigma_buy": 0.15,
     "sigma_cal": 0.2,
     "waiter_share": 0.15
    },
-   "gross_margin": {
-    "cliff": 8583.51,
-    "markdown": 10311.39
-   },
-   "sell_through": {
-    "cliff": 87.55,
-    "markdown": 94.96
-   },
-   "units_deep": {
-    "cliff": 36.62,
-    "markdown": 7.05
-   },
-   "cs_waiter": {
-    "cliff": 1603.01,
-    "markdown": 1322.32
-   },
-   "paired": {
-    "markdown_vs_cliff": {
-     "gross_margin": {
+   "by_r": {
+    "0": {
+     "cliff_gm": 8583.51,
+     "markdown_gm": 10311.39,
+     "delta": {
       "mean": 1727.88,
       "ci95": [
        1158.66,
@@ -337,25 +478,25 @@
       "n": 40,
       "block": 1
      },
-     "revenue": {
-      "mean": 1905.23,
-      "ci95": [
-       1297.24,
-       2513.23
-      ],
-      "n": 40,
-      "block": 1
+     "delta_pct": 20.1,
+     "survives": true,
+     "sell_through": {
+      "cliff": 87.55,
+      "markdown": 94.96
      },
-     "consumer_surplus": {
-      "mean": 2203.5,
-      "ci95": [
-       1969.0,
-       2438.0
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 0.0,
+      "markdown": 0.0
      },
-     "cs_waiter": {
+     "returns": {
+      "cliff": 0.0,
+      "markdown": 0.0
+     },
+     "units_deep": {
+      "cliff": 36.62,
+      "markdown": 7.05
+     },
+     "cs_waiter_delta": {
       "mean": -280.69,
       "ci95": [
        -353.37,
@@ -363,71 +504,121 @@
       ],
       "n": 40,
       "block": 1
+     }
+    },
+    "0.17": {
+     "cliff_gm": 6216.09,
+     "markdown_gm": 8573.95,
+     "delta": {
+      "mean": 2357.86,
+      "ci95": [
+       1865.1,
+       2850.62
+      ],
+      "n": 40,
+      "block": 1
      },
+     "delta_pct": 37.9,
+     "survives": true,
      "sell_through": {
-      "mean": 7.41,
-      "ci95": [
-       5.83,
-       8.99
-      ],
-      "n": 40,
-      "block": 1
+      "cliff": 95.45,
+      "markdown": 108.37
      },
-     "units_full": {
-      "mean": -86.92,
-      "ci95": [
-       -89.83,
-       -84.02
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 17.6,
+      "markdown": 16.96
+     },
+     "returns": {
+      "cliff": 37.58,
+      "markdown": 41.55
      },
      "units_deep": {
-      "mean": -29.57,
+      "cliff": 45.38,
+      "markdown": 12.72
+     },
+     "cs_waiter_delta": {
+      "mean": -233.0,
       "ci95": [
-       -34.03,
-       -25.12
+       -294.85,
+       -171.15
+      ],
+      "n": 40,
+      "block": 1
+     }
+    },
+    "0.26": {
+     "cliff_gm": 4951.3,
+     "markdown_gm": 7528.26,
+     "delta": {
+      "mean": 2576.96,
+      "ci95": [
+       2139.71,
+       3014.21
       ],
       "n": 40,
       "block": 1
      },
-     "salvage_units": {
-      "mean": -18.48,
+     "delta_pct": 52.0,
+     "survives": true,
+     "sell_through": {
+      "cliff": 99.21,
+      "markdown": 116.71
+     },
+     "return_rate_realized": {
+      "cliff": 26.53,
+      "markdown": 25.93
+     },
+     "returns": {
+      "cliff": 58.77,
+      "markdown": 68.22
+     },
+     "units_deep": {
+      "cliff": 49.45,
+      "markdown": 19.1
+     },
+     "cs_waiter_delta": {
+      "mean": -159.43,
       "ci95": [
-       -22.83,
-       -14.12
+       -216.9,
+       -101.97
       ],
       "n": 40,
       "block": 1
      }
     }
+   },
+   "edge_did": {
+    "0.17": {
+     "mean": 629.98,
+     "ci95": [
+      431.72,
+      828.25
+     ],
+     "n": 40,
+     "block": 1
+    },
+    "0.26": {
+     "mean": 849.08,
+     "ci95": [
+      575.06,
+      1123.1
+     ],
+     "n": 40,
+     "block": 1
+    }
    }
   },
   "buy0.15_cal0.2_wait0.45": {
-   "world": {
+   "world_base": {
     "sigma_buy": 0.15,
     "sigma_cal": 0.2,
     "waiter_share": 0.45
    },
-   "gross_margin": {
-    "cliff": 8714.72,
-    "markdown": 9529.83
-   },
-   "sell_through": {
-    "cliff": 96.12,
-    "markdown": 94.51
-   },
-   "units_deep": {
-    "cliff": 45.83,
-    "markdown": 10.68
-   },
-   "cs_waiter": {
-    "cliff": 4185.56,
-    "markdown": 4035.41
-   },
-   "paired": {
-    "markdown_vs_cliff": {
-     "gross_margin": {
+   "by_r": {
+    "0": {
+     "cliff_gm": 8714.72,
+     "markdown_gm": 9529.83,
+     "delta": {
       "mean": 815.11,
       "ci95": [
        426.02,
@@ -436,25 +627,25 @@
       "n": 40,
       "block": 1
      },
-     "revenue": {
-      "mean": 770.43,
-      "ci95": [
-       362.04,
-       1178.82
-      ],
-      "n": 40,
-      "block": 1
+     "delta_pct": 9.4,
+     "survives": true,
+     "sell_through": {
+      "cliff": 96.12,
+      "markdown": 94.51
      },
-     "consumer_surplus": {
-      "mean": 1846.49,
-      "ci95": [
-       1650.53,
-       2042.45
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 0.0,
+      "markdown": 0.0
      },
-     "cs_waiter": {
+     "returns": {
+      "cliff": 0.0,
+      "markdown": 0.0
+     },
+     "units_deep": {
+      "cliff": 45.83,
+      "markdown": 10.68
+     },
+     "cs_waiter_delta": {
       "mean": -150.15,
       "ci95": [
        -281.79,
@@ -462,71 +653,121 @@
       ],
       "n": 40,
       "block": 1
+     }
+    },
+    "0.17": {
+     "cliff_gm": 6586.52,
+     "markdown_gm": 7806.28,
+     "delta": {
+      "mean": 1219.76,
+      "ci95": [
+       876.71,
+       1562.8
+      ],
+      "n": 40,
+      "block": 1
      },
+     "delta_pct": 18.5,
+     "survives": true,
      "sell_through": {
-      "mean": -1.61,
-      "ci95": [
-       -2.77,
-       -0.45
-      ],
-      "n": 40,
-      "block": 1
+      "cliff": 108.18,
+      "markdown": 107.7
      },
-     "units_full": {
-      "mean": -71.33,
-      "ci95": [
-       -73.62,
-       -69.03
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 17.19,
+      "markdown": 17.12
+     },
+     "returns": {
+      "cliff": 42.05,
+      "markdown": 41.55
      },
      "units_deep": {
-      "mean": -35.15,
+      "cliff": 63.9,
+      "markdown": 17.8
+     },
+     "cs_waiter_delta": {
+      "mean": -135.4,
       "ci95": [
-       -41.79,
-       -28.51
+       -254.58,
+       -16.23
+      ],
+      "n": 40,
+      "block": 1
+     }
+    },
+    "0.26": {
+     "cliff_gm": 5427.67,
+     "markdown_gm": 6797.82,
+     "delta": {
+      "mean": 1370.15,
+      "ci95": [
+       1052.0,
+       1688.3
       ],
       "n": 40,
       "block": 1
      },
-     "salvage_units": {
-      "mean": 4.15,
+     "delta_pct": 25.2,
+     "survives": true,
+     "sell_through": {
+      "cliff": 113.99,
+      "markdown": 115.85
+     },
+     "return_rate_realized": {
+      "cliff": 26.13,
+      "markdown": 26.07
+     },
+     "returns": {
+      "cliff": 67.33,
+      "markdown": 67.97
+     },
+     "units_deep": {
+      "cliff": 72.12,
+      "markdown": 24.43
+     },
+     "cs_waiter_delta": {
+      "mean": -76.72,
       "ci95": [
-       1.0,
-       7.3
+       -185.02,
+       31.59
       ],
       "n": 40,
       "block": 1
      }
     }
+   },
+   "edge_did": {
+    "0.17": {
+     "mean": 404.65,
+     "ci95": [
+      256.54,
+      552.76
+     ],
+     "n": 40,
+     "block": 1
+    },
+    "0.26": {
+     "mean": 555.04,
+     "ci95": [
+      351.12,
+      758.96
+     ],
+     "n": 40,
+     "block": 1
+    }
    }
   },
   "buy0.35_cal0_wait0.15": {
-   "world": {
+   "world_base": {
     "sigma_buy": 0.35,
     "sigma_cal": 0.0,
     "waiter_share": 0.15
    },
-   "gross_margin": {
-    "cliff": 9425.09,
-    "markdown": 10950.59
-   },
-   "sell_through": {
-    "cliff": 91.89,
-    "markdown": 99.61
-   },
-   "units_deep": {
-    "cliff": 29.48,
-    "markdown": 7.62
-   },
-   "cs_waiter": {
-    "cliff": 1512.99,
-    "markdown": 1286.95
-   },
-   "paired": {
-    "markdown_vs_cliff": {
-     "gross_margin": {
+   "by_r": {
+    "0": {
+     "cliff_gm": 9425.09,
+     "markdown_gm": 10950.59,
+     "delta": {
       "mean": 1525.5,
       "ci95": [
        1219.54,
@@ -535,25 +776,25 @@
       "n": 40,
       "block": 1
      },
-     "revenue": {
-      "mean": 1684.89,
-      "ci95": [
-       1348.97,
-       2020.82
-      ],
-      "n": 40,
-      "block": 1
+     "delta_pct": 16.2,
+     "survives": true,
+     "sell_through": {
+      "cliff": 91.89,
+      "markdown": 99.61
      },
-     "consumer_surplus": {
-      "mean": 2208.7,
-      "ci95": [
-       1911.67,
-       2505.74
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 0.0,
+      "markdown": 0.0
      },
-     "cs_waiter": {
+     "returns": {
+      "cliff": 0.0,
+      "markdown": 0.0
+     },
+     "units_deep": {
+      "cliff": 29.48,
+      "markdown": 7.62
+     },
+     "cs_waiter_delta": {
       "mean": -226.05,
       "ci95": [
        -295.78,
@@ -561,71 +802,121 @@
       ],
       "n": 40,
       "block": 1
+     }
+    },
+    "0.17": {
+     "cliff_gm": 7119.25,
+     "markdown_gm": 9644.53,
+     "delta": {
+      "mean": 2525.28,
+      "ci95": [
+       2269.69,
+       2780.86
+      ],
+      "n": 40,
+      "block": 1
      },
+     "delta_pct": 35.5,
+     "survives": true,
      "sell_through": {
-      "mean": 7.73,
-      "ci95": [
-       6.29,
-       9.16
-      ],
-      "n": 40,
-      "block": 1
+      "cliff": 101.37,
+      "markdown": 117.34
      },
-     "units_full": {
-      "mean": -85.33,
-      "ci95": [
-       -88.34,
-       -82.31
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 17.26,
+      "markdown": 16.88
+     },
+     "returns": {
+      "cliff": 37.85,
+      "markdown": 43.1
      },
      "units_deep": {
-      "mean": -21.85,
+      "cliff": 42.3,
+      "markdown": 22.07
+     },
+     "cs_waiter_delta": {
+      "mean": -192.47,
       "ci95": [
-       -24.82,
-       -18.88
+       -255.33,
+       -129.6
+      ],
+      "n": 40,
+      "block": 1
+     }
+    },
+    "0.26": {
+     "cliff_gm": 5906.88,
+     "markdown_gm": 8712.26,
+     "delta": {
+      "mean": 2805.37,
+      "ci95": [
+       2560.54,
+       3050.2
       ],
       "n": 40,
       "block": 1
      },
-     "salvage_units": {
-      "mean": -17.27,
+     "delta_pct": 47.5,
+     "survives": true,
+     "sell_through": {
+      "cliff": 105.77,
+      "markdown": 127.7
+     },
+     "return_rate_realized": {
+      "cliff": 25.85,
+      "markdown": 25.76
+     },
+     "returns": {
+      "cliff": 59.1,
+      "markdown": 71.58
+     },
+     "units_deep": {
+      "cliff": 48.05,
+      "markdown": 32.83
+     },
+     "cs_waiter_delta": {
+      "mean": -121.95,
       "ci95": [
-       -20.81,
-       -13.74
+       -184.79,
+       -59.11
       ],
       "n": 40,
       "block": 1
      }
     }
+   },
+   "edge_did": {
+    "0.17": {
+     "mean": 999.78,
+     "ci95": [
+      824.8,
+      1174.76
+     ],
+     "n": 40,
+     "block": 1
+    },
+    "0.26": {
+     "mean": 1279.87,
+     "ci95": [
+      1058.41,
+      1501.34
+     ],
+     "n": 40,
+     "block": 1
+    }
    }
   },
   "buy0.35_cal0_wait0.45": {
-   "world": {
+   "world_base": {
     "sigma_buy": 0.35,
     "sigma_cal": 0.0,
     "waiter_share": 0.45
    },
-   "gross_margin": {
-    "cliff": 9281.71,
-    "markdown": 10253.37
-   },
-   "sell_through": {
-    "cliff": 97.84,
-    "markdown": 99.68
-   },
-   "units_deep": {
-    "cliff": 29.23,
-    "markdown": 12.75
-   },
-   "cs_waiter": {
-    "cliff": 3923.02,
-    "markdown": 4026.65
-   },
-   "paired": {
-    "markdown_vs_cliff": {
-     "gross_margin": {
+   "by_r": {
+    "0": {
+     "cliff_gm": 9281.71,
+     "markdown_gm": 10253.37,
+     "delta": {
       "mean": 971.66,
       "ci95": [
        747.23,
@@ -634,25 +925,25 @@
       "n": 40,
       "block": 1
      },
-     "revenue": {
-      "mean": 1009.24,
-      "ci95": [
-       776.15,
-       1242.33
-      ],
-      "n": 40,
-      "block": 1
+     "delta_pct": 10.5,
+     "survives": true,
+     "sell_through": {
+      "cliff": 97.84,
+      "markdown": 99.68
      },
-     "consumer_surplus": {
-      "mean": 2243.66,
-      "ci95": [
-       1986.78,
-       2500.53
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 0.0,
+      "markdown": 0.0
      },
-     "cs_waiter": {
+     "returns": {
+      "cliff": 0.0,
+      "markdown": 0.0
+     },
+     "units_deep": {
+      "cliff": 29.23,
+      "markdown": 12.75
+     },
+     "cs_waiter_delta": {
       "mean": 103.63,
       "ci95": [
        -3.97,
@@ -660,71 +951,121 @@
       ],
       "n": 40,
       "block": 1
+     }
+    },
+    "0.17": {
+     "cliff_gm": 7344.54,
+     "markdown_gm": 9008.53,
+     "delta": {
+      "mean": 1663.99,
+      "ci95": [
+       1460.23,
+       1867.75
+      ],
+      "n": 40,
+      "block": 1
      },
+     "delta_pct": 22.7,
+     "survives": true,
      "sell_through": {
-      "mean": 1.84,
-      "ci95": [
-       1.24,
-       2.43
-      ],
-      "n": 40,
-      "block": 1
+      "cliff": 111.85,
+      "markdown": 117.5
      },
-     "units_full": {
-      "mean": -69.97,
-      "ci95": [
-       -72.53,
-       -67.42
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 16.95,
+      "markdown": 16.86
+     },
+     "returns": {
+      "cliff": 41.15,
+      "markdown": 43.15
      },
      "units_deep": {
-      "mean": -16.48,
+      "cliff": 48.67,
+      "markdown": 27.5
+     },
+     "cs_waiter_delta": {
+      "mean": 142.59,
       "ci95": [
-       -20.7,
-       -12.25
+       37.34,
+       247.84
+      ],
+      "n": 40,
+      "block": 1
+     }
+    },
+    "0.26": {
+     "cliff_gm": 6240.22,
+     "markdown_gm": 8091.93,
+     "delta": {
+      "mean": 1851.71,
+      "ci95": [
+       1627.51,
+       2075.92
       ],
       "n": 40,
       "block": 1
      },
-     "salvage_units": {
-      "mean": -4.12,
+     "delta_pct": 29.7,
+     "survives": true,
+     "sell_through": {
+      "cliff": 118.76,
+      "markdown": 128.25
+     },
+     "return_rate_realized": {
+      "cliff": 25.8,
+      "markdown": 25.77
+     },
+     "returns": {
+      "cliff": 66.47,
+      "markdown": 71.9
+     },
+     "units_deep": {
+      "cliff": 59.02,
+      "markdown": 39.55
+     },
+     "cs_waiter_delta": {
+      "mean": 250.89,
       "ci95": [
-       -5.53,
-       -2.72
+       155.98,
+       345.8
       ],
       "n": 40,
       "block": 1
      }
     }
+   },
+   "edge_did": {
+    "0.17": {
+     "mean": 692.33,
+     "ci95": [
+      576.87,
+      807.79
+     ],
+     "n": 40,
+     "block": 1
+    },
+    "0.26": {
+     "mean": 880.05,
+     "ci95": [
+      727.78,
+      1032.32
+     ],
+     "n": 40,
+     "block": 1
+    }
    }
   },
   "buy0.35_cal0.2_wait0.15": {
-   "world": {
+   "world_base": {
     "sigma_buy": 0.35,
     "sigma_cal": 0.2,
     "waiter_share": 0.15
    },
-   "gross_margin": {
-    "cliff": 7911.56,
-    "markdown": 9605.63
-   },
-   "sell_through": {
-    "cliff": 84.01,
-    "markdown": 93.14
-   },
-   "units_deep": {
-    "cliff": 33.8,
-    "markdown": 8.6
-   },
-   "cs_waiter": {
-    "cliff": 1505.21,
-    "markdown": 1278.06
-   },
-   "paired": {
-    "markdown_vs_cliff": {
-     "gross_margin": {
+   "by_r": {
+    "0": {
+     "cliff_gm": 7911.56,
+     "markdown_gm": 9605.63,
+     "delta": {
       "mean": 1694.07,
       "ci95": [
        1188.74,
@@ -733,25 +1074,25 @@
       "n": 40,
       "block": 1
      },
-     "revenue": {
-      "mean": 1910.85,
-      "ci95": [
-       1364.33,
-       2457.37
-      ],
-      "n": 40,
-      "block": 1
+     "delta_pct": 21.4,
+     "survives": true,
+     "sell_through": {
+      "cliff": 84.01,
+      "markdown": 93.14
      },
-     "consumer_surplus": {
-      "mean": 2300.14,
-      "ci95": [
-       2000.92,
-       2599.36
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 0.0,
+      "markdown": 0.0
      },
-     "cs_waiter": {
+     "returns": {
+      "cliff": 0.0,
+      "markdown": 0.0
+     },
+     "units_deep": {
+      "cliff": 33.8,
+      "markdown": 8.6
+     },
+     "cs_waiter_delta": {
       "mean": -227.14,
       "ci95": [
        -311.95,
@@ -759,71 +1100,121 @@
       ],
       "n": 40,
       "block": 1
+     }
+    },
+    "0.17": {
+     "cliff_gm": 5680.24,
+     "markdown_gm": 7886.52,
+     "delta": {
+      "mean": 2206.28,
+      "ci95": [
+       1766.98,
+       2645.57
+      ],
+      "n": 40,
+      "block": 1
      },
+     "delta_pct": 38.8,
+     "survives": true,
      "sell_through": {
-      "mean": 9.13,
-      "ci95": [
-       7.41,
-       10.85
-      ],
-      "n": 40,
-      "block": 1
+      "cliff": 91.76,
+      "markdown": 105.74
      },
-     "units_full": {
-      "mean": -81.1,
-      "ci95": [
-       -83.82,
-       -78.38
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 17.67,
+      "markdown": 16.93
+     },
+     "returns": {
+      "cliff": 35.9,
+      "markdown": 40.12
      },
      "units_deep": {
-      "mean": -25.2,
+      "cliff": 41.5,
+      "markdown": 15.2
+     },
+     "cs_waiter_delta": {
+      "mean": -179.14,
       "ci95": [
-       -29.2,
-       -21.2
+       -248.59,
+       -109.7
+      ],
+      "n": 40,
+      "block": 1
+     }
+    },
+    "0.26": {
+     "cliff_gm": 4511.93,
+     "markdown_gm": 6850.87,
+     "delta": {
+      "mean": 2338.94,
+      "ci95": [
+       1943.28,
+       2734.6
       ],
       "n": 40,
       "block": 1
      },
-     "salvage_units": {
-      "mean": -22.2,
+     "delta_pct": 51.8,
+     "survives": true,
+     "sell_through": {
+      "cliff": 95.61,
+      "markdown": 113.34
+     },
+     "return_rate_realized": {
+      "cliff": 26.53,
+      "markdown": 25.87
+     },
+     "returns": {
+      "cliff": 56.15,
+      "markdown": 65.58
+     },
+     "units_deep": {
+      "cliff": 45.58,
+      "markdown": 20.73
+     },
+     "cs_waiter_delta": {
+      "mean": -130.93,
       "ci95": [
-       -27.09,
-       -17.31
+       -198.64,
+       -63.22
       ],
       "n": 40,
       "block": 1
      }
     }
+   },
+   "edge_did": {
+    "0.17": {
+     "mean": 512.2,
+     "ci95": [
+      309.59,
+      714.82
+     ],
+     "n": 40,
+     "block": 1
+    },
+    "0.26": {
+     "mean": 644.87,
+     "ci95": [
+      382.4,
+      907.33
+     ],
+     "n": 40,
+     "block": 1
+    }
    }
   },
   "buy0.35_cal0.2_wait0.45": {
-   "world": {
+   "world_base": {
     "sigma_buy": 0.35,
     "sigma_cal": 0.2,
     "waiter_share": 0.45
    },
-   "gross_margin": {
-    "cliff": 8079.57,
-    "markdown": 8900.73
-   },
-   "sell_through": {
-    "cliff": 93.07,
-    "markdown": 92.52
-   },
-   "units_deep": {
-    "cliff": 45.3,
-    "markdown": 12.47
-   },
-   "cs_waiter": {
-    "cliff": 4022.35,
-    "markdown": 3912.86
-   },
-   "paired": {
-    "markdown_vs_cliff": {
-     "gross_margin": {
+   "by_r": {
+    "0": {
+     "cliff_gm": 8079.57,
+     "markdown_gm": 8900.73,
+     "delta": {
       "mean": 821.17,
       "ci95": [
        447.18,
@@ -832,25 +1223,25 @@
       "n": 40,
       "block": 1
      },
-     "revenue": {
-      "mean": 804.12,
-      "ci95": [
-       408.11,
-       1200.14
-      ],
-      "n": 40,
-      "block": 1
+     "delta_pct": 10.2,
+     "survives": true,
+     "sell_through": {
+      "cliff": 93.07,
+      "markdown": 92.52
      },
-     "consumer_surplus": {
-      "mean": 1852.91,
-      "ci95": [
-       1597.27,
-       2108.54
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 0.0,
+      "markdown": 0.0
      },
-     "cs_waiter": {
+     "returns": {
+      "cliff": 0.0,
+      "markdown": 0.0
+     },
+     "units_deep": {
+      "cliff": 45.3,
+      "markdown": 12.47
+     },
+     "cs_waiter_delta": {
       "mean": -109.49,
       "ci95": [
        -260.21,
@@ -858,43 +1249,107 @@
       ],
       "n": 40,
       "block": 1
+     }
+    },
+    "0.17": {
+     "cliff_gm": 6053.0,
+     "markdown_gm": 7211.83,
+     "delta": {
+      "mean": 1158.84,
+      "ci95": [
+       850.61,
+       1467.07
+      ],
+      "n": 40,
+      "block": 1
      },
+     "delta_pct": 19.1,
+     "survives": true,
      "sell_through": {
-      "mean": -0.55,
-      "ci95": [
-       -1.79,
-       0.69
-      ],
-      "n": 40,
-      "block": 1
+      "cliff": 104.21,
+      "markdown": 104.91
      },
-     "units_full": {
-      "mean": -67.95,
-      "ci95": [
-       -70.48,
-       -65.42
-      ],
-      "n": 40,
-      "block": 1
+     "return_rate_realized": {
+      "cliff": 17.15,
+      "markdown": 17.04
+     },
+     "returns": {
+      "cliff": 39.75,
+      "markdown": 40.05
      },
      "units_deep": {
-      "mean": -32.83,
-      "ci95": [
-       -39.34,
-       -26.31
-      ],
-      "n": 40,
-      "block": 1
+      "cliff": 59.88,
+      "markdown": 19.68
      },
-     "salvage_units": {
-      "mean": 1.75,
+     "cs_waiter_delta": {
+      "mean": -70.03,
       "ci95": [
-       -1.54,
-       5.04
+       -197.38,
+       57.32
       ],
       "n": 40,
       "block": 1
      }
+    },
+    "0.26": {
+     "cliff_gm": 4981.29,
+     "markdown_gm": 6232.61,
+     "delta": {
+      "mean": 1251.32,
+      "ci95": [
+       950.75,
+       1551.89
+      ],
+      "n": 40,
+      "block": 1
+     },
+     "delta_pct": 25.1,
+     "survives": true,
+     "sell_through": {
+      "cliff": 110.13,
+      "markdown": 112.98
+     },
+     "return_rate_realized": {
+      "cliff": 26.09,
+      "markdown": 26.17
+     },
+     "returns": {
+      "cliff": 63.98,
+      "markdown": 65.9
+     },
+     "units_deep": {
+      "cliff": 67.53,
+      "markdown": 25.15
+     },
+     "cs_waiter_delta": {
+      "mean": -17.98,
+      "ci95": [
+       -135.2,
+       99.24
+      ],
+      "n": 40,
+      "block": 1
+     }
+    }
+   },
+   "edge_did": {
+    "0.17": {
+     "mean": 337.67,
+     "ci95": [
+      173.41,
+      501.93
+     ],
+     "n": 40,
+     "block": 1
+    },
+    "0.26": {
+     "mean": 430.15,
+     "ci95": [
+      229.74,
+      630.57
+     ],
+     "n": 40,
+     "block": 1
     }
    }
   }

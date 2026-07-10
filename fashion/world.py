@@ -54,6 +54,21 @@ WAITER_BETA = 0.90           # patience discount on next week's surplus
 WAITER_PRICE_DRIFT = 0.92    # believed weekly price ratio (cliff's average:
                              # MSRP→30% over 15 steps = 0.3^(1/15) ≈ 0.923)
 
+# Returns (NRF 2024: 16.9% of retail sales, ~26% for online apparel). A sale
+# at price p is refunded at the PAID price after a lag, and the item re-enters
+# sellable stock if any selling week remains (else it salvages). The lag is
+# drawn Uniform{7..21} DAYS — retail return windows cluster in the first 1-3
+# weeks (most windows are 14-30 days and returns skew early) — then mapped to
+# the sim's WEEKLY clock via max(1, round(days/7)) ∈ {1, 2, 3}. Uniform (not
+# geometric) is the neutral choice over the published 1-3-week window and
+# needs no extra rate parameter to defend. The return DRAW is keyed on the
+# shopper's IDENTITY, never on price or arm (see `sample_return`), so the same
+# shopper draws the same return flag+lag in both arms — only the refund PRICE
+# and the re-sale WEEK differ across arms, which is exactly the mechanism the
+# returns-vs-markdown-timing experiment isolates.
+RETURN_LAG_DAYS = (7, 21)    # inclusive uniform integer-day window
+DAYS_PER_WEEK = 7
+
 # (style, msrp, true week-0 appeal = lognormal WTP scale, attention share)
 # appeal ≈ 0.9 × MSRP: the sticker is aspirational — roughly a third of the
 # week-0 crowd clears it, the industry's actual full-price reality.
@@ -72,6 +87,8 @@ class FashionConfig:
     sigma_buy: float = 0.15      # lognormal buy-depth error per style×size (mean-one)
     sigma_cal: float = 0.0       # operator's appeal-estimate noise (median-one)
     waiter_share: float = 0.15   # P(an arrival is a strategic waiter)
+    return_rate: float = 0.0     # P(a sale is returned), refunded at the PAID price
+                                 # (0 reproduces the no-returns P0 exactly)
 
 
 DEFAULT_CONFIG = FashionConfig()
@@ -220,6 +237,31 @@ def arrivals_at(master_seed: int, week: int) -> int:
     """Poisson weekly arrivals — paired across arms by construction."""
     rng = np.random.default_rng(substream(master_seed, "arr", week))
     return int(rng.poisson(arrival_rate(week)))
+
+
+def sample_return(master_seed: int, uid: int,
+                  cfg: FashionConfig = DEFAULT_CONFIG) -> int | None:
+    """Whether shopper `uid`'s purchase is returned, and if so the lag in
+    WEEKS. Keyed on the shopper's IDENTITY (uid) — NEVER on price or arm — so
+    a shopper who buys in both arms draws the SAME return flag and the SAME
+    lag; only the refund PRICE (what they paid in each arm) and the re-sale
+    WEEK (when the unit lands back on the rack) differ across arms. That is the
+    experiment: a full-price sale returned into clearance re-sells at
+    clearance, so early over-selling is penalized differently under the cliff
+    vs the ladder.
+
+    Returns None for 'kept'. The propensity draw `u = rng.random()` is compared
+    against return_rate BEFORE the lag draw, so raising return_rate NESTS the
+    returned sets across the {0.17, 0.26} grid (0.17-returns ⊂ 0.26-returns),
+    the same paired-nesting trick used for waiter_share. Lag: Uniform{7..21}
+    days → max(1, round(days/7)) ∈ {1, 2, 3} weeks."""
+    if cfg.return_rate <= 0:
+        return None
+    rng = np.random.default_rng(substream(master_seed, "ret", uid))
+    if rng.random() >= cfg.return_rate:
+        return None
+    days = int(rng.integers(RETURN_LAG_DAYS[0], RETURN_LAG_DAYS[1] + 1))
+    return max(1, int(round(days / DAYS_PER_WEEK)))
 
 
 def waiter_buys_now(surplus_now: float, wtp_next: float, price: float,

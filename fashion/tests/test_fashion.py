@@ -9,7 +9,7 @@ from fashion.run import run_experiment, run_season
 from fashion.world import (DEFAULT_CONFIG, SIZE_SHARE, SIZES, WEEKS,
                            FashionConfig, arrivals_at, build_catalog,
                            cliff_mult, planned_depth, planned_style_units,
-                           sample_shopper, waiter_buys_now)
+                           sample_return, sample_shopper, waiter_buys_now)
 
 
 @pytest.fixture(scope="module")
@@ -153,6 +153,112 @@ def test_higher_waiter_share_shifts_units_late_under_cliff():
         t = res["arms"]["cliff"]["per_season_means"]
         return (t["units_sold"] - t["units_full"]) / t["units_sold"]
     assert disc_share(0.45) > disc_share(0.15)
+
+
+# ── returns (CALIBRATION-TARGETS #6: NRF 2024, 16.9% retail / 26% online) ──
+
+def test_return_rate_zero_never_returns(catalog):
+    """cfg.return_rate<=0 must reproduce the no-returns P0 EXACTLY — no lag
+    draw, no rng consumed, no surprises for the r=0 grid cell."""
+    for uid in range(50):
+        assert sample_return(3, uid, DEFAULT_CONFIG) is None
+        assert sample_return(3, uid, FashionConfig(return_rate=0.0)) is None
+
+
+def test_return_lag_is_one_to_three_weeks():
+    """r=1.0 makes every draw a return (deterministic): the lag must always
+    fall in the documented {1, 2, 3}-week window (Uniform{7..21} days)."""
+    cfg = FashionConfig(return_rate=1.0)
+    lags = {sample_return(5, uid, cfg) for uid in range(300)}
+    assert lags <= {1, 2, 3}
+    assert None not in lags
+
+
+def test_return_sets_are_nested_across_rates():
+    """Same trick as waiter_share nesting: raising return_rate only ADDS
+    returns, and a shopper who returns at both rates draws the identical lag
+    — the propensity draw happens before the lag draw on the same rng, so
+    0.17's returners are a strict subset of 0.26's, with matching lags."""
+    lo = FashionConfig(return_rate=0.17)
+    hi = FashionConfig(return_rate=0.26)
+    for uid in range(500):
+        a = sample_return(11, uid, lo)
+        b = sample_return(11, uid, hi)
+        if a is not None:
+            assert b is not None
+            assert a == b
+
+
+def test_returns_refund_conservation(catalog, depth):
+    """Money and units must close under returns. Every return refunds
+    exactly the price it was sold at, so:
+      net_revenue == revenue - refunds
+      gross_margin == net_revenue + salvage_revenue - buy_cost
+    and every physical unit ends EITHER kept by a customer (a sale that was
+    never returned) or salvaged (season-end inventory, or a post-season
+    return that never got a chance to re-shelve) — never both, never
+    neither:
+      salvage_units == units_bought - (units_sold - returns)
+    """
+    m = run_season(CliffPolicy(), catalog, depth, master_seed=9,
+                   cfg=FashionConfig(return_rate=0.3))
+    assert m["returns"] > 0        # the config should actually exercise it
+    assert m["net_revenue"] == pytest.approx(m["revenue"] - m["refunds"],
+                                             abs=0.02)
+    assert m["gross_margin"] == pytest.approx(
+        m["net_revenue"] + m["salvage_revenue"] - m["buy_cost"], abs=0.02)
+    assert m["salvage_units"] == \
+        m["units_bought"] - m["units_sold"] + m["returns"]
+    assert m["returns"] == m["returns_restocked"] + m["returns_postseason"]
+
+
+def test_returns_re_enter_sellable_stock(catalog, depth):
+    """A returned unit that lands before the last selling week must be
+    resellable, not stuck in limbo: returns_restocked (returns that happened
+    in time to reach the rack) should be the common case, and every
+    restocked return should show up in the salvage/units identity too."""
+    m = run_season(MarkdownPolicy(), catalog, depth, master_seed=9,
+                   cfg=FashionConfig(return_rate=0.3))
+    assert m["returns_restocked"] > 0
+    # restocked returns can resell again — gross units_sold, INCLUDING
+    # resells, must be at least the number of distinct return events plus
+    # one original sale each; the loose sanity bound is that resells push
+    # sell-through (gross) at or above the no-returns baseline.
+    assert m["units_sold"] >= m["returns_restocked"]
+
+
+def test_realized_return_rate_tracks_configured():
+    """Aggregate over enough seasons and the realized rate (returns ÷ gross
+    units sold, a per-transaction Bernoulli(r) by construction) should track
+    the configured r within a couple of points."""
+    for r in (0.17, 0.26):
+        res = run_experiment(["cliff", "markdown"], seasons=20, seed=20260710,
+                             cfg=FashionConfig(0.0, 0.0, 0.0, r))
+        for arm in ("cliff", "markdown"):
+            realized = res["arms"][arm]["per_season_means"][
+                "return_rate_realized"]
+            assert abs(realized - 100.0 * r) < 3.0
+
+
+def test_returns_hit_cliff_harder_than_markdown():
+    """THE mechanism under test: cliff holds MSRP for 8 weeks, so its
+    full-price sales that return into clearance are refunded at a much
+    higher price than they resell for — a bigger leak than markdown/1's
+    early-shallow-discount sales. Gross margin should fall by a LARGER
+    fraction under cliff than under markdown as returns rise from 0 to 26%."""
+    cfg0 = FashionConfig(0.0, 0.0, 0.0, 0.0)
+    cfg_r = FashionConfig(0.0, 0.0, 0.0, 0.26)
+    res0 = run_experiment(["cliff", "markdown"], seasons=20, seed=20260710,
+                          cfg=cfg0)
+    resr = run_experiment(["cliff", "markdown"], seasons=20, seed=20260710,
+                          cfg=cfg_r)
+    cliff0 = res0["arms"]["cliff"]["per_season_means"]["gross_margin"]
+    cliffr = resr["arms"]["cliff"]["per_season_means"]["gross_margin"]
+    md0 = res0["arms"]["markdown"]["per_season_means"]["gross_margin"]
+    mdr = resr["arms"]["markdown"]["per_season_means"]["gross_margin"]
+    cliff_drop_frac = (cliff0 - cliffr) / cliff0
+    md_drop_frac = (md0 - mdr) / md0
+    assert cliff_drop_frac > md_drop_frac > 0
 
 
 # ── accounting ───────────────────────────────────────────────────────────

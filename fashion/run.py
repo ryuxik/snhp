@@ -15,11 +15,13 @@ import argparse
 import json
 import sys
 
+from collections import defaultdict
+
 from fashion.core import paired_ci, substream
 from fashion.policies import CliffPolicy, MarkdownPolicy
 from fashion.world import (DEFAULT_CONFIG, SIZES, WEEKS, FashionConfig,
                            arrivals_at, build_catalog, planned_depth,
-                           sample_shopper, waiter_buys_now)
+                           sample_return, sample_shopper, waiter_buys_now)
 
 FASHION_VERSION = 1
 
@@ -53,19 +55,36 @@ def run_season(policy, catalog, depth, master_seed: int,
     m = {k: 0 for k in ("units_bought", "units_sold", "units_full",
                         "units_d30", "units_d50", "units_d70",
                         "units_d70plus", "salvage_units", "arrivals",
-                        "returns", "lost_stockout", "buyers_waiter",
-                        "buyers_loyal", "cells_sold_out")}
-    m.update({k: 0.0 for k in ("revenue", "salvage_revenue", "buy_cost",
-                               "gross_margin", "consumer_surplus",
-                               "cs_waiter", "cs_loyal", "sell_through")})
+                        "revisits", "returns", "returns_restocked",
+                        "returns_postseason", "lost_stockout",
+                        "buyers_waiter", "buyers_loyal", "cells_sold_out")}
+    m.update({k: 0.0 for k in ("revenue", "refunds", "net_revenue",
+                               "salvage_revenue", "buy_cost", "gross_margin",
+                               "consumer_surplus", "cs_waiter", "cs_loyal",
+                               "sell_through", "return_rate_realized")})
     m["units_bought"] = sum(depth.values())
     m["buy_cost"] = sum(n * catalog[st].unit_cost
                         for (st, _sz), n in depth.items())
     sold_prev = {cell: 0 for cell in depth}
     waiting: list = []
     sellout: dict[str, int] = {}
+    # scheduled product returns: absolute_week -> [(cell, paid, surplus, waiter)]
+    pending: dict[int, list] = defaultdict(list)
 
     for week in range(WEEKS):
+        # Returns due this week land BEFORE pricing, so a returned unit is on
+        # the rack at THIS week's price (a full-price sale returned into
+        # clearance re-sells at clearance — the mechanism under test).
+        for cell, paid, surplus, is_waiter in pending.pop(week, []):
+            m["returns"] += 1
+            m["refunds"] += paid
+            m["consumer_surplus"] -= surplus      # refunded → net surplus ~0
+            if is_waiter:
+                m["cs_waiter"] -= surplus
+            else:
+                m["cs_loyal"] -= surplus
+            inv[cell] = inv.get(cell, 0) + 1      # back into sellable stock
+            m["returns_restocked"] += 1
         board = policy.price_board(week, inv, catalog)
         for (st, _sz), p in board.items():
             if p > catalog[st].msrp + 1e-9:
@@ -76,7 +95,7 @@ def run_season(policy, catalog, depth, master_seed: int,
         newcomers = [sample_shopper(master_seed, week, k, catalog, cfg)
                      for k in range(n_new)]
         m["arrivals"] += n_new
-        m["returns"] += len(waiting)
+        m["revisits"] += len(waiting)     # waiter re-shop visits (not product returns)
         still_waiting = []
 
         for c in newcomers + waiting:
@@ -105,6 +124,11 @@ def run_season(policy, catalog, depth, master_seed: int,
                 else:
                     m["cs_loyal"] += surplus
                     m["buyers_loyal"] += 1
+                lag = sample_return(master_seed, c.uid, cfg)
+                if lag is not None:
+                    # identity-keyed: same flag+lag in both arms; only the
+                    # refund PRICE and return WEEK differ (paired mechanism).
+                    pending[week + lag].append((cell, price, surplus, c.waiter))
             elif c.waiter and week < WEEKS - 1:
                 still_waiting.append(c)     # returns weekly until sold out
 
@@ -115,6 +139,22 @@ def run_season(policy, catalog, depth, master_seed: int,
                     sum(inv[(style, sz)] for sz in SIZES) == 0:
                 sellout[style] = week
 
+    # Returns that arrive AFTER the last selling week never re-enter the rack:
+    # refund the buyer, reverse their surplus, and the unit salvages.
+    for wk, evts in pending.items():
+        for cell, paid, surplus, is_waiter in evts:
+            style = cell[0]
+            m["returns"] += 1
+            m["returns_postseason"] += 1
+            m["refunds"] += paid
+            m["consumer_surplus"] -= surplus
+            if is_waiter:
+                m["cs_waiter"] -= surplus
+            else:
+                m["cs_loyal"] -= surplus
+            m["salvage_units"] += 1
+            m["salvage_revenue"] += catalog[style].salvage
+
     for (style, _sz), s in inv.items():
         m["salvage_units"] += s
         m["salvage_revenue"] += s * catalog[style].salvage
@@ -123,19 +163,26 @@ def run_season(policy, catalog, depth, master_seed: int,
     # the −70% rung and deeper: the cliff's own clearance price lands exactly
     # in units_d70, so "fewer deep-clearance units" is d70 + d70plus
     m["units_deep"] = m["units_d70"] + m["units_d70plus"]
+    # sell-through is GROSS (sale transactions ÷ units bought); with returns a
+    # unit can transact more than once, so this can exceed the net kept rate.
     m["sell_through"] = round(100.0 * m["units_sold"] / m["units_bought"], 2) \
         if m["units_bought"] else 0.0
-    m["gross_margin"] = m["revenue"] + m["salvage_revenue"] - m["buy_cost"]
-    for k in ("revenue", "salvage_revenue", "buy_cost", "gross_margin",
-              "consumer_surplus", "cs_waiter", "cs_loyal"):
+    m["return_rate_realized"] = round(
+        100.0 * m["returns"] / m["units_sold"], 2) if m["units_sold"] else 0.0
+    # net revenue = gross sale revenue − refunds; margin nets refunds too.
+    m["net_revenue"] = m["revenue"] - m["refunds"]
+    m["gross_margin"] = m["net_revenue"] + m["salvage_revenue"] - m["buy_cost"]
+    for k in ("revenue", "refunds", "net_revenue", "salvage_revenue",
+              "buy_cost", "gross_margin", "consumer_surplus", "cs_waiter",
+              "cs_loyal"):
         m[k] = round(m[k], 2)
     m["sellout_week"] = {st: sellout.get(st) for st in catalog}
     return m
 
 
-_PAIRED_METRICS = (("gross_margin", 2), ("revenue", 2),
-                   ("consumer_surplus", 2), ("cs_waiter", 2),
-                   ("sell_through", 2), ("units_full", 2),
+_PAIRED_METRICS = (("gross_margin", 2), ("revenue", 2), ("net_revenue", 2),
+                   ("refunds", 2), ("returns", 2), ("consumer_surplus", 2),
+                   ("cs_waiter", 2), ("sell_through", 2), ("units_full", 2),
                    ("units_deep", 2), ("salvage_units", 2))
 
 
@@ -181,7 +228,8 @@ def run_experiment(arm_names: list[str], seasons: int, seed: int,
         "config": {
             "seed": seed, "seasons": seasons, "arms": arm_names,
             "world": {"sigma_buy": cfg.sigma_buy, "sigma_cal": cfg.sigma_cal,
-                      "waiter_share": cfg.waiter_share},
+                      "waiter_share": cfg.waiter_share,
+                      "return_rate": cfg.return_rate},
             "notes": [
                 "one buy at week 0, no restock; both arms work the SAME buy",
                 "buy planned against the CLIFF calendar (the industry plan)",
@@ -191,6 +239,11 @@ def run_experiment(arm_names: list[str], seasons: int, seed: int,
                 "discount-only: no arm can transact above MSRP (runner-enforced)",
                 "paired seeds: identical buy + shopper stream across arms",
                 "seasons are independent replications -> plain t CIs (block=1)",
+                "returns: a sale returns w.p. return_rate after a 1-3wk lag, "
+                "refunded at PAID price, re-shelved if a selling week remains "
+                "(else salvage); return draw keyed on shopper IDENTITY not arm",
+                "sell_through / unit buckets are GROSS (a returned-then-resold "
+                "unit transacts twice); net kept = units_sold - returns",
             ],
         },
         "arms": arms,
@@ -202,20 +255,27 @@ def run_experiment(arm_names: list[str], seasons: int, seed: int,
 GRID_SIGMA_BUY = (0.15, 0.35)
 GRID_SIGMA_CAL = (0.0, 0.2)
 GRID_WAITER = (0.15, 0.45)
+RETURN_GRID = (0.0, 0.17, 0.26)   # NRF 2024: 0 (P0 repro), 16.9% retail, 26% online apparel
 
 
-def run_grid(arm_names: list[str], seasons: int, seed: int, out: str) -> int:
-    """The pre-registered P0 grid: buy error × calibration noise × waiter
-    share, plus a perfect-information control cell (sigma_buy=0, sigma_cal=0,
-    waiter_share=0) where the arms SHOULD be close — the anti-claim row."""
-    cells = [("control_perfect", FashionConfig(0.0, 0.0, 0.0))]
+def _grid_cells(return_rate: float = 0.0) -> list[tuple[str, FashionConfig]]:
+    """The 9-cell pre-registered grid: a perfect-information control
+    (σ_buy=σ_cal=waiters=0, the anti-claim row) plus buy×cal×waiter =
+    2×2×2. All cells carry the same `return_rate`."""
+    cells = [("control_perfect", FashionConfig(0.0, 0.0, 0.0, return_rate))]
     for sb in GRID_SIGMA_BUY:
         for sc in GRID_SIGMA_CAL:
             for ws in GRID_WAITER:
                 cells.append((f"buy{sb:g}_cal{sc:g}_wait{ws:g}",
-                              FashionConfig(sb, sc, ws)))
+                              FashionConfig(sb, sc, ws, return_rate)))
+    return cells
+
+
+def run_grid(arm_names: list[str], seasons: int, seed: int, out: str,
+             return_rate: float = 0.0) -> int:
+    """The pre-registered P0 grid at a single return rate."""
     grid = {}
-    for name, cfg in cells:
+    for name, cfg in _grid_cells(return_rate):
         res = run_experiment(arm_names, seasons, seed, cfg)
         cell = {"world": res["config"]["world"],
                 "gross_margin": {a: res["arms"][a]["per_season_means"]
@@ -235,7 +295,82 @@ def run_grid(arm_names: list[str], seasons: int, seed: int, out: str) -> int:
                   f"{v['units_deep']['mean']:>7.2f}")
     with open(out, "w") as f:
         json.dump({"fashion_version": FASHION_VERSION, "seasons": seasons,
-                   "seed": seed, "arms": arm_names, "cells": grid}, f, indent=1)
+                   "seed": seed, "arms": arm_names, "return_rate": return_rate,
+                   "cells": grid}, f, indent=1)
+    print(f"wrote {out}")
+    return 0
+
+
+def run_returns_sweep(arm_names: list[str], seasons: int, seed: int,
+                      out: str) -> int:
+    """THE returns experiment: run the 9-cell markdown-beats-cliff grid at
+    each return rate in RETURN_GRID (0 = P0 repro, 0.17 retail, 0.26 online
+    apparel) and ask whether the markdown edge SURVIVES returns.
+
+    Because build_catalog / planned_depth do NOT depend on return_rate, a given
+    season seed draws the IDENTICAL buy and shopper stream at every r — so the
+    per-season markdown−cliff EDGE is paired across r, and we can put a paired
+    t-CI on the *change in edge* vs r=0 (a difference-in-differences). No win
+    claim is made where a CI includes zero."""
+    if arm_names[:2] != ["cliff", "markdown"]:
+        print("returns-sweep expects arms=cliff,markdown", file=sys.stderr)
+        return 2
+    base_cells = _grid_cells(0.0)
+    sweep = {}
+    for name, cfg0 in base_cells:
+        world = {"sigma_buy": cfg0.sigma_buy, "sigma_cal": cfg0.sigma_cal,
+                 "waiter_share": cfg0.waiter_share}
+        by_r = {}
+        edge0 = None
+        did = {}
+        for r in RETURN_GRID:
+            cfg = FashionConfig(cfg0.sigma_buy, cfg0.sigma_cal,
+                                cfg0.waiter_share, r)
+            res = run_experiment(arm_names, seasons, seed, cfg)
+            edge = [res["_per_season"]["markdown"][s]["gross_margin"]
+                    - res["_per_season"]["cliff"][s]["gross_margin"]
+                    for s in range(seasons)]
+            cliff_gm = res["arms"]["cliff"]["per_season_means"]["gross_margin"]
+            md_gm = res["arms"]["markdown"]["per_season_means"]["gross_margin"]
+            gm_ci = res["paired"]["markdown_vs_cliff"]["gross_margin"]
+            pm = res["arms"]
+            by_r[f"{r:g}"] = {
+                "cliff_gm": cliff_gm, "markdown_gm": md_gm,
+                "delta": gm_ci,
+                "delta_pct": round(100.0 * gm_ci["mean"] / cliff_gm, 1)
+                if cliff_gm else None,
+                "survives": gm_ci["ci95"] is not None
+                and gm_ci["ci95"][0] > 0,
+                "sell_through": {a: pm[a]["per_season_means"]["sell_through"]
+                                 for a in arm_names},
+                "return_rate_realized": {
+                    a: pm[a]["per_season_means"]["return_rate_realized"]
+                    for a in arm_names},
+                "returns": {a: pm[a]["per_season_means"]["returns"]
+                            for a in arm_names},
+                "units_deep": {a: pm[a]["per_season_means"]["units_deep"]
+                               for a in arm_names},
+                "cs_waiter_delta":
+                    res["paired"]["markdown_vs_cliff"]["cs_waiter"],
+            }
+            if r == 0.0:
+                edge0 = edge
+            else:
+                did[f"{r:g}"] = paired_ci(
+                    [edge[s] - edge0[s] for s in range(seasons)], nd=2)
+        sweep[name] = {"world_base": world, "by_r": by_r, "edge_did": did}
+        c = sweep[name]["by_r"]
+        print(f"{name:<22} Δ%  r0={c['0']['delta_pct']:>5}  "
+              f"r0.17={c['0.17']['delta_pct']:>5}  "
+              f"r0.26={c['0.26']['delta_pct']:>5}  | survives "
+              f"{c['0']['survives']}/{c['0.17']['survives']}/"
+              f"{c['0.26']['survives']}  | DiD@.26 {did['0.26']['mean']:>8} "
+              f"{did['0.26']['ci95']}")
+    with open(out, "w") as f:
+        json.dump({"fashion_version": FASHION_VERSION, "seasons": seasons,
+                   "seed": seed, "arms": arm_names,
+                   "return_grid": list(RETURN_GRID), "cells": sweep}, f,
+                  indent=1)
     print(f"wrote {out}")
     return 0
 
@@ -249,8 +384,11 @@ def main(argv=None) -> int:
     ap.add_argument("--sigma-buy", type=float, default=0.15)
     ap.add_argument("--sigma-cal", type=float, default=0.0)
     ap.add_argument("--waiter-share", type=float, default=0.15)
+    ap.add_argument("--return-rate", type=float, default=0.0)
     ap.add_argument("--grid", action="store_true",
                     help="run the pre-registered buy×cal×waiter grid")
+    ap.add_argument("--returns-grid", action="store_true",
+                    help="run the 9-cell grid at each return rate (0/0.17/0.26)")
     args = ap.parse_args(argv)
 
     arm_names = [a.strip() for a in args.arms.split(",") if a.strip()]
@@ -259,12 +397,17 @@ def main(argv=None) -> int:
         print(f"unknown arms: {unknown} (have {sorted(ARMS)})", file=sys.stderr)
         return 2
 
+    if args.returns_grid:
+        return run_returns_sweep(arm_names, args.seasons, args.seed,
+                                 args.out or "fashion/results.json")
+
     if args.grid:
         return run_grid(arm_names, args.seasons, args.seed,
-                        args.out or "fashion/results.json")
+                        args.out or "fashion/results.json", args.return_rate)
 
     cfg = FashionConfig(sigma_buy=args.sigma_buy, sigma_cal=args.sigma_cal,
-                        waiter_share=args.waiter_share)
+                        waiter_share=args.waiter_share,
+                        return_rate=args.return_rate)
     res = run_experiment(arm_names, args.seasons, args.seed, cfg)
     out = json.dumps(res, indent=1)
     if args.out:
