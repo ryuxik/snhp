@@ -39,6 +39,9 @@ class WorldConfig:
                                # the ceiling non-binding: the a2a arm becomes
                                # the NO-STICKER (quote-only) machine, so the
                                # gap vs anchored arms measures the sticker tax
+    regulars: int = 0          # persistent repeat customers with reference
+                               # prices + churn (vend/regulars.py) — the
+                               # fairness model that gates the anchor harvest
 
 
 DEFAULT_CONFIG = WorldConfig()

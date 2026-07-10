@@ -43,11 +43,13 @@ ARMS = {
 
 
 def run_day(policy, state, catalog, master_seed: int, day: int,
-            cfg: WorldConfig = DEFAULT_CONFIG) -> dict:
+            cfg: WorldConfig = DEFAULT_CONFIG, pool=None) -> dict:
     m = {"revenue": 0.0, "cogs_sold": 0.0, "units": 0, "deals": 0,
          "arrivals": 0, "returns": 0, "stockouts": 0, "lost_to_outside": 0,
          "consumer_surplus": 0.0, "quotes": 0,
-         "negotiated": 0, "neg_machine_gain": 0.0, "liar_deals": 0}
+         "negotiated": 0, "neg_machine_gain": 0.0, "liar_deals": 0,
+         "reg_deals": 0, "churned": 0, "active_regulars": 0}
+    reg_visits = pool.visits_for_day(day) if pool is not None else {}
     return_queue: list[tuple[int, object]] = []
     # the bodega: the competitor's own posted prices (world-set, NOT a
     # function of our sticker) — loop-invariant for the whole experiment
@@ -65,6 +67,68 @@ def run_day(policy, state, catalog, master_seed: int, day: int,
         state.tick = tick
         due = [c for t, c in return_queue if t == tick]
         return_queue = [(t, c) for t, c in return_queue if t > tick]
+
+        # ── persistent regulars (fairness model) visit first ──
+        for reg in reg_visits.get(tick, []):
+            from vend.regulars import regular_board_decision, settle_regular
+            m["quotes"] += 1
+            handled = False
+            if getattr(policy, "mode", "board") == "intent":
+                # The buyer's agent does its actual job: it discloses
+                # EFFECTIVE willingness — raw value capped by the user's
+                # reference tolerance ("they won't pay much above what they
+                # remember without resentment"). This is what lets quotes
+                # fire at ≈ reference under a high anchor.
+                from types import SimpleNamespace
+                wtp_eff = {s: min(reg.wtp[s], reg.ref[s] * 1.15 + 0.25)
+                           for s in reg.wtp}
+                shim = SimpleNamespace(wtp=wtp_eff, walk_cost=reg.walk_cost,
+                                       uid=reg.uid)
+                nq, _ = policy.quote_for(state, shim, 1.0)  # regulars honest
+                if nq.outcome is not None:
+                    o = nq.outcome
+                    raw = buyer_value(reg.wtp, o.sku, o.qty) - o.qty * o.unit_price
+                    fair = reg.fairness(o.sku, o.unit_price, o.qty,
+                                        catalog[o.sku].list_price)
+                    if raw + fair > 0:
+                        q = make_quote(state, policy.policy_id,
+                                       seed=substream(master_seed, "rq", day, tick, reg.uid),
+                                       items=[QuoteItem(o.sku, o.qty, o.unit_price,
+                                                        catalog[o.sku].list_price)],
+                                       why=nq.why, hour=hour_of(tick))
+                        state.take(o.sku, o.qty)
+                        if learner:
+                            learner.sold(o.sku, o.qty)
+                        m["revenue"] += q.total
+                        m["cogs_sold"] += o.qty * catalog[o.sku].unit_cost
+                        m["units"] += o.qty
+                        m["deals"] += 1
+                        m["reg_deals"] += 1
+                        m["consumer_surplus"] += raw
+                        settle_regular(reg, o.sku, o.unit_price, o.qty)
+                        handled = True
+            if not handled:
+                board = policy.price_board(state)
+                prices = {s: p for s, (p, _) in board.items()}
+                stock = {s: state.stock(s) for s in prices}
+                sku, qty, raw, faced = regular_board_decision(
+                    reg, prices, stock, outside_prices)
+                if sku is not None:
+                    q = make_quote(state, policy.policy_id,
+                                   seed=substream(master_seed, "rq", day, tick, reg.uid),
+                                   items=[QuoteItem(sku, qty, faced,
+                                                    catalog[sku].list_price)],
+                                   why=list(board[sku][1]), hour=hour_of(tick))
+                    state.take(sku, qty)
+                    if learner:
+                        learner.sold(sku, qty)
+                    m["revenue"] += q.total
+                    m["cogs_sold"] += qty * catalog[sku].unit_cost
+                    m["units"] += qty
+                    m["deals"] += 1
+                    m["reg_deals"] += 1
+                    m["consumer_surplus"] += raw
+                    settle_regular(reg, sku, faced, qty)
 
         n_new = arrivals_at(master_seed, day, tick, cfg)
         if learner:
@@ -150,6 +214,9 @@ def run_day(policy, state, catalog, master_seed: int, day: int,
 
     if learner:
         learner.end_day()
+    if pool is not None:
+        m["churned"] = pool.end_day(day)
+        m["active_regulars"] = pool.active_count()
     eod = end_of_day(state, cfg, master_seed)
     m["spoiled_units"] = eod["spoiled_units"]
     m["spoilage_cost"] = eod["spoilage_cost"]
@@ -187,7 +254,14 @@ def run_experiment(arm_names: list[str], days: int, seed: int,
     for name in arm_names:
         policy = ARMS[name]()
         state = fresh_machine("sim-01", catalog, cfg, seed)
-        per_day = [run_day(policy, state, catalog, seed, d, cfg)
+        pool = None
+        if cfg.regulars > 0:
+            from vend.regulars import RegularPool
+            from vend.world import _profit_optimal_list_price, CATALOG_SPEC
+            market_ref = {s: _profit_optimal_list_price(mu, c)
+                          for s, mu, c, *_ in CATALOG_SPEC}
+            pool = RegularPool(cfg, seed, catalog, market_ref)
+        per_day = [run_day(policy, state, catalog, seed, d, cfg, pool)
                    for d in range(days)]
         totals = {k: round(sum(m[k] for m in per_day), 2)
                   for k in per_day[0] if isinstance(per_day[0][k], (int, float))}

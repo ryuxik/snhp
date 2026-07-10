@@ -283,3 +283,43 @@ Perfect-calibration, stationary world, 30 paired days:
    visible computed DISCOUNTS from a high anchor (our design) escape the
    fairness penalty that visible increases trigger (the dual-entitlement
    literature says yes).
+
+## Fairness v1 — reference prices, churn, and the harvest (PRELIMINARY)
+
+Built (`vend/regulars.py` + WorldConfig.regulars): a persistent pool of
+repeat customers with per-SKU reference prices (EWMA of paid, weaker for
+observed), loss-averse transaction utility (2.0× above reference, 0.5×
+below, +0.15/dollar deal-framing glow on visible discounts), sticker-shock
+on visits, dissatisfaction → permanent churn. 120 regulars, 90 days, seed 2:
+
+| anchor | arm | early $/d | late $/d | churned | reg deals |
+|---|---|---:|---:|---:|---:|
+| mixture | static | 100.5 | 100.5 | 0/120 | 2,512 |
+| mixture | a2a | 99.5 | 99.5 | 2/120 | 2,468 |
+| ×1.25 | static | 128.0 | 140.4 | **56/120** | 1,007 |
+| ×1.25 | a2a | 126.7 | 135.4 | **57/120** | 1,142 |
+
+**Preliminary findings, honestly:**
+1. In-model, the high anchor harvest SURVIVES churning half the regular
+   pool — but via survivor bias (churn removes the price-sensitive;
+   remaining whales pay more) plus a transient cushion (walk-ins have no
+   fairness memory) and NO pool replenishment (churned customers are never
+   replaced, so 90 days understates terminal damage). Static's "rising"
+   late profit is a melting ice cube presented as growth.
+2. The quote-protection hypothesis UNDER-DELIVERS as built: quotes fire on
+   only ~23% of regular visits, so most regulars face the raw ×1.25 board
+   and shock anyway. Three specific mechanisms identified, pre-registered
+   for v2: (a) below-reference payments should RELIEVE dissatisfaction
+   (transaction utility is symmetric; currently only pain accrues);
+   (b) quote-salience — in the scan-first UX the customer sees THEIR price,
+   not the board, so sticker-shock should key on the quote when one fires
+   (this is rung 2's entire design, now measurable); (c) the $1 flat
+   noise buffer is a 50% margin floor on a $2 item — it must scale with
+   transaction size (e.g. max($0.25, 10% of list×qty)).
+3. Fairness-aware agent disclosure (cap disclosed willingness at reference
+   tolerance) is implemented for regulars and necessary but not sufficient
+   — it raised regular deals 1,007→1,142 without moving churn.
+
+VERDICT SO FAR: do not ship the ×1.25 anchor on fairness-blind numbers;
+the safe-harvest number awaits v2's three fixes plus pool replenishment.
+Reproduce: WorldConfig(regulars=120, anchor_peak=True, anchor_mult=1.25).
