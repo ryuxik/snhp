@@ -407,7 +407,10 @@ def run_timeline_sweep(seasons: int, seed: int, out: str) -> int:
       (1) TIMELINE-OPTIMIZED vs FIXED LADDER — does opt/1 (learned appeal +
           returns-aware solve) beat markdown/1? optnl/1 (returns-aware solve on
           the STATIC estimate) isolates the return-timing half from the
-          learning half; at r=0 both reduce to markdown/1 by construction.
+          learning half; at r=0 only optnl/1 reduces to markdown/1 by
+          construction — opt/1 at r=0 is markdown/1 PLUS in-season learning, so
+          its nonzero r=0 gap over markdown/1 is the pure value of learning
+          (see policies.py:174-176), not a bug.
       (2) MARKDOWN-BEATS-CLIFF survival with the engine's BEST markdown arm.
 
     Paired seeds across ALL four arms per season; every Δ gets a paired t-CI;

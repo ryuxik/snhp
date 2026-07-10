@@ -520,7 +520,10 @@ def _attach_day(master_seed, day, rate, lam, arm):
             d_buyer = (w - shelf) if posted_ok else 0.0
             d_shop = (shelf - cost) if posted_ok else 0.0
             buffer = max(_ABS, _FRAC * ref)
-            p = nash_price(w, cost, d_buyer, d_shop, ref, buffer)
+            # discount-only ceiling = the shop's OWN posted sticker (shelf =
+            # λ × ref), consistent with the arrangement/event/delivery lines —
+            # a bilateral attach quote never charges more than the posted price.
+            p = nash_price(w, cost, d_buyer, d_shop, shelf, buffer)
             if p is not None:
                 profit += p - cost
                 revenue += p
