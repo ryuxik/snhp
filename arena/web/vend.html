@@ -1,85 +1,60 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>VEND — the price you see has already been negotiated</title>
-<meta name="description" content="Scan a snack; your agent and the machine agree a personal price before the screen lights up — never above the sticker, and you keep the difference. Watch the negotiation in 3D." />
+<title>VEND — the price you see was already negotiated</title>
+<meta name="description" content="Scan a snack; your agent and the machine settle a personal price before the screen lights up — never above the sticker, and you keep the difference. One reveal: sticker $4.00, you pay $2.90." />
 <link rel="stylesheet" href="nav.css" />
 <style>
   :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
           --gold:#ffe08a; --green:#7fc48f; --violet:#a78bfa; --blue:#8fd0ff; }
-  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--ink);
                font-family: ui-monospace, Menlo, monospace; }
-  .wrap { max-width: 640px; margin: 0 auto; padding: 34px 20px 80px; }
-  h1 { font-size: 27px; letter-spacing:.02em; line-height:1.25; margin:0 0 10px; text-wrap:balance; }
+  /* single screen: nav + centered hero, no scroll on desktop */
+  .wrap { max-width: 560px; margin: 0 auto; padding: 30px 20px 28px;
+          min-height: calc(100vh - 44px); display:flex; flex-direction:column; justify-content:center; }
+  h1 { font-size: 26px; letter-spacing:.01em; line-height:1.22; margin:0 0 8px; text-wrap:balance; }
   h1 b { color: var(--gold); }
-  p { color: var(--dim); font-size:13px; line-height:1.7; }
-  p b { color: var(--ink); }
-  a { color: var(--blue); }
-  .back { font-size:12px; margin-bottom:2px; }
-  .proto { display:inline-block; font-size:10.5px; letter-spacing:.14em; color:var(--gold);
-           border:1px solid rgba(255,224,138,.4); border-radius:6px; padding:3px 9px; margin:6px 0 14px; }
-  .lede { font-size:15px; color:var(--ink); line-height:1.6; margin:0 0 4px; }
-  .lede b { color:var(--gold); font-weight:700; }
+  .lede { color: var(--dim); font-size:13.5px; line-height:1.55; margin:0 0 18px; }
+  .lede b { color: var(--ink); }
 
-  /* ── hero artifact: one scan, one reveal ── */
+  /* ── HERO: one scan, one reveal (the whole argument in a picture) ── */
   .quote { background:#131022; border:1px solid var(--line); border-radius:14px;
-           padding:20px 22px 22px; margin:22px 0 18px; }
-  .quote .item { font-size:15px; font-weight:700; }
-  .per { font-size:12px; color:var(--dim); font-weight:400; }
-
-  .reveal { margin:16px 0 8px; }
+           padding:16px 18px 18px; box-shadow:0 16px 40px rgba(0,0,0,.4); }
+  .item { font-size:14.5px; font-weight:700; margin-bottom:12px; }
+  .item span { font-size:11.5px; color:var(--dim); font-weight:400; }
   .reveal-top { display:flex; justify-content:space-between; align-items:baseline;
-                font-size:11px; color:var(--dim); margin-bottom:8px; letter-spacing:.02em; }
+                font-size:11px; color:var(--dim); margin-bottom:7px; }
   .reveal-top s { color:var(--dim); }
-  .track { display:flex; height:66px; border-radius:10px; overflow:hidden;
+  .track { display:flex; height:70px; border-radius:10px; overflow:hidden;
            border:1px solid var(--line); background:#0e0b1c; }
-  .seg { display:flex; flex-direction:column; justify-content:center; padding:0 13px; min-width:0; overflow:hidden; }
-  .seg .amt { font-size:25px; font-weight:700; line-height:1; }
-  .seg .cap { font-size:10px; letter-spacing:.09em; text-transform:uppercase; margin-top:5px; white-space:nowrap; }
-  .seg.save .amt { font-size:22px; }
+  .seg { display:flex; flex-direction:column; justify-content:center; padding:0 14px; min-width:0; overflow:hidden; }
+  .seg .amt { font-size:26px; font-weight:700; line-height:1; }
+  .seg .cap { font-size:10px; letter-spacing:.09em; text-transform:uppercase; margin-top:6px; white-space:nowrap; }
   .seg.pay  { background:linear-gradient(180deg, rgba(127,196,143,.22), rgba(127,196,143,.07)); }
   .seg.pay  .amt, .seg.pay .cap { color:var(--green); }
   .seg.save { border-left:1px dashed rgba(255,224,138,.55);
               background:repeating-linear-gradient(135deg,
                 rgba(255,224,138,.15) 0 8px, rgba(255,224,138,.04) 8px 16px); }
-  .seg.save .amt, .seg.save .cap { color:var(--gold); }
-  .reveal-foot { font-size:11px; color:var(--dim); margin-top:8px; }
+  .seg.save .amt { font-size:22px; } .seg.save .amt, .seg.save .cap { color:var(--gold); }
+  .foot { font-size:11px; color:var(--dim); margin-top:9px; text-align:center; }
 
-  .why { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
-  .why span { font-size:11px; color:var(--violet); border:1px solid var(--line);
-              border-radius:999px; padding:3px 10px; }
+  /* one-line proofs — scannable, no paragraphs */
+  .proofs { list-style:none; margin:16px 0 0; padding:0; display:grid; gap:8px; }
+  .proofs li { font-size:12px; color:var(--dim); line-height:1.4; display:flex; gap:9px; align-items:baseline; }
+  .proofs .mk { color:var(--green); flex:0 0 auto; }
+  .proofs b { color:var(--ink); }
 
-  .cta { display:block; width:100%; box-sizing:border-box; border:none; cursor:pointer;
-         font-family:inherit; padding:13px 18px; border-radius:10px; font-size:13.5px;
-         font-weight:700; letter-spacing:.04em; background:var(--gold); color:#0a0812; margin-top:16px; }
-  .secondary { text-align:center; margin:10px 0 0; }
-  .link-btn { background:none; border:none; cursor:pointer; font-family:inherit;
-              font-size:12px; color:var(--blue); text-decoration:underline; padding:4px; }
-
-  /* ── the proof, honestly ── */
-  .proof { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:22px 0 12px; }
-  .stat { background:#131022; border:1px solid var(--line); border-radius:12px; padding:14px 15px; }
-  .stat .k { font-size:13px; font-weight:700; margin-bottom:6px; line-height:1.25; }
-  .stat .v { font-size:11.5px; color:var(--dim); line-height:1.55; }
-  .stat .v b { color:var(--ink); }
-  .stat.vi .k { color:var(--violet); }
-  .stat.g  .k { color:var(--gold); }
-  .stat.gr .k { color:var(--green); }
-  .src { font-size:11px; color:var(--dim); line-height:1.6; margin-top:6px; }
-
+  .cta { display:block; text-align:center; text-decoration:none; margin-top:18px;
+         background:var(--gold); color:#0a0812; font-weight:700; font-size:13.5px;
+         letter-spacing:.03em; padding:13px 18px; border-radius:10px; }
+  .cta:hover { filter:brightness(1.06); }
+  .src { font-size:11px; color:#6f6a86; line-height:1.6; margin:12px 0 0; text-align:center; }
+  .src a { color:var(--blue); }
   @media (max-width:560px){
-    .proof { grid-template-columns:1fr; }
-    .seg { padding:0 9px; }
-    .seg.pay  .amt { font-size:20px; }
-    .seg.save .amt { font-size:16px; }
-    .seg .cap { font-size:8.5px; letter-spacing:.06em; }
+    .wrap { min-height:auto; justify-content:flex-start; padding-top:22px; }
+    h1 { font-size:22px; } .seg { padding:0 10px; }
+    .seg.pay .amt { font-size:21px; } .seg.save .amt { font-size:17px; }
   }
-
-  #theater { position:fixed; inset:0; display:none; background:var(--bg); z-index:50; }
-  #theater.on { display:block; }
-  #closeTheater { position:fixed; top:14px; right:14px; z-index:100002; display:none;
-                  background:#131022; color:var(--ink); border:1px solid var(--line);
-                  border-radius:9px; padding:8px 14px; font-family:inherit; font-size:13px; cursor:pointer; }
-  #closeTheater.on { display:block; }
 </style>
 
 <nav class="snhp-nav" aria-label="SNHP arena sections">
@@ -95,180 +70,30 @@
   </ul>
 </nav>
 
-<div class="wrap" id="page">
-  <p class="back"><a href="leaderboard.html">← the negotiation leaderboard</a></p>
-  <span class="proto">PROTOTYPE · canned match — live A2A matches ship with VEND P1</span>
+<div class="wrap">
+  <h1>The price you see was <b>already negotiated</b>.</h1>
+  <p class="lede">You scanned a snack — your agent quietly settled a price with the machine, just for you.</p>
 
-  <h1>The price you see has <b>already been negotiated</b>.</h1>
-  <p class="lede">You scanned a snack. Before this screen lit up, <b>your agent</b> and
-    <b>the machine</b> settled a price just for you — never above the sticker, and the
-    difference is yours to keep.</p>
-
-  <!-- HERO ARTIFACT: the price reveal. The full track = the $4.00 sticker; the green
-       slice is what you pay, the gold slice is your saving. Shows "never above the
-       sticker" (nothing sticks out past the tag) and "the gap goes to you" in one look. -->
+  <!-- HERO: the reveal. Full bar = the $4.00 sticker; green = what you pay, gold = your saving.
+       Nothing sticks out past the tag (never a markup) and the gap goes to you — one look. -->
   <div class="quote">
-    <div class="item">🥪 deli sandwich × 2 <span class="per">· the one expiring tonight</span></div>
-
-    <div class="reveal">
-      <div class="reveal-top">
-        <span>your negotiated price</span>
-        <span>sticker <s>$4.00</s></span>
-      </div>
-      <div class="track" role="img"
-           aria-label="You pay $2.90 of a $4.00 sticker; the $1.10 difference is your saving.">
-        <div class="seg pay" style="flex:0 0 72.5%">
-          <span class="amt">$2.90</span><span class="cap">you pay</span>
-        </div>
-        <div class="seg save" style="flex:0 0 27.5%">
-          <span class="amt">$1.10</span><span class="cap">28% off</span>
-        </div>
-      </div>
-      <div class="reveal-foot">A quote can only discount the tag — it can never mark it up.</div>
+    <div class="item">🥪 deli sandwich × 2 <span>· the one expiring tonight</span></div>
+    <div class="reveal-top"><span>your price</span><span>sticker <s>$4.00</s></span></div>
+    <div class="track" role="img" aria-label="You pay $2.90 of a $4.00 sticker; the $1.10 difference is your saving.">
+      <div class="seg pay" style="flex:0 0 72.5%"><span class="amt">$2.90</span><span class="cap">you pay</span></div>
+      <div class="seg save" style="flex:0 0 27.5%"><span class="amt">$1.10</span><span class="cap">28% off</span></div>
     </div>
-
-    <div class="why">
-      <span>×2 units</span><span>expiring tonight</span><span>off-peak</span><span>vs $4.60 nearby</span>
-    </div>
-
-    <button class="cta" id="watch">▶ WATCH YOUR AGENT WIN THIS PRICE — IN 3D</button>
-    <p class="secondary">
-      <button class="link-btn" id="watchReal">or watch a real engine match (2 rounds, 88% of frontier) →</button>
-    </p>
+    <div class="foot">A quote can only discount the tag, never mark it up — a rule in the code.</div>
   </div>
 
-  <!-- THE PROOF, honestly — three measured claims, no paragraph required to read them -->
-  <div class="proof">
-    <div class="stat vi">
-      <div class="k">Never above the sticker</div>
-      <div class="v">Every quote is a discount from the tag, never a markup — <b>an
-        unbreakable rule in the code</b>, not a promise.</div>
-    </div>
-    <div class="stat g">
-      <div class="k">The machine doesn't lose</div>
-      <div class="v">Against a well-set sticker it earns the <b>same</b> — a statistical
-        tie (+$0.08/day). It earns <b>more</b> only where the sticker was mis-set
-        (up to <b>+$2.60/day</b>).</div>
-    </div>
-    <div class="stat gr">
-      <div class="k">You keep the difference</div>
-      <div class="v">Measured shopper surplus over the best posted price a store could
-        run: <b>+$0.73/day</b> per machine — a real win, the interval clears zero.</div>
-    </div>
-  </div>
+  <ul class="proofs">
+    <li><span class="mk">✓</span><span><b>The machine still makes its money</b> — your discount isn't its loss.</span></li>
+    <li><span class="mk">✓</span><span><b>You keep the difference</b> — your savings, measured every day.</span></li>
+  </ul>
 
-  <p class="src">
-    Numbers from 90-day paired simulations, <a href="https://snhp.dev" rel="noopener">SNHP</a>
-    whitepaper §5a–§5b. The durable edge is the shopper's surplus, not the machine's margin —
-    a fair sticker gives the machine a tie, a personal price gives every shopper a discount.
-    See <a href="leaderboard.html">the leaderboard it's benchmarked on</a>.
-  </p>
+  <a class="cta" href="demo.html">Walk through it yourself →</a>
+  <p class="src">Real 90-day paired simulations · <a href="https://snhp.dev">whitepaper</a> §5a–§5b ·
+    benchmarked on <a href="leaderboard.html">the leaderboard</a></p>
 </div>
 
-<div id="theater"></div>
-<button id="closeTheater">✕ close</button>
-
-<script>
-  // Canned prototype match in the theater's native schema (see
-  // arena/gauntlet/replay.py::match_to_duel_script). pos: 1 = machine-favorable.
-  const VEND_SCRIPT = {
-    issues: ["PRICE", "ITEM", "QUANTITY"],
-    names: { seller: "THE MACHINE", buyer: "YOUR AGENT" },
-    origins: { seller: "stock 6 · expires tonight · off-peak",
-               buyer: "your preferences · bodega BATNA $4.60" },
-    subtitle: "prototype: one vend negotiation over item × quantity × price",
-    truth: {
-      wantS: { PRICE: 1.0, ITEM: 1.0, QUANTITY: 1.0 },
-      wantB: { PRICE: 0.0, ITEM: 0.0, QUANTITY: 0.0 },
-      // the logroll: the machine's top priority is ITEM (move the expiring
-      // stock), the buyer's is PRICE — the final package pays each side in
-      // its own currency: buyer .5635 / machine .623, both above naive .50
-      weightS: { PRICE: 0.35, ITEM: 0.45, QUANTITY: 0.20 },
-      weightB: { PRICE: 0.55, ITEM: 0.20, QUANTITY: 0.25 },
-    },
-    turns: [
-      { actor: "prime", pos: { PRICE: 1.00, ITEM: 1.00, QUANTITY: 1.00 } },
-      { actor: "chal",  pos: { PRICE: 0.00, ITEM: 0.00, QUANTITY: 0.25 } },
-      { actor: "prime", pos: { PRICE: 0.66, ITEM: 1.00, QUANTITY: 0.80 } },
-      { actor: "chal",  pos: { PRICE: 0.10, ITEM: 0.55, QUANTITY: 0.45 } },
-      { actor: "prime", pos: { PRICE: 0.34, ITEM: 1.00, QUANTITY: 0.60 } },
-      { actor: "chal",  pos: { PRICE: 0.18, ITEM: 1.00, QUANTITY: 0.55 } },
-      { actor: "prime", pos: { PRICE: 0.18, ITEM: 1.00, QUANTITY: 0.55 } },
-    ],
-    reveal: {
-      naive: 0.61, snhp: 0.86, ceiling: 0.90, label: "this deal",
-      line: "Your agent took the expiring sandwich — and a second unit — and " +
-            "got paid for both in price: $2.90 vs the $4.00 sticker. The " +
-            "machine cleared stock it was hours from salvaging. Both sides " +
-            "beat the sticker.",
-    },
-    meta: { model: "vend-prototype", condition: "a2a", role: "buyer",
-            scenario_id: "vend-demo", deal: true },
-  };
-
-  const DUEL_SCRIPTS = [
-    "vendor/three.min.js",
-    "vendor/three-addons/CopyShader.js",
-    "vendor/three-addons/LuminosityHighPassShader.js",
-    "vendor/three-addons/GammaCorrectionShader.js",
-    "vendor/three-addons/FXAAShader.js",
-    "vendor/three-addons/EffectComposer.js",
-    "vendor/three-addons/RenderPass.js",
-    "vendor/three-addons/ShaderPass.js",
-    "vendor/three-addons/MaskPass.js",
-    "vendor/three-addons/UnrealBloomPass.js",
-    "duel3d.js?v=49",
-  ];
-  const loadScript = (src) => new Promise((res, rej) => {
-    const s = document.createElement("script");
-    s.src = src; s.onload = res; s.onerror = () => rej(new Error(src));
-    document.head.appendChild(s);
-  });
-  let duelReady = null, mounted = false;   // promise memo: concurrent-click safe
-  function loadDuel() {
-    if (!duelReady) {
-      duelReady = (async () => {
-        for (const src of DUEL_SCRIPTS) await loadScript(src); // UMD chain: order matters
-      })().catch((e) => { duelReady = null; throw e; });       // failed load is retryable
-    }
-    return duelReady;
-  }
-
-  const theater = document.getElementById("theater");
-  const closeBtn = document.getElementById("closeTheater");
-  const page = document.getElementById("page");
-  let realScripts = null;
-  async function playScript(b, script) {
-    b.disabled = true; const prev = b.textContent; b.textContent = "… loading the theater";
-    try { await loadDuel(); }
-    catch (e) { b.disabled = false; b.textContent = "load failed — tap to retry"; return; }
-    b.disabled = false; b.textContent = prev;
-    theater.classList.add("on"); closeBtn.classList.add("on");
-    page.style.display = "none";
-    if (!mounted) { Arena.duel3d.mount(theater); mounted = true; }
-    Arena.duel3d.play(script);
-  }
-  document.getElementById("watch").addEventListener("click",
-    (ev) => playScript(ev.currentTarget, VEND_SCRIPT));
-  document.getElementById("watchReal").addEventListener("click", async (ev) => {
-    const b = ev.currentTarget;
-    if (!realScripts) {
-      try {
-        const res = await fetch("vend-replays.json");
-        if (!res.ok) throw new Error(res.status);
-        const arr = await res.json();
-        if (!Array.isArray(arr) || arr.length === 0) {
-          b.disabled = true; b.textContent = "no real replays yet"; return;
-        }
-        realScripts = arr;
-      } catch (e) { b.textContent = "replays unavailable — tap to retry"; return; }
-    }
-    playScript(b, realScripts[0]);
-  });
-  closeBtn.addEventListener("click", () => {
-    if (window.Arena && Arena.duel3d) Arena.duel3d.stop();
-    theater.classList.remove("on"); closeBtn.classList.remove("on");
-    page.style.display = "";
-  });
-  try { navigator.sendBeacon("/hit", JSON.stringify({ p: "vend" })); } catch (e) {}
-</script>
+<script>try { navigator.sendBeacon("/hit", JSON.stringify({ p: "vend" })); } catch (e) {}</script>

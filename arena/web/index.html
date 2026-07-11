@@ -16,10 +16,10 @@
 <link rel="stylesheet" href="nav.css" />
 <style>
   /* The world (#stage) is position:fixed — an isolating stacking context — so
-     the nav lives INSIDE it as an absolute top bar (z 27): above the canvas and
-     HUD (<=26), below the full-screen overlays (z 30) so onboarding/honest/etc
+     the nav lives INSIDE it as an absolute top bar (z 28, from nav.css): above the
+     canvas and HUD (<=26), below the full-screen overlays (z 30) so onboarding/honest/etc
      cover it cleanly. Then nudge the top-docked HUD below the bar. */
-  #stage > .snhp-nav { position: absolute; top: 0; left: 0; right: 0; z-index: 27; }
+  #stage > .snhp-nav { position: absolute; top: 0; left: 0; right: 0; }  /* z-index inherits nav.css's 28 for parity */
   #era-banner, #conn-chip { top: calc(var(--gutter) + 48px); }
   #leaderboard { top: calc(var(--gutter) + 48px); max-height: 38vh; }
   @media (max-width: 720px) {

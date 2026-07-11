@@ -1,584 +1,307 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>SNHP — onboard a stranger, then negotiate their cart</title>
-<meta name="description" content="A stranger onboards in three taps; the agent learns enough of their utility curve to negotiate the cart in front of them — silently, never above sticker. The learning is real: every band and every dollar is a recorded run of buyer/preflearn.py (active preference elicitation) driving vend's negotiation." />
+<title>SNHP — walk into the bodega, watch your cart price itself</title>
+<meta name="description" content="A first-person pixel bodega. Answer three posters on the door, walk in, and watch each item on the register count down from its sticker price to the price the agent negotiated for you — silently, never above sticker. Every dollar is a recorded run of buyer/preflearn.py (active preference learning), not a script." />
 <meta name="theme-color" content="#0b0916" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0916'/%3E%3Crect x='2' y='9' width='2' height='4' fill='%237fc48f'/%3E%3Crect x='5' y='6' width='2' height='7' fill='%23a78bfa'/%3E%3Crect x='8' y='4' width='2' height='9' fill='%23ffe08a'/%3E%3Crect x='11' y='7' width='2' height='6' fill='%238fd0ff'/%3E%3C/svg%3E" />
 <link rel="stylesheet" href="nav.css" />
+
+<!-- POLISH: this is a FIRST working version of the immersive rebuild. The pixel
+     art (storefront/interior fidelity), the poster-rip feel, the walk-in dolly,
+     the price-countdown easing and receipt print timing are structured with
+     named act functions and tunable constants (TUNE in demo-scene.js) so the
+     art/animation pass is easy. Every price/question/saving is read live from
+     demo-trace.json (scenarios.hero) — nothing is hardcoded. -->
+
 <style>
-  :root { --bg:#0b0916; --panel:#131022; --panel2:#0e0b1c; --ink:#f0eff5; --dim:#9a95b0;
-          --line:rgba(167,139,250,.22); --gold:#ffe08a; --green:#7fc48f; --violet:#a78bfa;
-          --blue:#8fd0ff; --pink:#e58ab4; }
-  * { box-sizing:border-box; }
-  html,body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
-              font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
-              -webkit-font-smoothing:antialiased; }
-  a { color:var(--blue); }
-  .wrap { max-width:760px; margin:0 auto; padding:22px 18px 90px; }
+  :root {
+    --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0;
+    --line:rgba(167,139,250,.22); --gold:#ffe08a; --green:#7fc48f;
+    --violet:#a78bfa; --blue:#8fd0ff; --pink:#e58ab4;
+    --paper:#f2e7cf; --paper2:#e6d8b6; --paper-ink:#2a2417;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+    --navH:44px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; background:var(--bg); overflow:hidden; }
+  body {
+    font-family:var(--mono); color:var(--ink);
+    -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent;
+    user-select:none;
+  }
 
-  /* header */
-  .proto { display:inline-block; font-size:10px; letter-spacing:.14em; color:var(--gold);
-           border:1px solid rgba(255,224,138,.4); border-radius:6px; padding:3px 9px; margin:2px 0 12px; }
-  h1 { font-size:26px; line-height:1.24; letter-spacing:.01em; margin:0 0 8px; text-wrap:balance; }
-  h1 b { color:var(--gold); }
-  .lede { color:var(--dim); font-size:13.5px; line-height:1.65; margin:0 0 6px; max-width:60ch; }
-  .lede b { color:var(--ink); }
+  /* ── full-viewport stage (modeled on block/styles.css) ─────────────────── */
+  #stage {
+    position:fixed; inset:0;
+    background:radial-gradient(135% 120% at 50% 38%, #17101f 0%, #0b0916 78%);
+    overflow:hidden;
+  }
+  #view {
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    image-rendering:pixelated; image-rendering:crisp-edges; cursor:pointer;
+  }
 
-  .toprow { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0 6px; }
-  .btn { font-family:inherit; cursor:pointer; border:none; border-radius:10px; font-weight:700;
-         letter-spacing:.03em; padding:11px 16px; font-size:13px; }
-  .btn.primary { background:var(--gold); color:#0a0812; }
-  .btn.ghost { background:rgba(167,139,250,.12); color:var(--ink); border:1px solid var(--line); }
-  .btn:disabled { opacity:.4; cursor:default; }
-  .scenario-tabs { display:flex; gap:6px; margin-left:auto; }
-  .scenario-tabs button { font-family:inherit; cursor:pointer; font-size:11px; letter-spacing:.03em;
-         padding:7px 11px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--dim); }
-  .scenario-tabs button.on { color:var(--gold); border-color:rgba(255,224,138,.4); background:rgba(255,224,138,.1); }
+  /* nav sits inside the stage, pinned top (z-index 28 inherited from nav.css) */
+  #stage > .snhp-nav { position:absolute; top:0; left:0; right:0; }
 
-  section { background:var(--panel); border:1px solid var(--line); border-radius:16px;
-            padding:18px 18px 20px; margin:16px 0; }
-  .sec-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:4px; }
-  .sec-num { font-size:10.5px; letter-spacing:.2em; color:var(--violet); text-transform:uppercase; }
-  .sec-title { font-size:15px; font-weight:700; }
-  .sec-sub { color:var(--dim); font-size:12px; line-height:1.55; margin:6px 0 0; }
+  /* ── overlay layer ─────────────────────────────────────────────────────── */
+  #overlay { position:absolute; inset:0; pointer-events:none; z-index:12; }
+  #overlay > * { position:absolute; }
+  .hidden { display:none !important; }
 
-  /* onboard */
-  .dots { display:flex; gap:7px; margin:12px 0 10px; }
-  .dot { width:26px; height:5px; border-radius:3px; background:rgba(255,255,255,.09); transition:background .3s; }
-  .dot.done { background:var(--green); }
-  .dot.active { background:var(--gold); }
-  .q-prompt { font-size:15px; font-weight:700; margin:6px 0 12px; min-height:1.4em; }
-  .q-opts { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .q-opt { font-family:inherit; cursor:pointer; text-align:left; border:1px solid var(--line);
-           background:var(--panel2); color:var(--ink); border-radius:12px; padding:15px 15px;
-           font-size:14px; font-weight:600; transition:border-color .15s, background .15s, transform .1s; }
-  .q-opt:hover { border-color:rgba(255,224,138,.5); background:rgba(255,224,138,.06); }
-  .q-opt:active { transform:translateY(1px); }
-  .q-opt small { display:block; color:var(--dim); font-weight:400; font-size:11px; margin-top:5px; letter-spacing:.02em; }
-  .q-opt.picked { border-color:var(--gold); background:rgba(255,224,138,.1); }
-  .onboard-done { color:var(--green); font-size:12.5px; margin-top:10px; display:none; }
+  /* top kicker — "what am I looking at", sits just under the nav */
+  #kicker {
+    top:calc(var(--navH) + 10px); left:50%; transform:translateX(-50%);
+    text-align:center; white-space:nowrap; pointer-events:none;
+    font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--gold);
+    text-shadow:0 2px 10px rgba(0,0,0,.9);
+    transition:opacity .5s ease;
+  }
+  #kicker b { color:var(--ink); font-weight:700; }
+  /* the shared nav wraps to two rows on narrow screens — drop the kicker below it */
+  @media (max-width:640px){ #kicker { top:104px; font-size:9.5px; letter-spacing:.1em; white-space:normal; max-width:90vw; } }
 
-  /* curve */
-  .curve-wrap { margin:8px 0 2px; }
-  svg.curve { width:100%; height:auto; display:block; overflow:visible; }
-  .curve-cap { display:flex; justify-content:space-between; gap:10px; color:var(--dim); font-size:11px; margin-top:6px; }
-  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:11px; color:var(--dim); margin-top:8px; }
-  .legend i { display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:5px; vertical-align:-1px; }
+  /* tap-to-continue affordance — faint, bottom center */
+  #hint {
+    bottom:20px; left:50%; transform:translateX(-50%);
+    font-size:11px; letter-spacing:.08em; color:var(--dim);
+    background:rgba(11,9,22,.55); border:1px solid var(--line);
+    border-radius:999px; padding:5px 13px; pointer-events:none;
+    opacity:0; transition:opacity .45s ease; text-align:center; white-space:nowrap;
+  }
+  #hint.show { opacity:.92; animation:hintpulse 2.4s ease-in-out infinite; }
+  @keyframes hintpulse { 0%,100%{ opacity:.5 } 50%{ opacity:.95 } }
 
-  /* shop */
-  .cart { margin-top:10px; }
-  .row { display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px;
-         padding:12px 4px; border-bottom:1px solid rgba(255,255,255,.06); }
-  .row:last-child { border-bottom:none; }
-  .row .name { font-size:14px; font-weight:700; }
-  .row .sub { color:var(--dim); font-size:11px; margin-top:3px; }
-  .row .right { text-align:right; min-width:150px; }
-  .list-price { color:var(--dim); font-size:12px; }
-  .list-price.struck { text-decoration:line-through; opacity:.65; }
-  .neg { color:var(--violet); font-size:12px; }
-  .neg .spin { display:inline-block; animation:spin 1s linear infinite; }
-  @keyframes spin { to { transform:rotate(360deg); } }
-  .you { font-size:16px; font-weight:700; color:var(--green); }
-  .saved-chip { display:inline-block; font-size:11px; color:var(--gold); font-weight:700;
-                background:repeating-linear-gradient(135deg,rgba(255,224,138,.16) 0 7px,rgba(255,224,138,.04) 7px 14px);
-                border:1px solid rgba(255,224,138,.4); border-radius:999px; padding:2px 8px; margin-top:5px; }
-  .reveal-anim { animation:pop .45s cubic-bezier(.2,1.3,.5,1); }
-  @keyframes pop { from { opacity:0; transform:translateY(6px) scale(.96);} to { opacity:1; transform:none; } }
-  .cart-total { display:flex; justify-content:space-between; align-items:baseline; margin-top:14px;
-                padding-top:14px; border-top:1px dashed var(--line); }
-  .cart-total .big { font-size:24px; font-weight:800; color:var(--gold); }
-  .cart-total .cap { font-size:11px; color:var(--dim); letter-spacing:.03em; }
-  .add-cta { margin-top:12px; }
-  .muted { color:var(--dim); }
+  /* ── ACT 1 · posters on the door ───────────────────────────────────────── */
+  #posters { pointer-events:none; }
+  .poster {
+    position:absolute; left:50%; top:0;
+    width:min(90vw, 400px);
+    transform:translate(-50%,0) rotate(var(--tilt,-1.2deg));
+    background:linear-gradient(180deg, var(--paper) 0%, var(--paper2) 100%);
+    color:var(--paper-ink);
+    border-radius:3px; padding:16px 17px 17px;
+    box-shadow:0 14px 34px rgba(0,0,0,.55), inset 0 0 0 1px rgba(120,96,40,.25);
+    pointer-events:auto;
+    /* torn top + bottom edge via a jagged clip */
+    clip-path:polygon(0 4px,4% 0,9% 5px,15% 1px,22% 5px,30% 0,38% 5px,47% 1px,
+      56% 5px,64% 0,72% 5px,81% 1px,89% 5px,95% 0,100% 4px,
+      100% calc(100% - 4px),95% 100%,88% calc(100% - 5px),80% 99%,
+      70% calc(100% - 5px),60% 100%,50% calc(100% - 5px),40% 100%,
+      30% calc(100% - 5px),20% 99%,12% calc(100% - 5px),5% 100%,0 calc(100% - 4px));
+    transition:transform .5s cubic-bezier(.4,.05,.35,1), opacity .5s ease;
+  }
+  .poster::before, .poster::after { /* tape corners */
+    content:""; position:absolute; top:-9px; width:44px; height:19px;
+    background:rgba(226,220,190,.5); border:1px solid rgba(255,255,255,.35);
+    box-shadow:0 1px 3px rgba(0,0,0,.3);
+  }
+  .poster::before { left:12px; transform:rotate(-24deg); }
+  .poster::after  { right:12px; transform:rotate(22deg); }
+  .poster.ripping {
+    transform:translate(-58%,-38%) rotate(-26deg) skewY(6deg) scale(.9);
+    opacity:0; transform-origin:top left;
+  }
+  .poster .p-num {
+    font-size:10px; letter-spacing:.22em; text-transform:uppercase;
+    color:#8a6a2a; font-weight:700; margin-bottom:6px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .poster .p-num .pin { color:#b03a2e; }
+  .poster .p-prompt { font-size:16px; line-height:1.3; font-weight:700; margin-bottom:13px; text-wrap:balance; }
+  .poster .p-opts { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .poster .p-opts.stack { grid-template-columns:1fr; }
+  .poster .p-opt {
+    font-family:var(--mono); cursor:pointer; text-align:center;
+    border:1.5px solid rgba(120,96,40,.4); background:rgba(255,252,240,.7);
+    color:var(--paper-ink); border-radius:9px; padding:12px 10px;
+    font-size:14px; font-weight:700; line-height:1.25;
+    transition:border-color .14s, background .14s, transform .08s;
+  }
+  .poster .p-opt:hover { border-color:#b03a2e; background:#fff; }
+  .poster .p-opt:active { transform:translateY(1px); }
+  @media (max-width:420px){ .poster .p-prompt { font-size:14.5px; } .poster .p-opt { font-size:13px; padding:11px 8px; } }
 
-  /* coda */
-  .coda-items { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px; }
-  .coda-item { background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px 11px; }
-  .coda-item .n { font-size:12.5px; font-weight:700; }
-  .coda-item .p { font-size:11px; color:var(--dim); margin-top:4px; }
-  .coda-item .s { font-size:12px; color:var(--green); font-weight:700; margin-top:5px; }
+  /* ── ACT 3 · the register readout ──────────────────────────────────────── */
+  #register {
+    left:50%; transform:translateX(-50%);
+    width:min(92vw, 430px); pointer-events:none;
+    background:linear-gradient(180deg, rgba(18,15,32,.94), rgba(12,10,24,.96));
+    border:1px solid var(--line); border-radius:14px;
+    padding:12px 14px 14px;
+    box-shadow:0 18px 48px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.05);
+    opacity:0; transition:opacity .5s ease;
+  }
+  #register.show { opacity:1; }
+  #register .reg-head {
+    display:flex; align-items:baseline; justify-content:space-between;
+    font-size:10px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--violet); margin-bottom:8px;
+  }
+  #register .reg-head .live { color:var(--green); }
+  .reg-row {
+    display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px;
+    padding:9px 2px; border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  .reg-row:last-of-type { border-bottom:none; }
+  .reg-row .rn { font-size:14px; font-weight:700; }
+  .reg-row .rs { font-size:10.5px; color:var(--dim); margin-top:2px; letter-spacing:.02em; }
+  .reg-row .rp { text-align:right; font-variant-numeric:tabular-nums; }
+  .reg-row .sticker { font-size:11px; color:var(--dim); }
+  .reg-row .sticker.struck { text-decoration:line-through; opacity:.6; }
+  .reg-row .now {
+    font-size:18px; font-weight:800; color:var(--gold); line-height:1.15;
+    transition:color .3s;
+  }
+  .reg-row.settled .now { color:var(--green); }
+  .reg-row .chip {
+    display:inline-block; font-size:10px; font-weight:700; color:var(--gold);
+    background:repeating-linear-gradient(135deg,rgba(255,224,138,.16) 0 7px,rgba(255,224,138,.04) 7px 14px);
+    border:1px solid rgba(255,224,138,.4); border-radius:999px; padding:1px 7px; margin-top:4px;
+    opacity:0; transform:translateY(3px); transition:opacity .3s, transform .3s;
+  }
+  .reg-row.settled .chip { opacity:1; transform:none; }
+  #register .reg-total {
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-top:11px; padding-top:11px; border-top:1px dashed var(--line);
+  }
+  #register .reg-total .cap { font-size:10.5px; color:var(--dim); letter-spacing:.03em; }
+  #register .reg-total .big { font-size:22px; font-weight:800; color:var(--gold); font-variant-numeric:tabular-nums; }
+  #register .reg-total .sub { font-size:11px; color:var(--dim); text-align:right; }
 
-  /* honesty */
-  .honesty { background:var(--panel2); }
-  .honesty h3 { font-size:13px; margin:0 0 8px; color:var(--ink); }
-  .honesty p { font-size:12px; color:var(--dim); line-height:1.65; margin:0 0 10px; }
-  .kv { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font-size:11.5px; margin:8px 0; }
-  .kv dt { color:var(--violet); }
-  .kv dd { margin:0; color:var(--dim); word-break:break-word; }
-  code { background:rgba(255,255,255,.06); border:1px solid var(--line); border-radius:5px;
-         padding:1px 6px; font-size:11.5px; color:var(--ink); }
-  .capbars { display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 4px; }
-  .capbar { flex:1 1 180px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
-  .capbar .lab { font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--dim); }
-  .capbar .val { font-size:20px; font-weight:800; margin-top:3px; }
-  .capbar .ci { font-size:10.5px; color:var(--dim); margin-top:2px; }
-  .foot { color:var(--dim); font-size:11px; line-height:1.6; margin-top:14px; }
-  .foot a { color:var(--blue); }
-  .narrate { position:sticky; bottom:0; z-index:5; margin:0 -18px -20px; padding:12px 18px;
-             background:linear-gradient(0deg,rgba(11,9,22,.96),rgba(11,9,22,.72));
-             border-top:1px solid var(--line); font-size:12.5px; color:var(--gold); display:none; }
-  .err { color:var(--pink); font-size:12px; }
-  @media (max-width:560px){ h1{font-size:22px;} .row .right{min-width:120px;} .coda-items{grid-template-columns:1fr;} }
+  /* ── ACT 4 · the printed receipt ───────────────────────────────────────── */
+  #receipt {
+    left:50%; transform:translateX(-50%);
+    width:min(88vw, 340px); pointer-events:auto;
+    background:linear-gradient(180deg, #f6efe0 0%, #efe6d2 100%);
+    color:var(--paper-ink);
+    padding:18px 18px 20px;
+    box-shadow:0 22px 60px rgba(0,0,0,.6);
+    /* perforated top + bottom edge */
+    clip-path:polygon(0 6px,4% 0,8% 6px,12% 0,16% 6px,20% 0,24% 6px,28% 0,32% 6px,
+      36% 0,40% 6px,44% 0,48% 6px,52% 0,56% 6px,60% 0,64% 6px,68% 0,72% 6px,
+      76% 0,80% 6px,84% 0,88% 6px,92% 0,96% 6px,100% 0,
+      100% calc(100% - 6px),96% 100%,92% calc(100% - 6px),88% 100%,84% calc(100% - 6px),
+      80% 100%,76% calc(100% - 6px),72% 100%,68% calc(100% - 6px),64% 100%,60% calc(100% - 6px),
+      56% 100%,52% calc(100% - 6px),48% 100%,44% calc(100% - 6px),40% 100%,36% calc(100% - 6px),
+      32% 100%,28% calc(100% - 6px),24% 100%,20% calc(100% - 6px),16% 100%,12% calc(100% - 6px),
+      8% 100%,4% calc(100% - 6px),0 100%);
+    transform-origin:top center;
+    transition:transform .1s;
+  }
+  #receipt.printing { animation:print .9s cubic-bezier(.2,.7,.3,1) both; }
+  @keyframes print { from { transform:translateX(-50%) scaleY(.02); opacity:.4; } to { transform:translateX(-50%) scaleY(1); opacity:1; } }
+  #receipt .r-logo { text-align:center; font-size:13px; font-weight:800; letter-spacing:.18em; }
+  #receipt .r-sub { text-align:center; font-size:9px; letter-spacing:.1em; color:#7a6a44; margin-top:2px; text-transform:uppercase; }
+  #receipt .r-rule { border-top:1px dashed rgba(90,72,32,.5); margin:11px 0; }
+  #receipt .r-line { display:flex; align-items:baseline; justify-content:space-between; font-size:12.5px; margin:6px 0; }
+  #receipt .r-line .rl-n { color:var(--paper-ink); }
+  #receipt .r-line .rl-p { font-variant-numeric:tabular-nums; }
+  #receipt .r-line .rl-p s { color:#9a7a44; margin-right:6px; }
+  #receipt .r-line .rl-p b { color:#2a6a3a; font-weight:800; }
+  #receipt .r-line .rl-save { font-size:10px; color:#8a6a2a; }
+  #receipt .r-total { display:flex; align-items:baseline; justify-content:space-between; margin-top:8px; }
+  #receipt .r-total .lab { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#7a5a24; font-weight:700; }
+  #receipt .r-total .amt { font-size:26px; font-weight:900; color:#1f5a2e; font-variant-numeric:tabular-nums; }
+  #receipt .r-pct { text-align:right; font-size:10.5px; color:#7a6a44; margin-top:1px; }
+  #receipt .r-caveat { font-size:9px; line-height:1.45; color:#6a5a34; margin-top:12px; }
+  #receipt .r-links { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+  #receipt .r-links a {
+    font-family:var(--mono); font-size:10.5px; font-weight:700; text-decoration:none;
+    color:#3a2e14; background:rgba(120,96,40,.14); border:1px solid rgba(120,96,40,.4);
+    border-radius:7px; padding:6px 9px; letter-spacing:.02em;
+  }
+  #receipt .r-links a:hover { background:rgba(120,96,40,.26); }
+  #receipt .r-repro { font-size:8.5px; color:#7a6a44; margin-top:10px; text-align:center; letter-spacing:.02em; }
+
+  /* honesty caveat, always visible bottom-left */
+  #caveat {
+    bottom:14px; left:12px; max-width:44vw; pointer-events:auto;
+    font-size:8.5px; line-height:1.4; letter-spacing:.03em;
+    color:#cdae76; text-align:left;
+    background:rgba(240,198,116,.08); border:1px solid rgba(240,198,116,.24);
+    border-radius:8px; padding:5px 9px;
+  }
+  #caveat b { color:#ffe0a0; }
+  @media (max-width:560px){ #caveat { max-width:58vw; font-size:8px; } #hint { bottom:60px; } }
+
+  /* replay button, bottom-right */
+  #replay {
+    bottom:14px; right:12px; pointer-events:auto;
+    font-family:var(--mono); font-size:11px; font-weight:700; letter-spacing:.04em;
+    color:var(--gold); background:rgba(255,224,138,.1);
+    border:1px solid rgba(255,224,138,.32); border-radius:9px;
+    padding:7px 12px; cursor:pointer;
+    opacity:0; transition:opacity .4s ease;
+  }
+  #replay.show { opacity:.95; }
+  #replay:hover { background:rgba(255,224,138,.2); color:#fff; }
+
+  #err { bottom:14px; left:50%; transform:translateX(-50%); color:var(--pink);
+         font-size:12px; text-align:center; max-width:90vw; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .poster, .poster.ripping, #receipt.printing, #register, #hint.show { transition:none !important; animation:none !important; }
+  }
 </style>
 
-<!-- POLISH: this is a FIRST working version wired to the real trace. The visual
-     loop (curve easing, cart micro-interactions, mobile spacing, guide-me
-     pacing, copy tightening) is left for the human finish pass. Every number,
-     band and price on screen is read from demo-trace.json — a real recorded run
-     of buyer/preflearn.py. Do not hardcode deltas here. -->
+<div id="stage">
+  <nav class="snhp-nav" aria-label="SNHP arena sections">
+    <span class="snhp-nav__logo" aria-hidden="true">SNHP</span>
+    <ul class="snhp-nav__list">
+      <li><a href="index.html">Arena</a></li>
+      <li><a href="leaderboard.html">Leaderboard</a></li>
+      <li><a href="submit.html">Submit</a></li>
+      <li><a href="hire.html">Use it</a></li>
+      <li><a href="vend.html">Vend</a></li>
+      <li><a href="demo.html" class="is-active" aria-current="page">Demo</a></li>
+      <li><a href="/block/">Block</a></li>
+    </ul>
+  </nav>
 
-<nav class="snhp-nav" aria-label="SNHP arena sections">
-  <span class="snhp-nav__logo" aria-hidden="true">SNHP</span>
-  <ul class="snhp-nav__list">
-    <li><a href="index.html">Arena</a></li>
-    <li><a href="leaderboard.html">Leaderboard</a></li>
-    <li><a href="submit.html">Submit</a></li>
-    <li><a href="hire.html">Use it</a></li>
-    <li><a href="vend.html">Vend</a></li>
-    <!-- POLISH: to make this reachable from the rest of the site, add
-         <li><a href="demo.html">Demo</a></li> to the nav in index/leaderboard/
-         submit/hire/vend.html and /block/ too. Left uncommitted / to you so this
-         change never half-updates the shared bar. -->
-    <li><a href="demo.html" class="is-active" aria-current="page">Demo</a></li>
-    <li><a href="/block/">Block</a></li>
-  </ul>
-</nav>
+  <canvas id="view"></canvas>
 
-<div class="wrap">
-  <span class="proto">live trace · real learning · one recorded run</span>
-  <h1>A stranger walks up. Three taps later, the agent <b>negotiates their whole cart</b> — silently.</h1>
-  <p class="lede">No sign-up, no stated budget. The agent asks a few sharp questions, watches your
-    utility curve go from <b>fuzzy to sharp</b>, then quietly prices the cart in front of you —
-    <b>never above sticker</b>. This isn't a mockup: every band and every dollar below is a
-    recorded run of the real preference-learning backbone.</p>
+  <!-- DOM overlays, positioned over the canvas by demo-scene.js (layout()) -->
+  <div id="overlay">
+    <div id="kicker">The lunch run — <b>priced for you</b></div>
 
-  <div class="toprow">
-    <button class="btn primary" id="guide">▶ Guide me</button>
-    <button class="btn ghost" id="restart">Restart</button>
-    <div class="scenario-tabs" id="tabs">
-      <button data-s="hero" class="on">The lunch run</button>
-      <button data-s="coda">The corner grab</button>
+    <!-- ACT 1: posters built from scenarios.hero.onboarding -->
+    <div id="posters" class="hidden"></div>
+
+    <!-- ACT 3: register readout, rows built from scenarios.hero.items -->
+    <div id="register" class="hidden">
+      <div class="reg-head"><span>REGISTER · the silent negotiation</span><span class="live">● live</span></div>
+      <div id="reg-rows"></div>
+      <div class="reg-total">
+        <div><div class="cap">you pay</div><div class="big" id="reg-your">$0.00</div></div>
+        <div class="sub" id="reg-sub">—</div>
+      </div>
     </div>
+
+    <!-- ACT 4: printed receipt -->
+    <div id="receipt" class="hidden">
+      <div class="r-logo">BODEGA · SNHP</div>
+      <div class="r-sub">a fair price for you — never above sticker</div>
+      <div class="r-rule"></div>
+      <div id="r-lines"></div>
+      <div class="r-rule"></div>
+      <div class="r-total"><span class="lab">You saved</span><span class="amt" id="r-saved">$0.00</span></div>
+      <div class="r-pct" id="r-pct">—</div>
+      <div class="r-caveat" id="r-caveat">…</div>
+      <div class="r-links">
+        <a href="/block/">the block sim →</a>
+        <a href="hire.html">how it works →</a>
+        <a href="leaderboard.html">the leaderboard →</a>
+      </div>
+      <div class="r-repro" id="r-repro">…</div>
+    </div>
+
+    <div id="hint" class="hidden"></div>
+    <div id="caveat"></div>
+    <button id="replay">▶ replay</button>
+    <p id="err"></p>
   </div>
-
-  <!-- 1 · ONBOARD -->
-  <section id="onboard">
-    <div class="sec-head"><span class="sec-num">1 · Onboard</span></div>
-    <div class="sec-title">Would you rather…</div>
-    <p class="sec-sub" id="onboard-sub">Three taps. The agent picks each question to learn the most it can
-      about what you value — the same active-elicitation policy the paper runs.</p>
-    <div class="dots" id="dots"></div>
-    <div class="q-prompt" id="q-prompt">—</div>
-    <div class="q-opts" id="q-opts"></div>
-    <div class="onboard-done" id="onboard-done">✓ Curve learned. Now it can shop for you.</div>
-  </section>
-
-  <!-- 2 · LEARN (the curve) -->
-  <section id="learn">
-    <div class="sec-head"><span class="sec-num">2 · Learn</span></div>
-    <div class="sec-title">Your utility curve, sharpening</div>
-    <p class="sec-sub">The band is the agent's <b>uncertainty</b> about how much each item is worth to you.
-      It only sharpens what you're shopping — that's the point of the cart signal.</p>
-    <div class="curve-wrap">
-      <svg class="curve" id="curve" viewBox="0 0 720 300" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
-    </div>
-    <div class="curve-cap"><span>← everyday</span><span id="curve-note">fuzzy: prior belief only</span><span>premium →</span></div>
-    <div class="legend">
-      <span><i style="background:rgba(167,139,250,.32)"></i>uncertainty (80%)</span>
-      <span><i style="background:var(--gold)"></i>best guess</span>
-      <span><i style="background:var(--green)"></i>your true value</span>
-      <span class="muted">bright = in your cart</span>
-    </div>
-  </section>
-
-  <!-- 3 · SHOP -->
-  <section id="shop">
-    <div class="sec-head"><span class="sec-num">3 · Shop</span><span class="sec-title" id="shop-title">The lunch run</span></div>
-    <p class="sec-sub" id="shop-sub">Add the cart. Each item is negotiated for you the instant it lands —
-      you never see the haggling, only the price you keep.</p>
-    <div class="cart" id="cart"></div>
-    <button class="btn primary add-cta" id="addcart">Add the cart →</button>
-    <div class="cart-total" id="cart-total" style="display:none">
-      <div><div class="cap">you saved, silently</div><div class="big" id="saved-big">$0.00</div></div>
-      <div style="text-align:right"><div class="cap" id="saved-pct-cap">—</div><div class="muted" id="saved-detail">—</div></div>
-    </div>
-  </section>
-
-  <!-- CODA strip -->
-  <section id="coda">
-    <div class="sec-head"><span class="sec-num">Coda</span><span class="sec-title">Same agent, corner bodega</span></div>
-    <p class="sec-sub" id="coda-sub">The honest small-dollar case: an everyday grab. The learning is identical;
-      the stakes are a couple of bucks. It still never charges above sticker.</p>
-    <div class="coda-items" id="coda-items"></div>
-    <p class="sec-sub" id="coda-total" style="margin-top:12px"></p>
-  </section>
-
-  <!-- HONESTY -->
-  <section class="honesty" id="honesty">
-    <div class="sec-head"><span class="sec-num">Is the learning real?</span></div>
-    <h3>Yes — this page is a recorded run of the backbone, not a script.</h3>
-    <p id="h-learning">…</p>
-    <div class="capbars">
-      <div class="capbar">
-        <div class="lab">this cart, realized</div>
-        <div class="val" id="cap-run">—</div>
-        <div class="ci">efficiency captured vs a perfect-info agent (one draw)</div>
-      </div>
-      <div class="capbar">
-        <div class="lab">population, 3 questions</div>
-        <div class="val" id="cap-pop">—</div>
-        <div class="ci" id="cap-pop-ci">—</div>
-      </div>
-      <div class="capbar">
-        <div class="lab">saved per deal, population</div>
-        <div class="val" id="cap-saved">—</div>
-        <div class="ci" id="cap-deal">—</div>
-      </div>
-    </div>
-    <p id="h-caveat" class="muted">…</p>
-    <dl class="kv" id="prov"></dl>
-    <p class="foot" id="h-cite">…</p>
-    <p class="foot">Reproduce this exact trace: <code id="repro">python3 -m buyer.preflearn --demo-trace</code>.
-      The population numbers are from <code>buyer/RESULTS.md</code> (n=200, paired bootstrap).</p>
-  </section>
-
-  <div class="narrate" id="narrate"></div>
-  <p class="err" id="err"></p>
 </div>
 
-<script>
-(function () {
-  "use strict";
-  var TRACE = null, SID = "hero", STEP = 0, BANDS = null, guiding = false;
-  var SVGNS = "http://www.w3.org/2000/svg";
-  var $ = function (id) { return document.getElementById(id); };
-  var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
-  var money = function (x) { return x == null ? "—" : "$" + Number(x).toFixed(2); };
-
-  fetch("demo-trace.json").then(function (r) { return r.json(); }).then(function (d) {
-    TRACE = d;
-    fillHonesty();
-    selectScenario("hero");
-  }).catch(function (e) {
-    $("err").textContent = "Could not load demo-trace.json — regenerate with: python3 -m buyer.preflearn --demo-trace";
-    console.error(e);
-  });
-
-  // ── scenario wiring ──────────────────────────────────────────────────────
-  function sc() { return TRACE.scenarios[SID]; }
-
-  var epoch = 0;   // bumped on every reset; in-flight tween/shop callbacks compare it to self-cancel
-
-  function selectScenario(id) {
-    epoch++;                     // cancel any in-flight tween / shop animation from the prior scenario
-    SID = id; STEP = 0; guiding = false;
-    Array.prototype.forEach.call($("tabs").children, function (b) {
-      b.classList.toggle("on", b.getAttribute("data-s") === id);
-    });
-    var s = sc();
-    BANDS = clone(s.bands_prior);
-    // section titles / subs
-    $("shop-title").textContent = s.label;
-    buildDots();
-    buildCurve();
-    render(BANDS);
-    $("curve-note").textContent = "fuzzy: prior belief only";
-    $("onboard-done").style.display = "none";
-    renderQuestion();
-    buildCart();
-    $("cart-total").style.display = "none";
-    $("addcart").disabled = true;
-    $("addcart").textContent = "Add the cart →";
-    buildCoda();
-    fillHonestyScenario();
-  }
-
-  Array.prototype.forEach.call($("tabs").children, function (b) {
-    b.addEventListener("click", function () { if (!guiding) selectScenario(b.getAttribute("data-s")); });
-  });
-  $("restart").addEventListener("click", function () { if (!guiding) selectScenario(SID); });
-
-  // ── onboarding ───────────────────────────────────────────────────────────
-  function buildDots() {
-    var el = $("dots"); el.innerHTML = "";
-    for (var i = 0; i < 3; i++) { var d = document.createElement("div"); d.className = "dot"; el.appendChild(d); }
-    markDots();
-  }
-  function markDots() {
-    Array.prototype.forEach.call($("dots").children, function (d, i) {
-      d.className = "dot" + (i < STEP ? " done" : i === STEP ? " active" : "");
-    });
-  }
-
-  function renderQuestion() {
-    markDots();
-    var s = sc();
-    if (STEP >= s.onboarding.length) { finishOnboard(); return; }
-    var q = s.onboarding[STEP];
-    $("q-prompt").textContent = q.prompt;
-    var opts = $("q-opts"); opts.innerHTML = "";
-    q.options.forEach(function (o) {
-      var b = document.createElement("button");
-      b.className = "q-opt"; b.setAttribute("data-id", o.id);
-      b.innerHTML = "<span>" + o.label + "</span>";
-      b.addEventListener("click", function () { if (!guiding) answer(o.id); });
-      opts.appendChild(b);
-    });
-  }
-
-  function answer(id) {
-    var s = sc(), q = s.onboarding[STEP];
-    Array.prototype.forEach.call($("q-opts").children, function (b) {
-      b.classList.toggle("picked", b.getAttribute("data-id") === id);
-      b.disabled = true;
-    });
-    var target = q.bands_by_answer[id] || q.bands_by_answer[q.canonical];
-    $("curve-note").textContent = "sharpening — question " + (STEP + 1) + " of 3";
-    tween(BANDS, target, 620, function () {
-      STEP += 1;
-      setTimeout(renderQuestion, 260);
-    });
-  }
-
-  function finishOnboard() {
-    $("q-prompt").textContent = "That's enough to shop for you.";
-    $("q-opts").innerHTML = "";
-    $("onboard-done").style.display = "block";
-    $("curve-note").textContent = "sharpened where you're shopping";
-    markDots();
-    $("addcart").disabled = false;
-  }
-
-  // ── curve (SVG uncertainty ribbon over the whole board) ───────────────────
-  var CV = { pad_l: 20, pad_r: 20, pad_t: 16, pad_b: 40, w: 720, h: 300, ymax: 1, xs: [], skus: [] };
-  var G = {};
-
-  function buildCurve() {
-    var s = sc(), svg = $("curve"); svg.innerHTML = "";
-    CV.skus = s.curve_skus.slice();
-    // ymax from every band we may show (prior + all answers + final), incl. true
-    var hi = 0;
-    function scan(snap) { for (var k in snap) { hi = Math.max(hi, snap[k].hi, snap[k].true || 0); } }
-    scan(s.bands_prior); scan(s.bands_final);
-    s.onboarding.forEach(function (q) { for (var a in q.bands_by_answer) scan(q.bands_by_answer[a]); });
-    CV.ymax = Math.ceil(hi + 1);
-    var n = CV.skus.length, inner = CV.w - CV.pad_l - CV.pad_r;
-    CV.xs = CV.skus.map(function (_, i) { return CV.pad_l + (n === 1 ? inner / 2 : inner * i / (n - 1)); });
-
-    // y gridlines
-    var grid = mk("g", {});
-    [0, 2, 4, 6, 8, 10, 12].forEach(function (v) {
-      if (v > CV.ymax) return;
-      var y = ypx(v);
-      grid.appendChild(mk("line", { x1: CV.pad_l, x2: CV.w - CV.pad_r, y1: y, y2: y,
-        stroke: "rgba(255,255,255,.06)", "stroke-width": 1 }));
-      grid.appendChild(mk("text", { x: 2, y: y + 3, fill: "#6f6a85", "font-size": 9 }, "$" + v));
-    });
-    svg.appendChild(grid);
-
-    G.outer = mk("path", { fill: "rgba(167,139,250,.16)", stroke: "none" });
-    G.inner = mk("path", { fill: "rgba(167,139,250,.30)", stroke: "none" });
-    G.mid = mk("polyline", { fill: "none", stroke: "var(--gold)", "stroke-width": 2, "stroke-linejoin": "round" });
-    svg.appendChild(G.outer); svg.appendChild(G.inner); svg.appendChild(G.mid);
-
-    G.cols = CV.skus.map(function (sku, i) {
-      var cart = s.cart.indexOf(sku) >= 0;
-      var trueTick = mk("line", { stroke: "var(--green)", "stroke-width": cart ? 3 : 2, opacity: cart ? .95 : .4 });
-      var dot = mk("circle", { r: cart ? 4 : 2.6, fill: "var(--gold)", opacity: cart ? 1 : .5 });
-      var lab = mk("text", { x: CV.xs[i], y: CV.h - CV.pad_b + 14, "text-anchor": "middle",
-        "font-size": cart ? 10.5 : 9, fill: cart ? "#f0eff5" : "#6f6a85" }, s.pretty[sku]);
-      svg.appendChild(trueTick); svg.appendChild(dot); svg.appendChild(lab);
-      return { trueTick: trueTick, dot: dot, cart: cart, sku: sku };
-    });
-  }
-
-  function ypx(v) { return CV.pad_t + (CV.h - CV.pad_t - CV.pad_b) * (1 - v / CV.ymax); }
-
-  function render(bands) {
-    var s = sc(), top = [], bot = [], inTop = [], inBot = [], mid = [];
-    CV.skus.forEach(function (sku, i) {
-      var b = bands[sku], x = CV.xs[i];
-      top.push(x + "," + ypx(b.hi)); bot.push(x + "," + ypx(b.lo));
-      inTop.push(x + "," + ypx(b.p75)); inBot.push(x + "," + ypx(b.p25));
-      mid.push(x + "," + ypx(b.mean));
-      var c = G.cols[i];
-      c.dot.setAttribute("cx", x); c.dot.setAttribute("cy", ypx(b.mean));
-      var ty = ypx(b.true); c.trueTick.setAttribute("x1", x - 7); c.trueTick.setAttribute("x2", x + 7);
-      c.trueTick.setAttribute("y1", ty); c.trueTick.setAttribute("y2", ty);
-    });
-    G.outer.setAttribute("d", "M" + top.join(" L") + " L" + bot.reverse().join(" L") + " Z");
-    G.inner.setAttribute("d", "M" + inTop.join(" L") + " L" + inBot.reverse().join(" L") + " Z");
-    G.mid.setAttribute("points", mid.join(" "));
-  }
-
-  function tween(from, to, dur, done) {
-    var start = performance.now(), finished = false, myEpoch = epoch;
-    function finish() {                 // idempotent: lands the final state once
-      if (finished) return; finished = true;
-      if (myEpoch !== epoch) return;    // a reset landed mid-tween: drop the stale result
-      render(to); BANDS = clone(to); done && done();
-    }
-    function frame(now) {
-      if (finished) return;
-      if (myEpoch !== epoch) { finished = true; return; }   // reset: stop animating the stale curve
-      var t = Math.min(1, (now - start) / dur), e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-      var cur = {};
-      for (var k in from) {
-        cur[k] = {}; var a = from[k], b = to[k];
-        ["lo", "p25", "mean", "p75", "hi", "true"].forEach(function (f) {
-          cur[k][f] = a[f] + (b[f] - a[f]) * e;
-        });
-      }
-      render(cur);
-      if (t < 1) requestAnimationFrame(frame); else finish();
-    }
-    requestAnimationFrame(frame);
-    // guarantee completion even if rAF is throttled (background tab / headless)
-    setTimeout(finish, dur + 60);
-  }
-
-  // ── shop ─────────────────────────────────────────────────────────────────
-  function buildCart() {
-    var s = sc(), el = $("cart"); el.innerHTML = "";
-    s.items.forEach(function (it, i) {
-      var row = document.createElement("div"); row.className = "row"; row.id = "row-" + i;
-      row.innerHTML =
-        '<div><div class="name">' + it.pretty + '</div>' +
-        '<div class="sub">bodega wants ' + money(it.bodega) + '</div></div>' +
-        '<div class="right"><span class="list-price" id="lp-' + i + '">list ' + money(it.list) + '</span>' +
-        '<div id="rs-' + i + '"></div></div>';
-      el.appendChild(row);
-    });
-  }
-
-  function shopItem(i) {
-    var it = sc().items[i], slot = $("rs-" + i), lp = $("lp-" + i), myEpoch = epoch;
-    slot.innerHTML = '<div class="neg"><span class="spin">◠</span> negotiating…</div>';
-    return sleep(620).then(function () {
-      if (myEpoch !== epoch) return;   // reset during negotiation: don't write into the rebuilt cart
-      lp.classList.add("struck");
-      if (it.accepted) {
-        slot.innerHTML = '<div class="reveal-anim"><span class="you">' + money(it.your_price) + '</span>' +
-          '<div class="saved-chip">saved ' + money(it.saved_vs_list) + '</div></div>';
-      } else {
-        slot.innerHTML = '<div class="reveal-anim muted">kept your walk-away</div>';
-      }
-    });
-  }
-
-  function addCart() {
-    $("addcart").disabled = true;
-    var items = sc().items, i = 0, myEpoch = epoch;
-    (function next() {
-      if (myEpoch !== epoch) return;   // reset mid-shop: abort the chain
-      if (i >= items.length) { showTotal(); return; }
-      shopItem(i).then(function () { if (myEpoch !== epoch) return; i++; setTimeout(next, 220); });
-    })();
-  }
-  $("addcart").addEventListener("click", function () { if (!guiding) addCart(); });
-
-  function showTotal() {
-    var t = sc().totals;
-    $("cart-total").style.display = "flex";
-    $("saved-big").textContent = money(t.saved_total);
-    $("saved-pct-cap").textContent = t.saved_pct + "% off sticker";
-    $("saved-detail").textContent = "paid " + money(t.your_total) + " of " + money(t.list_total);
-    $("addcart").textContent = "Done — silently"; $("addcart").disabled = true;
-  }
-
-  // ── coda strip ───────────────────────────────────────────────────────────
-  function buildCoda() {
-    var c = TRACE.scenarios.coda, el = $("coda-items"); el.innerHTML = "";
-    c.items.forEach(function (it) {
-      var d = document.createElement("div"); d.className = "coda-item";
-      d.innerHTML = '<div class="n">' + it.pretty + '</div>' +
-        '<div class="p"><s>' + money(it.list) + '</s> → ' + money(it.your_price) + '</div>' +
-        '<div class="s">save ' + money(it.saved_vs_list) + '</div>';
-      el.appendChild(d);
-    });
-    var t = c.totals;
-    $("coda-total").innerHTML = "That's <b style='color:var(--gold)'>" + money(t.saved_total) +
-      "</b> on a " + money(t.list_total) + " run — " + t.saved_pct + "% off, same silent negotiation.";
-  }
-
-  // ── honesty panel ────────────────────────────────────────────────────────
-  function fillHonesty() {
-    var m = TRACE.meta;
-    $("h-learning").textContent = m.learning_is_real;
-    $("h-caveat").textContent = m.honest_caveat;
-    $("h-cite").textContent = m.citation;
-    $("repro").textContent = m.provenance.reproduce;
-    var prov = $("prov"); prov.innerHTML = "";
-    var p = m.provenance, rows = [["module", p.module], ["negotiation", p.negotiation],
-      ["population", p.population], ["seed", p.seed + " · prior seed " + p.cal_seed]];
-    rows.forEach(function (kv) {
-      var dt = document.createElement("dt"); dt.textContent = kv[0];
-      var dd = document.createElement("dd"); dd.textContent = kv[1];
-      prov.appendChild(dt); prov.appendChild(dd);
-    });
-  }
-  function fillHonestyScenario() {
-    var hc = sc().honest_cell, pr = hc.population_reference;
-    $("cap-run").textContent = hc.run_joint_capture == null ? "—" : Math.round(hc.run_joint_capture * 100) + "%";
-    $("cap-pop").textContent = Math.round(pr.joint_capture * 100) + "%";
-    $("cap-pop-ci").textContent = "95% CI [" + Math.round(pr.joint_capture_ci95[0] * 100) + "%, " +
-      Math.round(pr.joint_capture_ci95[1] * 100) + "%]";
-    $("cap-saved").textContent = money(pr.saved_vs_walk);
-    $("cap-deal").textContent = Math.round(pr.deal_rate * 100) + "% of deals strike";
-  }
-
-  // ── guide me (auto-play narrated pitch) ──────────────────────────────────
-  var NARR = [
-    "Meet a stranger — no account, no budget on file.",
-    "Tap one: the agent asks the single most informative question it can.",
-    "Tap two: the fuzzy band tightens toward what you actually value.",
-    "Tap three: enough of the curve to price your cart.",
-    "Now it shops — each item negotiated the instant it lands, silently.",
-    "Never above sticker. You just keep the difference."
-  ];
-  function say(msg) { var n = $("narrate"); n.style.display = "block"; n.textContent = msg; }
-
-  $("guide").addEventListener("click", function () { runGuide(); });
-  function runGuide() {
-    if (guiding) return;
-    selectScenario("hero"); guiding = true;
-    $("guide").disabled = true;
-    (async function () {
-      say(NARR[0]); await sleep(1100);
-      for (var st = 0; st < 3; st++) {
-        var q = sc().onboarding[STEP];
-        say(NARR[st + 1]);
-        var picks = $("q-opts").children;
-        Array.prototype.forEach.call(picks, function (b) {
-          b.classList.toggle("picked", b.getAttribute("data-id") === q.canonical);
-        });
-        await sleep(650);
-        await new Promise(function (res) {
-          var tgt = q.bands_by_answer[q.canonical];
-          $("curve-note").textContent = "sharpening — question " + (STEP + 1) + " of 3";
-          tween(BANDS, tgt, 620, res);
-        });
-        STEP += 1; renderQuestion(); await sleep(700);
-      }
-      finishOnboard(); await sleep(500);
-      say(NARR[4]); $("shop").scrollIntoView({ behavior: "smooth", block: "center" });
-      await sleep(700);
-      var items = sc().items;
-      for (var i = 0; i < items.length; i++) { await shopItem(i); await sleep(240); }
-      showTotal(); await sleep(500); say(NARR[5]);
-      $("coda").scrollIntoView({ behavior: "smooth", block: "center" });
-      await sleep(1600);
-      guiding = false; $("guide").disabled = false;
-    })();
-  }
-
-  // ── util ─────────────────────────────────────────────────────────────────
-  function clone(o) { return JSON.parse(JSON.stringify(o)); }
-  function mk(tag, attrs, text) {
-    var e = document.createElementNS(SVGNS, tag);
-    for (var k in attrs) e.setAttribute(k, attrs[k]);
-    if (text != null) e.textContent = text;
-    return e;
-  }
-})();
-</script>
+<script src="block/palette.js"></script>
+<script src="demo-scene.js"></script>
