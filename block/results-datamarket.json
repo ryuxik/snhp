@@ -1,0 +1,493 @@
+{
+ "datamarket_version": 1,
+ "config": {
+  "sigma0": 0.15,
+  "alpha0": 3.0,
+  "Ks": [
+   2,
+   5,
+   10,
+   20,
+   44,
+   100
+  ],
+  "share_K0": 12.0,
+  "seeds": 400,
+  "overreach": 1.25
+ },
+ "cells": [
+  {
+   "K": 2,
+   "sigma_cal_after": 0.1162,
+   "data_value_dPi": {
+    "mean": 1.348,
+    "ci95": [
+     1.26,
+     1.4361
+    ],
+    "n": 400
+   },
+   "full_miscal_ceiling": {
+    "mean": 3.2799,
+    "ci95": [
+     3.0786,
+     3.4813
+    ],
+    "n": 400
+   },
+   "data_recovers_frac": 0.411,
+   "d_consumer_surplus": {
+    "mean": -0.0911,
+    "ci95": [
+     -0.2283,
+     0.0462
+    ],
+    "n": 400
+   },
+   "d_welfare": {
+    "mean": 1.257,
+    "ci95": [
+     1.0734,
+     1.4406
+    ],
+    "n": 400
+   },
+   "haggle_per_member_monopoly": {
+    "mean": 1.0906,
+    "ci95": [
+     1.0856,
+     1.0956
+    ],
+    "n": 400
+   },
+   "haggle_per_member_competitive": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 400
+   },
+   "cluster_haggle_monopoly": 2.1812,
+   "cluster_haggle_competitive": 0.0,
+   "cluster_data_payoff": 0.1926,
+   "data_beats_competitive_haggle": true,
+   "data_beats_monopoly_haggle": false,
+   "cluster_share": 0.1429,
+   "cluster_per_member": 0.0963,
+   "merchant_keep": 1.1554,
+   "monopsony_audit": {
+    "cluster_share": 0.1429,
+    "B_fair_merchant_keep": 1.1554,
+    "B_max_extract_merchant_keep": 0.0,
+    "B_participation_floor_holds": true,
+    "D_overreach_merchant_refuses": true,
+    "D_overreach_self_defeating": true,
+    "price_floor_discount_only_ok": true
+   }
+  },
+  {
+   "K": 5,
+   "sigma_cal_after": 0.0919,
+   "data_value_dPi": {
+    "mean": 2.0855,
+    "ci95": [
+     1.9521,
+     2.2189
+    ],
+    "n": 400
+   },
+   "full_miscal_ceiling": {
+    "mean": 3.2799,
+    "ci95": [
+     3.0786,
+     3.4813
+    ],
+    "n": 400
+   },
+   "data_recovers_frac": 0.6358,
+   "d_consumer_surplus": {
+    "mean": -0.1251,
+    "ci95": [
+     -0.364,
+     0.1137
+    ],
+    "n": 400
+   },
+   "d_welfare": {
+    "mean": 1.9603,
+    "ci95": [
+     1.6547,
+     2.2659
+    ],
+    "n": 400
+   },
+   "haggle_per_member_monopoly": {
+    "mean": 1.0906,
+    "ci95": [
+     1.0856,
+     1.0956
+    ],
+    "n": 400
+   },
+   "haggle_per_member_competitive": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 400
+   },
+   "cluster_haggle_monopoly": 5.453,
+   "cluster_haggle_competitive": 0.0,
+   "cluster_data_payoff": 0.6134,
+   "data_beats_competitive_haggle": true,
+   "data_beats_monopoly_haggle": false,
+   "cluster_share": 0.2941,
+   "cluster_per_member": 0.1227,
+   "merchant_keep": 1.4721,
+   "monopsony_audit": {
+    "cluster_share": 0.2941,
+    "B_fair_merchant_keep": 1.4721,
+    "B_max_extract_merchant_keep": 0.0,
+    "B_participation_floor_holds": true,
+    "D_overreach_merchant_refuses": true,
+    "D_overreach_self_defeating": true,
+    "price_floor_discount_only_ok": true
+   }
+  },
+  {
+   "K": 10,
+   "sigma_cal_after": 0.0721,
+   "data_value_dPi": {
+    "mean": 2.5502,
+    "ci95": [
+     2.3894,
+     2.711
+    ],
+    "n": 400
+   },
+   "full_miscal_ceiling": {
+    "mean": 3.2799,
+    "ci95": [
+     3.0786,
+     3.4813
+    ],
+    "n": 400
+   },
+   "data_recovers_frac": 0.7775,
+   "d_consumer_surplus": {
+    "mean": -0.1371,
+    "ci95": [
+     -0.4601,
+     0.1859
+    ],
+    "n": 400
+   },
+   "d_welfare": {
+    "mean": 2.4131,
+    "ci95": [
+     2.0132,
+     2.813
+    ],
+    "n": 400
+   },
+   "haggle_per_member_monopoly": {
+    "mean": 1.0906,
+    "ci95": [
+     1.0856,
+     1.0956
+    ],
+    "n": 400
+   },
+   "haggle_per_member_competitive": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 400
+   },
+   "cluster_haggle_monopoly": 10.906,
+   "cluster_haggle_competitive": 0.0,
+   "cluster_data_payoff": 1.1592,
+   "data_beats_competitive_haggle": true,
+   "data_beats_monopoly_haggle": false,
+   "cluster_share": 0.4545,
+   "cluster_per_member": 0.1159,
+   "merchant_keep": 1.391,
+   "monopsony_audit": {
+    "cluster_share": 0.4545,
+    "B_fair_merchant_keep": 1.391,
+    "B_max_extract_merchant_keep": 0.0,
+    "B_participation_floor_holds": true,
+    "D_overreach_merchant_refuses": true,
+    "D_overreach_self_defeating": true,
+    "price_floor_discount_only_ok": true
+   }
+  },
+  {
+   "K": 20,
+   "sigma_cal_after": 0.0542,
+   "data_value_dPi": {
+    "mean": 2.8697,
+    "ci95": [
+     2.6907,
+     3.0487
+    ],
+    "n": 400
+   },
+   "full_miscal_ceiling": {
+    "mean": 3.2799,
+    "ci95": [
+     3.0786,
+     3.4813
+    ],
+    "n": 400
+   },
+   "data_recovers_frac": 0.8749,
+   "d_consumer_surplus": {
+    "mean": -0.1376,
+    "ci95": [
+     -0.5374,
+     0.2623
+    ],
+    "n": 400
+   },
+   "d_welfare": {
+    "mean": 2.7321,
+    "ci95": [
+     2.2502,
+     3.214
+    ],
+    "n": 400
+   },
+   "haggle_per_member_monopoly": {
+    "mean": 1.0906,
+    "ci95": [
+     1.0856,
+     1.0956
+    ],
+    "n": 400
+   },
+   "haggle_per_member_competitive": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 400
+   },
+   "cluster_haggle_monopoly": 21.812,
+   "cluster_haggle_competitive": 0.0,
+   "cluster_data_payoff": 1.7936,
+   "data_beats_competitive_haggle": true,
+   "data_beats_monopoly_haggle": false,
+   "cluster_share": 0.625,
+   "cluster_per_member": 0.0897,
+   "merchant_keep": 1.0761,
+   "monopsony_audit": {
+    "cluster_share": 0.625,
+    "B_fair_merchant_keep": 1.0761,
+    "B_max_extract_merchant_keep": 0.0,
+    "B_participation_floor_holds": true,
+    "D_overreach_merchant_refuses": true,
+    "D_overreach_self_defeating": true,
+    "price_floor_discount_only_ok": true
+   }
+  },
+  {
+   "K": 44,
+   "sigma_cal_after": 0.0379,
+   "data_value_dPi": {
+    "mean": 3.08,
+    "ci95": [
+     2.8893,
+     3.2706
+    ],
+    "n": 400
+   },
+   "full_miscal_ceiling": {
+    "mean": 3.2799,
+    "ci95": [
+     3.0786,
+     3.4813
+    ],
+    "n": 400
+   },
+   "data_recovers_frac": 0.9391,
+   "d_consumer_surplus": {
+    "mean": -0.1304,
+    "ci95": [
+     -0.6007,
+     0.34
+    ],
+    "n": 400
+   },
+   "d_welfare": {
+    "mean": 2.9496,
+    "ci95": [
+     2.3951,
+     3.5041
+    ],
+    "n": 400
+   },
+   "haggle_per_member_monopoly": {
+    "mean": 1.0906,
+    "ci95": [
+     1.0856,
+     1.0956
+    ],
+    "n": 400
+   },
+   "haggle_per_member_competitive": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 400
+   },
+   "cluster_haggle_monopoly": 47.9864,
+   "cluster_haggle_competitive": 0.0,
+   "cluster_data_payoff": 2.42,
+   "data_beats_competitive_haggle": true,
+   "data_beats_monopoly_haggle": false,
+   "cluster_share": 0.7857,
+   "cluster_per_member": 0.055,
+   "merchant_keep": 0.66,
+   "monopsony_audit": {
+    "cluster_share": 0.7857,
+    "B_fair_merchant_keep": 0.66,
+    "B_max_extract_merchant_keep": 0.0,
+    "B_participation_floor_holds": true,
+    "D_overreach_merchant_refuses": true,
+    "D_overreach_self_defeating": true,
+    "price_floor_discount_only_ok": true
+   }
+  },
+  {
+   "K": 100,
+   "sigma_cal_after": 0.0256,
+   "data_value_dPi": {
+    "mean": 3.1889,
+    "ci95": [
+     2.9924,
+     3.3854
+    ],
+    "n": 400
+   },
+   "full_miscal_ceiling": {
+    "mean": 3.2799,
+    "ci95": [
+     3.0786,
+     3.4813
+    ],
+    "n": 400
+   },
+   "data_recovers_frac": 0.9723,
+   "d_consumer_surplus": {
+    "mean": -0.1205,
+    "ci95": [
+     -0.6443,
+     0.4033
+    ],
+    "n": 400
+   },
+   "d_welfare": {
+    "mean": 3.0684,
+    "ci95": [
+     2.4601,
+     3.6767
+    ],
+    "n": 400
+   },
+   "haggle_per_member_monopoly": {
+    "mean": 1.0906,
+    "ci95": [
+     1.0856,
+     1.0956
+    ],
+    "n": 400
+   },
+   "haggle_per_member_competitive": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 400
+   },
+   "cluster_haggle_monopoly": 109.06,
+   "cluster_haggle_competitive": 0.0,
+   "cluster_data_payoff": 2.8472,
+   "data_beats_competitive_haggle": true,
+   "data_beats_monopoly_haggle": false,
+   "cluster_share": 0.8929,
+   "cluster_per_member": 0.0285,
+   "merchant_keep": 0.3417,
+   "monopsony_audit": {
+    "cluster_share": 0.8929,
+    "B_fair_merchant_keep": 0.3417,
+    "B_max_extract_merchant_keep": 0.0,
+    "B_participation_floor_holds": true,
+    "D_overreach_merchant_refuses": true,
+    "D_overreach_self_defeating": true,
+    "price_floor_discount_only_ok": true
+   }
+  }
+ ],
+ "sigma0_sensitivity": {
+  "K": 44,
+  "rows": [
+   {
+    "sigma0": 0.15,
+    "data_value_dPi_K44": {
+     "mean": 3.08,
+     "ci95": [
+      2.8893,
+      3.2706
+     ],
+     "n": 400
+    },
+    "cluster_haggle_monopoly_K44": 47.986
+   },
+   {
+    "sigma0": 0.3,
+    "data_value_dPi_K44": {
+     "mean": 12.492,
+     "ci95": [
+      11.7687,
+      13.2153
+     ],
+     "n": 400
+    },
+    "cluster_haggle_monopoly_K44": 47.4635
+   },
+   {
+    "sigma0": 0.5,
+    "data_value_dPi_K44": {
+     "mean": 25.7474,
+     "ci95": [
+      24.6834,
+      26.8115
+     ],
+     "n": 400
+    },
+    "cluster_haggle_monopoly_K44": 44.6626
+   }
+  ]
+ },
+ "verdict": {
+  "sigma_cal_shrinks_with_cluster": true,
+  "data_value_positive_all_K": true,
+  "total_welfare_grows_all_K": true,
+  "split_favors_consumers_with_size": true,
+  "data_beats_competed_away_haggle_all_K": true,
+  "data_out_dollars_monopoly_haggle": false,
+  "monopsony_audit_pass": true,
+  "pareto_positive_sum_data_market": true,
+  "durable_value_is_the_data_market": true,
+  "summary": "DATA MARKET is the DURABLE, PARETO value. The merchant funds it willingly (\u0394\u03a0>0, welfare grows, monopsony-safe) and \u2014 because the shopping haggle COMPETES AWAY as boards converge (\u21920) while the data value does not \u2014 the information rent is what remains in the competitive endgame SNHP creates. HONEST SCOPE: the data does NOT out-dollar a raw MONOPOLY haggle (the cluster grabs more by bargaining a monopolist), so the data's edge is durability + positive-sum, not raw magnitude; the data value scales with how badly the merchant is miscalibrated (\u03c30-sensitivity)."
+ }
+}
