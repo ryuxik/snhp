@@ -1,0 +1,933 @@
+{
+  "schema": "block.week.v1",
+  "meta": {
+    "badge": "live sim data \u00b7 numbers reproducible",
+    "generated_by": "block/gen_week.py",
+    "reproduce": "python3 -m block.gen_week  # runs run_twin(days=30, seed=20260710, regulars=25, bodega_adopts=True, venues=all) and projects its mean daily paired deltas onto the 7-day scene",
+    "config": {
+      "seed": 20260710,
+      "days": 30,
+      "regulars": 25,
+      "bodega_adopts": true,
+      "sigma_cal": 0.15,
+      "anchor_mult": 1.0,
+      "venues": [
+        "vending",
+        "bodega",
+        "boba",
+        "fashion",
+        "bakery",
+        "florist",
+        "barbershop",
+        "parking",
+        "bar",
+        "vintage"
+      ]
+    },
+    "provenance": "REAL (traces to the committed twin, reproducible from the seed): the two HUD counters (block_mature = mean daily paired \u0394 \u2014 margin $1259.55/day merchants, consumer-surplus $1826.05/day shoppers, over 30 days), per_venue_mature, receipt savings (real per-SKU mean surplus), per-venue receipt frequency (real deal share), crowd density (real converting traffic: the sticker block converts 86% as many arrivals), and the per-venue decay ordering (real spoilage + surplus gap). REPRESENTATIVE (disclosed narrative, never a dollar figure): the day_weight identical\u2192diverged ramp (the sim diverges from day 0; the ramp is the arc, so the counters integrate the real daily rate over it \u2014 end-of-week \u2248 $7724 shoppers / $5328 merchants), the gray/decay intensities (a monotone visual encoding of the real gap, 3.0\u00d7 gain on the 12.2% CS gap), the named-regular churn days (the pool holds at 25 all week \u2014 churn dramatizes the real no-sale/spoilage/surplus gap), and the truck/weather beats + per-walker paths.",
+    "day_seconds": 6,
+    "days": 7,
+    "day_start_hour": 5.0,
+    "worlds": [
+      "sticker",
+      "snhp"
+    ],
+    "hud_labels": {
+      "shopper": "shoppers kept",
+      "merchant": "merchants earned"
+    },
+    "hud_week_total": {
+      "merchant": 5328,
+      "shopper": 7724
+    }
+  },
+  "venues": [
+    {
+      "id": "vending",
+      "slot": 0,
+      "label": "VEND",
+      "kind": "machine"
+    },
+    {
+      "id": "bodega",
+      "slot": 1,
+      "label": "BODEGA",
+      "kind": "deli"
+    },
+    {
+      "id": "boba",
+      "slot": 2,
+      "label": "BOBA",
+      "kind": "boba"
+    },
+    {
+      "id": "bakery",
+      "slot": 3,
+      "label": "BAKERY",
+      "kind": "bakery"
+    },
+    {
+      "id": "florist",
+      "slot": 4,
+      "label": "FLOWER",
+      "kind": "flower"
+    },
+    {
+      "id": "barbershop",
+      "slot": 5,
+      "label": "BARBER",
+      "kind": "barber"
+    },
+    {
+      "id": "fashion",
+      "slot": 6,
+      "label": "FASHION",
+      "kind": "fashion"
+    },
+    {
+      "id": "vintage",
+      "slot": 7,
+      "label": "VINTAGE",
+      "kind": "vintage"
+    },
+    {
+      "id": "bar",
+      "slot": 8,
+      "label": "BAR",
+      "kind": "bar"
+    },
+    {
+      "id": "parking",
+      "slot": 9,
+      "label": "PARK",
+      "kind": "parking"
+    }
+  ],
+  "regulars": [
+    {
+      "id": "maria",
+      "name": "Maria",
+      "persona": "local",
+      "home": "bodega",
+      "look": {
+        "skin": "tan",
+        "hair": "gray",
+        "top": "#b0463c",
+        "bottom": "#3a3550",
+        "prop": "tote",
+        "hat": "scarf"
+      },
+      "churn": {
+        "sticker_lastday": 4,
+        "reason": "brokered-quote gap: shoppers keep less on the posted board"
+      }
+    },
+    {
+      "id": "deb",
+      "name": "Deb",
+      "persona": "office-worker",
+      "home": "vending",
+      "look": {
+        "skin": "tan",
+        "hair": "brown",
+        "top": "#2e5a8a",
+        "bottom": "#232a3a",
+        "prop": "coffee",
+        "hat": "none"
+      },
+      "churn": {
+        "sticker_lastday": 6,
+        "reason": "machine anchor with no negotiated relief"
+      }
+    },
+    {
+      "id": "sam",
+      "name": "Sam",
+      "persona": "student",
+      "home": "boba",
+      "look": {
+        "skin": "brown",
+        "hair": "black",
+        "top": "#3a8a62",
+        "bottom": "#2a2438",
+        "prop": "backpack",
+        "hat": "phones"
+      },
+      "churn": {
+        "sticker_lastday": 3,
+        "reason": "peak-queue balks the sticker board can't smooth"
+      }
+    },
+    {
+      "id": "theo",
+      "name": "Theo",
+      "persona": "office-worker",
+      "home": "bakery",
+      "look": {
+        "skin": "pale",
+        "hair": "sandy",
+        "top": "#7a6a3a",
+        "bottom": "#2b2338",
+        "prop": "satchel",
+        "hat": "none"
+      },
+      "churn": {
+        "sticker_lastday": 4,
+        "reason": "day-old shelf: sticker bakery wastes the most"
+      }
+    },
+    {
+      "id": "rosa",
+      "name": "Rosa",
+      "persona": "local",
+      "home": "florist",
+      "look": {
+        "skin": "tan",
+        "hair": "white",
+        "top": "#8a5aa0",
+        "bottom": "#3a3550",
+        "prop": "cane",
+        "hat": "none"
+      },
+      "churn": {
+        "sticker_lastday": 3,
+        "reason": "wilted buckets \u2014 the sticker block's biggest spoilage line"
+      }
+    },
+    {
+      "id": "kwame",
+      "name": "Kwame",
+      "persona": "office-worker",
+      "home": "barbershop",
+      "look": {
+        "skin": "brown",
+        "hair": "black",
+        "top": "#c07a2a",
+        "bottom": "#2b2338",
+        "prop": "none",
+        "hat": "cap"
+      },
+      "churn": {
+        "sticker_lastday": 6,
+        "reason": "flat slot pricing, no quiet-hour relief"
+      }
+    },
+    {
+      "id": "yuki",
+      "name": "Yuki",
+      "persona": "student",
+      "home": "fashion",
+      "look": {
+        "skin": "pale",
+        "hair": "black",
+        "top": "#c05a8a",
+        "bottom": "#2a2438",
+        "prop": "shopbag",
+        "hat": "beanie"
+      },
+      "churn": {
+        "sticker_lastday": 5,
+        "reason": "end-season cliff instead of a live markdown"
+      }
+    },
+    {
+      "id": "lou",
+      "name": "Big Lou",
+      "persona": "local",
+      "home": "bar",
+      "look": {
+        "skin": "tan",
+        "hair": "bald",
+        "top": "#3a4a8a",
+        "bottom": "#2b2338",
+        "prop": "none",
+        "hat": "none",
+        "big": true
+      },
+      "churn": {
+        "sticker_lastday": 5,
+        "reason": "fixed happy hour, not computed by the hour"
+      }
+    }
+  ],
+  "ledger": {
+    "day_weight": [
+      0.0,
+      0.28,
+      0.5,
+      0.68,
+      0.83,
+      0.94,
+      1.0
+    ],
+    "day_weight_note": "day d's whole contribution = per-venue mature (real mean daily \u0394) \u00d7 day_weight[d]. day0 = 0: the blocks START IDENTICAL and diverge over the ramp (the disclosed narrative arc).",
+    "per_venue_mature": {
+      "vending": {
+        "merchant": -3.98,
+        "shopper": 7.99,
+        "src": "run mean daily \u0394 (margin/consumer-surplus) over 30d; python3 -m block.gen_week"
+      },
+      "bodega": {
+        "merchant": 191.47,
+        "shopper": 363.21,
+        "src": "run mean daily \u0394 (margin/consumer-surplus) over 30d; python3 -m block.gen_week"
+      },
+      "boba": {
+        "merchant": 336.45,
+        "shopper": 496.49,
+        "src": "run mean daily \u0394 (margin/consumer-surplus) over 30d; python3 -m block.gen_week"
+      },
+      "bakery": {
+        "merchant": 185.99,
+        "shopper": 131.28,
+        "src": "run mean daily \u0394 (margin/consumer-surplus) over 30d; python3 -m block.gen_week"
+      },
+      "florist": {
+        "merchant": 207.49,
+        "shopper": 202.18,
+        "src": "run mean daily \u0394 (margin/consumer-surplus) over 30d; python3 -m block.gen_week"
+      },
+      "barbershop": {
+        "merchant": -5.03,
+        "shopper": 11.64,
+        "src": "run mean daily \u0394 (margin/consumer-surplus) over 30d; python3 -m block.gen_week"
+      },
+      "fashion": {
+        "merchant": 20.38,
+        "shopper": 87.51,
+        "src": "run mean daily \u0394 (margin/consumer-surplus) over 30d; python3 -m block.gen_week"
+      },
+      "vintage": {
+        "merchant": 13.06,
+        "shopper": 3.89,
+        "src": "run mean daily \u0394 (margin/consumer-surplus) over 30d; python3 -m block.gen_week"
+      },
+      "bar": {
+        "merchant": 144.61,
+        "shopper": 347.83,
+        "src": "run mean daily \u0394 (margin/consumer-surplus) over 30d; python3 -m block.gen_week"
+      },
+      "parking": {
+        "merchant": 169.11,
+        "shopper": 174.03,
+        "src": "run mean daily \u0394 (margin/consumer-surplus) over 30d; python3 -m block.gen_week"
+      }
+    },
+    "block_mature": {
+      "merchant": 1259.55,
+      "shopper": 1826.05
+    },
+    "week_total_note": "cumulative HUD after the 7-day ramp: merchants \u2248 $5328, shoppers \u2248 $7724 (block_mature \u00d7 \u03a3day_weight = 4.23). The per-DAY rate is the real committed twin's mean daily paired \u0394."
+  },
+  "crowd": {
+    "seed": 20260710,
+    "ambient_concurrent": {
+      "sticker": [
+        15.0,
+        14.43,
+        13.99,
+        13.62,
+        13.32,
+        13.09,
+        12.97
+      ],
+      "snhp": [
+        15.0,
+        15.0,
+        15.0,
+        15.0,
+        15.0,
+        15.0,
+        15.0
+      ]
+    },
+    "ambient_note": "real converting foot traffic = arrivals net of walk-aways; both blocks see the SAME arrivals, the sticker block converts 86% as many (baseline count is cosmetic).",
+    "hour_weight_note": "intraday crowd multiplier by clock hour (0-23)",
+    "hour_weight": [
+      0.05,
+      0.03,
+      0.02,
+      0.02,
+      0.03,
+      0.08,
+      0.2,
+      0.45,
+      0.85,
+      0.75,
+      0.65,
+      0.7,
+      0.95,
+      0.9,
+      0.72,
+      0.68,
+      0.8,
+      0.98,
+      0.95,
+      0.82,
+      0.66,
+      0.48,
+      0.3,
+      0.14
+    ],
+    "receipt_rate_per_hour_snhp": 5.0,
+    "receipt_rate_note": "display sampling rate (the real block runs ~1713 deals/day, far too many to draw); per-venue frequency \u221d receipt_weight (real deal share).",
+    "receipt_weight": {
+      "vending": 0.0723,
+      "bodega": 1.0,
+      "boba": 0.5522,
+      "bakery": 0.4391,
+      "florist": 0.0371,
+      "barbershop": 0.0292,
+      "fashion": 0.009,
+      "vintage": 0.0038,
+      "bar": 0.6986,
+      "parking": 0.17
+    },
+    "receipt_pool": {
+      "vending": [
+        [
+          "water 1L -$1.76",
+          1.76
+        ],
+        [
+          "cola 20oz -$2.22",
+          2.22
+        ],
+        [
+          "chips -$1.84",
+          1.84
+        ]
+      ],
+      "bodega": [
+        [
+          "deli sandwich -$5.90",
+          5.9
+        ],
+        [
+          "chopped cheese -$5.18",
+          5.18
+        ],
+        [
+          "BEC -$3.97",
+          3.97
+        ]
+      ],
+      "boba": [
+        [
+          "classic milk tea -$4.44",
+          4.44
+        ],
+        [
+          "fruit tea -$4.61",
+          4.61
+        ],
+        [
+          "brown sugar -$4.97",
+          4.97
+        ]
+      ],
+      "bakery": [
+        [
+          "croissant -$3.87",
+          3.87
+        ],
+        [
+          "sourdough -$2.63",
+          2.63
+        ],
+        [
+          "cake slice -$1.71",
+          1.71
+        ]
+      ],
+      "florist": [
+        [
+          "bouquet -$18.62",
+          18.62
+        ],
+        [
+          "stems -$2.14",
+          2.14
+        ],
+        [
+          "dozen roses -$52.35",
+          52.35
+        ]
+      ],
+      "barbershop": [
+        [
+          "cut -$19.42",
+          19.42
+        ]
+      ],
+      "fashion": [
+        [
+          "wide pants -$36.16",
+          36.16
+        ],
+        [
+          "hoodie -$34.59",
+          34.59
+        ],
+        [
+          "slip dress -$59.56",
+          59.56
+        ]
+      ],
+      "vintage": [
+        [
+          "one-of-one -$69.20",
+          69.2
+        ],
+        [
+          "one-of-one -$7.83",
+          7.83
+        ],
+        [
+          "one-of-one -$14.45",
+          14.45
+        ]
+      ],
+      "bar": [
+        [
+          "beer -$12.97",
+          12.97
+        ],
+        [
+          "cocktail -$22.89",
+          22.89
+        ]
+      ],
+      "parking": [
+        [
+          "car -$20.68",
+          20.68
+        ]
+      ]
+    }
+  },
+  "mood": {
+    "gray_note": "sticker desaturation 0\u21920.365: a monotone visual encoding of the real block consumer-surplus gap (12.2% less on the sticker block, 3.0\u00d7 visual gain). snhp stays warm (0).",
+    "gray": {
+      "sticker": [
+        0.0,
+        0.102,
+        0.182,
+        0.248,
+        0.303,
+        0.343,
+        0.365
+      ],
+      "snhp": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "decay": {
+    "note": "per-venue sticker decay 0-1 by day = severity \u00d7 day_weight ramp. severity = 0.55\u00b7(spoilage gap) + 0.45\u00b7(consumer-surplus gap), both real and normalized: the florist/bakery waste the most, so they decay hardest. snhp venues stay at 0.",
+    "sticker": {
+      "vending": [
+        0.0,
+        0.052,
+        0.092,
+        0.126,
+        0.153,
+        0.174,
+        0.185
+      ],
+      "bodega": [
+        0.0,
+        0.111,
+        0.199,
+        0.27,
+        0.33,
+        0.373,
+        0.397
+      ],
+      "boba": [
+        0.0,
+        0.136,
+        0.242,
+        0.33,
+        0.402,
+        0.456,
+        0.485
+      ],
+      "bakery": [
+        0.0,
+        0.115,
+        0.206,
+        0.28,
+        0.341,
+        0.386,
+        0.411
+      ],
+      "florist": [
+        0.0,
+        0.186,
+        0.332,
+        0.451,
+        0.551,
+        0.624,
+        0.664
+      ],
+      "barbershop": [
+        0.0,
+        0.052,
+        0.093,
+        0.127,
+        0.155,
+        0.176,
+        0.187
+      ],
+      "fashion": [
+        0.0,
+        0.065,
+        0.116,
+        0.158,
+        0.193,
+        0.218,
+        0.232
+      ],
+      "vintage": [
+        0.0,
+        0.051,
+        0.091,
+        0.124,
+        0.152,
+        0.172,
+        0.183
+      ],
+      "bar": [
+        0.0,
+        0.109,
+        0.194,
+        0.264,
+        0.322,
+        0.365,
+        0.388
+      ],
+      "parking": [
+        0.0,
+        0.08,
+        0.142,
+        0.193,
+        0.236,
+        0.267,
+        0.284
+      ]
+    }
+  },
+  "weather": [
+    "clear",
+    "clear",
+    "clear",
+    "clear",
+    "rain",
+    "clear",
+    "overcast"
+  ],
+  "beats": [
+    {
+      "day": 0,
+      "hour": 5.8,
+      "world": "snhp",
+      "type": "truck",
+      "venue": "bodega",
+      "supplier": "deli-produce",
+      "negotiated": true,
+      "shared_with": "bakery"
+    },
+    {
+      "day": 0,
+      "hour": 6.2,
+      "world": "snhp",
+      "type": "truck",
+      "venue": "boba",
+      "supplier": "beverage",
+      "negotiated": true,
+      "shared_with": "bar"
+    },
+    {
+      "day": 0,
+      "hour": 6.6,
+      "world": "sticker",
+      "type": "truck",
+      "venue": "bodega",
+      "supplier": "deli-produce",
+      "negotiated": false
+    },
+    {
+      "day": 0,
+      "hour": 7.0,
+      "world": "sticker",
+      "type": "truck",
+      "venue": "bakery",
+      "supplier": "deli-produce",
+      "negotiated": false
+    },
+    {
+      "day": 0,
+      "hour": 7.4,
+      "world": "sticker",
+      "type": "truck",
+      "venue": "boba",
+      "supplier": "beverage",
+      "negotiated": false
+    },
+    {
+      "day": 2,
+      "hour": 5.8,
+      "world": "snhp",
+      "type": "truck",
+      "venue": "florist",
+      "supplier": "florist-route",
+      "negotiated": true,
+      "shared_with": "fashion"
+    },
+    {
+      "day": 2,
+      "hour": 6.2,
+      "world": "snhp",
+      "type": "truck",
+      "venue": "bodega",
+      "supplier": "deli-produce",
+      "negotiated": true,
+      "shared_with": "bakery"
+    },
+    {
+      "day": 2,
+      "hour": 6.6,
+      "world": "sticker",
+      "type": "truck",
+      "venue": "florist",
+      "supplier": "florist-route",
+      "negotiated": false
+    },
+    {
+      "day": 2,
+      "hour": 7.0,
+      "world": "sticker",
+      "type": "truck",
+      "venue": "bakery",
+      "supplier": "deli-produce",
+      "negotiated": false
+    },
+    {
+      "day": 2,
+      "hour": 18.5,
+      "world": "sticker",
+      "type": "spoil",
+      "venue": "florist",
+      "kind": "bin"
+    },
+    {
+      "day": 2,
+      "hour": 18.5,
+      "world": "sticker",
+      "type": "spoil",
+      "venue": "bakery",
+      "kind": "bin"
+    },
+    {
+      "day": 2,
+      "hour": 18.5,
+      "world": "sticker",
+      "type": "spoil",
+      "venue": "boba",
+      "kind": "bin"
+    },
+    {
+      "day": 3,
+      "hour": 12.0,
+      "world": "sticker",
+      "type": "churn",
+      "regular": "sam",
+      "venue": "boba",
+      "reason": "peak-queue balks the sticker board can't smooth"
+    },
+    {
+      "day": 3,
+      "hour": 12.0,
+      "world": "sticker",
+      "type": "churn",
+      "regular": "rosa",
+      "venue": "florist",
+      "reason": "wilted buckets \u2014 the sticker block's biggest spoilage line"
+    },
+    {
+      "day": 3,
+      "hour": 14.0,
+      "world": "sticker",
+      "type": "clearance",
+      "venue": "fashion",
+      "pct": 29
+    },
+    {
+      "day": 3,
+      "hour": 14.0,
+      "world": "sticker",
+      "type": "clearance",
+      "venue": "vintage",
+      "pct": 27
+    },
+    {
+      "day": 4,
+      "hour": 5.8,
+      "world": "snhp",
+      "type": "truck",
+      "venue": "bodega",
+      "supplier": "deli-produce",
+      "negotiated": true,
+      "shared_with": "bakery"
+    },
+    {
+      "day": 4,
+      "hour": 6.2,
+      "world": "snhp",
+      "type": "truck",
+      "venue": "boba",
+      "supplier": "beverage",
+      "negotiated": true,
+      "shared_with": "bar"
+    },
+    {
+      "day": 4,
+      "hour": 6.6,
+      "world": "sticker",
+      "type": "truck",
+      "venue": "boba",
+      "supplier": "beverage",
+      "negotiated": false
+    },
+    {
+      "day": 4,
+      "hour": 9.4,
+      "world": "sticker",
+      "type": "spoil",
+      "venue": "florist",
+      "kind": "bin"
+    },
+    {
+      "day": 4,
+      "hour": 9.4,
+      "world": "sticker",
+      "type": "spoil",
+      "venue": "bakery",
+      "kind": "bin"
+    },
+    {
+      "day": 4,
+      "hour": 9.4,
+      "world": "sticker",
+      "type": "spoil",
+      "venue": "boba",
+      "kind": "bin"
+    },
+    {
+      "day": 4,
+      "hour": 12.0,
+      "world": "sticker",
+      "type": "churn",
+      "regular": "maria",
+      "venue": "bodega",
+      "reason": "brokered-quote gap: shoppers keep less on the posted board"
+    },
+    {
+      "day": 4,
+      "hour": 12.0,
+      "world": "sticker",
+      "type": "churn",
+      "regular": "theo",
+      "venue": "bakery",
+      "reason": "day-old shelf: sticker bakery wastes the most"
+    },
+    {
+      "day": 5,
+      "hour": 12.0,
+      "world": "sticker",
+      "type": "churn",
+      "regular": "yuki",
+      "venue": "fashion",
+      "reason": "end-season cliff instead of a live markdown"
+    },
+    {
+      "day": 5,
+      "hour": 12.0,
+      "world": "sticker",
+      "type": "churn",
+      "regular": "lou",
+      "venue": "bar",
+      "reason": "fixed happy hour, not computed by the hour"
+    },
+    {
+      "day": 5,
+      "hour": 14.0,
+      "world": "sticker",
+      "type": "clearance",
+      "venue": "fashion",
+      "pct": 33
+    },
+    {
+      "day": 5,
+      "hour": 14.0,
+      "world": "sticker",
+      "type": "clearance",
+      "venue": "vintage",
+      "pct": 30
+    },
+    {
+      "day": 6,
+      "hour": 5.8,
+      "world": "snhp",
+      "type": "truck",
+      "venue": "bodega",
+      "supplier": "deli-produce",
+      "negotiated": true,
+      "shared_with": "bakery"
+    },
+    {
+      "day": 6,
+      "hour": 6.2,
+      "world": "snhp",
+      "type": "truck",
+      "venue": "florist",
+      "supplier": "florist-route",
+      "negotiated": true,
+      "shared_with": "fashion"
+    },
+    {
+      "day": 6,
+      "hour": 6.6,
+      "world": "sticker",
+      "type": "truck",
+      "venue": "bodega",
+      "supplier": "deli-produce",
+      "negotiated": false
+    },
+    {
+      "day": 6,
+      "hour": 12.0,
+      "world": "sticker",
+      "type": "churn",
+      "regular": "deb",
+      "venue": "vending",
+      "reason": "machine anchor with no negotiated relief"
+    },
+    {
+      "day": 6,
+      "hour": 12.0,
+      "world": "sticker",
+      "type": "churn",
+      "regular": "kwame",
+      "venue": "barbershop",
+      "reason": "flat slot pricing, no quiet-hour relief"
+    }
+  ]
+}
