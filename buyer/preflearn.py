@@ -373,12 +373,15 @@ def _pair_gain(learner: PosteriorLearner, A, B, means) -> float:
     return total
 
 
-def select_and_ask(learner: PosteriorLearner, buyer: TrueBuyer,
-                   target: list[str]) -> None:
-    """Pick the most-informative query over `target` (expected rel-var
-    reduction), ask the buyer, and update the posterior. Candidate pool = one
-    median-price WTP probe per target SKU + a pairwise between the two
-    highest-mean targets (the negotiation-relevant 'which SKU wins')."""
+def _best_query(learner: PosteriorLearner, target: list[str]):
+    """Pick the most-informative query over `target` WITHOUT asking/applying it.
+    Candidate pool = one median-price WTP probe per target SKU + a pairwise
+    between the two highest-mean targets (the negotiation-relevant 'which SKU
+    wins'). Returns (best, best_kind, means): `best` is ('probe', sku, price) or
+    ('pair', A, B) with A/B = (sku, qty, price); `means` is the pre-query
+    posterior mean (needed for the pairwise update). Shared by `select_and_ask`
+    (the experiment path) and `run_demo_trace` (the demo path) so both drive the
+    identical elicitation policy."""
     means = learner.mean()
     best, best_gain, best_kind = None, -1.0, None
     for s in target:
@@ -394,6 +397,14 @@ def select_and_ask(learner: PosteriorLearner, buyer: TrueBuyer,
         g = _pair_gain(learner, A, B, means)
         if g > best_gain:
             best, best_gain, best_kind = ("pair", A, B), g, "pair"
+    return best, best_kind, means
+
+
+def select_and_ask(learner: PosteriorLearner, buyer: TrueBuyer,
+                   target: list[str]) -> None:
+    """Pick the most-informative query over `target` (expected rel-var
+    reduction), ask the buyer, and update the posterior."""
+    best, best_kind, means = _best_query(learner, target)
     if best is None:
         return
     if best_kind == "probe":
@@ -690,6 +701,279 @@ def run_failure_modes(seed=TEST_SEED, n=200, *, k=K_CART) -> dict:
     return out
 
 
+# ── demo trace: a REAL run of the backbone, recorded for the web demo ────────
+#
+# `arena/web/demo.html` is a static page (canned trace, like the block sim). It
+# must sit on the REAL learner, not a mock — so this emits `demo-trace.json`
+# straight from the same code the experiments and tests exercise. Nothing here
+# invents a number: every posterior band, negotiated price and $ saved is
+# computed by `PosteriorLearner` / active elicitation / the vend `nash_quote`
+# adapter, on vend's true demand process (seed 20260710, prior on disjoint seed
+# 777). Reproduce with `python3 -m buyer.preflearn --demo-trace`.
+#
+# The two scenarios differ only in WHICH buyer (hence which consideration set):
+#   HERO — the biggest cart on the board (a lunch: the pricey, high-WTP-spread
+#          SKUs → the most dramatic real $ savings the catalog allows).
+#   CODA — an everyday bodega grab (cheap staples → the honest small-dollar case).
+# Both run the identical pipeline; the demo just tells one story with each.
+
+# The N=3, cart-ON population reference (validated numbers, from RESULTS.md /
+# results-preflearn.json). Quoted so the single-cart demo can be honestly
+# contextualized against the paired-bootstrap population result, not sold as it.
+_RESULTS_CELL_N3 = {
+    "n_onboard": 3, "cart": "on",
+    "joint_capture": 0.55, "joint_capture_ci95": [0.39, 0.68],
+    "saved_vs_walk": 0.88, "saved_vs_walk_ci95": [0.79, 0.98],
+    "deal_rate": 0.94,
+    "source": "buyer/RESULTS.md — preflearn headline (n=200, paired bootstrap)",
+}
+
+
+def _sku_band(learner: PosteriorLearner, sku: str, mean_hat: float,
+              true_wtp: float | None) -> dict:
+    """One SKU's posterior as a display band: an inner (p25–p75) and an outer
+    (p10–p90) interval, the posterior mean, and — display-only, never learned —
+    the true WTP the band is homing toward."""
+    b = {"lo": round(learner.quantile(sku, 0.10), 3),
+         "p25": round(learner.quantile(sku, 0.25), 3),
+         "mean": round(mean_hat, 3),
+         "p75": round(learner.quantile(sku, 0.75), 3),
+         "hi": round(learner.quantile(sku, 0.90), 3)}
+    if true_wtp is not None:
+        b["true"] = round(true_wtp, 3)
+    return b
+
+
+def _snapshot(learner: PosteriorLearner, skus: list[str],
+              true_wtp: dict[str, float]) -> dict:
+    """The whole learned curve right now: one band per SKU. Non-cart SKUs stay at
+    the prior (active elicitation only sharpens what the buyer is shopping) —
+    that flat-vs-sharp contrast is the honest picture of LOCAL learning."""
+    m = learner.mean()
+    return {s: _sku_band(learner, s, m[s], true_wtp.get(s)) for s in skus}
+
+
+def _pick_demo_buyers(prior: PopPrior, eval_m: VendMerchant,
+                      pop: list[BuyerDraw], k: int) -> dict[str, BuyerDraw]:
+    """Deterministically choose the HERO and CODA buyers from the seeded
+    population by rule (not by hand): HERO = the biggest-saving cart that
+    includes the premium SKU; CODA = a median everyday all-staples cart. Every
+    tie broken by uid, so the choice is reproducible from the seed alone."""
+    staples = {"cola", "diet-cola", "water", "chips", "candy"}
+    scored = []
+    for draw in pop:
+        buyer = TrueBuyer(draw.uid, dict(draw.wtp), draw.walk_cost)
+        cart = _consideration_set(draw.wtp, eval_m, k)
+        learner = PosteriorLearner(prior)
+        for _ in range(3):
+            select_and_ask(learner, buyer, cart)
+        mean_hat = learner.mean()
+        total_saved, all_deal = 0.0, True
+        for s in cart:
+            r = negotiate_realized(draw.wtp, draw.walk_cost, eval_m, mean_hat, [s])
+            if not r["accepted"]:
+                all_deal = False
+            else:
+                total_saved += r["list_price"] - r["unit_price"]
+        scored.append({"draw": draw, "cart": cart, "saved": total_saved,
+                       "all_deal": all_deal})
+    heroes = [s for s in scored
+              if s["all_deal"] and "sandwich" in s["cart"]]
+    heroes.sort(key=lambda s: (-s["saved"], s["draw"].uid))
+    codas = [s for s in scored
+             if s["all_deal"] and set(s["cart"]) <= staples]
+    codas.sort(key=lambda s: (s["saved"], s["draw"].uid))
+    if not scored:
+        raise SystemExit("--demo-trace: no buyers drawn; increase --n")
+    hero = heroes[0] if heroes else scored[0]     # fall back like the coda branch
+    coda = codas[len(codas) // 2] if codas else scored[0]
+    return {"hero": hero["draw"], "coda": coda["draw"]}
+
+
+def _run_one_scenario(sid: str, label: str, tagline: str, draw: BuyerDraw,
+                      prior: PopPrior, eval_m: VendMerchant, k: int) -> dict:
+    """Run the REAL onboarding + silent negotiation for one buyer, recording
+    everything the demo UI needs: the 3 active-elicitation queries with the real
+    posterior each possible answer produces, the learned curve sharpening, and
+    the per-item negotiated price / $ saved on the learned curve."""
+    buyer = TrueBuyer(draw.uid, dict(draw.wtp), draw.walk_cost)
+    cart = _consideration_set(draw.wtp, eval_m, k)
+    # x-axis order for the curve: cheap → premium (whole board), by list price.
+    board = eval_m.board()
+    outside = eval_m.outside_prices()
+    curve_skus = sorted(prior.skus, key=lambda s: board[s].list_price)
+    prior_mean = {s: float(prior.prior_w[s] @ prior.grid_v[s]) for s in prior.skus}
+
+    learner = PosteriorLearner(prior)
+    onboarding = []
+    bands_prior = _snapshot(learner, curve_skus, draw.wtp)
+    for step in range(3):
+        best, kind, means = _best_query(learner, cart)
+        bands_before = _snapshot(learner, curve_skus, draw.wtp)
+        rec = {"step": step + 1, "kind": kind, "bands_before": bands_before}
+        if kind == "probe":
+            _, s, p = best
+            rec["sku"] = s
+            rec["price"] = round(p, 2)
+            rec["prompt"] = f"A {_pretty(s)} for ${p:.2f} — worth it to you?"
+            rec["options"] = [{"id": "yes", "label": "Worth it"},
+                              {"id": "no", "label": "Nah, too much"}]
+            # the REAL posterior each answer produces (learner update is exact)
+            by = {}
+            for ans in ("yes", "no"):
+                lc = learner.copy()
+                lc.update_probe(s, p, ans == "yes")
+                by[ans] = _snapshot(lc, curve_skus, draw.wtp)
+            rec["bands_by_answer"] = by
+            ans = buyer.answer_probe(s, p)
+            rec["canonical"] = "yes" if ans else "no"
+            learner.update_probe(s, p, ans)
+        else:
+            _, A, B = best
+            (sa, qa, pa), (sb, qb, pb) = A, B
+            rec["A"] = {"sku": sa, "qty": qa, "price": round(pa, 2)}
+            rec["B"] = {"sku": sb, "qty": qb, "price": round(pb, 2)}
+            rec["prompt"] = "Which would you rather grab?"
+            rec["options"] = [
+                {"id": "A", "label": f"{_pretty(sa)} · ${pa:.2f}"},
+                {"id": "B", "label": f"{_pretty(sb)} · ${pb:.2f}"}]
+            by = {}
+            for ans in ("A", "B", "walk"):
+                lc = learner.copy()
+                lc.update_pairwise(A, B, ans, means)
+                by[ans] = _snapshot(lc, curve_skus, draw.wtp)
+            rec["bands_by_answer"] = by
+            ch = buyer.answer_pairwise(A, B)
+            rec["canonical"] = ch
+            learner.update_pairwise(A, B, ch, means)
+        onboarding.append(rec)
+
+    bands_final = _snapshot(learner, curve_skus, draw.wtp)
+    mean_hat = learner.mean()
+
+    # silent negotiation, one item at a time (Intent restricted to each SKU) on
+    # the LEARNED curve — plus the perfect-info (oracle) and no-info (prior)
+    # references, so the demo can grade itself honestly.
+    items, num, den = [], 0.0, 0.0
+    list_total = your_total = saved_total = walk_saved_total = 0.0
+    for s in cart:
+        real = negotiate_realized(draw.wtp, draw.walk_cost, eval_m, mean_hat, [s])
+        orc = negotiate_realized(draw.wtp, draw.walk_cost, eval_m, draw.wtp, [s])
+        nin = negotiate_realized(draw.wtp, draw.walk_cost, eval_m, prior_mean, [s])
+        lp = round(board[s].list_price, 2)
+        yp = round(real["unit_price"], 2) if real["unit_price"] else lp
+        saved = round(lp - yp, 2) if real["accepted"] else 0.0
+        items.append({
+            "sku": s, "pretty": _pretty(s), "qty": 1,
+            "list": lp, "bodega": round(outside[s], 2),
+            "your_price": yp if real["accepted"] else None,
+            "accepted": bool(real["accepted"]),
+            "saved_vs_list": saved,
+            "saved_vs_walk": round(real["saved"], 2),
+            "oracle_price": round(orc["unit_price"], 2) if orc["unit_price"] else None,
+            "noinfo_price": round(nin["unit_price"], 2) if nin["unit_price"] else None,
+            "true_wtp": round(draw.wtp[s], 2),
+        })
+        num += real["joint"] - nin["joint"]
+        den += orc["joint"] - nin["joint"]
+        if real["accepted"]:
+            list_total += lp
+            your_total += yp
+            saved_total += saved
+            walk_saved_total += real["saved"]
+    run_capture = round(num / den, 3) if abs(den) > 1e-9 else None
+
+    return {
+        "id": sid, "label": label, "tagline": tagline, "uid": str(draw.uid),
+        "walk_cost": round(draw.walk_cost, 2),
+        "curve_skus": curve_skus,
+        "cart": cart,
+        "pretty": {s: _pretty(s) for s in curve_skus},
+        "bands_prior": bands_prior,
+        "onboarding": onboarding,
+        "bands_final": bands_final,
+        "items": items,
+        "totals": {
+            "list_total": round(list_total, 2),
+            "your_total": round(your_total, 2),
+            "saved_total": round(saved_total, 2),
+            "saved_pct": round(100 * saved_total / list_total, 1) if list_total else 0.0,
+            "saved_vs_walk_total": round(walk_saved_total, 2),
+        },
+        "honest_cell": {
+            "run_joint_capture": run_capture,
+            "population_reference": _RESULTS_CELL_N3,
+            "note": ("This single cart is one real draw; the CI-backed number "
+                     "is the population reference (N=3, cart on ≈ 55% of "
+                     "perfect-info joint surplus, ~$0.88 saved/deal, 94% deal "
+                     "rate)."),
+        },
+    }
+
+
+_PRETTY = {"cola": "Cola", "diet-cola": "Diet Cola", "water": "Water",
+           "chips": "Chips", "candy": "Candy", "energy": "Energy drink",
+           "sandwich": "Sandwich", "fruit-cup": "Fruit cup"}
+
+
+def _pretty(sku: str) -> str:
+    return _PRETTY.get(sku, sku.replace("-", " ").title())
+
+
+def run_demo_trace(seed: int = TEST_SEED, n: int = 200, k: int = K_CART) -> dict:
+    """Emit the full demo trace: pick the HERO + CODA buyers from the seeded
+    population, run the real backbone on each, and package it with provenance
+    and the honest caveat. Deterministic from the seed."""
+    prior = PopPrior.build(cal_seed=CAL_SEED)
+    eval_m, _ = _build_env(seed)
+    pop = draw_vend_population(seed, n)
+    picked = _pick_demo_buyers(prior, eval_m, pop, k)
+    hero = _run_one_scenario(
+        "hero", "The lunch run",
+        "The biggest cart on the board — a full lunch, priced for you.",
+        picked["hero"], prior, eval_m, k)
+    coda = _run_one_scenario(
+        "coda", "The corner grab",
+        "An everyday bodega run — small dollars, still yours to keep.",
+        picked["coda"], prior, eval_m, k)
+    return {
+        "meta": {
+            "what": ("A real, recorded run of SNHP's preference-learning "
+                     "backbone: a stranger onboards in 3 taps, the agent learns "
+                     "enough of their utility curve to negotiate the cart in "
+                     "front of them — silently, never above sticker."),
+            "learning_is_real": ("Every posterior band, negotiated price and $ "
+                                 "saved on this page is computed by "
+                                 "buyer/preflearn.py (active preference "
+                                 "elicitation over a Bayesian posterior on "
+                                 "per-SKU log-WTP) driving vend's nash_quote — "
+                                 "the same code the tests and RESULTS.md "
+                                 "exercise. Nothing on the page is a scripted "
+                                 "delta."),
+            "honest_caveat": ("It learns enough of your curve to price the cart "
+                              "in front of you — ~5 questions ≈ 60–82% of a "
+                              "perfect-info deal (this demo shows the first 3, a "
+                              "~55% waypoint). It does NOT solve utility "
+                              "elicitation; it assumes roughly stationary tastes "
+                              "within a session, and needs a few taps to clear a "
+                              "cold-start deal-rate cliff."),
+            "citation": ("Grounded in active preference learning — Sadigh et al. "
+                         "(ILIAD, preference-based reward learning) and the "
+                         "Goodman/Stanford line on optimal experiment design / "
+                         "information-gain query selection."),
+            "provenance": {
+                "module": "buyer/preflearn.py",
+                "reproduce": "python3 -m buyer.preflearn --demo-trace",
+                "seed": seed, "cal_seed": CAL_SEED, "n_population": n,
+                "k_cart": k, "grid_n": GRID_N,
+                "negotiation": "vend.scenario.nash_quote (VendMerchant adapter)",
+                "population": "vend.world.sample_consumer (true demand process)",
+            },
+        },
+        "scenarios": {"hero": hero, "coda": coda},
+    }
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--seed", type=int, default=TEST_SEED)
@@ -698,7 +982,22 @@ def main(argv=None) -> int:
     ap.add_argument("--quick", action="store_true")
     ap.add_argument("--out", default="buyer/results-preflearn.json")
     ap.add_argument("--no-failure", action="store_true")
+    ap.add_argument("--demo-trace", action="store_true",
+                    help="emit the web-demo trace (real backbone run) and exit")
+    ap.add_argument("--demo-out", default="arena/web/demo-trace.json")
     a = ap.parse_args(argv)
+    if a.demo_trace:
+        trace = run_demo_trace(a.seed, 24 if a.quick else a.n, k=a.k)
+        with open(a.demo_out, "w") as f:
+            json.dump(trace, f, indent=1, default=str)
+        for sid in ("hero", "coda"):
+            sc = trace["scenarios"][sid]
+            t = sc["totals"]
+            print(f"[demo-trace] {sid:4s} {sc['cart']}  "
+                  f"saved ${t['saved_total']:.2f} of ${t['list_total']:.2f} "
+                  f"({t['saved_pct']:.0f}%)  run-capture={sc['honest_cell']['run_joint_capture']}")
+        print(f"  wrote {a.demo_out}")
+        return 0
     n = 24 if a.quick else a.n
     head = run_headline(a.seed, n, k=a.k)
     results = {"headline": head}

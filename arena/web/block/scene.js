@@ -46,7 +46,33 @@
 
   // ── state ───────────────────────────────────────────────────────────────────
   const params = new URLSearchParams(location.search);
-  const st = { t: 0, playing: true, paused: false, days: 7, daySeconds: 6 };
+  const st = { t: 0, playing: true, paused: false, days: 7, daySeconds: 6, spotlight: false };
+
+  // ── SPOTLIGHT DEALS — the mechanism atom the aggregate counters hide ─────────
+  // The scoreboard shows only "shoppers saved / merchants earned." A first-timer
+  // never sees the ONE negotiation underneath. Each deal is a single, legible
+  // transaction: the SAME shopper walks at the sticker (their max < the board)
+  // but buys on SNHP (a personalized quote below their max, above cost).
+  //
+  // HONESTY: `sticker` (list) and `cost` (unit cost) are REAL per-SKU numbers —
+  //   bodega/boba/fashion from block/calibration.py, bakery from bakeshop/
+  //   calibration.py. `buyer_max` (this shopper's willingness-to-pay) and `neg`
+  //   (the quote) are a REPRESENTATIVE atom, not a claim about one logged buyer —
+  //   same "aggregates real · walkers representative" contract as the badge. The
+  //   invariant cost ≤ neg ≤ buyer_max < sticker holds for every row (asserted at
+  //   load) so nobody sells below cost and nobody pays above the board.
+  const SPOTLIGHT_DEALS = [
+    { venue: "BODEGA",  item: "chopped cheese",   sticker:   9.50, buyer_max:  7.00, neg:  5.20, cost:  3.20 },
+    { venue: "BOBA",    item: "classic milk tea", sticker:   6.25, buyer_max:  4.50, neg:  3.10, cost:  1.35 },
+    { venue: "BAKERY",  item: "morning croissant",sticker:   4.75, buyer_max:  3.60, neg:  2.50, cost:  1.40 },
+    { venue: "BODEGA",  item: "deli sandwich",    sticker:  11.50, buyer_max:  8.75, neg:  6.50, cost:  4.10 },
+    { venue: "FASHION", item: "hoodie",           sticker:  92.00, buyer_max: 70.00, neg: 52.00, cost: 31.00 },
+    { venue: "FASHION", item: "slip dress",       sticker: 128.00, buyer_max: 95.00, neg: 68.00, cost: 42.00 },
+  ].filter(d => {   // the honesty gate: drop any row that breaks the spine
+    const ok = d.cost <= d.neg && d.neg <= d.buyer_max && d.buyer_max < d.sticker;
+    if (!ok) console.error("spotlight: dropped deal (spine violated)", d);
+    return ok;
+  });
 
   // ── HUD refs ────────────────────────────────────────────────────────────────
   const el = id => document.getElementById(id);
@@ -361,6 +387,78 @@
     el("play").addEventListener("click", () => { st.playing = !st.playing; st.paused = false; el("play").textContent = st.playing ? "▮▮" : "▶"; });
   })();
 
+  // ── spotlight: freeze the block, show ONE deal legibly ──────────────────────
+  // Trigger: the dock's "ONE DEAL" button, OR auto — once ~6s into the first play
+  // (teach the mechanism), then every ~34s of play while it's closed and idle.
+  // Opening pauses the timelapse (st.spotlight) and restores the prior play state
+  // on close. The three-number spine positions cost/quote/max/sticker on a shared
+  // cost→sticker rail so the invariant reads at a glance.
+  const SPOT_AUTO_FIRST = 6;     // POLISH: seconds of play before the first auto-open
+  const SPOT_AUTO_EVERY = 34;    // POLISH: seconds between later auto-opens (0 disables)
+  const money = n => "$" + n.toFixed(2);   // always cents — reads as a receipt
+  const spot = {
+    root: el("spotlight"), btn: el("spot-btn"),
+    idx: 0, prevPlaying: true, everSeen: false,
+    autoAccum: 0, firstDone: false,
+  };
+  function pos(x, d) { return ((x - d.cost) / (d.sticker - d.cost)) * 100; }
+  function renderSpot() {
+    const d = SPOTLIGHT_DEALS[spot.idx];
+    if (!d) return;
+    const margin = d.neg - d.cost, saving = d.buyer_max - d.neg;
+    el("spot-venue").textContent = d.venue;
+    el("spot-name").textContent = d.item;
+    el("spot-stk1").textContent = money(d.sticker);
+    el("spot-max1").textContent = money(d.buyer_max);
+    el("spot-lose").textContent = money(d.sticker) + " > their " + money(d.buyer_max) + " — a lost sale";
+    el("spot-save").textContent = "+" + money(saving);
+    el("spot-margin").textContent = "+" + money(margin);
+    el("spot-win").textContent = "quoted " + money(d.neg) + " — still above the " + money(d.cost) + " cost";
+    // the spine: cost=0% … sticker=100%
+    const pN = pos(d.neg, d), pM = pos(d.buyer_max, d);
+    const segMargin = el("seg-margin"), segSaving = el("seg-saving"), segGap = el("seg-gap");
+    segMargin.style.left = "0%"; segMargin.style.width = pN + "%";
+    segSaving.style.left = pN + "%"; segSaving.style.width = (pM - pN) + "%";
+    segGap.style.left = pM + "%"; segGap.style.width = (100 - pM) + "%";
+    const tk = (id, p, val) => { const t = el(id); t.style.left = p + "%"; t.querySelector("b").textContent = money(val); };
+    tk("tick-cost", 0, d.cost); tk("tick-neg", pN, d.neg); tk("tick-max", pM, d.buyer_max); tk("tick-stk", 100, d.sticker);
+    el("spot-count").textContent = (spot.idx + 1) + " / " + SPOTLIGHT_DEALS.length;
+  }
+  function openSpot(i) {
+    if (!SPOTLIGHT_DEALS.length) return;
+    if (typeof i === "number") spot.idx = ((i % SPOTLIGHT_DEALS.length) + SPOTLIGHT_DEALS.length) % SPOTLIGHT_DEALS.length;
+    st.spotlight = true;   // freeze is the !st.spotlight gate in frame(); play-state is untouched while open
+    spot.everSeen = true; spot.autoAccum = 0;
+    spot.btn.classList.remove("pulse");
+    renderSpot();
+    spot.root.classList.remove("hidden"); spot.root.setAttribute("aria-hidden", "false");
+  }
+  function closeSpot() {
+    st.spotlight = false; spot.autoAccum = 0;
+    spot.root.classList.add("hidden"); spot.root.setAttribute("aria-hidden", "true");
+  }
+  function stepSpot(dir) { openSpot(spot.idx + dir); }
+  // auto-open cadence, counted in seconds of actual play (called from frame)
+  function spotAuto(dt) {
+    if (st.spotlight || !st.playing || st.paused || !SPOTLIGHT_DEALS.length) return;
+    spot.autoAccum += dt;
+    if (!spot.firstDone) { if (spot.autoAccum >= SPOT_AUTO_FIRST) { spot.firstDone = true; if (!spot.everSeen) openSpot(0); } return; }
+    if (SPOT_AUTO_EVERY > 0 && spot.autoAccum >= SPOT_AUTO_EVERY) openSpot(spot.idx + 1);
+  }
+  spot.btn.addEventListener("click", () => (st.spotlight ? closeSpot() : openSpot()));
+  el("spot-close").addEventListener("click", closeSpot);
+  el("spot-next").addEventListener("click", () => stepSpot(1));
+  el("spot-prev").addEventListener("click", () => stepSpot(-1));
+  spot.root.querySelector(".spot-scrim").addEventListener("click", closeSpot);
+  document.addEventListener("keydown", e => {
+    if (!st.spotlight) return;
+    if (e.key === "Escape") closeSpot();
+    else if (e.key === "ArrowRight") stepSpot(1);
+    else if (e.key === "ArrowLeft") stepSpot(-1);
+  });
+  // invite the click after a beat, until it's been opened once
+  setTimeout(() => { if (!spot.everSeen) spot.btn.classList.add("pulse"); }, 2600);
+
   // ── hover nametags ──────────────────────────────────────────────────────────
   view.addEventListener("mousemove", e => {
     const lx = (e.clientX - canvasLeft) / scale, ly = (e.clientY - canvasTop) / scale;
@@ -380,7 +478,10 @@
   function frame(now) {
     let dt = (now - last) / 1000; last = now; if (dt > 0.1) dt = 0.1;
     realSec += dt;
-    if (st.playing && !st.paused) {
+    // the spotlight freezes the timelapse (the block holds behind the scrim);
+    // realSec still advances so the frozen frame keeps its subtle micro-life.
+    if (!st.spotlight) spotAuto(dt);
+    if (st.playing && !st.paused && !st.spotlight) {
       st.t += dt / st.daySeconds;
       if (st.t >= st.days) st.t -= st.days;               // loop the week
       // spawn receipts on the SNHP block, gated by divergence (day 0 ≈ none)

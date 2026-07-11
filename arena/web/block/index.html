@@ -4,7 +4,7 @@
 <meta name="description" content="Twin pixel-art NYC blocks — the STICKER block and the SNHP block — run the same week with the same people. One grays and thins as it converts fewer shoppers; the other keeps its crowd and pops receipts. Every dollar on screen is a real paired delta from the committed 10-venue block twin (reproducible from the seed); the day-by-day ramp and per-walker paths are a representative arc." />
 <meta name="theme-color" content="#0d1020" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230d1020'/%3E%3Crect x='3' y='6' width='3' height='7' fill='%23e58ab4'/%3E%3Crect x='7' y='4' width='3' height='9' fill='%23ffcf8a'/%3E%3Crect x='11' y='7' width='2' height='6' fill='%237fe0ff'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="styles.css?v=3" />
+<link rel="stylesheet" href="styles.css?v=4" />
 <style>
   #block-back{position:absolute;top:10px;right:12px;z-index:60;
     font:600 12px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.04em;
@@ -52,16 +52,78 @@
         <button id="play" class="ico" aria-label="play / pause" title="play / pause">▮▮</button>
         <span id="dock-hint">1 day ≈ 6s</span>
       </div>
+      <!-- POLISH: the trigger for the mechanism close-up. Auto-opens once ~6s in,
+           then re-opens every ~34s of play (SPOT_AUTO_* in scene.js), or on click. -->
+      <button id="spot-btn" class="ico spot-open" aria-label="spotlight one deal" title="freeze the block · see one negotiation up close"><span class="spot-ico">◎</span><span class="spot-btn-txt">ONE DEAL</span></button>
     </div>
 
     <div id="ticker"><span id="ticker-inner"></span></div>
 
     <div id="nametag" class="hidden"></div>
   </div>
+
+  <!-- ── SPOTLIGHT: the mechanism atom the aggregate scoreboard hides ───────────
+       Freezes the block and shows ONE negotiation legibly — the SAME shopper
+       walking at the sticker vs buying on SNHP. Sticker & cost are real per-SKU
+       (block/calibration.py + bakeshop/calibration.py); the one shopper's max &
+       the quote are a representative atom (SPOTLIGHT_DEALS in scene.js). The
+       three-number spine cost ≤ negotiated ≤ sticker is the whole point. It's a
+       direct child of #stage (not #hud) so its scrim sits above the ‹ SNHP link.
+       POLISH: card copy, spine colors, and mobile stacking are yours to finish. -->
+  <div id="spotlight" class="hidden" aria-hidden="true">
+    <div class="spot-scrim"></div>
+    <div class="spot-card" role="dialog" aria-modal="true" aria-label="one deal, up close">
+      <button id="spot-close" class="spot-close" aria-label="close spotlight" title="back to the block">×</button>
+      <div class="spot-kicker">ONE DEAL · UP CLOSE — <span>the atom the totals hide</span></div>
+      <div class="spot-item"><span class="spot-venue" id="spot-venue">BODEGA</span> <span id="spot-name">chopped cheese</span></div>
+
+      <!-- same shopper, two blocks -->
+      <div class="spot-two">
+        <div class="spot-side sticker">
+          <div class="spot-side-head"><span class="spot-side-lab">STICKER BLOCK</span><span class="spot-outcome walk" id="spot-walk">✕ walks away</span></div>
+          <div class="spot-rows">
+            <div class="spot-row"><span>board price</span><b id="spot-stk1">$9.50</b></div>
+            <div class="spot-row"><span>what they'd pay</span><b id="spot-max1">$7.00</b></div>
+          </div>
+          <div class="spot-verdict lose" id="spot-lose">too dear — a lost sale</div>
+        </div>
+        <div class="spot-side snhp">
+          <div class="spot-side-head"><span class="spot-side-lab">SNHP BLOCK</span><span class="spot-outcome buy" id="spot-buy">✓ buys</span></div>
+          <div class="spot-rows">
+            <div class="spot-row"><span>shopper keeps</span><b class="save" id="spot-save">+$1.80</b></div>
+            <div class="spot-row"><span>merchant keeps</span><b class="marg" id="spot-margin">+$2.00</b></div>
+          </div>
+          <div class="spot-verdict win" id="spot-win">quoted $5.20 — both end ahead</div>
+        </div>
+      </div>
+
+      <!-- the spine: cost ≤ negotiated ≤ sticker (positions set in JS) -->
+      <div class="spot-spine">
+        <div class="spine-cap floor">cost floor<br><i>never below</i></div>
+        <div class="spine-track" id="spine-track">
+          <div class="seg margin" id="seg-margin"></div>
+          <div class="seg saving" id="seg-saving"></div>
+          <div class="seg gap" id="seg-gap"></div>
+          <div class="tick t-cost" id="tick-cost"><span class="tk-dot"></span><span class="tk-lab">cost<br><b>$3.20</b></span></div>
+          <div class="tick t-neg" id="tick-neg"><span class="tk-dot"></span><span class="tk-lab">quote<br><b>$5.20</b></span></div>
+          <div class="tick t-max" id="tick-max"><span class="tk-dot"></span><span class="tk-lab">their max<br><b>$7.00</b></span></div>
+          <div class="tick t-stk" id="tick-stk"><span class="tk-dot"></span><span class="tk-lab">sticker<br><b>$9.50</b></span></div>
+        </div>
+        <div class="spine-cap ceil">sticker ceiling<br><i>never above</i></div>
+      </div>
+
+      <div class="spot-foot">
+        <button class="spot-nav" id="spot-prev" aria-label="previous deal">‹</button>
+        <span class="spot-count" id="spot-count">1 / 6</span>
+        <button class="spot-nav next" id="spot-next" aria-label="another deal">another deal ›</button>
+      </div>
+      <div class="spot-prov">sticker &amp; cost: real per-SKU (calibration.py) · this shopper &amp; the quote: one representative atom · the totals above are the real committed-twin delta</div>
+    </div>
+  </div>
 </div>
 
-<script src="palette.js?v=3"></script>
-<script src="data.js?v=3"></script>
-<script src="venues.js?v=3"></script>
-<script src="walkers.js?v=3"></script>
-<script src="scene.js?v=3"></script>
+<script src="palette.js?v=4"></script>
+<script src="data.js?v=4"></script>
+<script src="venues.js?v=4"></script>
+<script src="walkers.js?v=4"></script>
+<script src="scene.js?v=4"></script>

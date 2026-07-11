@@ -1,0 +1,584 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>SNHP — onboard a stranger, then negotiate their cart</title>
+<meta name="description" content="A stranger onboards in three taps; the agent learns enough of their utility curve to negotiate the cart in front of them — silently, never above sticker. The learning is real: every band and every dollar is a recorded run of buyer/preflearn.py (active preference elicitation) driving vend's negotiation." />
+<meta name="theme-color" content="#0b0916" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0916'/%3E%3Crect x='2' y='9' width='2' height='4' fill='%237fc48f'/%3E%3Crect x='5' y='6' width='2' height='7' fill='%23a78bfa'/%3E%3Crect x='8' y='4' width='2' height='9' fill='%23ffe08a'/%3E%3Crect x='11' y='7' width='2' height='6' fill='%238fd0ff'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="nav.css" />
+<style>
+  :root { --bg:#0b0916; --panel:#131022; --panel2:#0e0b1c; --ink:#f0eff5; --dim:#9a95b0;
+          --line:rgba(167,139,250,.22); --gold:#ffe08a; --green:#7fc48f; --violet:#a78bfa;
+          --blue:#8fd0ff; --pink:#e58ab4; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
+              font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+              -webkit-font-smoothing:antialiased; }
+  a { color:var(--blue); }
+  .wrap { max-width:760px; margin:0 auto; padding:22px 18px 90px; }
+
+  /* header */
+  .proto { display:inline-block; font-size:10px; letter-spacing:.14em; color:var(--gold);
+           border:1px solid rgba(255,224,138,.4); border-radius:6px; padding:3px 9px; margin:2px 0 12px; }
+  h1 { font-size:26px; line-height:1.24; letter-spacing:.01em; margin:0 0 8px; text-wrap:balance; }
+  h1 b { color:var(--gold); }
+  .lede { color:var(--dim); font-size:13.5px; line-height:1.65; margin:0 0 6px; max-width:60ch; }
+  .lede b { color:var(--ink); }
+
+  .toprow { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:14px 0 6px; }
+  .btn { font-family:inherit; cursor:pointer; border:none; border-radius:10px; font-weight:700;
+         letter-spacing:.03em; padding:11px 16px; font-size:13px; }
+  .btn.primary { background:var(--gold); color:#0a0812; }
+  .btn.ghost { background:rgba(167,139,250,.12); color:var(--ink); border:1px solid var(--line); }
+  .btn:disabled { opacity:.4; cursor:default; }
+  .scenario-tabs { display:flex; gap:6px; margin-left:auto; }
+  .scenario-tabs button { font-family:inherit; cursor:pointer; font-size:11px; letter-spacing:.03em;
+         padding:7px 11px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--dim); }
+  .scenario-tabs button.on { color:var(--gold); border-color:rgba(255,224,138,.4); background:rgba(255,224,138,.1); }
+
+  section { background:var(--panel); border:1px solid var(--line); border-radius:16px;
+            padding:18px 18px 20px; margin:16px 0; }
+  .sec-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:4px; }
+  .sec-num { font-size:10.5px; letter-spacing:.2em; color:var(--violet); text-transform:uppercase; }
+  .sec-title { font-size:15px; font-weight:700; }
+  .sec-sub { color:var(--dim); font-size:12px; line-height:1.55; margin:6px 0 0; }
+
+  /* onboard */
+  .dots { display:flex; gap:7px; margin:12px 0 10px; }
+  .dot { width:26px; height:5px; border-radius:3px; background:rgba(255,255,255,.09); transition:background .3s; }
+  .dot.done { background:var(--green); }
+  .dot.active { background:var(--gold); }
+  .q-prompt { font-size:15px; font-weight:700; margin:6px 0 12px; min-height:1.4em; }
+  .q-opts { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .q-opt { font-family:inherit; cursor:pointer; text-align:left; border:1px solid var(--line);
+           background:var(--panel2); color:var(--ink); border-radius:12px; padding:15px 15px;
+           font-size:14px; font-weight:600; transition:border-color .15s, background .15s, transform .1s; }
+  .q-opt:hover { border-color:rgba(255,224,138,.5); background:rgba(255,224,138,.06); }
+  .q-opt:active { transform:translateY(1px); }
+  .q-opt small { display:block; color:var(--dim); font-weight:400; font-size:11px; margin-top:5px; letter-spacing:.02em; }
+  .q-opt.picked { border-color:var(--gold); background:rgba(255,224,138,.1); }
+  .onboard-done { color:var(--green); font-size:12.5px; margin-top:10px; display:none; }
+
+  /* curve */
+  .curve-wrap { margin:8px 0 2px; }
+  svg.curve { width:100%; height:auto; display:block; overflow:visible; }
+  .curve-cap { display:flex; justify-content:space-between; gap:10px; color:var(--dim); font-size:11px; margin-top:6px; }
+  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:11px; color:var(--dim); margin-top:8px; }
+  .legend i { display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:5px; vertical-align:-1px; }
+
+  /* shop */
+  .cart { margin-top:10px; }
+  .row { display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px;
+         padding:12px 4px; border-bottom:1px solid rgba(255,255,255,.06); }
+  .row:last-child { border-bottom:none; }
+  .row .name { font-size:14px; font-weight:700; }
+  .row .sub { color:var(--dim); font-size:11px; margin-top:3px; }
+  .row .right { text-align:right; min-width:150px; }
+  .list-price { color:var(--dim); font-size:12px; }
+  .list-price.struck { text-decoration:line-through; opacity:.65; }
+  .neg { color:var(--violet); font-size:12px; }
+  .neg .spin { display:inline-block; animation:spin 1s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .you { font-size:16px; font-weight:700; color:var(--green); }
+  .saved-chip { display:inline-block; font-size:11px; color:var(--gold); font-weight:700;
+                background:repeating-linear-gradient(135deg,rgba(255,224,138,.16) 0 7px,rgba(255,224,138,.04) 7px 14px);
+                border:1px solid rgba(255,224,138,.4); border-radius:999px; padding:2px 8px; margin-top:5px; }
+  .reveal-anim { animation:pop .45s cubic-bezier(.2,1.3,.5,1); }
+  @keyframes pop { from { opacity:0; transform:translateY(6px) scale(.96);} to { opacity:1; transform:none; } }
+  .cart-total { display:flex; justify-content:space-between; align-items:baseline; margin-top:14px;
+                padding-top:14px; border-top:1px dashed var(--line); }
+  .cart-total .big { font-size:24px; font-weight:800; color:var(--gold); }
+  .cart-total .cap { font-size:11px; color:var(--dim); letter-spacing:.03em; }
+  .add-cta { margin-top:12px; }
+  .muted { color:var(--dim); }
+
+  /* coda */
+  .coda-items { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px; }
+  .coda-item { background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:10px 11px; }
+  .coda-item .n { font-size:12.5px; font-weight:700; }
+  .coda-item .p { font-size:11px; color:var(--dim); margin-top:4px; }
+  .coda-item .s { font-size:12px; color:var(--green); font-weight:700; margin-top:5px; }
+
+  /* honesty */
+  .honesty { background:var(--panel2); }
+  .honesty h3 { font-size:13px; margin:0 0 8px; color:var(--ink); }
+  .honesty p { font-size:12px; color:var(--dim); line-height:1.65; margin:0 0 10px; }
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font-size:11.5px; margin:8px 0; }
+  .kv dt { color:var(--violet); }
+  .kv dd { margin:0; color:var(--dim); word-break:break-word; }
+  code { background:rgba(255,255,255,.06); border:1px solid var(--line); border-radius:5px;
+         padding:1px 6px; font-size:11.5px; color:var(--ink); }
+  .capbars { display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 4px; }
+  .capbar { flex:1 1 180px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+  .capbar .lab { font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--dim); }
+  .capbar .val { font-size:20px; font-weight:800; margin-top:3px; }
+  .capbar .ci { font-size:10.5px; color:var(--dim); margin-top:2px; }
+  .foot { color:var(--dim); font-size:11px; line-height:1.6; margin-top:14px; }
+  .foot a { color:var(--blue); }
+  .narrate { position:sticky; bottom:0; z-index:5; margin:0 -18px -20px; padding:12px 18px;
+             background:linear-gradient(0deg,rgba(11,9,22,.96),rgba(11,9,22,.72));
+             border-top:1px solid var(--line); font-size:12.5px; color:var(--gold); display:none; }
+  .err { color:var(--pink); font-size:12px; }
+  @media (max-width:560px){ h1{font-size:22px;} .row .right{min-width:120px;} .coda-items{grid-template-columns:1fr;} }
+</style>
+
+<!-- POLISH: this is a FIRST working version wired to the real trace. The visual
+     loop (curve easing, cart micro-interactions, mobile spacing, guide-me
+     pacing, copy tightening) is left for the human finish pass. Every number,
+     band and price on screen is read from demo-trace.json — a real recorded run
+     of buyer/preflearn.py. Do not hardcode deltas here. -->
+
+<nav class="snhp-nav" aria-label="SNHP arena sections">
+  <span class="snhp-nav__logo" aria-hidden="true">SNHP</span>
+  <ul class="snhp-nav__list">
+    <li><a href="index.html">Arena</a></li>
+    <li><a href="leaderboard.html">Leaderboard</a></li>
+    <li><a href="submit.html">Submit</a></li>
+    <li><a href="hire.html">Use it</a></li>
+    <li><a href="vend.html">Vend</a></li>
+    <!-- POLISH: to make this reachable from the rest of the site, add
+         <li><a href="demo.html">Demo</a></li> to the nav in index/leaderboard/
+         submit/hire/vend.html and /block/ too. Left uncommitted / to you so this
+         change never half-updates the shared bar. -->
+    <li><a href="demo.html" class="is-active" aria-current="page">Demo</a></li>
+    <li><a href="/block/">Block</a></li>
+  </ul>
+</nav>
+
+<div class="wrap">
+  <span class="proto">live trace · real learning · one recorded run</span>
+  <h1>A stranger walks up. Three taps later, the agent <b>negotiates their whole cart</b> — silently.</h1>
+  <p class="lede">No sign-up, no stated budget. The agent asks a few sharp questions, watches your
+    utility curve go from <b>fuzzy to sharp</b>, then quietly prices the cart in front of you —
+    <b>never above sticker</b>. This isn't a mockup: every band and every dollar below is a
+    recorded run of the real preference-learning backbone.</p>
+
+  <div class="toprow">
+    <button class="btn primary" id="guide">▶ Guide me</button>
+    <button class="btn ghost" id="restart">Restart</button>
+    <div class="scenario-tabs" id="tabs">
+      <button data-s="hero" class="on">The lunch run</button>
+      <button data-s="coda">The corner grab</button>
+    </div>
+  </div>
+
+  <!-- 1 · ONBOARD -->
+  <section id="onboard">
+    <div class="sec-head"><span class="sec-num">1 · Onboard</span></div>
+    <div class="sec-title">Would you rather…</div>
+    <p class="sec-sub" id="onboard-sub">Three taps. The agent picks each question to learn the most it can
+      about what you value — the same active-elicitation policy the paper runs.</p>
+    <div class="dots" id="dots"></div>
+    <div class="q-prompt" id="q-prompt">—</div>
+    <div class="q-opts" id="q-opts"></div>
+    <div class="onboard-done" id="onboard-done">✓ Curve learned. Now it can shop for you.</div>
+  </section>
+
+  <!-- 2 · LEARN (the curve) -->
+  <section id="learn">
+    <div class="sec-head"><span class="sec-num">2 · Learn</span></div>
+    <div class="sec-title">Your utility curve, sharpening</div>
+    <p class="sec-sub">The band is the agent's <b>uncertainty</b> about how much each item is worth to you.
+      It only sharpens what you're shopping — that's the point of the cart signal.</p>
+    <div class="curve-wrap">
+      <svg class="curve" id="curve" viewBox="0 0 720 300" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+    </div>
+    <div class="curve-cap"><span>← everyday</span><span id="curve-note">fuzzy: prior belief only</span><span>premium →</span></div>
+    <div class="legend">
+      <span><i style="background:rgba(167,139,250,.32)"></i>uncertainty (80%)</span>
+      <span><i style="background:var(--gold)"></i>best guess</span>
+      <span><i style="background:var(--green)"></i>your true value</span>
+      <span class="muted">bright = in your cart</span>
+    </div>
+  </section>
+
+  <!-- 3 · SHOP -->
+  <section id="shop">
+    <div class="sec-head"><span class="sec-num">3 · Shop</span><span class="sec-title" id="shop-title">The lunch run</span></div>
+    <p class="sec-sub" id="shop-sub">Add the cart. Each item is negotiated for you the instant it lands —
+      you never see the haggling, only the price you keep.</p>
+    <div class="cart" id="cart"></div>
+    <button class="btn primary add-cta" id="addcart">Add the cart →</button>
+    <div class="cart-total" id="cart-total" style="display:none">
+      <div><div class="cap">you saved, silently</div><div class="big" id="saved-big">$0.00</div></div>
+      <div style="text-align:right"><div class="cap" id="saved-pct-cap">—</div><div class="muted" id="saved-detail">—</div></div>
+    </div>
+  </section>
+
+  <!-- CODA strip -->
+  <section id="coda">
+    <div class="sec-head"><span class="sec-num">Coda</span><span class="sec-title">Same agent, corner bodega</span></div>
+    <p class="sec-sub" id="coda-sub">The honest small-dollar case: an everyday grab. The learning is identical;
+      the stakes are a couple of bucks. It still never charges above sticker.</p>
+    <div class="coda-items" id="coda-items"></div>
+    <p class="sec-sub" id="coda-total" style="margin-top:12px"></p>
+  </section>
+
+  <!-- HONESTY -->
+  <section class="honesty" id="honesty">
+    <div class="sec-head"><span class="sec-num">Is the learning real?</span></div>
+    <h3>Yes — this page is a recorded run of the backbone, not a script.</h3>
+    <p id="h-learning">…</p>
+    <div class="capbars">
+      <div class="capbar">
+        <div class="lab">this cart, realized</div>
+        <div class="val" id="cap-run">—</div>
+        <div class="ci">efficiency captured vs a perfect-info agent (one draw)</div>
+      </div>
+      <div class="capbar">
+        <div class="lab">population, 3 questions</div>
+        <div class="val" id="cap-pop">—</div>
+        <div class="ci" id="cap-pop-ci">—</div>
+      </div>
+      <div class="capbar">
+        <div class="lab">saved per deal, population</div>
+        <div class="val" id="cap-saved">—</div>
+        <div class="ci" id="cap-deal">—</div>
+      </div>
+    </div>
+    <p id="h-caveat" class="muted">…</p>
+    <dl class="kv" id="prov"></dl>
+    <p class="foot" id="h-cite">…</p>
+    <p class="foot">Reproduce this exact trace: <code id="repro">python3 -m buyer.preflearn --demo-trace</code>.
+      The population numbers are from <code>buyer/RESULTS.md</code> (n=200, paired bootstrap).</p>
+  </section>
+
+  <div class="narrate" id="narrate"></div>
+  <p class="err" id="err"></p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var TRACE = null, SID = "hero", STEP = 0, BANDS = null, guiding = false;
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var $ = function (id) { return document.getElementById(id); };
+  var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  var money = function (x) { return x == null ? "—" : "$" + Number(x).toFixed(2); };
+
+  fetch("demo-trace.json").then(function (r) { return r.json(); }).then(function (d) {
+    TRACE = d;
+    fillHonesty();
+    selectScenario("hero");
+  }).catch(function (e) {
+    $("err").textContent = "Could not load demo-trace.json — regenerate with: python3 -m buyer.preflearn --demo-trace";
+    console.error(e);
+  });
+
+  // ── scenario wiring ──────────────────────────────────────────────────────
+  function sc() { return TRACE.scenarios[SID]; }
+
+  var epoch = 0;   // bumped on every reset; in-flight tween/shop callbacks compare it to self-cancel
+
+  function selectScenario(id) {
+    epoch++;                     // cancel any in-flight tween / shop animation from the prior scenario
+    SID = id; STEP = 0; guiding = false;
+    Array.prototype.forEach.call($("tabs").children, function (b) {
+      b.classList.toggle("on", b.getAttribute("data-s") === id);
+    });
+    var s = sc();
+    BANDS = clone(s.bands_prior);
+    // section titles / subs
+    $("shop-title").textContent = s.label;
+    buildDots();
+    buildCurve();
+    render(BANDS);
+    $("curve-note").textContent = "fuzzy: prior belief only";
+    $("onboard-done").style.display = "none";
+    renderQuestion();
+    buildCart();
+    $("cart-total").style.display = "none";
+    $("addcart").disabled = true;
+    $("addcart").textContent = "Add the cart →";
+    buildCoda();
+    fillHonestyScenario();
+  }
+
+  Array.prototype.forEach.call($("tabs").children, function (b) {
+    b.addEventListener("click", function () { if (!guiding) selectScenario(b.getAttribute("data-s")); });
+  });
+  $("restart").addEventListener("click", function () { if (!guiding) selectScenario(SID); });
+
+  // ── onboarding ───────────────────────────────────────────────────────────
+  function buildDots() {
+    var el = $("dots"); el.innerHTML = "";
+    for (var i = 0; i < 3; i++) { var d = document.createElement("div"); d.className = "dot"; el.appendChild(d); }
+    markDots();
+  }
+  function markDots() {
+    Array.prototype.forEach.call($("dots").children, function (d, i) {
+      d.className = "dot" + (i < STEP ? " done" : i === STEP ? " active" : "");
+    });
+  }
+
+  function renderQuestion() {
+    markDots();
+    var s = sc();
+    if (STEP >= s.onboarding.length) { finishOnboard(); return; }
+    var q = s.onboarding[STEP];
+    $("q-prompt").textContent = q.prompt;
+    var opts = $("q-opts"); opts.innerHTML = "";
+    q.options.forEach(function (o) {
+      var b = document.createElement("button");
+      b.className = "q-opt"; b.setAttribute("data-id", o.id);
+      b.innerHTML = "<span>" + o.label + "</span>";
+      b.addEventListener("click", function () { if (!guiding) answer(o.id); });
+      opts.appendChild(b);
+    });
+  }
+
+  function answer(id) {
+    var s = sc(), q = s.onboarding[STEP];
+    Array.prototype.forEach.call($("q-opts").children, function (b) {
+      b.classList.toggle("picked", b.getAttribute("data-id") === id);
+      b.disabled = true;
+    });
+    var target = q.bands_by_answer[id] || q.bands_by_answer[q.canonical];
+    $("curve-note").textContent = "sharpening — question " + (STEP + 1) + " of 3";
+    tween(BANDS, target, 620, function () {
+      STEP += 1;
+      setTimeout(renderQuestion, 260);
+    });
+  }
+
+  function finishOnboard() {
+    $("q-prompt").textContent = "That's enough to shop for you.";
+    $("q-opts").innerHTML = "";
+    $("onboard-done").style.display = "block";
+    $("curve-note").textContent = "sharpened where you're shopping";
+    markDots();
+    $("addcart").disabled = false;
+  }
+
+  // ── curve (SVG uncertainty ribbon over the whole board) ───────────────────
+  var CV = { pad_l: 20, pad_r: 20, pad_t: 16, pad_b: 40, w: 720, h: 300, ymax: 1, xs: [], skus: [] };
+  var G = {};
+
+  function buildCurve() {
+    var s = sc(), svg = $("curve"); svg.innerHTML = "";
+    CV.skus = s.curve_skus.slice();
+    // ymax from every band we may show (prior + all answers + final), incl. true
+    var hi = 0;
+    function scan(snap) { for (var k in snap) { hi = Math.max(hi, snap[k].hi, snap[k].true || 0); } }
+    scan(s.bands_prior); scan(s.bands_final);
+    s.onboarding.forEach(function (q) { for (var a in q.bands_by_answer) scan(q.bands_by_answer[a]); });
+    CV.ymax = Math.ceil(hi + 1);
+    var n = CV.skus.length, inner = CV.w - CV.pad_l - CV.pad_r;
+    CV.xs = CV.skus.map(function (_, i) { return CV.pad_l + (n === 1 ? inner / 2 : inner * i / (n - 1)); });
+
+    // y gridlines
+    var grid = mk("g", {});
+    [0, 2, 4, 6, 8, 10, 12].forEach(function (v) {
+      if (v > CV.ymax) return;
+      var y = ypx(v);
+      grid.appendChild(mk("line", { x1: CV.pad_l, x2: CV.w - CV.pad_r, y1: y, y2: y,
+        stroke: "rgba(255,255,255,.06)", "stroke-width": 1 }));
+      grid.appendChild(mk("text", { x: 2, y: y + 3, fill: "#6f6a85", "font-size": 9 }, "$" + v));
+    });
+    svg.appendChild(grid);
+
+    G.outer = mk("path", { fill: "rgba(167,139,250,.16)", stroke: "none" });
+    G.inner = mk("path", { fill: "rgba(167,139,250,.30)", stroke: "none" });
+    G.mid = mk("polyline", { fill: "none", stroke: "var(--gold)", "stroke-width": 2, "stroke-linejoin": "round" });
+    svg.appendChild(G.outer); svg.appendChild(G.inner); svg.appendChild(G.mid);
+
+    G.cols = CV.skus.map(function (sku, i) {
+      var cart = s.cart.indexOf(sku) >= 0;
+      var trueTick = mk("line", { stroke: "var(--green)", "stroke-width": cart ? 3 : 2, opacity: cart ? .95 : .4 });
+      var dot = mk("circle", { r: cart ? 4 : 2.6, fill: "var(--gold)", opacity: cart ? 1 : .5 });
+      var lab = mk("text", { x: CV.xs[i], y: CV.h - CV.pad_b + 14, "text-anchor": "middle",
+        "font-size": cart ? 10.5 : 9, fill: cart ? "#f0eff5" : "#6f6a85" }, s.pretty[sku]);
+      svg.appendChild(trueTick); svg.appendChild(dot); svg.appendChild(lab);
+      return { trueTick: trueTick, dot: dot, cart: cart, sku: sku };
+    });
+  }
+
+  function ypx(v) { return CV.pad_t + (CV.h - CV.pad_t - CV.pad_b) * (1 - v / CV.ymax); }
+
+  function render(bands) {
+    var s = sc(), top = [], bot = [], inTop = [], inBot = [], mid = [];
+    CV.skus.forEach(function (sku, i) {
+      var b = bands[sku], x = CV.xs[i];
+      top.push(x + "," + ypx(b.hi)); bot.push(x + "," + ypx(b.lo));
+      inTop.push(x + "," + ypx(b.p75)); inBot.push(x + "," + ypx(b.p25));
+      mid.push(x + "," + ypx(b.mean));
+      var c = G.cols[i];
+      c.dot.setAttribute("cx", x); c.dot.setAttribute("cy", ypx(b.mean));
+      var ty = ypx(b.true); c.trueTick.setAttribute("x1", x - 7); c.trueTick.setAttribute("x2", x + 7);
+      c.trueTick.setAttribute("y1", ty); c.trueTick.setAttribute("y2", ty);
+    });
+    G.outer.setAttribute("d", "M" + top.join(" L") + " L" + bot.reverse().join(" L") + " Z");
+    G.inner.setAttribute("d", "M" + inTop.join(" L") + " L" + inBot.reverse().join(" L") + " Z");
+    G.mid.setAttribute("points", mid.join(" "));
+  }
+
+  function tween(from, to, dur, done) {
+    var start = performance.now(), finished = false, myEpoch = epoch;
+    function finish() {                 // idempotent: lands the final state once
+      if (finished) return; finished = true;
+      if (myEpoch !== epoch) return;    // a reset landed mid-tween: drop the stale result
+      render(to); BANDS = clone(to); done && done();
+    }
+    function frame(now) {
+      if (finished) return;
+      if (myEpoch !== epoch) { finished = true; return; }   // reset: stop animating the stale curve
+      var t = Math.min(1, (now - start) / dur), e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      var cur = {};
+      for (var k in from) {
+        cur[k] = {}; var a = from[k], b = to[k];
+        ["lo", "p25", "mean", "p75", "hi", "true"].forEach(function (f) {
+          cur[k][f] = a[f] + (b[f] - a[f]) * e;
+        });
+      }
+      render(cur);
+      if (t < 1) requestAnimationFrame(frame); else finish();
+    }
+    requestAnimationFrame(frame);
+    // guarantee completion even if rAF is throttled (background tab / headless)
+    setTimeout(finish, dur + 60);
+  }
+
+  // ── shop ─────────────────────────────────────────────────────────────────
+  function buildCart() {
+    var s = sc(), el = $("cart"); el.innerHTML = "";
+    s.items.forEach(function (it, i) {
+      var row = document.createElement("div"); row.className = "row"; row.id = "row-" + i;
+      row.innerHTML =
+        '<div><div class="name">' + it.pretty + '</div>' +
+        '<div class="sub">bodega wants ' + money(it.bodega) + '</div></div>' +
+        '<div class="right"><span class="list-price" id="lp-' + i + '">list ' + money(it.list) + '</span>' +
+        '<div id="rs-' + i + '"></div></div>';
+      el.appendChild(row);
+    });
+  }
+
+  function shopItem(i) {
+    var it = sc().items[i], slot = $("rs-" + i), lp = $("lp-" + i), myEpoch = epoch;
+    slot.innerHTML = '<div class="neg"><span class="spin">◠</span> negotiating…</div>';
+    return sleep(620).then(function () {
+      if (myEpoch !== epoch) return;   // reset during negotiation: don't write into the rebuilt cart
+      lp.classList.add("struck");
+      if (it.accepted) {
+        slot.innerHTML = '<div class="reveal-anim"><span class="you">' + money(it.your_price) + '</span>' +
+          '<div class="saved-chip">saved ' + money(it.saved_vs_list) + '</div></div>';
+      } else {
+        slot.innerHTML = '<div class="reveal-anim muted">kept your walk-away</div>';
+      }
+    });
+  }
+
+  function addCart() {
+    $("addcart").disabled = true;
+    var items = sc().items, i = 0, myEpoch = epoch;
+    (function next() {
+      if (myEpoch !== epoch) return;   // reset mid-shop: abort the chain
+      if (i >= items.length) { showTotal(); return; }
+      shopItem(i).then(function () { if (myEpoch !== epoch) return; i++; setTimeout(next, 220); });
+    })();
+  }
+  $("addcart").addEventListener("click", function () { if (!guiding) addCart(); });
+
+  function showTotal() {
+    var t = sc().totals;
+    $("cart-total").style.display = "flex";
+    $("saved-big").textContent = money(t.saved_total);
+    $("saved-pct-cap").textContent = t.saved_pct + "% off sticker";
+    $("saved-detail").textContent = "paid " + money(t.your_total) + " of " + money(t.list_total);
+    $("addcart").textContent = "Done — silently"; $("addcart").disabled = true;
+  }
+
+  // ── coda strip ───────────────────────────────────────────────────────────
+  function buildCoda() {
+    var c = TRACE.scenarios.coda, el = $("coda-items"); el.innerHTML = "";
+    c.items.forEach(function (it) {
+      var d = document.createElement("div"); d.className = "coda-item";
+      d.innerHTML = '<div class="n">' + it.pretty + '</div>' +
+        '<div class="p"><s>' + money(it.list) + '</s> → ' + money(it.your_price) + '</div>' +
+        '<div class="s">save ' + money(it.saved_vs_list) + '</div>';
+      el.appendChild(d);
+    });
+    var t = c.totals;
+    $("coda-total").innerHTML = "That's <b style='color:var(--gold)'>" + money(t.saved_total) +
+      "</b> on a " + money(t.list_total) + " run — " + t.saved_pct + "% off, same silent negotiation.";
+  }
+
+  // ── honesty panel ────────────────────────────────────────────────────────
+  function fillHonesty() {
+    var m = TRACE.meta;
+    $("h-learning").textContent = m.learning_is_real;
+    $("h-caveat").textContent = m.honest_caveat;
+    $("h-cite").textContent = m.citation;
+    $("repro").textContent = m.provenance.reproduce;
+    var prov = $("prov"); prov.innerHTML = "";
+    var p = m.provenance, rows = [["module", p.module], ["negotiation", p.negotiation],
+      ["population", p.population], ["seed", p.seed + " · prior seed " + p.cal_seed]];
+    rows.forEach(function (kv) {
+      var dt = document.createElement("dt"); dt.textContent = kv[0];
+      var dd = document.createElement("dd"); dd.textContent = kv[1];
+      prov.appendChild(dt); prov.appendChild(dd);
+    });
+  }
+  function fillHonestyScenario() {
+    var hc = sc().honest_cell, pr = hc.population_reference;
+    $("cap-run").textContent = hc.run_joint_capture == null ? "—" : Math.round(hc.run_joint_capture * 100) + "%";
+    $("cap-pop").textContent = Math.round(pr.joint_capture * 100) + "%";
+    $("cap-pop-ci").textContent = "95% CI [" + Math.round(pr.joint_capture_ci95[0] * 100) + "%, " +
+      Math.round(pr.joint_capture_ci95[1] * 100) + "%]";
+    $("cap-saved").textContent = money(pr.saved_vs_walk);
+    $("cap-deal").textContent = Math.round(pr.deal_rate * 100) + "% of deals strike";
+  }
+
+  // ── guide me (auto-play narrated pitch) ──────────────────────────────────
+  var NARR = [
+    "Meet a stranger — no account, no budget on file.",
+    "Tap one: the agent asks the single most informative question it can.",
+    "Tap two: the fuzzy band tightens toward what you actually value.",
+    "Tap three: enough of the curve to price your cart.",
+    "Now it shops — each item negotiated the instant it lands, silently.",
+    "Never above sticker. You just keep the difference."
+  ];
+  function say(msg) { var n = $("narrate"); n.style.display = "block"; n.textContent = msg; }
+
+  $("guide").addEventListener("click", function () { runGuide(); });
+  function runGuide() {
+    if (guiding) return;
+    selectScenario("hero"); guiding = true;
+    $("guide").disabled = true;
+    (async function () {
+      say(NARR[0]); await sleep(1100);
+      for (var st = 0; st < 3; st++) {
+        var q = sc().onboarding[STEP];
+        say(NARR[st + 1]);
+        var picks = $("q-opts").children;
+        Array.prototype.forEach.call(picks, function (b) {
+          b.classList.toggle("picked", b.getAttribute("data-id") === q.canonical);
+        });
+        await sleep(650);
+        await new Promise(function (res) {
+          var tgt = q.bands_by_answer[q.canonical];
+          $("curve-note").textContent = "sharpening — question " + (STEP + 1) + " of 3";
+          tween(BANDS, tgt, 620, res);
+        });
+        STEP += 1; renderQuestion(); await sleep(700);
+      }
+      finishOnboard(); await sleep(500);
+      say(NARR[4]); $("shop").scrollIntoView({ behavior: "smooth", block: "center" });
+      await sleep(700);
+      var items = sc().items;
+      for (var i = 0; i < items.length; i++) { await shopItem(i); await sleep(240); }
+      showTotal(); await sleep(500); say(NARR[5]);
+      $("coda").scrollIntoView({ behavior: "smooth", block: "center" });
+      await sleep(1600);
+      guiding = false; $("guide").disabled = false;
+    })();
+  }
+
+  // ── util ─────────────────────────────────────────────────────────────────
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function mk(tag, attrs, text) {
+    var e = document.createElementNS(SVGNS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    return e;
+  }
+})();
+</script>

@@ -51,7 +51,7 @@
     // dynasty leaderboard — HOUSES ranked by combined wealth (what "dynasty"
     // means), each with its leading soul; matches the banners in the hall
     const lb = $("leaderboard");
-    let html = '<div class="lb-title">dynasties · house wealth</div>';
+    let html = '<div class="lb-title" title="the houses, ranked by their agents\' combined wealth">dynasties · house wealth</div>';
     for (const h of (w.houseWealth || []).slice(0, 6)) {
       const star = w.myHouse && h.house === w.myHouse ? "★" : "";
       html += `<div class="lb-row"><span class="lb-swatch" style="background:${h.ramp[3]}"></span>`
@@ -64,7 +64,7 @@
     // census — bars wear the ACTUAL color of each species' exemplar sprite, so
     // the bars match the crowd you're looking at (not an unrelated palette)
     const cs = $("census");
-    let ch = '<div class="cs-title">census · ' + (w.census.pop || w.agents.size) + " souls</div>";
+    let ch = '<div class="cs-title" title="the living population — every knight on screen">census · ' + (w.census.pop || w.agents.size) + " souls</div>";
     const tot = (w.species || []).reduce((s, sp) => s + sp.count, 0) || 1;
     for (const sp of (w.species || []).slice(0, 6)) {
       const ex = w.agents.get(sp.exemplar);
@@ -147,7 +147,7 @@
   function _strategies() {
     const box = $("science");
     const tac = W.census.tactics;
-    let html = '<div class="sci-title">strategies · income / gen</div>';
+    let html = '<div class="sci-title" title="which tactic is earning the most this generation">strategies · income / gen</div>';
     if (tac) {
       const inc = (v) => (v.income != null ? v.income : 0);
       const rows = Object.entries(tac).sort((p, q) => inc(q[1]) - inc(p[1]));

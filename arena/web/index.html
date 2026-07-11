@@ -26,6 +26,41 @@
     #era-banner { top: calc(var(--gutter) + 58px); }
     #conn-chip  { top: calc(var(--gutter) + 100px); }
   }
+
+  /* ── First-screen reveal (#onboard): eyebrow + one-line proof strip. The
+     card can grow with copy, so cap its height and let it scroll on short
+     viewports (shared with #legend, which uses .onboard-card too). ── */
+  .onboard-card { max-height: 92vh; overflow-y: auto; }
+  .onboard-card .onboard-eyebrow {
+    font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase;
+    color: var(--ink-dim); display: flex; align-items: center; gap: 7px; margin-bottom: 12px;
+  }
+  .onboard-card .live-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #6fe0a0; flex: 0 0 auto;
+    box-shadow: 0 0 8px #6fe0a0; animation: livepulse 1.8s ease-in-out infinite;
+  }
+  @keyframes livepulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .onboard-card .live-dot { animation: none; } }
+  /* the ONE proof, boxed so the eye lands on it after the reveal */
+  .onboard-card .onboard-proof {
+    display: flex; align-items: center; gap: 13px; margin: 2px 0 18px;
+    background: rgba(167,139,250,0.09); border: 1px solid var(--line);
+    border-radius: 10px; padding: 12px 14px;
+  }
+  .onboard-card .onboard-proof .op-num {
+    font-size: 30px; font-weight: 700; color: var(--gold); line-height: 1;
+    font-variant-numeric: tabular-nums; flex: 0 0 auto;
+  }
+  .onboard-card .onboard-proof .op-txt { font-size: 11.5px; line-height: 1.5; color: var(--ink-dim); }
+  .onboard-card .onboard-proof .op-txt b { color: var(--ink); }
+
+  /* ── Legend: the panel decoder ("what the numbers mean") ── */
+  .legend-panels { margin: 2px 0 16px; border-top: 1px solid var(--line); padding-top: 14px; }
+  .legend-panels .lp-title { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 8px; }
+  .legend-panels ul { margin: 0; list-style: none; }
+  .legend-panels li { font-size: 12px; color: var(--ink-dim); line-height: 1.55; margin: 6px 0; }
+  .legend-panels li b { color: var(--violet-bright); font-weight: 600; }
+  .legend-panels li .where { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.6; margin-left: 4px; }
 </style>
 
 <div id="stage">
@@ -37,6 +72,7 @@
       <li><a href="submit.html">Submit</a></li>
       <li><a href="hire.html">Use it</a></li>
       <li><a href="vend.html">Vend</a></li>
+      <li><a href="demo.html">Demo</a></li>
       <li><a href="/block/">Block</a></li>
     </ul>
   </nav>
@@ -45,11 +81,11 @@
   <div id="vignette"></div>
 
   <div id="hud">
-    <div id="era-banner" class="hud-panel">
+    <div id="era-banner" class="hud-panel" title="the market regime — it flips over time, reshaping which strategy wins">
       <span id="era-glyph"></span>
-      <span id="era-name">—</span>
+      <span id="era-name" title="the current market regime">—</span>
       <span id="era-poll" title="the season's pollinator"></span>
-      <span id="gen-counter">gen 0</span>
+      <span id="gen-counter" title="generation — the world keeps breeding new ones">gen 0</span>
     </div>
     <div id="conn-chip"></div>
 
@@ -85,11 +121,23 @@
     </div>
   </div>
 
+  <!-- FIRST-SCREEN REVEAL (shown once, to zero-context visitors). Three beats:
+       (1) REVEAL — what am I watching  ·  (2) PROOF — the one thing it shows
+       ·  (3) CTA — send a fighter in / just watch.  Returning + "just watch"
+       visitors get the same beats from ? (legend, now with a panel decoder)
+       and the HUD tooltips.  POLISH: check the card doesn't overflow on very
+       short mobile viewports; consider a persistent one-line world caption for
+       return visits (deferred — top bar is crowded, see #era-banner). -->
   <div id="onboard" class="overlay hidden">
     <div class="onboard-card">
-      <h1>Send a fighter in.</h1>
-      <p class="onboard-stake">Eight houses of AI knights negotiate for their lives — win deals and they eat and breed, lose and they starve. Nobody taught them to haggle; <b>that part is the library.</b> Pick one and drop it into the live world.</p>
-      <div class="pick-title">CHOOSE A HOUSE — each a real SNHP strategy:</div>
+      <div class="onboard-eyebrow"><span class="live-dot"></span>Live · SNHP Evolution Arena</div>
+      <h1>Watch negotiation strategies evolve.</h1>
+      <p class="onboard-stake">Every knight is an AI dealmaker. Win a deal and it eats and breeds; lose and it starves. <b>Nobody coded them to haggle</b> — every move is computed by SNHP, the engine this world shows off.</p>
+      <div class="onboard-proof">
+        <span class="op-num">+27%</span>
+        <span class="op-txt">Left to evolve, they found a pricing strategy that <b>out-earns SNHP's own shipped advice.</b> The students beat the textbook.</span>
+      </div>
+      <div class="pick-title">Your move — drop a fighter into the live world. Pick a house, each a real SNHP strategy:</div>
       <div id="house-grid"></div>
       <div id="forge-dials">
         <label>boldness <input type="range" id="dial-bold" min="0" max="100" value="60" />
@@ -117,6 +165,15 @@
         <li>The rich <b>bloom</b> — a flower only winners can afford — <b>court</b>, and haggle over which traits their <b>children</b> inherit.</li>
         <li>When the <b>stained glass turns</b>, the market turns, and a new pollinator decides what is beautiful. Strategies rise and fall with the season.</li>
       </ol>
+      <div class="legend-panels">
+        <div class="lp-title">reading the corners</div>
+        <ul>
+          <li><b>Dynasties</b><span class="where">top right</span> — the houses, ranked by their agents' combined wealth.</li>
+          <li><b>Census</b><span class="where">bottom left</span> — the living population, how often deals close, and how many stake their word.</li>
+          <li><b>Strategies</b><span class="where">bottom right</span> — which tactic is earning most this generation, and whether boldness is paying.</li>
+          <li><b>Ticker</b><span class="where">bottom</span> — births, deaths, record deals, and market turns, as they happen.</li>
+        </ul>
+      </div>
       <p class="fine">Every deal is computed by the shipped <b>SNHP</b> engine — nothing here knows how to negotiate except the library being shown off. <a href="#" id="legend-honest-link">▸ what's real, and what's not (even our own hype)</a></p>
       <div class="forge-row"><button id="legend-forge">⚒ send a fighter in</button></div>
     </div>
@@ -184,7 +241,9 @@
 <script src="world.js?v=5"></script>
 <script src="choreo.js?v=5"></script>
 <script src="bloom.js?v=5"></script>
-<script src="hud.js?v=5"></script>
+<!-- POLISH/DEPLOY: bumped to v=6 so the new HUD-panel tooltips (hud.js) bust the
+     browser cache. If your deploy normalizes all ?v in lockstep, fold this in. -->
+<script src="hud.js?v=6"></script>
 <script src="sound.js?v=5"></script>
 <script src="net.js?v=5"></script>
 <script src="demo.js?v=5"></script>
