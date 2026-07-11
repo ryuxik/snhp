@@ -1,0 +1,558 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>BOBA — the price you see was already negotiated</title>
+<meta name="description" content="Order boba; your agent silently negotiates a better price BEFORE you pay — trading on the things you don't care about (when you pick up, which topping, how many), never on the things you do. Never above the menu. Simulated (paired, seed 20260710): +$497/day with attestation, worst case = exactly the menu." />
+<meta name="theme-color" content="#0b0916" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0916'/%3E%3Crect x='5' y='3' width='6' height='2' fill='%23cbb58a'/%3E%3Crect x='5' y='5' width='6' height='8' fill='%23e9dcc4'/%3E%3Crect x='6' y='10' width='2' height='2' fill='%233a2a1f'/%3E%3Crect x='9' y='11' width='2' height='2' fill='%233a2a1f'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="nav.css" />
+<style>
+  :root {
+    --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --faint:#6f6a86;
+    --line:rgba(167,139,250,.22); --gold:#ffe08a; --green:#7fc48f;
+    --violet:#a78bfa; --blue:#8fd0ff; --pink:#e58ab4; --brown:#cb9a6a;
+    --card:#131022; --card2:#171331;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+    --navH:44px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; background:var(--bg); overflow:hidden; }
+  body {
+    display:flex; flex-direction:column;
+    font-family:var(--mono); color:var(--ink);
+    -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent;
+    background:radial-gradient(130% 100% at 50% 0%, #17111f 0%, #0b0916 70%);
+  }
+  .snhp-nav { position:sticky; top:0; flex:0 0 auto; }
+
+  /* ── stage centers a phone BELOW the (possibly wrapped) nav; page never
+       scrolls, only the phone's inner beat scrolls ── */
+  #stage { flex:1 1 auto; min-height:0; display:flex; align-items:center; justify-content:center; }
+  #phone {
+    position:relative; width:min(100%, 430px); height:100%; max-height:100%;
+    display:flex; flex-direction:column; overflow:hidden;
+    background:linear-gradient(180deg,#100c22 0%, #0c0a1a 100%);
+    border-left:1px solid var(--line); border-right:1px solid var(--line);
+  }
+  @media (min-width:472px){
+    #stage { padding:14px 0; }
+    #phone { border:1px solid var(--line); border-radius:26px; max-height:860px;
+             box-shadow:0 30px 80px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.04); }
+  }
+  /* mock status bar */
+  .statusbar { flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
+    padding:9px 18px 5px; font-size:11px; color:var(--dim); letter-spacing:.02em; }
+  .statusbar .brand { color:var(--gold); font-weight:700; letter-spacing:.14em; }
+  .statusbar .sig::after { content:"● ● ● ○  5G  ▮▮▮"; font-size:9px; letter-spacing:.06em; }
+
+  /* the swappable beat area */
+  #screen { flex:1 1 auto; position:relative; min-height:0; }
+  .beat {
+    position:absolute; inset:0; display:none; flex-direction:column;
+    padding:8px 18px 18px; overflow-y:auto; overscroll-behavior:contain;
+  }
+  .beat.active { display:flex; animation:beatin .42s cubic-bezier(.2,.7,.3,1) both; }
+  @keyframes beatin { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+
+  h1 { font-size:23px; line-height:1.18; letter-spacing:.005em; text-wrap:balance; }
+  h1 b { color:var(--gold); }
+  .lede { color:var(--dim); font-size:12.5px; line-height:1.5; }
+  .kick { font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--violet); }
+  .spacer { flex:1 1 auto; min-height:8px; }
+
+  /* buttons */
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; cursor:pointer; font-family:var(--mono); text-decoration:none;
+    font-size:14px; font-weight:700; letter-spacing:.02em;
+    padding:14px 16px; border-radius:12px; border:1px solid transparent; }
+  .btn.gold { background:var(--gold); color:#0a0812; }
+  .btn.gold:hover { filter:brightness(1.06); }
+  .btn.ghost { background:rgba(167,139,250,.08); color:var(--ink); border-color:var(--line); }
+  .btn.ghost:hover { background:rgba(167,139,250,.16); }
+  .btn:active { transform:translateY(1px); }
+
+  /* ── BEAT 1 · sign in ─────────────────────────────────────────────── */
+  #b-signin { justify-content:center; text-align:center; gap:16px; }
+  .cup { width:96px; height:auto; filter:drop-shadow(0 10px 26px rgba(203,154,106,.28)); }
+  #b-signin .cup { align-self:center; }
+  #b-signin h1 { font-size:25px; }
+  .signin-note { font-size:10.5px; color:var(--faint); line-height:1.5; }
+  .signin-note b { color:var(--green); }
+
+  /* ── BEAT 2 · order ───────────────────────────────────────────────── */
+  .order-head { margin-bottom:12px; }
+  .order-head h1 { font-size:20px; }
+  .menu { display:flex; flex-direction:column; gap:11px; }
+  .card { display:flex; align-items:center; gap:13px; cursor:pointer; text-align:left;
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:13px 14px; transition:border-color .14s, background .14s, transform .08s; }
+  .card:hover { border-color:rgba(255,224,138,.4); background:var(--card2); }
+  .card:active { transform:translateY(1px); }
+  .card .emo { font-size:30px; flex:0 0 auto; line-height:1; }
+  .card .body { flex:1 1 auto; min-width:0; }
+  .card .name { display:block; font-size:14px; font-weight:700; }
+  .card .meta { display:block; font-size:11px; color:var(--dim); margin-top:3px; }
+  .card .tag { display:inline-block; font-size:9.5px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--blue); background:rgba(143,208,255,.1); border:1px solid rgba(143,208,255,.28);
+    border-radius:999px; padding:2px 7px; margin-top:6px; }
+  .card .price { flex:0 0 auto; text-align:right; }
+  .card .price .m { display:block; font-size:14px; font-weight:700; color:var(--ink); }
+  .card .price .c { display:block; font-size:9.5px; color:var(--faint); margin-top:2px; }
+  .order-foot { font-size:10.5px; color:var(--faint); line-height:1.5; margin-top:14px; text-align:center; }
+  .order-foot b { color:var(--dim); }
+
+  /* ── BEAT 3 · negotiating ─────────────────────────────────────────── */
+  #b-nego { justify-content:center; align-items:center; text-align:center; gap:20px; }
+  .nego-wrap { width:100%; max-width:300px; }
+  .parties { display:flex; align-items:flex-start; justify-content:space-between; position:relative; margin-bottom:8px; }
+  .party { display:flex; flex-direction:column; align-items:center; gap:7px; width:88px; }
+  .party .dot { width:52px; height:52px; border-radius:14px; display:flex; align-items:center;
+    justify-content:center; font-size:24px; border:1px solid var(--line); }
+  .party.you .dot { background:rgba(127,196,143,.12); border-color:rgba(127,196,143,.4); }
+  .party.shop .dot { background:rgba(167,139,250,.12); border-color:rgba(167,139,250,.4); }
+  .party .lbl { font-size:10px; color:var(--dim); letter-spacing:.04em; }
+  .wire { flex:1 1 auto; height:2px; margin:26px 6px 0; position:relative;
+    background:linear-gradient(90deg, rgba(127,196,143,.4), rgba(167,139,250,.4)); border-radius:2px; }
+  .pulse { position:absolute; top:50%; width:9px; height:9px; border-radius:50%;
+    background:var(--gold); box-shadow:0 0 10px var(--gold); transform:translate(-50%,-50%); opacity:0; }
+  .nego-line { font-size:12.5px; color:var(--dim); min-height:18px; letter-spacing:.02em; transition:opacity .2s; }
+  .nego-line b { color:var(--ink); }
+  .nego-tag { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--green); }
+
+  /* ── BEAT 4 · reveal ──────────────────────────────────────────────── */
+  #b-reveal .kick { margin-bottom:5px; }
+  .rev-order { display:flex; align-items:center; gap:11px; margin:2px 0 12px; }
+  .rev-order .emo { font-size:30px; }
+  .rev-order .t { font-size:15px; font-weight:700; }
+  .rev-order .s { font-size:11px; color:var(--dim); margin-top:2px; }
+
+  .thesis { font-size:11px; line-height:1.5; color:var(--dim);
+    background:rgba(127,196,143,.06); border:1px solid rgba(127,196,143,.22);
+    border-radius:10px; padding:9px 11px; margin-bottom:13px; }
+  .thesis b { color:var(--green); }
+
+  .lane { margin-bottom:12px; }
+  .lane-h { font-size:9.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--faint); margin-bottom:7px; }
+  .kept { display:flex; flex-wrap:wrap; gap:6px; }
+  .kept .chip { font-size:11px; color:var(--dim); background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.08); border-radius:999px; padding:4px 9px; }
+  .kept .chip .lk { color:var(--green); margin-right:4px; }
+
+  .trades { display:flex; flex-direction:column; gap:8px; }
+  .trade { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; }
+  .trade .top { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+  .trade .tg { font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--blue); }
+  .trade .mv { font-size:13px; font-weight:700; color:var(--ink); margin-top:3px; }
+  .trade .why { font-size:11px; color:var(--dim); line-height:1.45; margin-top:5px; }
+  .trade .why .ar { color:var(--gold); }
+
+  /* the price reveal (kin to vend) */
+  .reveal-top { display:flex; justify-content:space-between; align-items:baseline;
+    font-size:11px; color:var(--dim); margin:14px 0 7px; }
+  .reveal-top s { color:var(--faint); }
+  .track { display:flex; height:66px; border-radius:11px; overflow:hidden;
+    border:1px solid var(--line); background:#0e0b1c; }
+  .seg { display:flex; flex-direction:column; justify-content:center; padding:0 14px; min-width:0; overflow:hidden;
+    opacity:0; transform:scaleX(.6); transform-origin:left; }
+  .track.lit .seg { opacity:1; transform:none; transition:opacity .5s ease, transform .55s cubic-bezier(.2,.7,.3,1); }
+  .track.lit .seg.save { transition-delay:.18s; }
+  .seg .amt { font-size:25px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums; }
+  .seg .cap { font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; margin-top:6px; white-space:nowrap; }
+  .seg.pay { background:linear-gradient(180deg, rgba(127,196,143,.24), rgba(127,196,143,.07)); }
+  .seg.pay .amt, .seg.pay .cap { color:var(--green); }
+  .seg.save { border-left:1px dashed rgba(255,224,138,.55);
+    background:repeating-linear-gradient(135deg, rgba(255,224,138,.16) 0 8px, rgba(255,224,138,.04) 8px 16px); }
+  .seg.save .amt { font-size:20px; } .seg.save .amt, .seg.save .cap { color:var(--gold); }
+  .never { font-size:10.5px; color:var(--dim); text-align:center; margin-top:9px; line-height:1.45; }
+  .never b { color:var(--ink); }
+
+  /* ── BEAT 5 · receipt ─────────────────────────────────────────────── */
+  #b-receipt { padding-top:12px; }
+  .receipt { background:linear-gradient(180deg,#f6efe0 0%, #efe6d2 100%); color:#2a2417;
+    padding:16px 16px 18px; border-radius:4px;
+    clip-path:polygon(0 5px,4% 0,8% 5px,12% 0,16% 5px,20% 0,24% 5px,28% 0,32% 5px,36% 0,40% 5px,44% 0,48% 5px,52% 0,56% 5px,60% 0,64% 5px,68% 0,72% 5px,76% 0,80% 5px,84% 0,88% 5px,92% 0,96% 5px,100% 0,100% calc(100% - 5px),96% 100%,92% calc(100% - 5px),88% 100%,84% calc(100% - 5px),80% 100%,76% calc(100% - 5px),72% 100%,68% calc(100% - 5px),64% 100%,60% calc(100% - 5px),56% 100%,52% calc(100% - 5px),48% 100%,44% calc(100% - 5px),40% 100%,36% calc(100% - 5px),32% 100%,28% calc(100% - 5px),24% 100%,20% calc(100% - 5px),16% 100%,12% calc(100% - 5px),8% 100%,4% calc(100% - 5px),0 100%);
+    box-shadow:0 18px 44px rgba(0,0,0,.5); }
+  .r-logo { text-align:center; font-size:13px; font-weight:800; letter-spacing:.18em; color:#2a2417; }
+  .r-sub { text-align:center; font-size:8.5px; letter-spacing:.09em; color:#7a6a44; margin-top:2px; text-transform:uppercase; }
+  .r-rule { border-top:1px dashed rgba(90,72,32,.5); margin:11px 0; }
+  .r-line { display:flex; align-items:baseline; justify-content:space-between; font-size:12.5px; margin:5px 0; }
+  .r-line .n { color:#2a2417; } .r-line .n s { color:#9a7a44; margin-left:6px; font-size:10.5px; }
+  .r-line .p { font-variant-numeric:tabular-nums; }
+  .r-line .p s { color:#9a7a44; margin-right:6px; } .r-line .p b { color:#1f5a2e; font-weight:800; }
+  .r-total { display:flex; align-items:baseline; justify-content:space-between; margin-top:8px; }
+  .r-total .lab { font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:#7a5a24; font-weight:700; }
+  .r-total .amt { font-size:26px; font-weight:900; color:#1f5a2e; font-variant-numeric:tabular-nums; }
+  .r-pct { text-align:right; font-size:10px; color:#7a6a44; margin-top:1px; }
+
+  .guarantee { font-size:11.5px; line-height:1.55; color:var(--dim); margin-top:15px;
+    border-left:2px solid var(--gold); padding:3px 0 3px 12px; }
+  .guarantee b { color:var(--gold); }
+
+  /* the explicit customer→owner handoff link on the receipt */
+  .ownerlink { display:block; text-align:center; margin-top:14px; cursor:pointer;
+    font-size:11px; color:var(--blue); text-decoration:none; letter-spacing:.02em; }
+  .ownerlink:hover { text-decoration:underline; }
+
+  /* ── owner / investor panel (all shop economics live here, off the receipt) ── */
+  #b-owner .kick { color:var(--blue); }
+  .owner-lede { font-size:12px; color:var(--dim); line-height:1.5; margin:3px 0 14px; }
+  .owner-lede b { color:var(--ink); }
+  .owner-note { font-size:11px; line-height:1.55; color:var(--dim); margin-top:12px;
+    border-left:2px solid var(--line); padding:3px 0 3px 12px; }
+  .owner-note b { color:var(--ink); }
+  .owner-note.fee { border-left-color:var(--gold); color:var(--gold); }
+  .owner-note.fee b { color:var(--gold); }
+
+  .head { margin-top:14px; }
+  .head-h { font-size:9.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--faint); margin-bottom:8px; text-align:center; }
+  .head-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .stat { background:var(--card); border:1px solid var(--line); border-radius:11px; padding:10px 11px; text-align:center; }
+  .stat .v { font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .stat .k { font-size:9.5px; color:var(--dim); margin-top:3px; line-height:1.3; letter-spacing:.02em; }
+  .stat.g .v { color:var(--green); } .stat.b .v { color:var(--blue); }
+  .stat.worst { grid-column:1 / -1; border-color:rgba(255,224,138,.34); background:rgba(255,224,138,.06); }
+  .stat.worst .v { color:var(--gold); font-size:16px; }
+  .stat.worst .k { color:var(--gold); opacity:.85; }
+
+  .cite { font-size:9.5px; color:var(--faint); line-height:1.6; margin-top:14px; text-align:center; }
+  .cite code { color:var(--blue); font-size:9px; word-break:break-word; }
+  .cite a { color:var(--blue); text-decoration:none; }
+  .links { display:flex; gap:8px; margin-top:14px; }
+  .links .btn { font-size:12px; padding:12px 10px; }
+
+  #err { color:var(--pink); font-size:12px; text-align:center; padding:30px 20px; }
+  @media (prefers-reduced-motion: reduce){ .beat.active{ animation:none; } .track.lit .seg{ transition:none; } }
+</style>
+
+<nav class="snhp-nav" aria-label="SNHP arena sections">
+  <span class="snhp-nav__logo" aria-hidden="true">SNHP</span>
+  <ul class="snhp-nav__list">
+    <li><a href="index.html">Arena</a></li>
+    <li><a href="leaderboard.html">Leaderboard</a></li>
+    <li><a href="submit.html">Submit</a></li>
+    <li><a href="hire.html">Use it</a></li>
+    <li><a href="vend.html">Vend</a></li>
+    <li><a href="boba.html" class="is-active" aria-current="page">Boba</a></li>
+    <li><a href="demo.html">Demo</a></li>
+    <li><a href="/block/">Block</a></li>
+  </ul>
+</nav>
+
+<div id="stage">
+  <div id="phone">
+    <div class="statusbar"><span class="brand">SNHP BOBA</span><span class="sig"></span></div>
+    <div id="screen">
+
+      <!-- BEAT 1 · sign in -->
+      <section id="b-signin" class="beat active">
+        <svg class="cup" viewBox="0 0 48 66" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="milk" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#efe3ca"/><stop offset="1" stop-color="#d8c39a"/>
+            </linearGradient>
+          </defs>
+          <rect x="29" y="1" width="5" height="30" rx="2.5" transform="rotate(13 31 16)" fill="#e58ab4"/>
+          <path d="M9.5 19 h29 l-2.6 40 a3 3 0 0 1 -3 2.8 h-17.8 a3 3 0 0 1 -3 -2.8 z" fill="url(#milk)"/>
+          <ellipse cx="24" cy="49" rx="12.5" ry="9" fill="#c79a63" opacity=".55"/>
+          <rect x="7" y="12.5" width="34" height="8" rx="3.4" fill="#cbb58a"/>
+          <rect x="7" y="12.5" width="34" height="3.2" rx="1.6" fill="#d9c69c"/>
+          <circle cx="17" cy="53" r="2.4" fill="#33241a"/><circle cx="24" cy="56" r="2.4" fill="#33241a"/>
+          <circle cx="31" cy="53" r="2.4" fill="#33241a"/><circle cx="20.5" cy="58" r="2.2" fill="#33241a"/>
+          <circle cx="28" cy="58.5" r="2.2" fill="#33241a"/>
+        </svg>
+        <div>
+          <h1>The price you see is <b>already negotiated</b>.</h1>
+        </div>
+        <p class="lede">Order boba. Before you pay, your agent quietly settles a better price with the shop — by trading on the things you don't care about, never the things you do.</p>
+        <div class="spacer"></div>
+        <button class="btn gold" onclick="go('menu')">Continue with one tap</button>
+        <p class="signin-note">Mock sign-in — no account, no card. <b>You never pay above the menu.</b></p>
+      </section>
+
+      <!-- BEAT 2 · order -->
+      <section id="b-menu" class="beat">
+        <div class="order-head">
+          <div class="kick">Your usual — pick one</div>
+          <h1 style="margin-top:6px;">What are we ordering?</h1>
+        </div>
+        <div class="menu" id="menu"></div>
+        <p class="order-foot">Tap an order — your agent negotiates it <b>before</b> you pay. Simulated deals; you never pay above the menu.</p>
+      </section>
+
+      <!-- BEAT 3 · negotiating -->
+      <section id="b-nego" class="beat">
+        <div class="nego-tag">● silent negotiation</div>
+        <div class="nego-wrap">
+          <div class="parties">
+            <div class="party you"><div class="dot">🫧</div><div class="lbl">your agent</div></div>
+            <div class="wire"><span class="pulse" id="pulse"></span></div>
+            <div class="party shop"><div class="dot">🧋</div><div class="lbl">the shop</div></div>
+          </div>
+        </div>
+        <div class="nego-line" id="negoLine">Opening a private channel…</div>
+      </section>
+
+      <!-- BEAT 4 · reveal -->
+      <section id="b-reveal" class="beat">
+        <div class="kick">Settled — here's what moved</div>
+        <div class="rev-order">
+          <div class="emo" id="revEmo">🧋</div>
+          <div><div class="t" id="revName">—</div><div class="s" id="revSub">—</div></div>
+        </div>
+        <div class="thesis">
+          Negotiated <b>only</b> where your comfort and the shop's cost pull apart.
+          Sweetness and ice cost the shop nothing — so there's nothing to trade, and we never touch them.
+        </div>
+        <div class="lane">
+          <div class="lane-h">Kept — the things you care about</div>
+          <div class="kept" id="kept"></div>
+        </div>
+        <div class="lane">
+          <div class="lane-h">Traded — the things you don't</div>
+          <div class="trades" id="trades"></div>
+        </div>
+        <div class="reveal-top"><span>your price</span><span>menu <s id="revMenu">$0</s></span></div>
+        <div class="track" id="track">
+          <div class="seg pay"><span class="amt" id="segPay">$0</span><span class="cap">you pay</span></div>
+          <div class="seg save"><span class="amt" id="segSave">$0</span><span class="cap" id="segOff">0% off</span></div>
+        </div>
+        <p class="never">A quote can only <b>discount</b> the menu, never mark it up — a rule in the code.</p>
+        <div class="spacer" style="min-height:16px;"></div>
+        <button class="btn gold" onclick="go('receipt')">See your receipt →</button>
+      </section>
+
+      <!-- BEAT 5 · receipt (CUSTOMER surface — price + the one hard guarantee ONLY) -->
+      <section id="b-receipt" class="beat">
+        <div class="receipt">
+          <div class="r-logo">SNHP BOBA</div>
+          <div class="r-sub">a fair price for you — never above the menu</div>
+          <div class="r-rule"></div>
+          <div id="rLines"></div>
+          <div class="r-rule"></div>
+          <div class="r-total"><span class="lab">You saved</span><span class="amt" id="rSaved">$0</span></div>
+          <div class="r-pct" id="rPct">—</div>
+        </div>
+
+        <div class="guarantee" id="guarantee">—</div>
+
+        <div class="spacer" style="min-height:16px;"></div>
+        <button class="btn gold" onclick="go('menu')">↺ Order again</button>
+        <a class="ownerlink" onclick="go('owner')">For shop owners → the economics behind the discount</a>
+      </section>
+
+      <!-- BEAT 6 · owner panel (all shop economics + honest caveats live HERE) -->
+      <section id="b-owner" class="beat">
+        <div class="kick">For shop owners &amp; investors</div>
+        <h1 style="font-size:19px; margin:6px 0 2px;">The economics behind the discount</h1>
+        <p class="owner-lede" id="ownerDeal">—</p>
+
+        <div class="head" style="margin-top:4px;">
+          <div class="head-h">Simulated net effect · paired, 30 days</div>
+          <div class="head-grid" id="headGrid"></div>
+        </div>
+
+        <div class="owner-note" id="marginNote">—</div>
+        <div class="owner-note" id="attestNote">—</div>
+        <div class="owner-note fee" id="takeRate">—</div>
+
+        <div class="cite" id="cite">—</div>
+
+        <div class="links">
+          <a class="btn ghost" href="leaderboard.html">The leaderboard →</a>
+          <a class="btn ghost" href="hire.html">Use it →</a>
+        </div>
+        <div class="spacer" style="min-height:12px;"></div>
+        <button class="btn gold" onclick="go('receipt')">← Back to your receipt</button>
+      </section>
+
+      <p id="err" style="display:none;"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const $ = s => document.querySelector(s);
+  const money = n => "$" + Number(n).toFixed(2);
+  const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  let TRACE = null, CHOSEN = null;
+
+  const EMOJI = { "Brown Sugar Boba":"🧋", "Matcha Latte":"🍵", "Classic Milk Tea":"🧋", "Fruit Tea":"🧋" };
+  const SIT = {
+    timing: "you set 'flexible on pickup'",
+    group:  "one order for the whole group",
+    now:    "you wanted it right now",
+  };
+  const ORDER = ["timing", "group", "now"];   // menu + reveal order
+
+  function pickup(min){ return min > 0 ? "pick up in " + min + " min" : "pick up now"; }
+  function cart(h){
+    return h.drink + " ×" + h.qty + (h.tops.length ? " · " + h.tops.join(" + ") : "");
+  }
+
+  fetch("boba-trace.json").then(r => r.json()).then(t => { TRACE = t; boot(); })
+    .catch(e => { $("#err").style.display = "block"; $("#err").textContent = "Couldn't load boba-trace.json: " + e; });
+
+  function boot(){ buildMenu(); }
+
+  // core beat switch (wrapped below to also build reveal/receipt on entry)
+  function _go(name){
+    document.querySelectorAll(".beat").forEach(b => b.classList.remove("active"));
+    const el = $("#b-" + name); el.classList.add("active"); el.scrollTop = 0;
+    if (name === "reveal") animateTrack();
+  }
+  function go(name){
+    if (name === "reveal") buildReveal();
+    if (name === "receipt") buildReceipt();
+    if (name === "owner") buildOwner();
+    _go(name);
+  }
+
+  // ── BEAT 2 · menu ──────────────────────────────────────────────────
+  function buildMenu(){
+    const m = $("#menu"); m.innerHTML = "";
+    ORDER.forEach(key => {
+      const h = TRACE.heroes[key]; if (!h) return;
+      const card = document.createElement("button");
+      card.className = "card";
+      card.onclick = () => negotiate(key);
+      card.innerHTML =
+        '<span class="emo">' + (EMOJI[h.drink] || "🧋") + '</span>' +
+        '<span class="body">' +
+          '<span class="name">' + h.drink + " ×" + h.qty + '</span>' +
+          '<span class="meta">' + (h.tops.join(" + ") || "no toppings") + " · " + pickup(h.slot_min) + '</span>' +
+          '<span class="tag">' + situationTag(key) + '</span>' +
+        '</span>' +
+        '<span class="price"><span class="m">' + money(h.menu) + '</span><span class="c">menu price</span></span>';
+      m.appendChild(card);
+    });
+  }
+  function situationTag(key){
+    return key === "timing" ? "flexible pickup"
+         : key === "group"  ? "for the group"
+         : "need it now";
+  }
+
+  // ── BEAT 3 · negotiate ─────────────────────────────────────────────
+  function negotiate(key){
+    CHOSEN = key;
+    const h = TRACE.heroes[key];
+    _go("nego");
+    const pulse = $("#pulse"), line = $("#negoLine");
+    // the trade beats, built from the trace hero fields (nothing invented)
+    const beats = [
+      "Opening a private channel…",
+      "Sharing what you flex on — <b>not</b> your price.",
+    ].concat(tradeBeats(h)).concat(["Both sides better off. <b>Settling…</b>"]);
+    let i = 0;
+    line.style.opacity = 0;
+    const step = () => {
+      line.innerHTML = beats[i];
+      line.style.opacity = 1;
+      firePulse(pulse);
+      i++;
+      if (i < beats.length){ setTimeout(() => { line.style.opacity = .15; setTimeout(step, 170); }, 620); }
+      else { setTimeout(() => go("reveal"), 720); }
+    };
+    setTimeout(step, 260);
+  }
+  function tradeBeats(h){
+    const out = [];
+    if (h.slot_min > 0) out.push("Trading pickup → <b>+" + h.slot_min + " min</b>.");
+    if (h.qty >= 3)     out.push("Batching all <b>" + h.qty + "</b> into one run.");
+    if (h.tops.includes("pearls") && h.why.some(w => w.includes("expiring batch")))
+      out.push("Steering to <b>pearls from the fresh batch</b>.");
+    return out.length ? out : ["Finding the room to trade…"];
+  }
+  function firePulse(p){
+    p.style.transition = "none"; p.style.left = "0%"; p.style.opacity = "1";
+    void p.offsetWidth;   // reflow, then travel across the wire
+    p.style.transition = "left .58s cubic-bezier(.4,0,.5,1), opacity .58s";
+    p.style.left = "100%"; p.style.opacity = "0";
+  }
+
+  // ── BEAT 4 · reveal ────────────────────────────────────────────────
+  function keptChips(h){
+    const chips = ['<span class="chip"><span class="lk">🔒</span>' + h.drink + '</span>',
+                   '<span class="chip"><span class="lk">🔒</span>Sweetness</span>',
+                   '<span class="chip"><span class="lk">🔒</span>Ice level</span>'];
+    if (h.slot_min === 0) chips.push('<span class="chip"><span class="lk">🔒</span>Pickup · right now</span>');
+    return chips.join("");
+  }
+  function tradeCards(h){
+    const cards = [];
+    if (h.slot_min > 0){
+      const how = h.flexible
+        ? "You set <b>'flexible on pickup'</b> when you ordered — the agent didn't assume it."
+        : "You pre-ordered for a later slot as part of the deal.";
+      cards.push(tcard("Pickup timing",
+        "Pick up " + h.slot_min + " min out — past the lunch rush, once the afternoon barista is on",
+        how + " <span class='ar'>→</span> it moves a drink off the shop's worst crush."));
+    }
+    if (h.qty >= 3)
+      cards.push(tcard("Quantity", "All " + h.qty + " made in one batch",
+        "Same drinks for you <span class='ar'>→</span> one prep run instead of " + h.qty + ", a saving the shop banks."));
+    if (h.tops.includes("pearls") && h.why.some(w => w.includes("expiring batch")))
+      cards.push(tcard("Topping source", "Pearls from the batch about to expire",
+        "Same pearls in your cup <span class='ar'>→</span> the shop clears tapioca it would have tossed."));
+    return cards.join("");
+  }
+  function tcard(tag, mv, why){
+    return '<div class="trade"><div class="top"><span class="tg">' + tag + '</span></div>' +
+           '<div class="mv">' + mv + '</div><div class="why">' + why + '</div></div>';
+  }
+  function buildReveal(){
+    const h = TRACE.heroes[CHOSEN];
+    $("#revEmo").textContent = EMOJI[h.drink] || "🧋";
+    $("#revName").textContent = cart(h);
+    $("#revSub").textContent = SIT[CHOSEN] + " · " + pickup(h.slot_min);
+    $("#kept").innerHTML = keptChips(h);
+    $("#trades").innerHTML = tradeCards(h);
+    $("#revMenu").textContent = money(h.menu);
+    $("#segPay").textContent = money(h.pay);
+    $("#segSave").textContent = money(h.save);
+    $("#segOff").textContent = h.off + "% off";
+    const payPct = Math.max(18, Math.round(100 * h.pay / h.menu));
+    $(".seg.pay").style.flex = "0 0 " + payPct + "%";
+    $(".seg.save").style.flex = "0 0 " + (100 - payPct) + "%";
+    $("#track").classList.remove("lit");
+  }
+  function animateTrack(){
+    requestAnimationFrame(() => requestAnimationFrame(() => $("#track").classList.add("lit")));
+  }
+
+  // ── BEAT 5 · receipt (CUSTOMER surface: price + never-above-menu ONLY) ──
+  function buildReceipt(){
+    const h = TRACE.heroes[CHOSEN], mt = TRACE.meta;
+    $("#rLines").innerHTML =
+      '<div class="r-line"><span class="n">' + cart(h) + '</span>' +
+        '<span class="p"><s>' + money(h.menu) + '</s><b>' + money(h.pay) + '</b></span></div>' +
+      '<div class="r-line"><span class="n" style="color:#7a6a44;font-size:11px;">' + pickup(h.slot_min) + '</span>' +
+        '<span class="p" style="color:#7a6a44;font-size:11px;">' + h.off + '% off menu</span></div>';
+    $("#rSaved").textContent = money(h.save);
+    $("#rPct").textContent = h.off + "% under the menu · you pay " + money(h.pay) + " of " + money(h.menu);
+    // the ONE hard, unconditional guarantee — nothing shop-side, no $/day, no code line
+    $("#guarantee").innerHTML = esc(mt.price_guarantee).replace(/never pay above the menu/i,
+      "<b>never pay above the menu</b>");
+  }
+
+  // ── BEAT 6 · owner panel (shop economics + honest caveats) ─────────────
+  function buildOwner(){
+    const h = TRACE.heroes[CHOSEN], hd = TRACE.headline, mt = TRACE.meta;
+    const A = "+" + money(hd.attested_per_day).replace(".00",""),
+          N = "+" + money(hd.no_attest_per_day).replace(".00","");
+    $("#ownerDeal").innerHTML = "<b>This order:</b> " + esc(h.shop) + ".";
+    $("#headGrid").innerHTML =
+      stat("g", A + "/day", "with attestation") +
+      stat("b", N + "/day", "without attestation") +
+      stat("g", "+" + money(hd.consumer_surplus_per_day).replace(".00","") + "/day", "consumer surplus") +
+      '<div class="stat worst"><div class="v">$' + hd.worst_case_per_day.toFixed(1).replace(".0","") +
+        '/day = exactly the menu</div><div class="k">worst case: every customer lies, no attestation</div></div>';
+    $("#marginNote").innerHTML = "<b>What the discount comes from.</b> " + esc(mt.margin_note);
+    $("#attestNote").innerHTML = "<b>Attestation.</b> " + esc(mt.attestation) +
+      " Worth about half the gain: <b>" + A + "/day</b> with it vs <b>" + N + "/day</b> without.";
+    $("#takeRate").innerHTML = "<b>SNHP's cut.</b> " + esc(mt.take_rate);
+    $("#cite").innerHTML = esc(mt.basis) + "<br><code>" + esc(mt.reproduce) + "</code> · seed " + mt.seed +
+      ' · <a href="https://snhp.dev">whitepaper</a>';
+  }
+  function stat(cls, v, k){ return '<div class="stat ' + cls + '"><div class="v">' + v + '</div><div class="k">' + k + '</div></div>'; }
+</script>
+<script>try { navigator.sendBeacon("/hit", JSON.stringify({ p: "boba" })); } catch (e) {}</script>
