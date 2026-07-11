@@ -380,3 +380,178 @@ the whole block program is built on.
   not model the full reference-price fairness of the ten-venue policies (DESIGN
   §5), the separate gate before shipping any deep-discount story — same caveat as
   B6.1.
+
+---
+
+# B6.2 / B6.3 — cross-venue BUNDLES (the "bundles" step; task #43)
+
+*2026-07-11. NETWORK.md §A: the middle of the "shared posterior → BUNDLES →
+clusters" build order. The flywheel (task #71) proved the durable network force
+is the COORDINATION channel — cross-venue would-spoil / demand-state matching,
+not the bounded shopping transfer. These two arms instantiate that channel
+MECHANICALLY. `block/bundles.py`, committed artifact `block/results-b6-bundles.json`
+— rerun with*
+
+```
+python3 -m block.bundles --seeds 400 --out block/results-b6-bundles.json
+python3 -m pytest block/tests/test_bundles.py -q     # 16 tests
+```
+
+*Rigor (binding, same standards as every arm): paired on IDENTITY, never policy
+(every arm consumes the byte-identical per-seed population/valuation stream from
+blake2b substreams keyed on who-arrives); a 95% CI on every Δ; no win claimed
+when the CI includes 0. DISCOUNT-ONLY (a bundle only ever cuts an outlay off a
+posted list). DEMAND-STATE / spoilage matching only — never a substitute's posted
+price. Conservation asserted to the cent / the unit. Reuses the committed venue
+economics VERBATIM: the parking shadow value from `slots/calibration.py`
+(Lehner–Peer commuter inelasticity, day-max, ops, spaces); the would-spoil
+salvage floors from `calibration.VENDING_CATALOG` (the flywheel's sandwich/
+fruit-cup); the spoilage-avoidance matching + accounting from
+`buyer.strategies.coordinate` (the same helper the flywheel used for E_coord),
+so stock/spoilage/conservation behave exactly as the committed venues. No LLM.*
+
+## B6.2 — the parking-validation bundle
+
+**Pre-registration (NETWORK.md §A.3, "the culturally-existing wedge"): does
+bundling the parking slot's shadow value with the retail sale grow JOINT surplus
+vs the two venues pricing independently, and is it discount-only-safe (never
+raises either posted price)? When is it Pareto, and when does it fail — the
+anti-lever?** Expected sign: a WIN drawn from parking SLACK (parking's slack ×
+the retail conversion lift), Pareto for retail + parking + shopper; the failure
+is capacity — validating into a TIGHT lot cannibalizes paying, price-inelastic
+commuters.
+
+**The mechanism.** Free validated parking CONVERTS a marginal shopper — one who
+would NOT buy at the retail venue while ALSO paying to park (WTP in the band
+`list ≤ w < list + park_price`) — into a buyer. That incremental sale unlocks
+retail joint `g_R = w − cost`. The slot it occupies has a real shadow cost: on
+SLACK just marginal ops (`c_p·hours ≈ $0.80`); when TIGHT the displaced
+commuter's value `v_c = day-max − ops = 45 − 0.40·9.5 = $41.20` (commuters are
+the least-elastic segment, |e|≈0.81 < 1, so a displaced commuter is a
+near-certain lost sale). Two grounded retail profiles bracket `v_c`: a **boutique**
+(fashion hoodie, list $92 / cost $31, **margin $61 > v_c**, 2-h park $26) and an
+**eatery** (deli-sandwich, list $11.50 / cost $4.10, **margin $7.40 < v_c**, 1-h
+park $18). Discount-only by construction: the shopper pays the retail list and
+gets parking free via an inter-merchant transfer; no posted price ever rises.
+
+**Headline — the shippable SLACK-GATED bundle is a PARETO WIN (both profiles).**
+Validating only stays that fit the lot's slack never displaces anyone. Δjoint on
+slack (commuter load u=0.3, per seed, 400 seeds):
+
+| retail | margin | Δjoint on slack (gated) | 95% CI | Pareto |
+|--------|-------:|------------------------:|:------:|:------:|
+| boutique | $61.00 | **+$1129.18** | [1104.32, 1154.04] | yes (no displacement) |
+| eatery   | $7.40  | **+$303.70**  | [300.08, 307.31]   | yes (no displacement) |
+
+Both CIs clear zero → **NOVEL WIN**, and Pareto-frac ≡ 1 (nobody displaced). **The
+win RIDES SLACK**: Δjoint_gated is monotone non-increasing in the commuter load
+and shrinks toward 0 as the lot fills (boutique +$1129 → +$13; eatery +$304 →
++$1.66, both CIs still > 0 on residual stochastic slack). It is not free money —
+it is the value of otherwise-idle slots, and it vanishes when there is no idle
+slot to monetize.
+
+**The pre-registered ANTI-LEVER — an UNGATED validation cannibalizes commuters.**
+Validating into OCCUPIED capacity (displacing a paying commuter for each stay
+beyond slack) is never Pareto — the commuter is strictly worse off — and for the
+thin-margin eatery (g_R < v_c) it turns joint surplus NEGATIVE:
+
+| retail | ungated Δjoint, TIGHT (u=1.3) | 95% CI | verdict |
+|--------|------------------------------:|:------:|:--------|
+| eatery   | **−$884.72** | [−896.88, −872.56] | **JOINT ANTI-LEVER** (crossover u\*=0.5) |
+| boutique | +$504.83 | [492.94, 516.71] | joint-positive but **NOT Pareto** (displaces commuters) |
+
+So the honest two-sided verdict: **the parking-validation bundle is a Pareto win
+when — and only when — it is gated to parking SLACK; the gate to slack is exactly
+what keeps it pro-surplus.** Ungated, it cannibalizes paying inelastic commuters:
+strictly non-Pareto always, and joint-negative once the retail margin is below
+the commuter's shadow value. Boutique's fat margin keeps *joint* positive even
+displacing (margin $61 > v_c $41.20) but still fails strict Pareto — a reminder
+that joint-positive ≠ Pareto.
+
+## B6.3 — slack-swap bundles + clearing transfers
+
+**Pre-registration (NETWORK.md §A.1 + §A.4): does routing one venue's would-spoil
+excess to another venue's unmet demand (a clearing transfer, discount-only) grow
+joint surplus vs each clearing ALONE — the mechanistic form of the flywheel's
+coordination channel? With money+units CONSERVED across the transfer (asserted),
+and riding demand-state / spoilage matching, NOT price coordination.** Expected
+sign: a positive-sum WIN (the durable coordination channel), growing with the
+would-spoil stock routed.
+
+**Setup.** Two venues with complementary would-spoil excess and unmet demand:
+a **bakery** ends its window with would-spoil **sandwiches** (salvage $0.50) and
+only a THIN local residual demand for them (its lunch crowd is sated — the
+slack-hour problem), while a **cafe** has high-value UNMET demand for sandwiches
+but no supply; symmetrically the cafe dumps would-spoil **fruit-cups** (salvage
+$0.30) that the bakery's crowd wants. Baseline = each venue CLEARING ALONE
+(marking its own leftover into its own thin pool). Treatment = the SLACK-SWAP:
+route each venue's excess to the OTHER's unmet demand. Matching + spoilage
+accounting is `buyer.strategies.coordinate` verbatim (efficient allocation; each
+cleared would-spoil unit creates `p_spoil·(value − salvage)`).
+
+**Headline — cross-clearing GROWS joint surplus at every excess level (NOVEL
+WIN).** Δjoint (cross − independent), paired, 400 seeds:
+
+| would-spoil excess (per venue) | Δjoint (cross − indep) | 95% CI | units cleared indep → cross |
+|:------------------------------:|-----------------------:|:------:|:---------------------------:|
+| 2  | **+$22.40** | [22.15, 22.66] | 4.0 → 4.0 |
+| 4  | **+$40.54** | [40.17, 40.90] | 7.98 → 8.0 |
+| 6  | **+$56.73** | [56.27, 57.18] | 11.65 → 12.0 |
+| 8  | **+$71.58** | [71.04, 72.12] | 13.21 → 16.0 |
+| 10 | **+$85.28** | [84.67, 85.89] | 13.21 → 20.0 |
+
+Every CI clears zero, and the gain SCALES with the would-spoil stock routed — the
+flywheel's increasing-returns coordination channel, made mechanical. The
+decomposition is honest: at small excess (E=2, 4) cross clears the SAME count but
+at HIGHER value (routing to the cafe's hungry crowd instead of the bakery's sated
+one — pure value-quality); at large excess (E=8, 10) the independent local pools
+SATURATE at ~13 units while cross keeps clearing to 16–20 (volume the thin local
+demand simply cannot absorb).
+
+**Conservation — asserted to the cent / the unit.** Across every clearing
+transfer: **money residual max |·| = 0.0** (< 1e-6) and **unit residual = 0** at
+every cell. Buyers' outlay ≡ source-venue receipts + clearing-house receipts (the
+bps fee); units available ≡ cleared + spoiled, and units routed-out-of-A ≡
+units-received-in-B. The source always recovers ≥ salvage (the participation
+floor). **It rides demand-state / spoilage matching, NOT price coordination:** the
+clearing decision is a pure function of {would-spoil excess (stock state), buyer
+valuations (demand state), salvage floor} — it takes NO substitute-venue posted
+price (asserted by construction and adversarially — a decoy rival price it never
+reads changes nothing). Discount-only: every clearing price sits in
+[salvage, value].
+
+**Verdict: NOVEL WIN — a clean, conserved, positive-sum coordination channel.**
+This is the flywheel's durable E_coord force reduced to its mechanism: cross-venue
+would-spoil → unmet-demand matching, conserved and discount-only, growing with the
+stock routed.
+
+## Honesty flags (bundles)
+
+- **Self-contained analytic arms**, not wired into the ten-venue twin (B6 is its
+  own wave, per NETWORK.md's build order). The load-bearing content is the
+  Δjoint sign + CI, the Pareto/anti-lever structure, and the conservation ledger
+  — not the exact per-venue elasticities. CIs are across independent seeds (the
+  datamarket/flywheel convention for analytic arms), not 5-day time blocks.
+- **B6.2 measures the CONVERSION channel in isolation.** The bundle's value is the
+  incremental sale free parking unlocks (the marginal WTP band) net the slot's
+  shadow cost; it does not re-simulate the full parking occupancy grid or the
+  boutique's season — the mechanism (slack-shadow-value vs displaced-commuter
+  value) is what is load-bearing. The commuter shadow value `v_c` is anchored on
+  the posted day-max net ops and treats the inelastic commuter as a certain lost
+  sale (no price-substitution recapture) — the conservative reading (it makes the
+  anti-lever a floor, not a ceiling).
+- **The gated win shrinks to ~0, it does not go negative** — the shippable bundle
+  is safe by construction (it only ever monetizes empty slots). The anti-lever is
+  strictly a property of the UNGATED counterfactual, reported precisely because it
+  is the failure the slack-gate exists to prevent (the mirror of B6.1's
+  ration-vs-discount pair: same primitive, opposite welfare sign depending on the
+  guardrail).
+- **B6.3's independent baseline is each venue's OWN thin residual pool**; a venue
+  that could already reach the other's customers on its own would shrink the gap.
+  The gap IS the cross-venue reach — the coordination the broker supplies — which
+  is exactly the channel under test. The clearing bps fee is a TARGET (the Visa
+  position, NETWORK.md §A.4); conservation holds for any fee.
+- **Complements, not substitutes.** Both bundles coordinate COMPLEMENTS (retail↔
+  parking; a dumper↔a wanter), which NETWORK.md §B explicitly permits; the
+  substitute-price guardrail (the B6.1 collusion line) is upheld — no substitute's
+  posted price is ever an input to any pricing decision, asserted in the tests.

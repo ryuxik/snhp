@@ -1,0 +1,1424 @@
+{
+ "bundles_version": 1,
+ "B6_2_parking_validation": {
+  "bundle": "B6.2_parking_validation",
+  "bundles_version": 1,
+  "config": {
+   "seeds": 400,
+   "n_shoppers": 60,
+   "sigma_wtp": 0.35,
+   "K_slots": 40,
+   "ops_per_hour": 0.4,
+   "commuter_daymax": 45.0,
+   "commuter_hours": 9.5,
+   "commuter_abs_elasticity": 0.81,
+   "u_grid": [
+    0.3,
+    0.5,
+    0.7,
+    0.85,
+    1.0,
+    1.15,
+    1.3
+   ]
+  },
+  "commuter_shadow_value_v_c": 41.2,
+  "profiles": [
+   {
+    "retail": "boutique",
+    "list_price": 92.0,
+    "unit_cost": 31.0,
+    "margin": 61.0,
+    "park_price_given_away": 26.0,
+    "slot_ops_cost": 0.8,
+    "commuter_shadow_value_v_c": 41.2,
+    "margin_covers_v_c": true,
+    "cells": [
+     {
+      "retail": "boutique",
+      "u": 0.3,
+      "commuter_load_expected": 12.0,
+      "d_joint_gated": {
+       "mean": 1129.1823,
+       "ci95": [
+        1104.3199,
+        1154.0447
+       ],
+       "n": 400
+      },
+      "d_joint_ungated": {
+       "mean": 1129.8137,
+       "ci95": [
+        1104.8836,
+        1154.7439
+       ],
+       "n": 400
+      },
+      "pareto_frac_gated": {
+       "mean": 1.0,
+       "ci95": [
+        1.0,
+        1.0
+       ],
+       "n": 400
+      },
+      "pareto_frac_ungated": {
+       "mean": 0.9987,
+       "ci95": [
+        0.9973,
+        1.0002
+       ],
+       "n": 400
+      },
+      "n_conversions": {
+       "mean": 15.66,
+       "ci95": [
+        15.3148,
+        16.0052
+       ],
+       "n": 400
+      },
+      "n_validated_gated": {
+       "mean": 15.6325,
+       "ci95": [
+        15.2908,
+        15.9742
+       ],
+       "n": 400
+      },
+      "n_displaced_ungated": {
+       "mean": 0.0275,
+       "ci95": [
+        -0.0031,
+        0.0581
+       ],
+       "n": 400
+      },
+      "gated_grows": true,
+      "gated_never_loses": true,
+      "ungated_anti_lever": false
+     },
+     {
+      "retail": "boutique",
+      "u": 0.5,
+      "commuter_load_expected": 20.0,
+      "d_joint_gated": {
+       "mean": 1076.1008,
+       "ci95": [
+        1052.0597,
+        1100.1418
+       ],
+       "n": 400
+      },
+      "d_joint_ungated": {
+       "mean": 1096.3827,
+       "ci95": [
+        1072.8368,
+        1119.9286
+       ],
+       "n": 400
+      },
+      "pareto_frac_gated": {
+       "mean": 1.0,
+       "ci95": [
+        1.0,
+        1.0
+       ],
+       "n": 400
+      },
+      "pareto_frac_ungated": {
+       "mean": 0.9527,
+       "ci95": [
+        0.9415,
+        0.9638
+       ],
+       "n": 400
+      },
+      "n_conversions": {
+       "mean": 15.66,
+       "ci95": [
+        15.3148,
+        16.0052
+       ],
+       "n": 400
+      },
+      "n_validated_gated": {
+       "mean": 14.805,
+       "ci95": [
+        14.4707,
+        15.1393
+       ],
+       "n": 400
+      },
+      "n_displaced_ungated": {
+       "mean": 0.855,
+       "ci95": [
+        0.6514,
+        1.0586
+       ],
+       "n": 400
+      },
+      "gated_grows": true,
+      "gated_never_loses": true,
+      "ungated_anti_lever": false
+     },
+     {
+      "retail": "boutique",
+      "u": 0.7,
+      "commuter_load_expected": 28.0,
+      "d_joint_gated": {
+       "mean": 817.0397,
+       "ci95": [
+        787.857,
+        846.2223
+       ],
+       "n": 400
+      },
+      "d_joint_ungated": {
+       "mean": 940.5397,
+       "ci95": [
+        918.1253,
+        962.9542
+       ],
+       "n": 400
+      },
+      "pareto_frac_gated": {
+       "mean": 1.0,
+       "ci95": [
+        1.0,
+        1.0
+       ],
+       "n": 400
+      },
+      "pareto_frac_ungated": {
+       "mean": 0.7168,
+       "ci95": [
+        0.6901,
+        0.7435
+       ],
+       "n": 400
+      },
+      "n_conversions": {
+       "mean": 15.66,
+       "ci95": [
+        15.3148,
+        16.0052
+       ],
+       "n": 400
+      },
+      "n_validated_gated": {
+       "mean": 10.9475,
+       "ci95": [
+        10.537,
+        11.358
+       ],
+       "n": 400
+      },
+      "n_displaced_ungated": {
+       "mean": 4.7125,
+       "ci95": [
+        4.2527,
+        5.1723
+       ],
+       "n": 400
+      },
+      "gated_grows": true,
+      "gated_never_loses": true,
+      "ungated_anti_lever": false
+     },
+     {
+      "retail": "boutique",
+      "u": 0.85,
+      "commuter_load_expected": 34.0,
+      "d_joint_gated": {
+       "mean": 485.1323,
+       "ci95": [
+        450.424,
+        519.8407
+       ],
+       "n": 400
+      },
+      "d_joint_ungated": {
+       "mean": 754.0937,
+       "ci95": [
+        731.2892,
+        776.8983
+       ],
+       "n": 400
+      },
+      "pareto_frac_gated": {
+       "mean": 1.0,
+       "ci95": [
+        1.0,
+        1.0
+       ],
+       "n": 400
+      },
+      "pareto_frac_ungated": {
+       "mean": 0.4211,
+       "ci95": [
+        0.3895,
+        0.4527
+       ],
+       "n": 400
+      },
+      "n_conversions": {
+       "mean": 15.66,
+       "ci95": [
+        15.3148,
+        16.0052
+       ],
+       "n": 400
+      },
+      "n_validated_gated": {
+       "mean": 6.3325,
+       "ci95": [
+        5.8653,
+        6.7997
+       ],
+       "n": 400
+      },
+      "n_displaced_ungated": {
+       "mean": 9.3275,
+       "ci95": [
+        8.7678,
+        9.8872
+       ],
+       "n": 400
+      },
+      "gated_grows": true,
+      "gated_never_loses": true,
+      "ungated_anti_lever": false
+     },
+     {
+      "retail": "boutique",
+      "u": 1.0,
+      "commuter_load_expected": 40.0,
+      "d_joint_gated": {
+       "mean": 193.5263,
+       "ci95": [
+        168.1429,
+        218.9098
+       ],
+       "n": 400
+      },
+      "d_joint_ungated": {
+       "mean": 597.5437,
+       "ci95": [
+        579.6689,
+        615.4186
+       ],
+       "n": 400
+      },
+      "pareto_frac_gated": {
+       "mean": 1.0,
+       "ci95": [
+        1.0,
+        1.0
+       ],
+       "n": 400
+      },
+      "pareto_frac_ungated": {
+       "mean": 0.1635,
+       "ci95": [
+        0.1409,
+        0.1861
+       ],
+       "n": 400
+      },
+      "n_conversions": {
+       "mean": 15.66,
+       "ci95": [
+        15.3148,
+        16.0052
+       ],
+       "n": 400
+      },
+      "n_validated_gated": {
+       "mean": 2.4575,
+       "ci95": [
+        2.126,
+        2.789
+       ],
+       "n": 400
+      },
+      "n_displaced_ungated": {
+       "mean": 13.2025,
+       "ci95": [
+        12.7338,
+        13.6712
+       ],
+       "n": 400
+      },
+      "gated_grows": true,
+      "gated_never_loses": true,
+      "ungated_anti_lever": false
+     },
+     {
+      "retail": "boutique",
+      "u": 1.15,
+      "commuter_load_expected": 46.0,
+      "d_joint_gated": {
+       "mean": 46.0109,
+       "ci95": [
+        32.3101,
+        59.7118
+       ],
+       "n": 400
+      },
+      "d_joint_ungated": {
+       "mean": 521.7937,
+       "ci95": [
+        508.794,
+        534.7935
+       ],
+       "n": 400
+      },
+      "pareto_frac_gated": {
+       "mean": 1.0,
+       "ci95": [
+        1.0,
+        1.0
+       ],
+       "n": 400
+      },
+      "pareto_frac_ungated": {
+       "mean": 0.0412,
+       "ci95": [
+        0.0277,
+        0.0546
+       ],
+       "n": 400
+      },
+      "n_conversions": {
+       "mean": 15.66,
+       "ci95": [
+        15.3148,
+        16.0052
+       ],
+       "n": 400
+      },
+      "n_validated_gated": {
+       "mean": 0.5825,
+       "ci95": [
+        0.4046,
+        0.7604
+       ],
+       "n": 400
+      },
+      "n_displaced_ungated": {
+       "mean": 15.0775,
+       "ci95": [
+        14.6789,
+        15.4761
+       ],
+       "n": 400
+      },
+      "gated_grows": true,
+      "gated_never_loses": true,
+      "ungated_anti_lever": false
+     },
+     {
+      "retail": "boutique",
+      "u": 1.3,
+      "commuter_load_expected": 52.0,
+      "d_joint_gated": {
+       "mean": 13.1965,
+       "ci95": [
+        6.6406,
+        19.7525
+       ],
+       "n": 400
+      },
+      "d_joint_ungated": {
+       "mean": 504.8257,
+       "ci95": [
+        492.9374,
+        516.7141
+       ],
+       "n": 400
+      },
+      "pareto_frac_gated": {
+       "mean": 1.0,
+       "ci95": [
+        1.0,
+        1.0
+       ],
+       "n": 400
+      },
+      "pareto_frac_ungated": {
+       "mean": 0.0107,
+       "ci95": [
+        0.0051,
+        0.0164
+       ],
+       "n": 400
+      },
+      "n_conversions": {
+       "mean": 15.66,
+       "ci95": [
+        15.3148,
+        16.0052
+       ],
+       "n": 400
+      },
+      "n_validated_gated": {
+       "mean": 0.1625,
+       "ci95": [
+        0.0801,
+        0.2449
+       ],
+       "n": 400
+      },
+      "n_displaced_ungated": {
+       "mean": 15.4975,
+       "ci95": [
+        15.1437,
+        15.8513
+       ],
+       "n": 400
+      },
+      "gated_grows": true,
+      "gated_never_loses": true,
+      "ungated_anti_lever": false
+     }
+    ],
+    "slack_cell": {
+     "retail": "boutique",
+     "u": 0.3,
+     "commuter_load_expected": 12.0,
+     "d_joint_gated": {
+      "mean": 1129.1823,
+      "ci95": [
+       1104.3199,
+       1154.0447
+      ],
+      "n": 400
+     },
+     "d_joint_ungated": {
+      "mean": 1129.8137,
+      "ci95": [
+       1104.8836,
+       1154.7439
+      ],
+      "n": 400
+     },
+     "pareto_frac_gated": {
+      "mean": 1.0,
+      "ci95": [
+       1.0,
+       1.0
+      ],
+      "n": 400
+     },
+     "pareto_frac_ungated": {
+      "mean": 0.9987,
+      "ci95": [
+       0.9973,
+       1.0002
+      ],
+      "n": 400
+     },
+     "n_conversions": {
+      "mean": 15.66,
+      "ci95": [
+       15.3148,
+       16.0052
+      ],
+      "n": 400
+     },
+     "n_validated_gated": {
+      "mean": 15.6325,
+      "ci95": [
+       15.2908,
+       15.9742
+      ],
+      "n": 400
+     },
+     "n_displaced_ungated": {
+      "mean": 0.0275,
+      "ci95": [
+       -0.0031,
+       0.0581
+      ],
+      "n": 400
+     },
+     "gated_grows": true,
+     "gated_never_loses": true,
+     "ungated_anti_lever": false
+    },
+    "tight_cell": {
+     "retail": "boutique",
+     "u": 1.3,
+     "commuter_load_expected": 52.0,
+     "d_joint_gated": {
+      "mean": 13.1965,
+      "ci95": [
+       6.6406,
+       19.7525
+      ],
+      "n": 400
+     },
+     "d_joint_ungated": {
+      "mean": 504.8257,
+      "ci95": [
+       492.9374,
+       516.7141
+      ],
+      "n": 400
+     },
+     "pareto_frac_gated": {
+      "mean": 1.0,
+      "ci95": [
+       1.0,
+       1.0
+      ],
+      "n": 400
+     },
+     "pareto_frac_ungated": {
+      "mean": 0.0107,
+      "ci95": [
+       0.0051,
+       0.0164
+      ],
+      "n": 400
+     },
+     "n_conversions": {
+      "mean": 15.66,
+      "ci95": [
+       15.3148,
+       16.0052
+      ],
+      "n": 400
+     },
+     "n_validated_gated": {
+      "mean": 0.1625,
+      "ci95": [
+       0.0801,
+       0.2449
+      ],
+      "n": 400
+     },
+     "n_displaced_ungated": {
+      "mean": 15.4975,
+      "ci95": [
+       15.1437,
+       15.8513
+      ],
+      "n": 400
+     },
+     "gated_grows": true,
+     "gated_never_loses": true,
+     "ungated_anti_lever": false
+    },
+    "u_star_ungated_anti_lever": null,
+    "verdict": "slack-gated bundle is a PARETO WIN (\u0394joint>0 on slack, never a loss); UNGATED validation stays joint-positive (margin > v_c) but is NOT Pareto when tight \u2014 it displaces paying commuters, who are strictly worse off"
+   },
+   {
+    "retail": "eatery",
+    "list_price": 11.5,
+    "unit_cost": 4.1,
+    "margin": 7.4,
+    "park_price_given_away": 18.0,
+    "slot_ops_cost": 0.4,
+    "commuter_shadow_value_v_c": 41.2,
+    "margin_covers_v_c": false,
+    "cells": [
+     {
+      "retail": "eatery",
+      "u": 0.3,
+      "commuter_load_expected": 12.0,
+      "d_joint_gated": {
+       "mean": 303.6977,
+       "ci95": [
+        300.0828,
+        307.3126
+       ],
+       "n": 400
+      },
+      "d_joint_ungated": {
+       "mean": 207.193,
+       "ci95": [
+        194.8894,
+        219.4967
+       ],
+       "n": 400
+      },
+      "pareto_frac_gated": {
+       "mean": 1.0,
+       "ci95": [
+        1.0,
+        1.0
+       ],
+       "n": 400
+      },
+      "pareto_frac_ungated": {
+       "mean": 0.9113,
+       "ci95": [
+        0.9009,
+        0.9218
+       ],
+       "n": 400
+      },
+      "n_conversions": {
+       "mean": 29.77,
+       "ci95": [
+        29.377,
+        30.163
+       ],
+       "n": 400
+      },
+      "n_validated_gated": {
+       "mean": 26.8625,
+       "ci95": [
+        26.5543,
+        27.1707
+       ],
+       "n": 400
+      },
+      "n_displaced_ungated": {
+       "mean": 2.9075,
+       "ci95": [
+        2.5516,
+        3.2634
+       ],
+       "n": 400
+      },
+      "gated_grows": true,
+      "gated_never_loses": true,
+      "ungated_anti_lever": false
+     },
+     {
+      "retail": "eatery",
+      "u": 0.5,
+      "commuter_load_expected": 20.0,
+      "d_joint_gated": {
+       "mean": 240.8923,
+       "ci95": [
+        236.3415,
+        245.4431
+       ],
+       "n": 400
+      },
+      "d_joint_ungated": {
+       "mean": -93.809,
+       "ci95": [
+        -114.7161,
+        -72.9018
+       ],
+       "n": 400
+      },
+      "pareto_frac_gated": {
+       "mean": 1.0,
+       "ci95": [
+        1.0,
+        1.0
+       ],
+       "n": 400
+      },
+      "pareto_frac_ungated": {
+       "mean": 0.6656,
+       "ci95": [
+        0.6486,
+        0.6826
+       ],
+       "n": 400
+      },
+      "n_conversions": {
+       "mean": 29.77,
+       "ci95": [
+        29.377,
+        30.163
+       ],
+       "n": 400
+      },
+      "n_validated_gated": {
+       "mean": 19.485,
+       "ci95": [
+        19.0477,
+        19.9223
+       ],
+       "n": 400
+      },
+      "n_displaced_ungated": {
+       "mean": 10.285,
+       "ci95": [
+        9.717,
+        10.853
+       ],
+       "n": 400
+      },
+      "gated_grows": true,
+      "gated_never_loses": true,
+      "ungated_anti_lever": true
+     },
+     {
+      "retail": "eatery",
+      "u": 0.7,
+      "commuter_load_expected": 28.0,
+      "d_joint_gated": {
+       "mean": 164.6208,
+       "ci95": [
+        158.299,
+        170.9426
+       ],
+       "n": 400
+      },
+      "d_joint_ungated": {
+       "mean": -396.137,
+       "ci95": [
+        -421.1461,
+        -371.1279
+       ],
+       "n": 400
+      },
+      "pareto_frac_gated": {
+       "mean": 1.0,
+       "ci95": [
+        1.0,
+        1.0
+       ],
+       "n": 400
+      },
+      "pareto_frac_ungated": {
+       "mean": 0.413,
+       "ci95": [
+        0.3935,
+        0.4326
+       ],
+       "n": 400
+      },
+      "n_conversions": {
+       "mean": 29.77,
+       "ci95": [
+        29.377,
+        30.163
+       ],
+       "n": 400
+      },
+      "n_validated_gated": {
+       "mean": 12.075,
+       "ci95": [
+        11.5297,
+        12.6203
+       ],
+       "n": 400
+      },
+      "n_displaced_ungated": {
+       "mean": 17.695,
+       "ci95": [
+        17.0306,
+        18.3594
+       ],
+       "n": 400
+      },
+      "gated_grows": true,
+      "gated_never_loses": true,
+      "ungated_anti_lever": true
+     },
+     {
+      "retail": "eatery",
+      "u": 0.85,
+      "commuter_load_expected": 34.0,
+      "d_joint_gated": {
+       "mean": 99.986,
+       "ci95": [
+        93.2328,
+        106.7392
+       ],
+       "n": 400
+      },
+      "d_joint_ungated": {
+       "mean": -612.581,
+       "ci95": [
+        -636.7827,
+        -588.3793
+       ],
+       "n": 400
+      },
+      "pareto_frac_gated": {
+       "mean": 1.0,
+       "ci95": [
+        1.0,
+        1.0
+       ],
+       "n": 400
+      },
+      "pareto_frac_ungated": {
+       "mean": 0.2326,
+       "ci95": [
+        0.2146,
+        0.2506
+       ],
+       "n": 400
+      },
+      "n_conversions": {
+       "mean": 29.77,
+       "ci95": [
+        29.377,
+        30.163
+       ],
+       "n": 400
+      },
+      "n_validated_gated": {
+       "mean": 6.77,
+       "ci95": [
+        6.2682,
+        7.2718
+       ],
+       "n": 400
+      },
+      "n_displaced_ungated": {
+       "mean": 23.0,
+       "ci95": [
+        22.3522,
+        23.6478
+       ],
+       "n": 400
+      },
+      "gated_grows": true,
+      "gated_never_loses": true,
+      "ungated_anti_lever": true
+     },
+     {
+      "retail": "eatery",
+      "u": 1.0,
+      "commuter_load_expected": 40.0,
+      "d_joint_gated": {
+       "mean": 36.8846,
+       "ci95": [
+        32.1428,
+        41.6265
+       ],
+       "n": 400
+      },
+      "d_joint_ungated": {
+       "mean": -794.753,
+       "ci95": [
+        -812.6089,
+        -776.897
+       ],
+       "n": 400
+      },
+      "pareto_frac_gated": {
+       "mean": 1.0,
+       "ci95": [
+        1.0,
+        1.0
+       ],
+       "n": 400
+      },
+      "pareto_frac_ungated": {
+       "mean": 0.0792,
+       "ci95": [
+        0.0682,
+        0.0903
+       ],
+       "n": 400
+      },
+      "n_conversions": {
+       "mean": 29.77,
+       "ci95": [
+        29.377,
+        30.163
+       ],
+       "n": 400
+      },
+      "n_validated_gated": {
+       "mean": 2.305,
+       "ci95": [
+        1.9892,
+        2.6208
+       ],
+       "n": 400
+      },
+      "n_displaced_ungated": {
+       "mean": 27.465,
+       "ci95": [
+        26.9532,
+        27.9768
+       ],
+       "n": 400
+      },
+      "gated_grows": true,
+      "gated_never_loses": true,
+      "ungated_anti_lever": true
+     },
+     {
+      "retail": "eatery",
+      "u": 1.15,
+      "commuter_load_expected": 46.0,
+      "d_joint_gated": {
+       "mean": 9.5291,
+       "ci95": [
+        6.8043,
+        12.254
+       ],
+       "n": 400
+      },
+      "d_joint_ungated": {
+       "mean": -865.337,
+       "ci95": [
+        -878.8101,
+        -851.8639
+       ],
+       "n": 400
+      },
+      "pareto_frac_gated": {
+       "mean": 1.0,
+       "ci95": [
+        1.0,
+        1.0
+       ],
+       "n": 400
+      },
+      "pareto_frac_ungated": {
+       "mean": 0.0191,
+       "ci95": [
+        0.0133,
+        0.0249
+       ],
+       "n": 400
+      },
+      "n_conversions": {
+       "mean": 29.77,
+       "ci95": [
+        29.377,
+        30.163
+       ],
+       "n": 400
+      },
+      "n_validated_gated": {
+       "mean": 0.575,
+       "ci95": [
+        0.4019,
+        0.7481
+       ],
+       "n": 400
+      },
+      "n_displaced_ungated": {
+       "mean": 29.195,
+       "ci95": [
+        28.7764,
+        29.6136
+       ],
+       "n": 400
+      },
+      "gated_grows": true,
+      "gated_never_loses": true,
+      "ungated_anti_lever": true
+     },
+     {
+      "retail": "eatery",
+      "u": 1.3,
+      "commuter_load_expected": 52.0,
+      "d_joint_gated": {
+       "mean": 1.6621,
+       "ci95": [
+        0.6665,
+        2.6577
+       ],
+       "n": 400
+      },
+      "d_joint_ungated": {
+       "mean": -884.717,
+       "ci95": [
+        -896.878,
+        -872.556
+       ],
+       "n": 400
+      },
+      "pareto_frac_gated": {
+       "mean": 1.0,
+       "ci95": [
+        1.0,
+        1.0
+       ],
+       "n": 400
+      },
+      "pareto_frac_ungated": {
+       "mean": 0.0033,
+       "ci95": [
+        0.0013,
+        0.0054
+       ],
+       "n": 400
+      },
+      "n_conversions": {
+       "mean": 29.77,
+       "ci95": [
+        29.377,
+        30.163
+       ],
+       "n": 400
+      },
+      "n_validated_gated": {
+       "mean": 0.1,
+       "ci95": [
+        0.0381,
+        0.1619
+       ],
+       "n": 400
+      },
+      "n_displaced_ungated": {
+       "mean": 29.67,
+       "ci95": [
+        29.2739,
+        30.0661
+       ],
+       "n": 400
+      },
+      "gated_grows": true,
+      "gated_never_loses": true,
+      "ungated_anti_lever": true
+     }
+    ],
+    "slack_cell": {
+     "retail": "eatery",
+     "u": 0.3,
+     "commuter_load_expected": 12.0,
+     "d_joint_gated": {
+      "mean": 303.6977,
+      "ci95": [
+       300.0828,
+       307.3126
+      ],
+      "n": 400
+     },
+     "d_joint_ungated": {
+      "mean": 207.193,
+      "ci95": [
+       194.8894,
+       219.4967
+      ],
+      "n": 400
+     },
+     "pareto_frac_gated": {
+      "mean": 1.0,
+      "ci95": [
+       1.0,
+       1.0
+      ],
+      "n": 400
+     },
+     "pareto_frac_ungated": {
+      "mean": 0.9113,
+      "ci95": [
+       0.9009,
+       0.9218
+      ],
+      "n": 400
+     },
+     "n_conversions": {
+      "mean": 29.77,
+      "ci95": [
+       29.377,
+       30.163
+      ],
+      "n": 400
+     },
+     "n_validated_gated": {
+      "mean": 26.8625,
+      "ci95": [
+       26.5543,
+       27.1707
+      ],
+      "n": 400
+     },
+     "n_displaced_ungated": {
+      "mean": 2.9075,
+      "ci95": [
+       2.5516,
+       3.2634
+      ],
+      "n": 400
+     },
+     "gated_grows": true,
+     "gated_never_loses": true,
+     "ungated_anti_lever": false
+    },
+    "tight_cell": {
+     "retail": "eatery",
+     "u": 1.3,
+     "commuter_load_expected": 52.0,
+     "d_joint_gated": {
+      "mean": 1.6621,
+      "ci95": [
+       0.6665,
+       2.6577
+      ],
+      "n": 400
+     },
+     "d_joint_ungated": {
+      "mean": -884.717,
+      "ci95": [
+       -896.878,
+       -872.556
+      ],
+      "n": 400
+     },
+     "pareto_frac_gated": {
+      "mean": 1.0,
+      "ci95": [
+       1.0,
+       1.0
+      ],
+      "n": 400
+     },
+     "pareto_frac_ungated": {
+      "mean": 0.0033,
+      "ci95": [
+       0.0013,
+       0.0054
+      ],
+      "n": 400
+     },
+     "n_conversions": {
+      "mean": 29.77,
+      "ci95": [
+       29.377,
+       30.163
+      ],
+      "n": 400
+     },
+     "n_validated_gated": {
+      "mean": 0.1,
+      "ci95": [
+       0.0381,
+       0.1619
+      ],
+      "n": 400
+     },
+     "n_displaced_ungated": {
+      "mean": 29.67,
+      "ci95": [
+       29.2739,
+       30.0661
+      ],
+      "n": 400
+     },
+     "gated_grows": true,
+     "gated_never_loses": true,
+     "ungated_anti_lever": true
+    },
+    "u_star_ungated_anti_lever": 0.5,
+    "verdict": "slack-gated bundle is a PARETO WIN (\u0394joint>0 on slack, never a loss); UNGATED validation is a JOINT ANTI-LEVER when tight (\u0394joint<0: thin margin < v_c, cannibalises paying commuters)"
+   }
+  ],
+  "verdict": {
+   "slack_gated_is_pareto_win_all_profiles": true,
+   "ungated_anti_lever_when_tight_thin_margin": true,
+   "discount_only": true,
+   "summary": "PARKING-VALIDATION BUNDLE: the shippable SLACK-GATED bundle (validate only empty capacity) is a PARETO WIN \u2014 \u0394joint>0 with no one displaced \u2014 the culturally pre-accepted cross-subsidy, computed, and discount-only-safe (never raises either posted price). The win rides parking SLACK: it shrinks to 0 as the lot fills. The ANTI-LEVER is what a naive UNGATED validation does \u2014 validating into occupied capacity cannibalises paying, inelastic commuters (never Pareto; joint-NEGATIVE for a thin-margin sale). The gate to slack is exactly what keeps the bundle pro-surplus."
+  }
+ },
+ "B6_3_slack_swap_clearing": {
+  "bundle": "B6.3_slack_swap_clearing",
+  "bundles_version": 1,
+  "config": {
+   "seeds": 400,
+   "p_spoil": 0.4,
+   "extraction": 0.5,
+   "clearing_bps": 30.0,
+   "sigma_val": 0.35,
+   "local_pool": 8,
+   "local_median_mult": 1.4,
+   "unmet_pool": 24,
+   "excess_grid": [
+    2,
+    4,
+    6,
+    8,
+    10
+   ]
+  },
+  "venues": [
+   {
+    "name": "bakery",
+    "perishable": "sandwich",
+    "salvage": 0.5,
+    "mu": 9.75,
+    "unmet_perishable": "fruit-cup"
+   },
+   {
+    "name": "cafe",
+    "perishable": "fruit-cup",
+    "salvage": 0.3,
+    "mu": 6.25,
+    "unmet_perishable": "sandwich"
+   }
+  ],
+  "cells": [
+   {
+    "excess_units": 2,
+    "d_joint": {
+     "mean": 22.404,
+     "ci95": [
+      22.1491,
+      22.6589
+     ],
+     "n": 400
+    },
+    "units_cleared_independent": {
+     "mean": 4.0,
+     "ci95": [
+      4.0,
+      4.0
+     ],
+     "n": 400
+    },
+    "units_cleared_cross": {
+     "mean": 4.0,
+     "ci95": [
+      4.0,
+      4.0
+     ],
+     "n": 400
+    },
+    "money_residual_max_abs": 0.0,
+    "unit_residual_max_abs": 0,
+    "money_conserved": true,
+    "units_conserved": true,
+    "joint_grows": true
+   },
+   {
+    "excess_units": 4,
+    "d_joint": {
+     "mean": 40.536,
+     "ci95": [
+      40.1682,
+      40.9038
+     ],
+     "n": 400
+    },
+    "units_cleared_independent": {
+     "mean": 7.9825,
+     "ci95": [
+      7.9678,
+      7.9972
+     ],
+     "n": 400
+    },
+    "units_cleared_cross": {
+     "mean": 8.0,
+     "ci95": [
+      8.0,
+      8.0
+     ],
+     "n": 400
+    },
+    "money_residual_max_abs": 0.0,
+    "unit_residual_max_abs": 0,
+    "money_conserved": true,
+    "units_conserved": true,
+    "joint_grows": true
+   },
+   {
+    "excess_units": 6,
+    "d_joint": {
+     "mean": 56.7254,
+     "ci95": [
+      56.268,
+      57.1828
+     ],
+     "n": 400
+    },
+    "units_cleared_independent": {
+     "mean": 11.65,
+     "ci95": [
+      11.5816,
+      11.7184
+     ],
+     "n": 400
+    },
+    "units_cleared_cross": {
+     "mean": 12.0,
+     "ci95": [
+      12.0,
+      12.0
+     ],
+     "n": 400
+    },
+    "money_residual_max_abs": 0.0,
+    "unit_residual_max_abs": 0,
+    "money_conserved": true,
+    "units_conserved": true,
+    "joint_grows": true
+   },
+   {
+    "excess_units": 8,
+    "d_joint": {
+     "mean": 71.5803,
+     "ci95": [
+      71.0438,
+      72.1168
+     ],
+     "n": 400
+    },
+    "units_cleared_independent": {
+     "mean": 13.205,
+     "ci95": [
+      13.0603,
+      13.3497
+     ],
+     "n": 400
+    },
+    "units_cleared_cross": {
+     "mean": 16.0,
+     "ci95": [
+      16.0,
+      16.0
+     ],
+     "n": 400
+    },
+    "money_residual_max_abs": 0.0,
+    "unit_residual_max_abs": 0,
+    "money_conserved": true,
+    "units_conserved": true,
+    "joint_grows": true
+   },
+   {
+    "excess_units": 10,
+    "d_joint": {
+     "mean": 85.2789,
+     "ci95": [
+      84.6727,
+      85.885
+     ],
+     "n": 400
+    },
+    "units_cleared_independent": {
+     "mean": 13.205,
+     "ci95": [
+      13.0603,
+      13.3497
+     ],
+     "n": 400
+    },
+    "units_cleared_cross": {
+     "mean": 20.0,
+     "ci95": [
+      20.0,
+      20.0
+     ],
+     "n": 400
+    },
+    "money_residual_max_abs": 0.0,
+    "unit_residual_max_abs": 0,
+    "money_conserved": true,
+    "units_conserved": true,
+    "joint_grows": true
+   }
+  ],
+  "no_substitute_price_signal": true,
+  "verdict": {
+   "cross_clearing_grows_joint_all_excess": true,
+   "money_conserved_all": true,
+   "units_conserved_all": true,
+   "joint_gain_scales_with_excess": true,
+   "rides_demand_state_not_price": true,
+   "discount_only": true,
+   "summary": "SLACK-SWAP CLEARING: routing one venue's would-spoil excess to the other's unmet demand GROWS joint surplus vs each clearing alone (CI clears zero at every excess level), the mechanistic form of the flywheel's durable coordination channel. Money and units are conserved to the cent / the unit across the clearing transfer, the clearing is discount-only, and it rides demand-state / spoilage matching \u2014 NEVER a substitute's price."
+  }
+ }
+}
