@@ -257,23 +257,35 @@
     return best;
   }
   function outsideSurplus(ctx, c) {
+    // memo per consumer: sOut depends only on (consumer, menu) — not on shop
+    // state — and the same consumer is priced ~2-3x/day across the two lanes.
+    if (c._sOut !== undefined) return c._sOut;
     const dp = {}, tp = {};
     for (const d of ctx.drinks) dp[d] = ctx.DRINK_PRICE[d] * OUTSIDE_MARKUP;
     for (const t of ctx.tops) tp[t] = ctx.TOP_PRICE[t] * OUTSIDE_MARKUP;
-    return Math.max(0.0, bestMenuOrder(ctx, c, dp, tp, true).surplus);
+    return (c._sOut = Math.max(0.0, bestMenuOrder(ctx, c, dp, tp, true).surplus));
   }
 
   // ── shop state: FIFO queue + tapioca batches (world.py) ─────────────────
   function openShop(day, balkModel) {
     const state = { day: day, tick: 0, queue: [], carry: 0.0, batches: [],
-      scheduled: {}, batchesCooked: 0, balkModel: balkModel || "wait" };
+      scheduled: {}, batchesCooked: 0, balkModel: balkModel || "wait", lastSaleTick: null };
     cookBatch(state);
     return state;
   }
   const queueDrinks = (s) => s.queue.reduce((a, b) => a + b, 0);
   const pearlStock = (s) => s.batches.reduce((a, b) => a + b.servings, 0);
   function cookBatch(s) { s.batches.push({ servings: BATCH_SERVINGS, expires: s.tick + BATCH_LIFE_TICKS }); s.batchesCooked++; }
-  function maybeCook(s) { if (pearlStock(s) < PEARL_RESTOCK_TRIGGER) cookBatch(s); }
+  function maybeCook(s) {
+    if (pearlStock(s) >= PEARL_RESTOCK_TRIGGER) return;
+    // Demand-aware: a real operator does not keep cooking tapioca for a dead
+    // shop. Restock only if a cup has sold within the last batch-life window
+    // (fix for the thin-margin artifact where a zero-sales day still wasted
+    // batch after batch). On a busy menu a cup sells every few ticks, so this
+    // is a no-op — the calibration reference is unchanged.
+    if (s.lastSaleTick == null || s.tick - s.lastSaleTick > BATCH_LIFE_TICKS) return;
+    cookBatch(s);
+  }
   function expireBatches(ctx, s) {
     let waste = 0; const keep = [];
     for (const b of s.batches) {
@@ -342,7 +354,14 @@
     return ctx.TOP_COST[top];
   }
 
-  const deferCost = (c, slotTicks) => (c.flexible ? FLEX_DEFER : RIGID_DEFER)[slotTicks];
+  // A rigid buyer ("I'm on my lunch break") pays RIGID_DEFER for a later slot.
+  // rigidMult (>=1) scales that cost: the sandbox drives it up as the flexible
+  // share falls, so "0% flexible" means genuinely no one accepts a deferral
+  // (the slider means what it says). Default 1 = the calibrated model (reference).
+  function deferCost(c, slotTicks, rigidMult) {
+    if (c.flexible) return FLEX_DEFER[slotTicks];
+    return RIGID_DEFER[slotTicks] * (rigidMult != null ? rigidMult : 1);
+  }
 
   // ── cart_nash: the SNHP quote (policies.cart_nash), v1-SAFE config ───────
   // quote_lookers=false (hard floor), qty_appetite=true, min_price_frac=0.6,
@@ -356,6 +375,7 @@
     const salvage = o.salvage !== undefined ? o.salvage : true;
     const minGainAbs = o.minGainAbs !== undefined ? o.minGainAbs : 0.25;
     const minGainFrac = o.minGainFrac !== undefined ? o.minGainFrac : 0.10;
+    const rigidMult = o.rigidDeferMult != null ? o.rigidDeferMult : 1;
 
     const b = balkProb(s);
     const pearlsStocked = pearlStock(s);
@@ -386,7 +406,7 @@
     const slots = [0];
     if (deferSlots) for (const ss of [3, 6]) if (s.tick + ss < TICKS_PER_DAY) slots.push(ss);
     const slotRoom = {}, defer = {};
-    for (const ss of slots) { slotRoom[ss] = ss > 0 ? slotCapacity(ctx, s, s.tick + ss) : QTY_CAP; defer[ss] = deferCost(c, ss); }
+    for (const ss of slots) { slotRoom[ss] = ss > 0 ? slotCapacity(ctx, s, s.tick + ss) : QTY_CAP; defer[ss] = deferCost(c, ss, rigidMult); }
     const relief = {};
     for (let q = 1; q <= QTY_CAP; q++) for (const ss of slots) relief[q + "," + ss] = capacityRelief(ctx, s, q, ss);
 
@@ -435,13 +455,19 @@
     const uS = surv * (best.p - best.cost) + best.r;
     if (uS - dS < Math.max(minGainAbs, minGainFrac * best.listv)) return null;
     const uB = surv * (best.val - best.p) + (1.0 - surv) * sOut - defer[best.ss];
+    // structured steering flag: salvage TRULY triggered (a batch topping in the
+    // cart whose opportunity cost is 0 because an over-stocked batch is expiring)
+    // — NOT merely a zero-cost topping. Consumers of the deal branch on this
+    // boolean, never on the prose in `why`.
+    const salvageUsed = salvage && best.T.indexOf(ctx.batchTop) >= 0 && pearlsExpiringExcess(ctx, s);
     const why = ["negotiated cart"];
     if (best.ss > 0) why.push("+" + best.ss * 10 + "-min pickup frees peak capacity");
-    if (best.T.indexOf(ctx.batchTop) >= 0 && topCEff(ctx, s, ctx.batchTop, salvage) === 0.0) why.push("pearls from the expiring batch");
+    if (salvageUsed) why.push("pearls from the expiring batch");
     if (best.p < best.listv - 1e-9) why.push("$" + (best.listv - best.p).toFixed(2) + " under the menu");
     else why.push("at menu");
     return { drink: best.d, qty: best.q, tops: best.T.slice(), price: best.p, slotTicks: best.ss,
-      value: best.val, uShop: uS, dShop: dS, uBuyer: uB, dBuyer: dB, relief: best.r, why };
+      value: best.val, uShop: uS, dShop: dS, uBuyer: uB, dBuyer: dB, relief: best.r,
+      salvage: salvageUsed, why };
   }
 
   // ── accounting (run._settle) ────────────────────────────────────────────
@@ -451,6 +477,7 @@
       consumer_surplus: 0, batches_cooked: 0 };
   }
   function settle(ctx, s, m, drink, qty, tops, price, surplus, slotTicks) {
+    s.lastSaleTick = s.tick;   // demand signal for maybeCook (dead-shop guard)
     m.revenue += price;
     let ic = qty * ctx.DRINK_COST[drink];
     for (const t of tops) ic += qty * ctx.TOP_COST[t];
@@ -489,7 +516,7 @@
     const deal = cartNash(ctx, s, c, opts);
     if (deal !== null && deal.uBuyer >= deal.dBuyer - 1e-9) {
       if (deal.slotTicks === 0 && balkRoll < balkProb(s)) { m.balks += 1; return { kind: "balk" }; }
-      const realized = deal.value - deal.price - deferCost(c, deal.slotTicks);
+      const realized = deal.value - deal.price - deferCost(c, deal.slotTicks, opts && opts.rigidDeferMult);
       // menu list value of the negotiated cart, for the "you saved" readout
       let listv = deal.qty * ctx.DRINK_PRICE[deal.drink];
       for (const t of deal.tops) listv += deal.qty * ctx.TOP_PRICE[t];
@@ -498,7 +525,7 @@
       m.negotiated += 1;
       return { kind: "deal", drink: deal.drink, qty: deal.qty, tops: deal.tops, price: deal.price,
         menu: listv, slotTicks: deal.slotTicks, save: round2(listv - deal.price), why: deal.why,
-        relief: deal.relief, surplus: realized, uShop: deal.uShop, dShop: deal.dShop };
+        salvage: deal.salvage, relief: deal.relief, surplus: realized, uShop: deal.uShop, dShop: deal.dShop };
     }
     // fall through to the plain walk-in board (never worse UX than static)
     return serveStatic(ctx, s, m, c, balkRoll);
@@ -572,8 +599,10 @@
   }
 
   // ── run N days, return per-day means (for the validation gate) ──────────
-  function runDays(spec, cfg, seed, days, opts) {
-    const ctx = compile(spec);
+  // `reuseCtx` (optional): pass an already-compiled ctx to skip a second full
+  // appeal-inversion (the sandbox reuses the run's ctx for the 15-day means).
+  function runDays(spec, cfg, seed, days, opts, reuseCtx) {
+    const ctx = reuseCtx || compile(spec);
     const acc = { static: [], snhp: [] };
     for (let d = 0; d < days; d++) {
       const r = simulateDay(ctx, cfg, seed, d, opts);

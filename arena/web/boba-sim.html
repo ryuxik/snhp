@@ -163,16 +163,38 @@
   .fitem .tx { font-size:11.5px; line-height:1.45; color:var(--dim); }
   .fitem .tx .s { color:var(--red); } .fitem .tx .n { color:var(--gold); } .fitem .tx b { color:var(--ink); }
 
+  /* margin split — robust vs forecast-dependent */
+  .split { margin-top:16px; }
+  .split:empty { display:none; }
+  .split-h { font-size:9.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--faint); margin-bottom:9px; }
+  .split-bar { display:flex; height:34px; border-radius:9px; overflow:hidden; border:1px solid var(--line); }
+  .split-bar > div { display:flex; align-items:center; justify-content:center; min-width:0; }
+  .split-bar span { font-size:13px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .seg-robust { background:linear-gradient(180deg, rgba(127,196,143,.34), rgba(127,196,143,.14)); }
+  .seg-robust span { color:var(--green); }
+  .seg-forecast { border-left:1px dashed rgba(255,224,138,.5);
+    background:repeating-linear-gradient(135deg, rgba(255,224,138,.16) 0 7px, rgba(255,224,138,.04) 7px 14px); }
+  .seg-forecast span { color:var(--gold); }
+  .split-rows { display:flex; flex-direction:column; gap:8px; margin-top:11px; }
+  .split-row { position:relative; font-size:11.5px; line-height:1.5; color:var(--dim); padding-left:16px; }
+  .split-row b { color:var(--ink); }
+  .split-row .dot { position:absolute; left:0; top:6px; width:9px; height:9px; border-radius:2px; }
+  .split-row.robust .dot { background:var(--green); }
+  .split-row.robust b { color:var(--green); }
+  .split-row.forecast .dot { background:repeating-linear-gradient(135deg, var(--gold) 0 3px, rgba(255,224,138,.3) 3px 6px); }
+  .split-row.forecast b { color:var(--gold); }
+
   /* result summary */
   .summary { margin-top:18px; }
   .verdict { font-size:15px; line-height:1.6; color:var(--dim); }
   .verdict b { color:var(--ink); }
   .verdict .g { color:var(--green); font-weight:700; } .verdict .gold { color:var(--gold); font-weight:700; }
+  .verdict .warn { color:var(--red); font-weight:700; }
   .tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:16px; }
   @media (max-width:640px){ .tiles { grid-template-columns:1fr 1fr; } }
   .tile { background:var(--card); border:1px solid var(--line); border-radius:13px; padding:13px 12px; }
   .tile .v { font-size:23px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
-  .tile.g .v { color:var(--green); } .tile.gold .v { color:var(--gold); } .tile.blue .v { color:var(--blue); }
+  .tile.g .v { color:var(--green); } .tile.gold .v { color:var(--gold); } .tile.blue .v { color:var(--blue); } .tile.warn .v { color:var(--red); }
   .tile .k { font-size:10px; color:var(--dim); margin-top:5px; line-height:1.35; }
 
   /* guarantees / honesty */
@@ -303,6 +325,7 @@
     <div class="panel summary">
       <div class="panel-h"><span class="t">4 · On your menu, this day</span><span class="s" id="typicalNote"></span></div>
       <p class="verdict" id="verdict">—</p>
+      <div class="split" id="split"></div>
       <div class="tiles" id="tiles"></div>
 
       <div class="guards">
@@ -313,9 +336,11 @@
 
       <div class="honest">
         <b>Honest note.</b> This is a <b>simulation of the mechanism</b>, not a production forecast or a real
-        shop's books. A live deployment is deliberately more conservative — smaller discounts, tighter guards,
-        and it earns trust before it earns margin. The caveats and the paired 30-day study live on the
-        <a href="boba.html">owner panel</a>.
+        shop's books. <b>In this sim SNHP already knows what each customer would pay. Live, it has to discover
+        that through the negotiation — so real discounts are more cautious and some quotes miss. That's the main
+        reason real-world results are more conservative than this idealized model.</b> A live deployment is also
+        deliberately guarded — smaller discounts, tighter floors, and it earns trust before it earns margin. The
+        caveats and the paired 30-day study live on the <a href="boba.html">owner panel</a>.
       </div>
 
       <div class="footlinks">
