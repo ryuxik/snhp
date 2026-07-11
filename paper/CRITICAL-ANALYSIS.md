@@ -71,16 +71,19 @@ preserved; w=0.5 byte-identical). Sweeping w maps the three break-points:
 (1) **consumer surplus NEVER crosses zero** in [0.5,1.0] — even at full
 seller-take (w=1.0) buyers stay strictly ahead of the strong posted board,
 because the disagreement floor + pie-growth structurally prevent SNHP from
-becoming a pure extraction tool; (2) **IC breaks at w≈0.8** — WTP
+becoming a pure extraction tool; (2) **IC breaks at w≈0.7** — WTP
 understatement flips from losing (w=0.5, "H3 inverted") to the buyer's
-significant best response; (3) **realized seller profit PEAKS at w=0.7 then
-COLLAPSES** — paper profit rises monotonically to +$1.27 at w=1.0, but the
-*attested-realized* profit peaks at **+$0.61/day [0.37,0.85] at w=0.7** and
-collapses to −$0.78 at w=0.8 as buyers start lying and shrink the pie
+significant best response; (3) **realized seller profit PEAKS at w=0.6 then
+COLLAPSES** — paper profit rises monotonically toward w=1.0, but the
+*attested-realized* profit peaks at **+$0.35/day [0.13,0.57] at w=0.6** and
+collapses past w=0.7 as buyers start lying and shrink the pie
 (attestation banks the honest number by pricing out the free-outside-option
-leak). **The deliverable: the max defensible seller-profit gain is +$0.61/day
-(~+6% over the STRONG posted board, more over a real sticker) at w=0.7, with
-consumers still +$1.04/day ahead and disclosure incentive-compatible.** So
+leak). **The deliverable: the max defensible seller-profit gain is +$0.35/day
+at w=0.6, with consumers still +$0.99/day ahead and disclosure
+incentive-compatible.** (UPDATED post-review: the earlier +$0.61/w=0.7 figure
+predated the vend review-fix batch — the a2a-side stock-cap + escalator-ceiling
+fixes make the understatement lie pay one grid-point earlier; commit 36ed8c2.)
+So
 "who pays us" has a mechanism answer: the merchant pays for a *bounded* tilt
 that delivers them real profit, self-limiting because past w≈0.8 a
 seller-favoring mechanism destroys the disclosure it runs on (the
