@@ -1,0 +1,396 @@
+{
+ "suggest_version": 1,
+ "config": {
+  "seed": 20260710,
+  "warmup_days": 20,
+  "eval_days": 30,
+  "world": {
+   "sigma_shock": 0.0,
+   "flexible_share": 0.35,
+   "balk_model": "wait"
+  },
+  "suggest_reject_balk": 0.15,
+  "qhot_balk": 0.1,
+  "min_bucket": 30,
+  "suggest_threshold": 0.5,
+  "rent_per_day": 330,
+  "notes": [
+   "never-suggest is byte-identical to the P0 static walk-in (pinned by test)",
+   "base charged at LIST; only the increment is discount-only (value markdown, never below cost)",
+   "policy reads only observable state (hour, queue, revealed base order); accept/reject settled on TRUE bundle_value by the world",
+   "learned table frozen on warmup days, applied to held-out eval days (train-past/deploy-future)",
+   "SUGGEST_REJECT_BALK is a LABELED conservative assumption, not a measured anchor"
+  ]
+ },
+ "learned_table": {
+  "pooled": -0.3164,
+  "buckets": {
+   "peak0_qhot0_solo1_pearls0": {
+    "mean": -0.4695,
+    "n": 996
+   },
+   "peak0_qhot1_solo1_pearls0": {
+    "mean": -0.5277,
+    "n": 1050
+   },
+   "peak0_qhot0_solo0_pearls0": {
+    "mean": -1.2178,
+    "n": 116
+   },
+   "peak0_qhot0_solo1_pearls1": {
+    "mean": -0.0145,
+    "n": 534
+   },
+   "peak0_qhot1_solo1_pearls1": {
+    "mean": -0.3102,
+    "n": 608
+   },
+   "peak1_qhot0_solo1_pearls1": {
+    "mean": -0.0864,
+    "n": 78
+   },
+   "peak1_qhot1_solo1_pearls1": {
+    "mean": 0.0921,
+    "n": 235
+   },
+   "peak1_qhot1_solo1_pearls0": {
+    "mean": -0.4495,
+    "n": 429
+   },
+   "peak1_qhot0_solo1_pearls0": {
+    "mean": -0.5385,
+    "n": 137
+   },
+   "peak1_qhot1_solo0_pearls0": {
+    "mean": -1.3033,
+    "n": 57
+   },
+   "peak1_qhot1_solo0_pearls1": {
+    "mean": 2.9311,
+    "n": 28
+   },
+   "peak0_qhot1_solo0_pearls0": {
+    "mean": -0.4687,
+    "n": 134
+   },
+   "peak0_qhot1_solo0_pearls1": {
+    "mean": 1.5018,
+    "n": 50
+   },
+   "peak0_qhot0_solo0_pearls1": {
+    "mean": 2.949,
+    "n": 48
+   },
+   "peak1_qhot0_solo0_pearls1": {
+    "mean": 2.963,
+    "n": 10
+   },
+   "peak1_qhot0_solo0_pearls0": {
+    "mean": -0.6533,
+    "n": 21
+   }
+  }
+ },
+ "arms": {
+  "never": {
+   "revenue": 57907.45,
+   "ingredient_cost": 12461.26,
+   "waste_cost": 227.1,
+   "cups": 7534,
+   "toppings": 6419,
+   "deals": 6744,
+   "deferred": 0,
+   "arrivals": 11354,
+   "balks": 1913,
+   "peak_balks": 852,
+   "lost": 2697,
+   "consumer_surplus": 31847.13,
+   "suggestions": 0,
+   "accepts": 0,
+   "suggest_abandons": 0,
+   "peak_suggest_abandons": 0,
+   "batches_cooked": 120,
+   "margin": 45219.09,
+   "rent": 9900,
+   "friction_lost": 1913,
+   "accept_rate": 0.0
+  },
+  "always": {
+   "revenue": 55743.19,
+   "ingredient_cost": 12335.35,
+   "waste_cost": 131.2,
+   "cups": 7348,
+   "toppings": 8078,
+   "deals": 6043,
+   "deferred": 0,
+   "arrivals": 11354,
+   "balks": 1846,
+   "peak_balks": 836,
+   "lost": 2728,
+   "consumer_surplus": 29638.33,
+   "suggestions": 6768,
+   "accepts": 1873,
+   "suggest_abandons": 737,
+   "peak_suggest_abandons": 162,
+   "batches_cooked": 140,
+   "margin": 43276.64,
+   "rent": 9900,
+   "friction_lost": 2583,
+   "accept_rate": 0.277
+  },
+  "learned": {
+   "revenue": 58320.15,
+   "ingredient_cost": 12613.74,
+   "waste_cost": 217.7,
+   "cups": 7623,
+   "toppings": 6557,
+   "deals": 6732,
+   "deferred": 0,
+   "arrivals": 11354,
+   "balks": 1923,
+   "peak_balks": 852,
+   "lost": 2692,
+   "consumer_surplus": 31865.99,
+   "suggestions": 146,
+   "accepts": 109,
+   "suggest_abandons": 7,
+   "peak_suggest_abandons": 0,
+   "batches_cooked": 120,
+   "margin": 45488.71,
+   "rent": 9900,
+   "friction_lost": 1930,
+   "accept_rate": 0.747
+  }
+ },
+ "paired": {
+  "learned_vs_never": {
+   "margin": {
+    "mean": 8.99,
+    "ci95": [
+     2.25,
+     15.73
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "consumer_surplus": {
+    "mean": 0.63,
+    "ci95": [
+     -3.13,
+     4.39
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "friction_lost": {
+    "mean": 0.57,
+    "ci95": [
+     0.1,
+     1.03
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "cups": {
+    "mean": 2.97,
+    "ci95": [
+     1.68,
+     4.25
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "peak_balks": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "suggestions": {
+    "mean": 4.87,
+    "ci95": [
+     4.19,
+     5.54
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "accepts": {
+    "mean": 3.63,
+    "ci95": [
+     2.94,
+     4.33
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "suggest_abandons": {
+    "mean": 0.23,
+    "ci95": [
+     -0.08,
+     0.54
+    ],
+    "n": 6,
+    "block": 5
+   }
+  },
+  "learned_vs_always": {
+   "margin": {
+    "mean": 73.74,
+    "ci95": [
+     54.41,
+     93.06
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "consumer_surplus": {
+    "mean": 74.26,
+    "ci95": [
+     53.39,
+     95.12
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "friction_lost": {
+    "mean": -21.77,
+    "ci95": [
+     -23.96,
+     -19.57
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "cups": {
+    "mean": 9.17,
+    "ci95": [
+     5.56,
+     12.77
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "peak_balks": {
+    "mean": 0.53,
+    "ci95": [
+     -0.39,
+     1.46
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "suggestions": {
+    "mean": -220.73,
+    "ci95": [
+     -222.34,
+     -219.13
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "accepts": {
+    "mean": -58.8,
+    "ci95": [
+     -61.01,
+     -56.59
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "suggest_abandons": {
+    "mean": -24.33,
+    "ci95": [
+     -26.29,
+     -22.37
+    ],
+    "n": 6,
+    "block": 5
+   }
+  },
+  "always_vs_never": {
+   "margin": {
+    "mean": -64.75,
+    "ci95": [
+     -79.62,
+     -49.87
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "consumer_surplus": {
+    "mean": -73.63,
+    "ci95": [
+     -92.61,
+     -54.64
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "friction_lost": {
+    "mean": 22.33,
+    "ci95": [
+     20.18,
+     24.49
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "cups": {
+    "mean": -6.2,
+    "ci95": [
+     -9.08,
+     -3.32
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "peak_balks": {
+    "mean": -0.53,
+    "ci95": [
+     -1.46,
+     0.39
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "suggestions": {
+    "mean": 225.6,
+    "ci95": [
+     223.57,
+     227.63
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "accepts": {
+    "mean": 62.43,
+    "ci95": [
+     60.14,
+     64.72
+    ],
+    "n": 6,
+    "block": 5
+   },
+   "suggest_abandons": {
+    "mean": 24.57,
+    "ci95": [
+     22.79,
+     26.34
+    ],
+    "n": 6,
+    "block": 5
+   }
+  }
+ },
+ "verdict": {
+  "learned_beats_never_on_margin": true,
+  "learned_beats_always_on_margin": true,
+  "learned_cs_not_worse_than_never": true,
+  "learned_balks_not_inflated_vs_never": false,
+  "learned_is_pareto": false
+ }
+}

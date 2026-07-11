@@ -616,3 +616,182 @@ artifact; if anything the P0 spec **understated** it.
 - **`L` counts parties (`len(queue)`)**, the Lu et al. regressor and the
   visible line; a group order is one party. Deferred orders enter the FIFO as
   one entry at their slot, so they are correctly invisible to walk-ins until due.
+
+# BOBA suggest/1 (2026-07-11) — the pre-checkout SUGGESTION arm: learn WHEN to ask
+
+*Reproduce: `python3 -m boba.suggest --seed 20260710 --warmup 20 --eval 30
+--flexible-share 0.35 --out boba/results-suggest.json` (and `--seed 7`). The
+committed artifact is `boba/results-suggest.json`;
+`test_committed_suggest_results_stay_reproducible` pins it. All CIs are 95%
+t-intervals on 5-day block means over 30 paired HELD-OUT eval days; the learned
+policy is fit on 20 disjoint warmup days (train-past / deploy-future, days
+independent so no leakage).*
+
+## The question, and the mechanism
+
+Not "does upselling help" — **when to suggest.** Before a customer commits to
+their base drink order, the shop's agent can proactively suggest one bundle
+upgrade. A suggestion is not free, so this is a decision problem, not a free
+lunch. Three arms on the IDENTICAL customer stream (arrivals, WTP, balk and
+annoyance rolls all keyed on identity, never policy):
+
+- **never** — no suggestion. Byte-identical to the P0 static walk-in (balk,
+  then the sticker order), pinned by `test_never_suggest_is_byte_identical_to_static_walk_in`.
+- **always** — always offer the candidate upgrade.
+- **learned** — offer iff a learned per-observable-bucket expected net value,
+  minus an observable congestion shadow, clears a small buffer.
+
+**The candidate** (built from OBSERVABLE state only — the revealed base order +
+queue + hour, never the consumer's valuation): a base with no pearls → *add
+pearls* to the cup(s) they're getting; an already-pearled base → *upsize* one
+more cup. Priced discount-only at the person-independent value markdown
+(`world._value_price`, ≤ list, ≥ cost). The **base is always charged at LIST** —
+only the increment is marked down — so a good suggestion never gives margin back
+on the base sale (the task's "gives up margin on a customer who'd have bought
+the base anyway" cost is absent BY CONSTRUCTION; a whole-bundle sweetener that
+cannibalizes the base is a flagged future variant).
+
+**The cost of asking** has two channels, both explicit:
+1. **Annoyance/balk (the labeled assumption).** When a suggestion lands on
+   someone who does NOT want the add-on (rejects it), with probability
+   `SUGGEST_REJECT_BALK = 0.15` the unwanted pitch tips an *already-at-the-
+   counter* buyer into abandoning the WHOLE order — the base sale is lost. An
+   accepted suggestion never annoys. This 0.15 is the ONE calibrated-by-
+   assertion input; it is conservative, swept below, and NOT a measured anchor.
+2. **Congestion (the world's own physics).** An accepted upsize adds a cup to
+   the FIFO queue; at the lunch crunch (`PEAK_HOURS`) that lengthens the visible
+   line and raises balk risk for everyone behind. The learned arm prices this
+   with the same first-order shadow `capacity_relief` uses (extra cups ×
+   `balk_prob` × mean margin), all observable.
+
+The suggest POLICY reads only observable state — pinned two ways: structurally
+(`build_suggestion`/`gate_open` take no consumer argument) and behaviorally (two
+buyers with the identical revealed base order but opposite-sign hidden add-on
+value get the identical suggest/hold decision;
+`test_identical_base_order_gives_identical_gate_despite_different_true_value`).
+
+## Pre-registration
+
+1. **always-suggest over-suggests**: it asks everyone, eats the annoyance
+   hazard on the majority who reject, and nets NEGATIVE margin vs never.
+2. **learned-suggest recovers the upside while dodging the cost**: it beats both
+   never and always on margin without hurting consumer surplus or inflating
+   balks (Pareto).
+3. **there is a state region where suggesting is +EV and one where it is not** —
+   an observable boundary the learned table makes explicit.
+
+## Headline (30 held-out eval days, block-5 CI, seed 20260710 / seed 7)
+
+Never earns ~$1,507–1,515/day margin on ~252 cups; the deltas below are $/day.
+
+| arm | margin/day | CS/day | balk+abandon/day | asks/day | accept rate |
+|---|---|---|---|---|---|
+| never | 1507.30 / 1515.19 | 1061.6 / 1088.9 | 63.8 / 63.3 | 0 | — |
+| always | 1442.55 / 1458.97 | 987.9 / 1014.3 | 86.1 / 85.7 | 225.6 / 226.9 | 0.277 / 0.287 |
+| learned | 1516.29 / 1522.23 | 1062.2 / 1089.3 | 64.3 / 64.1 | 4.9 / 4.5 | 0.747 / 0.757 |
+
+| paired Δ/day | margin | consumer surplus | balk+abandon |
+|---|---|---|---|
+| **always − never** | **−64.75 [−79.6, −49.9] / −56.22 [−76.8, −35.6]** | −73.6 / −74.6 | +22.3 / +22.3 |
+| **learned − never** | **+8.99 [2.25, 15.7] / +7.04 [4.99, 9.09]** | +0.63 [−3.1, 4.4] / +0.35 [−0.7, 1.4] | +0.57 [0.1, 1.0] / +0.80 [0.4, 1.2] |
+| **learned − always** | **+73.74 [54.4, 93.1] / +63.26 [43.7, 82.8]** | +74.3 / +75.0 | −21.8 / −21.5 |
+
+**Pre-registration (1) and (2) confirmed, (3) confirmed, with one honest
+asterisk on the strict Pareto claim** (below).
+
+- **always-suggest is a net LOSER** — −$56–65/day margin, −$74/day CS, +22
+  balks/day — on both seeds, tight CIs. Only 27.7% of asks are accepted; the
+  other ~73% risk the annoyance hazard, and the accepted upsizes pile cups into
+  the lunch queue. Over-suggestion destroys ~4% of margin. Exactly as
+  pre-registered.
+- **learned-suggest beats BOTH** — +$7–9/day over never and +$63–74/day over
+  always, every CI excluding 0 on both seeds — by asking **~5 times/day instead
+  of ~226** at a **75% accept rate instead of 28%**. CS is statistically
+  indistinguishable from never (both CIs straddle or sit at 0).
+
+## The "when" boundary (learned table, the map)
+
+16 observable buckets over (peak?, queue-hot?, solo base qty=1?, base already
+pearled?). The learned net EV ($/ask) is sharply bimodal, and the buffer
+(`SUGGEST_THRESHOLD=0.50`) cleanly separates it:
+
+| bucket (the ASK region) | learned EV/ask | reading |
+|---|---|---|
+| off-peak, cool line, **group** order, **already pearled** | **+2.95** | upsize a group buyer who wanted pearls → the decayed 2nd/3rd cup clears the markdown |
+| off-peak, hot line, group, already pearled | **+1.50** | same, still worth it off-peak |
+| everything else (14 buckets) | −1.3 … +0.09 | **hold** |
+
+The learned policy ASKs in exactly **two** buckets — *offer one more cup to an
+off-peak group buyer who already added pearls* — and holds everywhere else.
+
+**The non-obvious finding: the "obvious" upsell (add pearls) is a net LOSER,
+and learning inverts the naive intuition.** Every *add-pearls* bucket
+(`pearls0`) is negative. The reason is an asymmetry the annoyance assumption
+forces: a successful pearls attach earns the shop only ~$0.40, but a *failed*
+one risks a ~$6 base sale at 15% ≈ −$0.90 expected — so add-pearls needs
+acceptance above ~85% to break even, and it runs ~30–40%. Worse, the buyers who
+*would* value pearls already bought them at list (they are the `pearls1`
+bucket); the residual no-pearls pool is precisely the pearl-averse, so pitching
+them mostly annoys. The only profitable ask is the *higher-stakes upsize to an
+already-committed group buyer*, whose decayed extra cup actually clears the
+markdown often enough to beat the asymmetry. A naive "attach pearls to
+everyone" upsell is exactly the trap always-suggest falls into.
+
+## The strict-Pareto asterisk (honest)
+
+learned is Pareto on margin (beats both) and on CS (not worse than never), but
+adds a **statistically-significant +0.57–0.80 balk+abandon/day** vs never (CIs
+exclude 0). This is **economically trivial** (~0.9–1.3% of never's ~64/day) and,
+more importantly, **irreducible**: you cannot capture any upsell surplus without
+asking, and asking carries the assumed hazard on the minority who still reject
+even in the good buckets (plus the tiny congestion of the accepted extra cups).
+So `verdict.learned_is_pareto` is reported **False** under the strict "no
+significant balk increase" rule — the honest call is **near-Pareto: a large,
+replicated margin win over the naive arm and a small one over never, at the
+unavoidable cost of ~0.6 extra abandons/day.**
+
+## The assumption is pivotal — and it brackets the whole result honestly
+
+Sweeping `SUGGEST_REJECT_BALK` (the one asserted input), margin Δ/day vs never,
+seed 20260710 / seed 7:
+
+| reject-balk | always − never | learned − never | learned − always |
+|---|---|---|---|
+| **0.05** | **+28.2 / +32.7** (always WINS) | +10.7 / +18.3 | **−17.5 / −14.4** (learned LOSES to always) |
+| 0.10 | −21.0 / −13.1 | +9.0 / +7.0 | +30.0 / +20.1 |
+| **0.15** (primary) | −64.8 / −56.2 | +9.0 / +7.0 | +73.7 / +63.3 |
+| 0.25 | −155.6 / −149.6 | +7.8 / +6.1 | +163.3 / +155.8 |
+
+**The pre-registration holds wherever a suggestion carries a real cost
+(reject ≳ 0.10), and is REFUTED where it is nearly free (reject ≤ 0.05):** at
+0.05, always-suggest is the best *simple* policy (+$28–33/day) and the learned
+arm's caution actively costs it (−$14–18/day vs always). The crossover where
+always-suggest flips from net-positive to net-negative sits between 0.05 and
+0.10. The learned arm's edge over never, by contrast, is **robust across the
+whole range** (+$6–18/day) because it barely asks and only in the clearly-
+positive buckets — its policy is nearly invariant to the assumption. So the
+entire *value of learning when* is contingent on suggestions being costly; that
+is the assumption the design rests on, stated plainly rather than buried.
+
+## Caveats (attack these first)
+
+- **`SUGGEST_REJECT_BALK = 0.15` is an assumption, not a measurement** — the
+  sensitivity table above is the honest hedge; the sign of the always-arm result
+  flips below ~0.07.
+- **flexible_share is a non-lever here** (pinned by
+  `test_flexible_share_is_a_noop_for_this_arm`): suggest/1 has no pickup slots,
+  so the defer-disutility knob never enters. The flex=0.15 and flex=0.35 cells
+  are byte-identical; only the flagship flex=0.35 cell is reported.
+- **No menu integrity / reference-price memory.** As in P0, buyers have no
+  resentment at repeated pitches; a real shop that pitches every customer would
+  pay a reputation cost the annoyance hazard only crudely proxies.
+- **The base is never cannibalized by construction.** A whole-bundle sweetener
+  (discount the base to close the upgrade) would add the margin-giveaway cost
+  channel the task names; it is out of scope here and flagged as future work.
+- **Model = truth for acceptance** (as everywhere in boba): the world settles
+  accept/reject on the exact `bundle_value` the policy is blind to — favorable
+  to the mechanism, and the reason the no-leak guarantee is the load-bearing
+  test, not the accept-rate number.
+- **The learned table is a coarse 16-bucket lookup**, not swept for bucket
+  granularity; the buffer sits on a flat [0.25, 1.0] plateau (any value there
+  yields the identical, seed-robust policy), so it is not finely tuned.
