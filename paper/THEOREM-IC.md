@@ -379,3 +379,16 @@ by the pooled mean and closed only by a larger buffer or WTP attestation. That
 residual is the honest scope of the "no verification needed at finite stock"
 claim, and it is the fifth condition the referee's counterexample was pointing
 at.
+
+**Prior-art placement (rigor note).** Lemma S / E1's *disagreement-channel*
+neutrality — the honest board-buyer pinned at p\*=ℓ regardless of report — is not
+independent content: the single-issue frontier is **linear** (g_s + g_b = v − c),
+so van Damme & Lang (2024, Thm 1: ex-post-efficient outcome is independent of a
+privately-reported disagreement point under a linear frontier, any correlation)
+already forces it. The genuinely non-vacuous content of this theorem is the
+**WTP / excess-rent channel and the buffer condition (a′)** — which live in the
+*inefficient* region the buffer deliberately creates, exactly where van
+Damme–Lang's efficient-mechanism theorems say nothing. This also marks the open
+frontier: drop linearity (multi-issue logrolling → a concave frontier) and Thm 1
+stops covering us, so whether the coupling still self-cancels is genuinely open
+(whitepaper §8).
