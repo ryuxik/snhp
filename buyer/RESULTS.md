@@ -62,16 +62,16 @@ Verified (tests):
 - **Never worse than walking away:** the agent declines any quote below its best
   sticker/bodega option, for every buyer tested.
 
-## B2 — buyer_frontier + regret (single merchant), n = 5000
+## B2 — buyer_frontier + regret (single merchant), n = 4000
 
 | arm | surplus/buyer | regret/buyer | frontier captured |
 |-----|---------------|--------------|-------------------|
-| **Unrestricted frontier** (liar battery in S), frontier = **$3.81** | | | |
-| naive sticker-accepter | $1.76 | $2.05 | 46% |
-| honest agent | $2.36 | $1.45 | **62%** |
-| **Attested frontier** (S = honest only), frontier = **$2.36** | | | |
-| naive sticker-accepter | $1.76 | $0.60 | 75% |
-| honest agent | $2.36 | **$0.00** | **100%** |
+| **Unrestricted frontier** (liar battery in S), frontier = **$3.82** | | | |
+| naive sticker-accepter | $1.77 | $2.05 | 46% |
+| honest agent | $2.37 | $1.46 | **62%** |
+| **Attested frontier** (S = honest only), frontier = **$2.37** | | | |
+| naive sticker-accepter | $1.77 | $0.60 | 75% |
+| honest agent | $2.37 | **$0.00** | **100%** |
 
 - Δsurplus (honest agent − naive) = **+$0.60/buyer**, CI95 [0.587, 0.605], **significant**.
 - Δregret (honest agent − naive) = **−$0.60/buyer**, CI95 [−0.605, −0.587], **significant**.
@@ -91,14 +91,14 @@ Verified (tests):
   an artifact of the honest-only experiment; the disclosure primitive now binds
   honesty under attestation, which *strengthens* the claim from "we observed 0"
   to "0 is the only reachable value.")
-- **Without attestation, the honest agent leaves ~38% on the table** ($1.45
-  regret against a $3.81 frontier) — but that residual is reachable ONLY by
+- **Without attestation, the honest agent leaves ~38% on the table** ($1.46
+  regret against a $3.82 frontier) — but that residual is reachable ONLY by
   misreporting (the anchoring/liar strategies). The mechanism's job is to
   foreclose exactly those strategies; attestation collapses the frontier onto
   honesty and drives truthful regret to zero. So the "high regret" of a truthful
   agent in the unattested world is not a failure of the buyer's tool — it is the
   value of the exploit that attestation removes, now measured in dollars
-  (~$1.45/buyer).
+  (~$1.46/buyer).
 - Against the naive sticker-accepter, the agent is unambiguously better in both
   regimes: **+$0.60 surplus, −$0.60 regret per buyer**, CI excludes zero. Buyer
   agency lowers buyer regret vs the naive baseline — the pre-registered
@@ -281,7 +281,7 @@ across 3, friction 0), **$4.14/buyer**.
    cannot beat the honest frontier (regression-tested — true regret ≥ 0 by
    construction, not by a `max(0,·)` floor). The buyer's-agent surplus is the
    most reachable, not the seller's leftover generosity. Without attestation a
-   truthful agent leaves ~$1.45/buyer on the table, but that residual is
+   truthful agent leaves ~$1.46/buyer on the table, but that residual is
    reachable only by misreporting (the anchoring exploit), and attestation is
    precisely what forecloses it — so the "gap" is the dollar value of the
    exploit removed, not a failure of the buyer's tool. Against the naive

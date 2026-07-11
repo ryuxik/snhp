@@ -47,13 +47,14 @@ is WITHIN-HOUR individual heterogeneity, which no posted price can touch — and
 that is exactly why the engine's edge lands on consumer surplus, not profit.
 But the DEPLOYABLE merchant claim is against the price a real machine actually
 posts: `static` = the profit-optimal SINGLE all-day price, and a2a beats it
-**+$0.60/day [0.23,0.97] seed A** (CI excludes zero). That +$0.60 → $0 gap
+**+$0.55/day [0.32,0.78]** (`vend/tilt.json`, a2a−static at the calibrated
+cell; CI excludes zero). That +$0.55 → $0 gap
 (a2a−static vs a2a−posted) IS the value of hourly repricing — the engine
 captures BOTH time-of-day variation AND heterogeneity over a single price; the
 hourly board closes the first but never the second. A real vending sticker is
 not even the optimal single price (a round number set once), so against the
 sticker a real operator posts, the profit edge is LARGER (the miscalibration
-cells: +$2.45/day). **Honest framing for the paper: the engine beats the price
+cells: +$2.60/day [1.81,3.40], `vend/grid.json cal0.3_shock0.6`). **Honest framing for the paper: the engine beats the price
 you actually post on profit (time-of-day + heterogeneity); it ties only a
 hypothetical operator who re-prices hourly by day-of-week; and its irreducible
 edge over even that is within-hour heterogeneity = consumer surplus. The

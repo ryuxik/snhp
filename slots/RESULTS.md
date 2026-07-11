@@ -176,6 +176,12 @@ every venue.
 
 ## Caveats (attack these first)
 
+- **Assumption: parking reservation no-show = 8%, and barber booking lead
+  time.** Neither is a measured anchor — CALIBRATION-TARGETS §4/§10 note the
+  parking reservation no-show rate is *unpublished anywhere* and the barber
+  booking lead time has *no published number* — so both are assumed inputs, not
+  calibrated ones. (The barber no-show REGIME, by contrast, IS anchored:
+  deposit 3–5% / no-deposit 15–25%, Squire/Zenoti.)
 - **Truthful WTP disclosure.** The sub-list conversion component — which
   is now THE edge — is exactly what strategic understatement would
   attack; vend H3 measured that leak. These numbers are an upper bound

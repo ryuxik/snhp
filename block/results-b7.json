@@ -16,14 +16,14 @@
   "per_venue": {
    "vending": {
     "sticker_margin_day": 135.54,
-    "passive_snhp_margin_day": 138.55,
-    "adopt_snhp_margin_day": 131.7,
-    "agent_snhp_margin_day": 131.7,
+    "passive_snhp_margin_day": 138.95,
+    "adopt_snhp_margin_day": 131.56,
+    "agent_snhp_margin_day": 131.56,
     "d_margin_agent_minus_passive": {
-     "mean": -6.85,
+     "mean": -7.4,
      "ci95": [
-      -9.02,
-      -4.68
+      -9.19,
+      -5.61
      ],
      "n": 6,
      "block": 5
@@ -38,132 +38,132 @@
      "block": 5
     },
     "d_surface_adoption": {
-     "mean": -6.85,
+     "mean": -7.4,
      "ci95": [
-      -9.02,
-      -4.68
+      -9.19,
+      -5.61
      ],
      "n": 6,
      "block": 5
     },
     "d_cs_agent_minus_passive": {
-     "mean": 0.86,
+     "mean": 1.22,
      "ci95": [
-      -1.79,
-      3.5
+      -1.89,
+      4.33
      ],
      "n": 6,
      "block": 5
     },
     "d_joint_agent_minus_passive": {
-     "mean": -6.0,
+     "mean": -6.18,
      "ci95": [
-      -9.75,
-      -2.24
+      -10.42,
+      -1.94
      ],
      "n": 6,
      "block": 5
     },
-    "hud_merchant_passive_day": 3.01,
-    "hud_merchant_agent_day": -3.84,
+    "hud_merchant_passive_day": 3.41,
+    "hud_merchant_agent_day": -3.98,
     "hud_agent_negative": true
    },
    "bodega": {
     "sticker_margin_day": 2992.0,
-    "passive_snhp_margin_day": 2986.16,
-    "adopt_snhp_margin_day": 3183.62,
-    "agent_snhp_margin_day": 3159.68,
+    "passive_snhp_margin_day": 2986.45,
+    "adopt_snhp_margin_day": 3183.47,
+    "agent_snhp_margin_day": 3159.65,
     "d_margin_agent_minus_passive": {
-     "mean": 173.52,
+     "mean": 173.2,
      "ci95": [
-      162.21,
-      184.83
+      163.77,
+      182.63
      ],
      "n": 6,
      "block": 5
     },
     "d_transfer_competition": {
-     "mean": -23.94,
+     "mean": -23.82,
      "ci95": [
-      -26.71,
-      -21.16
+      -26.8,
+      -20.85
      ],
      "n": 6,
      "block": 5
     },
     "d_surface_adoption": {
-     "mean": 197.45,
+     "mean": 197.02,
      "ci95": [
-      185.41,
-      209.49
+      186.36,
+      207.68
      ],
      "n": 6,
      "block": 5
     },
     "d_cs_agent_minus_passive": {
-     "mean": 389.98,
+     "mean": 389.58,
      "ci95": [
-      367.12,
-      412.85
+      366.11,
+      413.04
      ],
      "n": 6,
      "block": 5
     },
     "d_joint_agent_minus_passive": {
-     "mean": 563.5,
+     "mean": 562.78,
      "ci95": [
-      541.09,
-      585.91
+      539.8,
+      585.75
      ],
      "n": 6,
      "block": 5
     },
-    "hud_merchant_passive_day": -5.84,
-    "hud_merchant_agent_day": 167.68,
+    "hud_merchant_passive_day": -5.55,
+    "hud_merchant_agent_day": 167.65,
     "hud_agent_negative": false
    }
   },
   "hud": {
    "passive": {
-    "shoppers_kept_usd": 129.41,
-    "merchants_earned_usd": -84.73
+    "shoppers_kept_usd": 133.35,
+    "merchants_earned_usd": -64.18
    },
    "adopt": {
-    "shoppers_kept_usd": 11136.52,
-    "merchants_earned_usd": 5633.28
+    "shoppers_kept_usd": 11135.96,
+    "merchants_earned_usd": 5624.52
    },
    "agent_bertrand": {
-    "shoppers_kept_usd": 11854.62,
-    "merchants_earned_usd": 4915.22
+    "shoppers_kept_usd": 11857.28,
+    "merchants_earned_usd": 4909.85
    }
   }
  },
  "full_block": {
   "hud": {
    "passive": {
-    "shoppers_kept_usd": 43775.04,
-    "merchants_earned_usd": 32076.94
+    "shoppers_kept_usd": 43778.97,
+    "merchants_earned_usd": 32097.49
    },
    "adopt": {
-    "shoppers_kept_usd": 54782.15,
-    "merchants_earned_usd": 37794.95
+    "shoppers_kept_usd": 54781.59,
+    "merchants_earned_usd": 37786.19
    },
    "agent_bertrand": {
-    "shoppers_kept_usd": 55500.24,
-    "merchants_earned_usd": 37076.89
+    "shoppers_kept_usd": 55502.91,
+    "merchants_earned_usd": 37071.52
    }
   },
   "per_venue": {
    "vending": {
     "sticker_margin_day": 135.54,
-    "passive_snhp_margin_day": 138.55,
-    "adopt_snhp_margin_day": 131.7,
-    "agent_snhp_margin_day": 131.7,
+    "passive_snhp_margin_day": 138.95,
+    "adopt_snhp_margin_day": 131.56,
+    "agent_snhp_margin_day": 131.56,
     "d_margin_agent_minus_passive": {
-     "mean": -6.85,
+     "mean": -7.4,
      "ci95": [
-      -9.02,
-      -4.68
+      -9.19,
+      -5.61
      ],
      "n": 6,
      "block": 5
@@ -178,88 +178,88 @@
      "block": 5
     },
     "d_surface_adoption": {
-     "mean": -6.85,
+     "mean": -7.4,
      "ci95": [
-      -9.02,
-      -4.68
+      -9.19,
+      -5.61
      ],
      "n": 6,
      "block": 5
     },
     "d_cs_agent_minus_passive": {
-     "mean": 0.86,
+     "mean": 1.22,
      "ci95": [
-      -1.79,
-      3.5
+      -1.89,
+      4.33
      ],
      "n": 6,
      "block": 5
     },
     "d_joint_agent_minus_passive": {
-     "mean": -6.0,
+     "mean": -6.18,
      "ci95": [
-      -9.75,
-      -2.24
+      -10.42,
+      -1.94
      ],
      "n": 6,
      "block": 5
     },
-    "hud_merchant_passive_day": 3.01,
-    "hud_merchant_agent_day": -3.84,
+    "hud_merchant_passive_day": 3.41,
+    "hud_merchant_agent_day": -3.98,
     "hud_agent_negative": true
    },
    "bodega": {
     "sticker_margin_day": 2992.0,
-    "passive_snhp_margin_day": 2986.16,
-    "adopt_snhp_margin_day": 3183.62,
-    "agent_snhp_margin_day": 3159.68,
+    "passive_snhp_margin_day": 2986.45,
+    "adopt_snhp_margin_day": 3183.47,
+    "agent_snhp_margin_day": 3159.65,
     "d_margin_agent_minus_passive": {
-     "mean": 173.52,
+     "mean": 173.2,
      "ci95": [
-      162.21,
-      184.83
+      163.77,
+      182.63
      ],
      "n": 6,
      "block": 5
     },
     "d_transfer_competition": {
-     "mean": -23.94,
+     "mean": -23.82,
      "ci95": [
-      -26.71,
-      -21.16
+      -26.8,
+      -20.85
      ],
      "n": 6,
      "block": 5
     },
     "d_surface_adoption": {
-     "mean": 197.45,
+     "mean": 197.02,
      "ci95": [
-      185.41,
-      209.49
+      186.36,
+      207.68
      ],
      "n": 6,
      "block": 5
     },
     "d_cs_agent_minus_passive": {
-     "mean": 389.98,
+     "mean": 389.58,
      "ci95": [
-      367.12,
-      412.85
+      366.11,
+      413.04
      ],
      "n": 6,
      "block": 5
     },
     "d_joint_agent_minus_passive": {
-     "mean": 563.5,
+     "mean": 562.78,
      "ci95": [
-      541.09,
-      585.91
+      539.8,
+      585.75
      ],
      "n": 6,
      "block": 5
     },
-    "hud_merchant_passive_day": -5.84,
-    "hud_merchant_agent_day": 167.68,
+    "hud_merchant_passive_day": -5.55,
+    "hud_merchant_agent_day": 167.65,
     "hud_agent_negative": false
    },
    "boba": {

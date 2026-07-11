@@ -17,7 +17,7 @@ Committed artifact: `block/results-b7.json`. Rerun:
 ```
 python3 -m block.agentdemand --days 30 --seed 20260710 --regulars 25 \
     --n-split 4000 --out block/results-b7.json
-python3 -m pytest block/tests/test_agentdemand.py -q     # 13 tests
+python3 -m pytest block/tests/test_agentdemand.py -q     # 17 tests
 ```
 
 Rigor (binding, honored): every twin shares the seed, so the population stream
@@ -67,8 +67,8 @@ agent−adopt (pure competition); **HUD** = SNHP margin − sticker margin (the
 
 | venue      | sticker | passive(B5) | adopt   | agent   | Δmargin agent−passive (CI95)   | transfer (competition) | HUD passive | HUD agent |
 |------------|--------:|------------:|--------:|--------:|--------------------------------|-----------------------:|------------:|----------:|
-| **vending**|  135.54 |      138.55 |  131.70 |  131.70 | **−6.85** [−9.02, −4.68]       |  **0.00** [0, 0]       |      +3.01  | **−3.84** ⁻ |
-| **bodega** | 2992.00 |     2986.16 | 3183.62 | 3159.68 | **+173.52** [162.21, 184.83]   | **−23.94** [−26.7,−21.2]|     −5.84  |  +167.68  |
+| **vending**|  135.54 |      138.95 |  131.56 |  131.56 | **−7.40** [−9.19, −5.61]       |  **0.00** [0, 0]       |      +3.41  | **−3.98** ⁻ |
+| **bodega** | 2992.00 |     2986.45 | 3183.47 | 3159.65 | **+173.20** [163.77, 182.63]   | **−23.82** [−26.8,−20.9]|     −5.55  |  +167.65  |
 | boba       | 1022.30 |     1358.75 | 1358.75 | 1358.75 | 0.00 (no competitor)           |  0.00                  |    +336.45  |  +336.45  |
 | fashion    | −435.27 |     −414.89 | −414.89 | −414.89 | 0.00                           |  0.00                  |    +20.38   |  +20.38   |
 | bakery     |  473.54 |      659.52 |  659.52 |  659.52 | 0.00                           |  0.00                  |   +185.99   | +185.99   |
@@ -86,21 +86,21 @@ the finding — next paragraph.)
 
 | venue   | Δmargin | d_transfer (competition) | d_surface (bodega's brokered arm) | Δbuyer CS      | Δjoint          |
 |---------|--------:|-------------------------:|----------------------------------:|---------------:|----------------:|
-| vending | −6.85   | **0.00**                 | −6.85 [−9.02, −4.68]              | +0.86 (tie)    | −6.00 [−9.8,−2.2]|
-| bodega  | +173.52 | **−23.94** [−26.7,−21.2] | +197.45 [185.4, 209.5]           | +389.98        | +563.50         |
-| **street total** | **+166.67** | **−23.94** | **+190.60** | **+390.84** | **+557.50** |
+| vending | −7.40   | **0.00**                 | −7.40 [−9.19, −5.61]              | +1.22 (tie)    | −6.18 [−10.4,−1.9]|
+| bodega  | +173.20 | **−23.82** [−26.8,−20.9] | +197.02 [186.4, 207.7]           | +389.58        | +562.78         |
+| **street total** | **+165.80** | **−23.82** | **+189.62** | **+390.80** | **+556.60** |
 
 **Read the street total, not the per-venue joint.** The per-venue Δjoint is
 polluted by MIGRATION: bodega's new brokered arm pulls marginal buyers off
 vending (vending "loses" $6/day of joint that reappears as part of bodega's
-+$563/day). At the street level the pie GROWS +$557.50/day and merchants earn
-+$166.67/day MORE — while buyers keep +$390.84/day more. Both sides up.
++$563/day). At the street level the pie GROWS +$556.60/day and merchants earn
++$165.80/day MORE — while buyers keep +$390.80/day more. Both sides up.
 
 ---
 
 ## Does "merchants earned" go NEGATIVE anywhere under agents? — YES, at vending
 
-**Vending's HUD flips +$3.01 → −$3.84/day** (Δmargin −$6.85, CI excludes zero).
+**Vending's HUD flips +$3.41 → −$3.98/day** (Δmargin −$7.40, CI excludes zero).
 But the mechanism is the uncomfortable, honest one: the transfer at vending is
 **exactly $0.00** — competition does NOT bite it. The entire loss is
 `d_surface`: bodega's brokered arm POACHES the bodega-home shoppers who used to
@@ -113,7 +113,7 @@ reverse.
 
 **No other venue's counter moves under agent demand** (the eight self-contained
 storefronts have no same-good competitor). The block-total "merchants earned"
-stays strongly positive: **+$32,077 → +$37,077 / 30 days** (below).
+stays strongly positive: **+$32,097 → +$37,072 / 30 days** (below).
 
 ---
 
@@ -132,7 +132,7 @@ protect margin:
    cross-venue walk cost nearly exactly offsets the thin commodity floor-edge, so
    even a vending-home buyer standing at the machine won't be undercut by a
    bodega cola at cost once the walk is counted. This is why vending's
-   competition transfer is $0.00 to the cent, and bodega's is only −$23.94/day
+   competition transfer is $0.00 to the cent, and bodega's is only −$23.82/day
    (its competed slice is the masses' cola/chips).
 
 **Agent-mediation removes the QUOTE-gathering friction, not the physical walk.**
@@ -168,14 +168,14 @@ is what Bertrand is supposed to do.
 
 | regime                                   | shoppers kept /30d | merchants earned /30d |
 |------------------------------------------|-------------------:|----------------------:|
-| **passive** (human regime — B5)          |        +$43,775.04 |           +$32,076.94 |
-| adopt (bodega gains a brokered arm)       |        +$54,782.15 |           +$37,794.95 |
-| **agent (shop + bertrand, friction 0)**  |    **+$55,500.24** |       **+$37,076.89** |
+| **passive** (human regime — B5)          |        +$43,778.97 |           +$32,097.49 |
+| adopt (bodega gains a brokered arm)       |        +$54,781.59 |           +$37,786.19 |
+| **agent (shop + bertrand, friction 0)**  |    **+$55,502.91** |       **+$37,071.52** |
 
 Moving the whole street from the passive/human regime to the agent-mediated
-regime lifts **BOTH** counters: shoppers kept **+$11,725/30d**, merchants earned
-**+$5,000/30d**. The competition step (adopt→agent) is the only place a counter
-falls — merchants earned −$718/30d, the pure transfer — and it is dwarfed ~7:1
+regime lifts **BOTH** counters: shoppers kept **+$11,724/30d**, merchants earned
+**+$4,974/30d**. The competition step (adopt→agent) is the only place a counter
+falls — merchants earned −$715/30d, the pure transfer — and it is dwarfed ~7:1
 by the growth the second brokered arm creates.
 
 The consumer-side regime numbers on block merchants (`block_regime`, n=4000,
@@ -235,15 +235,15 @@ stops a buyer cartel extracting a captive seller — symmetric, on block calibra
 ## THE VERDICT — is there a both-win, or are the halves structurally opposed?
 
 **There IS a both-win configuration, and it is the one that actually runs.** Under
-agent-mediated block demand, merchants earn **+$5,000/30d MORE** and shoppers keep
-**+$11,725/30d MORE** than the passive/human regime. The business model is
+agent-mediated block demand, merchants earn **+$4,974/30d MORE** and shoppers keep
+**+$11,724/30d MORE** than the passive/human regime. The business model is
 internally consistent on this block: buyer agency and merchant margin both rise.
 
 **But be brutally honest about WHY, because the critique is half-right.** The
 both-win is carried by GROWTH — the second merchant's brokered arm, perishable
 clearance, commit and coordinate — **not** by the buyer's shopping. The buyer's
 shopping *per se* is exactly what the critique feared: a pure TRANSFER that trims
-the competed merchant's margin (bodega −$23.94/day; the frictionless commodity
+the competed merchant's margin (bodega −$23.82/day; the frictionless commodity
 endgame −78%). So the two halves ARE antagonistic in the narrow, mechanical sense
 — shop competes margin down — and the reason it does not sink the model here is
 that the transfer is **small and moat-bounded**, while the growth levers are large.
@@ -261,7 +261,7 @@ commoditization + co-location.** Concretely:
   bill on the GROWTH half (new/grown transactions — commit/coordinate/clearance),
   which the same experiment shows is where the durable, non-competable margin is.**
 
-One venue's counter DID flip negative under agents — **vending, +$3.01 → −$3.84/day**
+One venue's counter DID flip negative under agents — **vending, +$3.41 → −$3.98/day**
 — but through bodega's brokered arm poaching its marginal substituters (a growth
 reallocation across merchants), not through price competition. Small merchants
 adjacent to a better-negotiating neighbor can lose under block-wide agent demand
@@ -282,7 +282,7 @@ same one the monopsony audit already enforces on the buyer side.
   iterated to a pure-Bertrand fixed point. It is a lower bound on full
   convergence; the endgame arm brackets the upper bound.
 - **Per-venue Δjoint is migration-confounded** (buyers move vending→bodega under
-  adoption); only the street-level joint (+$557.50/day) is a clean growth number.
+  adoption); only the street-level joint (+$556.60/day) is a clean growth number.
 - **The eight self-contained venues are unchanged by agent demand by
   construction** — they have no same-good cross-merchant competitor on the block,
   so this experiment says nothing new about them; their SNHP agency (timing,
@@ -312,7 +312,7 @@ same one the monopsony audit already enforces on the buyer side.
   `resolve_shopper_agentic` when on), the config-emit gate (keys appear only when
   on), and CLI flags. The default (off) path is byte-identical — the committed
   reproducibility/determinism goldens still pass.
-- **`block/tests/test_agentdemand.py`** (new): **13 tests** — byte-exact-off,
+- **`block/tests/test_agentdemand.py`** (new): **17 tests** — byte-exact-off,
   agent-twin money/unit conservation, agents-touch-only-the-street-lane,
   transfer/growth decomposition sums, verdict reproducibility, competition-is-a-
   transfer, commit-grows-margin-≥0, coordinate-monopsony-PASS, regime-agent-beats-

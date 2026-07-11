@@ -183,7 +183,8 @@ c + 2β < ℓ, i.e. **ℓ − c > 2β**. Therefore:
 * If **ℓ − c ≤ 2β**: no report both flips the event (v̂ < ℓ) *and* clears the
   buffer (v̂ ≥ c + 2β). Every understatement that flips is withdrawn; every
   understatement that clears keeps E = BOARD and p\* = ℓ (E1 honest). Honesty is
-  a **strict** best response. ∎ *(a′ holds.)*
+  a **weak** best response (every report yields v − ℓ; the buyer is
+  *indifferent* — lies are un-rewarded, not punished). ∎ *(a′ holds.)*
 * If **ℓ − c > 2β**: choose v̂ = c + 2β (< ℓ). The flip holds (d_b = o = 0), the
   buffer binds exactly (g_s = β), and p\* = p⁰ = (c + v̂)/2 = c + β. The buyer's
   true surplus is v − (c + β), versus the honest v − ℓ. **Gain = ℓ − c − β > β >
@@ -367,9 +368,11 @@ finite-stock shadow price doing its job.
   §7, §8).
 
 **Bottom line.** The single-unit characterization goes through, but the four
-whitepaper conditions are necessary-not-sufficient: strict emergent IC requires
-the buffer to dominate the excess rent, **(a′) ℓ − c ≤ 2β**. Where it holds,
-honesty is a strict best response (scarce units always; low-rent excess units).
+whitepaper conditions are necessary-not-sufficient: closing the excess-unit leak
+requires the buffer to dominate the excess rent, **(a′) ℓ − c ≤ 2β**. Where it
+holds, honesty is a *weak* best response (scarce units always; low-rent excess
+units) — the buyer is indifferent, every report yielding v − ℓ; lies are
+un-rewarded, not punished (weak IC, fragile to trembles/tie-breaking).
 Where it fails — high-rent and perishable excess units — a *bounded* leak
 (≤ ℓ − c − β per unit, ≈ +\$0.15–0.20/day at the sup over types) survives, hidden
 by the pooled mean and closed only by a larger buffer or WTP attestation. That

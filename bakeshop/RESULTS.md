@@ -99,6 +99,15 @@ surprises):
 | 0.35 / 0.0 | **+184.2** [65.3, 303.2] | **+169.3** [47.5, 291.1] | **+187.1** [68.6, 305.6] |
 | 0.35 / 0.1 | **+142.4** [1.8, 283.0] | +112.8 [−37.5, 263.1] | **+149.4** [8.1, 290.6] |
 
+> **SUPERSEDED (flowers only) — these are the pre-§9-fix `bakeshop_version 1`
+> numbers.** The CRITICAL-ANALYSIS §9 shrink recalibration below (v2, the
+> committed `results.json`) changed every flower cell: committed computed/1 is
+> now +289.9/+172.3/+257.6/+146.5, nego/1 +216.3/+59.8/+205.5/+67.2,
+> computed-agedonly/1 +301.8/+183.5/+269.8/+160.3, and the control florist loses
+> ≈−$100/day calm (not −$26…−36) once 15% receiving-loss is added. The BAKERY
+> table above is unchanged by that fix and reproduces v2. Trust `results.json`
+> (v2) and the §9-fix section on any flower-row conflict.
+
 Consumer surplus is ALSO higher than control for every dynamic arm in
 every cell (bakery +100…+325/day, flowers +114…+208/day) — the cultural
 calendars destroy value on both sides of the counter, mostly through

@@ -100,6 +100,11 @@ far more volume even while it defers.
 
 ## Caveats (attack these first)
 
+- **Assumption: topping attach rate ≈ 0.86** (static-arm baseline;
+  `block/calibration.py`). This is NOT a measured anchor — CALIBRATION-TARGETS
+  §3 flags it as having *zero published support* — and it feeds the cart's
+  +$270–350/day attach headline, so treat the attach-driven component as an
+  assumed, sweepable input rather than a calibrated one.
 - **Truthful WTP disclosure.** All buyers disclose honestly (vend-P1
   attestation assumed). The looker-conversion component (~45% of the edge)
   is exactly what liars would attack by understating WTP; vend H3 measured

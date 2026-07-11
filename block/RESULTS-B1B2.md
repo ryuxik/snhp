@@ -14,6 +14,20 @@ python3 -m pytest block/tests -q     # 37 tests, ~17s (incl. two 30-day twins)
 population), σ_cal = 0.15, honest anchor (×1.0), 25 regulars. Runtime 5.2s
 default / 9.0s with adoption, one core (budget: 120s).*
 
+> **REGENERATED — read this before the tables.** The committed artifacts are
+> `block_version 2` (regenerated after the vend review-fixes). Two things below
+> predate that regeneration: (1) **Headlines 1 & 2** carry the pre-#2-fashion
+> snapshot — fashion +396.05/day and the +$48,427.83/+$59,434.95 HUDs are
+> superseded (see the "Priority #2 recalibration" section and the "Updated
+> 30-day headline" for the current fashion row); (2) the **vending/bodega**
+> rows in Headlines 1 & 2 are the pre-vend-fix values. Current committed
+> deltas — **default**: vending **+3.41** [0.49, 6.34], bodega **−5.55**
+> [−7.07, −4.03], boba +336.45, fashion +20.47, block-total **+354.68**, HUD
+> **$17,653.33 / $10,640.52**; **adopt**: vending **−3.98** [−7.85, −0.12]
+> (CI now EXCLUDES zero — the "CI now spans 0" prose below is stale), bodega
+> **+191.47** [181.03, 201.91], block-total **+544.31**, HUD **$28,655.94 /
+> $16,329.22**. Trust `results.json` / `results-adopt.json` on any conflict.
+
 ## Headline 1 — four-venue paired deltas, default (per day, 5-day-block CIs)
 
 | venue   | sticker margin | snhp margin | Δ margin                    | Δ CS      |
@@ -56,7 +70,8 @@ lane, which is exactly the isolation the toggle promises.
   units, almost all on the sandwich board (deli-sandwich and chopped-cheese
   — the goods the machine doesn't carry). 41% of the negotiated buyers are
   vending-home walkers pulled across the street; the machine's Δ
-  correspondingly flips +3.01 → −3.84 (CI now spans 0). Symmetric
+  correspondingly flips +3.41 → −3.98 (CI [−7.85, −0.12], marginally
+  excludes zero). Symmetric
   endogeneity works both ways: whoever adopts second still gains, but the
   first adopter's cross-poaching edge disappears.
 - **Fashion sells 1,989 of 3,223 bought units in 30 days vs the cliff's
@@ -221,14 +236,15 @@ comparison this task was scoped to fix; do not read either world's
 catalog size.
 
 **Updated 30-day headline (both `block/results.json` and
-`block/results-adopt.json` regenerated; vending/bodega/boba rows are
-numerically UNCHANGED — fashion is the only venue this recalibration
-touches):**
+`block/results-adopt.json` regenerated; the fashion recalibration left
+vending/bodega/boba unchanged. A LATER vend review-fix regeneration
+[`block_version 2`] then shifted the two street venues to the values below —
+vending +3.01 → +3.41, bodega −5.84 → −5.55 — leaving boba/fashion untouched):**
 
 | venue | sticker margin/day | snhp margin/day | Δ margin (block=5 or 7) |
 |---|---:|---:|---|
-| vending | $135.54 | $138.55 | +3.01 [0.25, 5.78] |
-| bodega | $2,992.00 | $2,986.16 | −5.84 [−9.33, −2.35] |
+| vending | $135.54 | $138.95 | +3.41 [0.49, 6.34] |
+| bodega | $2,992.00 | $2,986.45 | −5.55 [−7.07, −4.03] |
 | boba | $1,022.30 | $1,358.75 | +336.45 [317.01, 355.89] |
 | **fashion** | **−$435.27** | **−$414.89** | **+20.47 [−36.39, 77.33]** (block=7, n=4) |
 
