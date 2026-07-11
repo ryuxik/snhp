@@ -275,7 +275,7 @@
   // ── receipts ────────────────────────────────────────────────────────────────
   let liveReceipts = [], recTimer = 0, lastTickerAt = -9;
   function spawnReceipt(ck) {
-    const bay = Math.floor(D.hash01("rec" + realSec) * NBAY);
+    const bay = D.receiptBay(D.hash01("rec" + realSec));   // ∝ real deal share
     const v = D.venues[bay];
     const pool = D.doc.crowd.receipt_pool[v.id] || [["deal", 1]];
     const pick = pool[Math.floor(Math.random() * pool.length)];
@@ -295,7 +295,7 @@
     if (div < 0.08) return out;
     for (let k = 0; k < 6; k++) {
       const ph = (st.t * 1.7 + k * 0.173 + 0.15) % 1;
-      const bay = Math.floor(D.hash01("prec" + k + ck.day) * NBAY);
+      const bay = D.receiptBay(D.hash01("prec" + k + ck.day));   // ∝ real deal share
       out.push({ bay, label: "", amt: 0, age: ph * 2.2, hue: 30 + bay * 34 });
     }
     return out;

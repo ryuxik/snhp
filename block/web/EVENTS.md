@@ -1,9 +1,33 @@
 # Block scene event schema — `block.week.v1`
 
 The twin-blocks street scene (`block/web/`) renders from **one JSON file**,
-`canned-week.json`. Today that file is a hand-authored canned preview; the
-live wiring (B4) replaces it with `block/runner.py` output on the **same
-schema**, so this document is the sim ↔ renderer contract.
+`canned-week.json`. That file is now **generated from the real block twin** by
+`block/gen_week.py` — it runs the committed 10-venue `run_twin`
+(seed 20260710, 25 regulars, bodega-adopts) and projects its mean daily paired
+deltas onto this schema. Every **dollar** on screen (the two HUD counters, the
+per-venue deltas, receipt savings, deal frequency, crowd ratio, spoilage order)
+traces to that run and reproduces from the seed. This document is the sim ↔
+renderer contract.
+
+**Reproduce the on-screen numbers:**
+
+```
+python3 -m block.gen_week                    # rewrites web/canned-week.json
+python3 -m pytest block/tests/test_gen_week.py -q   # byte-for-byte reproducible
+```
+
+**Real vs representative (the honesty split, also in `meta.provenance` + the
+on-screen badge):** REAL = every dollar magnitude (`ledger.block_mature` /
+`per_venue_mature` = the run's mean daily paired Δ; `crowd.receipt_pool`
+savings = real per-SKU mean surplus; `crowd.receipt_weight` = real deal share;
+`crowd.ambient_concurrent` ratio = real converting-traffic gap; `decay`
+ordering = real spoilage + surplus gap). REPRESENTATIVE (disclosed narrative,
+never a dollar figure) = the `ledger.day_weight` identical→diverged ramp (the
+sim diverges from day 0; `block_mature` is a per-DAY rate integrated over the
+ramp), the `mood.gray`/`decay` intensities (a monotone visual encoding of the
+real gap, with a disclosed gain), the named-regular churn days (the sim's
+25-regular pool holds at 25 — churn dramatizes the real no-sale/spoilage/surplus
+gap), and the `weather`/`truck` beats + per-walker paths.
 
 Design north stars: `block/DESIGN.md` §0 (the twin-blocks shot), §4d (art
 direction), §5 (honesty gates). Honesty rule carried from the sim: **every
@@ -45,8 +69,11 @@ midday crowd, and the neon-lit night all show every day. The two blocks
 | `days` | number of timelapse days (7) |
 | `day_start_hour` | clock hour each timelapse-day begins at (5.0 = pre-dawn) |
 | `worlds` | `["sticker","snhp"]` — the two blocks, always paired |
-| `badge` | the visible "canned preview" banner text (honesty gate) |
-| `provenance` | where the numbers come from / why they are conservative |
+| `badge` | the visible honesty-banner text ("live sim data · aggregates real · walkers representative") |
+| `provenance` | the real-vs-representative split, spelled out with the real magnitudes |
+| `reproduce` | the exact command that regenerates this file |
+| `config` | the twin config the numbers trace to (seed, days, regulars, bodega_adopts) |
+| `hud_week_total` | the cumulative HUD after the 7-day ramp (= `block_mature × Σday_weight`) |
 | `hud_labels` | `{shopper, merchant}` — the two flip-clock counter labels |
 
 ## `venues[]`
@@ -130,8 +157,16 @@ compression for the canned file).
   to the concurrent count.
 - `receipt_pool[venue]` — `[label, shopper_saved]` templates. On the SNHP
   block the renderer pops these as confetti tickets at
-  `receipt_rate_per_hour_snhp`. Labels are flair; the authoritative counter is
-  `ledger` (receipts never drive the total, so they can't drift it).
+  `receipt_rate_per_hour_snhp`. **Now real:** each template is a real top SKU
+  on that venue's SNHP world with `shopper_saved` = its real mean consumer
+  surplus per deal. The authoritative counter is still `ledger` (receipts
+  never drive the total, so they can't drift it).
+- `receipt_weight[venue]` — each venue's **real SNHP deal share** (deals/day,
+  normalized to the busiest venue). `data.js:receiptBay` samples which bay pops
+  a ticket in proportion to this, so the bodega/bar/boba fronts fizz with
+  tickets while the vintage one-of-one rarely does — matching real deal
+  density. `receipt_rate_per_hour_snhp` stays a **display sampling rate** (the
+  real block clears ~1,700 deals/day, far too many to draw).
 
 ## `mood.gray`
 

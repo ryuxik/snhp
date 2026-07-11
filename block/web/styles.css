@@ -44,7 +44,10 @@ body {
   color: #f4d38a;
   font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
   padding: 4px 10px; border-radius: 999px;
-  pointer-events: auto; white-space: nowrap;
+  pointer-events: auto; text-align: center; line-height: 1.35;
+  /* one line on desktop; wraps (never clips) on a narrow phone so the
+     "walkers representative" disclosure stays fully readable */
+  max-width: calc(100vw - 20px); white-space: normal;
   box-shadow: 0 4px 16px rgba(0,0,0,0.4);
 }
 

@@ -87,6 +87,22 @@
     const base = dayLerp(D.crowd.ambient_concurrent[world], t);
     return base * D.crowd.hour_weight[c.hour];
   }
+  // pick a receipt bay from a uniform u∈[0,1), weighted by crowd.receipt_weight
+  // (each venue's REAL SNHP deal share) so busy fronts pop more tickets than
+  // the vintage one-of-one — falls back to uniform if the weights are absent
+  function receiptBay(u) {
+    const w = D.crowd.receipt_weight;
+    if (!w) return Math.floor(u * VENUES.length) % VENUES.length;
+    let total = 0;
+    for (const v of VENUES) total += w[v.id] || 0;
+    if (total <= 0) return Math.floor(u * VENUES.length) % VENUES.length;
+    let x = u * total;
+    for (let i = 0; i < VENUES.length; i++) {
+      x -= w[VENUES[i].id] || 0;
+      if (x <= 0) return i;
+    }
+    return VENUES.length - 1;
+  }
 
   // which named regulars are present on `world` at day (sticker ones vanish
   // after their churn.sticker_lastday — the depopulation you can follow)
@@ -129,7 +145,7 @@
     get regulars() { return D ? D.regulars : []; },
     reg: (id) => REG[id],
     clock, tForHour, counters, divergence,
-    gray, decay, ambient, regularsPresent, beatsBetween,
+    gray, decay, ambient, receiptBay, regularsPresent, beatsBetween,
     rng, hash01, clamp, lerp,
   };
 })();
