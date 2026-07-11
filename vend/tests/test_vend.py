@@ -1081,3 +1081,106 @@ def test_strong_posted_panel_outside_option_matches_run_py(catalog):
         o_sku, _, o_s = best_bundle(wtp, outside_prices)   # NO stock cap (run.py:163)
         expected = (o_s - walk[c]) if o_sku else 0.0       # run.py:164 (no clamp)
         assert abs(s_out[c] - expected) < 1e-9, (c, s_out[c], expected)
+
+
+# ── Task #68B: the harder deviation battery (adaptive / per-SKU / probe) ─────
+
+def test_attack_mode_default_is_byte_identical(catalog):
+    """A2APolicy defaults attack_mode='uniform' — the committed liar path.
+    An explicit uniform liar arm must equal the default liar arm exactly."""
+    from vend.policies import A2APolicy
+    from vend.run import run_experiment
+    from vend.world import WorldConfig
+    r = run_experiment(["a2a", "a2a-liars100"], days=6, seed=20260713,
+                       cfg=WorldConfig())
+    assert A2APolicy().attack_mode == "uniform"
+    # a hand-built explicit-uniform arm reproduces the registered a2a-liars100
+    ARMS_local = {"a2a": A2APolicy,
+                  "u100": lambda: A2APolicy(attest=False, liar_share=1.0,
+                                            attack_mode="uniform")}
+    from vend.world import build_catalog, fresh_machine
+    cfg = WorldConfig()
+    cat = build_catalog(cfg, 20260713)
+    from vend.run import run_day
+    st = fresh_machine("t", cat, cfg, 20260713)
+    pol = A2APolicy(attest=False, liar_share=1.0, attack_mode="uniform")
+    days_u = [run_day(pol, st, cat, 20260713, d, cfg) for d in range(6)]
+    st2 = fresh_machine("t", cat, cfg, 20260713)
+    pol2 = A2APolicy(attest=False, liar_share=1.0)   # default mode
+    days_d = [run_day(pol2, st2, cat, 20260713, d, cfg) for d in range(6)]
+    assert days_u == days_d
+
+
+def test_adaptive_disclosure_only_lies_on_overstocked(catalog):
+    """adaptive_disclosure understates ONLY SKUs whose visible stock is high
+    (>= stock_mult*par); truthful on the rest (Lemma S: scarce ⇒ report idle)."""
+    from vend.core import Lot
+    from vend.scenario import adaptive_disclosure
+    from vend.world import fresh_machine
+    state = fresh_machine("t", catalog)
+    # force one SKU visibly overstocked (2x par), one scarce (1 unit)
+    over, scarce = "cola", "energy"
+    state.lots = [l for l in state.lots if l.sku not in (over, scarce)]
+    state.lots.append(Lot(over, catalog[over].par_stock * 2, 99))
+    state.lots.append(Lot(scarce, 1, 99))
+    wtp = {s: 3.0 for s in catalog}
+    disc, walk = adaptive_disclosure(state, wtp, 1.5, factor=0.5, stock_mult=1.2,
+                                     zero_walk=True)
+    assert disc[over] == 1.5          # understated (2x par >= 1.2 par)
+    assert disc[scarce] == 3.0        # truthful (1 < 1.2 par)
+    assert walk == 0.0                # free-walk claim independent
+
+
+def test_persku_disclosure_targets_only():
+    from vend.scenario import persku_disclosure
+    wtp = {"a": 2.0, "b": 3.0, "c": 4.0}
+    disc, walk = persku_disclosure(wtp, 1.0, targets={"b"}, factor=0.5,
+                                   zero_walk=False)
+    assert disc == {"a": 2.0, "b": 1.5, "c": 4.0}
+    assert walk == 1.0
+
+
+def test_theorem_lemma_S_scarce_pins_price():
+    """Lemma S: on a scarce unit (D >> stock) the price is pinned at list, so
+    an understatement yields exactly zero gain."""
+    from vend.core import MachineState, Listing, Lot
+    from vend.scenario import nash_quote, buyer_value
+    L = Listing("Y", 2.00, 0.70, 0.10, 60, 1, 2.0, 2.30)
+    st = MachineState("m", {"Y": L}, [Lot("Y", 1, 999)])
+    kw = dict(daily_fn=lambda s: 5.0)          # D=5 > stock=1 ⇒ scarce
+    nh = nash_quote(st, {"Y": 3.0}, 5.0, **kw)
+    nl = nash_quote(st, {"Y": 3.0 * 0.55}, 5.0, **kw)
+    # scarce ⇒ no below-list quote for either report (board fallback both)
+    assert nh.outcome is None and nl.outcome is None
+
+
+def test_theorem_a_prime_buffer_closes_low_rent_excess():
+    """Theorem (a′): on an EXCESS unit with ℓ−c ≤ 2β the buffer closes the
+    WTP leak (NODEAL for the understatement); with β=0 the leak is present."""
+    from vend.core import MachineState, Listing, Lot
+    from vend.scenario import nash_quote, buyer_value
+    L = Listing("Y", 2.00, 0.70, 0.10, 60, 1, 2.0, 2.30)   # ℓ−c=1.30, 2β=1.50
+    st = MachineState("m", {"Y": L}, [Lot("Y", 1, 999)])
+    excess = dict(daily_fn=lambda s: 0.0)                    # D=0 ⇒ excess
+    # β=0: the understatement leaks (deal below list, buyer true surplus > board)
+    nl0 = nash_quote(st, {"Y": 3.0 * 0.55}, 5.0, min_gain=0.0,
+                     min_gain_frac=0.0, **excess)
+    assert nl0.outcome is not None and nl0.outcome.unit_price < 2.0 - 1e-9
+    ts = buyer_value({"Y": 3.0}, nl0.outcome.sku, 1) - nl0.outcome.unit_price
+    assert ts > (3.0 - 2.0) + 1e-6      # beats the honest board surplus 1.00
+    # deployed buffer (0.75/0.15) with ℓ−c < 2β: leak closed (NODEAL)
+    nlb = nash_quote(st, {"Y": 3.0 * 0.55}, 5.0, min_gain=0.75,
+                     min_gain_frac=0.15, **excess)
+    assert nlb.outcome is None
+
+
+def test_battery_probe_is_deterministic():
+    from vend.battery import run_probe, _cfg
+    a = run_probe([20260713], burn=3, measure=4, cfg=_cfg(0.15))
+    b = run_probe([20260713], burn=3, measure=4, cfg=_cfg(0.15))
+    assert a == b
+    # the WTP-only adaptive sup never claims significance on such a short run,
+    # but the structure must be present
+    assert "adaptive_wtp" in a["strategies"]
+    assert set(a["strategies"]["uniform_wtp"]["strata"]) == {
+        "all", "excess", "high_out", "excess_high_out", "scarce_lowout"}

@@ -351,3 +351,48 @@ def liar_disclosure(wtp: dict[str, float], walk_cost: float
                     ) -> tuple[dict[str, float], float]:
     """The canonical anchoring attack (H3): understate + free outside."""
     return strategic_disclosure(wtp, walk_cost, 0.55, True)
+
+
+# ── the harder deviation class (Task #68B) ─────────────────────────────────
+# The committed liar battery is a UNIFORM WTP scale over ALL SKUs, applied on
+# EVERY day regardless of state. That dilutes the exploit: on scarce/scarce-SKU
+# days the discount-only shadow floor pins the price at list (§3 cond. a), so a
+# uniform lie both (i) cannot move the price AND (ii) costs the buyer their
+# board disagreement — the loss on those days averages out any gain on the rare
+# excess day. Two sharper deviations the pooled mean cannot see:
+
+
+def adaptive_disclosure(state: MachineState, wtp: dict[str, float],
+                        walk_cost: float, *, factor: float = 0.55,
+                        stock_mult: float = 1.2, zero_walk: bool = True
+                        ) -> tuple[dict[str, float], float]:
+    """STATE-CONDITIONED understatement: scale SKU s's disclosed WTP by
+    `factor` ONLY where its VISIBLE stock is high (`stock(s) >= stock_mult ·
+    par_stock(s)`) — i.e. exactly the SKUs likely to be in shadow-price
+    EXCESS, where a below-list quote is feasible and a WTP report can move the
+    price. Truthful on scarce SKUs (where cond. (a) pins the price at list
+    regardless of report, so a lie only forfeits the board disagreement).
+
+    This is the decisive deviation the uniform sweep dilutes: it concentrates
+    the WTP lie exactly where a lie could bite, on the visible signal (stock)
+    the buyer's agent can actually observe. `stock_mult=1.2` ⇒ "visibly above
+    a full-par shelf" (a glut/soft day). `zero_walk` claims a free outside
+    option independently (the §3 cond.-(d) free-walk channel)."""
+    disc = {}
+    for s, v in wtp.items():
+        par = state.listings[s].par_stock
+        disc[s] = v * factor if state.stock(s) >= stock_mult * par else v
+    return disc, (0.0 if zero_walk else walk_cost)
+
+
+def persku_disclosure(wtp: dict[str, float], walk_cost: float, *,
+                      targets, factor: float = 0.55, zero_walk: bool = True
+                      ) -> tuple[dict[str, float], float]:
+    """NON-UNIFORM misreport: understate only the SKUs in `targets` (a set) by
+    `factor`, truthful on the rest — the natural attack on PER-SKU shadow
+    pricing. The sharpest instance is `targets = {the buyer's own favorite}`:
+    lie precisely about the one good you want cheap, disclose the rest exactly
+    (so the disagreement collapse is confined to the SKU you were going to buy
+    anyway, not spread across goods you weren't)."""
+    disc = {s: (v * factor if s in targets else v) for s, v in wtp.items()}
+    return disc, (0.0 if zero_walk else walk_cost)

@@ -121,6 +121,42 @@ far more volume even while it defers.
   balk-free at their slot; no returns/patience; consumer surplus is
   counted only on purchases.
 
+# BOBA #68B (2026-07-10) — the capacity CONTRAST to vend's IC probe
+
+The vend IC battery (`vend/battery.py`, Task #68B) found that at finite stock the
+WTP-understatement leak is a *sup-over-types subtlety*: the pooled mean is ≈0/
+negative and only the excess × high-outside stratum shows a small significant
++\$0.17/day. The same instrument, pointed at boba's **soft-capacity** world
+(`boba/battery.py`; artifact `boba/battery.json`; 3 seeds × 30 days, flexible
+0.35, attestation OFF), makes the §3 / CRITICAL-ANALYSIS §10 boundary visible in
+one table — the leak here is NOT a subtlety:
+
+| deviation | pooled mean $/day | SUP stratum | significant strata |
+|---|---|---|---|
+| uniform WTP 0.7× (walk OFF) | **+557** [542, 573] | all | **every stratum** |
+| uniform WTP 0.7× + walk (cond d) | **+1,086** [1,065, 1,108] | all | **every stratum** |
+| adaptive WTP+walk (lie only when queue tight) | +723 [705, 741] | all | every (not slack-lowout) |
+| per-topping only | +90 [84, 96] | all | every stratum |
+| free-walk only (WTP truthful) | +0.00 | — | none (a no-op without a WTP lie) |
+
+The contrast is the whole point. **Ratio ≈ \$1,086 vs \$0.17.** At vend the WTP
+channel alone is buffered to ≈0 in the pooled mean (finite-stock shadow floor
+pins scarce prices and the buffer dominates most excess rents — THEOREM-IC
+Lemma S + (a′)); at boba the WTP channel *alone* leaks **+\$557/day pooled**,
+because the seller's reservation is report-DEPENDENT (a freed slot is worth only
+its resale, which a lowballed WTP talks down — §3 condition (b) dropped), so
+there is no buffer bound to hide under. Adding the free-outside claim doubles it
+to **+\$1,086/day**, reproducing the committed P1a best-response (+\$1,099–1,171).
+The adaptive liar (understate only when the queue is building — exactly when the
+shop's disagreement is most manipulable) concentrates the exploit but, lying
+less often, nets less than always-lying (+\$723 vs +\$1,086); the per-issue
+(topping-only) lie is smaller (+\$90) because toppings are a small share of cart
+value. This is the finite-stock-vs-capacity dichotomy measured with a single,
+identical probe.
+
+Reproduce: `python3 -m boba.battery --probe --seeds 20260713,7,20260710 --days 30
+--out boba/battery.json`.
+
 # BOBA P1 (2026-07-10) — the liar battery and menu fairness
 
 *Reproduce: `python3 -m boba.attack --battery --liar-sweep --seed 20260713

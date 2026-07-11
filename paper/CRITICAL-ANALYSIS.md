@@ -508,6 +508,37 @@ is only because a mixed population makes its aggression self-defeating — it
 DOES lose its extraction edge over the naive (fleecing drops $50→$27), the
 honest both-sides mechanism.
 
+**PROOF + HARDER BATTERY (2026-07-10, #68 — the referee's #1 ask): the
+characterization is PROVED single-unit, and it REFINES to a fifth condition.**
+`paper/THEOREM-IC.md` proves the §3 Proposition in a stylized single-unit,
+single-good Nash model — and the proof shows the four whitepaper conditions are
+**necessary but not sufficient**. On a SCARCE unit the shadow floor pins the
+price at list and no report bites (cond a). On an EXCESS unit a strong
+understatement collapses the buyer's own board disagreement, flips the no-deal
+event to "walk," and captures the excess rent at a discounted price — conditions
+(b)/(c)/(d) bound the *outside-option* channel but do NOT close this
+*WTP-understatement* channel. What closes it is the min-gain buffer, and only
+when it dominates the excess rent: **(a′) ℓ − c_eff ≤ 2β.** Where (a′) fails
+(high-rent/perishable excess units: sandwich, cola, candy — NOT water) a bounded
+leak ≤ ℓ−c_eff−β survives. The harder empirical battery (#68B, `vend/battery.py`
+sup-over-types unilateral probe, `boba/battery.py` contrast) confirms it
+exactly: the committed liar sweep's *pooled mean* is ≈0/negative, but the **sup
+over types** on the excess × high-outside stratum is a significant
+**+$0.15–0.20/day** — the (a′) residual the mean hid. Three checks land as the
+proof predicts: (i) the state-conditioned ADAPTIVE (visible-stock) and per-SKU
+liars do NOT beat the uniform lie — only an oracle-excess attacker matches it, so
+the decisive untested deviation concentrates but does not enlarge the leak; (ii)
+the committed sweep's 80%-power **MDE was $1.25/day** (30d/1seed) vs the
+battery's $0.11/day — the leak was below the old power, hence the "clean tie";
+(iii) a learner **converged on the liar population** opens no leak a cold learner
+hid. Boba (report-dependent reservation, cond b dropped) leaks **+$557/day WTP-
+only, +$1,086/day with the walk claim, POOLED** — orders of magnitude larger and
+in every stratum, the finite-stock-vs-capacity boundary of §10 measured with one
+identical probe (ratio ~$1,086 vs ~$0.17). Net: §10 stands; the whitepaper §3
+now cites the proof and lists (a′); the "no verification at finite stock" claim
+is honest *up to the buffer*, and WTP attestation (not just outside-option
+attestation) is what closes the excess-unit residual.
+
 ## The meta-pattern
 
 Every real defect found so far is the same defect: **some term in the

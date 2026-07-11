@@ -660,3 +660,42 @@ def test_menu_experiment_is_deterministic():
     r1 = run_experiment(["static", "menu", "menu-no-defer"], days=2, seed=11)
     r2 = run_experiment(["static", "menu", "menu-no-defer"], days=2, seed=11)
     assert r1 == r2
+
+
+# ── Task #68B: capacity-venue IC probe (the vend contrast) ──────────────────
+
+def test_boba_adaptive_discloses_truth_when_queue_slack():
+    """boba.battery adaptive strategy lies ONLY when the queue is building
+    (balk_prob >= BALK_TIGHT); an empty shop ⇒ truthful disclosure."""
+    from boba.battery import _disclose, BALK_TIGHT
+    from boba.world import open_shop, sample_consumer, balk_prob
+    state = open_shop(0)               # fresh, empty queue ⇒ balk ~ 0 < tight
+    assert balk_prob(state) < BALK_TIGHT
+    c = sample_consumer(20260713, 0, 30, 0)
+    disc, outc = _disclose({"mode": "adaptive", "factor": 0.7,
+                            "claim_walk": True}, state, c)
+    assert disc is c and outc is None   # truthful (byte-identical to honest)
+
+
+def test_boba_pertopping_leaves_drink_truthful():
+    from boba.battery import _disclose
+    from boba.world import open_shop, sample_consumer
+    state = open_shop(0)
+    c = sample_consumer(20260713, 0, 30, 0)
+    disc, outc = _disclose({"mode": "toppings", "factor": 0.5,
+                            "claim_walk": False}, state, c)
+    assert disc.wtp == c.wtp                              # drink truthful
+    assert all(disc.top_wtp[t] == c.top_wtp[t] * 0.5 for t in c.top_wtp)
+
+
+def test_boba_probe_leak_is_large_and_deterministic():
+    """The capacity contrast: unlike vend (pooled ≈ 0), boba's WTP+walk lie is
+    a LARGE positive pooled-mean leak — every stratum, not just the sup."""
+    from boba.battery import run_probe
+    from boba.world import BobaConfig
+    cfg = BobaConfig(sigma_shock=0.0, flexible_share=0.35)
+    a = run_probe([20260713], days=6, cfg=cfg)
+    b = run_probe([20260713], days=6, cfg=cfg)
+    assert a == b
+    s = a["strategies"]["uniform_wtp+walk"]
+    assert s["strata"]["all"]["mean"] > 50.0     # dollars/day, not cents

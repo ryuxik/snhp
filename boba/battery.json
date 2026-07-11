@@ -1,0 +1,406 @@
+{
+ "battery_version": 1,
+ "task": "ic-battery-68B-boba",
+ "seeds": [
+  20260713,
+  7,
+  20260710
+ ],
+ "days": 30,
+ "world": "soft-capacity boba (flexible_share=0.35, no shock); attestation OFF; report-DEPENDENT reservation",
+ "probe": {
+  "seeds": [
+   20260713,
+   7,
+   20260710
+  ],
+  "days": 30,
+  "n_probed_by_stratum": {
+   "all": 34252,
+   "tight": 26612,
+   "high_out": 17817,
+   "tight_high_out": 13937,
+   "slack_lowout": 3760
+  },
+  "strategies": {
+   "uniform_wtp": {
+    "spec": {
+     "name": "uniform_wtp",
+     "mode": "uniform",
+     "factor": 0.7,
+     "claim_walk": false
+    },
+    "raw_max_single_buyer_gain": 35.52,
+    "strata": {
+     "all": {
+      "mean": 557.481,
+      "ci95": [
+       542.202,
+       572.76
+      ],
+      "n": 18,
+      "sd_block": 30.7245,
+      "mde_dollar_per_day": 21.531
+     },
+     "tight": {
+      "mean": 378.547,
+      "ci95": [
+       365.241,
+       391.854
+      ],
+      "n": 18,
+      "sd_block": 26.7588,
+      "mde_dollar_per_day": 18.752
+     },
+     "high_out": {
+      "mean": 258.9,
+      "ci95": [
+       243.774,
+       274.026
+      ],
+      "n": 18,
+      "sd_block": 30.4174,
+      "mde_dollar_per_day": 21.315
+     },
+     "tight_high_out": {
+      "mean": 186.425,
+      "ci95": [
+       173.662,
+       199.188
+      ],
+      "n": 18,
+      "sd_block": 25.666,
+      "mde_dollar_per_day": 17.986
+     },
+     "slack_lowout": {
+      "mean": 106.459,
+      "ci95": [
+       103.238,
+       109.679
+      ],
+      "n": 18,
+      "sd_block": 6.4765,
+      "mde_dollar_per_day": 4.539
+     }
+    },
+    "sup_over_types": {
+     "stratum": "all",
+     "mean_gain_per_day": 557.481,
+     "ci95": [
+      542.202,
+      572.76
+     ]
+    },
+    "pooled_mean_gain_per_day": 557.481,
+    "significantly_positive_strata": [
+     "all",
+     "tight",
+     "high_out",
+     "tight_high_out",
+     "slack_lowout"
+    ]
+   },
+   "uniform_wtp+walk": {
+    "spec": {
+     "name": "uniform_wtp+walk",
+     "mode": "uniform",
+     "factor": 0.7,
+     "claim_walk": true
+    },
+    "raw_max_single_buyer_gain": 42.801,
+    "strata": {
+     "all": {
+      "mean": 1086.325,
+      "ci95": [
+       1064.92,
+       1107.729
+      ],
+      "n": 18,
+      "sd_block": 43.0422,
+      "mde_dollar_per_day": 30.162
+     },
+     "tight": {
+      "mean": 723.225,
+      "ci95": [
+       705.284,
+       741.166
+      ],
+      "n": 18,
+      "sd_block": 36.0783,
+      "mde_dollar_per_day": 25.282
+     },
+     "high_out": {
+      "mean": 782.728,
+      "ci95": [
+       761.055,
+       804.402
+      ],
+      "n": 18,
+      "sd_block": 43.584,
+      "mde_dollar_per_day": 30.542
+     },
+     "tight_high_out": {
+      "mean": 529.925,
+      "ci95": [
+       511.831,
+       548.018
+      ],
+      "n": 18,
+      "sd_block": 36.3842,
+      "mde_dollar_per_day": 25.497
+     },
+     "slack_lowout": {
+      "mean": 110.296,
+      "ci95": [
+       106.936,
+       113.655
+      ],
+      "n": 18,
+      "sd_block": 6.7555,
+      "mde_dollar_per_day": 4.734
+     }
+    },
+    "sup_over_types": {
+     "stratum": "all",
+     "mean_gain_per_day": 1086.325,
+     "ci95": [
+      1064.92,
+      1107.729
+     ]
+    },
+    "pooled_mean_gain_per_day": 1086.325,
+    "significantly_positive_strata": [
+     "all",
+     "tight",
+     "high_out",
+     "tight_high_out",
+     "slack_lowout"
+    ]
+   },
+   "adaptive_wtp+walk": {
+    "spec": {
+     "name": "adaptive_wtp+walk",
+     "mode": "adaptive",
+     "factor": 0.7,
+     "claim_walk": true
+    },
+    "raw_max_single_buyer_gain": 42.801,
+    "strata": {
+     "all": {
+      "mean": 723.225,
+      "ci95": [
+       705.284,
+       741.166
+      ],
+      "n": 18,
+      "sd_block": 36.0783,
+      "mde_dollar_per_day": 25.282
+     },
+     "tight": {
+      "mean": 723.225,
+      "ci95": [
+       705.284,
+       741.166
+      ],
+      "n": 18,
+      "sd_block": 36.0783,
+      "mde_dollar_per_day": 25.282
+     },
+     "high_out": {
+      "mean": 529.925,
+      "ci95": [
+       511.831,
+       548.018
+      ],
+      "n": 18,
+      "sd_block": 36.3842,
+      "mde_dollar_per_day": 25.497
+     },
+     "tight_high_out": {
+      "mean": 529.925,
+      "ci95": [
+       511.831,
+       548.018
+      ],
+      "n": 18,
+      "sd_block": 36.3842,
+      "mde_dollar_per_day": 25.497
+     },
+     "slack_lowout": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 18,
+      "sd_block": 0.0,
+      "mde_dollar_per_day": 0.0
+     }
+    },
+    "sup_over_types": {
+     "stratum": "all",
+     "mean_gain_per_day": 723.225,
+     "ci95": [
+      705.284,
+      741.166
+     ]
+    },
+    "pooled_mean_gain_per_day": 723.225,
+    "significantly_positive_strata": [
+     "all",
+     "tight",
+     "high_out",
+     "tight_high_out"
+    ]
+   },
+   "pertopping_wtp": {
+    "spec": {
+     "name": "pertopping_wtp",
+     "mode": "toppings",
+     "factor": 0.7,
+     "claim_walk": false
+    },
+    "raw_max_single_buyer_gain": 21.395,
+    "strata": {
+     "all": {
+      "mean": 89.816,
+      "ci95": [
+       84.02,
+       95.611
+      ],
+      "n": 18,
+      "sd_block": 11.6543,
+      "mde_dollar_per_day": 8.167
+     },
+     "tight": {
+      "mean": 60.098,
+      "ci95": [
+       54.726,
+       65.47
+      ],
+      "n": 18,
+      "sd_block": 10.8035,
+      "mde_dollar_per_day": 7.571
+     },
+     "high_out": {
+      "mean": 20.306,
+      "ci95": [
+       15.206,
+       25.406
+      ],
+      "n": 18,
+      "sd_block": 10.2562,
+      "mde_dollar_per_day": 7.187
+     },
+     "tight_high_out": {
+      "mean": 13.439,
+      "ci95": [
+       8.352,
+       18.527
+      ],
+      "n": 18,
+      "sd_block": 10.2305,
+      "mde_dollar_per_day": 7.169
+     },
+     "slack_lowout": {
+      "mean": 22.851,
+      "ci95": [
+       20.973,
+       24.729
+      ],
+      "n": 18,
+      "sd_block": 3.7767,
+      "mde_dollar_per_day": 2.647
+     }
+    },
+    "sup_over_types": {
+     "stratum": "all",
+     "mean_gain_per_day": 89.816,
+     "ci95": [
+      84.02,
+      95.611
+     ]
+    },
+    "pooled_mean_gain_per_day": 89.816,
+    "significantly_positive_strata": [
+     "all",
+     "tight",
+     "high_out",
+     "tight_high_out",
+     "slack_lowout"
+    ]
+   },
+   "walk_only": {
+    "spec": {
+     "name": "walk_only",
+     "mode": "uniform",
+     "factor": 1.0,
+     "claim_walk": true
+    },
+    "raw_max_single_buyer_gain": 0.0,
+    "strata": {
+     "all": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 18,
+      "sd_block": 0.0,
+      "mde_dollar_per_day": 0.0
+     },
+     "tight": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 18,
+      "sd_block": 0.0,
+      "mde_dollar_per_day": 0.0
+     },
+     "high_out": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 18,
+      "sd_block": 0.0,
+      "mde_dollar_per_day": 0.0
+     },
+     "tight_high_out": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 18,
+      "sd_block": 0.0,
+      "mde_dollar_per_day": 0.0
+     },
+     "slack_lowout": {
+      "mean": 0.0,
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "n": 18,
+      "sd_block": 0.0,
+      "mde_dollar_per_day": 0.0
+     }
+    },
+    "sup_over_types": {
+     "stratum": "all",
+     "mean_gain_per_day": 0.0,
+     "ci95": [
+      0.0,
+      0.0
+     ]
+    },
+    "pooled_mean_gain_per_day": 0.0,
+    "significantly_positive_strata": []
+   }
+  }
+ }
+}

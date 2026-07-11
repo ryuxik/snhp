@@ -253,6 +253,93 @@ pre-registered next experiment: verified agents get a lower buffer
 (min_gain $0.25 vs $1.00), prediction: attested buyers capture measurably
 more surplus at no machine cost, making verification something buyers WANT.
 
+## Task #68B (2026-07-10) — the HARDER IC battery: sup-over-types, the adaptive liar, and the MDE that hid the leak
+
+The committed liar sweep and attack battery above report a **population mean**
+over an all-liar arm. A referee (MIT theory) objected — correctly — that a mean
+*washes profitable liars out*: a lie that pays only on the rare excess day, or
+only for a high-outside-option type, is diluted by the many days/types on which
+the same uniform lie forfeits the buyer's board disagreement. Task #68B builds
+the instrument the mean cannot substitute for (`vend/battery.py`; artifact
+`vend/battery.json`; 6 seeds × 180 measured days after a 30-day learner burn-in,
+realistic calibrated cell, **attestation OFF**, discount-only ON, finite stock).
+
+**The unilateral deviation probe.** The world is held HONEST and the learner
+converged; at each buyer's decision node we compute — against the *identical*
+state — the honest quote and each counterfactual-lie quote, and the buyer's
+TRUE-preference realized welfare under each. The deviation gain
+`lie_true − honest_true` holds all other buyers and the state fixed: the exact
+best-response object, with zero state contamination (an all-liar arm cannot
+isolate it — there the state moves too). Deviations: uniform WTP-scaling, the
+**state-conditioned adaptive** liar (understate only where visible stock is high
+— concentrate the exploit on excess days), an **oracle-excess** adaptive
+(understate exactly the shadow-excess SKUs — the strongest possible attacker),
+**per-SKU** favorite-only and perishables-only, and the free-outside-option
+claim — each with the cond-(d) walk channel ON and OFF so the WTP and
+outside-option channels never hide behind each other.
+
+**Result — the pooled mean HID a real, small, buffered leak (the sup-over-types
+finds it):**
+
+| deviation (WTP channel, walk OFF) | pooled mean $/day | **SUP over types** (excess stratum) | sig? |
+|---|---|---|---|
+| uniform WTP 0.55× | −0.15 [−0.25, −0.05] | **+0.17 [0.09, 0.25]** | **yes** |
+| adaptive WTP (visible stock ≥1.2·par) | −0.11 | −0.01 [−0.05, 0.03] | no |
+| adaptive WTP (oracle-excess) | −0.29 | **+0.15 [0.07, 0.23]** | **yes** |
+| per-SKU favorite-only | −0.22 | −0.00 | no |
+| perishables-only | −0.46 | −0.08 | no |
+| **free-walk only (cond d)** | **+0.49 [0.40, 0.59]** | +0.49 (all strata) | **yes** |
+
+Replicated in the high-excess stress cell (glut 0.4): the excess-stratum WTP sup
+holds at +0.15 (uniform) / +0.20 (oracle). **Answers to the three questions the
+mean could not:**
+
+1. **Does honesty survive the adaptive + per-SKU liar at finite stock?** On the
+   WTP channel, *the visible-stock adaptive and per-SKU-favorite deviations do
+   NOT beat the plain uniform lie* — their sup is non-significant (≤0). Only an
+   **oracle** who sees the true shadow-excess set matches the uniform lie
+   (+0.15). So the decisive untested deviation **concentrates but does not
+   enlarge** the leak. Honesty is NOT strictly a best response — but the leak is
+   the same small residual whether uniform or adaptively targeted.
+2. **The sup-over-types worst-case number.** +\$0.15–0.20/day for the
+   excess × high-outside type on the WTP channel (~1–2% of the ~\$9/day CS);
+   +\$0.49/day for the free-outside-option (cond-d) channel. The **pooled mean is
+   negative** (−0.15) — it genuinely hid the profitable type. This matches the
+   §3/THEOREM-IC (a′) prediction exactly: a bounded excess-unit leak survives on
+   the high-rent SKUs (ℓ−c > 2β: sandwich, cola, candy) and is absent on the
+   low-rent ones (water, ℓ−c < 2β).
+3. **The MDE (why the committed sweep read a clean tie).** The committed liar
+   sweep (30 days, 1 seed → 6 blocks, sd_block ≈ 0.87) has an 80%-power
+   two-sided **MDE of \$1.25/day** — it *structurally could not detect* a
+   \$0.15–0.30 exploit; a tie was the only possible reading. The battery
+   (216 pooled blocks, sd_block ≈ 0.58) has **MDE \$0.11/day** on the excess
+   stratum, which is why the +0.17 leak becomes visible. The refinement is a
+   matter of *power*, and the proof (THEOREM-IC §4.3) says where to point it.
+
+**Warm vs cold learner (the "run to convergence" ask) — a NULL.** The all-liar
+population arm measured on a cold learner (days 0–60) and a learner converged on
+the liar population (days 40–100) are statistically identical (free-walk arm:
+cold +0.22 vs warm +0.22; WTP-only arms ≈0 in both). A learner adapted to liars
+opens no leak the cold learner's over-forecast hid — the leak is structural, not
+a learner transient.
+
+**The refinement to the Proposition.** THEOREM-IC.md proves the corrected
+single-unit characterization: the four §3 conditions are necessary-not-
+sufficient; strict emergent IC additionally requires **(a′) ℓ − c ≤ 2β** (the
+list-minus-shadow-cost rent at most twice the min-gain buffer). Where it holds
+(scarce units always; low-rent excess units) honesty is a *strict* best
+response; where it fails (high-rent/perishable excess units) a *bounded* leak
+≤ ℓ−c−β survives, ≈+\$0.15–0.20/day at the sup — closed by a larger buffer or
+WTP attestation, not by outside-option attestation alone. This is the "5th
+condition" the referee's counterexample pointed at, now proven and measured.
+
+Reproduce:
+
+```
+python3 -m vend.battery --probe --warm --seeds 20260713,7,20260710,101,42,2026 \
+    --burn 30 --measure 180 --out vend/battery.json
+```
+
 ## The sticker question (2026-07-10) — "Uber has no sticker; why do we?"
 
 Asked whether the sticker is necessary at all, we made the ceiling a dial

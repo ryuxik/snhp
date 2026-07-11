@@ -494,15 +494,44 @@ class A2APolicy:
 
     attack_factor: float = 0.55     # attack battery: disclosed-WTP scale
     attack_zero_walk: bool = True   # ...and whether liars claim a free outside
+    # Task #68B — the harder deviation class. "uniform" (default) is the
+    # committed all-SKU/all-day scale (byte-identical to P1a). "adaptive"
+    # understates a SKU only where its VISIBLE stock is high (scenario.
+    # adaptive_disclosure); "persku-fav" understates only the buyer's own
+    # favorite SKU; "persku-perish" only the perishables (the SKUs most often
+    # in excess). All three are no-ops when the buyer isn't a liar.
+    attack_mode: str = "uniform"
+    adaptive_stock_mult: float = 1.2
 
     def quote_for(self, state: MachineState, consumer,
                   liar_roll: float) -> tuple[NashQuote, bool]:
-        from vend.scenario import strategic_disclosure
+        from vend.scenario import (adaptive_disclosure, persku_disclosure,
+                                    strategic_disclosure)
         lied = (not self.attest) and liar_roll < self.liar_share
         if lied:
-            wtp_d, walk_d = strategic_disclosure(
-                consumer.wtp, consumer.walk_cost,
-                self.attack_factor, self.attack_zero_walk)
+            if self.attack_mode == "adaptive":
+                wtp_d, walk_d = adaptive_disclosure(
+                    state, consumer.wtp, consumer.walk_cost,
+                    factor=self.attack_factor,
+                    stock_mult=self.adaptive_stock_mult,
+                    zero_walk=self.attack_zero_walk)
+            elif self.attack_mode == "persku-fav":
+                fav = max(consumer.wtp,
+                          key=lambda s: consumer.wtp[s]
+                          - state.listings[s].list_price)
+                wtp_d, walk_d = persku_disclosure(
+                    consumer.wtp, consumer.walk_cost, targets={fav},
+                    factor=self.attack_factor, zero_walk=self.attack_zero_walk)
+            elif self.attack_mode == "persku-perish":
+                perish = {s for s, l in state.listings.items()
+                          if l.shelf_life_days <= 3}
+                wtp_d, walk_d = persku_disclosure(
+                    consumer.wtp, consumer.walk_cost, targets=perish,
+                    factor=self.attack_factor, zero_walk=self.attack_zero_walk)
+            else:   # "uniform"
+                wtp_d, walk_d = strategic_disclosure(
+                    consumer.wtp, consumer.walk_cost,
+                    self.attack_factor, self.attack_zero_walk)
         else:
             wtp_d, walk_d = consumer.wtp, consumer.walk_cost
         n = len(state.listings)
