@@ -1201,3 +1201,55 @@ Tests: one per fix (`test_nash_disagreement_is_stock_capped`,
 `test_strong_posted_panel_outside_option_matches_run_py`), plus the
 `test_fairness_harvest_regression` pin re-baselined (reg_deals 1307→1325,
 day90 108→107, churn 75→76). Full suite: 64 passing.
+
+## 90-day re-run of the two pure-engine control cells (2026-07-10) — horizon-honesty fix
+
+The paper's headline standard is 90-day (or multi-seed); two PURE-ENGINE cells
+were still cited at 30-day single-seed and flagged in review. Both re-run at 90
+days, same seed (20260713) and args, deterministic. **The LLM contrast
+(`vend/h4-llm.json`) is left at 30 days on purpose — it burns a paid LLM.** The
+committed artifacts (`vend/results.json`, `vend/liar-sweep.json`) are now 90-day;
+the whitepaper §5a/§5c prose is updated from these numbers.
+
+**§5a — perfect-calibration control** (`vend/results.json`; stationary, hot
+smart-store-P90 traffic, static/gvr/a2a/posted, block-5 CIs):
+
+| metric | committed 30-day | **90-day** |
+|---|---|---|
+| a2a − static profit Δ/day | −$0.05 [−0.74, 0.65] | **−$0.05 [−0.25, 0.16]** |
+| a2a − static CS Δ/day | +$1.79 [0.20, 3.38] | **+$0.97 [0.43, 1.51]** |
+| gvr − static profit Δ/day | −$1.92 [−2.75, −1.08] | **−$2.20 [−2.60, −1.80]** |
+| (posted − static profit Δ/day, 90d) | — | +$0.26 [0.10, 0.42] |
+| (posted − static CS Δ/day, 90d) | — | +$0.48 [0.17, 0.78] |
+
+**§5c — finite-stock liar sweep** (`vend/liar-sweep.json`; same perfect-cal
+stationary world, a2a vs a2a-liars25/50/100, liar identity keyed on `uid`):
+
+| liar share | committed 30-day CS Δ/day | **90-day CS Δ/day** | 90-day profit Δ/day |
+|---|---|---|---|
+| 25% | −$0.31 [−0.79, 0.18] | **−$0.10 [−0.23, 0.03]** | +$0.03 [−0.18, 0.23] |
+| 50% | −$0.61 [−1.58, 0.36] | **−$0.15 [−0.46, 0.17]** | +$0.10 [−0.08, 0.27] |
+| 100% | −$0.62 [−1.53, 0.30] | **−$0.30 [−0.59, −0.02]** | −$0.11 [−0.27, 0.06] |
+
+**Verdict guards — all four HOLD at 90 days:** (a) a2a−static profit stays a
+statistical tie (CI includes 0; a *large significant* win over the perfectly-
+calibrated sticker would be a Riley–Zeckhauser bug — it isn't); (b) consumer
+surplus stays a positive win (CI excludes 0); (c) gvr−static stays a loss (CI
+excludes 0); (d) no liar cohort significantly *gains* — every CS delta is
+non-positive and every profit delta CI includes 0. The tighter 90-day window
+*sharpens* §5c: at 100% liars the CS delta is now marginally-significantly
+NEGATIVE (liars end up slightly worse than honest disclosure), strengthening
+the no-exploit result rather than weakening it.
+
+**Reproduction note (Appendix A command bug).** The committed Appendix A / §5c
+line reads `python3 -m vend.scenario --liar-sweep --days N …`, but `vend.scenario`
+has no `__main__`/CLI — that invocation is a **silent no-op** and never wrote the
+artifact. The liar sweep is actually produced by the same `vend.run` harness with
+the registered liar arms:
+`python3 -m vend.run --days 90 --seed 20260713 --arms a2a,a2a-liars25,a2a-liars50,a2a-liars100 --out vend/liar-sweep.json`
+(matches the "Reproduce" line above and the committed artifact config byte-for-byte
+at 30 days). §5a control:
+`python3 -m vend.run --days 90 --seed 20260713 --arms static,gvr,a2a,posted --out vend/results.json`.
+`results.json` reproducibility is pinned by
+`test_default_config_reproduces_committed_artifact` (reads the horizon from the
+artifact, so 90-day reproduces cleanly). Full vend suite: 70 passing.
