@@ -1,35 +1,79 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>VEND — the price you see has already been negotiated</title>
-<meta name="description" content="Scan an item; your agent and the machine negotiate item × quantity × price before the screen renders. Watch the actual negotiation in 3D." />
+<meta name="description" content="Scan a snack; your agent and the machine agree a personal price before the screen lights up — never above the sticker, and you keep the difference. Watch the negotiation in 3D." />
 <link rel="stylesheet" href="nav.css" />
 <style>
   :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
           --gold:#ffe08a; --green:#7fc48f; --violet:#a78bfa; --blue:#8fd0ff; }
   html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
                font-family: ui-monospace, Menlo, monospace; }
-  .wrap { max-width: 640px; margin: 0 auto; padding: 40px 20px 80px; }
-  h1 { font-size: 25px; letter-spacing:.02em; line-height:1.3; margin:0 0 8px; text-wrap:balance; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 34px 20px 80px; }
+  h1 { font-size: 27px; letter-spacing:.02em; line-height:1.25; margin:0 0 10px; text-wrap:balance; }
   h1 b { color: var(--gold); }
   p { color: var(--dim); font-size:13px; line-height:1.7; }
   p b { color: var(--ink); }
   a { color: var(--blue); }
-  .proto { display:inline-block; font-size:11px; letter-spacing:.15em; color:var(--gold);
-           border:1px solid rgba(255,224,138,.4); border-radius:6px; padding:3px 9px; margin-bottom:14px; }
+  .back { font-size:12px; margin-bottom:2px; }
+  .proto { display:inline-block; font-size:10.5px; letter-spacing:.14em; color:var(--gold);
+           border:1px solid rgba(255,224,138,.4); border-radius:6px; padding:3px 9px; margin:6px 0 14px; }
+  .lede { font-size:15px; color:var(--ink); line-height:1.6; margin:0 0 4px; }
+  .lede b { color:var(--gold); font-weight:700; }
+
+  /* ── hero artifact: one scan, one reveal ── */
   .quote { background:#131022; border:1px solid var(--line); border-radius:14px;
-           padding:20px 22px; margin:22px 0; }
+           padding:20px 22px 22px; margin:22px 0 18px; }
   .quote .item { font-size:15px; font-weight:700; }
-  .quote .prices { display:flex; align-items:baseline; gap:14px; margin:10px 0 4px; }
-  .quote .yours { font-size:34px; font-weight:700; color:var(--green); }
-  .quote .list  { font-size:15px; color:var(--dim); text-decoration:line-through; }
-  .quote .per   { font-size:12px; color:var(--dim); }
-  .why { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .per { font-size:12px; color:var(--dim); font-weight:400; }
+
+  .reveal { margin:16px 0 8px; }
+  .reveal-top { display:flex; justify-content:space-between; align-items:baseline;
+                font-size:11px; color:var(--dim); margin-bottom:8px; letter-spacing:.02em; }
+  .reveal-top s { color:var(--dim); }
+  .track { display:flex; height:66px; border-radius:10px; overflow:hidden;
+           border:1px solid var(--line); background:#0e0b1c; }
+  .seg { display:flex; flex-direction:column; justify-content:center; padding:0 13px; min-width:0; overflow:hidden; }
+  .seg .amt { font-size:25px; font-weight:700; line-height:1; }
+  .seg .cap { font-size:10px; letter-spacing:.09em; text-transform:uppercase; margin-top:5px; white-space:nowrap; }
+  .seg.save .amt { font-size:22px; }
+  .seg.pay  { background:linear-gradient(180deg, rgba(127,196,143,.22), rgba(127,196,143,.07)); }
+  .seg.pay  .amt, .seg.pay .cap { color:var(--green); }
+  .seg.save { border-left:1px dashed rgba(255,224,138,.55);
+              background:repeating-linear-gradient(135deg,
+                rgba(255,224,138,.15) 0 8px, rgba(255,224,138,.04) 8px 16px); }
+  .seg.save .amt, .seg.save .cap { color:var(--gold); }
+  .reveal-foot { font-size:11px; color:var(--dim); margin-top:8px; }
+
+  .why { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
   .why span { font-size:11px; color:var(--violet); border:1px solid var(--line);
               border-radius:999px; padding:3px 10px; }
-  .cta { display:inline-block; border:none; cursor:pointer; font-family:inherit;
-         padding:12px 18px; border-radius:10px; font-size:13px; font-weight:700;
-         letter-spacing:.05em; background:var(--gold); color:#0a0812; margin-top:14px; }
-  .back { font-size:12px; }
+
+  .cta { display:block; width:100%; box-sizing:border-box; border:none; cursor:pointer;
+         font-family:inherit; padding:13px 18px; border-radius:10px; font-size:13.5px;
+         font-weight:700; letter-spacing:.04em; background:var(--gold); color:#0a0812; margin-top:16px; }
+  .secondary { text-align:center; margin:10px 0 0; }
+  .link-btn { background:none; border:none; cursor:pointer; font-family:inherit;
+              font-size:12px; color:var(--blue); text-decoration:underline; padding:4px; }
+
+  /* ── the proof, honestly ── */
+  .proof { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:22px 0 12px; }
+  .stat { background:#131022; border:1px solid var(--line); border-radius:12px; padding:14px 15px; }
+  .stat .k { font-size:13px; font-weight:700; margin-bottom:6px; line-height:1.25; }
+  .stat .v { font-size:11.5px; color:var(--dim); line-height:1.55; }
+  .stat .v b { color:var(--ink); }
+  .stat.vi .k { color:var(--violet); }
+  .stat.g  .k { color:var(--gold); }
+  .stat.gr .k { color:var(--green); }
+  .src { font-size:11px; color:var(--dim); line-height:1.6; margin-top:6px; }
+
+  @media (max-width:560px){
+    .proof { grid-template-columns:1fr; }
+    .seg { padding:0 9px; }
+    .seg.pay  .amt { font-size:20px; }
+    .seg.save .amt { font-size:16px; }
+    .seg .cap { font-size:8.5px; letter-spacing:.06em; }
+  }
+
   #theater { position:fixed; inset:0; display:none; background:var(--bg); z-index:50; }
   #theater.on { display:block; }
   #closeTheater { position:fixed; top:14px; right:14px; z-index:100002; display:none;
@@ -53,37 +97,70 @@
 <div class="wrap" id="page">
   <p class="back"><a href="leaderboard.html">← the negotiation leaderboard</a></p>
   <span class="proto">PROTOTYPE · canned match — live A2A matches ship with VEND P1</span>
-  <h1>The price you see has <b>already been negotiated</b>.</h1>
-  <p>
-    You scanned a snack at a machine. Before this screen rendered, <b>your
-    agent</b> and <b>the machine</b> negotiated the whole deal — which item,
-    how many, what price — with SNHP on both sides. The receipt says why.
-    Never above the sticker; same context, same price, for anyone.
-  </p>
 
+  <h1>The price you see has <b>already been negotiated</b>.</h1>
+  <p class="lede">You scanned a snack. Before this screen lit up, <b>your agent</b> and
+    <b>the machine</b> settled a price just for you — never above the sticker, and the
+    difference is yours to keep.</p>
+
+  <!-- HERO ARTIFACT: the price reveal. The full track = the $4.00 sticker; the green
+       slice is what you pay, the gold slice is your saving. Shows "never above the
+       sticker" (nothing sticks out past the tag) and "the gap goes to you" in one look. -->
   <div class="quote">
-    <div class="item">🥪 deli sandwich × 2 <span class="per">(the one expiring tonight)</span></div>
-    <div class="prices">
-      <span class="yours">$2.90</span>
-      <span class="list">$4.00 list</span>
-      <span class="per">per unit</span>
+    <div class="item">🥪 deli sandwich × 2 <span class="per">· the one expiring tonight</span></div>
+
+    <div class="reveal">
+      <div class="reveal-top">
+        <span>your negotiated price</span>
+        <span>sticker <s>$4.00</s></span>
+      </div>
+      <div class="track" role="img"
+           aria-label="You pay $2.90 of a $4.00 sticker; the $1.10 difference is your saving.">
+        <div class="seg pay" style="flex:0 0 72.5%">
+          <span class="amt">$2.90</span><span class="cap">you pay</span>
+        </div>
+        <div class="seg save" style="flex:0 0 27.5%">
+          <span class="amt">$1.10</span><span class="cap">28% off</span>
+        </div>
+      </div>
+      <div class="reveal-foot">A quote can only discount the tag — it can never mark it up.</div>
     </div>
+
     <div class="why">
-      <span>2 units</span><span>expires tonight</span><span>off-peak</span>
-      <span>your bodega BATNA: $4.60</span>
+      <span>×2 units</span><span>expiring tonight</span><span>off-peak</span><span>vs $4.60 nearby</span>
     </div>
-    <button class="cta" id="watch">▶ WATCH HOW YOUR AGENT GOT THIS PRICE</button>
-    <button class="cta" id="watchReal" style="background:transparent;color:var(--gold);border:1px solid rgba(255,224,138,.4)">
-      ⚡ A REAL ENGINE MATCH (2 rounds, 88% of frontier)</button>
+
+    <button class="cta" id="watch">▶ WATCH YOUR AGENT WIN THIS PRICE — IN 3D</button>
+    <p class="secondary">
+      <button class="link-btn" id="watchReal">or watch a real engine match (2 rounds, 88% of frontier) →</button>
+    </p>
   </div>
 
-  <p>
-    What you'll see: the machine opens at sticker, holding its expiring stock
-    high; your agent holds the price rail down and <b>trades across issues</b> —
-    it takes the sandwich the machine needs to move, and a second unit, and
-    gets paid for both in price. That trade is the whole engine:
-    <a href="https://snhp.dev" rel="noopener">snhp.dev</a> ·
-    <a href="leaderboard.html">the leaderboard it's benchmarked on</a>.
+  <!-- THE PROOF, honestly — three measured claims, no paragraph required to read them -->
+  <div class="proof">
+    <div class="stat vi">
+      <div class="k">Never above the sticker</div>
+      <div class="v">Every quote is a discount from the tag, never a markup — <b>an
+        unbreakable rule in the code</b>, not a promise.</div>
+    </div>
+    <div class="stat g">
+      <div class="k">The machine doesn't lose</div>
+      <div class="v">Against a well-set sticker it earns the <b>same</b> — a statistical
+        tie (+$0.08/day). It earns <b>more</b> only where the sticker was mis-set
+        (up to <b>+$2.60/day</b>).</div>
+    </div>
+    <div class="stat gr">
+      <div class="k">You keep the difference</div>
+      <div class="v">Measured shopper surplus over the best posted price a store could
+        run: <b>+$0.73/day</b> per machine — a real win, the interval clears zero.</div>
+    </div>
+  </div>
+
+  <p class="src">
+    Numbers from 90-day paired simulations, <a href="https://snhp.dev" rel="noopener">SNHP</a>
+    whitepaper §5a–§5b. The durable edge is the shopper's surplus, not the machine's margin —
+    a fair sticker gives the machine a tie, a personal price gives every shopper a discount.
+    See <a href="leaderboard.html">the leaderboard it's benchmarked on</a>.
   </p>
 </div>
 

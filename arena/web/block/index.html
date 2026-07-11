@@ -4,15 +4,15 @@
 <meta name="description" content="Twin pixel-art NYC blocks — the STICKER block and the SNHP block — run the same week with the same people. One grays and thins as it converts fewer shoppers; the other keeps its crowd and pops receipts. Every dollar on screen is a real paired delta from the committed 10-venue block twin (reproducible from the seed); the day-by-day ramp and per-walker paths are a representative arc." />
 <meta name="theme-color" content="#0d1020" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230d1020'/%3E%3Crect x='3' y='6' width='3' height='7' fill='%23e58ab4'/%3E%3Crect x='7' y='4' width='3' height='9' fill='%23ffcf8a'/%3E%3Crect x='11' y='7' width='2' height='6' fill='%237fe0ff'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="styles.css?v=1" />
+<link rel="stylesheet" href="styles.css?v=3" />
 <style>
-  #block-back{position:absolute;top:10px;left:12px;z-index:60;
+  #block-back{position:absolute;top:10px;right:12px;z-index:60;
     font:600 12px/1 ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.04em;
     color:#ffcf8a;text-decoration:none;padding:6px 11px;border-radius:8px;
     background:rgba(11,9,22,.82);border:1px solid rgba(255,207,138,.28);
     backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:.9}
   #block-back:hover,#block-back:focus-visible{opacity:1;border-color:rgba(255,207,138,.6);outline:none}
-  @media(max-width:520px){#block-back{top:6px;left:6px;padding:5px 9px;font-size:11px}}
+  @media(max-width:520px){#block-back{top:6px;right:6px;padding:5px 9px;font-size:11px}}
 </style>
 
 <div id="stage">
@@ -24,13 +24,15 @@
   <div id="hud">
     <div id="badge" title="Every dollar on screen is a real paired delta from the committed 10-venue twin (block/gen_week.py → canned-week.json; seed 20260710, bodega-adopts). The counters, per-venue deltas, receipt savings, deal frequency, crowd ratio and spoilage ORDER are reproducible from the seed. The day-by-day divergence ramp and the per-walker choreography are a representative arc, not a magnitude — see meta.provenance.">live sim data · aggregates real · walkers representative</div>
 
-    <div id="label-sticker" class="panel-label sticker"><span class="dot"></span>STICKER BLOCK</div>
-    <div id="label-snhp" class="panel-label snhp"><span class="dot"></span>SNHP BLOCK</div>
+    <div id="title">The same block · the same week · the same people — <b>priced two ways</b></div>
+
+    <div id="label-sticker" class="panel-label sticker"><span class="dot"></span><span class="txt"><span class="lab">STICKER BLOCK</span><span class="sub">one price for everyone</span></span></div>
+    <div id="label-snhp" class="panel-label snhp"><span class="dot"></span><span class="txt"><span class="lab">SNHP BLOCK</span><span class="sub">a fair price for each — never above sticker</span></span></div>
 
     <!-- the flip-clock scoreboard, docked on the seam between the two blocks -->
     <div id="scoreboard">
       <div class="score shopper">
-        <div class="score-label">shoppers kept</div>
+        <div class="score-label">shoppers saved</div>
         <div class="flip" id="score-shopper"><span class="cur">$0</span></div>
       </div>
       <div class="score-vs">the difference is the deal</div>
@@ -58,8 +60,8 @@
   </div>
 </div>
 
-<script src="palette.js?v=1"></script>
-<script src="data.js?v=1"></script>
-<script src="venues.js?v=1"></script>
-<script src="walkers.js?v=1"></script>
-<script src="scene.js?v=1"></script>
+<script src="palette.js?v=3"></script>
+<script src="data.js?v=3"></script>
+<script src="venues.js?v=3"></script>
+<script src="walkers.js?v=3"></script>
+<script src="scene.js?v=3"></script>

@@ -36,20 +36,28 @@ body {
 #hud { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
 #hud > * { position: absolute; }
 
-/* honesty badge — always visible */
+/* honesty badge — de-emphasized, tucked bottom-left (out of the title's way) */
 #badge {
-  top: 10px; left: 50%; transform: translateX(-50%);
-  background: rgba(240, 198, 116, 0.12);
-  border: 1px solid rgba(240, 198, 116, 0.42);
-  color: #f4d38a;
-  font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
-  padding: 4px 10px; border-radius: 999px;
-  pointer-events: auto; text-align: center; line-height: 1.35;
-  /* one line on desktop; wraps (never clips) on a narrow phone so the
-     "walkers representative" disclosure stays fully readable */
-  max-width: calc(100vw - 20px); white-space: normal;
+  bottom: 10px; left: 10px;
+  background: rgba(240, 198, 116, 0.09);
+  border: 1px solid rgba(240, 198, 116, 0.26);
+  color: #cdae76;
+  font-size: 8px; letter-spacing: 0.05em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 999px;
+  pointer-events: auto; text-align: left; line-height: 1.3;
+  max-width: 40vw; white-space: normal;
   box-shadow: 0 4px 16px rgba(0,0,0,0.4);
 }
+
+/* the one-line thesis, top-center — the "what am I looking at" */
+#title {
+  top: 9px; left: 50%; transform: translateX(-50%);
+  font-size: 12.5px; letter-spacing: 0.02em; color: var(--ink);
+  text-align: center; white-space: nowrap;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.9);
+}
+#title b { color: var(--warm); font-weight: 700; }
+@media (max-width: 680px) { #title { font-size: 9.5px; white-space: normal; max-width: 92vw; } }
 
 /* per-panel labels, JS-anchored to the canvas rect */
 .panel-label {
@@ -64,6 +72,9 @@ body {
 .panel-label.sticker .dot { background: var(--gray); }
 .panel-label.snhp { color: #ffdca0; }
 .panel-label.snhp .dot { background: var(--warm); box-shadow: 0 0 8px var(--warm); }
+.panel-label .txt { display: flex; flex-direction: column; line-height: 1.2; }
+.panel-label .sub { font-size: 8px; font-weight: 400; opacity: 0.82; letter-spacing: 0.02em; margin-top: 1px; }
+@media (max-width: 680px) { .panel-label .sub { display: none; } }
 
 /* the flip-clock scoreboard on the seam */
 #scoreboard {

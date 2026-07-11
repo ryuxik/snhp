@@ -14,9 +14,9 @@
   "use strict";
   const B = window.Block, D = B.data, P = B.pal, V = B.venues, WK = B.walkers;
 
-  const LOW_W = 352, PANEL_H = 128, LOW_H = 256;
+  let LOW_W = 352; const PANEL_H = 128, LOW_H = 256;
   const SKY_H = 26, FACADE_TOP = 26, GROUND_Y = 96;   // panel-local y
-  const MARGIN = 6, BAY_W = 34, NBAY = 10;
+  const MARGIN = 6, NBAY = 10; let BAY_W = 34;
   const bayX = i => MARGIN + i * BAY_W;
   const bayCx = i => bayX(i) + BAY_W / 2;
 
@@ -31,7 +31,12 @@
 
   function resize() {
     const availW = window.innerWidth, availH = window.innerHeight;
-    scale = Math.min(availW / LOW_W, availH / LOW_H);       // fractional, nearest-neighbor
+    // backbuffer aspect FOLLOWS the viewport so the street fills the screen
+    // (no side letterbox); the ten venues spread to the new width.
+    LOW_W = Math.max(256, Math.min(680, Math.round(LOW_H * (availW / availH))));
+    BAY_W = Math.floor((LOW_W - 2 * MARGIN) / NBAY);
+    view.width = LOW_W; view.height = LOW_H; c.imageSmoothingEnabled = false;
+    scale = Math.min(availW / LOW_W, availH / LOW_H);       // ≈ fills both axes
     dispW = Math.round(LOW_W * scale); dispH = Math.round(LOW_H * scale);
     view.style.width = dispW + "px"; view.style.height = dispH + "px";
     canvasLeft = (availW - dispW) / 2; canvasTop = (availH - dispH) / 2;
@@ -283,7 +288,8 @@
     // update the DOM ticker (throttled)
     if (realSec - lastTickerAt > 1.4) {
       lastTickerAt = realSec;
-      tickerInner.innerHTML = v.label + " · " + pick[0].replace(/(\-\$[\d.]+)/, '<span class="amt">$1</span>');
+      const item = pick[0].replace(/\s*-\$[\d.]+\s*$/, "");
+      tickerInner.innerHTML = v.label + " · " + item + ' · <span class="amt">saved $' + pick[1].toFixed(2) + "</span>";
       ticker.classList.add("show");
       clearTimeout(ticker._to); ticker._to = setTimeout(() => ticker.classList.remove("show"), 2600);
     }
