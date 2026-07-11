@@ -1,0 +1,334 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Owner sandbox — run SNHP on your own boba menu</title>
+<meta name="description" content="Onboard your own boba SKUs and numbers, then watch a twin-worlds simulation of STATIC menu pricing vs DYNAMIC SNHP pricing on the SAME customers — margin, kept customers, savings, waste, side by side. A faithful in-browser port of the real SNHP engine. Simulation of the mechanism, not a shop's books." />
+<meta name="theme-color" content="#0b0916" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0916'/%3E%3Crect x='5' y='3' width='6' height='2' fill='%23cbb58a'/%3E%3Crect x='5' y='5' width='6' height='8' fill='%23e9dcc4'/%3E%3Crect x='6' y='10' width='2' height='2' fill='%233a2a1f'/%3E%3Crect x='9' y='11' width='2' height='2' fill='%233a2a1f'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="nav.css" />
+<style>
+  :root {
+    --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --faint:#6f6a86;
+    --line:rgba(167,139,250,.22); --gold:#ffe08a; --green:#7fc48f;
+    --violet:#a78bfa; --blue:#8fd0ff; --pink:#e58ab4; --red:#f08a8a; --brown:#cb9a6a;
+    --card:#131022; --card2:#171331;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { background:var(--bg); }
+  body {
+    font-family:var(--mono); color:var(--ink); min-height:100%;
+    -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent;
+    background:radial-gradient(120% 80% at 50% -10%, #17111f 0%, #0b0916 62%);
+  }
+  .snhp-nav { position:sticky; top:0; }
+  .wrap { max-width:1060px; margin:0 auto; padding:20px 16px 64px; }
+  a { color:var(--blue); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  h1 { font-size:26px; line-height:1.16; letter-spacing:.005em; text-wrap:balance; }
+  h1 b { color:var(--gold); }
+  .kick { font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--violet); }
+  .lede { color:var(--dim); font-size:13px; line-height:1.55; margin-top:8px; max-width:64ch; }
+  .lede b { color:var(--ink); }
+
+  .simbadge { display:inline-flex; align-items:center; gap:7px; margin-top:14px;
+    font-size:10.5px; letter-spacing:.05em; color:var(--gold);
+    background:rgba(255,224,138,.08); border:1px solid rgba(255,224,138,.3);
+    border-radius:999px; padding:5px 11px; }
+  .simbadge .dot { width:7px; height:7px; border-radius:50%; background:var(--gold); box-shadow:0 0 8px var(--gold); }
+
+  /* ── panels ─────────────────────────────────────────────────────────── */
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:16px 16px 18px; margin-top:18px; }
+  .panel-h { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .panel-h .t { font-size:13px; font-weight:700; letter-spacing:.02em; }
+  .panel-h .s { font-size:11px; color:var(--faint); }
+
+  /* onboard grid */
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:720px){ .cols { grid-template-columns:1fr; } }
+
+  .rowlbl { display:grid; grid-template-columns:1fr 74px 74px; gap:8px; align-items:center;
+    font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); margin-bottom:6px; padding:0 2px; }
+  .rowlbl.top { grid-template-columns:1fr 74px 74px; }
+  .skurow { display:grid; grid-template-columns:1fr 74px 74px; gap:8px; align-items:center; margin-bottom:8px; }
+  .skurow.top { grid-template-columns:1fr 74px 74px; }
+  input[type=text], input[type=number] {
+    width:100%; font-family:var(--mono); font-size:13px; color:var(--ink);
+    background:#0e0b1c; border:1px solid var(--line); border-radius:9px; padding:9px 10px; }
+  input[type=number] { text-align:right; -moz-appearance:textfield; }
+  input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+  input:focus { outline:none; border-color:rgba(255,224,138,.5); background:#120e24; }
+  .drinkname { display:flex; align-items:center; gap:8px; }
+  .drinkname .emo { font-size:18px; flex:0 0 auto; }
+  .removebtn { cursor:pointer; color:var(--faint); background:none; border:none; font-family:var(--mono);
+    font-size:15px; padding:0 4px; line-height:1; }
+  .removebtn:hover { color:var(--red); }
+  .addbtn { cursor:pointer; font-family:var(--mono); font-size:11.5px; color:var(--blue);
+    background:rgba(143,208,255,.06); border:1px dashed rgba(143,208,255,.3); border-radius:9px;
+    padding:8px 10px; width:100%; margin-top:2px; }
+  .addbtn:hover { background:rgba(143,208,255,.12); }
+  .addbtn[disabled] { opacity:.4; cursor:default; }
+
+  .toggle { display:flex; align-items:center; gap:9px; margin-top:12px; font-size:12px; color:var(--dim); cursor:pointer; }
+  .toggle input { position:absolute; opacity:0; width:0; height:0; }
+  .toggle .sw { position:relative; width:38px; height:22px; border-radius:999px; background:#0e0b1c;
+    border:1px solid var(--line); transition:background .15s, border-color .15s; flex:0 0 auto; }
+  .toggle .sw::after { content:""; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%;
+    background:var(--faint); transition:transform .15s, background .15s; }
+  .toggle input:checked + .sw { background:rgba(255,224,138,.18); border-color:rgba(255,224,138,.5); }
+  .toggle input:checked + .sw::after { transform:translateX(16px); background:var(--gold); }
+  .toggle b { color:var(--ink); }
+
+  .field { margin-top:14px; }
+  .field-l { font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); margin-bottom:8px; }
+  .seg { display:flex; gap:6px; }
+  .seg button { flex:1 1 0; cursor:pointer; font-family:var(--mono); font-size:12px; color:var(--dim);
+    background:#0e0b1c; border:1px solid var(--line); border-radius:9px; padding:10px 6px; transition:all .13s; }
+  .seg button:hover { color:var(--ink); }
+  .seg button.on { color:#0a0812; background:var(--gold); border-color:var(--gold); font-weight:700; }
+  .slider { display:flex; align-items:center; gap:12px; }
+  .slider input[type=range] { flex:1 1 auto; -webkit-appearance:none; appearance:none; height:5px; border-radius:3px;
+    background:linear-gradient(90deg, var(--violet), var(--green)); outline:none; }
+  .slider input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
+    background:var(--gold); border:2px solid #0a0812; cursor:pointer; box-shadow:0 0 8px rgba(255,224,138,.5); }
+  .slider input[type=range]::-moz-range-thumb { width:16px; height:16px; border-radius:50%; background:var(--gold); border:2px solid #0a0812; cursor:pointer; }
+  .slider .val { font-size:14px; font-weight:700; color:var(--gold); min-width:44px; text-align:right; font-variant-numeric:tabular-nums; }
+  .hint { font-size:10.5px; color:var(--faint); line-height:1.5; margin-top:8px; }
+
+  .runrow { display:flex; gap:12px; align-items:center; margin-top:20px; flex-wrap:wrap; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:9px; cursor:pointer;
+    font-family:var(--mono); text-decoration:none; font-size:14px; font-weight:700; letter-spacing:.02em;
+    padding:14px 22px; border-radius:12px; border:1px solid transparent; }
+  .btn.gold { background:var(--gold); color:#0a0812; }
+  .btn.gold:hover { filter:brightness(1.06); text-decoration:none; }
+  .btn.ghost { background:rgba(167,139,250,.08); color:var(--ink); border-color:var(--line); }
+  .btn.ghost:hover { background:rgba(167,139,250,.16); text-decoration:none; }
+  .btn:active { transform:translateY(1px); }
+  .btn[disabled] { opacity:.5; cursor:default; }
+  .runrow .note { font-size:11px; color:var(--faint); }
+
+  /* ── twin worlds ────────────────────────────────────────────────────── */
+  #results { display:none; }
+  #results.show { display:block; }
+  .twin { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:720px){ .twin { grid-template-columns:1fr; } }
+  .lane { border-radius:16px; padding:14px 14px 15px; border:1px solid var(--line); position:relative; overflow:hidden; }
+  .lane.stat { background:linear-gradient(180deg,#141024,#100c1e); }
+  .lane.snhp { background:linear-gradient(180deg,#15121f,#100e1a); border-color:rgba(255,224,138,.3); }
+  .lane-top { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+  .lane-name { font-size:10px; letter-spacing:.14em; text-transform:uppercase; }
+  .lane.stat .lane-name { color:var(--dim); }
+  .lane.snhp .lane-name { color:var(--gold); }
+  .lane-sub { font-size:9.5px; color:var(--faint); }
+  .lane-margin { font-size:30px; font-weight:800; font-variant-numeric:tabular-nums; margin-top:4px; letter-spacing:-.01em; }
+  .lane.stat .lane-margin { color:var(--ink); }
+  .lane.snhp .lane-margin { color:var(--gold); }
+  .lane-margin .u { font-size:12px; font-weight:600; color:var(--faint); margin-left:5px; letter-spacing:0; }
+
+  /* the customer street */
+  .street { position:relative; height:78px; margin:12px 0 12px; border-radius:11px;
+    background:#0d0a1b; border:1px solid rgba(167,139,250,.14); overflow:hidden; }
+  .street .counter { position:absolute; right:0; top:0; bottom:0; width:34px;
+    background:linear-gradient(90deg, transparent, rgba(127,196,143,.08)); border-left:1px dashed rgba(127,196,143,.3); }
+  .street .counter::after { content:"🧋"; position:absolute; right:7px; top:50%; transform:translateY(-50%); font-size:16px; opacity:.6; }
+  .street .exit { position:absolute; left:0; bottom:2px; font-size:8px; color:var(--faint); letter-spacing:.1em; padding:2px 5px; }
+  .cust { position:absolute; left:-24px; width:22px; height:22px; border-radius:50%; display:flex;
+    align-items:center; justify-content:center; font-size:12px; background:#1a1630;
+    border:1px solid var(--line); will-change:transform,opacity; }
+  .cust.buy { border-color:rgba(127,196,143,.55); box-shadow:0 0 0 2px rgba(127,196,143,.12); }
+  .cust.balk { border-color:rgba(240,138,138,.6); }
+  .cust.deal { border-color:var(--gold); box-shadow:0 0 8px rgba(255,224,138,.5); }
+  .cust .badge { position:absolute; top:-9px; left:50%; transform:translateX(-50%); white-space:nowrap;
+    font-size:8px; padding:1px 4px; border-radius:5px; letter-spacing:.02em; }
+  .cust.deal .badge { background:var(--gold); color:#0a0812; font-weight:700; }
+  .cust.balk .badge { background:rgba(240,138,138,.9); color:#1a0808; }
+
+  .tallies { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }
+  .tstat { background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.06); border-radius:9px; padding:7px 8px; text-align:center; }
+  .tstat .v { font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .tstat .k { font-size:8.5px; color:var(--dim); margin-top:2px; letter-spacing:.02em; line-height:1.2; }
+  .lane.stat .tstat .v { color:var(--ink); }
+  .lane.snhp .tstat .v.pos { color:var(--green); }
+  .lane .tstat .v.warn { color:var(--red); }
+
+  /* divergence feed */
+  .feed { margin-top:16px; }
+  .feed-h { font-size:9.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--faint); margin-bottom:9px; }
+  .feed-list { display:flex; flex-direction:column; gap:7px; min-height:44px; }
+  .fitem { display:grid; grid-template-columns:20px 1fr; gap:10px; align-items:start;
+    background:var(--card2); border:1px solid var(--line); border-radius:10px; padding:9px 11px;
+    animation:fin .3s ease both; }
+  @keyframes fin { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+  .fitem .ic { font-size:15px; line-height:1.2; }
+  .fitem .tx { font-size:11.5px; line-height:1.45; color:var(--dim); }
+  .fitem .tx .s { color:var(--red); } .fitem .tx .n { color:var(--gold); } .fitem .tx b { color:var(--ink); }
+
+  /* result summary */
+  .summary { margin-top:18px; }
+  .verdict { font-size:15px; line-height:1.6; color:var(--dim); }
+  .verdict b { color:var(--ink); }
+  .verdict .g { color:var(--green); font-weight:700; } .verdict .gold { color:var(--gold); font-weight:700; }
+  .tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:16px; }
+  @media (max-width:640px){ .tiles { grid-template-columns:1fr 1fr; } }
+  .tile { background:var(--card); border:1px solid var(--line); border-radius:13px; padding:13px 12px; }
+  .tile .v { font-size:23px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+  .tile.g .v { color:var(--green); } .tile.gold .v { color:var(--gold); } .tile.blue .v { color:var(--blue); }
+  .tile .k { font-size:10px; color:var(--dim); margin-top:5px; line-height:1.35; }
+
+  /* guarantees / honesty */
+  .guards { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  .guard { font-size:10.5px; color:var(--green); background:rgba(127,196,143,.07);
+    border:1px solid rgba(127,196,143,.28); border-radius:999px; padding:6px 11px; letter-spacing:.01em; }
+  .guard .ck { margin-right:5px; }
+  .honest { font-size:11.5px; line-height:1.6; color:var(--dim); margin-top:16px;
+    border-left:2px solid var(--gold); padding:4px 0 4px 13px; }
+  .honest b { color:var(--gold); }
+  .footlinks { display:flex; gap:10px; margin-top:20px; flex-wrap:wrap; }
+  .foot-note { font-size:10.5px; color:var(--faint); line-height:1.6; margin-top:22px; }
+  .foot-note code { color:var(--blue); font-size:10px; }
+  #err { color:var(--pink); font-size:13px; padding:20px 0; }
+  @media (prefers-reduced-motion: reduce){ .cust { transition:none !important; } .fitem { animation:none; } }
+</style>
+
+<nav class="snhp-nav" aria-label="SNHP arena sections">
+  <span class="snhp-nav__logo" aria-hidden="true">SNHP</span>
+  <ul class="snhp-nav__list">
+    <li><a href="index.html">Arena</a></li>
+    <li><a href="leaderboard.html">Leaderboard</a></li>
+    <li><a href="submit.html">Submit</a></li>
+    <li><a href="hire.html">Use it</a></li>
+    <li><a href="vend.html">Vend</a></li>
+    <li><a href="boba.html" class="is-active" aria-current="page">Boba</a></li>
+    <li><a href="demo.html">Demo</a></li>
+    <li><a href="/block/">Block</a></li>
+  </ul>
+</nav>
+
+<div class="wrap">
+  <header>
+    <div class="kick">Owner sandbox</div>
+    <h1 style="margin-top:8px;">Run SNHP on <b>your own menu</b>.</h1>
+    <p class="lede">Put in a couple of your drinks and your real numbers. Then watch two versions of the same
+      day play out on the <b>same customers</b>: your <b>static</b> printed menu vs <b>dynamic</b> SNHP quotes —
+      margin, walk-aways, savings and waste, side by side. The pricing here is a faithful in-browser port of the
+      actual SNHP boba engine.</p>
+    <div class="simbadge"><span class="dot"></span> A simulation of the mechanism — not a real shop's books, not a forecast.</div>
+  </header>
+
+  <!-- ── ONBOARD ─────────────────────────────────────────────────────── -->
+  <section class="panel" id="onboard">
+    <div class="panel-h"><span class="t">1 · Your menu</span><span class="s">2–3 drinks + one topping · edit the names &amp; numbers</span></div>
+    <div class="cols">
+      <div>
+        <div class="rowlbl"><span>Drink</span><span style="text-align:right;">Menu $</span><span style="text-align:right;">Cost $</span></div>
+        <div id="drinkRows"></div>
+        <button class="addbtn" id="addDrink">+ add a drink</button>
+      </div>
+      <div>
+        <div class="rowlbl top"><span>Topping (made in batches)</span><span style="text-align:right;">Menu $</span><span style="text-align:right;">Cost $</span></div>
+        <div id="topRow"></div>
+        <label class="toggle">
+          <input type="checkbox" id="expiring" /><span class="sw"></span>
+          <span><b>An extra batch is near expiry today.</b> Lets SNHP steer it into cups before it's tossed (waste salvage).</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="panel-h" style="margin-top:20px;"><span class="t">2 · Today's conditions</span></div>
+    <div class="cols">
+      <div class="field" style="margin-top:0;">
+        <div class="field-l">Foot traffic</div>
+        <div class="seg" id="traffic">
+          <button data-v="quiet">Quiet</button>
+          <button data-v="normal" class="on">Normal</button>
+          <button data-v="rush">Lunch rush</button>
+        </div>
+      </div>
+      <div class="field" style="margin-top:0;">
+        <div class="field-l">Customers flexible on pickup time</div>
+        <div class="slider">
+          <input type="range" id="flex" min="0" max="80" step="5" value="35" />
+          <span class="val" id="flexVal">35%</span>
+        </div>
+        <div class="hint">These are the customers who'll take a +30/+60-min slot for a better price — the room SNHP has to smooth your rush.</div>
+      </div>
+    </div>
+
+    <div class="runrow">
+      <button class="btn gold" id="runBtn">▶ Run a day</button>
+      <button class="btn ghost" id="resetBtn" style="display:none;">↺ Reset to sample menu</button>
+      <span class="note" id="runNote">Runs one simulated day on the numbers above.</span>
+    </div>
+  </section>
+
+  <!-- ── RESULTS (twin worlds + summary) ─────────────────────────────── -->
+  <section id="results">
+    <div class="panel">
+      <div class="panel-h"><span class="t" id="twinTitle">3 · Twin worlds — the same day, the same customers</span><span class="s" id="twinSub">one simulated day</span></div>
+      <div class="twin">
+        <div class="lane stat">
+          <div class="lane-top"><span class="lane-name">Static · your printed menu</span><span class="lane-sub">one price, all day</span></div>
+          <div class="lane-margin"><span id="sMargin">$0</span><span class="u">margin</span></div>
+          <div class="street" id="sStreet"><div class="counter"></div><div class="exit">walk-aways ↙</div></div>
+          <div class="tallies">
+            <div class="tstat"><div class="v" id="sCups">0</div><div class="k">cups</div></div>
+            <div class="tstat"><div class="v warn" id="sBalk">0</div><div class="k">walked away</div></div>
+            <div class="tstat"><div class="v" id="sTop">0</div><div class="k">toppings</div></div>
+            <div class="tstat"><div class="v" id="sCS">$0</div><div class="k">customer surplus</div></div>
+            <div class="tstat"><div class="v" id="sDefer">0</div><div class="k">off-peak</div></div>
+            <div class="tstat"><div class="v warn" id="sWaste">$0</div><div class="k">waste</div></div>
+          </div>
+        </div>
+        <div class="lane snhp">
+          <div class="lane-top"><span class="lane-name">SNHP · dynamic quote</span><span class="lane-sub">negotiated before pay · never above menu</span></div>
+          <div class="lane-margin"><span id="nMargin">$0</span><span class="u">margin</span></div>
+          <div class="street" id="nStreet"><div class="counter"></div><div class="exit">walk-aways ↙</div></div>
+          <div class="tallies">
+            <div class="tstat"><div class="v pos" id="nCups">0</div><div class="k">cups</div></div>
+            <div class="tstat"><div class="v warn" id="nBalk">0</div><div class="k">walked away</div></div>
+            <div class="tstat"><div class="v pos" id="nTop">0</div><div class="k">toppings</div></div>
+            <div class="tstat"><div class="v pos" id="nCS">$0</div><div class="k">customer surplus</div></div>
+            <div class="tstat"><div class="v pos" id="nDefer">0</div><div class="k">off-peak</div></div>
+            <div class="tstat"><div class="v pos" id="nWaste">$0</div><div class="k">waste</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="feed">
+        <div class="feed-h">What SNHP did that a printed menu can't</div>
+        <div class="feed-list" id="feed"></div>
+      </div>
+    </div>
+
+    <div class="panel summary">
+      <div class="panel-h"><span class="t">4 · On your menu, this day</span><span class="s" id="typicalNote"></span></div>
+      <p class="verdict" id="verdict">—</p>
+      <div class="tiles" id="tiles"></div>
+
+      <div class="guards">
+        <span class="guard"><span class="ck">✓</span>Never above your menu</span>
+        <span class="guard"><span class="ck">✓</span>Discount-only (≥60% of menu)</span>
+        <span class="guard"><span class="ck">✓</span>Never below your margin on a full-price buyer</span>
+      </div>
+
+      <div class="honest">
+        <b>Honest note.</b> This is a <b>simulation of the mechanism</b>, not a production forecast or a real
+        shop's books. A live deployment is deliberately more conservative — smaller discounts, tighter guards,
+        and it earns trust before it earns margin. The caveats and the paired 30-day study live on the
+        <a href="boba.html">owner panel</a>.
+      </div>
+
+      <div class="footlinks">
+        <a class="btn ghost" href="boba.html">See the owner panel &amp; caveats →</a>
+        <a class="btn ghost" href="leaderboard.html">The negotiation leaderboard →</a>
+      </div>
+      <p class="foot-note" id="footNote">—</p>
+    </div>
+  </section>
+
+  <p id="err" style="display:none;"></p>
+</div>
+
+<script src="boba-engine.js"></script>
+<script src="boba-sim.js"></script>
+<script>try { navigator.sendBeacon("/hit", JSON.stringify({ p: "boba-sim" })); } catch (e) {}</script>
