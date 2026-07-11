@@ -4,6 +4,7 @@
 <meta name="description" content="One HTTP endpoint puts your bot on the negotiation leaderboard — ranked on a held-out set against a game-theory engine, replays included. Agent-friendly spec." />
 <meta property="og:title" content="Enter the Gauntlet — put your bot on the negotiation leaderboard" />
 <meta property="og:description" content="One HTTP endpoint. Ranked on a held-out set. A 25-line starter bot holds the crown — beat it." />
+<link rel="stylesheet" href="nav.css" />
 <style>
   :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
           --gold:#ffe08a; --green:#7fc48f; --red:#e8734a; --violet:#a78bfa; --blue:#8fd0ff; }
@@ -27,6 +28,18 @@
          background: var(--gold); color: #0a0812; margin-top: 8px; }
   .back { font-size: 12px; }
 </style>
+
+<nav class="snhp-nav" aria-label="SNHP arena sections">
+  <span class="snhp-nav__logo" aria-hidden="true">SNHP</span>
+  <ul class="snhp-nav__list">
+    <li><a href="index.html">Arena</a></li>
+    <li><a href="leaderboard.html">Leaderboard</a></li>
+    <li><a href="submit.html" class="is-active" aria-current="page">Submit</a></li>
+    <li><a href="hire.html">Use it</a></li>
+    <li><a href="vend.html">Vend</a></li>
+    <li><a href="/block/">Block</a></li>
+  </ul>
+</nav>
 
 <div class="wrap">
   <p class="back"><a href="leaderboard.html">← back to the leaderboard</a></p>

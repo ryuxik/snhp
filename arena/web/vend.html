@@ -2,6 +2,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>VEND — the price you see has already been negotiated</title>
 <meta name="description" content="Scan an item; your agent and the machine negotiate item × quantity × price before the screen renders. Watch the actual negotiation in 3D." />
+<link rel="stylesheet" href="nav.css" />
 <style>
   :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
           --gold:#ffe08a; --green:#7fc48f; --violet:#a78bfa; --blue:#8fd0ff; }
@@ -36,6 +37,18 @@
                   border-radius:9px; padding:8px 14px; font-family:inherit; font-size:13px; cursor:pointer; }
   #closeTheater.on { display:block; }
 </style>
+
+<nav class="snhp-nav" aria-label="SNHP arena sections">
+  <span class="snhp-nav__logo" aria-hidden="true">SNHP</span>
+  <ul class="snhp-nav__list">
+    <li><a href="index.html">Arena</a></li>
+    <li><a href="leaderboard.html">Leaderboard</a></li>
+    <li><a href="submit.html">Submit</a></li>
+    <li><a href="hire.html">Use it</a></li>
+    <li><a href="vend.html" class="is-active" aria-current="page">Vend</a></li>
+    <li><a href="/block/">Block</a></li>
+  </ul>
+</nav>
 
 <div class="wrap" id="page">
   <p class="back"><a href="leaderboard.html">← the negotiation leaderboard</a></p>

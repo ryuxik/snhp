@@ -13,8 +13,33 @@
 <meta name="twitter:image" content="https://arena.snhp.dev/og.png" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230B0A12'/%3E%3Crect x='6' y='3' width='4' height='10' fill='%23A78BFA'/%3E%3C/svg%3E" />
 <link rel="stylesheet" href="styles.css?v=5" />
+<link rel="stylesheet" href="nav.css" />
+<style>
+  /* The world (#stage) is position:fixed — an isolating stacking context — so
+     the nav lives INSIDE it as an absolute top bar (z 27): above the canvas and
+     HUD (<=26), below the full-screen overlays (z 30) so onboarding/honest/etc
+     cover it cleanly. Then nudge the top-docked HUD below the bar. */
+  #stage > .snhp-nav { position: absolute; top: 0; left: 0; right: 0; z-index: 27; }
+  #era-banner, #conn-chip { top: calc(var(--gutter) + 48px); }
+  #leaderboard { top: calc(var(--gutter) + 48px); max-height: 38vh; }
+  @media (max-width: 720px) {
+    #era-banner { top: calc(var(--gutter) + 58px); }
+    #conn-chip  { top: calc(var(--gutter) + 100px); }
+  }
+</style>
 
 <div id="stage">
+  <nav class="snhp-nav" aria-label="SNHP arena sections">
+    <span class="snhp-nav__logo" aria-hidden="true">SNHP</span>
+    <ul class="snhp-nav__list">
+      <li><a href="index.html" class="is-active" aria-current="page">Arena</a></li>
+      <li><a href="leaderboard.html">Leaderboard</a></li>
+      <li><a href="submit.html">Submit</a></li>
+      <li><a href="hire.html">Use it</a></li>
+      <li><a href="vend.html">Vend</a></li>
+      <li><a href="/block/">Block</a></li>
+    </ul>
+  </nav>
   <canvas id="view"></canvas>
   <canvas id="scanlines"></canvas>
   <div id="vignette"></div>

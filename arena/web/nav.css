@@ -1,0 +1,64 @@
+/* SNHP arena — shared top navigation.
+   Everything is scoped under .snhp-nav and colors are hardcoded (not inherited
+   from each page's own CSS vars) so the bar renders IDENTICALLY over every page.
+   Dark pixel-gothic, kin to the arena: violet hairline, gold active, mono type.
+   Sits at z-index 28 — above the HUD (<=26) and page content, but below the
+   full-screen 3D replay theater (z-index 50) so a replay still covers it. */
+.snhp-nav {
+  position: sticky; top: 0; z-index: 28;
+  box-sizing: border-box; width: 100%;
+  display: flex; align-items: center; gap: 12px;
+  padding: 7px 16px;
+  background: rgba(11, 9, 22, 0.88);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(167, 139, 250, 0.22);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.38);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  -webkit-font-smoothing: antialiased;
+}
+.snhp-nav *, .snhp-nav *::before, .snhp-nav *::after { box-sizing: border-box; }
+
+.snhp-nav__logo {
+  flex: 0 0 auto; user-select: none;
+  color: #a78bfa; font-size: 14px; line-height: 1; letter-spacing: 0.18em;
+  font-weight: 700;
+  filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.55));
+}
+
+.snhp-nav__list {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+  margin: 0; padding: 0; list-style: none;
+  /* basis 0 + grow: take the space left of the logo and wrap the pills within
+     it on narrow viewports, instead of overflowing in one line */
+  flex: 1 1 0; min-width: 0;
+}
+.snhp-nav__list li { margin: 0; padding: 0; list-style: none; }
+
+.snhp-nav a {
+  display: inline-block;
+  padding: 6px 10px; border-radius: 8px;
+  border: 1px solid transparent;
+  color: #a29dbb; font-size: 12px; letter-spacing: 0.03em; line-height: 1.1;
+  text-decoration: none; white-space: nowrap;
+  transition: color .14s ease, background .14s ease, border-color .14s ease;
+}
+.snhp-nav a:hover { color: #f0eff5; background: rgba(167, 139, 250, 0.12); }
+.snhp-nav a:focus-visible { outline: 2px solid #c4b1ff; outline-offset: 2px; }
+
+/* current page — warm gold, the arena's accent */
+.snhp-nav a.is-active,
+.snhp-nav a[aria-current="page"] {
+  color: #ffe08a;
+  background: rgba(255, 224, 138, 0.12);
+  border-color: rgba(255, 224, 138, 0.34);
+}
+
+/* narrow viewports: the row simply wraps to two lines — no toggle, no JS */
+@media (max-width: 640px) {
+  .snhp-nav { padding: 6px 12px; gap: 9px; }
+  .snhp-nav a { padding: 5px 8px; font-size: 11.5px; }
+}
+@media (max-width: 384px) {
+  .snhp-nav { gap: 7px; }
+  .snhp-nav a { padding: 5px 7px; font-size: 11px; letter-spacing: 0.02em; }
+}
