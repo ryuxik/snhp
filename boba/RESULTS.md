@@ -795,3 +795,50 @@ is the assumption the design rests on, stated plainly rather than buried.
 - **The learned table is a coarse 16-bucket lookup**, not swept for bucket
   granularity; the buffer sits on a flat [0.25, 1.0] plateau (any value there
   yields the identical, seed-robust policy), so it is not finely tuned.
+
+---
+
+# P2 — Divergence profiler, IC-close, and deal plausibility (Jul 2026)
+
+Reproduce: scratchpad harnesses `divergence.py` / `ic_close.py` / `validate.py`
+(paired 30 days, seed 20260710, flex=0.35, vs the strong `static` menu). All
+new engine knobs default OFF = byte-identical (65 tests green).
+
+## The divergence principle (value optimizer, not menu optimizer)
+A dimension is worth negotiating iff **(1)** buyer value and seller COST diverge
+across its levels, **(2)** the divergence's seller side is OBSERVABLE (so the
+trade is real, not a WTP guess), AND **(3)** the deal's price is floored on
+something VERIFIABLE (seller cost/scarcity, or an attested buyer type). The
+profiler ranks each dimension's created surplus split into raw vs IC-robust.
+Timing (queue-observable) and steering (stock-observable) qualify; sweetness/ice
+have zero cost-gradient → excluded; raw-WTP looker-conversion is divergent but
+NOT verifiable → the leak.
+
+## IC-close — the leak, and the hard floor
+The full cart is **+$349/day honest but −$555/day if every buyer lies** (a $904
+leak that swamps the edge): the price split keys off disclosed WTP, so a
+would-pay-full buyer disguises as a non-buyer ("looker") and converts the menu
+margin into a discount. Two findings:
+- **A capacity shadow-price floor FAILS** to close it (all-liars unchanged at
+  −$555) — the leak is not a capacity-pricing problem, and it rides deferred/
+  off-peak slots where capacity is not scarce. (Explored, reverted.)
+- **Refusing looker-conversion (`quote_lookers=False`, existing toggle) is a
+  HARD FLOOR:** all-liars = **exactly the menu (+$0.0)** — the shop can never
+  earn below its posted margin no matter how many customers game it. Honest
+  no-looker = +$195/day; 50%-liars = +$92/day. The extra $154 (converting
+  genuine non-buyers) is unlocked by **attestation**, which is native to boba's
+  app-native ordering channel. Structural IC needs the floor to bind on the
+  UNIT sold (physical stock in vend); boba's make-to-order drink can't, so its
+  IC comes from the no-looker floor + attestation.
+
+## Deal plausibility (`qty_appetite`, `min_price_frac`)
+The raw engine produces implausible deals at the relievable peak (hours 12–13,
+also the understaffed/high-balk window): ~80%-off qty-3 relief-maxed bundles
+whose "profit" is a relief FORECAST, not cash. Two opt-in clamps fix it:
+`qty_appetite` (don't upsell a cup the buyer values below cost — the qty analog
+of the shipped topping fix) and `min_price_frac` (no deal below a fraction of
+the menu; caps the relief-forecast's price pull). At `min_price_frac=0.6` (≤40%
+off) every deal is believable AND the shop makes MORE (over-discounting was
+leaving money on the table): **attested +$497/day, no-attest-safe +$253/day,
+worst-case all-liars +$0.0 = the menu.** The clamps are the recommended deploy
+config; defaults stay off so P0/P1 artifacts reproduce byte-for-byte.

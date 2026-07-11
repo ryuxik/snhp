@@ -1,0 +1,56 @@
+{
+ "meta": {
+  "what": "A real, ship-config SNHP negotiation at a boba shop: your agent trades on the things you don't care about (when you pick up, which topping, how many) for a better price \u2014 never above the menu.",
+  "reproduce": "boba.policies.cart_nash(..., quote_lookers=<attested>, qty_appetite=True, min_price_frac=0.6)",
+  "guarantee": "Every quote is discount-only and floored: you never pay above the menu, and the shop never earns below its menu margin \u2014 even if every customer games it.",
+  "seed": 20260710
+ },
+ "headline": {
+  "attested_per_day": 497,
+  "no_attest_per_day": 253,
+  "worst_case_per_day": 0,
+  "consumer_surplus_per_day": 509,
+  "note": "vs a strong, profit-optimal menu (not a strawman), 30 paired days. Worst case (everyone lies, no attestation) = exactly the menu."
+ },
+ "heroes": {
+  "timing": {
+   "drink": "Brown Sugar Boba",
+   "qty": 1,
+   "tops": [
+    "pearls"
+   ],
+   "slot_min": 60,
+   "menu": 8.1,
+   "pay": 5.32,
+   "save": 2.78,
+   "off": 34,
+   "lever": "You're flexible on pickup",
+   "shop": "moved you off the 3pm crush \u2014 freed a peak slot to sell to someone in a hurry",
+   "why": [
+    "negotiated cart",
+    "+60-min pickup frees peak capacity",
+    "pearls from the expiring batch",
+    "$2.78 under the menu"
+   ]
+  },
+  "group": {
+   "drink": "Matcha Latte",
+   "qty": 3,
+   "tops": [
+    "pudding"
+   ],
+   "slot_min": 60,
+   "menu": 25.35,
+   "pay": 15.21,
+   "save": 10.14,
+   "off": 40,
+   "lever": "Buying for the group",
+   "shop": "one prep run for the whole order \u2014 real batch economies",
+   "why": [
+    "negotiated cart",
+    "+60-min pickup frees peak capacity",
+    "$10.14 under the menu"
+   ]
+  }
+ }
+}

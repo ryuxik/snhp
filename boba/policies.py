@@ -194,6 +194,10 @@ class CartPolicy:
     # competitor prices. Default OFF = byte-identical to P0 (a no-op for honest
     # buyers regardless, since their disclosed valuation IS their claim).
     market_floor: bool = False
+    # plausibility clamps (default off = byte-identical to P0): cap qty to the
+    # buyer's genuine appetite, and floor the price at a fraction of the menu.
+    qty_appetite: bool = False
+    min_price_frac: float = 0.0
 
     def boards(self, state: ShopState) -> tuple[dict[str, float], dict[str, float]]:
         return sticker_boards()
@@ -202,7 +206,9 @@ class CartPolicy:
         return cart_nash(state, consumer, self.min_gain_abs, self.min_gain_frac,
                          defer_slots=self.defer_slots, salvage=self.salvage,
                          quote_lookers=self.quote_lookers,
-                         market_floor=self.market_floor)
+                         market_floor=self.market_floor,
+                         qty_appetite=self.qty_appetite,
+                         min_price_frac=self.min_price_frac)
 
 
 def cart_nash(state: ShopState, consumer: Consumer,
@@ -212,7 +218,9 @@ def cart_nash(state: ShopState, consumer: Consumer,
               salvage: bool = True,
               quote_lookers: bool = True,
               outside_consumer: Consumer | None = None,
-              market_floor: bool = False) -> CartDeal | None:
+              market_floor: bool = False,
+              qty_appetite: bool = False,
+              min_price_frac: float = 0.0) -> CartDeal | None:
     """Nash bargaining over the cart outcome space, in dollars.
 
     The disagreement point is one consistent no-deal EVENT for both sides:
@@ -311,15 +319,25 @@ def cart_nash(state: ShopState, consumer: Consumer,
             for q in range(1, QTY_CAP + 1):
                 if "pearls" in T and pearls_stocked < q:
                     break
+                # plausibility: don't upsell a cup the buyer values below cost
+                # (relief/topping harvest inflating qty is "a bug wearing a
+                # bundle" — world.bundle_value note; opt-in, off = byte-ident.)
+                if qty_appetite and q > 1 and \
+                        consumer.wtp[d] * consumer.qty_decay ** (q - 1) < DRINK_COST[d]:
+                    break
                 lad += consumer.qty_decay ** (q - 1)
                 val = (consumer.wtp[d] + tval) * lad
                 cost = q * (DRINK_COST[d] + tcost)
                 listv = q * (DRINK_PRICE[d] + tlist)
-                if cost >= listv:
+                # plausibility floor: no deal below min_price_frac of the menu
+                # (a real shop's deepest genuine markdown; caps the relief-
+                # forecast's price pull; 0.0 = off = byte-identical).
+                lo = max(cost, min_price_frac * listv)
+                if lo >= listv:
                     rungs = [round(listv, 2)]
                 else:
-                    step = (listv - cost) / (PRICE_RUNGS - 1)
-                    rungs = [round(cost + i * step, 2)
+                    step = (listv - lo) / (PRICE_RUNGS - 1)
+                    rungs = [round(lo + i * step, 2)
                              for i in range(PRICE_RUNGS)]
                 for s in slots:
                     if s > 0 and slot_room[s] < q:
