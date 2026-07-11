@@ -388,7 +388,8 @@ privately-reported disagreement point under a linear frontier, any correlation)
 already forces it. The genuinely non-vacuous content of this theorem is the
 **WTP / excess-rent channel and the buffer condition (a′)** — which live in the
 *inefficient* region the buffer deliberately creates, exactly where van
-Damme–Lang's efficient-mechanism theorems say nothing. This also marks the open
+Damme–Lang's efficient-mechanism theorems say nothing. This also marked the next
 frontier: drop linearity (multi-issue logrolling → a concave frontier) and Thm 1
-stops covering us, so whether the coupling still self-cancels is genuinely open
-(whitepaper §8).
+stops covering us — and the coupling *still self-cancels*, resolved positively in
+the companion `THEOREM-IC-MULTI.md` (κ cancels; the multi-good condition is the
+curvature-independent Σ(ℓ−c) ≤ 2β; whitepaper §8).
