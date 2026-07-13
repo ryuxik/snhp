@@ -67,3 +67,6 @@ snhp/market/data/
 # Claude Code local session state (worktrees, plans, local settings).
 # Force-add specific project config (e.g. .claude/launch.json) with `git add -f` if wanted.
 .claude/
+
+# Generated F1 fidelity fixtures (regenerated from the Python engine in CI)
+core/js/test/fixtures.json

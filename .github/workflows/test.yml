@@ -35,3 +35,27 @@ jobs:
         # `slow` = perf-budget tests (deselect with -m 'not slow'); run from the
         # repo root so the vertical packages import via rootdir on sys.path.
         run: python -m pytest -q -m "not slow" -p no:cacheprovider
+
+  js-fidelity:
+    # The general JS engine (core/js/) must stay byte-for-byte with the Python
+    # engine. Fixtures are regenerated from the Python source of record every run
+    # (not committed — a stale committed fixture would hide JS drift), then the
+    # node harness asserts JS == Python on all of them.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install python deps (for the fixture dumper)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[test,arena,prod]"
+      - name: Regenerate F1 fixtures from the Python engine
+        run: python core/js/test/dump_fixtures.py
+      - name: JS engine matches Python (F1)
+        run: node --test core/js/test/*.test.mjs
