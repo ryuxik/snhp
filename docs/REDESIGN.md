@@ -21,7 +21,7 @@ move with shop state**. So the general engine is:
 
 ---
 
-## Phase 0 — Safety net + hygiene *first*  (low-risk, reversible)
+## Phase 0 — Safety net + hygiene *first*  (low-risk, reversible) — ✅ done (`eb1f4de`)
 
 Turn on the net before refactoring; cut the unambiguous dead weight.
 
@@ -35,7 +35,7 @@ Turn on the net before refactoring; cut the unambiguous dead weight.
 - [ ] **Dedup web helpers** → `web/util/{money,rng}.js` (money/PRNG re-inlined in boba-sim.js, demo-scene.js, block/scene.js, par.js, boba-engine.js, block/data.js)
 - [ ] Code review → commit.
 
-## Phase 1 — The general engine + its invariant tests, together  (the foundation)
+## Phase 1 — The general engine + its invariant tests, together  (the foundation) — ✅ done (`ba64f14`)
 
 Create `core/` (the offer-graph engine). **Write the Tier-1 property tests first**;
 nothing merges to the engine until they're green over *generated arbitrary graphs*.
@@ -59,7 +59,7 @@ Tier-1 property tests (must exist before any vertical port):
 
 - [ ] Code review → commit.
 
-## Phase 2 — Boba as the golden-master, gated
+## Phase 2 — Boba as the golden-master, gated — ✅ done (`c719583` Python, `4d0faed` JS+F1)
 
 - [ ] Express boba as an `OfferGraph` instance behind a **default-OFF adapter**
 - [ ] **G1 golden** — the general engine reproduces boba's committed MC band (+$497 attested / +$253 no-attest / **+$0 worst-case**)
@@ -68,13 +68,12 @@ Tier-1 property tests (must exist before any vertical port):
 - [ ] **New engine primitive:** `batch_economies` cost component — makes quantity/batch a *real* standalone lever (today it's $0 standalone; see demo note)
 - [ ] Code review → commit.
 
-## Phase 3 — Vend + fashion, then retire duplication + reorg
+## Phase 3 — Vend golden + scope corrections  *(reorg deferred — see below)*
 
-- [ ] Add `scarcity_shadow` + finite inventory → reproduce **vend ~+$33/day**
-- [ ] Add `CHOICE` dims + multi-timescale clock + posted-mode `menu()` → reproduce **fashion 91%/97% sell-through**
-- [ ] **Archive** research sims → `research/sims/` (`buyer wholesale vintage bakeshop slots fashion`, and `boba`/`block` sims once adapters exist); move ~60 loose `snhp/` lab scripts → `research/snhp_lab/`
-- [ ] Land the target tree (below)
-- [ ] Code review → commit.
+- [x] **vend golden** — `core/adapters/vend.py` + `scarcity_shadow` reproduces `nash_quote` at **100% equivalence** (0/8,000+ quotes) and byte-exact sim (control −$0.046, calibrated +$0.75, fairness-harvest ~$42.6). The Phase-1 two-cost-split divergence was real (10/2162) and closed via a generic default-OFF `CostQuote.rungs` hook. *(committed `3ac6e10`)*
+- [x] **fashion = SCOPE BOUNDARY, not a golden.** Verified fashion is a **posted-markdown** mechanism (`price_board(week, inv)` — a seasonal markdown *schedule* clearing inventory against strategic waiters), not bilateral A2A negotiation: no buyer, no Nash split, no disagreement point. Forcing it through the negotiation engine would be a contortion. The engine's remit is **bilateral negotiation**, now proven by *two* independent verticals (boba + vend). Posted-markdown stays its own mechanism.
+- [ ] **Tree reorg — DEFERRED (entangled; do as a dedicated CI-gated effort, not mid-stream).** Verification found the audit's "archive 6 sims" list is not clean: **`block/` imports five of them** (`block/venues.py`: `from fashion/bakeshop/slots/vintage import ...`; `block/bundles.py`: `buyer`, `slots`) as its per-venue implementations, and `block` generates the trailer data + is the Phase-5 substrate. No *product* code imports the sims (gametheory/snhp/arena/par/vend are clean), so it's not a deploy risk — but a blind `mv` breaks `block` + CI. The safe reorg (move the coupled `block`+sims cluster under one `sims/` parent + a `conftest`/`.pth` sys.path shim so `import fashion` still resolves, changing zero import statements) is a careful step with low product value and real breakage risk — sequenced AFTER the funnel/experiment, not before.
+- [x] Code review (equivalence-to-reference is the gate) → commit.
 
 ## Phase 4 — Rebuild the funnel on the general engine  (UI → design loop)
 
