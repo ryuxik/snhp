@@ -63,3 +63,7 @@ SNHP_Whitepaper/INTERNAL_*
 
 # Cached real-market datasets fetched by snhp/market/data_sources.py
 snhp/market/data/
+
+# Claude Code local session state (worktrees, plans, local settings).
+# Force-add specific project config (e.g. .claude/launch.json) with `git add -f` if wanted.
+.claude/
