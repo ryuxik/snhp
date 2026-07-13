@@ -47,6 +47,15 @@ class CostQuote:
     c_eff: float
     credit: float = 0.0
     floors_at_list: bool = False
+    # Optional bespoke price-rung grid (TOTAL prices for the whole config at
+    # this qty), supplied by a vertical whose ladder the engine's even
+    # floor→list spacing cannot reproduce. Default None → the engine builds
+    # the rungs itself (unchanged for boba and every generic graph). vend uses
+    # it to reproduce scenario.enumerate_outcomes' TWO-COST split: the rungs
+    # are floored at the RAW per-unit c_eff (salvage/unit_cost) and rounded
+    # PER-UNIT (×qty), while `c_eff` above stays the displacement-adjusted cost
+    # the gain/disagreement are measured against (core/adapters/vend.py).
+    rungs: tuple[float, ...] | None = None
 
 
 class CostModel(Protocol):

@@ -138,6 +138,17 @@ class QuoteOpts:
                                     # (value−c_eff)-ranked nested topping
                                     # prefixes, policies.py:298-314) while the
                                     # disagreement matches best_menu_order.
+    cand_filter: object = None      # optional (graph, state, buyer, config) →
+                                    # bool restricting the ENTIRE candidate set
+                                    # — both the disagreement counterfactual AND
+                                    # the search. Default None = admit all
+                                    # available configs. vend maps its
+                                    # nash_quote `allowed` (an intent SKU/qty
+                                    # constraint, scenario.py:206) here: it gates
+                                    # the board disagreement too, so a
+                                    # substitutes-forbidden buyer's threat point
+                                    # is their best ALLOWED board bundle, not the
+                                    # unrestricted one (vend/api.py:152).
 
 
 @dataclass
@@ -169,6 +180,7 @@ class _Econ:
     floors: bool
     immediate: bool
     slot: int
+    rungs: tuple[float, ...] | None = None   # bespoke grid (core.cost.CostQuote)
 
 
 def _list_value(graph: OfferGraph, config: Config, qty: int) -> float:
@@ -220,7 +232,7 @@ def _config_econ(graph: OfferGraph, state: ShopState, buyer: Buyer,
     cq: CostQuote = graph.cost.quote(graph, state, config, qty)
     immediate, slot = _fulfillment(graph, config)
     return _Econ(qty, val, listv, cq.c_eff, cq.credit, cq.floors_at_list,
-                 immediate, slot)
+                 immediate, slot, cq.rungs)
 
 
 def _exceeds_appetite(graph: OfferGraph, state: ShopState, buyer: Buyer,
@@ -357,7 +369,8 @@ def quote(graph: OfferGraph, state: ShopState, buyer: Buyer, *,
     pin = _pref_pins(graph, state, buyer) if opts.prune_free else {}
 
     # candidate configs (available, dependency-valid, matching the constraint,
-    # within the buyer's qty appetite when that clamp is on)
+    # admitted by the intent constraint, within the buyer's qty appetite)
+    cf = opts.cand_filter
     cand: list[Config] = []
     for c in graph.enumerate_configs(pin=pin):
         if not _matches(c, config):
@@ -365,6 +378,8 @@ def quote(graph: OfferGraph, state: ShopState, buyer: Buyer, *,
         q = qty_of(graph, c)
         if not _available(graph, state, c, q):        # A1 HARD gates
             continue
+        if cf is not None and not cf(graph, state, buyer, c):   # intent gate
+            continue                                  # (disagreement + search)
         if opts.qty_appetite and q > 1 and _exceeds_appetite(
                 graph, state, buyer, c, q, opts.qty_appetite_scope):
             continue
@@ -431,7 +446,12 @@ def quote(graph: OfferGraph, state: ShopState, buyer: Buyer, *,
         surv = surv0 if e.immediate else 1.0        # deferred slots are balk-free
         defer = buyer.defer_cost(e.slot)
         lo = max(e.cost, opts.min_price_frac * e.listv)
-        for p in _rungs(lo, e.listv, e.floors, opts.price_rungs):
+        # A vertical may supply its own rung grid (core.cost.CostQuote.rungs)
+        # when the engine's even floor→list spacing can't reproduce it (vend's
+        # two-cost split + per-unit rounding); else build the rungs here.
+        rungs = (e.rungs if e.rungs is not None
+                 else _rungs(lo, e.listv, e.floors, opts.price_rungs))
+        for p in rungs:
             gs = surv * (p - e.cost) + e.credit - d_seller
             gb = surv * (e.val - p) + (1.0 - surv) * s_out - defer - d_buyer
             if gs >= -1e-9 and gb >= -1e-9:
