@@ -4,7 +4,7 @@
   "seed": 20260710,
   "price_guarantee": "You never pay above the menu \u2014 a discount-only rule enforced in the code.",
   "margin_note": "The shop discounts only against value the deal creates: waste it clears and batch savings bank immediately, while freed-capacity value is realized only when the freed slot refills. Net figures are simulated across a season, which models slot refill and cannibalization.",
-  "attestation": "Attestation is a verified signal from your ordering app that your flexibility and budget are what you claim \u2014 issued by the app, it's what stops customers lying to grab a discount.",
+  "attestation": "Attestation is proof from your ordering app of the commitments the deal is priced on \u2014 the pickup slot you actually take, the order you actually place \u2014 so a discount is earned by what you did, not what you claimed. It never asks your budget; it's what stops customers gaming the quote.",
   "take_rate": "Pricing TBD. The figures shown are gross of any SNHP fee.",
   "basis": "Simulated, not a real shop's books: paired Monte-Carlo \u2014 each dynamic day run against the same crowd as a strong, profit-optimal modeled menu (not a strawman), 30 paired days.",
   "reproduce": "boba.policies.cart_nash(..., quote_lookers=<attested>, qty_appetite=True, min_price_frac=0.6)"
