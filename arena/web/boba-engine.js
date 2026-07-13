@@ -470,6 +470,94 @@
       salvage: salvageUsed, why };
   }
 
+  // ── price a FIXED cart (the consumer-facing order surface) ───────────────
+  // cart_nash MAXIMIZES over every (drink, tops, qty, slot); the consumer demo
+  // instead lets a person build ONE specific cart and drive the levers by hand.
+  // priceCart runs the IDENTICAL cart_nash pricing math — same disagreement
+  // point (the menu counterfactual), same min-price floor, same 8-rung Nash
+  // split scored by [gS·gB, gS+gB], same min-gain floor — but for the caller's
+  // fixed cart (cart_nash maximizes the config; here the config is given). So every
+  // number it returns is a real engine price at the menu you pass in, not a
+  // fabricated delta. HARD INVARIANT: price is never above the menu (listv);
+  // when no split beats the disagreement point the buyer simply pays the menu.
+  //   cart: { drink, tops:[names], qty, slotTicks }   (slotTicks ∈ {0,3,6})
+  function priceCart(ctx, s, c, cart, opts) {
+    const o = opts || {};
+    const minPriceFrac = o.minPriceFrac !== undefined ? o.minPriceFrac : 0.6;
+    const minGainAbs = o.minGainAbs !== undefined ? o.minGainAbs : 0.25;
+    const minGainFrac = o.minGainFrac !== undefined ? o.minGainFrac : 0.10;
+    const salvage = o.salvage !== undefined ? o.salvage : true;
+    const rigidMult = o.rigidDeferMult != null ? o.rigidDeferMult : 1;
+
+    const drink = cart.drink;
+    const tops = (cart.tops || []).slice();
+    const qty = cart.qty || 1;
+    const ss = cart.slotTicks || 0;
+
+    const b = balkProb(s);
+    const pearlsStocked = pearlStock(s);
+    const sOut = outsideSurplus(ctx, c);
+
+    const ceff = {};
+    for (const t of ctx.tops) ceff[t] = topCEff(ctx, s, t, salvage);
+
+    // disagreement point — byte-identical to cart_nash (the menu counterfactual)
+    const menu = bestMenuOrder(ctx, c, ctx.DRINK_PRICE, ctx.TOP_PRICE, pearlsStocked >= QTY_CAP);
+    let dB, dS;
+    if (menu.drink !== null && menu.surplus > 0 && menu.surplus >= sOut) {
+      let marginMenu = menu.qty * (ctx.DRINK_PRICE[menu.drink] - ctx.DRINK_COST[menu.drink]);
+      for (const t of menu.tops) marginMenu += menu.qty * (ctx.TOP_PRICE[t] - ceff[t]);
+      dB = (1.0 - b) * menu.surplus + b * sOut;
+      dS = (1.0 - b) * marginMenu;
+    } else { dB = sOut; dS = 0.0; }
+
+    // the caller's fixed cart, valued and costed exactly as cart_nash does
+    let tval = 0, tcost = 0, tlist = 0;
+    for (const t of tops) { tval += c.top_wtp[t]; tcost += ceff[t]; tlist += ctx.TOP_PRICE[t]; }
+    const lad = qtyLadder(c.qty_decay, qty);
+    const val = (c.wtp[drink] + tval) * lad;
+    const cost = qty * (ctx.DRINK_COST[drink] + tcost);
+    const listv = round2(qty * (ctx.DRINK_PRICE[drink] + tlist));
+
+    const loP = Math.max(cost, minPriceFrac * listv);
+    let rungs;
+    if (loP >= listv) rungs = [round2(listv)];
+    else { const step = (listv - loP) / (PRICE_RUNGS - 1); rungs = []; for (let i = 0; i < PRICE_RUNGS; i++) rungs.push(round2(loP + i * step)); }
+
+    const surv = ss === 0 ? (1.0 - b) : 1.0;
+    const r = capacityRelief(ctx, s, qty, ss);
+    const dis = deferCost(c, ss, rigidMult);
+    const slotRoomOk = ss === 0 ? true : slotCapacity(ctx, s, s.tick + ss) >= qty;
+
+    let bestP = null, bestScore = null;
+    for (const p of rungs) {
+      const gs = surv * (p - cost) + r - dS;
+      const gb = surv * (val - p) + (1.0 - surv) * sOut - dis - dB;
+      if (gs >= -1e-9 && gb >= -1e-9) {
+        const score = [gs * gb, gs + gb];
+        if (bestScore === null || score[0] > bestScore[0] ||
+            (score[0] === bestScore[0] && score[1] > bestScore[1])) { bestP = p; bestScore = score; }
+      }
+    }
+    // same min-gain floor as cart_nash (line ~456): the winning split must clear a
+    // minimum SELLER gain over the disagreement point, else there is no deal and the
+    // buyer pays the menu — so the demo never shows a sub-floor "saving" the shipped
+    // policy would suppress. gs at bestP == cart_nash's (uS − dS).
+    if (bestP !== null) {
+      const gsBest = surv * (bestP - cost) + r - dS;
+      if (gsBest < Math.max(minGainAbs, minGainFrac * listv)) bestP = null;
+    }
+    const salvageUsed = salvage && tops.indexOf(ctx.batchTop) >= 0 && pearlsExpiringExcess(ctx, s);
+    // no feasible split (or the deferral slot has no room) → pay the menu
+    const price = (bestP === null || !slotRoomOk) ? listv : Math.min(bestP, listv);
+    return {
+      feasible: bestP !== null && slotRoomOk,
+      price: round2(price), listv: listv, cost: round2(cost), value: round2(val),
+      save: round2(listv - price), slotTicks: ss, slotRoomOk: slotRoomOk,
+      relief: round2(r), defer: round2(dis), salvageUsed: salvageUsed,
+    };
+  }
+
   // ── accounting (run._settle) ────────────────────────────────────────────
   function newMetrics() {
     return { revenue: 0, ingredient_cost: 0, waste_cost: 0, cups: 0, toppings: 0,
@@ -620,7 +708,7 @@
     // math / inversion
     erfc, sf, appealForList, hourOf,
     // engine
-    compile, bestMenuOrder, bundleValue, outsideSurplus, cartNash,
+    compile, bestMenuOrder, bundleValue, outsideSurplus, cartNash, priceCart,
     generateDay, simulateDay, runDays,
     // low-level (exposed for the validation invariant checks)
     openShop, serveStatic, serveSnhp, balkProb, pearlStock, queueDrinks,

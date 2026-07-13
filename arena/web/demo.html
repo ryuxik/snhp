@@ -1,24 +1,20 @@
+<!doctype html>
+<html lang="en">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>SNHP — walk into the bodega, watch your cart price itself</title>
-<meta name="description" content="A first-person pixel bodega. Answer three posters on the door, walk in, and watch each item on the register count down from its sticker price to the price the agent negotiated for you — silently, never above sticker. Every dollar is a recorded run of buyer/preflearn.py (active preference learning), not a script." />
+<title>BOBA — order boba, your agent quietly gets you a better price</title>
+<meta name="description" content="Walk up to the boba shop tablet and build your order the normal way. As you go, money-saving options surface right in the order — a later off-peak pickup, an extra cup, today's fresh pearl batch — and the price ticks down, never above the menu. Every number is computed live by the SNHP boba engine." />
 <meta name="theme-color" content="#0b0916" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0916'/%3E%3Crect x='2' y='9' width='2' height='4' fill='%237fc48f'/%3E%3Crect x='5' y='6' width='2' height='7' fill='%23a78bfa'/%3E%3Crect x='8' y='4' width='2' height='9' fill='%23ffe08a'/%3E%3Crect x='11' y='7' width='2' height='6' fill='%238fd0ff'/%3E%3C/svg%3E" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0916'/%3E%3Crect x='5' y='3' width='6' height='2' fill='%23cbb58a'/%3E%3Crect x='5' y='5' width='6' height='8' fill='%23e9dcc4'/%3E%3Crect x='6' y='10' width='2' height='2' fill='%233a2a1f'/%3E%3Crect x='9' y='11' width='2' height='2' fill='%233a2a1f'/%3E%3C/svg%3E" />
 <link rel="stylesheet" href="nav.css" />
-
-<!-- POLISH: this is a FIRST working version of the immersive rebuild. The pixel
-     art (storefront/interior fidelity), the poster-rip feel, the walk-in dolly,
-     the price-countdown easing and receipt print timing are structured with
-     named act functions and tunable constants (TUNE in demo-scene.js) so the
-     art/animation pass is easy. Every price/question/saving is read live from
-     demo-trace.json (scenarios.hero) — nothing is hardcoded. -->
 
 <style>
   :root {
-    --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0;
+    --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --muted:#807a99;
     --line:rgba(167,139,250,.22); --gold:#ffe08a; --green:#7fc48f;
-    --violet:#a78bfa; --blue:#8fd0ff; --pink:#e58ab4;
-    --paper:#f2e7cf; --paper2:#e6d8b6; --paper-ink:#2a2417;
+    --violet:#a78bfa; --blue:#8fd0ff; --pink:#e58ab4; --brown:#cb9a6a; --tan:#e6d3b3;
+    --card:#141026; --card2:#191333; --sel:rgba(255,224,138,.14);
+    --paper:#f4ecda; --paper2:#e9ddc2; --paper-ink:#2a2417;
     --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
     --navH:44px;
   }
@@ -27,157 +23,180 @@
   body {
     font-family:var(--mono); color:var(--ink);
     -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent;
-    user-select:none;
   }
+  a { color:var(--blue); }
+  :focus-visible { outline:2px solid var(--gold); outline-offset:2px; border-radius:6px; }
 
-  /* ── full-viewport stage (modeled on block/styles.css) ─────────────────── */
+  /* ── full-viewport stage: pixel boba shop behind, tablet UI in front ─────── */
   #stage {
     position:fixed; inset:0;
-    background:radial-gradient(135% 120% at 50% 38%, #17101f 0%, #0b0916 78%);
+    background:radial-gradient(135% 120% at 50% 34%, #191019 0%, #0b0916 78%);
     overflow:hidden;
   }
   #view {
     position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-    image-rendering:pixelated; image-rendering:crisp-edges; cursor:pointer;
+    image-rendering:pixelated; image-rendering:crisp-edges;
+    transition:filter .6s ease, opacity .6s ease;
   }
-
-  /* nav sits inside the stage, pinned top (z-index 28 inherited from nav.css) */
+  #stage.ordering #view { filter:brightness(.5) saturate(.85) blur(1px); }
   #stage > .snhp-nav { position:absolute; top:0; left:0; right:0; }
 
-  /* ── overlay layer ─────────────────────────────────────────────────────── */
-  #overlay { position:absolute; inset:0; pointer-events:none; z-index:12; }
+  #overlay { position:absolute; inset:0; z-index:12; pointer-events:none; }
   #overlay > * { position:absolute; }
   .hidden { display:none !important; }
 
-  /* top kicker — "what am I looking at", sits just under the nav */
+  /* kicker under the nav */
   #kicker {
     top:calc(var(--navH) + 10px); left:50%; transform:translateX(-50%);
     text-align:center; white-space:nowrap; pointer-events:none;
     font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--gold);
-    text-shadow:0 2px 10px rgba(0,0,0,.9);
-    transition:opacity .5s ease;
+    text-shadow:0 2px 10px rgba(0,0,0,.9); transition:opacity .4s ease; z-index:14;
   }
   #kicker b { color:var(--ink); font-weight:700; }
-  /* the shared nav wraps to two rows on narrow screens — drop the kicker below it */
-  @media (max-width:640px){ #kicker { top:104px; font-size:9.5px; letter-spacing:.1em; white-space:normal; max-width:90vw; } }
+  /* on mobile the wrapped nav + full-height tablet leave no room for the kicker;
+     the tablet/receipt headers carry the context there */
+  @media (max-width:640px){ #kicker { display:none; } }
 
-  /* tap-to-continue affordance — faint, bottom center */
-  #hint {
-    bottom:20px; left:50%; transform:translateX(-50%);
-    font-size:11px; letter-spacing:.08em; color:var(--dim);
-    background:rgba(11,9,22,.55); border:1px solid var(--line);
-    border-radius:999px; padding:5px 13px; pointer-events:none;
-    opacity:0; transition:opacity .45s ease; text-align:center; white-space:nowrap;
+  /* ── ACT 1 · walk-up splash ──────────────────────────────────────────────── */
+  #splash {
+    inset:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+    padding-bottom:16vh; text-align:center; pointer-events:auto; cursor:pointer; z-index:13;
   }
-  #hint.show { opacity:.92; animation:hintpulse 2.4s ease-in-out infinite; }
-  @keyframes hintpulse { 0%,100%{ opacity:.5 } 50%{ opacity:.95 } }
+  #splash h1 {
+    font-size:clamp(22px,6vw,34px); line-height:1.12; text-wrap:balance; max-width:min(92vw,560px);
+    text-shadow:0 3px 18px rgba(0,0,0,.85);
+  }
+  #splash h1 b { color:var(--gold); }
+  #splash .sub {
+    margin-top:12px; font-size:13px; line-height:1.5; color:var(--tan); max-width:min(90vw,440px);
+    text-shadow:0 2px 12px rgba(0,0,0,.85);
+  }
+  #splash .cta {
+    margin-top:20px; font-family:var(--mono); font-size:12px; letter-spacing:.06em; color:var(--ink);
+    background:rgba(255,224,138,.12); border:1px solid rgba(255,224,138,.4);
+    border-radius:999px; padding:11px 20px; font-weight:700; cursor:pointer;
+    animation:pulse 2.4s ease-in-out infinite;
+  }
+  #splash .cta:hover { background:rgba(255,224,138,.2); }
+  @keyframes pulse { 0%,100%{ opacity:.72 } 50%{ opacity:1 } }
 
-  /* ── ACT 1 · posters on the door ───────────────────────────────────────── */
-  #posters { pointer-events:none; }
-  .poster {
-    position:absolute; left:50%; top:0;
-    width:min(90vw, 400px);
-    transform:translate(-50%,0) rotate(var(--tilt,-1.2deg));
-    background:linear-gradient(180deg, var(--paper) 0%, var(--paper2) 100%);
-    color:var(--paper-ink);
-    border-radius:3px; padding:16px 17px 17px;
-    box-shadow:0 14px 34px rgba(0,0,0,.55), inset 0 0 0 1px rgba(120,96,40,.25);
-    pointer-events:auto;
-    /* torn top + bottom edge via a jagged clip */
-    clip-path:polygon(0 4px,4% 0,9% 5px,15% 1px,22% 5px,30% 0,38% 5px,47% 1px,
-      56% 5px,64% 0,72% 5px,81% 1px,89% 5px,95% 0,100% 4px,
-      100% calc(100% - 4px),95% 100%,88% calc(100% - 5px),80% 99%,
-      70% calc(100% - 5px),60% 100%,50% calc(100% - 5px),40% 100%,
-      30% calc(100% - 5px),20% 99%,12% calc(100% - 5px),5% 100%,0 calc(100% - 4px));
-    transition:transform .5s cubic-bezier(.4,.05,.35,1), opacity .5s ease;
-  }
-  .poster::before, .poster::after { /* tape corners */
-    content:""; position:absolute; top:-9px; width:44px; height:19px;
-    background:rgba(226,220,190,.5); border:1px solid rgba(255,255,255,.35);
-    box-shadow:0 1px 3px rgba(0,0,0,.3);
-  }
-  .poster::before { left:12px; transform:rotate(-24deg); }
-  .poster::after  { right:12px; transform:rotate(22deg); }
-  .poster.ripping {
-    transform:translate(-58%,-38%) rotate(-26deg) skewY(6deg) scale(.9);
-    opacity:0; transform-origin:top left;
-  }
-  .poster .p-num {
-    font-size:10px; letter-spacing:.22em; text-transform:uppercase;
-    color:#8a6a2a; font-weight:700; margin-bottom:6px;
-    display:flex; align-items:center; justify-content:space-between;
-  }
-  .poster .p-num .pin { color:#b03a2e; }
-  .poster .p-prompt { font-size:16px; line-height:1.3; font-weight:700; margin-bottom:13px; text-wrap:balance; }
-  .poster .p-opts { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
-  .poster .p-opts.stack { grid-template-columns:1fr; }
-  .poster .p-opt {
-    font-family:var(--mono); cursor:pointer; text-align:center;
-    border:1.5px solid rgba(120,96,40,.4); background:rgba(255,252,240,.7);
-    color:var(--paper-ink); border-radius:9px; padding:12px 10px;
-    font-size:14px; font-weight:700; line-height:1.25;
-    transition:border-color .14s, background .14s, transform .08s;
-  }
-  .poster .p-opt:hover { border-color:#b03a2e; background:#fff; }
-  .poster .p-opt:active { transform:translateY(1px); }
-  @media (max-width:420px){ .poster .p-prompt { font-size:14.5px; } .poster .p-opt { font-size:13px; padding:11px 8px; } }
-
-  /* ── ACT 3 · the register readout ──────────────────────────────────────── */
-  #register {
+  /* ── ACT 2 · the tablet order UI ─────────────────────────────────────────── */
+  #tablet {
     left:50%; transform:translateX(-50%);
-    width:min(92vw, 430px); pointer-events:none;
-    background:linear-gradient(180deg, rgba(18,15,32,.94), rgba(12,10,24,.96));
-    border:1px solid var(--line); border-radius:14px;
-    padding:12px 14px 14px;
-    box-shadow:0 18px 48px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.05);
-    opacity:0; transition:opacity .5s ease;
+    top:calc(var(--navH) + 30px); bottom:12px;
+    width:min(94vw, 440px); pointer-events:auto;
+    display:flex; flex-direction:column;
+    background:linear-gradient(180deg, rgba(21,16,38,.98), rgba(13,10,26,.99));
+    border:1px solid var(--line); border-radius:20px;
+    box-shadow:0 24px 70px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,255,255,.05);
+    overflow:hidden;
   }
-  #register.show { opacity:1; }
-  #register .reg-head {
-    display:flex; align-items:baseline; justify-content:space-between;
-    font-size:10px; letter-spacing:.16em; text-transform:uppercase;
-    color:var(--violet); margin-bottom:8px;
+  @media (max-width:640px){ #tablet { top:96px; width:96vw; bottom:8px; } }
+  .t-head {
+    flex:0 0 auto; padding:13px 16px 11px; border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg, rgba(203,154,106,.10), transparent);
   }
-  #register .reg-head .live { color:var(--green); }
-  .reg-row {
-    display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px;
-    padding:9px 2px; border-bottom:1px solid rgba(255,255,255,.06);
-  }
-  .reg-row:last-of-type { border-bottom:none; }
-  .reg-row .rn { font-size:14px; font-weight:700; }
-  .reg-row .rs { font-size:10.5px; color:var(--dim); margin-top:2px; letter-spacing:.02em; }
-  .reg-row .rp { text-align:right; font-variant-numeric:tabular-nums; }
-  .reg-row .sticker { font-size:11px; color:var(--dim); }
-  .reg-row .sticker.struck { text-decoration:line-through; opacity:.6; }
-  .reg-row .now {
-    font-size:18px; font-weight:800; color:var(--gold); line-height:1.15;
-    transition:color .3s;
-  }
-  .reg-row.settled .now { color:var(--green); }
-  .reg-row .chip {
-    display:inline-block; font-size:10px; font-weight:700; color:var(--gold);
-    background:repeating-linear-gradient(135deg,rgba(255,224,138,.16) 0 7px,rgba(255,224,138,.04) 7px 14px);
-    border:1px solid rgba(255,224,138,.4); border-radius:999px; padding:1px 7px; margin-top:4px;
-    opacity:0; transform:translateY(3px); transition:opacity .3s, transform .3s;
-  }
-  .reg-row.settled .chip { opacity:1; transform:none; }
-  #register .reg-total {
-    display:flex; align-items:baseline; justify-content:space-between;
-    margin-top:11px; padding-top:11px; border-top:1px dashed var(--line);
-  }
-  #register .reg-total .cap { font-size:10.5px; color:var(--dim); letter-spacing:.03em; }
-  #register .reg-total .big { font-size:22px; font-weight:800; color:var(--gold); font-variant-numeric:tabular-nums; }
-  #register .reg-total .sub { font-size:11px; color:var(--dim); text-align:right; }
+  .t-head .brand { font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--brown); font-weight:700; }
+  .t-head h2 { font-size:16px; line-height:1.25; margin-top:3px; font-weight:800; }
+  .t-head h1 b { color:var(--gold); }
+  .t-head .agentline { margin-top:6px; font-size:10.5px; line-height:1.45; color:var(--muted); }
+  .t-head .agentline b { color:var(--green); }
 
-  /* ── ACT 4 · the printed receipt ───────────────────────────────────────── */
+  .t-scroll { flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:12px 15px 4px; }
+  .t-scroll::-webkit-scrollbar { width:8px; }
+  .t-scroll::-webkit-scrollbar-thumb { background:rgba(167,139,250,.28); border-radius:8px; }
+
+  fieldset { border:none; margin:0 0 15px; padding:0; }
+  legend { padding:0; font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--violet); font-weight:700; display:flex; align-items:baseline; gap:8px; width:100%; }
+  legend .free { color:var(--muted); font-weight:400; letter-spacing:.02em; text-transform:none; font-size:10px; }
+  .sec-note { font-size:10px; color:var(--muted); line-height:1.45; margin:5px 0 9px; }
+  .sec-note b { color:var(--green); }
+
+  /* option rows — native inputs, styled labels, keyboard-accessible ────────── */
+  .opts { display:flex; flex-direction:column; gap:8px; margin-top:9px; }
+  .opts.row { flex-direction:row; flex-wrap:wrap; }
+  .opt { position:relative; }
+  .opts.row .opt { flex:1 1 auto; }
+  .opt input { position:absolute; opacity:0; width:1px; height:1px; }
+  .opt label {
+    display:flex; align-items:center; gap:11px; cursor:pointer;
+    background:var(--card); border:1.5px solid var(--line); border-radius:12px;
+    padding:11px 13px; transition:border-color .13s, background .13s, transform .07s;
+    font-size:13.5px; line-height:1.25; height:100%;
+  }
+  .opts.row .opt label { padding:9px 12px; justify-content:center; text-align:center; }
+  .opt label:hover { border-color:rgba(255,224,138,.4); background:var(--card2); }
+  .opt label:active { transform:translateY(1px); }
+  .opt input:checked + label { border-color:var(--gold); background:var(--sel); }
+  .opt input:focus-visible + label { outline:2px solid var(--gold); outline-offset:2px; }
+  .opt input:checked + label .tick { opacity:1; }
+  .opt input:disabled + label { opacity:.42; cursor:not-allowed; }
+
+  .opt .emo { font-size:22px; flex:0 0 auto; line-height:1; }
+  .opt .body { flex:1 1 auto; min-width:0; }
+  .opt .nm { display:block; font-weight:700; }
+  .opt .meta { display:block; font-size:10.5px; color:var(--dim); margin-top:2px; }
+  .opt .rt { flex:0 0 auto; text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
+  .opt .price { font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .opt .price.free { color:var(--green); font-weight:700; }
+  .opt .tick { color:var(--gold); font-weight:800; opacity:0; font-size:13px; }
+
+  /* the live "saving" chip on a lever option */
+  .save-chip {
+    display:inline-block; font-size:10.5px; font-weight:800; color:#0a0812;
+    background:var(--green); border-radius:999px; padding:2px 8px; font-variant-numeric:tabular-nums;
+    letter-spacing:.01em; white-space:nowrap;
+  }
+  .save-chip.zero { background:transparent; color:var(--muted); font-weight:600; border:1px solid var(--line); }
+
+  /* the fresh-batch badge on pearls */
+  .fresh-badge {
+    display:inline-block; font-size:9px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--green); background:rgba(127,196,143,.14); border:1px solid rgba(127,196,143,.44);
+    border-radius:999px; padding:2px 7px; margin-top:5px;
+  }
+
+  .lever-band {
+    margin:2px 0 15px; padding:12px 13px 4px; border-radius:14px;
+    background:linear-gradient(180deg, rgba(255,224,138,.06), rgba(127,196,143,.04));
+    border:1px solid rgba(255,224,138,.2);
+  }
+  .lever-band > legend { color:var(--gold); }
+  .lever-band .band-sub { font-size:10px; color:var(--muted); line-height:1.45; margin:5px 0 4px; }
+  .lever-band .band-sub b { color:var(--green); }
+  .star { color:var(--gold); }
+
+  /* ── sticky total + place order ──────────────────────────────────────────── */
+  .t-foot {
+    flex:0 0 auto; padding:11px 15px 13px; border-top:1px solid var(--line);
+    background:linear-gradient(180deg, transparent, rgba(127,196,143,.05));
+  }
+  .total-row { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; }
+  .total-row .lab { font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
+  .total-row .menu-was { font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .total-row .menu-was s { color:var(--muted); }
+  .total-row .pay { font-size:26px; font-weight:900; color:var(--gold); font-variant-numeric:tabular-nums; line-height:1; margin-top:3px; }
+  .total-row .saved { font-size:11.5px; color:var(--green); font-weight:800; font-variant-numeric:tabular-nums; text-align:right; }
+  .never { font-size:9.5px; color:var(--muted); margin-top:6px; letter-spacing:.02em; line-height:1.4; }
+  .never b { color:var(--green); }
+  .place {
+    display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+    margin-top:11px; cursor:pointer; font-family:var(--mono); font-weight:800; font-size:14.5px;
+    padding:13px 16px; border-radius:13px; border:1px solid transparent;
+    background:var(--gold); color:#0a0812; letter-spacing:.01em;
+  }
+  .place:hover { filter:brightness(1.06); }
+  .place:active { transform:translateY(1px); }
+
+  /* ── ACT 3 · the consumer receipt ────────────────────────────────────────── */
   #receipt {
     left:50%; transform:translateX(-50%);
-    width:min(88vw, 340px); pointer-events:auto;
+    top:calc(var(--navH) + 34px); bottom:14px;
+    width:min(90vw, 360px); pointer-events:auto; overflow-y:auto;
     background:linear-gradient(180deg, #f6efe0 0%, #efe6d2 100%);
-    color:var(--paper-ink);
-    padding:18px 18px 20px;
-    box-shadow:0 22px 60px rgba(0,0,0,.6);
-    /* perforated top + bottom edge */
+    color:var(--paper-ink); padding:20px 20px 22px;
+    box-shadow:0 26px 66px rgba(0,0,0,.62);
     clip-path:polygon(0 6px,4% 0,8% 6px,12% 0,16% 6px,20% 0,24% 6px,28% 0,32% 6px,
       36% 0,40% 6px,44% 0,48% 6px,52% 0,56% 6px,60% 0,64% 6px,68% 0,72% 6px,
       76% 0,80% 6px,84% 0,88% 6px,92% 0,96% 6px,100% 0,
@@ -187,61 +206,57 @@
       32% 100%,28% calc(100% - 6px),24% 100%,20% calc(100% - 6px),16% 100%,12% calc(100% - 6px),
       8% 100%,4% calc(100% - 6px),0 100%);
     transform-origin:top center;
-    transition:transform .1s;
   }
-  #receipt.printing { animation:print .9s cubic-bezier(.2,.7,.3,1) both; }
-  @keyframes print { from { transform:translateX(-50%) scaleY(.02); opacity:.4; } to { transform:translateX(-50%) scaleY(1); opacity:1; } }
-  #receipt .r-logo { text-align:center; font-size:13px; font-weight:800; letter-spacing:.18em; }
-  #receipt .r-sub { text-align:center; font-size:9px; letter-spacing:.1em; color:#7a6a44; margin-top:2px; text-transform:uppercase; }
-  #receipt .r-rule { border-top:1px dashed rgba(90,72,32,.5); margin:11px 0; }
-  #receipt .r-line { display:flex; align-items:baseline; justify-content:space-between; font-size:12.5px; margin:6px 0; }
+  #receipt.printing { animation:print .85s cubic-bezier(.2,.7,.3,1) both; }
+  @keyframes print { from { transform:translateX(-50%) scaleY(.03); opacity:.4; } to { transform:translateX(-50%) scaleY(1); opacity:1; } }
+  @media (max-width:640px){ #receipt { top:96px; } }
+  #receipt .r-logo { text-align:center; font-size:14px; font-weight:900; letter-spacing:.2em; }
+  #receipt .r-sub { text-align:center; font-size:9px; letter-spacing:.12em; color:#7a6a44; margin-top:3px; text-transform:uppercase; }
+  #receipt .r-rule { border-top:1px dashed rgba(90,72,32,.5); margin:12px 0; }
+  #receipt .r-order { font-size:12.5px; line-height:1.55; }
+  #receipt .r-order .oq { font-weight:800; }
+  #receipt .r-order .om { color:#6a5a34; }
+  #receipt .r-line { display:flex; align-items:baseline; justify-content:space-between; font-size:12px; margin:6px 0; gap:10px; }
   #receipt .r-line .rl-n { color:var(--paper-ink); }
-  #receipt .r-line .rl-p { font-variant-numeric:tabular-nums; }
+  #receipt .r-line .rl-p { font-variant-numeric:tabular-nums; white-space:nowrap; }
   #receipt .r-line .rl-p s { color:#9a7a44; margin-right:6px; }
-  #receipt .r-line .rl-p b { color:#2a6a3a; font-weight:800; }
-  #receipt .r-line .rl-save { font-size:10px; color:#8a6a2a; }
-  #receipt .r-total { display:flex; align-items:baseline; justify-content:space-between; margin-top:8px; }
-  #receipt .r-total .lab { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#7a5a24; font-weight:700; }
-  #receipt .r-total .amt { font-size:26px; font-weight:900; color:#1f5a2e; font-variant-numeric:tabular-nums; }
-  #receipt .r-pct { text-align:right; font-size:10.5px; color:#7a6a44; margin-top:1px; }
-  #receipt .r-caveat { font-size:9px; line-height:1.45; color:#6a5a34; margin-top:12px; }
-  #receipt .r-links { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
-  #receipt .r-links a {
-    font-family:var(--mono); font-size:10.5px; font-weight:700; text-decoration:none;
-    color:#3a2e14; background:rgba(120,96,40,.14); border:1px solid rgba(120,96,40,.4);
-    border-radius:7px; padding:6px 9px; letter-spacing:.02em;
+  #receipt .r-line .rl-p b { color:#1f6a34; font-weight:800; }
+  #receipt .r-total { display:flex; align-items:baseline; justify-content:space-between; margin-top:6px; }
+  #receipt .r-total .lab { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#7a5a24; font-weight:800; }
+  #receipt .r-total .amt { font-size:27px; font-weight:900; color:#1f5a2e; font-variant-numeric:tabular-nums; }
+  #receipt .r-pct { text-align:right; font-size:10.5px; color:#7a6a44; margin-top:2px; }
+  #receipt .r-why { font-size:9.5px; line-height:1.5; color:#5f5230; margin-top:13px; }
+  #receipt .r-why b { color:#3a2e14; }
+  #receipt .r-bridge { margin-top:13px; }
+  #receipt .r-bridge a {
+    display:block; text-align:center; font-family:var(--mono); font-size:11px; font-weight:800; text-decoration:none;
+    color:#3a2e14; background:rgba(120,96,40,.14); border:1px solid rgba(120,96,40,.42);
+    border-radius:9px; padding:9px 10px; letter-spacing:.01em;
   }
-  #receipt .r-links a:hover { background:rgba(120,96,40,.26); }
-  #receipt .r-repro { font-size:8.5px; color:#7a6a44; margin-top:10px; text-align:center; letter-spacing:.02em; }
+  #receipt .r-bridge a:hover { background:rgba(120,96,40,.24); }
+  #receipt .r-again {
+    display:block; width:100%; margin-top:9px; cursor:pointer; font-family:var(--mono);
+    font-size:11px; font-weight:800; color:#3a2e14; background:transparent;
+    border:1px dashed rgba(120,96,40,.5); border-radius:9px; padding:8px 10px;
+  }
+  #receipt .r-again:hover { background:rgba(120,96,40,.1); }
+  #receipt .r-repro { font-size:8px; color:#8a7a54; margin-top:11px; text-align:center; line-height:1.5; letter-spacing:.01em; }
 
-  /* honesty caveat, always visible bottom-left */
+  /* honesty caveat, bottom-left over the tablet */
   #caveat {
-    bottom:14px; left:12px; max-width:44vw; pointer-events:auto;
-    font-size:8.5px; line-height:1.4; letter-spacing:.03em;
-    color:#cdae76; text-align:left;
-    background:rgba(240,198,116,.08); border:1px solid rgba(240,198,116,.24);
+    bottom:10px; left:12px; max-width:min(44vw,300px); pointer-events:none; z-index:11;
+    font-size:8.5px; line-height:1.4; letter-spacing:.02em; color:#cdae76;
+    background:rgba(240,198,116,.08); border:1px solid rgba(240,198,116,.22);
     border-radius:8px; padding:5px 9px;
   }
   #caveat b { color:#ffe0a0; }
-  @media (max-width:560px){ #caveat { max-width:58vw; font-size:8px; } #hint { bottom:60px; } }
-
-  /* replay button, bottom-right */
-  #replay {
-    bottom:14px; right:12px; pointer-events:auto;
-    font-family:var(--mono); font-size:11px; font-weight:700; letter-spacing:.04em;
-    color:var(--gold); background:rgba(255,224,138,.1);
-    border:1px solid rgba(255,224,138,.32); border-radius:9px;
-    padding:7px 12px; cursor:pointer;
-    opacity:0; transition:opacity .4s ease;
-  }
-  #replay.show { opacity:.95; }
-  #replay:hover { background:rgba(255,224,138,.2); color:#fff; }
+  @media (max-width:640px){ #caveat { display:none; } }
 
   #err { bottom:14px; left:50%; transform:translateX(-50%); color:var(--pink);
-         font-size:12px; text-align:center; max-width:90vw; }
+         font-size:12px; text-align:center; max-width:90vw; z-index:20; pointer-events:none; }
 
   @media (prefers-reduced-motion: reduce) {
-    .poster, .poster.ripping, #receipt.printing, #register, #hint.show { transition:none !important; animation:none !important; }
+    #view, #receipt.printing, #splash .cta { transition:none !important; animation:none !important; }
   }
 </style>
 
@@ -260,49 +275,110 @@
     </ul>
   </nav>
 
-  <canvas id="view"></canvas>
+  <canvas id="view" aria-hidden="true"></canvas>
 
-  <!-- DOM overlays, positioned over the canvas by demo-scene.js (layout()) -->
   <div id="overlay">
-    <div id="kicker">The lunch run — <b>priced for you</b></div>
+    <div id="kicker" aria-hidden="true">A normal boba stop — <b>priced for you</b></div>
 
-    <!-- ACT 1: posters built from scenarios.hero.onboarding -->
-    <div id="posters" class="hidden"></div>
-
-    <!-- ACT 3: register readout, rows built from scenarios.hero.items -->
-    <div id="register" class="hidden">
-      <div class="reg-head"><span>REGISTER · the silent negotiation</span><span class="live">● live</span></div>
-      <div id="reg-rows"></div>
-      <div class="reg-total">
-        <div><div class="cap">you pay</div><div class="big" id="reg-your">$0.00</div></div>
-        <div class="sub" id="reg-sub">—</div>
-      </div>
+    <!-- ACT 1 · walk-up splash (tap anywhere, or the focusable button) -->
+    <div id="splash">
+      <h1>You walk up to the <b>boba shop tablet</b>.</h1>
+      <p class="sub">Order the way you always would. Your agent is quietly working the price in the background — never above the menu.</p>
+      <button class="cta" id="splash-btn" type="button">tap to step up to the tablet →</button>
     </div>
 
-    <!-- ACT 4: printed receipt -->
-    <div id="receipt" class="hidden">
-      <div class="r-logo">BODEGA · SNHP</div>
-      <div class="r-sub">a fair price for you — never above sticker</div>
+    <!-- ACT 2 · the tablet order UI (built/bound in demo-scene.js) -->
+    <section id="tablet" class="hidden" aria-label="Boba self-order tablet">
+      <div class="t-head">
+        <div class="brand" aria-hidden="true">BOBA · self-order</div>
+        <h2>Build your order — <b>watch the price work for you</b></h2>
+        <p class="agentline">In real life your agent picks the best of these <b>silently</b> before you pay. Here you drive it, so you can see the levers.</p>
+      </div>
+
+      <div class="t-scroll" id="t-scroll">
+        <!-- DRINK -->
+        <fieldset>
+          <legend>1 · Drink</legend>
+          <div class="opts" id="grp-drink" role="radiogroup" aria-label="Choose a drink"></div>
+        </fieldset>
+
+        <!-- SIZE -->
+        <fieldset>
+          <legend>2 · Size</legend>
+          <div class="opts row" id="grp-size" role="radiogroup" aria-label="Choose a size"></div>
+        </fieldset>
+
+        <!-- SWEETNESS -->
+        <fieldset>
+          <legend>3 · Sweetness <span class="free">free — your call, never priced</span></legend>
+          <div class="opts row" id="grp-sweet" role="radiogroup" aria-label="Choose sweetness level"></div>
+        </fieldset>
+
+        <!-- ICE -->
+        <fieldset>
+          <legend>4 · Ice <span class="free">free — your call, never priced</span></legend>
+          <div class="opts row" id="grp-ice" role="radiogroup" aria-label="Choose ice level"></div>
+        </fieldset>
+
+        <!-- TOPPINGS -->
+        <fieldset>
+          <legend>5 · Toppings</legend>
+          <p class="sec-note" id="pearl-note"></p>
+          <div class="opts" id="grp-tops" role="group" aria-label="Choose toppings"></div>
+        </fieldset>
+
+        <!-- LEVER: PICKUP -->
+        <fieldset class="lever-band">
+          <legend>6 · Pickup time <span class="star" aria-hidden="true">★</span></legend>
+          <p class="band-sub">A later, off-peak slot is cheaper for the shop to make — so it comes back to you. <b>Win-win.</b></p>
+          <div class="opts" id="grp-pickup" role="radiogroup" aria-label="Choose a pickup time"></div>
+        </fieldset>
+
+        <!-- LEVER: QUANTITY -->
+        <fieldset class="lever-band">
+          <legend>7 · How many cups</legend>
+          <p class="band-sub">On their own, extra cups stay at the menu price. Move them to a later, off-peak slot and each one frees more of the lunch rush — so the shop can share a little more on every cup.</p>
+          <div class="opts" id="grp-qty" role="radiogroup" aria-label="How many cups"></div>
+        </fieldset>
+      </div>
+
+      <div class="t-foot">
+        <div class="total-row">
+          <div>
+            <div class="lab">You pay</div>
+            <div class="pay" id="pay">$0.00</div>
+            <div class="menu-was" id="menu-was"></div>
+          </div>
+          <div class="saved" id="saved" aria-live="polite"></div>
+        </div>
+        <p class="never">Your price is <b>never above the menu</b> — a later, off-peak pickup frees the lunch rush and is cheaper to serve, so the discount comes back to you.</p>
+        <button class="place" id="place" type="button">Place pickup order →</button>
+      </div>
+    </section>
+
+    <!-- ACT 3 · consumer receipt -->
+    <div id="receipt" class="hidden" role="region" aria-label="Your receipt">
+      <div class="r-logo">BOBA</div>
+      <div class="r-sub">your pickup order · a fair price for you</div>
+      <div class="r-rule"></div>
+      <div class="r-order" id="r-order"></div>
       <div class="r-rule"></div>
       <div id="r-lines"></div>
       <div class="r-rule"></div>
       <div class="r-total"><span class="lab">You saved</span><span class="amt" id="r-saved">$0.00</span></div>
-      <div class="r-pct" id="r-pct">—</div>
-      <div class="r-caveat" id="r-caveat">…</div>
-      <div class="r-links">
-        <a href="/block/">the block sim →</a>
-        <a href="hire.html">how it works →</a>
-        <a href="leaderboard.html">the leaderboard →</a>
-      </div>
-      <div class="r-repro" id="r-repro">…</div>
+      <div class="r-pct" id="r-pct"></div>
+      <p class="r-why" id="r-why"></p>
+      <div class="r-bridge"><a href="boba.html">Run a shop? See how this works for you →</a></div>
+      <button class="r-again" id="r-again" type="button">◂ order again</button>
+      <p class="r-repro" id="r-repro"></p>
     </div>
 
-    <div id="hint" class="hidden"></div>
-    <div id="caveat"></div>
-    <button id="replay">▶ replay</button>
-    <p id="err"></p>
+    <p id="caveat"></p>
+    <p id="err" role="status"></p>
   </div>
 </div>
 
 <script src="block/palette.js"></script>
+<script src="boba-engine.js"></script>
 <script src="demo-scene.js"></script>
+</html>
