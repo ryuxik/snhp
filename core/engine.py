@@ -115,11 +115,29 @@ class QuoteOpts:
     min_gain_abs: float = 0.25      # don't-negotiate-for-pennies buffer:
     min_gain_frac: float = 0.10     # max($0.25, 10% of list)
     qty_appetite: bool = False      # don't upsell a unit valued below its cost
+    qty_appetite_scope: str = "bundle"  # "bundle" = full per-unit bundle
+                                    # marginal (value − cost of the q-th unit);
+                                    # "choice" = cart_nash's CHOICE-value-only
+                                    # test (drink value vs drink cost, toppings
+                                    # ignored — policies.py:326). Default-OFF
+                                    # (only read when qty_appetite=True), so
+                                    # non-boba verticals are unaffected.
     quote_lookers: bool = True      # False = refuse non-menu-buyers (IC floor)
     seller_weight: float = 0.5      # 0.5 = symmetric Nash; →1 = seller keeps
                                     # all surplus above the buyer's floor
     price_rungs: int = 8            # PRICE_RUNGS
     prune_free: bool = True         # C1: pin FREE preference dims (profiler)
+    search_filter: object = None    # optional (graph, state, buyer, config) →
+                                    # bool restricting ONLY the negotiation
+                                    # search to a bespoke candidate family — the
+                                    # DISAGREEMENT (menu counterfactual) still
+                                    # ranges over the full available set.
+                                    # Default None = search everything. Boba-
+                                    # mode uses it to reproduce cart_nash's
+                                    # incomplete search (drink-skip +
+                                    # (value−c_eff)-ranked nested topping
+                                    # prefixes, policies.py:298-314) while the
+                                    # disagreement matches best_menu_order.
 
 
 @dataclass
@@ -206,12 +224,40 @@ def _config_econ(graph: OfferGraph, state: ShopState, buyer: Buyer,
 
 
 def _exceeds_appetite(graph: OfferGraph, state: ShopState, buyer: Buyer,
-                      config: Config, qty: int) -> bool:
+                      config: Config, qty: int, scope: str = "bundle") -> bool:
     """Plausibility clamp (cart_nash `qty_appetite`): don't add a q-th unit
-    whose marginal buyer value falls below its marginal cost. Generalizes
-    cart_nash's drink-only test to the whole per-unit bundle — the q-th
-    unit's value is `per_unit_value · decay^(q-1)` (the derivative of
-    val = per_unit_value · ladder), its cost is c_eff(q) − c_eff(q−1)."""
+    whose marginal buyer value falls below its marginal cost. The q-th unit's
+    value is `per_unit_value · decay^(q-1)` (the derivative of
+    val = per_unit_value · ladder).
+
+    Two scopes:
+      "bundle" (default) — generalizes cart_nash to the WHOLE per-unit bundle:
+                marginal value of the full (choice + add-ons) unit vs its
+                marginal cost c_eff(q) − c_eff(q−1).
+      "choice" — cart_nash's exact CHOICE-value-only test (policies.py:326):
+                `wtp[d] · decay^(q-1) < DRINK_COST[d]`, i.e. the marginal
+                value of ONLY the CHOICE dims' selections vs ONLY their unit
+                cost, ignoring add-ons. Boba-mode: matches the shipped pricer,
+                which caps qty on the drink's own appetite and lets a topping-
+                rich cart carry its full quantity.
+    """
+    if scope == "choice":
+        # marginal value/cost of the CHOICE dims alone (add-ons emptied, qty 1)
+        choice_only: Config = {}
+        choice_cost = 0.0
+        for d in graph.dims:
+            if d.kind == DimKind.QUANTITY:
+                choice_only[d.id] = 1
+            elif d.kind == DimKind.ADDON:
+                choice_only[d.id] = frozenset()
+            else:
+                sel = config.get(d.id)
+                choice_only[d.id] = sel
+                if d.kind == DimKind.CHOICE and sel is not None:
+                    choice_cost += d.option(sel).unit_cost
+        marginal_value = (buyer.value(graph, choice_only)
+                          * buyer.qty_decay ** (qty - 1))
+        return marginal_value < choice_cost      # cart_nash: strict, no eps
     per_unit_value = buyer.value(graph, with_qty(graph, config, 1))
     marginal_value = per_unit_value * buyer.qty_decay ** (qty - 1)
     c_q = graph.cost.quote(graph, state, config, qty).c_eff
@@ -320,32 +366,44 @@ def quote(graph: OfferGraph, state: ShopState, buyer: Buyer, *,
         if not _available(graph, state, c, q):        # A1 HARD gates
             continue
         if opts.qty_appetite and q > 1 and _exceeds_appetite(
-                graph, state, buyer, c, q):
+                graph, state, buyer, c, q, opts.qty_appetite_scope):
             continue
         cand.append(c)
     if not cand:
         return None
 
-    econ = {freeze_config(c): _config_econ(graph, state, buyer, c)
-            for c in cand}
+    # Per-config economics are computed LAZILY and cached: the full CostQuote
+    # (the state-dependent cost model) is only needed for the menu config and
+    # the search-relevant configs, never for every immediate config the
+    # disagreement's argmax scans — those need only value and list (cheap).
+    econ: dict = {}
+
+    def econ_of(c: Config) -> _Econ:
+        key = freeze_config(c)
+        e = econ.get(key)
+        if e is None:
+            e = _config_econ(graph, state, buyer, c)
+            econ[key] = e
+        return e
 
     # ── 1. disagreement point ────────────────────────────────────────────
     # The menu counterfactual is a WALK-IN purchase — immediate fulfillment
     # only (you can't get the sticker board's price on a deferred slot; that
     # slot is the deal). Best menu surplus = max over immediate configs of
-    # (value − list): what the buyer keeps paying full price.
+    # (value − list): what the buyer keeps paying full price. Scored on
+    # value−list alone (no cost model) so the menu argmax is cheap.
     s_menu, menu_c = None, None
     for c in cand:
-        e = econ[freeze_config(c)]
-        if not e.immediate:
+        immediate, _slot = _fulfillment(graph, c)
+        if not immediate:
             continue
-        s = e.val - e.listv
+        s = buyer.value(graph, c) - _list_value(graph, c, qty_of(graph, c))
         if s_menu is None or s > s_menu:
             s_menu, menu_c = s, c
 
     menu_buyer = menu_c is not None and s_menu > 0 and s_menu >= s_out
     if menu_buyer:
-        em = econ[freeze_config(menu_c)]
+        em = econ_of(menu_c)
         # margin the shop already had. NO relief credit here (A3 / cart_nash
         # policies.py:290): the menu counterfactual is an immediate walk-in,
         # and crediting it would silently inflate d_seller and kill real deals.
@@ -364,8 +422,12 @@ def quote(graph: OfferGraph, state: ShopState, buyer: Buyer, *,
     best = None
     best_score = None
     w = opts.seller_weight
+    sf = opts.search_filter
     for c in cand:
-        e = econ[freeze_config(c)]
+        if sf is not None and not sf(graph, state, buyer, c):
+            continue          # restricted to the vertical's search family (the
+                              # disagreement above still saw the full menu set)
+        e = econ_of(c)
         surv = surv0 if e.immediate else 1.0        # deferred slots are balk-free
         defer = buyer.defer_cost(e.slot)
         lo = max(e.cost, opts.min_price_frac * e.listv)

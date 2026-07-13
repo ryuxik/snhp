@@ -34,6 +34,11 @@ class DepGraph:
         return chosen
 
     def is_valid(self, graph, config) -> bool:
+        # Fast path: an empty DepGraph (the verticals' default) admits every
+        # combination — skip building the chosen-option set entirely. This is
+        # the hot loop of enumerate_configs, hit once per candidate config.
+        if not self.valid_on and not self.requires and not self.excludes:
+            return True
         chosen = self._selected(graph, config)
         for o in chosen:
             need = self.valid_on.get(o)
