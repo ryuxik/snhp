@@ -203,6 +203,10 @@
     for (const h of HOUSES) {
       const card = document.createElement("div");
       card.className = "house-card";
+      card.setAttribute("role", "button");
+      card.tabIndex = 0;
+      card.setAttribute("aria-pressed", "false");
+      card.setAttribute("aria-label", "pick house " + h.name);
       const ramp = SP.rampFor(houseGenome(h));
       card.appendChild(_thumb(houseGenome(h)));
       const nm = document.createElement("div"); nm.className = "hc-name";
@@ -213,8 +217,9 @@
         // selecting a house = choosing your tactic + default dials; then you
         // tune the dials and send your champion through the gate
         _forgePick = h;
-        [...grid.children].forEach(c => c.style.borderColor = "");
+        [...grid.children].forEach(c => { c.style.borderColor = ""; c.setAttribute("aria-pressed", "false"); });
         card.style.borderColor = ramp[3];
+        card.setAttribute("aria-pressed", "true");
         $("dial-bold").value = Math.round(h.knob * 100);
         $("dial-bluff").value = Math.round(h.walk * 100);
         $("dial-pat").value = Math.round((h.name === "Hermit" ? 0.9 : 0.5) * 100);
@@ -224,6 +229,9 @@
         W.myHouse = h.name;
         try { localStorage.setItem("arena-house", h.name); } catch (e) { }
       };
+      card.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); card.click(); }
+      });
       grid.appendChild(card);
     }
   }

@@ -260,8 +260,8 @@ body {
 
 /* the three-number spine: cost ≤ quote ≤ sticker */
 .spot-spine { display: flex; align-items: center; gap: 8px; margin: 2px 2px 4px; }
-.spine-cap { flex: 0 0 auto; width: 46px; font-size: 7.5px; line-height: 1.25; text-transform: uppercase; letter-spacing: 0.05em; color: #6f6a84; text-align: center; }
-.spine-cap i { color: #55506a; font-style: normal; font-size: 7px; }
+.spine-cap { flex: 0 0 auto; width: 46px; font-size: 7.5px; line-height: 1.25; text-transform: uppercase; letter-spacing: 0.05em; color: #807a99; text-align: center; }
+.spine-cap i { color: #7d7893; font-style: normal; font-size: 7px; }
 .spine-cap.floor { text-align: right; }
 .spine-cap.ceil { text-align: left; }
 .spine-track { position: relative; flex: 1 1 auto; height: 66px; }
@@ -306,7 +306,7 @@ body {
 .spot-count { font-size: 9px; color: #7d7893; letter-spacing: 0.1em; font-variant-numeric: tabular-nums; }
 .spot-prov {
   margin-top: 10px; font-size: 7.5px; line-height: 1.4; letter-spacing: 0.02em;
-  color: #6f6a84; text-align: center;
+  color: #807a99; text-align: center;
 }
 
 /* tighten the chrome on narrow screens */
@@ -326,4 +326,15 @@ body {
   .spot-card { padding: 16px 14px 12px; }
   .spot-item { font-size: 15px; }
   .spine-cap { width: 40px; font-size: 7px; }
+}
+
+/* consistent keyboard focus for links + buttons */
+a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--warm); outline-offset: 2px;
+}
+/* honor reduced-motion: still the flip/pulse/entrance animations */
+@media (prefers-reduced-motion: reduce) {
+  .flip.bump .cur { animation: none !important; }
+  #spot-btn.pulse { animation: none !important; }
+  .spot-card { animation: none !important; }
 }

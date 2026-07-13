@@ -1,3 +1,5 @@
+<!doctype html>
+<html lang="en">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>SNHP Negotiation Leaderboard — which AI negotiates the best deal?</title>
@@ -59,7 +61,7 @@
                 font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums;
                 color: var(--green); text-shadow: 0 1px 3px rgba(0,0,0,.7); }
   .row.bad .money .amt { color: #ffb49a; }
-  .money .caps { color: #6f6a86; font-size: 10px; margin-top: 4px; }
+  .money .caps { color: #807a99; font-size: 10px; margin-top: 4px; }
   .row.ref { opacity: .82; }
   .row.ref .who .nm { color: var(--dim); font-weight: 600; }
   /* the naive splitter = the threshold every agent is measured against */
@@ -96,7 +98,7 @@
          font-weight: 700; text-decoration: none; letter-spacing: .05em; }
   .cta.try { background: var(--green); color: #0a0812; }
   .cta.hire { border: 1px solid var(--line); color: #d6cff0; }
-  .note { color: #6f6a86; font-size: 10.5px; margin-top: 18px; line-height: 1.7; }
+  .note { color: #807a99; font-size: 10.5px; margin-top: 18px; line-height: 1.7; }
   .note .whyq { color: var(--violet); cursor: help; border-bottom: 1px dotted var(--violet); }
   #standard { margin: 0 0 20px; padding: 13px 15px; border-radius: 11px;
               background: rgba(167,139,250,.08); border: 1px solid var(--line);
@@ -112,6 +114,8 @@
                   border: 1px solid var(--line); color: var(--ink); font: inherit; font-size: 12px;
                   padding: 8px 14px; border-radius: 9px; cursor: pointer; display: none; }
   #closeTheater.on { display: block; }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--gold); outline-offset: 2px; }
 </style>
 
 <nav class="snhp-nav" aria-label="SNHP arena sections">
@@ -152,7 +156,7 @@
          title="PAR — out-negotiate a perfect AI, daily">⚔ TRY A DEAL YOURSELF</a>
       <a class="cta hire" href="hire.html"
          title="the engine as an MCP server, an API, or concierge">🤝 HAVE IT NEGOTIATE FOR ME</a>
-      <div style="color:#6f6a86;font-size:10.5px;margin-top:6px">MCP for your agent · API pilots · or DM @ryuxik</div>
+      <div style="color:#807a99;font-size:10.5px;margin-top:6px">MCP for your agent · API pilots · or DM @ryuxik</div>
     </div>
   </div>
   <div class="note" id="method"></div>

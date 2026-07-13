@@ -120,6 +120,10 @@ body { font-family: var(--mono); color: var(--ink); -webkit-font-smoothing: none
 }
 .hud-btn:hover { color: var(--violet-bright); border-color: var(--violet); }
 .hud-btn:focus-visible { outline: 2px solid var(--violet-bright); outline-offset: 2px; }
+/* consistent keyboard focus for links, buttons, inputs, and role=button tiles */
+a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--gold); outline-offset: 2px;
+}
 #sound-btn.on { color: var(--gold); border-color: rgba(255,224,138,0.5); }
 #honest-btn:hover { color: var(--gold); border-color: rgba(255,224,138,0.5); }
 #stats-btn { display: none; }   /* mobile-only affordance */
@@ -190,7 +194,7 @@ body { font-family: var(--mono); color: var(--ink); -webkit-font-smoothing: none
   width: 100%; accent-color: var(--violet); height: 3px; margin-top: 3px;
 }
 #forge-dials .dial-hint {
-  display: block; font-size: 9px; color: var(--muted, #7c7790);
+  display: block; font-size: 9px; color: var(--muted, #827d96);
   text-transform: none; letter-spacing: 0; margin-top: 1px;
 }
 .forge-row { display: flex; gap: 10px; align-items: center; }

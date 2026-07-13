@@ -1,3 +1,5 @@
+<!doctype html>
+<html lang="en">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>BOBA — the price you see was already negotiated</title>
@@ -7,7 +9,7 @@
 <link rel="stylesheet" href="nav.css" />
 <style>
   :root {
-    --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --faint:#6f6a86;
+    --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --faint:#807a99;
     --line:rgba(167,139,250,.22); --gold:#ffe08a; --green:#7fc48f;
     --violet:#a78bfa; --blue:#8fd0ff; --pink:#e58ab4; --brown:#cb9a6a;
     --card:#131022; --card2:#171331;
@@ -172,23 +174,24 @@
     clip-path:polygon(0 5px,4% 0,8% 5px,12% 0,16% 5px,20% 0,24% 5px,28% 0,32% 5px,36% 0,40% 5px,44% 0,48% 5px,52% 0,56% 5px,60% 0,64% 5px,68% 0,72% 5px,76% 0,80% 5px,84% 0,88% 5px,92% 0,96% 5px,100% 0,100% calc(100% - 5px),96% 100%,92% calc(100% - 5px),88% 100%,84% calc(100% - 5px),80% 100%,76% calc(100% - 5px),72% 100%,68% calc(100% - 5px),64% 100%,60% calc(100% - 5px),56% 100%,52% calc(100% - 5px),48% 100%,44% calc(100% - 5px),40% 100%,36% calc(100% - 5px),32% 100%,28% calc(100% - 5px),24% 100%,20% calc(100% - 5px),16% 100%,12% calc(100% - 5px),8% 100%,4% calc(100% - 5px),0 100%);
     box-shadow:0 18px 44px rgba(0,0,0,.5); }
   .r-logo { text-align:center; font-size:13px; font-weight:800; letter-spacing:.18em; color:#2a2417; }
-  .r-sub { text-align:center; font-size:8.5px; letter-spacing:.09em; color:#7a6a44; margin-top:2px; text-transform:uppercase; }
+  .r-sub { text-align:center; font-size:8.5px; letter-spacing:.09em; color:#6d5e37; margin-top:2px; text-transform:uppercase; }
   .r-rule { border-top:1px dashed rgba(90,72,32,.5); margin:11px 0; }
   .r-line { display:flex; align-items:baseline; justify-content:space-between; font-size:12.5px; margin:5px 0; }
-  .r-line .n { color:#2a2417; } .r-line .n s { color:#9a7a44; margin-left:6px; font-size:10.5px; }
+  .r-line .n { color:#2a2417; } .r-line .n s { color:#786031; margin-left:6px; font-size:10.5px; }
   .r-line .p { font-variant-numeric:tabular-nums; }
-  .r-line .p s { color:#9a7a44; margin-right:6px; } .r-line .p b { color:#1f5a2e; font-weight:800; }
+  .r-line .p s { color:#786031; margin-right:6px; } .r-line .p b { color:#1f5a2e; font-weight:800; }
   .r-total { display:flex; align-items:baseline; justify-content:space-between; margin-top:8px; }
   .r-total .lab { font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:#7a5a24; font-weight:700; }
   .r-total .amt { font-size:26px; font-weight:900; color:#1f5a2e; font-variant-numeric:tabular-nums; }
-  .r-pct { text-align:right; font-size:10px; color:#7a6a44; margin-top:1px; }
+  .r-pct { text-align:right; font-size:10px; color:#6d5e37; margin-top:1px; }
 
   .guarantee { font-size:11.5px; line-height:1.55; color:var(--dim); margin-top:15px;
     border-left:2px solid var(--gold); padding:3px 0 3px 12px; }
   .guarantee b { color:var(--gold); }
 
   /* the explicit customer→owner handoff link on the receipt */
-  .ownerlink { display:block; text-align:center; margin-top:14px; cursor:pointer;
+  .ownerlink { display:block; width:100%; text-align:center; margin-top:14px; cursor:pointer;
+    background:none; border:none; font-family:var(--mono);
     font-size:11px; color:var(--blue); text-decoration:none; letter-spacing:.02em; }
   .ownerlink:hover { text-decoration:underline; }
 
@@ -221,6 +224,8 @@
 
   #err { color:var(--pink); font-size:12px; text-align:center; padding:30px 20px; }
   @media (prefers-reduced-motion: reduce){ .beat.active{ animation:none; } .track.lit .seg{ transition:none; } }
+  a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+    outline:2px solid var(--gold); outline-offset:2px; }
 </style>
 
 <nav class="snhp-nav" aria-label="SNHP arena sections">
@@ -336,7 +341,7 @@
 
         <div class="spacer" style="min-height:16px;"></div>
         <button class="btn gold" onclick="go('menu')">↺ Order again</button>
-        <a class="ownerlink" onclick="go('owner')">For shop owners → the economics behind the discount</a>
+        <button type="button" class="ownerlink" onclick="go('owner')">For shop owners → the economics behind the discount</button>
       </section>
 
       <!-- BEAT 6 · owner panel (all shop economics + honest caveats live HERE) -->
@@ -527,8 +532,8 @@
     $("#rLines").innerHTML =
       '<div class="r-line"><span class="n">' + cart(h) + '</span>' +
         '<span class="p"><s>' + money(h.menu) + '</s><b>' + money(h.pay) + '</b></span></div>' +
-      '<div class="r-line"><span class="n" style="color:#7a6a44;font-size:11px;">' + pickup(h.slot_min) + '</span>' +
-        '<span class="p" style="color:#7a6a44;font-size:11px;">' + h.off + '% off menu</span></div>';
+      '<div class="r-line"><span class="n" style="color:#6d5e37;font-size:11px;">' + pickup(h.slot_min) + '</span>' +
+        '<span class="p" style="color:#6d5e37;font-size:11px;">' + h.off + '% off menu</span></div>';
     $("#rSaved").textContent = money(h.save);
     $("#rPct").textContent = h.off + "% under the menu · you pay " + money(h.pay) + " of " + money(h.menu);
     // the ONE hard, unconditional guarantee — nothing shop-side, no $/day, no code line

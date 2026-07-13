@@ -143,11 +143,16 @@
   function wireControls() {
     $("#traffic").addEventListener("click", (e) => {
       const b = e.target.closest("button"); if (!b) return;
-      document.querySelectorAll("#traffic button").forEach((x) => x.classList.remove("on"));
-      b.classList.add("on"); traffic = b.dataset.v;
+      document.querySelectorAll("#traffic button").forEach((x) => {
+        x.classList.remove("on"); x.setAttribute("aria-pressed", "false");
+      });
+      b.classList.add("on"); b.setAttribute("aria-pressed", "true"); traffic = b.dataset.v;
     });
     const fl = $("#flex");
-    fl.addEventListener("input", () => { $("#flexVal").textContent = fl.value + "%"; });
+    fl.addEventListener("input", () => {
+      $("#flexVal").textContent = fl.value + "%";
+      fl.setAttribute("aria-valuetext", fl.value + "%");
+    });
     $("#addDrink").addEventListener("click", () => {
       if (document.querySelectorAll("#drinkRows .skurow").length >= 3) return;
       $("#drinkRows").appendChild(drinkRow({ name: "New Drink", price: 6.75, cost: 1.55 }, 9, 3));

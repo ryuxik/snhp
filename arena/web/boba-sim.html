@@ -1,3 +1,5 @@
+<!doctype html>
+<html lang="en">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Owner sandbox — run SNHP on your own boba menu</title>
@@ -7,7 +9,7 @@
 <link rel="stylesheet" href="nav.css" />
 <style>
   :root {
-    --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --faint:#6f6a86;
+    --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --faint:#807a99;
     --line:rgba(167,139,250,.22); --gold:#ffe08a; --green:#7fc48f;
     --violet:#a78bfa; --blue:#8fd0ff; --pink:#e58ab4; --red:#f08a8a; --brown:#cb9a6a;
     --card:#131022; --card2:#171331;
@@ -210,6 +212,9 @@
   .foot-note code { color:var(--blue); font-size:10px; }
   #err { color:var(--pink); font-size:13px; padding:20px 0; }
   @media (prefers-reduced-motion: reduce){ .cust { transition:none !important; } .fitem { animation:none; } }
+  /* visible keyboard focus (overrides input:focus{outline:none} via source order) */
+  a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+    outline:2px solid var(--gold); outline-offset:2px; }
 </style>
 
 <nav class="snhp-nav" aria-label="SNHP arena sections">
@@ -259,17 +264,18 @@
     <div class="panel-h" style="margin-top:20px;"><span class="t">2 · Today's conditions</span></div>
     <div class="cols">
       <div class="field" style="margin-top:0;">
-        <div class="field-l">Foot traffic</div>
-        <div class="seg" id="traffic">
-          <button data-v="quiet">Quiet</button>
-          <button data-v="normal" class="on">Normal</button>
-          <button data-v="rush">Lunch rush</button>
+        <div class="field-l" id="trafficLabel">Foot traffic</div>
+        <div class="seg" id="traffic" role="group" aria-labelledby="trafficLabel">
+          <button type="button" data-v="quiet" aria-pressed="false">Quiet</button>
+          <button type="button" data-v="normal" class="on" aria-pressed="true">Normal</button>
+          <button type="button" data-v="rush" aria-pressed="false">Lunch rush</button>
         </div>
       </div>
       <div class="field" style="margin-top:0;">
-        <div class="field-l">Customers flexible on pickup time</div>
+        <div class="field-l" id="flexLabel">Customers flexible on pickup time</div>
         <div class="slider">
-          <input type="range" id="flex" min="0" max="80" step="5" value="35" />
+          <input type="range" id="flex" min="0" max="80" step="5" value="35"
+                 aria-labelledby="flexLabel" aria-valuetext="35%" />
           <span class="val" id="flexVal">35%</span>
         </div>
         <div class="hint">These are the customers who'll take a +30/+60-min slot for a better price — the room SNHP has to smooth your rush.</div>
