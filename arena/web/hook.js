@@ -28,8 +28,13 @@
  *   - Quantity is NOT a standalone cost lever (cost is linear in qty in the engine):
  *     extra cups sit at menu price on their own, and save ONLY when paired with an
  *     off-peak pickup (each extra cup then frees more of the rush). Framed that way.
- *   - CONSUMER-ONLY: zero provider economics on the page (no margins, $/day,
- *     attestation, forecasts). The only bridge is a quiet "Run a shop? ->" link.
+ *   - NO COST/MARGIN DISCLOSURE: the shop's costs, margins, $/day forecasts and
+ *     attestation mechanics never render here. The WIN-WIN SPLIT is the one
+ *     shop-side number shown (r-winwin): the shop's gain ABOVE its no-deal
+ *     baseline, straight off the same live Nash quote as the buyer's saving —
+ *     a surplus delta that can't be inverted into cost structure. Showing both
+ *     halves is the trust story; hiding the shop's side was scoping the rule
+ *     wrong. The bridge to shop-land is the receipt's "Run a shop? ->" link.
  *
  * Runs in the browser (boots the tablet UI) and in node (exports the pure pricing
  * surface for arena/web/hook_verify.test.mjs). No DOM work happens under node.
@@ -246,10 +251,14 @@ export function priceEngineCart(eng, drinkId, topIds, slotId, qty) {
   const menu = round2(qty * (world.DRINK_PRICE[drinkId] + (topIds || []).reduce((s, t) => s + world.TOP_PRICE[t], 0)));
   if (q && configIsCart(q.config, drinkId, topIds || [], slotId, qty) && q.feasible) {
     const pay = round2(Math.min(q.price, menu));
-    return { pay, menu, save: round2(menu - pay), feasible: true };
+    // shopGain = the shop's gain ABOVE its no-deal baseline (the Nash gs) — the
+    // win-win half of the receipt. A surplus DELTA, never a margin/COGS reveal:
+    // one number can't be inverted into the shop's cost structure.
+    return { pay, menu, save: round2(menu - pay), feasible: true,
+             shopGain: round2(Math.max(0, q.seller_gain || 0)) };
   }
   // no split beat the disagreement (or slot had no room): pay the menu.
-  return { pay: menu, menu, save: 0.0, feasible: false };
+  return { pay: menu, menu, save: 0.0, feasible: false, shopGain: 0.0 };
 }
 
 // Price via the FULL-menu graph (buildBobaGraph) — same disagreement, same Nash,
@@ -289,7 +298,7 @@ export function priceOrder(eng, order) {
   const up = (order.sizeUp || 0) * order.qty;
   return {
     pay: round2(e.pay + up), menu: round2(e.menu + up),
-    save: e.save, feasible: e.feasible,
+    save: e.save, feasible: e.feasible, shopGain: e.shopGain || 0,
   };
 }
 export function perCupMenu(eng, order) {
@@ -681,6 +690,24 @@ function boot() {
     }
     if (!why.length) why.push("You're at the menu price — pick a later, off-peak pickup to see it drop.");
     $("r-why").innerHTML = "<b>Why it's a fair price:</b> " + why.join(" ") + " Your price is <b>never above the menu</b>, and every one of these is win-win.";
+
+    // THE WIN-WIN SPLIT — the other half of the story, shown, not asserted.
+    // Both numbers are the live Nash split's own gains: your cash saving, and
+    // the shop's gain ABOVE its no-deal baseline (a surplus delta from the same
+    // quote — never its costs or margins). This is what "win-win" means here:
+    // the discount is funded by value the deal CREATES, not by anyone's loss.
+    const ww = $("r-winwin");
+    if (ww) {
+      if (now.save > 0.005 && now.shopGain > 0.005) {
+        ww.innerHTML =
+          '<div class="ww-row"><span>you saved</span><b>' + money(now.save) + "</b></div>" +
+          '<div class="ww-row"><span>the shop came out ahead by</span><b>' + money(now.shopGain) + "</b></div>" +
+          '<div class="ww-note">both from the same live deal — your discount is funded by the value your flexibility created, not by the shop’s loss.</div>';
+        ww.classList.remove("hidden");
+      } else {
+        ww.classList.add("hidden");
+      }
+    }
 
     $("r-repro").textContent = "Every price computed live by the SNHP general offer-graph engine (core/js) for the exact order you build — nothing scripted.";
   }

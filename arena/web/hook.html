@@ -266,6 +266,12 @@
   #receipt .r-pct { text-align:right; font-size:10.5px; color:#7a6a44; margin-top:2px; }
   #receipt .r-why { font-size:9.5px; line-height:1.5; color:#5f5230; margin-top:13px; }
   #receipt .r-why b { color:#3a2e14; }
+  /* the win-win split — both halves of the same live deal, on receipt paper */
+  #receipt .r-winwin { margin-top:11px; padding:8px 10px; border:1px dashed rgba(90,72,32,.55); border-radius:8px; }
+  #receipt .r-winwin .ww-row { display:flex; justify-content:space-between; align-items:baseline;
+    font-size:10.5px; color:#5f5230; margin:2px 0; }
+  #receipt .r-winwin .ww-row b { color:#2a5c38; font-variant-numeric:tabular-nums; }
+  #receipt .r-winwin .ww-note { font-size:8.5px; line-height:1.45; color:#8a7a54; margin-top:5px; }
   #receipt .r-bridge { margin-top:13px; }
   #receipt .r-bridge a {
     display:block; text-align:center; font-family:var(--mono); font-size:11px; font-weight:800; text-decoration:none;
@@ -409,6 +415,7 @@
       <div class="r-total"><span class="lab">You saved</span><span class="amt" id="r-saved">$0.00</span></div>
       <div class="r-pct" id="r-pct"></div>
       <p class="r-why" id="r-why"></p>
+      <div class="r-winwin hidden" id="r-winwin" aria-label="the deal's win-win split"></div>
       <div class="r-bridge"><a href="/block/">Run a shop? Walk-aways and tossed batches are money left behind — watch a live street bank it →</a></div>
       <button class="r-again" id="r-again" type="button">◂ order again</button>
       <p class="r-repro" id="r-repro"></p>
