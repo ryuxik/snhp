@@ -1,0 +1,501 @@
+{
+ "headline": {
+  "regime": {
+   "days": 56,
+   "seed": 20260710,
+   "overstock": 4.0,
+   "dow": true,
+   "venue_reach": 6.0,
+   "firm_reach": 0.5,
+   "bargain_per_day": 40
+  },
+  "firm_off": {
+   "sticker": {
+    "vend_margin": 9596.15,
+    "firm_margin": 0.0,
+    "bargain_cs": 0.37,
+    "street_cs": 8432.13,
+    "bargain_served": 1,
+    "bargain_arrivals": 2240,
+    "salvage_units": 302,
+    "salvage_cost": 789.9,
+    "welfare": 18028.65
+   },
+   "snhp": {
+    "vend_margin": 9577.08,
+    "firm_margin": 0.0,
+    "bargain_cs": 33.26,
+    "street_cs": 9293.44,
+    "bargain_served": 24,
+    "bargain_arrivals": 2240,
+    "salvage_units": 128,
+    "salvage_cost": 263.8,
+    "welfare": 18903.78
+   },
+   "sticker_clear": {
+    "vend_margin": 9596.15,
+    "firm_margin": 0.0,
+    "bargain_cs": 0.37,
+    "street_cs": 8432.13,
+    "bargain_served": 1,
+    "bargain_arrivals": 2240,
+    "salvage_units": 302,
+    "salvage_cost": 789.9,
+    "welfare": 18028.65
+   }
+  },
+  "policies": {
+   "passthrough": {
+    "best_params": {
+     "procure_wtp_frac": 0.55,
+     "resale_markup": 0.6,
+     "hold_days": 0
+    },
+    "firm_profit": {
+     "sticker": 0.0,
+     "snhp": 125.45,
+     "sticker_clear": -119.55
+    },
+    "firm_profit_snhp_ci": {
+     "mean": 2.12,
+     "ci95": [
+      1.01,
+      3.23
+     ],
+     "n": 11,
+     "block": 5
+    },
+    "on": {
+     "sticker": {
+      "vend_margin": 9596.15,
+      "firm_margin": 0.0,
+      "bargain_cs": 0.37,
+      "street_cs": 8432.13,
+      "bargain_served": 1,
+      "bargain_arrivals": 2240,
+      "salvage_units": 302,
+      "salvage_cost": 789.9,
+      "welfare": 18028.65
+     },
+     "snhp": {
+      "vend_margin": 9636.35,
+      "firm_margin": 125.45,
+      "bargain_cs": 215.1,
+      "street_cs": 9255.32,
+      "bargain_served": 89,
+      "bargain_arrivals": 2240,
+      "salvage_units": 0,
+      "salvage_cost": 0.0,
+      "welfare": 19232.23
+     },
+     "sticker_clear": {
+      "vend_margin": 9555.05,
+      "firm_margin": -119.55,
+      "bargain_cs": 4.97,
+      "street_cs": 8432.13,
+      "bargain_served": 4,
+      "bargain_arrivals": 2240,
+      "salvage_units": 0,
+      "salvage_cost": 0.0,
+      "welfare": 17872.6
+     }
+    },
+    "units": {
+     "sticker": {
+      "procured": 0,
+      "resold": 0
+     },
+     "snhp": {
+      "procured": 213,
+      "resold": 208
+     },
+     "sticker_clear": {
+      "procured": 318,
+      "resold": 9
+     }
+    },
+    "decomposition_snhp": {
+     "waste_units_sold": 208,
+     "arb_units_sold": 0,
+     "waste_margin": 133.32,
+     "arb_margin": 0.0,
+     "social_waste_cleared_usd": 375.96,
+     "gross_margin": 133.32,
+     "spoil_loss": 7.87,
+     "carry_cost": 0.0,
+     "counterfactual_salvage_units": 128,
+     "waste_units_le_counterfactual": false
+    },
+    "system_effect_snhp": {
+     "welfare_delta_vs_disintermediation": {
+      "mean": 5.36,
+      "ci95": [
+       2.63,
+       8.09
+      ],
+      "n": 11,
+      "block": 5
+     },
+     "venue_margin_delta": 59.27,
+     "consumer_surplus_delta": 143.72,
+     "bargain_cs_delta": 181.84,
+     "street_cs_delta": -38.12,
+     "waste_units_delta": -128
+    },
+    "conservation_residual": 0.0,
+    "decomposition_residual": 0.0
+   },
+   "waste_aggregator": {
+    "best_params": {
+     "procure_wtp_frac": 0.55,
+     "resale_markup": 0.6,
+     "hold_days": 0
+    },
+    "firm_profit": {
+     "sticker": 0.0,
+     "snhp": 125.45,
+     "sticker_clear": -119.55
+    },
+    "firm_profit_snhp_ci": {
+     "mean": 2.12,
+     "ci95": [
+      1.01,
+      3.23
+     ],
+     "n": 11,
+     "block": 5
+    },
+    "on": {
+     "sticker": {
+      "vend_margin": 9596.15,
+      "firm_margin": 0.0,
+      "bargain_cs": 0.37,
+      "street_cs": 8432.13,
+      "bargain_served": 1,
+      "bargain_arrivals": 2240,
+      "salvage_units": 302,
+      "salvage_cost": 789.9,
+      "welfare": 18028.65
+     },
+     "snhp": {
+      "vend_margin": 9636.35,
+      "firm_margin": 125.45,
+      "bargain_cs": 215.1,
+      "street_cs": 9255.32,
+      "bargain_served": 89,
+      "bargain_arrivals": 2240,
+      "salvage_units": 0,
+      "salvage_cost": 0.0,
+      "welfare": 19232.23
+     },
+     "sticker_clear": {
+      "vend_margin": 9555.05,
+      "firm_margin": -119.55,
+      "bargain_cs": 4.97,
+      "street_cs": 8432.13,
+      "bargain_served": 4,
+      "bargain_arrivals": 2240,
+      "salvage_units": 0,
+      "salvage_cost": 0.0,
+      "welfare": 17872.6
+     }
+    },
+    "units": {
+     "sticker": {
+      "procured": 0,
+      "resold": 0
+     },
+     "snhp": {
+      "procured": 213,
+      "resold": 208
+     },
+     "sticker_clear": {
+      "procured": 318,
+      "resold": 9
+     }
+    },
+    "decomposition_snhp": {
+     "waste_units_sold": 208,
+     "arb_units_sold": 0,
+     "waste_margin": 133.32,
+     "arb_margin": 0.0,
+     "social_waste_cleared_usd": 375.96,
+     "gross_margin": 133.32,
+     "spoil_loss": 7.87,
+     "carry_cost": 0.0,
+     "counterfactual_salvage_units": 128,
+     "waste_units_le_counterfactual": false
+    },
+    "system_effect_snhp": {
+     "welfare_delta_vs_disintermediation": {
+      "mean": 5.36,
+      "ci95": [
+       2.63,
+       8.09
+      ],
+      "n": 11,
+      "block": 5
+     },
+     "venue_margin_delta": 59.27,
+     "consumer_surplus_delta": 143.72,
+     "bargain_cs_delta": 181.84,
+     "street_cs_delta": -38.12,
+     "waste_units_delta": -128
+    },
+    "conservation_residual": 0.0,
+    "decomposition_residual": 0.0
+   },
+   "scarcity_speculator": {
+    "best_params": {
+     "procure_wtp_frac": 0.7,
+     "resale_markup": 0.6,
+     "hold_days": 2
+    },
+    "firm_profit": {
+     "sticker": 0.0,
+     "snhp": 418.17,
+     "sticker_clear": 1015.63
+    },
+    "firm_profit_snhp_ci": {
+     "mean": 8.8,
+     "ci95": [
+      4.94,
+      12.66
+     ],
+     "n": 11,
+     "block": 5
+    },
+    "on": {
+     "sticker": {
+      "vend_margin": 9596.15,
+      "firm_margin": 0.0,
+      "bargain_cs": 0.37,
+      "street_cs": 8432.13,
+      "bargain_served": 1,
+      "bargain_arrivals": 2240,
+      "salvage_units": 302,
+      "salvage_cost": 789.9,
+      "welfare": 18028.65
+     },
+     "snhp": {
+      "vend_margin": 10979.62,
+      "firm_margin": 418.17,
+      "bargain_cs": 438.03,
+      "street_cs": 9094.64,
+      "bargain_served": 585,
+      "bargain_arrivals": 2240,
+      "salvage_units": 0,
+      "salvage_cost": 0.0,
+      "welfare": 20930.45
+     },
+     "sticker_clear": {
+      "vend_margin": 10380.95,
+      "firm_margin": 1015.63,
+      "bargain_cs": 797.9,
+      "street_cs": 8432.13,
+      "bargain_served": 672,
+      "bargain_arrivals": 2240,
+      "salvage_units": 0,
+      "salvage_cost": 0.0,
+      "welfare": 20626.61
+     }
+    },
+    "units": {
+     "sticker": {
+      "procured": 0,
+      "resold": 0
+     },
+     "snhp": {
+      "procured": 784,
+      "resold": 705
+     },
+     "sticker_clear": {
+      "procured": 1061,
+      "resold": 1060
+     }
+    },
+    "decomposition_snhp": {
+     "waste_units_sold": 0,
+     "arb_units_sold": 705,
+     "waste_margin": 0.0,
+     "arb_margin": 724.88,
+     "social_waste_cleared_usd": 0.0,
+     "gross_margin": 724.88,
+     "spoil_loss": 281.31,
+     "carry_cost": 25.4,
+     "counterfactual_salvage_units": 128,
+     "waste_units_le_counterfactual": true
+    },
+    "system_effect_snhp": {
+     "welfare_delta_vs_disintermediation": {
+      "mean": 36.39,
+      "ci95": [
+       25.39,
+       47.39
+      ],
+      "n": 11,
+      "block": 5
+     },
+     "venue_margin_delta": 1402.54,
+     "consumer_surplus_delta": 205.97,
+     "bargain_cs_delta": 404.77,
+     "street_cs_delta": -198.8,
+     "waste_units_delta": -128
+    },
+    "conservation_residual": 0.0,
+    "decomposition_residual": 0.0
+   }
+  },
+  "best_clearance_profit": 1015.63,
+  "kills": {
+   "winner": "scarcity_speculator",
+   "A_not_snhp_specific": {
+    "snhp_profit": 418.17,
+    "plain_sticker_profit": 0.0,
+    "best_clearance_profit": 1015.63,
+    "fired_vs_plain_sticker": false,
+    "fired_vs_clearance": true
+   },
+   "B_disintermediated": {
+    "welfare_delta_ci": {
+     "mean": 36.39,
+     "ci95": [
+      25.39,
+      47.39
+     ],
+     "n": 11,
+     "block": 5
+    },
+    "consumer_surplus_delta": 205.97,
+    "venue_margin_delta": 1402.54,
+    "fired": false,
+    "value_creator": true,
+    "rent_skimmer": false
+   },
+   "C_sim_exploit": {
+    "max_residual_usd": 0.0,
+    "fired": false
+   }
+  }
+ },
+ "reach_sweep": [
+  {
+   "venue_reach": 0.0,
+   "firm_profit": 33.55,
+   "welfare_delta_ci": {
+    "mean": -0.46,
+    "ci95": [
+     -1.21,
+     0.29
+    ],
+    "n": 11,
+    "block": 5
+   },
+   "off_served": 421,
+   "on_served": 428,
+   "off_salvage": 0,
+   "on_salvage": 0
+  },
+  {
+   "venue_reach": 2.0,
+   "firm_profit": 82.71,
+   "welfare_delta_ci": {
+    "mean": 1.7,
+    "ci95": [
+     0.54,
+     2.86
+    ],
+    "n": 11,
+    "block": 5
+   },
+   "off_served": 137,
+   "on_served": 151,
+   "off_salvage": 0,
+   "on_salvage": 0
+  },
+  {
+   "venue_reach": 4.0,
+   "firm_profit": 125.45,
+   "welfare_delta_ci": {
+    "mean": 2.06,
+    "ci95": [
+     0.48,
+     3.65
+    ],
+    "n": 11,
+    "block": 5
+   },
+   "off_served": 67,
+   "on_served": 89,
+   "off_salvage": 5,
+   "on_salvage": 0
+  },
+  {
+   "venue_reach": 6.0,
+   "firm_profit": 125.45,
+   "welfare_delta_ci": {
+    "mean": 5.36,
+    "ci95": [
+     2.63,
+     8.09
+    ],
+    "n": 11,
+    "block": 5
+   },
+   "off_served": 24,
+   "on_served": 89,
+   "off_salvage": 128,
+   "on_salvage": 0
+  },
+  {
+   "venue_reach": 8.0,
+   "firm_profit": 125.45,
+   "welfare_delta_ci": {
+    "mean": 7.13,
+    "ci95": [
+     2.53,
+     11.74
+    ],
+    "n": 11,
+    "block": 5
+   },
+   "off_served": 5,
+   "on_served": 89,
+   "off_salvage": 171,
+   "on_salvage": 0
+  }
+ ],
+ "waste_sweep": [
+  {
+   "overstock": 1.0,
+   "dow": false,
+   "off_salvage_units": 0,
+   "firm_profit": 0.0,
+   "firm_units_resold": 0
+  },
+  {
+   "overstock": 2.0,
+   "dow": true,
+   "off_salvage_units": 42,
+   "firm_profit": 25.79,
+   "firm_units_resold": 59
+  },
+  {
+   "overstock": 4.0,
+   "dow": true,
+   "off_salvage_units": 128,
+   "firm_profit": 125.45,
+   "firm_units_resold": 208
+  },
+  {
+   "overstock": 6.0,
+   "dow": true,
+   "off_salvage_units": 231,
+   "firm_profit": 209.55,
+   "firm_units_resold": 343
+  }
+ ],
+ "meta": {
+  "elapsed_s": 271.8
+ }
+}
