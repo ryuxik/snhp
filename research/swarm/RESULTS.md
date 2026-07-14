@@ -1,5 +1,32 @@
 # Results — verdicts against the pre-registrations
 
+## v5: imperfect information in a rich ecology (sweep_v5_C.json, 736 runs)
+
+Stage: 10 non-identical mirrored asteroids (240 units), 4 company-owned
+chargers (guest rate 2 vs 4), lean fleets (mean battery 40), τ=0.15.
+Information dial: noisy estimates of the partner's surplus (s ∈ {0, .25,
+.5, 1.0}) with true-loss veto + one role-swapped retry. Same-code v4
+anchors re-run for the ecology comparison (SPEC amendment 3).
+
+| pred | verdict | evidence |
+|---|---|---|
+| P9a info tax + crossover | **REFUTED — bargaining is noise-robust** | No crossover exists: bargaining beats the auction at EVERY noise level (Δdelivered +3.6 to +9.8, all p≤0.034; makespans 500–1500 ticks faster). The veto turns estimation error into failed proposals rather than bad deals — the pre-registered "could fail" branch is what happened. Exploratory bonus: at σ=0.5, plain snhp's makespan IMPROVES with noise (1815→889) — noisy proposals explore bundles noiseless Nash never offers, vetoes filter the harmful ones. Direction consistent across arms; variance high; flagged exploratory. |
+| P9b winner's curse | **PASS (direction)** | Vetoes rise steeply and monotonically with s (0 → 111 → ~500 per run at both σ). Concentration-on-overestimates logged but not yet analyzed distributionally. |
+| P9c the net returns | **REFUTED** | Because P9a failed, the rescue gap never reopens: snhp+net − snhp-hz at σ=1.0 stays ≈0-to-negative at every s (−1.5 at s=1.0, p=0.042 in the WRONG direction). The v3 regime law survives noise. Nuance: the net still buys ~10 fleet lives per run (stranded 4–8 vs 14–18) at roughly zero delivered cost at σ=0.5 — a survival dividend, not an output one. |
+| P9d ecology shift | **STRONG PASS** | vs same-code v4 anchors at σ=0.5: strandings collapse (auction 18.3→8.9, net 16.3→4.0, team 10.6→1.1), completion 85–92% → 95–100%, healthy border trade up (0.6→10.9 for net; team 11→39), and claim swaps explode to 46–73/run (v4: ~0–14) — with many non-identical asteroids, mining rights became a real currency. The bargaining advantage shifted from rescue churn to allocation, as conjectured. |
+| Placebo | **PASS** | Company delivered diffs centered on 0 (−3.4±19.4, +2.5±25.9); guest charging heavily used (~2,000 energy/run — priced infrastructure geography is live). |
+| KILL check | **did not fire** | No s collapses bargaining below the auction anywhere — the full-information results were not decorative. |
+
+Headline: **the imperfect-information gap did not close the market — the
+veto did the work of trust.** In the rich world, bargaining is the
+difference between finishing (237–240/240) and not (auction/rules
+229–234, censored at the horizon), at every noise level tested. Remaining
+honest gap: robots still cannot LIE strategically (noise ≠ deception);
+incentive-compatible misrepresentation is the next rung and needs the
+engine's attestation machinery.
+
+---
+
 ## v4.1: price formation (equilibrium_v41.json, 544 runs)
 
 | pred | verdict | evidence |

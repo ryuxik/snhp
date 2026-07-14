@@ -39,14 +39,22 @@ EV_INIT = 0.3                       # initial energy shadow price (endogenous
 EV_MIN, EV_MAX = 0.05, 1.0          # thereafter: lagged ∂Φ/∂battery, clamped)
 TARGET_MARGIN = 1.5                 # delivery-target hysteresis (score units)
 
+GUEST_RATE = 2.0                    # charge rate at a rival's charger (v5)
+GUEST_PENALTY = 6                   # routing penalty (cells) for guest charging
+
 PRESETS = {
-    # sources, refineries [(pos, owner)], charger
+    # sources, refineries [(pos, owner)], chargers [(pos, owner)]
+    "v5": dict(sources=None,        # mirrored asteroid field, seeded in init
+               refineries=[((26, 6), 0), ((26, 26), 1)],
+               chargers=[((12, 10), 0), ((22, 12), 0),
+                         ((12, 22), 1), ((22, 20), 1)],
+               companies=2),
     "v4": dict(sources=[(6, 6), (6, 26)],
                refineries=[((26, 6), 0), ((26, 26), 1)],
-               charger=(16, 16), companies=2),
+               chargers=[((16, 16), None)], companies=2),
     "v3": dict(sources=[(10, 6), (6, 26)],
                refineries=[((26, 6), None)],
-               charger=(22, 6), companies=1),
+               chargers=[((22, 6), None)], companies=1),
 }
 
 
@@ -95,15 +103,31 @@ class World:
         self.hazard_phi = hazard_phi
         self.preset = preset
         cfg = PRESETS[preset]
-        self.sources = [tuple(s) for s in cfg["sources"]]
         self.refineries = [tuple(p) for p, _ in cfg["refineries"]]
         self.ref_owner = [o for _, o in cfg["refineries"]]
-        self.charger = tuple(cfg["charger"])
+        self.chargers = [tuple(p) for p, _ in cfg["chargers"]]
+        self.charger_owner = [o for _, o in cfg["chargers"]]
         self.n_companies = cfg["companies"]
+        # v5 fleets launch lean (mean 40): with 4 chargers and a scattered
+        # field, abundance made coordination irrelevant at mean 60 (smoke:
+        # 120/120 by tick 143 with 7 deals). Leaner batteries restore real
+        # charging economics without v4's single-bottleneck death world.
+        if preset == "v5":
+            self._b_mean, self._b_spread, self._b_lo = 0.4 * BATTERY_MAX, 30.0, 8.0
+        else:   # v3/v4 draws unchanged — committed sweeps must stay reproducible
+            self._b_mean, self._b_spread, self._b_lo = 0.6 * BATTERY_MAX, 40.0, 10.0
+        if cfg["sources"] is None:          # v5: mirrored asteroid field
+            self.sources, stocks = self._gen_asteroids()
+            self.stock = stocks
+        else:
+            self.sources = [tuple(s) for s in cfg["sources"]]
         self.tau = tuple(tau)
         self.internalize_tariffs = internalize_tariffs
         self.freeze_ev = freeze_ev
-        self.stock = [STOCK_PER_SOURCE, STOCK_PER_SOURCE]
+        if not hasattr(self, "stock"):
+            self.stock = [STOCK_PER_SOURCE, STOCK_PER_SOURCE]
+        self.total_stock = sum(self.stock)
+        self.guest_charged = 0.0            # energy served to rival fleets
         self.delivered = 0
         self.delivered_matrix = [[0, 0], [0, 0]]     # [miner co][refiner owner]
         self.foreign_refined = 0    # units a robot refined at the OTHER
@@ -131,10 +155,42 @@ class World:
         u = self.rng.uniform
         cap = int(np.clip(round(3 + sigma * u(-2, 2)), 1, 5))
         eff = float(np.clip(1.0 + sigma * u(-0.5, 0.5), 0.5, 1.5))
-        b0 = float(np.clip(0.6 * BATTERY_MAX + sigma * u(-40.0, 40.0),
-                           10.0, BATTERY_MAX))
+        b0 = float(np.clip(self._b_mean + sigma * u(-self._b_spread, self._b_spread),
+                           self._b_lo, BATTERY_MAX))
         pos = (int(u(1, GRID)), int(u(1, GRID)))
         return cap, eff, b0, pos
+
+    def _gen_asteroids(self):
+        """v5: 5 mirror-pairs of asteroids (reflection about y=16), stocks
+        equal within a pair, total pinned to 2×TOTAL_STOCK (double workload:
+        the rich stage needs a long game or coordination is decorative).
+        Non-identical by construction: position and richness vary per pair."""
+        taken = {(26, 6), (26, 26), (12, 10), (22, 12), (12, 22), (22, 20)}
+        pos = []
+        while len(pos) < 5:
+            x = int(self.rng.uniform(3, 29))
+            y = int(self.rng.uniform(3, 13))
+            p_ = (x, y)
+            if p_ in taken or any(manhattan(p_, q) < 5 for q in pos):
+                continue
+            pos.append(p_)
+        raw = [int(self.rng.uniform(6, 19)) for _ in range(5)]
+        scale = TOTAL_STOCK / sum(raw)
+        stocks = [max(4, round(r * scale)) for r in raw]
+        stocks[0] += TOTAL_STOCK - sum(stocks)           # pin the total
+        sources = pos + [(x, GRID - y) for x, y in pos]  # mirrors are idx+5
+        return sources, stocks + list(stocks)
+
+    def best_claim(self, r) -> int:
+        """Policy claim choice: richest-per-distance stocked asteroid."""
+        best, best_score = r.sector, -1.0
+        for i, src in enumerate(self.sources):
+            if self.stock[i] <= 0:
+                continue
+            score = self.stock[i] / (manhattan(r.pos, src) + 4.0)
+            if score > best_score:
+                best, best_score = i, score
+        return best
 
     def _spawn_twin_fleets(self, n_robots, sigma):
         """Both companies receive the IDENTICAL draw multiset; company-1
@@ -150,6 +206,12 @@ class World:
             self.robots.append(Robot(
                 rid=half + k, pos=(x, GRID - y), battery=b0, cap=cap, eff=eff,
                 sector=1 - (k % 2), company=1))
+        if len(self.sources) > 2:            # v5: claims replace sectors —
+            half_src = len(self.sources) // 2
+            for k in range(half):            # mirrored pairs stay symmetric
+                c = self.best_claim(self.robots[k])
+                self.robots[k].sector = c
+                self.robots[half + k].sector = (c + half_src) % len(self.sources)
 
     def _spawn_v3(self, n_robots, sigma):
         for i in range(n_robots):
@@ -178,9 +240,22 @@ class World:
         r.battery -= cost
         self._maybe_strand(r)
 
+    def nearest_charger(self, r: Robot):
+        """(pos, dist) of the routing-preferred charger: nearest by distance
+        plus a guest penalty at rival infrastructure (guests charge slower)."""
+        best, best_eff, best_d = None, float("inf"), 0
+        for pos, owner in zip(self.chargers, self.charger_owner):
+            d = manhattan(r.pos, pos)
+            eff_d = d + (0 if owner is None or owner == r.company
+                         else GUEST_PENALTY)
+            if eff_d < best_eff:
+                best, best_eff, best_d = pos, eff_d, d
+        return best, best_d
+
     def _maybe_strand(self, r: Robot) -> None:
         r.battery = max(0.0, r.battery)
-        if r.battery < RESCUE_FLOOR and manhattan(r.pos, self.charger) > 1:
+        if r.battery < RESCUE_FLOOR and \
+                all(manhattan(r.pos, c) > 1 for c in self.chargers):
             r.stranded = True
 
     def pick(self, r: Robot) -> int:
@@ -223,19 +298,28 @@ class World:
         return 0
 
     def charge_step(self) -> None:
-        queue = [r for r in self.robots
-                 if r.charge_queued_at >= 0
-                 and manhattan(r.pos, self.charger) <= 1
-                 and r.battery < BATTERY_MAX - 1e-9]
-        queue.sort(key=lambda r: (r.charge_queued_at, self._charge_prio[r.rid]))
-        for r in queue[:CHARGE_SLOTS]:
-            amt = min(CHARGE_RATE, BATTERY_MAX - r.battery)
-            r.battery += amt
-            self.energy_charged += amt
-            if r.stranded and r.battery >= RESCUE_FLOOR:
-                r.stranded = False
-        for r in queue[CHARGE_SLOTS:]:        # commons diagnostics (panel Q2)
-            self.company[r.company]["queue_wait"] += 1
+        served = set()
+        for pos, owner in zip(self.chargers, self.charger_owner):
+            queue = [r for r in self.robots
+                     if r.rid not in served
+                     and r.charge_queued_at >= 0
+                     and manhattan(r.pos, pos) <= 1
+                     and r.battery < BATTERY_MAX - 1e-9]
+            queue.sort(key=lambda r: (r.charge_queued_at,
+                                      self._charge_prio[r.rid]))
+            for r in queue[:CHARGE_SLOTS]:
+                guest = owner is not None and owner != r.company
+                amt = min(GUEST_RATE if guest else CHARGE_RATE,
+                          BATTERY_MAX - r.battery)
+                r.battery += amt
+                self.energy_charged += amt
+                if guest:
+                    self.guest_charged += amt
+                served.add(r.rid)
+                if r.stranded and r.battery >= RESCUE_FLOOR:
+                    r.stranded = False
+            for r in queue[CHARGE_SLOTS:]:    # commons diagnostics
+                self.company[r.company]["queue_wait"] += 1
 
     def transfer_energy(self, donor: Robot, recv: Robot, amount: float,
                         log: bool = True) -> float:
@@ -305,6 +389,9 @@ class World:
 
     def material_accounted(self) -> int:
         return self.delivered + sum(self.stock) + sum(r.load for r in self.robots)
+
+    def material_ok(self) -> bool:
+        return self.material_accounted() == self.total_stock
 
     def ledger_accounted(self) -> bool:
         """Σ company credit + Σ tariffs earned == V · delivered (unless the

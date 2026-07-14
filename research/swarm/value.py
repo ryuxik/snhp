@@ -16,7 +16,8 @@ from swarm import world as W
 
 def safe_return_threshold(r, w) -> float:
     """Battery level below which an unloaded robot should head to charge."""
-    return (W.manhattan(r.pos, w.charger) + 4) * r.eff * 1.2
+    _, d = w.nearest_charger(r)
+    return (d + 4) * r.eff * 1.2
 
 
 def _ref_score(r, w, ref_idx: int, from_pos) -> float:
@@ -46,7 +47,8 @@ def delivery_target(r, w, from_pos=None, sticky: bool = True) -> int:
 
 def stranding_hazard(r, w) -> float:
     """P(strand soon), smooth in the energy margin to the charger (-hz Φ)."""
-    margin = r.battery - W.manhattan(r.pos, w.charger) * r.step_cost()
+    _, d = w.nearest_charger(r)
+    margin = r.battery - d * r.step_cost()
     return 1.0 / (1.0 + math.exp(margin / W.HAZARD_SCALE))
 
 
@@ -56,7 +58,8 @@ def _future_trips_value(r, w) -> float:
     sectors (v2.1 lesson: a free max prices sector swaps at zero and silently
     kills the issue). The refinery leg uses the same delivery_target scoring,
     tariff-aware."""
-    for s in (r.sector, 1 - r.sector):
+    cand = r.sector if w.stock[r.sector] > 0 else w.best_claim(r)
+    for s in (cand,):
         stock = w.stock[s]
         if stock <= 0:
             continue
@@ -98,8 +101,10 @@ def phi(r, w) -> float:
 
     if w.hazard_phi:
         v -= W.P_STRAND * stranding_hazard(r, w)
-    elif r.battery < W.manhattan(r.pos, w.charger) * r.step_cost():
-        v -= W.P_STRAND
+    else:
+        _, d = w.nearest_charger(r)
+        if r.battery < d * r.step_cost():
+            v -= W.P_STRAND
     return v
 
 

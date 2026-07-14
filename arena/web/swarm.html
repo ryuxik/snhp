@@ -42,7 +42,7 @@
 </head>
 <body>
 <header>
-  <h1>the drone economy <span>— same asteroids, same robots, different economics · <a href="/leaderboard.html" style="color:#4dd0e1;text-decoration:none">arena.snhp.dev</a></span></h1>
+  <h1>the drone economy <span>— rich asteroid field, noisy information (±50%), bargaining vs auctions · <a href="/leaderboard.html" style="color:#4dd0e1;text-decoration:none">arena.snhp.dev</a></span></h1>
   <button id="playBtn">▶ play</button>
   <select id="speed">
     <option value="0.25">¼×</option><option value="1" selected>1×</option>
@@ -137,10 +137,11 @@ function siteLabel(ctx, cell, pos, color, text){
 function drawAsteroid(ctx, cell, pos, seed, label, count){
   const cx = (pos[0] + .5) * cell, cy = (pos[1] + .5) * cell;
   const rnd = mulberry32(seed), n = 9;
+  const scale = label ? 1.0 : 0.55 + Math.min(count, 30) / 60;  // richness-sized
   ctx.beginPath();
   for (let i = 0; i < n; i++){
     const ang = (i / n) * 2 * Math.PI;
-    const rad = cell * (1.0 + 0.5 * rnd());
+    const rad = cell * scale * (1.0 + 0.5 * rnd());
     const px = cx + Math.cos(ang) * rad, py = cy + Math.sin(ang) * rad * .85;
     i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
   }
@@ -157,7 +158,7 @@ function drawAsteroid(ctx, cell, pos, seed, label, count){
             1.5, 0, 7);
     ctx.fill();
   }
-  siteLabel(ctx, cell, pos, "#ffb74d", `⛏ ${label} · ${count}`);
+  siteLabel(ctx, cell, pos, "#ffb74d", label ? `⛏ ${label} · ${count}` : `${count}`);
 }
 
 const COMPANY = ["#64b5f6", "#f0a35e"];   // fleet ownership hues
@@ -183,26 +184,27 @@ function drawRefinery(ctx, cell, pos, count, color, tag){
   siteLabel(ctx, cell, pos, color, `⬢ REFINERY${tag} · ${count}`);
 }
 
-function drawDock(ctx, cell, pos){
+function drawDock(ctx, cell, pos, color){
+  color = color || "#4dd0e1";
   const cx = (pos[0] + .5) * cell, cy = (pos[1] + .5) * cell, r = cell * .8;
   for (let i = 0; i < 8; i++){                        // solar rays
     const ang = (i / 8) * 2 * Math.PI;
     ctx.beginPath();
     ctx.moveTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r);
     ctx.lineTo(cx + Math.cos(ang) * r * 1.6, cy + Math.sin(ang) * r * 1.6);
-    ctx.strokeStyle = "#4dd0e1";
+    ctx.strokeStyle = color;
     ctx.lineWidth = 1.2;
     ctx.stroke();
   }
   ctx.beginPath();
   ctx.arc(cx, cy, r * .8, 0, 7);
-  ctx.fillStyle = "#4dd0e122";
+  ctx.fillStyle = color + "22";
   ctx.fill();
-  ctx.strokeStyle = "#4dd0e1";
+  ctx.strokeStyle = color;
   ctx.stroke();
   // label goes BELOW the dock — the refinery sits two cells east and its
   // label owns the line above
-  ctx.fillStyle = "#4dd0e1";
+  ctx.fillStyle = color;
   ctx.font = `${Math.max(9, cell * .8)}px ui-monospace`;
   ctx.textAlign = "center";
   ctx.fillText("☀ DOCK", cx, cy + cell * 2.4);
@@ -237,8 +239,9 @@ function draw(tr, t){
   }
   ctx.globalAlpha = 1;
 
-  drawAsteroid(ctx, cell, h.sources[0], 101, "A1", rec.stock[0]);
-  drawAsteroid(ctx, cell, h.sources[1], 202, "A2", rec.stock[1]);
+  for (let i = 0; i < h.sources.length; i++)
+    drawAsteroid(ctx, cell, h.sources[i], 101 + i * 37,
+                 h.sources.length > 2 ? "" : "A" + (i + 1), rec.stock[i]);
   if (h.refineries){                    // v4: one refinery per company
     for (const rf of h.refineries){
       const owner = rf.owner;
@@ -250,7 +253,8 @@ function draw(tr, t){
   } else {
     drawRefinery(ctx, cell, h.sink, rec.delivered, "#66bb6a", "");
   }
-  drawDock(ctx, cell, h.charger);
+  for (const ch of (h.chargers || [{pos: h.charger, owner: null}]))
+    drawDock(ctx, cell, ch.pos, ch.owner === null ? "#4dd0e1" : COMPANY[ch.owner]);
 
   // next-tick positions for smooth interpolation at low speed
   const nxt = ticks[Math.min(T + 1, maxT)];
@@ -400,8 +404,8 @@ drop.addEventListener("drop", async e => {
 (async function init(){
   const p = new URLSearchParams(location.search);
   let urls = [p.get("trace"), p.get("trace2")].filter(Boolean);
-  if (!urls.length) urls = ["swarm-traces/trace_twofirm_s0.5_t0.15_seed2.jsonl",
-                            "swarm-traces/trace_auction_s0.5_t0.15_seed2.jsonl"];
+  if (!urls.length) urls = ["swarm-traces/trace_v5_snhp-hz_s0.5_seed3.jsonl",
+                            "swarm-traces/trace_v5_auction_seed3.jsonl"];
   if (urls.length){
     try {
       traces = await Promise.all(urls.map(async u =>

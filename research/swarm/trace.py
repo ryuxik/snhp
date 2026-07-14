@@ -30,21 +30,24 @@ from swarm.world import TOTAL_STOCK, World
 
 
 def write_trace(arm_name: str, sigma: float, seed: int, ticks: int,
-                out_path: str, tau: float = 0.0,
+                out_path: str, tau: float = 0.0, preset: str = "v4",
+                noise: float = 0.0,
                 issues=("cargo", "energy", "sector")) -> dict:
     hazard = arm_name.endswith("-hz")
     base = arm_name[:-3] if hazard else arm_name
-    w = World(sigma=sigma, seed=seed, hazard_phi=hazard,
+    w = World(sigma=sigma, seed=seed, hazard_phi=hazard, preset=preset,
               tau=(tau, tau), internalize_tariffs=(base == "team"))
-    arm = make_arm(base, w, issues=issues)
+    arm = make_arm(base, w, issues=issues, noise=noise)
     n_events = n_deals = 0
     with open(out_path, "w") as f:
         f.write(json.dumps(dict(
             type="header", grid=W.GRID, sources=w.sources,
             refineries=[dict(pos=list(p), owner=o)
                         for p, o in zip(w.refineries, w.ref_owner)],
-            charger=list(w.charger), arm=arm_name, sigma=sigma, seed=seed,
-            tau=tau, total_stock=TOTAL_STOCK,
+            chargers=[dict(pos=list(p_), owner=o)
+                      for p_, o in zip(w.chargers, w.charger_owner)],
+            arm=arm_name, sigma=sigma, seed=seed,
+            tau=tau, noise=noise, total_stock=w.total_stock,
             robots=[dict(id=r.rid, cap=r.cap, eff=round(r.eff, 3),
                          sector=r.sector, company=r.company)
                     for r in w.robots])) + "\n")
@@ -68,7 +71,7 @@ def write_trace(arm_name: str, sigma: float, seed: int, ticks: int,
                     sa=round(d["sa"], 2), sb=round(d["sb"], 2),
                     capture=round(d["capture"], 3))) + "\n")
                 n_deals += 1
-            if w.delivered >= TOTAL_STOCK:
+            if w.delivered >= w.total_stock:
                 break
     return dict(arm=arm_name, sigma=sigma, seed=seed, tau=tau, ticks=w.tick,
                 delivered=w.delivered, deals=len(w.deal_log),
@@ -81,6 +84,8 @@ def main() -> None:
     ap.add_argument("--sigma", type=float, default=0.5)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--tau", type=float, default=0.0)
+    ap.add_argument("--preset", default="v4")
+    ap.add_argument("--noise", type=float, default=0.0)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
@@ -89,7 +94,8 @@ def main() -> None:
         f"trace_{args.arm}_s{args.sigma:g}_t{args.tau:g}_seed{args.seed}.jsonl")
     os.makedirs(os.path.dirname(out), exist_ok=True)
     print(json.dumps(write_trace(args.arm, args.sigma, args.seed, args.ticks,
-                                 out, tau=args.tau), indent=1))
+                                 out, tau=args.tau, preset=args.preset,
+                                 noise=args.noise), indent=1))
 
 
 if __name__ == "__main__":

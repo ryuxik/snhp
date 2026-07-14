@@ -55,28 +55,29 @@ MAX_CARGO = max(CARGO_OPTS)
 def intent(r, w):
     if r.stranded:
         return None
+    charger, _ = w.nearest_charger(r)
     if r.charge_queued_at >= 0 and r.battery < 0.95 * W.BATTERY_MAX:
-        return w.charger
+        return charger
     if r.load > 0:
         ref = delivery_target(r, w)             # sticky (hysteresis)
         dest = w.refineries[ref]
         cost = W.manhattan(r.pos, dest) * r.eff * (1 + W.LOADED_MULT)
-        return dest if r.battery > cost else w.charger
+        return dest if r.battery > cost else charger
     r.target_ref = None
     if r.battery < safe_return_threshold(r, w):
-        return w.charger
+        return charger
+    if w.stock[r.sector] <= 0:                  # claim depleted → re-claim
+        r.sector = w.best_claim(r)
     if w.stock[r.sector] > 0:
         return w.sources[r.sector]
-    if w.stock[1 - r.sector] > 0:
-        return w.sources[1 - r.sector]
-    return w.charger
+    return charger
 
 
 def drive(r, w):
     t = intent(r, w)
     if t is None:
         return
-    if t == w.charger and W.manhattan(r.pos, w.charger) <= 1:
+    if t in w.chargers and W.manhattan(r.pos, t) <= 1:
         if r.charge_queued_at < 0:
             r.charge_queued_at = w.tick
         return
@@ -226,10 +227,13 @@ class SnhpArm(BaseArm):
     name = "snhp"
 
     def __init__(self, w: W.World, issues=("cargo", "energy", "sector"),
-                 safety_net: bool = False):
+                 safety_net: bool = False, noise: float = 0.0):
         super().__init__(w)
         self.issues = tuple(issues)
         self.safety_net = safety_net
+        self.noise = noise
+        self.vetoes = 0
+        self.veto_est_surplus: list = []
         opts = [CARGO_OPTS if "cargo" in issues else [0],
                 ENERGY_OPTS if "energy" in issues else [0.0],
                 SECTOR_OPTS if "sector" in issues else [0]]
@@ -258,11 +262,35 @@ class SnhpArm(BaseArm):
         pareto = filter_pareto_frontier(self.space, ua, ub)
         return find_nash_bargaining_solution(pareto, ua, ub, batna_a, batna_b)
 
+    def _noisy(self, u, batna):
+        """Estimate of the PARTNER's per-bundle utility: true surplus scaled
+        by a per-encounter bias plus per-bundle jitter (winner's-curse-prone
+        by construction — noisy argmax selects overestimates)."""
+        s_ = self.noise / np.sqrt(2)
+        bias = self.w.rng.normal(0.0, s_)
+        jitter = self.w.rng.normal(0.0, s_, size=len(u))
+        return batna + (u - batna) * (1.0 + bias + jitter)
+
     def encounter(self, a, b) -> bool:
         w = self.w
         batna_a, batna_b = phi(a, w), phi(b, w)
         ua, ub = self._evaluate(a, b)
-        sol = self._pick(ua, ub, batna_a, batna_b, a, b)
+        if self.noise <= 0:
+            sol = self._pick(ua, ub, batna_a, batna_b, a, b)
+        else:
+            # proposer a: own truth + noisy view of b; b vetoes true losses
+            sol = self._pick(ua, self._noisy(ub, batna_b), batna_a, batna_b, a, b)
+            if sol is not None and ub[sol] - batna_b <= 0:
+                self.vetoes += 1
+                self.veto_est_surplus.append(
+                    float(self._noisy(ub, batna_b)[sol] - batna_b))
+                sol = None
+                # role-swapped retry: b proposes under its noisy view of a
+                sol2 = self._pick(self._noisy(ua, batna_a), ub, batna_a, batna_b, b, a)
+                if sol2 is not None and ua[sol2] - batna_a > 0:
+                    sol = sol2
+                elif sol2 is not None:
+                    self.vetoes += 1
         if sol is None:
             return trophallaxis(w, a, b) if self.safety_net else False
 
@@ -328,17 +356,17 @@ class TwoFirmArm(SnhpArm):
         return SnhpArm._pick(self, ua, ub, batna_a, batna_b, a, b)
 
 
-def make_arm(name: str, w: W.World, issues=("cargo", "energy", "sector")):
+def make_arm(name: str, w: W.World, issues=("cargo", "energy", "sector"),
+             noise: float = 0.0):
     arms = {"null": NullArm, "rules": RulesArm, "auction": AuctionArm,
             "auction-co": AuctionCoArm, "team-co": TeamCoArm,
             "twofirm": TwoFirmArm}
     if name in arms:
-        a = arms[name](w)
-        return a
+        return arms[name](w)
     if name == "team":
-        return TeamArm(w, issues=issues)
+        return TeamArm(w, issues=issues)      # full-info ceiling: no noise
     if name == "snhp":
-        return SnhpArm(w, issues=issues)
+        return SnhpArm(w, issues=issues, noise=noise)
     if name == "snhp+net":
-        return SnhpArm(w, issues=issues, safety_net=True)
+        return SnhpArm(w, issues=issues, safety_net=True, noise=noise)
     raise ValueError(f"unknown arm {name!r}")

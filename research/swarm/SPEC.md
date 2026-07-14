@@ -271,6 +271,81 @@ Pre-registered:
 Also added to the runner for v4.1 (time-resolved deadweight, red-team F2):
 `delivered_mid` = delivered at tick 800.
 
+## v5 — imperfect information in a rich ecology (FINAL, pre-run)
+
+Motivation: v0–v4.1 were full-information and artificially scarce (one
+charger, two asteroids) — the cleanest possible economics test, but rescue
+churn dominated and truthful-Φ exchange assumed away the hardest part of
+real negotiation. v5 changes the STAGE once (rich ecology) and then treats
+INFORMATION QUALITY as the experimental dial.
+
+### The v5 world (one stage change, mirrored for the placebo)
+
+- **10 asteroids** in 5 mirror pairs (reflection about y=16), stocks drawn
+  6–18 per pair (pairs share stock), total pinned to 120. Sectors
+  generalize to **claims**: each drone claims one asteroid (policy:
+  best stock/distance when the claim depletes); the third bundle issue
+  becomes claim-swapping. Deal space stays 7×7×2.
+- **4 chargers** in 2 mirror pairs, **company-owned** (2 per company),
+  2 slots each: own-fleet rate 4/tick, **guest rate 2/tick** — priced
+  infrastructure access, physically (no new money flows). Charger choice,
+  safe-return, and hazard use nearest-effective-charger.
+- Refineries + tariff unchanged from v4 (τ=0.15 fixed — border economics
+  stay live). Twin fleets, mean-preserving σ, neutral tie-breaks retained.
+
+### The information dial
+
+Bargaining arms estimate the COUNTERPARTY's surplus with multiplicative
+noise (per-encounter bias + per-bundle jitter, scale s ∈ {0, 0.25, 0.5,
+1.0}); own valuations stay true. Protocol: proposer picks the Nash bundle
+under (own truth, noisy estimate of partner); partner VETOES any bundle
+that loses on its true Φ; one role-swapped retry, then no deal. s=0 must
+reproduce the noiseless path exactly (pinned as a test). team stays
+noiseless (it is the full-info cooperative ceiling, not a treatment arm).
+
+### Pre-registered predictions (P9)
+
+- **P9a (info tax + crossover):** bargaining-fleet delivered falls
+  monotonically in s; the info-robust auction baseline overtakes PURE snhp
+  at some s* ≤ 1.0. Genuinely two-sided: the veto may make bargaining
+  noise-robust (failed deals cost nothing but time) and no crossover
+  exists.
+- **P9b (winner's curse):** veto rate rises with s, and vetoed proposals
+  are concentrated on bundles whose ESTIMATED partner surplus was high —
+  noisy argmax selects overestimates.
+- **P9c (the net returns):** the safety net's value is restored by noise —
+  snhp+net ≥ snhp-hz at high s even at σ=1.0, reversing v3's high-σ
+  verdict (failed deals reopen the rescue gap that hazard pricing closed
+  under full information).
+- **P9d (ecology, the user's conjecture):** in the rich world at s=0,
+  strandings fall vs the v4 anchor and the healthy (non-distress) share of
+  deals rises — the bargaining advantage shifts from rescue churn to
+  allocation. Claim-swap deals occur at material rates (>10% of bundles)
+  with 10 asteroids vs 2.
+- **Placebo:** company ledger differences centered at 0 in the mirrored
+  rich world; guest-charging occurs (>0) at s=0 (non-vacuity for the
+  infrastructure geography).
+- **KILL (thesis-level):** if any s>0 collapses ALL bargaining arms below
+  the auction everywhere, the full-information results were decorative and
+  the imperfect-information gap is the whole problem — report as such and
+  redirect to the engine's Bayesian machinery as the required next step.
+
+Grid: {rules, auction} × s=0 baselines + {snhp, snhp-hz, snhp+net, team}
+× s ∈ {0, 0.25, 0.5, 1.0} × σ ∈ {0.5, 1.0} × 16 seeds (~600 runs), all in
+the v5 world; P9d reads against the v4 anchor column.
+
+**Stage amendments logged before any results were read** (smoke-test
+calibration, predictions unchanged): (1) v5 fleets launch lean — battery
+mean 40 (spread ±30σ, floor 8) — because at mean 60 the rich stage was
+trivially abundant (all arms finished by tick ~150 with <10 deals;
+coordination decorative); v3/v4 draws untouched for artifact
+reproducibility. (2) v5 workload doubled to 240 units (same 5 mirrored
+pairs) — at 120 the task ended before charging economics bound. (3) The
+claim-generalization of `intent()` perturbs v4-preset trajectories by ~1
+delivered unit vs the committed sweep artifacts, so column C re-runs its
+own same-code v4-preset anchor cells rather than reading sweep_v4_A.json
+(provenance: old artifacts reproduce at commit 279b21e).
+
 ## v4 PLAN — structural ownership + refining tariffs (SUPERSEDED DRAFT, kept for audit)
 
 Mixed ownership becomes PHYSICS, and refining prices become the market force.

@@ -37,25 +37,26 @@ TAU_ARMS = ["null", "snhp-hz", "team"]
 
 
 def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
-             tau=0.0, preset: str = "v4", issues=FULL) -> dict:
+             tau=0.0, preset: str = "v4", issues=FULL,
+             noise: float = 0.0) -> dict:
     hazard = arm_name.endswith("-hz")
     base = arm_name[:-3] if hazard else arm_name
     tau_pair = tuple(tau) if isinstance(tau, (tuple, list)) else (tau, tau)
     w = World(sigma=sigma, seed=seed, hazard_phi=hazard, preset=preset,
               tau=tau_pair, internalize_tariffs=(base == "team"))
-    arm = make_arm(base, w, issues=issues)
+    arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
     for t in range(ticks):
         arm.tick()
         if t + 1 == 800:
             delivered_mid = w.delivered   # time-resolved deadweight (v4.1)
-        if w.delivered >= TOTAL_STOCK:
+        if w.delivered >= w.total_stock:
             makespan = t + 1
             break
-    if w.delivered >= TOTAL_STOCK and makespan <= 800:
-        delivered_mid = TOTAL_STOCK   # finished before the checkpoint
-    assert w.material_accounted() == TOTAL_STOCK, "material leak"
+    if w.delivered >= w.total_stock and makespan <= 800:
+        delivered_mid = w.total_stock   # finished before the checkpoint
+    assert w.material_ok(), "material leak"
     assert w.ledger_accounted(), "ledger leak"
 
     deals = w.deal_log
@@ -96,6 +97,10 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         co_credit=[round(w.company[c]["credit"], 1) for c in (0, 1)],
         co_tariffs=[round(w.company[c]["tariffs_earned"], 1) for c in (0, 1)],
         co_queue_wait=[w.company[c]["queue_wait"] for c in (0, 1)],
+        noise=noise,
+        vetoes=getattr(arm, "vetoes", 0),
+        guest_charged=round(w.guest_charged, 1),
+        claim_swaps=sum(1 for d in deals if d["s"] == 1),
     )
 
 
@@ -187,6 +192,29 @@ def build_jobs(column: str, seeds: int, ticks: int):
                     for seed in range(seeds):
                         jobs.append(dict(arm_name=arm, sigma=sigma, seed=seed,
                                          ticks=ticks, tau=tau))
+    if column in ("C", "all"):        # v5: imperfect info in rich ecology
+        # same-code v4-preset anchors for P9d (the claim-generalization
+        # perturbs old-v4 trajectories ~1 unit, so cross-preset comparisons
+        # re-run under HEAD rather than reading the committed v4 artifact)
+        for arm in ("auction", "team", "snhp-hz", "snhp+net"):
+            for sigma in (0.5, 1.0):
+                for seed in range(min(seeds, 16)):
+                    jobs.append(dict(arm_name=arm, sigma=sigma, seed=seed,
+                                     ticks=ticks, tau=0.15, preset="v4"))
+        for arm in ("rules", "auction"):  # info-robust baselines (s irrelevant)
+            for sigma in (0.5, 1.0):
+                for seed in range(min(seeds, 16)):
+                    jobs.append(dict(arm_name=arm, sigma=sigma, seed=seed,
+                                     ticks=ticks, tau=0.15, preset="v5"))
+        for arm in ("snhp", "snhp-hz", "snhp+net", "team"):
+            for noise in (0.0, 0.25, 0.5, 1.0):
+                if arm == "team" and noise > 0:
+                    continue              # full-info ceiling, not a treatment
+                for sigma in (0.5, 1.0):
+                    for seed in range(min(seeds, 16)):
+                        jobs.append(dict(arm_name=arm, sigma=sigma, seed=seed,
+                                         ticks=ticks, tau=0.15, preset="v5",
+                                         noise=noise))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -197,7 +225,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))

@@ -33,7 +33,7 @@ def _run(arm_name, sigma, seed, ticks, issues=("cargo", "energy", "sector"),
     for _ in range(ticks):
         arm.tick()
         if w.tick % 50 == 0:
-            assert w.material_accounted() == TOTAL_STOCK, "material leak"
+            assert w.material_ok(), "material leak"
             assert w.ledger_accounted(), "ledger leak"
             m = w.delivered_matrix
             assert m[0][0] + m[0][1] + m[1][0] + m[1][1] == w.delivered
@@ -180,3 +180,36 @@ def test_determinism():
     assert w1.delivered == w2.delivered
     assert a1.deals == a2.deals
     assert [r.battery for r in w1.robots] == [r.battery for r in w2.robots]
+
+
+def test_v5_world_mirrored_and_pinned():
+    for seed in (0, 7):
+        w = World(sigma=0.5, seed=seed, preset="v5")
+        n = len(w.sources)
+        assert n == 10 and sum(w.stock) == 2 * TOTAL_STOCK
+        for i in range(5):                       # mirror pairs share stock
+            x, y = w.sources[i]
+            assert w.sources[i + 5] == (x, W.GRID - y)
+            assert w.stock[i] == w.stock[i + 5]
+        assert len(w.chargers) == 4
+        assert sorted(w.charger_owner) == [0, 0, 1, 1]
+
+
+def test_v5_guest_charging_and_claims():
+    w, _ = _run("rules", sigma=0.5, seed=1, ticks=900, preset="v5", tau=0.15)
+    assert w.guest_charged > 0, "no guest charging — infra geography vacuous"
+    assert w.delivered > 0
+
+
+def test_v5_noise_deals_still_true_positive():
+    """The veto guarantees every EXECUTED deal is truly mutually beneficial
+    even under heavy estimation noise."""
+    hazard_w = World(sigma=1.0, seed=0, hazard_phi=True, preset="v5",
+                     tau=(0.15, 0.15))
+    arm = make_arm("snhp", hazard_w, noise=1.0)
+    for _ in range(700):
+        arm.tick()
+    assert arm.deals > 0, "no deals under noise"
+    assert arm.vetoes > 0, "no vetoes at s=1.0 — noise not biting"
+    for d in hazard_w.deal_log:
+        assert d["sa"] > 0 and d["sb"] > 0
