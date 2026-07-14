@@ -402,6 +402,10 @@ a:focus-visible, button:focus-visible {
 .lv-venue.up .lv-varrow, .lv-venue.up .lv-vamt { color: #7fc48f; }
 .lv-venue.down .lv-varrow, .lv-venue.down .lv-vamt { color: #e8734a; }
 .lv-vamt { min-width: 52px; text-align: right; font-weight: 600; }
+/* the merchant loss-frame — derived live from the stream, warm but not shouty */
+.lv-loss { font-size: 9.5px; line-height: 1.45; color: #e6d3b3; margin-top: 7px;
+  padding: 6px 8px; border: 1px dashed rgba(255, 224, 138, .4); border-radius: 8px; }
+.lv-loss b { color: #ffe08a; }
 .lv-life { font-size: 8.5px; color: #7d7893; margin-top: 4px; }
 .lv-foot { font-size: 8px; color: #7d7893; margin-top: 7px; padding-top: 6px;
            border-top: 1px solid var(--line); line-height: 1.5;

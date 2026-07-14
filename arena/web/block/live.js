@@ -80,6 +80,17 @@
         '<span class="lv-vamt">' + money(r.dm, true) + "</span></li>";
     }).join("");
 
+    // the merchant loss-frame, derived LIVE from the stream itself: the average
+    // a venue on this street banks per simulated day by pricing with the engine
+    // instead of the sticker. Simulated — but every cent of it is in the log.
+    var nVenues = Object.keys(tot.per_venue).length || 1;
+    var perVenueDay = (life.days > 0) ? life.d_margin / life.days / nVenues : 0;
+    var lossLine = (life.days >= 14 && perVenueDay > 0)
+      ? '<div class="lv-loss">a sticker-priced shop on this street leaves ' +
+        "<b>≈" + money(perVenueDay) + "/day</b> unbanked (sim, " +
+        count(life.days) + " days, " + nVenues + " venues — every day in the log)</div>"
+      : "";
+
     var lifeLine = (life.days > tot.days)
       ? '<div class="lv-life">lifetime ' + count(life.days) + " days · " +
         "shoppers " + money(life.d_cs, true) + " · merchants " +
@@ -111,6 +122,7 @@
           "</b> · snhp <b>" + money(tot.waste.snhp) + "</b></span></div>" +
         '<ul class="lv-venues" aria-label="per-venue cumulative margin delta, ' +
           'snhp minus sticker">' + venueHtml + "</ul>" +
+        lossLine +
         lifeLine +
         '<div class="lv-foot" title="' + esc(snap.reproduce || rerun) + '">' +
           "seed " + snap.seed + " · " + esc(ver) +
