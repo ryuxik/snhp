@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Run it on your own menu — SNHP general offer-graph engine</title>
+<meta name="description" content="Paste your menu as JSON and watch the SNHP general offer-graph engine compile it, classify every dimension FREE or LEVER, and quote live — discount-only, never above your list. Then take the engine home: your JSON, a node snippet, and an agent prompt." />
+<meta name="theme-color" content="#0b0916" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0916'/%3E%3Crect x='3' y='3' width='10' height='2' fill='%23ffe08a'/%3E%3Crect x='3' y='7' width='7' height='2' fill='%23e9dcc4'/%3E%3Crect x='3' y='11' width='9' height='2' fill='%237fc48f'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="nav.css" />
+
+<style>
+  :root {
+    --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --muted:#807a99;
+    --line:rgba(167,139,250,.22); --gold:#ffe08a; --green:#7fc48f;
+    --violet:#a78bfa; --blue:#8fd0ff; --pink:#e58ab4; --tan:#e6d3b3;
+    --card:#141026; --card2:#191333; --sel:rgba(255,224,138,.14);
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { background:var(--bg); }
+  body {
+    font-family:var(--mono); color:var(--ink); background:var(--bg);
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+  }
+  a { color:var(--blue); }
+  :focus-visible { outline:2px solid var(--gold); outline-offset:2px; border-radius:6px; }
+  .hidden { display:none !important; }
+  .skip {
+    position:absolute; left:-9999px; top:0; background:var(--gold); color:#0a0812;
+    padding:8px 14px; border-radius:0 0 8px 0; font-weight:800; z-index:40;
+  }
+  .skip:focus-visible { left:0; }
+
+  main { max-width:1060px; margin:0 auto; padding:26px 18px 70px; }
+  @media (max-width:640px){ main { padding:18px 12px 60px; } }
+
+  /* ── hero ─────────────────────────────────────────────────────────────── */
+  .hero { margin:14px 0 24px; }
+  .kicker {
+    font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--violet);
+    font-weight:700; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  }
+  .sim-badge {
+    font-size:9.5px; letter-spacing:.08em; color:#cdae76; font-weight:800;
+    background:rgba(240,198,116,.08); border:1px solid rgba(240,198,116,.3);
+    border-radius:999px; padding:3px 9px;
+  }
+  h1 { font-size:clamp(24px,4.6vw,36px); line-height:1.14; font-weight:900; margin-top:10px; text-wrap:balance; }
+  h1 b { color:var(--gold); }
+  .hero .sub { margin-top:12px; color:var(--dim); font-size:13.5px; max-width:760px; }
+  .hero .sub b { color:var(--green); }
+
+  h2 { font-size:15px; letter-spacing:.1em; text-transform:uppercase; color:var(--tan); font-weight:800;
+       margin:0 0 4px; display:flex; align-items:baseline; gap:10px; }
+  h2 .n { color:var(--violet); }
+  .sec { margin-top:30px; }
+  .sec > .lede { color:var(--muted); font-size:12px; margin-bottom:12px; max-width:760px; }
+  .sec > .lede b { color:var(--ink); }
+
+  /* ── paste panel ──────────────────────────────────────────────────────── */
+  .panel {
+    background:linear-gradient(180deg, rgba(21,16,38,.9), rgba(13,10,26,.95));
+    border:1px solid var(--line); border-radius:16px; padding:16px;
+  }
+  .ex-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px; }
+  .ex-row .lab { font-size:11px; color:var(--muted); margin-right:2px; }
+  button {
+    font-family:var(--mono); cursor:pointer; border-radius:10px;
+    border:1px solid var(--line); background:var(--card); color:var(--ink);
+    font-size:12px; font-weight:700; padding:8px 13px;
+    transition:background .13s, border-color .13s, color .13s;
+  }
+  button:hover { background:var(--card2); border-color:rgba(255,224,138,.4); }
+  button:active { transform:translateY(1px); }
+  .btn-primary { background:var(--gold); color:#0a0812; border-color:transparent; font-size:13px; padding:10px 18px; }
+  .btn-primary:hover { background:var(--gold); filter:brightness(1.07); }
+  textarea {
+    width:100%; min-height:280px; resize:vertical;
+    font-family:var(--mono); font-size:12px; line-height:1.55; color:var(--ink);
+    background:#0d0a1a; border:1px solid var(--line); border-radius:12px; padding:12px 14px;
+    caret-color:var(--gold);
+  }
+  textarea::placeholder { color:var(--muted); }
+  .run-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:10px; flex-wrap:wrap; }
+  .run-row .note { font-size:10.5px; color:var(--muted); }
+  #parse-err {
+    margin-top:12px; font-size:12px; color:var(--pink); line-height:1.55;
+    background:rgba(229,138,180,.07); border:1px solid rgba(229,138,180,.35);
+    border-radius:10px; padding:10px 14px;
+  }
+  #parse-err ul { margin:6px 0 0 18px; }
+  #parse-err li { margin:3px 0; }
+
+  /* ── the format doc ───────────────────────────────────────────────────── */
+  details {
+    margin-top:12px; border:1px solid var(--line); border-radius:12px;
+    background:rgba(20,16,38,.5);
+  }
+  summary {
+    cursor:pointer; padding:11px 14px; font-size:12px; font-weight:700; color:var(--violet);
+    list-style:none; display:flex; align-items:center; gap:8px;
+  }
+  summary::before { content:"▸"; transition:transform .15s; }
+  details[open] summary::before { transform:rotate(90deg); }
+  @media (prefers-reduced-motion: reduce){ summary::before { transition:none; } }
+  details .d-body { padding:2px 16px 16px; font-size:12px; color:var(--dim); }
+  details .d-body h3 { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--tan); margin:14px 0 6px; }
+  details .d-body code { color:var(--gold); background:rgba(255,224,138,.07); border-radius:4px; padding:1px 5px; font-size:11px; }
+  details .d-body p { margin:6px 0; }
+  details .d-body ul { margin:6px 0 6px 18px; }
+  details .d-body li { margin:4px 0; }
+  details .d-body b { color:var(--ink); }
+
+  /* ── compile summary + verdicts ───────────────────────────────────────── */
+  .chip {
+    display:inline-block; font-size:11px; color:var(--dim);
+    background:var(--card); border:1px solid var(--line); border-radius:999px;
+    padding:4px 11px; margin:0 6px 6px 0;
+  }
+  .chip b { color:var(--ink); }
+  .chip.gold { color:var(--gold); border-color:rgba(255,224,138,.4); background:var(--sel); font-weight:700; }
+  .chip-row { margin-top:8px; }
+  .chip-lab { font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:10px 0 4px; }
+  #compile-notes { margin:8px 0 0 18px; font-size:11.5px; color:var(--tan); }
+  #compile-notes li { margin:4px 0; }
+
+  #verdicts { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px; margin-top:12px; }
+  @media (max-width:640px){ #verdicts { grid-template-columns:1fr; } }
+  .vcard { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:13px 15px; }
+  .vhead { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .vname { font-size:13.5px; font-weight:800; }
+  .pill {
+    font-size:9.5px; font-weight:800; letter-spacing:.08em; border-radius:999px; padding:2px 9px;
+  }
+  .pill.free  { color:var(--green); background:rgba(127,196,143,.12); border:1px solid rgba(127,196,143,.45); }
+  .pill.lever { color:var(--gold);  background:rgba(255,224,138,.12); border:1px solid rgba(255,224,138,.5); }
+  .pill.timing{ color:var(--blue);  background:rgba(143,208,255,.1);  border:1px solid rgba(143,208,255,.4); }
+  .pill.small { font-size:8.5px; padding:1px 7px; }
+  .vwhy { margin-top:7px; font-size:11.5px; color:var(--dim); line-height:1.55; }
+  .flags { margin:8px 0 0 16px; font-size:11px; color:var(--tan); }
+  .flags li { margin:3px 0; }
+
+  #sweep-line {
+    margin-top:14px; font-size:11.5px; color:var(--dim); line-height:1.6;
+    background:rgba(127,196,143,.05); border:1px solid rgba(127,196,143,.28);
+    border-radius:12px; padding:11px 14px;
+  }
+  #sweep-line b { color:var(--ink); }
+  #sweep-line .ok { color:var(--green); }
+  #sweep-line.bad { border-color:rgba(229,138,180,.5); background:rgba(229,138,180,.07); }
+  #sweep-line .warn { color:var(--pink); }
+
+  /* ── playground ───────────────────────────────────────────────────────── */
+  #playground { display:grid; grid-template-columns:minmax(300px, 420px) 1fr; gap:16px; align-items:start; margin-top:12px; }
+  @media (max-width:840px){ #playground { grid-template-columns:1fr; } }
+  .pg-controls { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px 16px 16px; }
+  fieldset { border:none; margin:0 0 13px; padding:0; }
+  legend { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--violet); font-weight:700; margin-bottom:6px; }
+  select {
+    width:100%; font-family:var(--mono); font-size:12.5px; color:var(--ink);
+    background:#0d0a1a; border:1px solid var(--line); border-radius:9px; padding:8px 10px;
+  }
+  .sel-wrap { display:block; font-size:11.5px; color:var(--dim); margin-bottom:8px; }
+  .sel-wrap select { margin-top:4px; }
+  .check, .radio {
+    display:flex; align-items:center; gap:9px; font-size:12.5px; padding:8px 10px;
+    background:#0d0a1a; border:1px solid var(--line); border-radius:10px; margin-bottom:7px; cursor:pointer;
+  }
+  .check:hover, .radio:hover { border-color:rgba(255,224,138,.4); }
+  .check input, .radio input { accent-color:var(--gold); width:14px; height:14px; flex:0 0 auto; }
+  .radio .rlab { flex:1 1 auto; }
+  .dim { color:var(--muted); }
+  .save-chip {
+    font-size:10.5px; font-weight:800; color:#0a0812; background:var(--green);
+    border-radius:999px; padding:2px 8px; font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  .save-chip.zero { background:transparent; color:var(--muted); font-weight:600; border:1px solid var(--line); }
+  #pg-hint {
+    font-size:11px; color:var(--gold); background:rgba(255,224,138,.06);
+    border:1px dashed rgba(255,224,138,.5); border-radius:10px; padding:9px 11px; margin-bottom:12px; line-height:1.5;
+  }
+  .tg { display:flex; align-items:center; gap:9px; font-size:12px; color:var(--ink); padding:6px 0; cursor:pointer; }
+  .tg input { accent-color:var(--gold); width:14px; height:14px; }
+  #no-toggles { font-size:11px; color:var(--muted); }
+
+  /* quote readout */
+  .pg-quote {
+    background:linear-gradient(180deg, rgba(255,224,138,.05), rgba(127,196,143,.04));
+    border:1px solid rgba(255,224,138,.25); border-radius:16px; padding:16px 18px;
+  }
+  .q-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:480px){ .q-grid { grid-template-columns:1fr; } }
+  .q-cell .lab { font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  #q-list { font-size:22px; font-weight:800; color:var(--dim); font-variant-numeric:tabular-nums; }
+  #q-list.struck { text-decoration:line-through; text-decoration-thickness:2px; }
+  #q-price { font-size:30px; font-weight:900; color:var(--gold); font-variant-numeric:tabular-nums; line-height:1.1; }
+  .q-save { font-size:12px; color:var(--muted); margin-top:3px; font-weight:600; }
+  .q-save.on { color:var(--green); font-weight:800; }
+  .q-outcome { display:inline-block; margin-top:10px; font-size:10.5px; font-weight:800; letter-spacing:.05em;
+    color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:3px 10px; }
+  .q-outcome.deal { color:var(--green); border-color:rgba(127,196,143,.5); background:rgba(127,196,143,.1); }
+  .q-outcome.warn { color:var(--pink); border-color:rgba(229,138,180,.5); }
+  .q-block { margin-top:13px; }
+  .q-block .lab { font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  #q-why, #q-notes { margin-left:17px; font-size:12px; color:var(--ink); }
+  #q-why li, #q-notes li { margin:4px 0; }
+  #q-notes { color:var(--tan); font-size:11.5px; }
+  #q-walk { font-size:12px; color:var(--dim); }
+  #q-scenario { margin-top:14px; font-size:10px; color:var(--muted); line-height:1.6;
+    border-top:1px dashed var(--line); padding-top:10px; }
+
+  /* ── take it with you ─────────────────────────────────────────────────── */
+  .take details { margin-top:10px; }
+  .take .d-body { padding:0 14px 14px; }
+  .copy-row { display:flex; justify-content:flex-end; margin:8px 0 6px; }
+  pre {
+    overflow-x:auto; font-size:11px; line-height:1.55; color:var(--ink);
+    background:#0d0a1a; border:1px solid var(--line); border-radius:10px; padding:12px 14px;
+    white-space:pre; tab-size:2;
+  }
+
+  /* ── footer ───────────────────────────────────────────────────────────── */
+  .honesty {
+    margin-top:34px; font-size:11px; line-height:1.65; color:#cdae76;
+    background:rgba(240,198,116,.06); border:1px solid rgba(240,198,116,.25);
+    border-radius:12px; padding:13px 16px;
+  }
+  .honesty b { color:#ffe0a0; }
+  .bridge { margin-top:14px; font-size:11.5px; color:var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition:none !important; animation:none !important; scroll-behavior:auto !important; }
+  }
+</style>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<nav class="snhp-nav" aria-label="SNHP arena sections">
+  <span class="snhp-nav__logo" aria-hidden="true">SNHP</span>
+  <ul class="snhp-nav__list">
+    <li><a href="index.html">Arena</a></li>
+    <li><a href="leaderboard.html">Leaderboard</a></li>
+    <li><a href="submit.html">Submit</a></li>
+    <li><a href="hire.html">Use it</a></li>
+    <li><a href="vend.html">Vend</a></li>
+    <li><a href="boba.html">Boba</a></li>
+    <li><a href="hook.html">Demo</a></li>
+    <!-- New page: not yet in the site-wide nav; the active entry self-references
+         so aria-current never lies (same pattern as hook.html pre-integration). -->
+    <li><a href="yourmenu.html" class="is-active" aria-current="page">Your menu</a></li>
+    <li><a href="/block/">Block</a></li>
+  </ul>
+</nav>
+
+<main id="main">
+  <header class="hero">
+    <p class="kicker">SNHP · general offer-graph engine <span class="sim-badge">SIMULATED · ADVISORY</span></p>
+    <h1>Run it on <b>your own menu</b>.</h1>
+    <p class="sub">Paste your menu as JSON. The <b>real engine</b> — the same general offer-graph core our simulations validate — compiles it, tells you which choices are <b>FREE</b> (your customer's call, never priced) and which are <b>LEVERS</b> (cost moves with your shop's state, so there's a deal to find), and quotes any cart live. Discount-only: never above your list.</p>
+  </header>
+
+  <!-- ── 1 · paste ─────────────────────────────────────────────────────── -->
+  <section class="sec" aria-labelledby="h-paste">
+    <h2 id="h-paste"><span class="n" aria-hidden="true">1 ·</span> Your menu</h2>
+    <p class="lede">Two example menus to start from — neither is boba; the engine doesn't care what you sell. Edit anything and hit <b>Run</b>.</p>
+    <div class="panel">
+      <div class="ex-row" role="group" aria-label="Example menus">
+        <span class="lab">examples:</span>
+        <button type="button" id="btn-ex-coffee">☕ coffee cart</button>
+        <button type="button" id="btn-ex-bakery">🥐 bakery</button>
+      </div>
+      <label for="menu-input" class="chip-lab">menu JSON</label>
+      <textarea id="menu-input" spellcheck="false" autocomplete="off"
+        placeholder='{ "name": "my shop", "items": [ { "id": "thing", "price": 5.00, "cost": 1.25 } ] }'></textarea>
+      <div class="run-row">
+        <p class="note">Validated strictly — typos get a real error, not a silent guess.</p>
+        <button type="button" class="btn-primary" id="btn-run">Run it on this menu ▸</button>
+      </div>
+      <div id="parse-err" class="hidden" role="alert"></div>
+
+      <details>
+        <summary id="fmt-summary">Menu format — exactly what this page accepts</summary>
+        <div class="d-body">
+          <p>The page compiles this JSON into the engine's declarative <code>buildGraph</code> spec (<code>core/js/api.mjs</code>) — the compiled spec is shown verbatim in <b>“Take it with you”</b> below. Top-level keys:</p>
+          <h3>items — required</h3>
+          <ul>
+            <li><code>id</code> short slug · <code>label</code> display name · <code>price</code> your list price · <code>cost</code> what one unit costs you to serve. Item choice compiles to a <code>choice</code> dimension.</li>
+            <li><code>stock</code> (optional) finite units today — gates availability. Add <code>expected_demand</code> (buyers you expect) to arm the engine's <b>scarcity shadow</b>: every discounted unit that displaces an expected full-price buyer is costed at your list, so scarce items hold at list.</li>
+            <li><code>perishable: true</code> + <code>salvage</code> (its value to you at close, default 0) — at end of day the engine's <b>salvage_on_expiry</b> component drops its cost to salvage, which can open room under clearance conditions.</li>
+          </ul>
+          <h3>addons — optional, max 12</h3>
+          <ul><li>Extras with <code>price</code> + <code>cost</code> (same fields as items minus stock). Compiles to an <code>addon</code> dimension — the engine enumerates every subset, which is why 12 is a hard engine cap.</li></ul>
+          <h3>preferences — optional, max 6</h3>
+          <ul><li><code>{ "id", "label", "options": [{ "id", "label" }] }</code> — zero-cost choices (temperature, cup, slicing…). These profile <b>FREE</b>: the shopper's call, never priced. Give an option a <code>price</code>/<code>cost</code> and it stops being free — the profiler will say so.</li></ul>
+          <h3>slots — optional, max 6</h3>
+          <ul><li><code>{ "id", "label", "minutes", "capacity"? }</code> — deferred fulfillment (pickup later). <code>minutes</code> 0 = right now (one immediate slot is required; the page adds it and tells you if missing). <code>capacity</code> caps how many units fit in a later slot. Compiles to a <code>fulfillment</code> dimension: when you're busy, a shopper who can wait removes your risk of losing the sale — the engine turns that into a deal.</li></ul>
+          <h3>knobs</h3>
+          <ul>
+            <li><code>max_qty</code> 1–6 (default 3) — the quantity dimension's cap.</li>
+            <li><code>min_price_frac</code> 0–1 (default 0.6) — your policy floor: the engine never quotes below this fraction of list.</li>
+            <li><code>name</code>, <code>currency</code> — display only.</li>
+          </ul>
+          <p>Limits: ≤ 40 items, ≤ 8 options per preference, ids unique across the whole menu, ≤ 300,000 enumerable configurations. Not exposed here (but in the engine): <code>batch_economies</code> (a per-order setup cost that makes quantity a real per-unit lever) and dependency edges (<code>requires</code>/<code>excludes</code>) — see <code>core/js/api.mjs</code>.</p>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <div id="results" class="hidden">
+    <!-- ── 2 · compile + profile ───────────────────────────────────────── -->
+    <section class="sec" aria-labelledby="h-compile">
+      <h2 id="h-compile"><span class="n" aria-hidden="true">2 ·</span> What the engine sees — <span id="compile-name"></span></h2>
+      <p class="lede">Your menu compiled to a typed offer graph, and the profiler's verdict on every dimension. <b>This is the signature move:</b> the engine probes its cost model and only negotiates where cost actually moves — everything else stays your customer's free choice.</p>
+      <div class="panel">
+        <p class="chip-lab">dimensions</p>
+        <div id="dim-chips" class="chip-row"></div>
+        <p class="chip-lab">cost model (composable, state-dependent)</p>
+        <div id="cost-chips" class="chip-row"></div>
+        <p class="chip-lab">compile notes</p>
+        <ul id="compile-notes"></ul>
+      </div>
+      <div id="verdicts"></div>
+      <p id="sweep-line" aria-live="polite"></p>
+    </section>
+
+    <!-- ── 3 · quote playground ────────────────────────────────────────── -->
+    <section class="sec" aria-labelledby="h-play">
+      <h2 id="h-play"><span class="n" aria-hidden="true">3 ·</span> Quote playground</h2>
+      <p class="lede">Build a cart, set the shop moment, and read the engine's quote. <b>Every number is a live <code style="font-size:inherit">quote()</code> output</b> on your compiled menu — nothing scripted.</p>
+      <div id="playground">
+        <div class="pg-controls">
+          <p id="pg-hint" class="hidden"></p>
+          <fieldset>
+            <legend>Cart</legend>
+            <label class="sel-wrap">Item
+              <select id="pg-item"></select>
+            </label>
+            <label class="sel-wrap" id="fs-qty">Quantity
+              <select id="pg-qty"></select>
+            </label>
+          </fieldset>
+          <fieldset id="fs-addons">
+            <legend>Extras</legend>
+            <div id="pg-addons" role="group" aria-label="Extras"></div>
+          </fieldset>
+          <fieldset id="fs-prefs">
+            <legend>Preferences</legend>
+            <div id="pg-prefs"></div>
+          </fieldset>
+          <fieldset id="fs-slot">
+            <legend>Pickup</legend>
+            <div id="pg-slot" role="radiogroup" aria-label="Pickup slot"></div>
+          </fieldset>
+          <fieldset>
+            <legend>The shopper (simulated)</legend>
+            <label class="sel-wrap">How much they want it
+              <select id="pg-level"></select>
+            </label>
+          </fieldset>
+          <fieldset>
+            <legend>The shop moment (simulated)</legend>
+            <label class="tg" id="tg-busy-wrap"><input type="checkbox" id="tg-busy"> busy rush — a real line at the counter</label>
+            <label class="tg" id="tg-eod-wrap"><input type="checkbox" id="tg-eod"> end of day — perishables near close</label>
+            <p id="no-toggles" class="hidden">This menu has no perishables or pickup slots, so there's no shop moment to toggle — add either to see state-dependent quotes.</p>
+          </fieldset>
+        </div>
+
+        <div class="pg-quote" role="region" aria-label="Engine quote" aria-live="polite">
+          <div class="q-grid">
+            <div class="q-cell">
+              <p class="lab">Your list price</p>
+              <p id="q-list">$0.00</p>
+            </div>
+            <div class="q-cell">
+              <p class="lab">Engine quote</p>
+              <p id="q-price">$0.00</p>
+              <p id="q-save" class="q-save"></p>
+            </div>
+          </div>
+          <span id="q-outcome" class="q-outcome"></span>
+          <div class="q-block">
+            <p class="lab">Why (engine receipt)</p>
+            <ul id="q-why"></ul>
+          </div>
+          <div class="q-block">
+            <p class="lab">If no deal (the walk-away the engine anchored on)</p>
+            <p id="q-walk"></p>
+          </div>
+          <div class="q-block">
+            <p class="lab">Notes</p>
+            <ul id="q-notes"></ul>
+          </div>
+          <p id="q-scenario"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 4 · take it with you ────────────────────────────────────────── -->
+    <section class="sec take" aria-labelledby="h-take">
+      <h2 id="h-take"><span class="n" aria-hidden="true">4 ·</span> Take it with you</h2>
+      <p class="lede">The engine is a plain, dependency-free JS module. Three copy-paste paths: your menu as data, the engine pricing it in node, and a prompt that hands your menu to an AI agent.</p>
+
+      <details open>
+        <summary>a · your menu (the exact JSON you ran)</summary>
+        <div class="d-body">
+          <div class="copy-row"><button type="button" data-copy="code-json">copy JSON</button></div>
+          <pre id="code-json" tabindex="0"></pre>
+        </div>
+      </details>
+
+      <details>
+        <summary>b · price it yourself — node + core/js (no dependencies)</summary>
+        <div class="d-body">
+          <div class="copy-row"><button type="button" data-copy="code-node">copy snippet</button></div>
+          <pre id="code-node" tabindex="0"></pre>
+        </div>
+      </details>
+
+      <details>
+        <summary>c · hand it to an AI agent — a ready prompt</summary>
+        <div class="d-body">
+          <div class="copy-row"><button type="button" data-copy="code-agent">copy prompt</button></div>
+          <pre id="code-agent" tabindex="0"></pre>
+        </div>
+      </details>
+    </section>
+
+    <p class="honesty"><b>What this page is — and isn't.</b> Everything here is <b>simulated and advisory</b>. The quotes are real outputs of the same general engine our simulations validate, computed live on the menu you pasted — but the shopper and the shop moment are disclosed stand-ins, and <b>your real numbers depend on your real demand</b>. No forecasts are made on this page, and no quote can ever exceed your list price.</p>
+    <p class="bridge">Curious how a shopper sees this? <a href="hook.html">Walk up to the boba tablet →</a></p>
+  </div>
+</main>
+
+<script type="module" src="yourmenu.js"></script>
+</html>
