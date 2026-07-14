@@ -59,3 +59,5 @@ jobs:
         run: python core/js/test/dump_fixtures.py
       - name: JS engine matches Python (F1)
         run: node --test core/js/test/*.test.mjs
+      - name: Consumer hook stays honest (never-above-menu sweep + cart==full-graph)
+        run: node --test arena/web/hook_verify.test.mjs
