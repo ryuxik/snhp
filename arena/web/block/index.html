@@ -24,7 +24,13 @@
   <!-- HUD: DOM over the letterboxed canvas. JS positions .anchor bits to the
        canvas rect each frame so labels/counters stay glued to their panels. -->
   <div id="hud">
-    <div id="badge" title="Every dollar on screen is a real paired delta from the committed 10-venue twin (block/gen_week.py → canned-week.json; seed 20260710, bodega-adopts). The counters, per-venue deltas, receipt savings, deal frequency, crowd ratio and spoilage ORDER are reproducible from the seed. The day-by-day divergence ramp and the per-walker choreography are a representative arc, not a magnitude — see meta.provenance.">live sim data · aggregates real · walkers representative</div>
+    <div id="badge" role="status" title="Every dollar on screen is a real paired delta from the committed 10-venue twin (block/gen_week.py → canned-week.json; seed 20260710, bodega-adopts). The counters, per-venue deltas, receipt savings, deal frequency, crowd ratio and spoilage ORDER are reproducible from the seed. The day-by-day divergence ramp and the per-walker choreography are a representative arc, not a magnitude — see meta.provenance.">replay of a verified week · aggregates real · walkers representative</div>
+
+    <!-- LIVE layer (live.js): fills in when /block/live is streaming — the
+         long-running server-side twin experiment. Every figure it shows comes
+         off the stream (fold of logged day-records); absent the stream the
+         panel stays hidden and the canned replay badge above stands. -->
+    <div id="live-panel" class="hidden" role="region" aria-label="live experiment scoreboard"></div>
 
     <div id="title">The same block · the same week · the same people — <b>priced two ways</b></div>
 
@@ -129,3 +135,4 @@
 <script src="venues.js?v=4"></script>
 <script src="walkers.js?v=4"></script>
 <script src="scene.js?v=4"></script>
+<script src="live.js?v=1"></script>

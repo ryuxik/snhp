@@ -362,9 +362,13 @@ _STANDALONE_CLASSES = {"bakery": BakeryVenue, "florist": FloristVenue,
                        "bar": BarVenue, "vintage": VintageVenue}
 
 
-def run_world(world: str, days: int, seed: int, cfg: BlockConfig,
-              ledger: BlockLedger, venues=VENUE_NAMES, catalog=None,
-              fashion_plan=None, dawn=None) -> dict:
+def build_world(world: str, seed: int, cfg: BlockConfig, venues=VENUE_NAMES,
+                catalog=None, fashion_plan=None, dawn=None) -> SimpleNamespace:
+    """Construct ONE world's venue/pool state (the part of the old run_world
+    that ran before its day loop, verbatim). Extracted so a long-running
+    driver (block/live.py) can hold the state and step the SAME code one day
+    at a time; run_world below is now build + loop and stays
+    behavior-identical (the committed goldens prove it)."""
     has = set(venues)
     # task #62: when agent_demand is on, the SNHP world's street lane is
     # resolved by the buyer's-agent (shop/bertrand across vending+bodega). Lazy
@@ -394,93 +398,113 @@ def run_world(world: str, days: int, seed: int, cfg: BlockConfig,
             obj.cost_scale = dawn.scale_for(world, name)
     pool = (BlockRegularPool(cfg.regulars, seed, vend_v.catalog)
             if vend_v is not None and cfg.regulars > 0 else None)
-    churn = []
-    for day in range(days):
-        if vend_v is not None:
-            vend_v.begin_day(day)
-        if bodega is not None:
-            bodega.begin_day(day)
-        if boba_v is not None:
-            boba_v.begin_day(day)
-        returning = fash_v.begin_day(day) if fash_v is not None else []
-        reg_visits = pool.visits_for_day(day) if pool is not None else {}
-        stream = population.day_stream(seed, day)
-        for tick in range(TICKS_PER_DAY):
-            if vend_v is not None:
-                vend_v.state.tick = tick
-            if bodega is not None and bodega.adopted:
-                bodega.state.tick = tick
-            if boba_v is not None:
-                boba_v.on_tick(tick)
-            if tick == 0 and returning:
-                # week boundary: last week's undecided waiters re-decide
-                # against the fresh board, FIFO, before the day's street
-                for sh in returning:
-                    _resolve_fashion(world, sh, fash_v, ledger, day, tick,
-                                     kind="return")
-                returning = []
-            for reg in reg_visits.get(tick, []):
-                _resolve_regular(world, reg, vend_v, bodega, ledger, day, tick)
-            shoppers = stream[tick]
-            if vend_v is not None:
-                vend_v.observe_arrivals(
-                    tick, sum(1 for s in shoppers if s.home == "vending"))
-            if bodega is not None and bodega.adopted:
-                bodega.observe_arrivals(
-                    tick, sum(1 for s in shoppers if s.home == "bodega"))
-            for sh in shoppers:
-                if sh.home in ("vending", "bodega"):
-                    if vend_v is not None or bodega is not None:
-                        if agentic is not None and world == "snhp":
-                            agentic(world, sh, vend_v, bodega, ledger,
-                                    day, tick, cfg)
-                        else:
-                            _resolve_shopper(world, sh, vend_v, bodega, ledger,
-                                             day, tick)
-                elif sh.home == "boba":
-                    if boba_v is not None:
-                        _resolve_boba(world, sh, boba_v, ledger, day, tick,
-                                      seed)
-                elif sh.home == "fashion":
-                    if fash_v is not None:
-                        _resolve_fashion(world, sh, fash_v, ledger, day, tick,
-                                         kind="street")
-        if vend_v is not None:
-            eod = vend_v.end_day()
-            ledger.close_day(world, "vending", day,
-                             eod["spoiled_units"], eod["spoilage_cost"])
-        if bodega is not None:
-            eodb = bodega.end_day()
-            ledger.close_day(world, "bodega", day,
-                             eodb["spoiled_units"], eodb["spoilage_cost"])
-        if boba_v is not None:
-            eodq = boba_v.end_day()
-            ledger.close_day(world, "boba", day,
-                             eodq["spoiled_units"], eodq["spoilage_cost"])
-        if fash_v is not None:
-            eodf = fash_v.end_day(day)
-            ledger.close_day(world, "fashion", day,
-                             eodf["spoiled_units"], eodf["spoilage_cost"])
-        # the self-contained storefronts each run their whole block day and
-        # hand back ledger events (the venue never touches the ledger — the
-        # layering rule) plus their spoilage close
-        for name, nv in standalone.items():
-            scale = dawn.scale_for(world, name) if dawn is not None else 1.0
-            events, eod = nv.simulate_day(day, cost_scale=scale)
-            for e in events:
-                ledger.record(e)
-            ledger.close_day(world, name, day,
-                             eod["spoiled_units"], eod["spoilage_cost"])
-        if pool is not None:
-            churn.append({"day": day, "churned": pool.end_day(day),
-                          "active": pool.active_count()})
     venue_objs = {}
     for name, obj in (("vending", vend_v), ("bodega", bodega),
                       ("boba", boba_v), ("fashion", fash_v)):
         if obj is not None:
             venue_objs[name] = obj
     venue_objs.update(standalone)
-    return {"venues": venue_objs, "churn": churn}
+    return SimpleNamespace(world=world, seed=seed, cfg=cfg,
+                           vend_v=vend_v, bodega=bodega, boba_v=boba_v,
+                           fash_v=fash_v, standalone=standalone, dawn=dawn,
+                           pool=pool, agentic=agentic, churn=[],
+                           venues=venue_objs)
+
+
+def run_world_day(st: SimpleNamespace, day: int, ledger: BlockLedger) -> None:
+    """One block day for one world — the old run_world loop body, verbatim,
+    against a build_world state. Stepping day 0..n-1 in order reproduces
+    run_world(days=n) exactly (state carries across days by design)."""
+    world, seed, cfg = st.world, st.seed, st.cfg
+    vend_v, bodega, boba_v, fash_v = st.vend_v, st.bodega, st.boba_v, st.fash_v
+    if vend_v is not None:
+        vend_v.begin_day(day)
+    if bodega is not None:
+        bodega.begin_day(day)
+    if boba_v is not None:
+        boba_v.begin_day(day)
+    returning = fash_v.begin_day(day) if fash_v is not None else []
+    reg_visits = st.pool.visits_for_day(day) if st.pool is not None else {}
+    stream = population.day_stream(seed, day)
+    for tick in range(TICKS_PER_DAY):
+        if vend_v is not None:
+            vend_v.state.tick = tick
+        if bodega is not None and bodega.adopted:
+            bodega.state.tick = tick
+        if boba_v is not None:
+            boba_v.on_tick(tick)
+        if tick == 0 and returning:
+            # week boundary: last week's undecided waiters re-decide
+            # against the fresh board, FIFO, before the day's street
+            for sh in returning:
+                _resolve_fashion(world, sh, fash_v, ledger, day, tick,
+                                 kind="return")
+            returning = []
+        for reg in reg_visits.get(tick, []):
+            _resolve_regular(world, reg, vend_v, bodega, ledger, day, tick)
+        shoppers = stream[tick]
+        if vend_v is not None:
+            vend_v.observe_arrivals(
+                tick, sum(1 for s in shoppers if s.home == "vending"))
+        if bodega is not None and bodega.adopted:
+            bodega.observe_arrivals(
+                tick, sum(1 for s in shoppers if s.home == "bodega"))
+        for sh in shoppers:
+            if sh.home in ("vending", "bodega"):
+                if vend_v is not None or bodega is not None:
+                    if st.agentic is not None and world == "snhp":
+                        st.agentic(world, sh, vend_v, bodega, ledger,
+                                   day, tick, cfg)
+                    else:
+                        _resolve_shopper(world, sh, vend_v, bodega, ledger,
+                                         day, tick)
+            elif sh.home == "boba":
+                if boba_v is not None:
+                    _resolve_boba(world, sh, boba_v, ledger, day, tick,
+                                  seed)
+            elif sh.home == "fashion":
+                if fash_v is not None:
+                    _resolve_fashion(world, sh, fash_v, ledger, day, tick,
+                                     kind="street")
+    if vend_v is not None:
+        eod = vend_v.end_day()
+        ledger.close_day(world, "vending", day,
+                         eod["spoiled_units"], eod["spoilage_cost"])
+    if bodega is not None:
+        eodb = bodega.end_day()
+        ledger.close_day(world, "bodega", day,
+                         eodb["spoiled_units"], eodb["spoilage_cost"])
+    if boba_v is not None:
+        eodq = boba_v.end_day()
+        ledger.close_day(world, "boba", day,
+                         eodq["spoiled_units"], eodq["spoilage_cost"])
+    if fash_v is not None:
+        eodf = fash_v.end_day(day)
+        ledger.close_day(world, "fashion", day,
+                         eodf["spoiled_units"], eodf["spoilage_cost"])
+    # the self-contained storefronts each run their whole block day and
+    # hand back ledger events (the venue never touches the ledger — the
+    # layering rule) plus their spoilage close
+    for name, nv in st.standalone.items():
+        scale = st.dawn.scale_for(world, name) if st.dawn is not None else 1.0
+        events, eod = nv.simulate_day(day, cost_scale=scale)
+        for e in events:
+            ledger.record(e)
+        ledger.close_day(world, name, day,
+                         eod["spoiled_units"], eod["spoilage_cost"])
+    if st.pool is not None:
+        st.churn.append({"day": day, "churned": st.pool.end_day(day),
+                         "active": st.pool.active_count()})
+
+
+def run_world(world: str, days: int, seed: int, cfg: BlockConfig,
+              ledger: BlockLedger, venues=VENUE_NAMES, catalog=None,
+              fashion_plan=None, dawn=None) -> dict:
+    st = build_world(world, seed, cfg, venues=venues, catalog=catalog,
+                     fashion_plan=fashion_plan, dawn=dawn)
+    for day in range(days):
+        run_world_day(st, day, ledger)
+    return {"venues": st.venues, "churn": st.churn}
 
 
 def _round2(d: dict) -> dict:

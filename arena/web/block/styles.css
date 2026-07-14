@@ -338,3 +338,80 @@ a:focus-visible, button:focus-visible {
   #spot-btn.pulse { animation: none !important; }
   .spot-card { animation: none !important; }
 }
+
+/* ── LIVE layer (live.js): badge stamp + the honest cumulative scoreboard ──
+   Shown only when /block/live streams; every number is read off the stream. */
+#badge.live {
+  color: #9fe8b9;
+  background: rgba(127, 224, 160, 0.10);
+  border-color: rgba(127, 224, 160, 0.32);
+}
+.live-dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: #7fe0a0; margin-right: 5px; vertical-align: 1px;
+  box-shadow: 0 0 6px rgba(127, 224, 160, 0.8);
+  animation: livedot 2.2s ease-in-out infinite;
+}
+@keyframes livedot { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+#live-panel {
+  top: 44px; right: 12px; width: 218px;
+  pointer-events: auto;
+  background: linear-gradient(180deg, rgba(10, 9, 18, 0.93), rgba(10, 9, 18, 0.87));
+  border: 1px solid rgba(127, 224, 160, 0.26); border-radius: 12px;
+  padding: 9px 12px 10px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.5);
+  font-size: 10.5px; line-height: 1.45; color: var(--ink-dim);
+  max-height: calc(100vh - 140px); overflow-y: auto;
+}
+#live-panel.hidden { display: none; }
+#live-panel.pulse { animation: livepulse 0.9s ease-out; }
+@keyframes livepulse {
+  0% { border-color: rgba(127, 224, 160, 0.9);
+       box-shadow: 0 0 22px rgba(127, 224, 160, 0.35); }
+  100% { border-color: rgba(127, 224, 160, 0.26);
+         box-shadow: 0 10px 34px rgba(0, 0, 0, 0.5); }
+}
+.lv-head { display: flex; align-items: center; gap: 6px; }
+.lv-title { color: #9fe8b9; font-weight: 700; font-size: 10px; letter-spacing: 0.12em; }
+.lv-day { margin-left: auto; color: var(--ink); font-size: 10px;
+          font-variant-numeric: tabular-nums; }
+.lv-toggle {
+  background: none; border: 1px solid var(--line); border-radius: 6px;
+  color: var(--ink-dim); font: 700 11px/1 var(--mono);
+  width: 18px; height: 18px; cursor: pointer; flex: none;
+}
+.lv-toggle:hover { color: var(--ink); border-color: rgba(127, 224, 160, 0.4); }
+.lv-note { font-size: 8.5px; color: #7d7893; margin: 5px 0 7px; line-height: 1.4; }
+.lv-big { display: flex; align-items: baseline; justify-content: space-between;
+          gap: 8px; margin: 3px 0; }
+.lv-big b { font-size: 19px; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+.lv-big.teal b { color: var(--teal); text-shadow: 0 0 12px rgba(127, 224, 255, 0.4); }
+.lv-big.warm b { color: var(--warm); text-shadow: 0 0 12px rgba(255, 207, 138, 0.42); }
+.lv-lab { font-size: 8.5px; letter-spacing: 0.1em; text-transform: uppercase;
+          color: var(--ink-dim); }
+.lv-pair { display: flex; justify-content: space-between; gap: 8px; margin: 4px 0;
+           font-variant-numeric: tabular-nums; }
+.lv-pair b { color: var(--ink); font-weight: 600; }
+.lv-venues { list-style: none; margin: 7px 0 4px; padding: 6px 0 2px;
+             border-top: 1px solid var(--line); }
+.lv-venue { display: flex; align-items: center; gap: 6px; padding: 1.5px 0;
+            font-variant-numeric: tabular-nums; }
+.lv-vname { text-transform: uppercase; letter-spacing: 0.06em; font-size: 9px; }
+.lv-varrow { margin-left: auto; font-size: 8px; }
+.lv-venue.up .lv-varrow, .lv-venue.up .lv-vamt { color: #7fc48f; }
+.lv-venue.down .lv-varrow, .lv-venue.down .lv-vamt { color: #e8734a; }
+.lv-vamt { min-width: 52px; text-align: right; font-weight: 600; }
+.lv-life { font-size: 8.5px; color: #7d7893; margin-top: 4px; }
+.lv-foot { font-size: 8px; color: #7d7893; margin-top: 7px; padding-top: 6px;
+           border-top: 1px solid var(--line); line-height: 1.5;
+           overflow-wrap: anywhere; }
+.lv-foot code { color: #9a95b0; font-family: var(--mono); }
+@media (max-width: 680px) {
+  #live-panel { top: auto; bottom: 64px; right: 8px; left: auto; width: 196px;
+                max-height: 46vh; font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-dot { animation: none !important; }
+  #live-panel.pulse { animation: none !important; }
+}

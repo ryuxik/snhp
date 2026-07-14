@@ -319,6 +319,65 @@ async def hit(request: Request) -> dict:
     return {"ok": True}
 
 
+# ── the LIVE twin-street block experiment (Phase 5) — feature-flagged.
+# BLOCK_LIVE=1 mounts /block/live (WS) + /block/live.json (snapshot) and paces
+# block/live.py's driver one sim-day per BLOCK_LIVE_SECS_PER_DAY. Default OFF:
+# without the flag no route exists and deploys are byte-identical in behavior.
+if os.environ.get("BLOCK_LIVE") == "1":
+    from arena.broadcaster import Broadcaster as _BlockBcast
+    from block.live import LiveBlock
+
+    _BLOCK_SECS = float(os.environ.get("BLOCK_LIVE_SECS_PER_DAY", "120"))
+    _BLOCK_LOG = (os.environ.get("BLOCK_LIVE_LOG", "").strip()
+                  or os.path.join(CONFIG.data_dir, "block-live.jsonl"))
+    BLOCK = LiveBlock(log_path=_BLOCK_LOG, secs_per_day=_BLOCK_SECS)
+    BLOCK_BCAST = _BlockBcast(ring_size=1024, client_queue_max=256)
+    _block_seq = 0
+
+    def _block_step() -> dict:
+        return BLOCK.step_day()
+
+    async def _block_loop() -> None:
+        global _block_seq
+        loop = asyncio.get_event_loop()
+        # resume re-simulates the current season against the telemetry log
+        # (exact continuation, or a fresh season if the code changed)
+        await loop.run_in_executor(None, BLOCK.resume)
+        while True:
+            rec = await loop.run_in_executor(None, _block_step)
+            _block_seq += 1
+            BLOCK_BCAST.publish({"v": 1, "type": "block.day",
+                                 "seq": _block_seq, **rec})
+            await asyncio.sleep(max(_BLOCK_SECS, 1.0))
+
+    @app.on_event("startup")
+    async def _block_startup() -> None:
+        if os.environ.get("ARENA_NO_RUN") == "1":
+            return  # tests: serve the snapshot without the pacing loop
+        asyncio.create_task(_block_loop())
+
+    @app.get("/block/live.json")
+    def block_live_json() -> dict:
+        """HTTP snapshot for no-WS clients: cumulative totals + the last
+        day-records. BLOCK.public is swapped atomically after each day."""
+        return BLOCK.public
+
+    @app.websocket("/block/live")
+    async def block_live_ws(sock: WebSocket) -> None:
+        await sock.accept()
+        q = BLOCK_BCAST.register()
+        try:
+            await sock.send_json({"v": 1, "type": "block.snapshot",
+                                  "seq": _block_seq, **BLOCK.public})
+            while True:
+                ev = await q.get()
+                await sock.send_json(ev)
+        except (WebSocketDisconnect, RuntimeError, ConnectionError):
+            pass
+        finally:
+            BLOCK_BCAST.unregister(q)
+
+
 # ── the LEADERBOARD is the flagship: the root serves it. The evolution sim
 # (the lab that breeds the champion row) lives at /world.
 @app.get("/")
