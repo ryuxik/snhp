@@ -493,6 +493,9 @@ app = FastAPI(
         {"name": "negotiation", "description": "Tier 1: multi-round bargaining"},
         {"name": "auctions",    "description": "Tier 2: single-unit auctions"},
         {"name": "mechanism",   "description": "Tier 3: marketplace operator primitives"},
+        {"name": "offer",       "description": ("General offer-graph engine: compile / "
+                                                  "profile / quote a JSON menu spec "
+                                                  "(discount-only, never above list)")},
         {"name": "discovery",   "description": "Catalog + agent onboarding"},
         {"name": "telemetry",   "description": "Opt-in data sharing + GDPR (export/delete)"},
     ],
@@ -525,6 +528,18 @@ app.include_router(_a2a_router)
 try:
     from vend.api import router as _vend_router  # noqa: E402
     app.include_router(_vend_router)
+except ImportError:
+    pass
+
+# ─── OFFER: the general offer-graph engine (core/) over HTTP ─────────────────
+# compile / profile / quote a declarative JSON menu spec — the hosted surface
+# of the F1-validated general engine (see gametheory/server/offer_api.py).
+# Guarded like vend: core/ ships in the repo and the Docker image but not the
+# PyPI wheel — the API must boot without it. Rate limiting + body-size caps
+# apply automatically (the routes live under /v1/).
+try:
+    from gametheory.server.offer_api import router as _offer_router  # noqa: E402
+    app.include_router(_offer_router)
 except ImportError:
     pass
 

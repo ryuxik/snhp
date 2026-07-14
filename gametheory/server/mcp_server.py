@@ -680,6 +680,122 @@ def gt_a2a_settle(
     return out
 
 
+# ─── Offer-graph engine (core/): profile + quote a JSON menu spec ────────────
+# The hosted MCP surface of the general engine (compile/profile/quote live at
+# /v1/offer/* too — see gametheory/server/offer_api.py, which owns validation).
+# Guarded like vend/: core/ ships in the repo and the Docker image but not the
+# PyPI wheel — the stdio MCP server must boot without it.
+
+try:
+    from gametheory.server import offer_api as _offer_api  # noqa: E402
+except ImportError:
+    _offer_api = None                              # type: ignore[assignment]
+
+if _offer_api is not None:
+
+    @mcp.tool()
+    def offer_profile_menu(spec: dict, state: Optional[dict] = None) -> dict:
+        """Profile a seller's menu: classify every dimension FREE or LEVER — where the negotiation surface actually is.
+
+        USE THIS WHEN: you (or the agent you're buying from / selling for) have a
+        menu of configurable items and want to know which dimensions are worth
+        negotiating on. FREE = zero cost gradient — a costless customization
+        (sweetness, cup choice); the buyer just gets their favorite, it is never
+        a price lever. LEVER = changing the option moves the seller's effective
+        cost — a real negotiation surface (which item, quantity, add-ons).
+
+        `spec` is the declarative JSON menu spec (the same format everywhere in
+        SNHP — the /v1/offer/* HTTP endpoints and the JS engine accept it too):
+
+          {"name": "corner coffee cart",
+           "dims": [
+             {"id": "item", "kind": "choice", "options": [
+                {"id": "oat-latte", "price_delta": 5.25, "unit_cost": 1.20},
+                {"id": "drip",      "price_delta": 3.00, "unit_cost": 0.40}]},
+             {"id": "extras", "kind": "addon",      "options": [...]},
+             {"id": "cup",    "kind": "preference", "options": [
+                {"id": "for-here"}, {"id": "to-go"}]},
+             {"id": "pickup", "kind": "fulfillment", "options": [
+                {"id": "now",   "immediate": true,  "slot_ticks": 0},
+                {"id": "in-20", "immediate": false, "slot_ticks": 2}]},
+             {"id": "qty", "kind": "quantity", "qty_cap": 3}],
+           "cost": ["const"]}
+
+        Dimension kinds: choice (pick exactly one), addon (pick a subset),
+        preference (pick one, costless taste), fulfillment (timing slot),
+        quantity (integer 1..qty_cap). Option fields: price_delta (contribution
+        to LIST price), unit_cost, and optionally stock_limited, perishable,
+        salvage, immediate, slot_ticks. Cost stack tokens: "const",
+        "salvage_on_expiry" (perishables at salvage when expiring),
+        "scarcity_shadow" (finite stock displaces list sales),
+        {"batch_economies": {"setup": 1.0, "marginal": 0.2}}.
+
+        Optional `state` is the shop moment the cost model reads:
+          {"inventory": {"cold-brew": 6}, "expected_demand": {"cold-brew": 10},
+           "expiring": ["croissant"], "capacity": {"2": 6}, "tick": 0}
+
+        Returns {dims: [{dim, kind, verdict, cost_spread, why}], verdicts,
+        note}. Returns {"error": "..."} on a malformed spec.
+        """
+        try:
+            return _offer_api.profile_menu(spec, state)
+        except ValueError as e:
+            return {"error": str(e)}
+
+    @mcp.tool()
+    def offer_quote(
+        spec: dict,
+        buyer: dict,
+        state: Optional[dict] = None,
+        config: Optional[dict] = None,
+        quote_lookers: bool = True,
+        min_price_frac: float = 0.0,
+        qty_appetite: bool = False,
+        seller_weight: float = 0.5,
+    ) -> dict:
+        """Price a buyer's cart on a menu — a Nash-split, DISCOUNT-ONLY quote (never above list).
+
+        USE THIS WHEN: you want the engine's advisory price for a configurable
+        cart on a seller's menu — which configuration to sell/buy and at what
+        price, given the shop's live state. The engine searches every valid
+        configuration (or prices the pinned `config`), anchors the no-deal
+        point on the buyer's best full-price menu order, and splits only the
+        NEWLY-CREATED surplus. HARD GUARANTEE: discount-only — the price is
+        never above the menu's list value (`never_above_list: true` in the
+        response, enforced in code). A buyer who would have paid list never
+        gets a discount out of the seller's standing margin.
+
+        `spec`: the same declarative JSON menu spec as offer_profile_menu.
+        `state` (optional): the shop moment — {"inventory": {...},
+          "expected_demand": {...}, "expiring": [...], "capacity": {...}}.
+        `buyer`: {"values": {"item": {"oat-latte": 6.0}},  # $/unit by dim->option
+                  "qty_decay": 0.9,   # each extra unit worth 90% of the previous
+                  "outside": 0.0,     # outside-option surplus in $
+                  "balk": 0.3,        # chance a walk-in bails at the queue
+                  "defer": {"2": 0.1}}  # slot_ticks -> $ cost of waiting
+        `config` (optional): pin the cart — {"item": "oat-latte",
+          "extras": ["vanilla"], "pickup": "in-20", "qty": 2}; addon dims take
+          a list, quantity an int. Omit to search every valid cart.
+        Options: quote_lookers=False refuses buyers who'd never pay list (the
+        incentive-compatibility floor); min_price_frac=0.8 never quotes below
+        80% of list; qty_appetite=True blocks upsell units the buyer values
+        below their cost; seller_weight tilts the Nash split (0.5 = symmetric).
+
+        Returns {"outcome": "negotiated"|"at_list"|"walk", "quote": {config,
+        price, listv, save, cost, value, seller_gain, buyer_gain, feasible,
+        why} | null, "never_above_list": true, "advisory": true, note}.
+        Quotes are SIMULATED advisory engine output, not a binding offer from
+        any seller. Returns {"error": "..."} on malformed input.
+        """
+        try:
+            return _offer_api.quote_menu(
+                spec, buyer, state, config,
+                quote_lookers=quote_lookers, min_price_frac=min_price_frac,
+                qty_appetite=qty_appetite, seller_weight=seller_weight)
+        except ValueError as e:
+            return {"error": str(e)}
+
+
 # ─── Tier 2: Pondering sessions (spend the counterparty's think-time) ─────────
 
 
