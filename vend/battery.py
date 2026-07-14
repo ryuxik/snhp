@@ -54,8 +54,8 @@ from scipy import stats
 from vend.core import substream
 from vend.policies import A2APolicy
 from vend.scenario import (adaptive_disclosure, buyer_value, c_eff,
-                           enumerate_outcomes, expected_list_demand,
-                           nash_quote, persku_disclosure, strategic_disclosure)
+                           expected_list_demand, nash_quote,
+                           persku_disclosure, strategic_disclosure)
 from vend.world import (CALIBRATED_TRAFFIC_SCALE, DEFAULT_CONFIG, QTY_CAP,
                         TICKS_PER_DAY, WorldConfig, arrivals_at, best_bundle,
                         build_catalog, day_state, end_of_day, fresh_machine,

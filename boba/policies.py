@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 import functools
 
 from boba.world import (DRINK_APPEAL, DRINK_COST, DRINK_PRICE, HOURLY_RATE,
-                        HOURLY_WTP_MULT, PEAK_HOURS, PEARL_COST, QTY_CAP,
+                        HOURLY_WTP_MULT, PEAK_HOURS, QTY_CAP,
                         TICKS_PER_DAY, TOP_APPEAL, TOP_COST, TOP_LIKE_PROB,
                         TOP_PRICE, TOP_SIGMA, WTP_SIGMA,
                         Consumer, ShopState, _pstar_single, _sf, _value_price,
@@ -35,7 +35,6 @@ from boba.world import (DRINK_APPEAL, DRINK_COST, DRINK_PRICE, HOURLY_RATE,
                         expected_cups_per_arrival, hour_of, outside_surplus,
                         qty_ladder, service_rate_at, slot_capacity)
 
-PRICE_RUNGS = 8
 BATCH_CLEARANCE_WINDOW = 6      # ticks (1 hour) before expiry counts as "soon"
 
 # Pearl attach rate at the list price — the shop's structural forecast of
@@ -269,113 +268,28 @@ def cart_nash(state: ShopState, consumer: Consumer,
     the genuinely-private WTP-understatement (which shrinks the disclosed menu
     counterfactual d_shop) untouched — that residual is vend's finite-stock
     shadow-pricing job, out of scope here.
+
+    Since the engine flip this is a thin delegation: the search lives in the
+    general offer-graph engine (core.engine.quote via the core.adapters.boba
+    projection — offer graph, salvage/relief cost model, the nested-prefix
+    search family as a search_filter). The bespoke body was deleted after the
+    golden gates proved the engine reproduces it on the shipped trajectories
+    (100% of 11,443 replayed ship-config quotes; committed band byte-exact —
+    see core/adapters/tests/test_boba_golden.py). Known boundary: at EXACT
+    decimal ties on the min-gain buffer the two implementations' one-ulp-
+    different float expression trees could disagree (2/2,316 quotes under the
+    P0 default clamps); the affected P0 artifacts were re-pinned at the flip.
+    Import is deferred to keep the module graph acyclic (the adapter imports
+    CartDeal / top_c_eff / pearls_expiring_excess from this module).
     """
-    b = balk_prob(state)
-    pearls_stocked = state.pearl_stock()
-    s_out = outside_surplus(outside_consumer if outside_consumer is not None
-                            else consumer)
-    if market_floor:
-        s_out = min(s_out, outside_surplus(consumer))
-
-    # the sticker counterfactual, via the same canonical chooser the
-    # simulated walk-in uses (with the same pearls-availability rule)
-    d0, q0, t0, s_menu = best_menu_order(consumer, DRINK_PRICE, TOP_PRICE,
-                                         pearls_ok=pearls_stocked >= QTY_CAP)
-    ceff = {t: (top_c_eff(state, t) if salvage else TOP_COST[t])
-            for t in TOP_PRICE}
-    if d0 is not None and s_menu > 0 and s_menu >= s_out:
-        margin_menu = q0 * (DRINK_PRICE[d0] - DRINK_COST[d0]) \
-            + q0 * sum(TOP_PRICE[t] - ceff[t] for t in t0)
-        d_b = (1.0 - b) * s_menu + b * s_out
-        d_s = (1.0 - b) * margin_menu
-    else:
-        if not quote_lookers:
-            return None            # ablation: only quote would-be buyers
-        d_b, d_s = s_out, 0.0
-
-    # toppings worth keeping: value above opportunity cost, searched as
-    # nested prefixes of the (value − c_eff) ranking
-    ranked = sorted((t for t in TOP_PRICE if consumer.top_wtp[t] > ceff[t]),
-                    key=lambda t: consumer.top_wtp[t] - ceff[t], reverse=True)
-    subsets = [tuple(ranked[:i]) for i in range(len(ranked) + 1)]
-
-    slots = [0] + [s for s in ((3, 6) if defer_slots else ())
-                   if state.tick + s < TICKS_PER_DAY]
-    slot_room = {s: (slot_capacity(state, state.tick + s) if s > 0 else QTY_CAP)
-                 for s in slots}
-    relief = {(q, s): capacity_relief(state, q, s)
-              for q in range(1, QTY_CAP + 1) for s in slots}
-    defer = {s: consumer.defer_cost(s) for s in slots}
-
-    best, best_score = None, None
-    for d in DRINK_PRICE:
-        if consumer.wtp[d] <= DRINK_COST[d]:
-            continue                       # no joint gain is possible here
-        for T in subsets:
-            tval = sum(consumer.top_wtp[t] for t in T)
-            tcost = sum(ceff[t] for t in T)
-            tlist = sum(TOP_PRICE[t] for t in T)
-            lad = 0.0
-            for q in range(1, QTY_CAP + 1):
-                if "pearls" in T and pearls_stocked < q:
-                    break
-                # plausibility: don't upsell a cup the buyer values below cost
-                # (relief/topping harvest inflating qty is "a bug wearing a
-                # bundle" — world.bundle_value note; opt-in, off = byte-ident.)
-                if qty_appetite and q > 1 and \
-                        consumer.wtp[d] * consumer.qty_decay ** (q - 1) < DRINK_COST[d]:
-                    break
-                lad += consumer.qty_decay ** (q - 1)
-                val = (consumer.wtp[d] + tval) * lad
-                cost = q * (DRINK_COST[d] + tcost)
-                listv = q * (DRINK_PRICE[d] + tlist)
-                # plausibility floor: no deal below min_price_frac of the menu
-                # (a real shop's deepest genuine markdown; caps the relief-
-                # forecast's price pull; 0.0 = off = byte-identical).
-                lo = max(cost, min_price_frac * listv)
-                if lo >= listv:
-                    rungs = [round(listv, 2)]
-                else:
-                    step = (listv - lo) / (PRICE_RUNGS - 1)
-                    rungs = [round(lo + i * step, 2)
-                             for i in range(PRICE_RUNGS)]
-                for s in slots:
-                    if s > 0 and slot_room[s] < q:
-                        continue           # that pickup slot is sold out
-                    r = relief[(q, s)]
-                    dis = defer[s]
-                    surv = (1.0 - b) if s == 0 else 1.0
-                    for p in rungs:
-                        gs = surv * (p - cost) + r - d_s
-                        gb = surv * (val - p) + (1.0 - surv) * s_out - dis - d_b
-                        if gs >= -1e-9 and gb >= -1e-9:
-                            score = (gs * gb, gs + gb)
-                            if best_score is None or score > best_score:
-                                best = (d, q, T, p, s, r, val, cost, listv)
-                                best_score = score
-    if best is None or (best_score[0] <= 0 and best_score[1] <= 1e-9):
-        return None                        # nothing improves on no-deal
-
-    d, q, T, p, s, r, val, cost, listv = best
-    surv = (1.0 - b) if s == 0 else 1.0
-    u_s = surv * (p - cost) + r
-    # the buffer: the shop's believed gain must clear max($0.25, 10% of the
-    # cart's list value) — forecast noise must not leak margin
-    if u_s - d_s < max(min_gain_abs, min_gain_frac * listv):
-        return None
-    u_b = surv * (val - p) + (1.0 - surv) * s_out - defer[s]
-    why = ["negotiated cart"]
-    if s > 0:
-        why.append(f"+{s * 10}-min pickup frees peak capacity")
-    if "pearls" in T and top_c_eff(state, "pearls") == 0.0:
-        why.append("pearls from the expiring batch")
-    if p < listv - 1e-9:
-        why.append(f"${listv - p:.2f} under the menu")
-    else:
-        why.append("at menu")
-    return CartDeal(drink=d, qty=q, tops=T, price=p, slot_ticks=s,
-                    value=val, u_shop=u_s, d_shop=d_s, u_buyer=u_b,
-                    d_buyer=d_b, relief=r, why=tuple(why))
+    from core.adapters.boba import engine_cart_nash
+    return engine_cart_nash(state, consumer, min_gain_abs, min_gain_frac,
+                            defer_slots=defer_slots, salvage=salvage,
+                            quote_lookers=quote_lookers,
+                            outside_consumer=outside_consumer,
+                            market_floor=market_floor,
+                            qty_appetite=qty_appetite,
+                            min_price_frac=min_price_frac)
 
 
 # ── BOBA P1a: the liar battery ───────────────────────────────────────────

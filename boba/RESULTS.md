@@ -26,14 +26,24 @@ Static earns ~$1,515/day margin pre-rent ($1,610 in the shock cells) on
 
 | cell (shock σ × flexible share) | computed/1 | cart/1 |
 |---|---|---|
-| σ=0.0, flex=0.15 | +$3.31 [−5.50, 12.12] | **+$308.54** [289.88, 327.20] |
-| σ=0.0, flex=0.35 | +$3.31 [−5.50, 12.12] | **+$349.40** [331.94, 366.86] |
-| σ=0.4, flex=0.15 | +$3.71 [−6.28, 13.69] | **+$271.69** [213.86, 329.51] |
-| σ=0.4, flex=0.35 | +$3.71 [−6.28, 13.69] | **+$310.88** [250.69, 371.07] |
+| σ=0.0, flex=0.15 | +$3.31 [−5.50, 12.12] | **+$308.75** [289.81, 327.68] |
+| σ=0.0, flex=0.35 | +$3.31 [−5.50, 12.12] | **+$349.69** [331.99, 367.39] |
+| σ=0.4, flex=0.15 | +$3.71 [−6.28, 13.69] | **+$271.89** [214.00, 329.78] |
+| σ=0.4, flex=0.35 | +$3.71 [−6.28, 13.69] | **+$311.09** [250.90, 371.29] |
+
+*Cart-arm values re-pinned at the engine flip (cart_nash now delegates to
+core.engine via core/adapters/boba.py): 2/2,316 quotes sit on exact decimal
+ties of the min-gain buffer where the two implementations' one-ulp-different
+float expression trees disagree. `results.json` was regenerated from the
+committed generator (`python3 -m boba.run --grid`, seed 20260710); deltas are
+≤0.07% and no verdict changes. Static/computed arms are byte-identical.
+Numbers elsewhere in this file that came from bespoke-era one-off runs (the
+ablation rows below, the battery/liar-sweep sections) are as measured
+pre-flip.*
 
 Cart side-metrics (σ=0, flex=0.35 cell): cups 252→504, topping attach
-0.86→1.41/cup, peak balks 27.7→21.1/day, pearl waste $7.30→$3.12/day,
-~104 deferred pickups/day, consumer surplus +$509/day. Note the queue gets
+0.86→1.41/cup, peak balks 27.7→21.1/day, pearl waste $7.30→$3.23/day,
+~104 deferred pickups/day, consumer surplus +$510/day. Note the queue gets
 *hotter*, not cooler: avg peak wait 3.7→4.2 min, because the cart converts
 far more volume even while it defers.
 
@@ -41,7 +51,7 @@ far more volume even while it defers.
 
 | variant | flex=0.15 | flex=0.35 |
 |---|---|---|
-| full cart | +308.5 | +349.4 |
+| full cart | +308.8 | +349.7 |
 | − pickup slots (`defer_slots=False`) | +143.0 | +143.0 |
 | − pearls salvage (`salvage=False`) | +308.5 | +349.4 |
 | − looker quotes (`quote_lookers=False`) | +167.4 | +195.5 |
@@ -73,7 +83,7 @@ far more volume even while it defers.
   surplus roughly one-for-one. The vend weak-dominance result replicates
   in its second vertical.
 - No cell had static beating cart on margin; cart also dominates on
-  consumer surplus (+$470–510/day) — the created surplus is split, as the
+  consumer surplus (+$469–513/day) — the created surplus is split, as the
   Nash engine promises.
 
 ## Honest surprises
@@ -90,7 +100,7 @@ far more volume even while it defers.
 - **Demand shocks (σ=0.4) *raise* static margin** ($1,515→$1,610): balking
   is the only capacity cost, so heavy days convert their surplus off-peak
   while light days lose little — the asymmetry favors everyone, and it
-  narrows cart's *relative* edge (271 vs 309) because balk-rescue is worth
+  narrows cart's *relative* edge (272 vs 309) because balk-rescue is worth
   less when the queue self-shed less.
 - **Cart doubles cup volume (252→504) inside the same physical bar.**
   Feasibility was verified tick-by-tick (≤5 drinks in queue at close, no

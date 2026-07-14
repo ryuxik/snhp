@@ -19,7 +19,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from vend.core import MachineState
-from vend.world import QTY_CAP
 
 PRICE_RUNGS = 12
 
@@ -39,7 +38,7 @@ def c_eff(state: MachineState, sku: str) -> float:
     return listing.salvage if (dte is not None and dte <= 0) else listing.unit_cost
 
 
-from vend.world import BODEGA_MARKUP, best_bundle, bundle_value as buyer_value
+from vend.world import best_bundle, bundle_value as buyer_value
 
 
 def outside_surplus(wtp: dict[str, float], walk_cost: float,
@@ -62,24 +61,6 @@ def sticker_choice(wtp: dict[str, float], state: MachineState
     stock = {sku: state.stock(sku) for sku in prices}
     sku, qty, _ = best_bundle(wtp, prices, stock)
     return (sku, qty)
-
-
-def enumerate_outcomes(state: MachineState) -> list[Outcome]:
-    outs = []
-    for sku, listing in state.listings.items():
-        stock = state.stock(sku)
-        if stock <= 0:
-            continue
-        floor = c_eff(state, sku)
-        if floor >= listing.list_price:
-            rungs = [listing.list_price]
-        else:
-            step = (listing.list_price - floor) / (PRICE_RUNGS - 1)
-            rungs = [round(floor + i * step, 2) for i in range(PRICE_RUNGS)]
-        for qty in range(1, min(QTY_CAP, stock) + 1):
-            for p in rungs:
-                outs.append(Outcome(sku, qty, p))
-    return outs
 
 
 _CUM_BASE_DEMAND: dict[tuple, list[float]] = {}
@@ -208,131 +189,35 @@ def nash_quote(state: MachineState, disclosed_wtp: dict[str, float],
     `seller_weight` ∈ [0.5, 1.0] is the seller's bargaining weight in the
     GENERALIZED (asymmetric) Nash split: the chosen outcome maximizes
     gs**w · gb**(1-w) where gs, gb are the seller/buyer gains ABOVE their
-    disagreement points. w=0.5 is the symmetric Nash split (the default —
-    byte-identical to the committed artifact, special-cased below to the
-    exact `gs*gb` expression); w=1.0 hands the seller ALL surplus above the
-    buyer's disagreement (the buyer is held exactly at their floor). The
-    tilt only reallocates surplus ABOVE the disagreement — feasibility still
-    requires gs ≥ 0 AND gb ≥ 0, so it never prices below the buyer's floor,
-    and the outcome space is still discount-only (floor…list), so it never
-    prices above the sticker. This is the split-tilt monetization knob: how
-    much of the jointly-created surplus the merchant keeps as seller profit
-    (mapped against the CS-crosses-zero and IC-breaks frontier in tilt.py)."""
-    catalog = state.listings
-    n = len(catalog)
-    _share = share_fn if share_fn is not None else (lambda s: 1.0 / n)
+    disagreement points. w=0.5 is the symmetric Nash split (the default);
+    w=1.0 hands the seller ALL surplus above the buyer's disagreement (the
+    buyer is held exactly at their floor). The tilt only reallocates surplus
+    ABOVE the disagreement — feasibility still requires gs ≥ 0 AND gb ≥ 0,
+    so it never prices below the buyer's floor, and the outcome space is
+    still discount-only (floor…list), so it never prices above the sticker.
+    This is the split-tilt monetization knob: how much of the jointly-created
+    surplus the merchant keeps as seller profit (mapped against the
+    CS-crosses-zero and IC-breaks frontier in tilt.py).
 
-    # Per-SKU context, hoisted: stock, expected list demand, opportunity
-    # cost, and list price are SKU-level facts recomputed identically for
-    # every (qty, rung) outcome otherwise.
-    sku_ctx: dict[str, tuple[float, float, float, float]] = {}
-    for sku in catalog:
-        if state.stock(sku) <= 0:
-            continue
-        emp = daily_fn(sku) if daily_fn is not None else None
-        D = expected_list_demand(state, sku, dow_mult=dow_mult,
-                                 mult_hat=mult_hat, share=_share(sku),
-                                 emp_daily=emp, traffic_scale=traffic_scale)
-        sku_ctx[sku] = (float(state.stock(sku)), D, c_eff(state, sku),
-                        catalog[sku].list_price)
-
-    def margin(o: Outcome) -> float:
-        s, D, ce, lp = sku_ctx[o.sku]
-        excess = max(0.0, s - D)
-        displaced = min(float(o.qty), max(0.0, o.qty - excess))
-        return (o.qty - displaced) * (o.unit_price - ce) \
-            + displaced * (o.unit_price - lp)
-
-    # Buyer bundle values, hoisted per (sku, qty) — price-independent.
-    bval = {(sku, q): buyer_value(disclosed_wtp, sku, q)
-            for sku in sku_ctx for q in range(1, QTY_CAP + 1)}
-
-    # The disagreement point is the EVENT that happens with no deal — and it
-    # must be one consistent event for both sides. The buyer's best no-deal
-    # move is either their sticker-board purchase (intent-constrained,
-    # stock-capped) or the bodega:
-    #   board wins  → buyer keeps board surplus, machine keeps that margin
-    #   bodega wins → buyer keeps outside surplus, machine keeps NOTHING —
-    #                 which is exactly why marginal customers (weak board
-    #                 fit, strong outside option) are worth recruiting with
-    #                 deep quantity deals: every dollar above cost is found
-    #                 money against a zero counterfactual.
-    outside = max(0.0, outside_surplus(disclosed_wtp, disclosed_walk_cost, catalog))
-    st_best, st_margin = None, 0.0
-    for sku in sku_ctx:
-        stock_s, _, _, lp = sku_ctx[sku]
-        # stock-capped, exactly like enumerate_outcomes / best_bundle: the
-        # board disagreement can only be a bundle the buyer could actually
-        # buy. Iterating to QTY_CAP past stock credited the buyer d_b from an
-        # unbuyable unit, inflating the disagreement and killing real deals.
-        for q in range(1, min(QTY_CAP, int(stock_s)) + 1):
-            o = Outcome(sku, q, lp)
-            if allowed is not None and not allowed(o):
-                continue
-            s = bval.get((sku, q), 0.0) - q * lp
-            if s > 0 and (st_best is None or s > st_best):
-                st_best, st_margin = s, margin(o)
-    if st_best is not None and st_best >= outside:
-        d_b, d_s = st_best, st_margin      # no-deal world: they buy the board
-    else:
-        d_b, d_s = outside, 0.0            # no-deal world: they walk outside
-
-    # Nash product, with a lexicographic tiebreak: when the machine is
-    # exactly indifferent everywhere feasible (product pinned at 0), take
-    # the feasible outcome with the greatest joint gain instead of
-    # discarding a legitimate boundary deal.
-    best, best_score = None, None
-    joint_best = 0.0
-    w = seller_weight
-    for o in enumerate_outcomes(state):
-        if allowed is not None and not allowed(o):
-            continue
-        u_s = margin(o)
-        u_b = bval[(o.sku, o.qty)] - o.qty * o.unit_price
-        gs, gb = u_s - d_s, u_b - d_b
-        if gs >= -1e-9 and gb >= -1e-9:
-            joint_best = max(joint_best, gs + gb)
-            # Generalized Nash product tilted by the seller's weight w. At
-            # w=0.5 use the EXACT symmetric expression (byte-identical to the
-            # committed artifact — pow(0.5) is only a monotone transform of
-            # gs*gb, but this pins the arithmetic). For w>0.5 clamp the gains
-            # at 0 first: the ±1e-9 feasibility slack would otherwise feed a
-            # tiny negative base into a fractional power (→ NaN/complex).
-            if w == 0.5:
-                nash = gs * gb
-            else:
-                nash = (max(0.0, gs) ** w) * (max(0.0, gb) ** (1.0 - w))
-            score = (nash, gs + gb)
-            if best_score is None or score > best_score:
-                best, best_score = o, score
-    if best is not None and best_score[0] <= 0 and best_score[1] <= 1e-9:
-        best = None   # nothing actually improves on the disagreement point
-    if best is not None and (min_gain > 0 or min_gain_frac > 0):
-        # don't-negotiate-for-pennies: the machine's believed gain must
-        # clear a buffer, so forecast noise can't leak margin. The buffer
-        # SCALES with transaction size (a flat $1 is a 50% floor on a $2
-        # item and a rounding error on a $30 basket).
-        thr = max(min_gain,
-                  min_gain_frac * sku_ctx[best.sku][3] * best.qty)
-        if margin(best) - d_s < thr:
-            best = None
-
-    if best is None:
-        return NashQuote(None, d_s, d_b, 0.0, 0.0, joint_best, 0.0, [])
-
-    u_s = margin(best)
-    u_b = buyer_value(disclosed_wtp, best.sku, best.qty) \
-        - best.qty * best.unit_price
-    dte = state.days_to_expiry(best.sku)
-    why = ["negotiated for you", f"{best.qty} unit{'s' if best.qty > 1 else ''}"]
-    if dte is not None and dte <= 1:
-        why.append("takes stock expiring soon")
-    if best.unit_price < catalog[best.sku].list_price:
-        why.append(f"${catalog[best.sku].list_price - best.unit_price:.2f}/unit under list")
-    else:
-        why.append("at list")
-    return NashQuote(best, d_s, d_b, u_s, u_b, joint_best,
-                     (u_s - d_s) + (u_b - d_b), why)
+    Since the engine flip this is a thin delegation: the search lives in the
+    general offer-graph engine (core.engine.quote via the core.adapters.vend
+    projection). The bespoke body was deleted after the golden gates proved
+    the engine reproduces it on the shipped trajectories (100% of 8,000+
+    replayed quotes; committed sim totals byte-exact — see
+    core/adapters/tests/test_vend_golden.py). Known boundary: at EXACT
+    decimal ties on the min-gain buffer the two implementations' one-ulp-
+    different float expression trees could disagree (7/123,200 quotes in the
+    old block-flywheel sweep); the affected artifacts were re-pinned at the
+    flip. Import is deferred to keep the module graph acyclic (the adapter
+    imports this module's helpers)."""
+    from core.adapters.vend import engine_nash_quote
+    return engine_nash_quote(state, disclosed_wtp, disclosed_walk_cost,
+                             dow_mult=dow_mult, mult_hat=mult_hat,
+                             share_fn=share_fn, allowed=allowed,
+                             daily_fn=daily_fn, min_gain=min_gain,
+                             min_gain_frac=min_gain_frac,
+                             traffic_scale=traffic_scale,
+                             seller_weight=seller_weight)
 
 
 def strategic_disclosure(wtp: dict[str, float], walk_cost: float,

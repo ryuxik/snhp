@@ -17,7 +17,7 @@
    "margin": {
     "static": 45460.65,
     "computed": 45559.88,
-    "cart": 54716.91
+    "cart": 54723.0
    },
    "totals": {
     "static": {
@@ -41,14 +41,14 @@
      "consumer_surplus": 33542.13
     },
     "cart": {
-     "margin": 54716.91,
-     "cups": 14809,
+     "margin": 54723.0,
+     "cups": 14814,
      "peak_balks": 643,
-     "waste_cost": 95.3,
-     "deferred": 2703,
-     "attach_rate": 1.395,
+     "waste_cost": 94.6,
+     "deferred": 2704,
+     "attach_rate": 1.396,
      "avg_peak_wait": 4.29,
-     "consumer_surplus": 46667.09
+     "consumer_surplus": 46681.87
     }
    },
    "paired": {
@@ -110,19 +110,19 @@
     },
     "cart_vs_static": {
      "margin": {
-      "mean": 308.54,
+      "mean": 308.75,
       "ci95": [
-       289.88,
-       327.2
+       289.81,
+       327.68
       ],
       "n": 6,
       "block": 5
      },
      "consumer_surplus": {
-      "mean": 468.27,
+      "mean": 468.76,
       "ci95": [
-       452.59,
-       483.95
+       452.47,
+       485.05
       ],
       "n": 6,
       "block": 5
@@ -137,28 +137,28 @@
       "block": 5
      },
      "waste_cost": {
-      "mean": -4.12,
+      "mean": -4.15,
       "ci95": [
-       -5.03,
-       -3.22
+       -5.08,
+       -3.21
       ],
       "n": 6,
       "block": 5
      },
      "toppings": {
-      "mean": 471.6,
+      "mean": 472.17,
       "ci95": [
-       453.53,
-       489.67
+       454.33,
+       490.0
       ],
       "n": 6,
       "block": 5
      },
      "deferred": {
-      "mean": 90.1,
+      "mean": 90.13,
       "ci95": [
-       86.52,
-       93.68
+       86.56,
+       93.71
       ],
       "n": 6,
       "block": 5
@@ -174,7 +174,7 @@
    "margin": {
     "static": 45460.65,
     "computed": 45559.88,
-    "cart": 55942.6
+    "cart": 55951.46
    },
    "totals": {
     "static": {
@@ -198,14 +198,14 @@
      "consumer_surplus": 33542.13
     },
     "cart": {
-     "margin": 55942.6,
-     "cups": 15115,
+     "margin": 55951.46,
+     "cups": 15122,
      "peak_balks": 632,
-     "waste_cost": 93.7,
-     "deferred": 3121,
+     "waste_cost": 97.0,
+     "deferred": 3123,
      "attach_rate": 1.405,
      "avg_peak_wait": 4.24,
-     "consumer_surplus": 47889.43
+     "consumer_surplus": 47918.28
     }
    },
    "paired": {
@@ -267,19 +267,19 @@
     },
     "cart_vs_static": {
      "margin": {
-      "mean": 349.4,
+      "mean": 349.69,
       "ci95": [
-       331.94,
-       366.86
+       331.99,
+       367.39
       ],
       "n": 6,
       "block": 5
      },
      "consumer_surplus": {
-      "mean": 509.01,
+      "mean": 509.98,
       "ci95": [
-       495.92,
-       522.1
+       495.68,
+       524.27
       ],
       "n": 6,
       "block": 5
@@ -294,28 +294,28 @@
       "block": 5
      },
      "waste_cost": {
-      "mean": -4.18,
+      "mean": -4.07,
       "ci95": [
-       -4.63,
-       -3.72
+       -4.64,
+       -3.49
       ],
       "n": 6,
       "block": 5
      },
      "toppings": {
-      "mean": 490.57,
+      "mean": 491.2,
       "ci95": [
-       477.56,
-       503.57
+       478.16,
+       504.24
       ],
       "n": 6,
       "block": 5
      },
      "deferred": {
-      "mean": 104.03,
+      "mean": 104.1,
       "ci95": [
-       100.94,
-       107.13
+       100.98,
+       107.22
       ],
       "n": 6,
       "block": 5
@@ -331,7 +331,7 @@
    "margin": {
     "static": 48308.43,
     "computed": 48419.69,
-    "cart": 56459.03
+    "cart": 56465.12
    },
    "totals": {
     "static": {
@@ -355,14 +355,14 @@
      "consumer_surplus": 35601.31
     },
     "cart": {
-     "margin": 56459.03,
-     "cups": 15386,
+     "margin": 56465.12,
+     "cups": 15391,
      "peak_balks": 931,
-     "waste_cost": 98.7,
+     "waste_cost": 98.0,
      "deferred": 3151,
-     "attach_rate": 1.396,
+     "attach_rate": 1.397,
      "avg_peak_wait": 4.87,
-     "consumer_surplus": 48792.97
+     "consumer_surplus": 48809.35
     }
    },
    "paired": {
@@ -424,19 +424,19 @@
     },
     "cart_vs_static": {
      "margin": {
-      "mean": 271.69,
+      "mean": 271.89,
       "ci95": [
-       213.86,
-       329.51
+       214.0,
+       329.78
       ],
       "n": 6,
       "block": 5
      },
      "consumer_surplus": {
-      "mean": 473.16,
+      "mean": 473.71,
       "ci95": [
-       388.23,
-       558.09
+       388.03,
+       559.39
       ],
       "n": 6,
       "block": 5
@@ -451,19 +451,19 @@
       "block": 5
      },
      "waste_cost": {
-      "mean": -3.22,
+      "mean": -3.24,
       "ci95": [
-       -4.24,
-       -2.2
+       -4.25,
+       -2.24
       ],
       "n": 6,
       "block": 5
      },
      "toppings": {
-      "mean": 488.0,
+      "mean": 488.57,
       "ci95": [
-       421.76,
-       554.24
+       421.75,
+       555.38
       ],
       "n": 6,
       "block": 5
@@ -488,7 +488,7 @@
    "margin": {
     "static": 48308.43,
     "computed": 48419.69,
-    "cart": 57634.86
+    "cart": 57641.24
    },
    "totals": {
     "static": {
@@ -512,14 +512,14 @@
      "consumer_surplus": 35601.31
     },
     "cart": {
-     "margin": 57634.86,
-     "cups": 15645,
+     "margin": 57641.24,
+     "cups": 15651,
      "peak_balks": 940,
-     "waste_cost": 103.0,
-     "deferred": 3554,
-     "attach_rate": 1.403,
+     "waste_cost": 102.3,
+     "deferred": 3556,
+     "attach_rate": 1.404,
      "avg_peak_wait": 4.82,
-     "consumer_surplus": 49960.44
+     "consumer_surplus": 49980.27
     }
    },
    "paired": {
@@ -581,19 +581,19 @@
     },
     "cart_vs_static": {
      "margin": {
-      "mean": 310.88,
+      "mean": 311.09,
       "ci95": [
-       250.69,
-       371.07
+       250.9,
+       371.29
       ],
       "n": 6,
       "block": 5
      },
      "consumer_surplus": {
-      "mean": 512.08,
+      "mean": 512.74,
       "ci95": [
-       428.13,
-       596.02
+       427.92,
+       597.56
       ],
       "n": 6,
       "block": 5
@@ -608,28 +608,28 @@
       "block": 5
      },
      "waste_cost": {
-      "mean": -3.08,
+      "mean": -3.1,
       "ci95": [
-       -4.03,
-       -2.12
+       -4.05,
+       -2.15
       ],
       "n": 6,
       "block": 5
      },
      "toppings": {
-      "mean": 503.43,
+      "mean": 504.07,
       "ci95": [
-       435.21,
-       571.65
+       435.17,
+       572.97
       ],
       "n": 6,
       "block": 5
      },
      "deferred": {
-      "mean": 118.47,
+      "mean": 118.53,
       "ci95": [
-       91.23,
-       145.7
+       91.19,
+       145.88
       ],
       "n": 6,
       "block": 5

@@ -1,10 +1,23 @@
 """Boba vertical expressed as a core OfferGraph — the G1 golden-master adapter.
 
-This module is ADDITIVE and default-OFF. boba/ is untouched; boba.policies.
-cart_nash stays the shipped pricer. This adapter constructs boba's offer graph,
-its state-dependent cost model, a per-quote ShopState, and a per-consumer
-SeparableBuyer from boba's OWN constants and world helpers, so that
-core.engine.quote reproduces cart_nash cart-for-cart.
+Since the engine flip, boba.policies.cart_nash is a thin delegation to
+`engine_cart_nash` below: the bespoke Nash-search body was deleted after the
+golden gates proved the engine reproduces it on the shipped trajectories
+(100% of 11,443 replayed ship-config quotes; committed band byte-exact). This
+adapter constructs boba's offer graph, its state-dependent cost model, a
+per-quote ShopState, and a per-consumer SeparableBuyer from boba's OWN
+constants and world helpers, and runs core.engine.quote over them.
+
+KNOWN BOUNDARY (documented at the flip, 2026-07-14): at EXACT decimal ties on
+the min-gain buffer max($0.25, 0.10·list), the bespoke pricer's and the
+engine's one-ulp-different float expression trees could disagree — under the
+P0 default config (clamps off) 2 of 2,316 replayed quotes hit such a tie
+(witness: seed 20260710 day 0 tick 36 — cart_nash listv = 30.900000000000002 /
+d_s = 7.45, gs−thr = −4e-16, walks; engine listv = 30.9 / d_s =
+7.449999999999999, gs = thr = 3.09, deals). The deployed clamps (qty_appetite,
+min_price_frac=0.6) kept every golden trajectory off ties. The P0 artifacts
+affected by the ulp-tie deltas were re-pinned from their committed generators
+at the flip (verdicts unchanged).
 
 The mapping (docs/REDESIGN.md Phase 2), dimension by dimension:
 
@@ -209,8 +222,20 @@ def engine_cart_nash(boba_state, consumer, min_gain_abs: float = 0.25,
     slot_ticks = GRAPH.dim("pickup").option(q.config["pickup"]).slot_ticks
     d_seller = q.audit.get("d_seller", 0.0)
     d_buyer = q.audit.get("d_buyer", 0.0)
+    # boba's canonical receipt strings (cart_nash's exact formats — the arena
+    # trace generator asserts on them, e.g. "pearls from the expiring batch"),
+    # rebuilt here instead of passing the engine's generic q.why through.
+    why = ["negotiated cart"]
+    if slot_ticks > 0:
+        why.append(f"+{slot_ticks * 10}-min pickup frees peak capacity")
+    if "pearls" in tops and top_c_eff(boba_state, "pearls") == 0.0:
+        why.append("pearls from the expiring batch")
+    if q.price < q.listv - 1e-9:
+        why.append(f"${q.listv - q.price:.2f} under the menu")
+    else:
+        why.append("at menu")
     return CartDeal(
         drink=drink, qty=qty, tops=tops, price=q.price, slot_ticks=slot_ticks,
         value=q.value, u_shop=q.seller_gain + d_seller, d_shop=d_seller,
         u_buyer=q.buyer_gain + d_buyer, d_buyer=d_buyer,
-        relief=q.audit.get("credit", 0.0), why=tuple(q.why))
+        relief=q.audit.get("credit", 0.0), why=tuple(why))

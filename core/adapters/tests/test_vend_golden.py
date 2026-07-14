@@ -217,6 +217,54 @@ def test_allowed_intent_constraint_matches_nash():
     assert bad == 0, f"{bad}/{total} allowed-constrained divergences"
 
 
+# ── the no-deal NashQuote still reports the real disagreement point ────────
+def test_no_deal_quote_carries_disagreement_fields():
+    """nash_quote's outcome=None return still carries the no-deal point
+    (d_machine = the board counterfactual's margin, d_buyer = the board
+    surplus or the claimed outside) — vend's own tests read d_buyer off a
+    no-deal quote (test_nash_disagreement_is_stock_capped). The engine maps
+    its at-list fallback audit onto those fields and its walk onto the
+    outside branch, so the drop-in is faithful on ALL return paths, not just
+    outcome≠None. Three constructed no-deal shapes."""
+    from vend.scenario import nash_quote
+    cat = build_catalog()
+
+    # (a) board buyer, no feasible improvement: stock 1 pins every rung's
+    #     machine gain at ≤ 0 (any discounted unit displaces the board sale)
+    st = fresh_machine("t", cat)
+    st.tick = 50
+    st.lots = [Lot("cola", 1, expires_day=60)]
+    wtp = {s: 0.3 for s in cat}
+    wtp["cola"] = 5.0
+    a = nash_quote(st, wtp, 2.0)
+    b = engine_nash_quote(st, wtp, 2.0)
+    assert a.outcome is None and b.outcome is None
+    assert a.d_buyer > 0                                # the board point is real
+    assert b.d_buyer == pytest.approx(a.d_buyer, abs=1e-9)
+    assert b.d_machine == pytest.approx(a.d_machine, abs=1e-9)
+
+    # (b) a live deal killed by an absurd min-gain buffer → board point stands
+    st2 = fresh_machine("t", cat)
+    st2.tick = 50
+    st2.lots = [Lot("sandwich", 12, expires_day=0),
+                Lot("cola", 12, expires_day=60)]
+    wtp2 = {s: cat[s].list_price * 1.4 for s in cat}
+    a2 = nash_quote(st2, wtp2, 1.0, min_gain=1e6)
+    b2 = engine_nash_quote(st2, wtp2, 1.0, min_gain=1e6)
+    assert a2.outcome is None and b2.outcome is None
+    assert b2.d_buyer == pytest.approx(a2.d_buyer, abs=1e-9)
+    assert b2.d_machine == pytest.approx(a2.d_machine, abs=1e-9)
+
+    # (c) an intent that forbids everything → a WALK with a live outside
+    #     option (outside_surplus is not intent-gated; the board is)
+    a3 = nash_quote(st2, wtp2, 0.0, allowed=lambda o: False)
+    b3 = engine_nash_quote(st2, wtp2, 0.0, allowed=lambda o: False)
+    assert a3.outcome is None and b3.outcome is None
+    assert a3.d_buyer > 0                               # the bodega surplus
+    assert b3.d_buyer == pytest.approx(a3.d_buyer, abs=1e-9)
+    assert a3.d_machine == 0.0 and b3.d_machine == 0.0
+
+
 # ── the two-cost-split reconciliation (the flagged collapse) ──────────────
 def test_two_cost_split_true_is_exact_and_false_diverges():
     """The Phase-1-flagged collapse, quantified. two_cost_split=True (the

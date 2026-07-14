@@ -511,21 +511,30 @@ def _fallback(graph, state, buyer, econ, config, menu_buyer, menu_c,
     """No negotiated split beat disagreement. A fully-specified fixed-config
     request is offered at its own list (priceCart always returns the cart); a
     genuine menu-buyer pays the menu; anyone else walks (None) — never a
-    sub-menu price, never above list."""
+    sub-menu price, never above list.
+
+    The at-list receipt's audit carries the REAL disagreement point
+    (d_buyer/d_seller as computed above, not zeros): a vertical adapter whose
+    return type reports the no-deal disagreement (vend's NashQuote.d_machine /
+    d_buyer on outcome=None) reads it from here."""
     if config is not None and _is_full(graph, config):
         e = _econ_or_compute(graph, state, buyer, econ, dict(config))
-        return _at_list(dict(config), e, "no discount beats list; at list")
+        return _at_list(dict(config), e, "no discount beats list; at list",
+                        surv0, s_out, d_buyer, d_seller)
     if menu_buyer:
         e = econ[freeze_config(menu_c)]
-        return _at_list(menu_c, e, "no deal beats the menu; buyer pays list")
+        return _at_list(menu_c, e, "no deal beats the menu; buyer pays list",
+                        surv0, s_out, d_buyer, d_seller)
     return None
 
 
-def _at_list(cfg, e: _Econ, note: str) -> Quote:
+def _at_list(cfg, e: _Econ, note: str, surv0: float = 1.0, s_out: float = 0.0,
+             d_buyer: float = 0.0, d_seller: float = 0.0) -> Quote:
     return Quote(config=cfg, price=e.listv, listv=e.listv, cost=e.cost,
                  value=e.val, save=0.0, seller_gain=0.0, buyer_gain=0.0,
                  feasible=False, why=[note],
-                 audit=_audit(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, e.val, e.cost))
+                 audit=_audit(surv0, s_out, 0.0, 0.0, d_buyer, d_seller,
+                              e.val, e.cost))
 
 
 def _is_full(graph: OfferGraph, config: Config) -> bool:

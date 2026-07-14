@@ -1,10 +1,21 @@
 """Vend vertical expressed as a core OfferGraph — the Phase-3a golden adapter.
 
-This module is ADDITIVE and default-OFF. vend/ is untouched; vend.scenario.
-nash_quote stays the shipped pricer (production, mounted in api.snhp.dev). This
-adapter builds vend's offer graph, its finite-stock scarcity cost model, a
-per-quote ShopState, and a SeparableBuyer from vend's OWN constants and world
-helpers, so that core.engine.quote reproduces nash_quote quote-for-quote.
+Since the engine flip, vend.scenario.nash_quote is a thin delegation to
+`engine_nash_quote` below (production, mounted in api.snhp.dev): the bespoke
+Nash-search body was deleted after the golden gates proved the engine
+reproduces it on the shipped trajectories (100% of 8,000+ replayed quotes;
+committed sim totals byte-exact). This adapter builds vend's offer graph, its
+finite-stock scarcity cost model, a per-quote ShopState, and a SeparableBuyer
+from vend's OWN constants and world helpers, and runs core.engine.quote over
+them.
+
+KNOWN BOUNDARY (documented at the flip, 2026-07-14): at EXACT decimal ties on
+the min-gain buffer, the bespoke pricer's thr = (min_gain_frac·list)·qty and
+margin−d_s versus the engine's min_gain_frac·(qty·list) and (p−c_eff)−d_s
+differ by one ulp and could disagree — 7 of 123,200 quotes in the old
+block-flywheel sweep hit such a tie (witness: water-1L×3, margin−d_s =
+0.9900000000000002 vs thr = 0.99). The affected artifacts were re-pinned from
+their committed generators at the flip (28 leaves, ≤9e-4, verdicts unchanged).
 
 The mapping (docs/REDESIGN.md Phase 3), dimension by dimension:
 
@@ -35,7 +46,13 @@ it returns equals vend's displacement-adjusted cost. The reconciliation notes:
 
 `engine_nash_quote` is a drop-in for vend.scenario.nash_quote: same signature,
 same NashQuote return, same None semantics (a walk / no-mutual-gain → outcome
-None, which the sim prices at the sticker board).
+None, which the sim prices at the sticker board). On outcome=None the
+disagreement fields still carry the real no-deal point (d_machine = the board
+counterfactual's margin, d_buyer = the board surplus or the outside option),
+exactly as nash_quote reports them — the engine's at-list fallback audit
+carries them through. The one non-reproduced field: `joint_best` is the CHOSEN
+outcome's realized joint gain clamped at 0 (0.0 on no-deal), not the
+search-wide max nash_quote tracks — no caller reads it (verified repo-wide).
 """
 from __future__ import annotations
 
@@ -234,8 +251,16 @@ def engine_nash_quote(state, disclosed_wtp: dict[str, float],
         prune_free=False, cand_filter=_cand_filter(allowed))
     q = _core_quote(graph, sstate, buyer, opts=opts)
 
-    if q is None or not q.feasible:
-        return NashQuote(None, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, [])
+    if q is None:
+        # walk: never a board buyer (best board surplus ≤ 0 or < outside, or
+        # nothing in stock / nothing allowed) — the bespoke pricer's
+        # outside-branch disagreement: d_b = claimed outside, d_s = 0.
+        return NashQuote(None, 0.0, buyer.outside, 0.0, 0.0, 0.0, 0.0, [])
+    if not q.feasible:
+        # at-list fallback: a board buyer no discount could beat — the board
+        # disagreement stands, carried by the engine's fallback audit.
+        return NashQuote(None, q.audit.get("d_seller", 0.0),
+                         q.audit.get("d_buyer", 0.0), 0.0, 0.0, 0.0, 0.0, [])
 
     sku = q.config[SKU_DIM]
     qty = int(q.config[QTY_DIM])
