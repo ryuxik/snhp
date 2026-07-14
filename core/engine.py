@@ -351,7 +351,8 @@ def _pref_pins(graph: OfferGraph, state: ShopState, buyer: Buyer) -> dict:
 
 
 def quote(graph: OfferGraph, state: ShopState, buyer: Buyer, *,
-          config: Config | None = None, opts: QuoteOpts = QuoteOpts()
+          config: Config | None = None, opts: QuoteOpts = QuoteOpts(),
+          demand=None, context=None
           ) -> Quote | None:
     """Price the offer graph for this buyer against this shop state.
 
@@ -359,7 +360,23 @@ def quote(graph: OfferGraph, state: ShopState, buyer: Buyer, *,
     config prices exactly that cart (generalizing boba priceCart / the JS
     quoteConfig); a partial one fixes some dims and searches the rest; None
     searches everything (cart_nash / nash_quote).
+
+    `demand` (a core.demand.DemandModel | None): OPTIONAL learned WTP. Default
+    None → the buyer's ORACLE value/outside are used, byte-identical to every
+    shipped call. When supplied, `demand.as_buyer(...)` wraps `buyer` so the
+    engine draws the buyer's value and menu counterfactual from the LEARNED
+    posterior instead of the oracle, while the observable structural fields
+    (balk, defer, qty decay) pass through. Every IC guard below then runs
+    against the posterior with no other change — the seller disagreement and
+    the feasibility/min-gain floors stay on OBSERVABLES (list, cost), so the
+    standing-margin LEVEL is protected exactly; the one residual leak channel
+    (a misidentified menu-counterfactual config) is measured and reported in
+    core/adapters/tests/demand_validation.py, not assumed away. `context` is
+    the arrival's observable context handed to the demand model (hour, choice,
+    …); ignored when demand is None.
     """
+    if demand is not None:
+        buyer = demand.as_buyer(graph, state, buyer, context)
     config = normalize_config(config)          # A4: lists → frozensets
     b = buyer.balk_prob(state)
     surv0 = 1.0 - b                    # the immediate walk-in's survival weight

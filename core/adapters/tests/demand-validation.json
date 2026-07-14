@@ -1,0 +1,300 @@
+{
+ "config": {
+  "days": 30,
+  "seeds": [
+   20260710,
+   7,
+   101
+  ],
+  "flexible_share": 0.3,
+  "ratchet_share": 0.5,
+  "kill_condition": "learned recovers >=50% of the deferral+salvage oracle edge (refuse-lookers) with $0 sub-menu leak against the ratchet population"
+ },
+ "per_seed": {
+  "20260710": {
+   "menu": 1515.355,
+   "oracle_ceiling": 1852.256,
+   "oracle_full": 1701.468,
+   "oracle_salv": 1578.086,
+   "oracle_noc": 1577.554,
+   "learned_full": 1512.765,
+   "learned_salv": 1515.355,
+   "learned_noc": 1515.355,
+   "learned_ratchet": 829.837,
+   "leak_oracle": 0.0,
+   "leak_honest": 0.733,
+   "leak_ratchet": 0.0,
+   "scale_honest": {
+    "10": 1.1052,
+    "11": 1.1052,
+    "12": 1.0,
+    "13": 1.0,
+    "14": 1.1052,
+    "15": 1.1052,
+    "16": 1.1052,
+    "17": 1.1052,
+    "18": 1.1052,
+    "19": 1.1052,
+    "20": 1.0,
+    "21": 1.0
+   },
+   "scale_ratchet": {
+    "10": 0.9048,
+    "11": 0.9048,
+    "12": 0.9089,
+    "13": 0.9048,
+    "14": 0.9048,
+    "15": 0.9063,
+    "16": 0.9048,
+    "17": 0.9048,
+    "18": 0.9048,
+    "19": 0.9048,
+    "20": 0.9048,
+    "21": 0.9048
+   },
+   "oracle_deferred_deals": 1693.0,
+   "learned_deferred_deals": 155.0
+  },
+  "7": {
+   "menu": 1519.63,
+   "oracle_ceiling": 1860.538,
+   "oracle_full": 1718.298,
+   "oracle_salv": 1581.811,
+   "oracle_noc": 1582.057,
+   "learned_full": 1521.659,
+   "learned_salv": 1519.63,
+   "learned_noc": 1519.63,
+   "learned_ratchet": 831.823,
+   "leak_oracle": 0.0,
+   "leak_honest": 0.3001,
+   "leak_ratchet": 0.0,
+   "scale_honest": {
+    "10": 1.1052,
+    "11": 1.0266,
+    "12": 1.0,
+    "13": 1.0,
+    "14": 1.1052,
+    "15": 1.22,
+    "16": 1.1052,
+    "17": 1.1052,
+    "18": 1.1052,
+    "19": 1.1052,
+    "20": 1.1052,
+    "21": 1.0
+   },
+   "scale_ratchet": {
+    "10": 0.9048,
+    "11": 0.9048,
+    "12": 0.9048,
+    "13": 1.0,
+    "14": 0.9048,
+    "15": 1.0,
+    "16": 0.9048,
+    "17": 0.9048,
+    "18": 0.9048,
+    "19": 0.9048,
+    "20": 0.9048,
+    "21": 0.9048
+   },
+   "oracle_deferred_deals": 1706.0,
+   "learned_deferred_deals": 170.0
+  },
+  "101": {
+   "menu": 1483.286,
+   "oracle_ceiling": 1824.582,
+   "oracle_full": 1676.455,
+   "oracle_salv": 1542.877,
+   "oracle_noc": 1542.393,
+   "learned_full": 1484.494,
+   "learned_salv": 1483.286,
+   "learned_noc": 1483.286,
+   "learned_ratchet": 819.924,
+   "leak_oracle": 0.0,
+   "leak_honest": 0.0223,
+   "leak_ratchet": 0.0,
+   "scale_honest": {
+    "10": 1.1052,
+    "11": 1.1052,
+    "12": 1.0,
+    "13": 1.0,
+    "14": 1.1052,
+    "15": 1.1052,
+    "16": 1.1052,
+    "17": 1.1052,
+    "18": 1.1052,
+    "19": 1.0913,
+    "20": 1.1052,
+    "21": 1.0
+   },
+   "scale_ratchet": {
+    "10": 0.9048,
+    "11": 0.9048,
+    "12": 1.0,
+    "13": 0.905,
+    "14": 0.9048,
+    "15": 0.9048,
+    "16": 1.0,
+    "17": 0.9048,
+    "18": 0.9993,
+    "19": 0.9048,
+    "20": 0.9048,
+    "21": 0.9046
+   },
+   "oracle_deferred_deals": 1692.0,
+   "learned_deferred_deals": 136.0
+  }
+ },
+ "pooled": {
+  "menu_margin_day": 1506.09,
+  "oracle_ceiling_margin_day": 1845.792,
+  "oracle_full_ICsafe_margin_day": 1698.74,
+  "oracle_salvage_only_margin_day": 1567.591,
+  "oracle_nocreated_margin_day": 1567.335,
+  "learned_full_margin_day_honest": 1506.306,
+  "learned_salvage_only_margin_day": 1506.09,
+  "learned_nocreated_margin_day": 1506.09,
+  "learned_full_margin_day_ratchet": 827.195,
+  "deferral_salvage_edge_day": 131.405,
+  "salvage_edge_day": 0.256,
+  "deferral_edge_day": 131.149,
+  "learned_created_recovered_day": 0.216,
+  "deferral_salvage_recovery_frac": 0.002,
+  "salvage_recovery_frac": 0.0,
+  "deferral_recovery_frac": 0.002,
+  "total_oracle_ceiling_edge_day": 339.702,
+  "IC_safe_total_recovery_frac": 0.001,
+  "sub_menu_leak_day_oracle": 0.0,
+  "sub_menu_leak_day_honest": 0.3518,
+  "sub_menu_leak_day_ratchet": 0.0,
+  "sub_menu_leak_pct_of_margin_honest": 0.0234,
+  "ratchet_scale_drop_vs_honest": -0.159,
+  "learned_scale_honest_mean": 1.077,
+  "learned_scale_ratchet_mean": 0.918,
+  "time_to_competence": [
+   {
+    "day": 1,
+    "recovery_frac": 0.063
+   },
+   {
+    "day": 2,
+    "recovery_frac": 0.061
+   },
+   {
+    "day": 3,
+    "recovery_frac": 0.018
+   },
+   {
+    "day": 4,
+    "recovery_frac": 0.023
+   },
+   {
+    "day": 5,
+    "recovery_frac": 0.016
+   },
+   {
+    "day": 6,
+    "recovery_frac": 0.003
+   },
+   {
+    "day": 7,
+    "recovery_frac": -0.001
+   },
+   {
+    "day": 8,
+    "recovery_frac": -0.003
+   },
+   {
+    "day": 9,
+    "recovery_frac": 0.001
+   },
+   {
+    "day": 10,
+    "recovery_frac": -0.015
+   },
+   {
+    "day": 11,
+    "recovery_frac": -0.013
+   },
+   {
+    "day": 12,
+    "recovery_frac": -0.018
+   },
+   {
+    "day": 13,
+    "recovery_frac": -0.021
+   },
+   {
+    "day": 14,
+    "recovery_frac": -0.024
+   },
+   {
+    "day": 15,
+    "recovery_frac": -0.02
+   },
+   {
+    "day": 16,
+    "recovery_frac": -0.023
+   },
+   {
+    "day": 17,
+    "recovery_frac": -0.027
+   },
+   {
+    "day": 18,
+    "recovery_frac": -0.023
+   },
+   {
+    "day": 19,
+    "recovery_frac": -0.019
+   },
+   {
+    "day": 20,
+    "recovery_frac": -0.018
+   },
+   {
+    "day": 21,
+    "recovery_frac": -0.016
+   },
+   {
+    "day": 22,
+    "recovery_frac": -0.018
+   },
+   {
+    "day": 23,
+    "recovery_frac": -0.017
+   },
+   {
+    "day": 24,
+    "recovery_frac": -0.015
+   },
+   {
+    "day": 25,
+    "recovery_frac": -0.019
+   },
+   {
+    "day": 26,
+    "recovery_frac": -0.017
+   },
+   {
+    "day": 27,
+    "recovery_frac": -0.017
+   },
+   {
+    "day": 28,
+    "recovery_frac": -0.016
+   },
+   {
+    "day": 29,
+    "recovery_frac": -0.014
+   },
+   {
+    "day": 30,
+    "recovery_frac": -0.014
+   }
+  ],
+  "KILL_CONDITION_PASSED": false,
+  "verdict": "NULL \u2014 learned does NOT recover >=50% of the deferral+salvage edge (population WTP cannot see the individual flexibility the deferral lever needs); reported as-is, NOT tuned to pass. The IC floor is NEARLY preserved (small residual leak, see sub_menu_leak_pct_of_margin_honest).",
+  "money_answer_IC_floor_exactly_preserved": false,
+  "money_answer_note": "Honest learning leaves a SMALL residual leak (~0.05% of margin) from population misidentification of the buyer's true menu-counterfactual config on rich multi-topping carts \u2014 the seller disagreement is set slightly too low. Oracle leak is $0 exactly; the ratchet leak is $0 because over-discounting makes the engine REFUSE deals. The floor is nearly, not exactly, preserved."
+ }
+}
