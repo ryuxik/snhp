@@ -2,9 +2,11 @@
 
 A pure-JS (no npm deps) port of the Python engine in `core/`. It mirrors the
 Python modules 1:1 so the browser can run the exact same Nash-floor search the
-Python reference runs. This is the eventual successor to the deployed
-`arena/web/boba-engine.js` (a hand-port of boba's *old* cart_nash); Phase 4 wires
-it into the UI. **Nothing here modifies `arena/web/boba-engine.js` or `core/*.py`.**
+Python reference runs. It IS the deployed pricing path: every boba page
+(`arena/web/hook.js`, `arena/web/boba-sim.js`) prices through this engine over
+the single JS world module `arena/web/boba-world.mjs` (the legacy hand-port
+`arena/web/boba-engine.js` was deleted once this reproduced it deal-for-deal).
+**Nothing here modifies `core/*.py`.**
 
 | JS module            | mirrors Python        |
 | -------------------- | --------------------- |

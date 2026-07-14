@@ -1,12 +1,158 @@
 /* boba-sim.js — the OWNER SANDBOX UI.
- * Onboards the owner's SKUs + conditions, runs the faithfully-ported SNHP
- * engine (boba-engine.js) on a simulated day, and animates the STATIC vs SNHP
- * twin worlds. Every number on screen comes from the engine — nothing here is
- * hardcoded except the sample menu defaults (the extracted calibration menu).
+ * Onboards the owner's SKUs + conditions, runs a simulated day, and animates
+ * the STATIC vs SNHP twin worlds. Every number on screen comes from the
+ * engine — nothing here is hardcoded except the sample menu defaults.
+ *
+ * SUBSTRATE (post-consolidation): the WORLD (appeal inversion, FIFO balk
+ * hazard, batches, capacity relief, consumer draws, settle accounting) is
+ * arena/web/boba-world.mjs — the ONE JS copy of boba/world.py's math — and
+ * the PRICING is the validated general engine (core/js/engine.mjs quote())
+ * reached through core/js/boba_adapter.mjs engineCartNash with the ship
+ * QuoteOpts, exactly like hook.js. The legacy hand-port (boba-engine.js) is
+ * gone. The twin-worlds day loop below mirrors boba/run.py run_day.
+ *
+ * Runs in the browser (boots the sandbox UI) and in node (exports the pure
+ * sim surface — compile/simulateDay/runDays — for verification harnesses).
  */
-(function () {
+import {
+  makeWorld, openShop, generateDay, serveStatic, settle, finalize, newMetrics,
+  deferCost, balkProb, expireBatches, maybeCook, releaseScheduled, serveQueue,
+  closeOut, queueDrinks, TICKS_PER_DAY, hourOf,
+} from "./boba-world.mjs";
+import { buildBobaGraph, engineCartNash } from "../../core/js/boba_adapter.mjs";
+
+const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100;
+
+// v1-SAFE SNHP config — the shipped guarantees
+export const SAFE = { quoteLookers: false, qtyAppetite: true, minPriceFrac: 0.6 };
+export const SEED = 20260710;
+const TRAFFIC = { quiet: 0.62, normal: 1.0, rush: 1.45 };
+
+// ── the sample menu (extracted calibration menu, the sensible default) ──
+export const SAMPLE = {
+  drinks: [
+    { name: "Classic Milk Tea", price: 6.25, cost: 1.35 },
+    { name: "Brown Sugar Boba", price: 7.25, cost: 1.60 },
+    { name: "Matcha Latte",     price: 7.50, cost: 1.75 },
+  ],
+  top: { name: "Tapioca Pearls", price: 0.85, cost: 0.10 },
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+//  THE SIM SUBSTRATE — boba-world.mjs world + core-engine pricing.
+//  (Pure; no DOM. The UI below only calls compile/simulateDay/runDays.)
+// ════════════════════════════════════════════════════════════════════════════
+
+// Compile a menu spec ({drinks, tops, batchTop}) into a ready-to-run context:
+// the world object (appeals inverted from price/cost) + the boba OfferGraph.
+export function compile(spec) {
+  const world = makeWorld(spec);
+  return { world, graph: buildBobaGraph(world) };
+}
+
+// The SNHP quote for one consumer: core/js quote() wearing cart_nash's shape
+// (mirror of core/adapters/boba.py engine_cart_nash's Quote -> CartDeal map).
+function quoteDeal(ctx, s, c, opts) {
+  const world = ctx.world;
+  const salvage = opts.salvage !== false;
+  const q = engineCartNash(world, ctx.graph, s, c, {
+    minGainAbs: 0.25, minGainFrac: 0.10,
+    deferSlots: opts.deferSlots !== false,
+    salvage,
+    quoteLookers: opts.quoteLookers === true,
+    qtyAppetite: opts.qtyAppetite === true,
+    minPriceFrac: opts.minPriceFrac != null ? opts.minPriceFrac : 0.0,
+  });
+  if (!q || !q.feasible) return null; // at-list fallback == cart_nash's None
+  const drink = q.config.drink;
+  const tops = (q.config.tops || []).slice().sort();
+  const qty = Math.trunc(Number(q.config.qty));
+  const slotTicks = ctx.graph.dim("pickup").option(q.config.pickup).slot_ticks;
+  const dS = q.audit.d_seller || 0.0, dB = q.audit.d_buyer || 0.0;
+  // structured steering flag: salvage TRULY triggered (batch topping in the
+  // cart while an over-stocked batch is expiring) — never parsed from prose.
+  const salvageUsed = salvage && tops.indexOf(world.batchTop) >= 0 && world.pearls_expiring_excess(s);
+  return {
+    drink, qty, tops, price: q.price, slotTicks, value: q.value,
+    uShop: q.seller_gain + dS, dShop: dS, uBuyer: q.buyer_gain + dB, dBuyer: dB,
+    relief: q.audit.credit || 0.0, salvage: salvageUsed, why: q.why,
+  };
+}
+
+// ── one customer, SNHP lane (run_day cart path, honest buyer) ───────────────
+function serveSnhp(ctx, s, m, c, balkRoll, opts) {
+  const world = ctx.world;
+  const rigidMult = opts.rigidDeferMult != null ? opts.rigidDeferMult : 1;
+  // the buyer's defer schedule, with the sandbox's rigid-defer ramp applied
+  c.defer_cost = function (st) { return deferCost(this, st, rigidMult); };
+  const deal = quoteDeal(ctx, s, c, opts);
+  if (deal !== null && deal.uBuyer >= deal.dBuyer - 1e-9) {
+    if (deal.slotTicks === 0 && balkRoll < balkProb(s)) { m.balks += 1; return { kind: "balk" }; }
+    const realized = deal.value - deal.price - deferCost(c, deal.slotTicks, rigidMult);
+    // menu list value of the negotiated cart, for the "you saved" readout
+    let listv = deal.qty * world.DRINK_PRICE[deal.drink];
+    for (const t of deal.tops) listv += deal.qty * world.TOP_PRICE[t];
+    listv = round2(listv);
+    settle(world, s, m, deal.drink, deal.qty, deal.tops, deal.price, realized, deal.slotTicks);
+    m.negotiated += 1;
+    return { kind: "deal", drink: deal.drink, qty: deal.qty, tops: deal.tops, price: deal.price,
+      menu: listv, slotTicks: deal.slotTicks, save: round2(listv - deal.price), why: deal.why,
+      salvage: deal.salvage, relief: deal.relief, surplus: realized, uShop: deal.uShop, dShop: deal.dShop };
+  }
+  // fall through to the plain walk-in board (never worse UX than static)
+  return serveStatic(world, s, m, c, balkRoll);
+}
+
+// ── run one day of BOTH lanes over the same customers (twin worlds) ──────────
+export function simulateDay(ctx, cfg, seed, day, opts) {
+  const world = ctx.world;
+  const o = opts || {};
+  const dayData = generateDay(world, cfg, seed, day);
+  const bm = cfg && cfg.balkModel ? cfg.balkModel : "wait";
+  const sStatic = openShop(day, bm), sSnhp = openShop(day, bm);
+  const mStatic = newMetrics(), mSnhp = newMetrics();
+  const events = [];
+  for (let tick = 0; tick < TICKS_PER_DAY; tick++) {
+    sStatic.tick = tick; sSnhp.tick = tick;
+    mStatic.waste_cost += expireBatches(world, sStatic); maybeCook(sStatic); releaseScheduled(sStatic); serveQueue(sStatic);
+    mSnhp.waste_cost += expireBatches(world, sSnhp); maybeCook(sSnhp); releaseScheduled(sSnhp); serveQueue(sSnhp);
+    for (const a of dayData[tick]) {
+      mStatic.arrivals += 1; mSnhp.arrivals += 1;
+      const qStatic = queueDrinks(sStatic), qSnhp = queueDrinks(sSnhp);
+      const evS = serveStatic(world, sStatic, mStatic, a.consumer, a.balkRoll);
+      const evN = serveSnhp(ctx, sSnhp, mSnhp, a.consumer, a.balkRoll, o);
+      events.push({ tick, hour: hourOf(tick), consumer: a.consumer,
+        static: evS, snhp: evN, qStatic, qSnhp });
+    }
+  }
+  mStatic.waste_cost += closeOut(world, sStatic); mSnhp.waste_cost += closeOut(world, sSnhp);
+  mStatic.batches_cooked = sStatic.batchesCooked; mSnhp.batches_cooked = sSnhp.batchesCooked;
+  finalize(mStatic); finalize(mSnhp);
+  return { static: mStatic, snhp: mSnhp, events };
+}
+
+// ── run N days, return per-day means (for the "typical" caption) ────────────
+// `reuseCtx` (optional): pass an already-compiled ctx to skip a second full
+// appeal-inversion (the sandbox reuses the run's ctx for the 15-day means).
+export function runDays(spec, cfg, seed, days, opts, reuseCtx) {
+  const ctx = reuseCtx || compile(spec);
+  const acc = { static: [], snhp: [] };
+  for (let d = 0; d < days; d++) {
+    const r = simulateDay(ctx, cfg, seed, d, opts);
+    acc.static.push(r.static); acc.snhp.push(r.snhp);
+  }
+  const keys = ["margin", "consumer_surplus", "cups", "deals", "balks", "deferred", "toppings", "waste_cost", "revenue"];
+  const mean = (arr) => { const o = {}; for (const k of keys) o[k] = round2(arr.reduce((s, m) => s + m[k], 0) / arr.length); return o; };
+  return { static: mean(acc.static), snhp: mean(acc.snhp), ctx };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  BROWSER: the sandbox UI. (Nothing below runs under node.)
+// ════════════════════════════════════════════════════════════════════════════
+if (typeof document !== "undefined") boot();
+
+function boot() {
   "use strict";
-  const B = window.BobaEngine;
   const $ = (s) => document.querySelector(s);
   const money = (n) => "$" + Math.round(Number(n)).toLocaleString();
   const money1 = (n) => "$" + Number(n).toFixed(2);
@@ -16,23 +162,6 @@
   const signedInt = (n) => { const v = Math.round(Number(n)); return (v < 0 ? "" : "+") + v; };
   const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
-
-  if (!B) { showErr("engine failed to load (boba-engine.js)"); return; }
-
-  // v1-SAFE SNHP config — the shipped guarantees
-  const SAFE = { quoteLookers: false, qtyAppetite: true, minPriceFrac: 0.6 };
-  const SEED = 20260710;
-  const TRAFFIC = { quiet: 0.62, normal: 1.0, rush: 1.45 };
-
-  // ── the sample menu (extracted calibration menu, the sensible default) ──
-  const SAMPLE = {
-    drinks: [
-      { name: "Classic Milk Tea", price: 6.25, cost: 1.35 },
-      { name: "Brown Sugar Boba", price: 7.25, cost: 1.60 },
-      { name: "Matcha Latte",     price: 7.50, cost: 1.75 },
-    ],
-    top: { name: "Tapioca Pearls", price: 0.85, cost: 0.10 },
-  };
 
   let dayCounter = 3;   // advances each run so every "Run a day" is a fresh day
   let running = false;
@@ -107,6 +236,9 @@
   // ── read the menu spec from the DOM ─────────────────────────────────────
   // No silent defaults: a blank/invalid field returns NaN and validate() rejects
   // it. The sim must never run on numbers the owner didn't type.
+  // The topping's INTERNAL id is always "pearls" (the batch/perishable id the
+  // boba OfferGraph adapter keys salvage + stock gating on); the owner's typed
+  // name rides along as `label` for display only.
   function num(el) { const v = parseFloat(el.value); return isFinite(v) ? v : NaN; }
   function readSpec() {
     const drinks = [];
@@ -117,9 +249,9 @@
       drinks.push({ name, price, cost, popularity: 1 });   // even popularity split
     });
     const topName = ($("#tName").value || "").trim() || "Topping";
-    const top = { name: topName, price: num($("#tPrice")), cost: num($("#tCost")),
+    const top = { name: "pearls", label: topName, price: num($("#tPrice")), cost: num($("#tCost")),
       like_prob: 0.55 };
-    return { drinks, tops: [top], batchTop: topName };
+    return { drinks, tops: [top], batchTop: "pearls" };
   }
   function validate(spec) {
     if (spec.drinks.length < 2) return "Add at least two drinks.";
@@ -217,12 +349,12 @@
     if (!$("#expiring").checked) opts.salvage = false;
 
     let ctx;
-    try { ctx = B.compile(spec); }
+    try { ctx = compile(spec); }
     catch (e) { $("#results").classList.remove("show"); $("#runNote").textContent = "Couldn't build that menu: " + e.message; $("#runNote").style.color = "var(--pink)"; return; }
 
     const day = dayCounter++;
     let sim;
-    try { sim = B.simulateDay(ctx, cfg, SEED, day, opts); }
+    try { sim = simulateDay(ctx, cfg, SEED, day, opts); }
     catch (e) { $("#results").classList.remove("show"); showErr("simulation error: " + e.message); return; }
 
     // quiet 15-day means: the typical caption AND the honest channel split.
@@ -232,8 +364,8 @@
     let info = { typ: null, banks: null, defer: null };
     try {
       // reuse the already-built ctx (skip a second full appeal-inversion)
-      const full = B.runDays(spec, cfg, SEED, 15, opts, ctx);
-      const nod = B.runDays(spec, cfg, SEED, 15, Object.assign({}, opts, { deferSlots: false }), ctx);
+      const full = runDays(spec, cfg, SEED, 15, opts, ctx);
+      const nod = runDays(spec, cfg, SEED, 15, Object.assign({}, opts, { deferSlots: false }), ctx);
       info.typ = Math.round(full.snhp.margin - full.static.margin);
       info.banks = Math.round(nod.snhp.margin - nod.static.margin);
       info.defer = Math.round(full.snhp.margin - nod.snhp.margin);
@@ -380,7 +512,7 @@
 
   // ── divergence feed ─────────────────────────────────────────────────────
   function buildFeed(diverge, spec) {
-    const topName = spec.tops[0].name;
+    const topName = spec.tops[0].label || spec.tops[0].name;
     const items = [];
     const seen = { kept: 0, salv: 0, offpk: 0, disc: 0 };
     // priority: kept-from-walking, then salvage, then off-peak, then discount
@@ -487,9 +619,10 @@
     $("#footNote").innerHTML =
       "“Net kept” is walk-aways SNHP rescued minus the " + reverse + " buyer" + (reverse === 1 ? "" : "s") +
       " its own scheduling happened to push into a longer line this day — smoothing isn't free. " +
-      "Ported client-side from the real engine (<code>boba/world.py</code>, <code>boba/policies.py cart_nash</code>, " +
-      "<code>boba/run.py</code>), v1-safe config, seed " + SEED + ". The port reproduces the Python paired reference " +
-      "within Monte-Carlo tolerance (±8%). Every number is engine-computed on your inputs.";
+      "Priced by the SNHP general offer-graph engine (<code>core/js</code>, held byte-for-byte to the Python " +
+      "engine in CI) over the boba world model (<code>boba-world.mjs</code>, cross-checked against " +
+      "<code>boba/world.py</code>); v1-safe config, seed " + SEED + ". The JS customer draws reproduce the Python " +
+      "paired reference within Monte-Carlo tolerance (±8%). Every number is engine-computed on your inputs.";
   }
   function tile(cls, v, k) { return '<div class="tile ' + cls + '"><div class="v">' + v + '</div><div class="k">' + k + '</div></div>'; }
 
@@ -535,8 +668,8 @@
       'The operator stops cooking tapioca once the shop is dead, so waste is just the opening batch — not a compounding artifact. ' +
       'SNHP still held every price at or below your menu; it simply had nothing to work with.</div></div>';
     $("#footNote").innerHTML =
-      "Every number is engine-computed (<code>boba/world.py</code>, <code>boba/policies.py cart_nash</code>, " +
-      "<code>boba/run.py</code>), v1-safe config, seed " + SEED + ".";
+      "Every number is engine-computed (the <code>core/js</code> general engine over the " +
+      "<code>boba-world.mjs</code> world model), v1-safe config, seed " + SEED + ".";
   }
 
   function showErr(msg) { const e = $("#err"); e.style.display = "block"; e.textContent = "⚠ " + msg; }
@@ -545,4 +678,4 @@
   renderDrinks(SAMPLE.drinks.map((d) => Object.assign({}, d)));
   renderTop(Object.assign({}, SAMPLE.top));
   wireControls();
-})();
+}

@@ -61,5 +61,7 @@ jobs:
         run: node --test core/js/test/*.test.mjs
       - name: Consumer hook stays honest (never-above-menu sweep + cart==full-graph)
         run: node --test arena/web/hook_verify.test.mjs
+      - name: boba-world.mjs matches boba/world.py (the world drift gate)
+        run: node --test arena/web/bobaworld_verify.test.mjs
       - name: Your-menu close stays honest (compile/profile/quote on arbitrary menus)
         run: node --test arena/web/yourmenu_verify.test.mjs

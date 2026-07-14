@@ -233,8 +233,8 @@
     <h1 style="margin-top:8px;">Run SNHP on <b>your own menu</b>.</h1>
     <p class="lede">Put in a couple of your drinks and your real numbers. Then watch two versions of the same
       day play out on the <b>same customers</b>: your <b>static</b> printed menu vs <b>dynamic</b> SNHP quotes —
-      margin, walk-aways, savings and waste, side by side. The pricing here is a faithful in-browser port of the
-      actual SNHP boba engine.</p>
+      margin, walk-aways, savings and waste, side by side. The pricing here is the real SNHP offer-graph
+      engine, running live in your browser.</p>
     <div class="simbadge"><span class="dot"></span> A simulation of the mechanism — not a real shop's books, not a forecast.</div>
   </header>
 
@@ -356,6 +356,5 @@
   <p id="err" style="display:none;"></p>
 </div>
 
-<script src="boba-engine.js"></script>
-<script src="boba-sim.js"></script>
+<script type="module" src="boba-sim.js"></script>
 <script>try { navigator.sendBeacon("/hit", JSON.stringify({ p: "boba-sim" })); } catch (e) {}</script>

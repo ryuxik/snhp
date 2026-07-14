@@ -1,7 +1,7 @@
 /* hook.js — the flagship BOBA consumer HOOK (Phase 4a of the SNHP redesign).
  *
  * A full, HeyTea-scale boba menu ordering experience, priced LIVE by the
- * VALIDATED GENERAL ENGINE in core/js/ (NOT the interim arena/web/boba-engine.js).
+ * VALIDATED GENERAL ENGINE in core/js/.
  * You walk up to a shop's self-order tablet, browse a real multi-category menu,
  * build a normal order, and money-saving levers surface right in the flow — a
  * later off-peak pickup ★, an extra cup for the group — and the price ticks DOWN,
@@ -13,11 +13,11 @@
  *     with the composable state-dependent cost model (core/js/cost.mjs). We hand it
  *     the boba graph / ShopState / SeparableBuyer via core/js/boba_adapter.mjs.
  *   - THE BOBA WORLD (the demand model: appeal inversion -> WTP, FIFO balk hazard,
- *     service capacity, tapioca batches, capacity_relief) is a faithful, self-
- *     contained re-implementation of boba/world.py's math, supplied HERE as the
- *     `world` object the adapter is parameterized by. We do NOT import
- *     boba-engine.js — the adapter is explicitly "parameterized by a world object
- *     that supplies boba's constants and live-state helpers."
+ *     service capacity, tapioca batches, capacity_relief) comes from
+ *     arena/web/boba-world.mjs — the ONE JS-side re-implementation of
+ *     boba/world.py's math (cross-checked against Python by
+ *     bobaworld_verify.test.mjs). Its makeWorld() supplies the `world` object
+ *     the adapter is parameterized by.
  *
  * HONESTY (hard, non-negotiable — do not regress):
  *   - Never above the menu (a core-engine invariant; also swept in hook_verify.test.mjs).
@@ -38,6 +38,8 @@ import { DimKind, Dimension, OfferGraph, Option } from "../../core/js/offer_grap
 import { compose, constComp, salvageOnExpiry, capacityRelief } from "../../core/js/cost.mjs";
 import { QuoteOpts, quote as coreQuote } from "../../core/js/engine.mjs";
 import { shopState, buyerFor, buildBobaGraph, PICKUP_SLOTS } from "../../core/js/boba_adapter.mjs";
+import { makeWorld, makeBobaState } from "./boba-world.mjs";
+export { makeWorld, makeBobaState }; // re-exported: hook.js's surface is stable
 
 // ════════════════════════════════════════════════════════════════════════════
 //  THE MENU — a real, full HeyTea-scale catalog (NYC prices). Matcha is a DRINK,
@@ -140,189 +142,8 @@ export const QTY_UI = [
 const round2 = (x) => Math.round((x + Number.EPSILON) * 100) / 100;
 const uniq = (arr) => Array.from(new Set(arr));
 
-// ════════════════════════════════════════════════════════════════════════════
-//  THE BOBA WORLD — faithful re-implementation of boba/world.py's demand model
-//  (appeal inversion, service capacity, FIFO balk hazard, tapioca batches,
-//  capacity_relief). This is the `world` object core/js/boba_adapter.mjs is
-//  parameterized by. It supplies constants + live-state helpers; the PRICING is
-//  the core engine's, not this file's.
-// ════════════════════════════════════════════════════════════════════════════
-export function makeWorld(menu) {
-  const WTP_SIGMA = 0.45, TOP_SIGMA = 0.70;
-  const GROUP_SHARE = 0.30, GROUP_DECAY = 0.60, SOLO_DECAY = 0.15;
-  const QTY_CAP = 3, OUTSIDE_MARKUP = 1.10, TICKS_PER_DAY = 72, OPEN_HOUR = 10;
-  const CAPACITY_PER_MIN = 1.5, PEAK_STAFF_HOURS = [14, 15, 16, 17, 18];
-  const BALK_SLOPE = 0.08, BATCH_CLEARANCE_WINDOW = 6;
-
-  const HOURLY_RATE = { 10: 14.0, 11: 24.0, 12: 48.0, 13: 48.0, 14: 29.0, 15: 43.0,
-    16: 48.0, 17: 43.0, 18: 31.0, 19: 22.0, 20: 16.0, 21: 11.0 };
-  const HOURLY_WTP_MULT = { 10: 0.92, 11: 1.00, 12: 1.06, 13: 1.06, 14: 0.96, 15: 1.04,
-    16: 1.04, 17: 1.04, 18: 1.00, 19: 0.95, 20: 0.90, 21: 0.85 };
-  const FLEX_DEFER = { 0: 0.0, 3: 0.30, 6: 0.50 };
-  const RIGID_DEFER = { 0: 0.0, 3: 1.60, 6: 3.20 };
-  const HOURS = Object.keys(HOURLY_RATE).map(Number).sort((a, b) => a - b);
-  const SQRT2 = Math.sqrt(2);
-
-  // complementary error function (Numerical Recipes erfcc, |err| < 1.2e-7)
-  function erfc(x) {
-    const z = Math.abs(x), t = 1 / (1 + z / 2);
-    const r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 +
-      t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 +
-      t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
-    return x >= 0 ? r : 2 - r;
-  }
-  const sf = (x, scale, sigma) => (x <= 0 ? 1.0 : 0.5 * erfc(Math.log(x / scale) / (sigma * SQRT2)));
-
-  // golden-section argmax + appeal inversion (world.appeal_for_list)
-  function argmax(f, a, b, iters) {
-    const gr = (Math.sqrt(5) - 1) / 2;
-    let c = b - gr * (b - a), d = a + gr * (b - a), fc = f(c), fd = f(d);
-    for (let i = 0; i < (iters || 80); i++) {
-      if (fc > fd) { b = d; d = c; fd = fc; c = b - gr * (b - a); fc = f(c); }
-      else { a = c; c = d; fc = fd; d = a + gr * (b - a); fd = f(d); }
-    }
-    return (a + b) / 2;
-  }
-  const HW = (() => {
-    const total = HOURS.reduce((s, h) => s + HOURLY_RATE[h], 0);
-    return HOURS.map((h) => ({ w: HOURLY_RATE[h] / total, m: HOURLY_WTP_MULT[h] }));
-  })();
-  const mixturePstar = (appeal, cost, sigma) =>
-    argmax((p) => (p - cost) * HW.reduce((s, x) => s + x.w * sf(p, appeal * x.m, sigma), 0), cost + 0.01, 4.0 * appeal + cost, 90);
-  const pstarSingle = (appeal, cost, sigma) =>
-    argmax((p) => (p - cost) * sf(p, appeal, sigma), cost + 0.01, 4.0 * appeal + cost, 90);
-  function appealForList(listPrice, cost, sigma, hourMults) {
-    let lo = 0.2 * listPrice, hi = 4.0 * listPrice;
-    for (let i = 0; i < 28; i++) {
-      const mid = (lo + hi) / 2;
-      const p = hourMults ? mixturePstar(mid, cost, sigma) : pstarSingle(mid, cost, sigma);
-      if (p < listPrice) lo = mid; else hi = mid;
-    }
-    return (lo + hi) / 2;
-  }
-
-  // ── compile the menu into ready constants ─────────────────────────────────
-  const drinks = menu.drinks.map((d) => d.name);
-  const tops = menu.tops.map((t) => t.name);
-  const DRINK_PRICE = {}, DRINK_COST = {}, DRINK_APPEAL = {}, POPULARITY = {};
-  const TOP_PRICE = {}, TOP_COST = {}, TOP_APPEAL = {}, TOP_LIKE_PROB = {};
-  let popSum = 0;
-  menu.drinks.forEach((d) => { popSum += d.popularity != null ? d.popularity : 1; });
-  menu.drinks.forEach((d) => {
-    DRINK_PRICE[d.name] = d.price; DRINK_COST[d.name] = d.cost;
-    DRINK_APPEAL[d.name] = appealForList(d.price, d.cost, WTP_SIGMA, true);
-    POPULARITY[d.name] = (d.popularity != null ? d.popularity : 1) / popSum;
-  });
-  menu.tops.forEach((t) => {
-    TOP_PRICE[t.name] = t.price; TOP_COST[t.name] = t.cost;
-    TOP_APPEAL[t.name] = appealForList(t.price, t.cost, TOP_SIGMA, false);
-    TOP_LIKE_PROB[t.name] = t.like_prob != null ? t.like_prob : 0.5;
-  });
-  const batchTop = menu.batchTop;
-  const PEARL_COST = TOP_COST[batchTop];
-  const MEAN_DRINK_MARGIN = drinks.reduce((s, d) => s + (DRINK_PRICE[d] - DRINK_COST[d]), 0) / drinks.length;
-
-  const hourOf = (tick) => OPEN_HOUR + Math.floor((tick * 10) / 60);
-  const serviceRateAt = (tick) =>
-    PEAK_STAFF_HOURS.indexOf(hourOf(tick)) >= 0 ? CAPACITY_PER_MIN : CAPACITY_PER_MIN / 2.0;
-
-  const ecpaCache = {};
-  function expectedCupsPerArrival(hour) {
-    if (ecpaCache[hour] != null) return ecpaCache[hour];
-    const m = HOURLY_WTP_MULT[hour];
-    let total = 0;
-    for (const d of drinks) {
-      const scale = DRINK_APPEAL[d] * m;
-      for (const wd of [{ w: 1 - GROUP_SHARE, decay: SOLO_DECAY }, { w: GROUP_SHARE, decay: GROUP_DECAY }]) {
-        let s = 0;
-        for (let i = 0; i < QTY_CAP; i++) s += sf(DRINK_PRICE[d] / Math.pow(wd.decay, i), scale, WTP_SIGMA);
-        total += POPULARITY[d] * wd.w * s;
-      }
-    }
-    return (ecpaCache[hour] = total);
-  }
-  const PEAK_HOURS = HOURS.filter((h) =>
-    HOURLY_RATE[h] * expectedCupsPerArrival(h)
-    >= 0.5 * 60.0 * (PEAK_STAFF_HOURS.indexOf(h) >= 0 ? CAPACITY_PER_MIN : CAPACITY_PER_MIN / 2));
-  const PEARL_ATTACH_LIST = TOP_LIKE_PROB[batchTop] * sf(TOP_PRICE[batchTop], TOP_APPEAL[batchTop], TOP_SIGMA);
-
-  // ── the canonical bundle chooser (for the disagreement point & outside opt) ─
-  const qtyLadder = (decay, qty) => { let s = 0; for (let i = 0; i < qty; i++) s += Math.pow(decay, i); return s; };
-  function bestMenuOrder(c, drinkPrices, topPrices, pearlsOk) {
-    let best = { drink: null, qty: 0, tops: [], surplus: 0.0 };
-    const avail = tops.filter((t) => pearlsOk || t !== batchTop);
-    for (let q = 1; q <= QTY_CAP; q++) {
-      const lad = qtyLadder(c.qty_decay, q);
-      const chosen = avail.filter((t) => c.top_wtp[t] * lad > q * topPrices[t]);
-      let topVal = 0, topPrice = 0;
-      for (const t of chosen) { topVal += c.top_wtp[t]; topPrice += topPrices[t]; }
-      for (const d of drinks) {
-        const s = (c.wtp[d] + topVal) * lad - q * (drinkPrices[d] + topPrice);
-        if (s > best.surplus) best = { drink: d, qty: q, tops: chosen.slice(), surplus: s };
-      }
-    }
-    return best;
-  }
-  function outside_surplus(c) {
-    if (c._sOut !== undefined) return c._sOut;
-    const dp = {}, tp = {};
-    for (const d of drinks) dp[d] = DRINK_PRICE[d] * OUTSIDE_MARKUP;
-    for (const t of tops) tp[t] = TOP_PRICE[t] * OUTSIDE_MARKUP;
-    return (c._sOut = Math.max(0.0, bestMenuOrder(c, dp, tp, true).surplus));
-  }
-
-  // ── live-state helpers on the boba shop state ─────────────────────────────
-  const queueDrinks = (s) => s.queue.reduce((a, b) => a + b, 0);
-  const expectedWaitMinutes = (s) => queueDrinks(s) / serviceRateAt(s.tick);
-  const balk_prob = (s) => Math.min(1.0, BALK_SLOPE * expectedWaitMinutes(s));
-  function slot_capacity(s, slotTick) {
-    const h = hourOf(Math.min(slotTick, TICKS_PER_DAY - 1));
-    const expWalkins = HOURLY_RATE[h] / 6.0 * expectedCupsPerArrival(h);
-    return serviceRateAt(slotTick) * 10.0 - expWalkins - (s.scheduled[slotTick] || 0);
-  }
-  function capacity_relief(s, qty, slotTicks) {
-    if (slotTicks <= 0 || PEAK_HOURS.indexOf(hourOf(s.tick)) < 0) return 0.0;
-    const slotHour = hourOf(Math.min(s.tick + slotTicks, TICKS_PER_DAY - 1));
-    const bNow = balk_prob(s);
-    const bSlot = PEAK_HOURS.indexOf(slotHour) >= 0 ? bNow : 0.0;
-    return qty * MEAN_DRINK_MARGIN * (bNow - bSlot);
-  }
-  function pearls_expiring_excess(s) {
-    const live = s.batches.filter((b) => b.servings > 0);
-    if (!live.length) return false;
-    let first = live[0];
-    for (const b of live) if (b.expires < first.expires) first = b;
-    const ticksLeft = first.expires - s.tick;
-    if (ticksLeft > BATCH_CLEARANCE_WINDOW || ticksLeft <= 0) return false;
-    let expPearls = 0;
-    for (let t = s.tick; t < Math.min(first.expires, TICKS_PER_DAY); t++)
-      expPearls += HOURLY_RATE[hourOf(t)] / 6.0 * expectedCupsPerArrival(hourOf(t)) * PEARL_ATTACH_LIST;
-    return first.servings > expPearls;
-  }
-
-  return {
-    // constants the adapter reads
-    DRINK_PRICE, DRINK_COST, TOP_PRICE, TOP_COST, QTY_CAP, TICKS_PER_DAY, batchTop,
-    // demand-model handles (for the shopper WTP + disagreement)
-    DRINK_APPEAL, TOP_APPEAL, HOURLY_WTP_MULT, FLEX_DEFER, RIGID_DEFER, GROUP_DECAY, SOLO_DECAY,
-    hourOf, serviceRateAt, bestMenuOrder, qtyLadder,
-    // live-state helpers the adapter calls
-    capacity_relief, slot_capacity, outside_surplus, balk_prob, pearls_expiring_excess,
-    // introspection
-    PEAK_HOURS, drinks, tops,
-  };
-}
-
-// A boba shop state, matching the shape boba/world.py exposes (the adapter reads
-// .tick, .pearl_stock(); the world helpers read .queue/.scheduled/.batches).
-export function makeBobaState(scn) {
-  return {
-    day: 0, tick: scn.tick, carry: 0.0, scheduled: {},
-    queue: scn.queue > 0 ? [scn.queue] : [],
-    batches: [{ servings: scn.batchServings, expires: scn.tick + scn.batchExpiresIn }],
-    pearl_stock() { return this.batches.reduce((a, b) => a + b.servings, 0); },
-  };
-}
+// (The boba world itself — makeWorld/makeBobaState — lives in boba-world.mjs,
+// the single JS-side copy of boba/world.py's math; re-exported above.)
 
 // The representative shopper: a generous, flexible walk-in. WTP is a real function
 // of the world's calibrated appeals at this hour (not invented). defer_cost is the

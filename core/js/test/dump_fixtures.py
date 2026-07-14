@@ -49,6 +49,7 @@ from core.offer_graph import DimKind
 from core.tests.generators import generate
 
 OUT = os.path.join(os.path.dirname(__file__), "fixtures.json")
+OUT_WORLD = os.path.join(os.path.dirname(__file__), "boba_world_fixtures.json")
 
 
 # ── JSON-safe primitives ───────────────────────────────────────────────────
@@ -340,6 +341,162 @@ def boba_cases(days: int, per_config_cap: int) -> list:
     return all_cases
 
 
+# ── boba-WORLD reference values (the arena/web/boba-world.mjs drift gate) ───
+def boba_world_reference() -> dict:
+    """Reference values computed from boba/world.py + boba/policies.py +
+    core/adapters/boba.py, for arena/web/bobaworld_verify.test.mjs — the
+    cross-check that keeps the ONE JS world module (arena/web/boba-world.mjs)
+    from silently drifting off the Python source of record.
+
+    Blocks:
+      constants   — the calibration tables, asserted EXACTLY.
+      erfc / sf   — math.erfc / world._sf grids (JS erfc must match ~1e-13).
+      menu        — the calibration menu WITH Python's exact appeals; the JS
+                    test injects these appeals so every downstream quantity
+                    (ecpa, PEAK_HOURS, relief, priced carts) is comparable at
+                    1e-9 independent of the inversion.
+      inversions  — appeal_for_list(price, cost, ...) samples (calibration +
+                    hook-menu pairs). The JS inversion bisects the identical
+                    lattice but its inner argmax is machine-precision while
+                    scipy minimize_scalar stops at xatol=1e-5, so agreement is
+                    a few lattice steps (~1e-8 rel, asserted at 1e-6 rel).
+      states      — live ShopStates with balk_prob / slot_capacity /
+                    capacity_relief / pearls_expiring_excess references.
+      cart_cases  — full priced carts through core/adapters/boba.py
+                    engine_cart_nash (the same core-engine path the JS pages
+                    run), with consumers serialized as explicit numbers.
+    """
+    import math
+
+    from boba import world as W
+    from boba import policies as P
+    from boba.world import Batch, Consumer, ShopState, sample_consumer
+    import core.adapters.boba as adapter
+
+    consts = {
+        "WTP_SIGMA": W.WTP_SIGMA, "TOP_SIGMA": W.TOP_SIGMA,
+        "CROSS_DISCOUNT": W.CROSS_DISCOUNT, "GROUP_SHARE": W.GROUP_SHARE,
+        "GROUP_DECAY": W.GROUP_DECAY, "SOLO_DECAY": W.SOLO_DECAY,
+        "QTY_CAP": W.QTY_CAP, "OUTSIDE_MARKUP": W.OUTSIDE_MARKUP,
+        "TICKS_PER_DAY": W.TICKS_PER_DAY, "OPEN_HOUR": W.OPEN_HOUR,
+        "BALK_SLOPE": W.BALK_SLOPE, "BALK_LENGTH_HAZARD": W.BALK_LENGTH_HAZARD,
+        "BATCH_SERVINGS": W.BATCH_SERVINGS, "BATCH_LIFE_TICKS": W.BATCH_LIFE_TICKS,
+        "PEARL_RESTOCK_TRIGGER": W.PEARL_RESTOCK_TRIGGER,
+        "BATCH_CLEARANCE_WINDOW": P.BATCH_CLEARANCE_WINDOW,
+        "HOURLY_RATE": {str(h): v for h, v in W.HOURLY_RATE.items()},
+        "HOURLY_WTP_MULT": {str(h): v for h, v in W.HOURLY_WTP_MULT.items()},
+        "FLEX_DEFER": {str(k): v for k, v in W.FLEX_DEFER.items()},
+        "RIGID_DEFER": {str(k): v for k, v in W.RIGID_DEFER.items()},
+        "PEAK_STAFF_HOURS": list(W.PEAK_STAFF_HOURS),
+    }
+
+    erfc_grid = [[x, math.erfc(x)] for x in
+                 (-3.0, -1.2, -0.3, -0.05, 0.0, 0.05, 0.3, 0.9, 1.2244,
+                  1.4999, 1.5, 1.5001, 2.0, 3.3, 5.0, 8.5, 12.0)]
+    sf_grid = [[x, scale, sigma, W._sf(x, scale, sigma)] for x, scale, sigma in
+               ((6.25, 7.3126276093535125, 0.45), (0.85, 0.8543, 0.70),
+                (7.5, 8.681353800930083 * 1.06, 0.45), (12.0, 7.0, 0.45),
+                (0.0, 5.0, 0.45), (30.0, 7.0, 0.45), (1.25, 1.1503, 0.70))]
+
+    menu = {
+        "drinks": [{"name": d, "price": W.DRINK_PRICE[d], "cost": W.DRINK_COST[d],
+                    "popularity": W.POPULARITY[d], "appeal": W.DRINK_APPEAL[d]}
+                   for d in W.DRINK_PRICE],
+        "tops": [{"name": t, "price": W.TOP_PRICE[t], "cost": W.TOP_COST[t],
+                  "like_prob": W.TOP_LIKE_PROB[t], "appeal": W.TOP_APPEAL[t]}
+                 for t in W.TOP_PRICE],
+        "batchTop": "pearls",
+    }
+    world_facts = {
+        "MEAN_DRINK_MARGIN": W.MEAN_DRINK_MARGIN,
+        "PEAK_HOURS": list(W.PEAK_HOURS),
+        "PEARL_ATTACH_LIST": P.PEARL_ATTACH_LIST,
+        "ecpa": {str(h): W.expected_cups_per_arrival(h) for h in sorted(W.HOURLY_RATE)},
+    }
+
+    # inversion samples: the calibration pairs + a spread of hook-menu pairs
+    inv_pairs = ([(W.DRINK_PRICE[d], W.DRINK_COST[d], W.WTP_SIGMA, True) for d in W.DRINK_PRICE]
+                 + [(W.TOP_PRICE[t], W.TOP_COST[t], W.TOP_SIGMA, False) for t in W.TOP_PRICE]
+                 + [(7.99, 1.85, W.WTP_SIGMA, True), (7.49, 1.65, W.WTP_SIGMA, True),
+                    (5.49, 0.95, W.WTP_SIGMA, True), (8.29, 1.95, W.WTP_SIGMA, True),
+                    (1.25, 0.28, W.TOP_SIGMA, False), (0.79, 0.15, W.TOP_SIGMA, False)])
+    inversions = [{"price": p, "cost": c, "sigma": s, "hour_mults": hm,
+                   "appeal": W.appeal_for_list(p, c, s, hm)}
+                  for p, c, s, hm in inv_pairs]
+
+    def mk_state(tick, queue, batches, scheduled):
+        st = ShopState(day=0, tick=tick)
+        for q in queue:
+            st.queue.append(q)
+        st.batches = [Batch(sv, ex) for sv, ex in batches]
+        st.scheduled = dict(scheduled)
+        return st
+
+    state_specs = [
+        # (tick, queue, batches[(servings, expires_tick)], scheduled) — a peak
+        # lunch lull w/ expiring batch, a hot peak queue, off-peak evening,
+        # near close, and the 10:00 open.
+        (21, [3], [(40, 24)], {}),
+        (14, [5, 2, 1], [(28, 30)], {17: 2}),
+        (60, [1], [(40, 84)], {}),
+        (70, [2], [(10, 71)], {}),
+        (3, [], [(40, 24)], {}),
+    ]
+    states = []
+    for tick, queue, batches, scheduled in state_specs:
+        st = mk_state(tick, queue, batches, scheduled)
+        states.append({
+            "state": {"tick": tick, "queue": list(queue),
+                      "batches": [[sv, ex] for sv, ex in batches],
+                      "scheduled": {str(k): v for k, v in scheduled.items()}},
+            "balk_prob": W.balk_prob(st),
+            "expected_wait": W.expected_wait_minutes(st),
+            "slot_capacity": {str(s): W.slot_capacity(st, tick + s) for s in (3, 6)},
+            "capacity_relief": {f"{q},{s}": W.capacity_relief(st, q, s)
+                                for q in range(1, W.QTY_CAP + 1) for s in (3, 6)},
+            "pearls_expiring_excess": bool(P.pearls_expiring_excess(st)),
+        })
+
+    # priced carts through the SAME core-engine path the JS pages run
+    def ser_consumer(c: Consumer) -> dict:
+        return {"fav": c.fav, "wtp": {d: float(v) for d, v in c.wtp.items()},
+                "top_wtp": {t: float(v) for t, v in c.top_wtp.items()},
+                "flexible": bool(c.flexible), "qty_decay": float(c.qty_decay)}
+
+    def ser_deal(deal) -> dict | None:
+        if deal is None:
+            return None
+        return {"drink": deal.drink, "qty": deal.qty, "tops": sorted(deal.tops),
+                "price": deal.price, "slot_ticks": deal.slot_ticks,
+                "value": deal.value, "u_shop": deal.u_shop, "d_shop": deal.d_shop,
+                "u_buyer": deal.u_buyer, "d_buyer": deal.d_buyer,
+                "relief": deal.relief}
+
+    SHIP = dict(qty_appetite=True, min_price_frac=0.6, quote_lookers=False)
+    FULL = dict(qty_appetite=False, min_price_frac=0.0, quote_lookers=True)
+    cart_cases = []
+    for si, (tick, queue, batches, scheduled) in enumerate(state_specs):
+        for k in range(6):
+            consumer = sample_consumer(20260710, 0, tick, k)
+            for opts_name, opts in (("ship", SHIP), ("full", FULL)):
+                st = mk_state(tick, queue, batches, scheduled)
+                deal = adapter.engine_cart_nash(st, consumer, **opts)
+                cart_cases.append({"state_idx": si, "opts_name": opts_name,
+                                   "opts": opts, "consumer": ser_consumer(consumer),
+                                   "deal": ser_deal(deal)})
+
+    n_deals = sum(1 for c in cart_cases if c["deal"] is not None)
+    print(f"boba-world reference: {len(states)} states, {len(cart_cases)} cart cases "
+          f"({n_deals} deals, {len(cart_cases) - n_deals} None)")
+    return {
+        "_about": "boba/world.py reference values for arena/web/bobaworld_verify"
+                  ".test.mjs. Regenerate: python3 core/js/test/dump_fixtures.py",
+        "constants": consts, "erfc": erfc_grid, "sf": sf_grid,
+        "menu": menu, "world_facts": world_facts, "inversions": inversions,
+        "states": states, "cart_cases": cart_cases,
+    }
+
+
 def main() -> int:
     cases = []
     cases.extend(generated_cases(n_seeds=260))
@@ -359,6 +516,10 @@ def main() -> int:
     with open(OUT, "w") as f:
         json.dump(payload, f)
     print(f"wrote {OUT}: {len(cases)} cases  {counts}")
+
+    with open(OUT_WORLD, "w") as f:
+        json.dump(boba_world_reference(), f)
+    print(f"wrote {OUT_WORLD}")
     return 0
 
 
