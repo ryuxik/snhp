@@ -1,0 +1,770 @@
+[
+ {
+  "arm": "snhp",
+  "sigma": 1.0,
+  "seed": 0,
+  "tau": 0.0,
+  "preset": "v3",
+  "delivered": 83,
+  "makespan": 2500,
+  "stranded": 15,
+  "score_k2": 53,
+  "score_k5": 8,
+  "eff_last": 1.2221520675453579,
+  "lost_cargo": 1,
+  "deals": 31,
+  "xfers": 62,
+  "capture": 0.8770823644426575,
+  "multi_issue_frac": 1.0,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    83,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "border_cargo": 0,
+  "border_deals": 0,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   83,
+   0
+  ],
+  "co_credit": [
+   830.0,
+   0.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   1259,
+   0
+  ]
+ },
+ {
+  "arm": "snhp",
+  "sigma": 1.0,
+  "seed": 1,
+  "tau": 0.0,
+  "preset": "v3",
+  "delivered": 117,
+  "makespan": 2500,
+  "stranded": 12,
+  "score_k2": 93,
+  "score_k5": 57,
+  "eff_last": 0.7231402314815344,
+  "lost_cargo": 2,
+  "deals": 62,
+  "xfers": 124,
+  "capture": 0.8786142267704091,
+  "multi_issue_frac": 1.0,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    117,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "border_cargo": 0,
+  "border_deals": 0,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   117,
+   0
+  ],
+  "co_credit": [
+   1170.0,
+   0.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   5836,
+   0
+  ]
+ },
+ {
+  "arm": "snhp",
+  "sigma": 1.0,
+  "seed": 2,
+  "tau": 0.0,
+  "preset": "v3",
+  "delivered": 96,
+  "makespan": 2500,
+  "stranded": 19,
+  "score_k2": 58,
+  "score_k5": 1,
+  "eff_last": 1.8711092626070611,
+  "lost_cargo": 1,
+  "deals": 32,
+  "xfers": 64,
+  "capture": 0.9413120215168134,
+  "multi_issue_frac": 1.0,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    96,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "border_cargo": 0,
+  "border_deals": 0,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   96,
+   0
+  ],
+  "co_credit": [
+   960.0,
+   0.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   590,
+   0
+  ]
+ },
+ {
+  "arm": "snhp",
+  "sigma": 1.0,
+  "seed": 3,
+  "tau": 0.0,
+  "preset": "v3",
+  "delivered": 89,
+  "makespan": 2500,
+  "stranded": 14,
+  "score_k2": 61,
+  "score_k5": 19,
+  "eff_last": 1.3933586040990331,
+  "lost_cargo": 12,
+  "deals": 39,
+  "xfers": 78,
+  "capture": 0.897312511836627,
+  "multi_issue_frac": 1.0,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    89,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "border_cargo": 0,
+  "border_deals": 0,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   89,
+   0
+  ],
+  "co_credit": [
+   890.0,
+   0.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   2051,
+   0
+  ]
+ },
+ {
+  "arm": "snhp",
+  "sigma": 1.0,
+  "seed": 4,
+  "tau": 0.0,
+  "preset": "v3",
+  "delivered": 79,
+  "makespan": 2500,
+  "stranded": 12,
+  "score_k2": 55,
+  "score_k5": 19,
+  "eff_last": 2.409311418566058,
+  "lost_cargo": 6,
+  "deals": 24,
+  "xfers": 48,
+  "capture": 0.772674674232278,
+  "multi_issue_frac": 1.0,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    79,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "border_cargo": 0,
+  "border_deals": 0,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   79,
+   0
+  ],
+  "co_credit": [
+   790.0,
+   0.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   1316,
+   0
+  ]
+ },
+ {
+  "arm": "snhp",
+  "sigma": 1.0,
+  "seed": 5,
+  "tau": 0.0,
+  "preset": "v3",
+  "delivered": 87,
+  "makespan": 2500,
+  "stranded": 16,
+  "score_k2": 55,
+  "score_k5": 7,
+  "eff_last": 0.8621332515064799,
+  "lost_cargo": 5,
+  "deals": 39,
+  "xfers": 79,
+  "capture": 0.9590961850257054,
+  "multi_issue_frac": 1.0,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    87,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "border_cargo": 0,
+  "border_deals": 0,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   87,
+   0
+  ],
+  "co_credit": [
+   870.0,
+   0.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   2628,
+   0
+  ]
+ },
+ {
+  "arm": "snhp",
+  "sigma": 1.0,
+  "seed": 6,
+  "tau": 0.0,
+  "preset": "v3",
+  "delivered": 95,
+  "makespan": 2500,
+  "stranded": 15,
+  "score_k2": 65,
+  "score_k5": 20,
+  "eff_last": 1.31654862515824,
+  "lost_cargo": 5,
+  "deals": 34,
+  "xfers": 70,
+  "capture": 0.9403762511352876,
+  "multi_issue_frac": 1.0,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    95,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "border_cargo": 0,
+  "border_deals": 0,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   95,
+   0
+  ],
+  "co_credit": [
+   950.0,
+   0.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   3991,
+   0
+  ]
+ },
+ {
+  "arm": "snhp",
+  "sigma": 1.0,
+  "seed": 7,
+  "tau": 0.0,
+  "preset": "v3",
+  "delivered": 100,
+  "makespan": 2500,
+  "stranded": 16,
+  "score_k2": 68,
+  "score_k5": 20,
+  "eff_last": 1.6578664586756975,
+  "lost_cargo": 5,
+  "deals": 52,
+  "xfers": 104,
+  "capture": 0.9040698416251431,
+  "multi_issue_frac": 0.9615384615384616,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    100,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "border_cargo": 0,
+  "border_deals": 0,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   100,
+   0
+  ],
+  "co_credit": [
+   1000.0,
+   0.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   2881,
+   0
+  ]
+ },
+ {
+  "arm": "auction",
+  "sigma": 1.0,
+  "seed": 0,
+  "tau": 0.0,
+  "preset": "v3",
+  "delivered": 88,
+  "makespan": 2500,
+  "stranded": 9,
+  "score_k2": 70,
+  "score_k5": 43,
+  "eff_last": 0.5765463975945656,
+  "lost_cargo": 14,
+  "deals": 0,
+  "xfers": 525,
+  "capture": null,
+  "multi_issue_frac": null,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    88,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "border_cargo": 0,
+  "border_deals": 0,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   88,
+   0
+  ],
+  "co_credit": [
+   880.0,
+   0.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   19832,
+   0
+  ]
+ },
+ {
+  "arm": "auction",
+  "sigma": 1.0,
+  "seed": 1,
+  "tau": 0.0,
+  "preset": "v3",
+  "delivered": 77,
+  "makespan": 2500,
+  "stranded": 8,
+  "score_k2": 61,
+  "score_k5": 37,
+  "eff_last": 0.8660019945556605,
+  "lost_cargo": 12,
+  "deals": 0,
+  "xfers": 507,
+  "capture": null,
+  "multi_issue_frac": null,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    77,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "border_cargo": 0,
+  "border_deals": 0,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   77,
+   0
+  ],
+  "co_credit": [
+   770.0,
+   0.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   25433,
+   0
+  ]
+ },
+ {
+  "arm": "auction",
+  "sigma": 1.0,
+  "seed": 2,
+  "tau": 0.0,
+  "preset": "v3",
+  "delivered": 88,
+  "makespan": 2500,
+  "stranded": 8,
+  "score_k2": 72,
+  "score_k5": 48,
+  "eff_last": 0.6018062503862566,
+  "lost_cargo": 7,
+  "deals": 0,
+  "xfers": 534,
+  "capture": null,
+  "multi_issue_frac": null,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    88,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "border_cargo": 0,
+  "border_deals": 0,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   88,
+   0
+  ],
+  "co_credit": [
+   880.0,
+   0.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   16506,
+   0
+  ]
+ },
+ {
+  "arm": "auction",
+  "sigma": 1.0,
+  "seed": 3,
+  "tau": 0.0,
+  "preset": "v3",
+  "delivered": 78,
+  "makespan": 2500,
+  "stranded": 12,
+  "score_k2": 54,
+  "score_k5": 18,
+  "eff_last": 0.4321941665116859,
+  "lost_cargo": 15,
+  "deals": 0,
+  "xfers": 459,
+  "capture": null,
+  "multi_issue_frac": null,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    78,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "border_cargo": 0,
+  "border_deals": 0,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   78,
+   0
+  ],
+  "co_credit": [
+   780.0,
+   0.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   14911,
+   0
+  ]
+ },
+ {
+  "arm": "auction",
+  "sigma": 1.0,
+  "seed": 4,
+  "tau": 0.0,
+  "preset": "v3",
+  "delivered": 101,
+  "makespan": 2500,
+  "stranded": 11,
+  "score_k2": 79,
+  "score_k5": 46,
+  "eff_last": 0.5923425305092279,
+  "lost_cargo": 9,
+  "deals": 0,
+  "xfers": 490,
+  "capture": null,
+  "multi_issue_frac": null,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    101,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "border_cargo": 0,
+  "border_deals": 0,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   101,
+   0
+  ],
+  "co_credit": [
+   1010.0,
+   0.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   11663,
+   0
+  ]
+ },
+ {
+  "arm": "auction",
+  "sigma": 1.0,
+  "seed": 5,
+  "tau": 0.0,
+  "preset": "v3",
+  "delivered": 68,
+  "makespan": 2500,
+  "stranded": 9,
+  "score_k2": 50,
+  "score_k5": 23,
+  "eff_last": 0.5383474602822568,
+  "lost_cargo": 12,
+  "deals": 0,
+  "xfers": 508,
+  "capture": null,
+  "multi_issue_frac": null,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    68,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "border_cargo": 0,
+  "border_deals": 0,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   68,
+   0
+  ],
+  "co_credit": [
+   680.0,
+   0.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   17850,
+   0
+  ]
+ },
+ {
+  "arm": "auction",
+  "sigma": 1.0,
+  "seed": 6,
+  "tau": 0.0,
+  "preset": "v3",
+  "delivered": 90,
+  "makespan": 2500,
+  "stranded": 9,
+  "score_k2": 72,
+  "score_k5": 45,
+  "eff_last": 0.44379055388673,
+  "lost_cargo": 3,
+  "deals": 0,
+  "xfers": 476,
+  "capture": null,
+  "multi_issue_frac": null,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    90,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "border_cargo": 0,
+  "border_deals": 0,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   90,
+   0
+  ],
+  "co_credit": [
+   900.0,
+   0.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   17758,
+   0
+  ]
+ },
+ {
+  "arm": "auction",
+  "sigma": 1.0,
+  "seed": 7,
+  "tau": 0.0,
+  "preset": "v3",
+  "delivered": 85,
+  "makespan": 2500,
+  "stranded": 10,
+  "score_k2": 65,
+  "score_k5": 35,
+  "eff_last": 0.4131860016625293,
+  "lost_cargo": 13,
+  "deals": 0,
+  "xfers": 508,
+  "capture": null,
+  "multi_issue_frac": null,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    85,
+    0
+   ],
+   [
+    0,
+    0
+   ]
+  ],
+  "border_cargo": 0,
+  "border_deals": 0,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   85,
+   0
+  ],
+  "co_credit": [
+   850.0,
+   0.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   14841,
+   0
+  ]
+ }
+]

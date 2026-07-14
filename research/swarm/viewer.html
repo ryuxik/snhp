@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>swarm replay</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --line:#21262d; --fg:#c9d1d9; --dim:#8b949e;
+    --amber:#ffb74d; --green:#66bb6a; --cyan:#4dd0e1; --violet:#b388ff;
+  }
+  *{box-sizing:border-box; margin:0}
+  body{background:var(--bg); color:var(--fg);
+       font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; padding:14px}
+  header{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:12px}
+  h1{font-size:15px; font-weight:600; letter-spacing:.5px}
+  h1 span{color:var(--dim); font-weight:400}
+  button,select{background:var(--panel); color:var(--fg); border:1px solid var(--line);
+       border-radius:6px; padding:4px 12px; font:inherit; cursor:pointer}
+  button:hover,select:hover{border-color:var(--dim)}
+  #scrub{flex:1; min-width:160px; -webkit-appearance:none; appearance:none;
+       height:4px; background:var(--line); border-radius:2px; outline:none}
+  #scrub::-webkit-slider-thumb{-webkit-appearance:none; width:12px; height:12px;
+       border-radius:50%; background:var(--cyan); cursor:pointer}
+  #scrub::-moz-range-thumb{width:12px; height:12px; border:none;
+       border-radius:50%; background:var(--cyan); cursor:pointer}
+  #playBtn{color:var(--cyan); border-color:#2a4a52}
+  #tickLabel{color:var(--dim); min-width:110px; text-align:right}
+  #drop{border:1px dashed var(--line); border-radius:10px; padding:26px; text-align:center;
+       color:var(--dim); margin-bottom:12px}
+  #drop.hover{border-color:var(--cyan); color:var(--cyan)}
+  #panels{display:flex; gap:14px; flex-wrap:wrap}
+  .panel{flex:1; min-width:340px; background:var(--panel); border:1px solid var(--line);
+       border-radius:10px; padding:10px}
+  .panel h2{font-size:13px; font-weight:600; margin-bottom:6px}
+  .panel h2 em{color:var(--dim); font-style:normal; font-weight:400}
+  .panel canvas{width:100%; display:block; border-radius:6px; background:#0a0e13}
+  .stats{display:flex; gap:14px; margin-top:6px; color:var(--dim); flex-wrap:wrap}
+  .stats b{color:var(--fg); font-weight:600}
+  kbd{background:var(--line); border-radius:4px; padding:0 5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>asteroid mining replay <span>— negotiating drone fleets: deals vs auctions vs rules</span></h1>
+  <button id="playBtn">▶ play</button>
+  <select id="speed">
+    <option value="0.25">¼×</option><option value="1" selected>1×</option>
+    <option value="4">4×</option><option value="16">16×</option><option value="64">64×</option>
+  </select>
+  <input type="range" id="scrub" min="1" max="1" value="1" step="1">
+  <span id="tickLabel">tick 0 / 0</span>
+</header>
+<div id="drop">drop 1–2 trace <b>.jsonl</b> files here (same seed for a fair race)
+  — or serve with <kbd>?trace=results/a.jsonl&amp;trace2=results/b.jsonl</kbd></div>
+<div id="panels"></div>
+
+<script>
+"use strict";
+const COLORS = {energy:"#4dd0e1", cargo:"#ffb74d", sector:"#b388ff"};
+const SECTOR = ["#64b5f6", "#f06292"];
+const ARC_FADE = 32;              // ticks an exchange arc stays visible
+let traces = [];                  // [{header, ticks[], byTick{}, maxT, panel}]
+let cur = 1, playing = false;
+
+const $ = id => document.getElementById(id);
+
+function parseTrace(text){
+  const ticks = [], byTick = {};
+  let header = null;
+  for (const line of text.split("\n")){
+    if (!line.trim()) continue;
+    const o = JSON.parse(line);
+    if (o.type === "header") header = o;
+    else if (o.type === "tick") ticks[o.t] = o;
+    else {                        // xfer | deal — logged one tick before the
+      o.t += 1;                   // tick record that contains their effect
+      (byTick[o.t] = byTick[o.t] || []).push(o);
+    }
+  }
+  let maxT = ticks.length - 1;
+  return {header, ticks, byTick, maxT};
+}
+
+function dealCaption(d){
+  const parts = [];
+  if (d.type === "deal"){
+    if (d.q) parts.push(Math.abs(d.q) + "▣");
+    if (d.e) parts.push(Math.abs(d.e) + "⚡");
+    let cap = parts.join("⇄");
+    if (d.s) cap += (cap ? " " : "") + "+swap";
+    return cap;
+  }
+  if (d.kind === "energy") return Math.round(d.amt) + "⚡";
+  if (d.kind === "cargo") return d.amt + "▣";
+  return "swap";
+}
+
+function buildPanels(){
+  const root = $("panels");
+  root.innerHTML = "";
+  for (const tr of traces){
+    const div = document.createElement("div");
+    div.className = "panel";
+    const h = tr.header;
+    div.innerHTML = `<h2>${h.arm} <em>σ=${h.sigma} seed=${h.seed} ·
+      ${h.robots.length} drones</em></h2><canvas></canvas>
+      <div class="stats"><span>ore refined <b class="dv">0</b>/${h.total_stock}</span>
+      <span>adrift <b class="st">0</b></span><span>exchanges <b class="xf">0</b></span>
+      <span>deals <b class="dl">0</b></span></div>`;
+    root.appendChild(div);
+    tr.panel = {canvas: div.querySelector("canvas"),
+                dv: div.querySelector(".dv"), st: div.querySelector(".st"),
+                xf: div.querySelector(".xf"), dl: div.querySelector(".dl")};
+  }
+  const maxT = Math.max(...traces.map(t => t.maxT));
+  $("scrub").max = maxT;
+  cur = 1;
+}
+
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function siteLabel(ctx, cell, pos, color, text){
+  ctx.fillStyle = color;
+  ctx.font = `${Math.max(9, cell * .8)}px ui-monospace`;
+  ctx.textAlign = "center";
+  ctx.fillText(text, (pos[0] + .5) * cell, (pos[1] - 1.6) * cell);
+}
+
+function drawAsteroid(ctx, cell, pos, seed, label, count){
+  const cx = (pos[0] + .5) * cell, cy = (pos[1] + .5) * cell;
+  const rnd = mulberry32(seed), n = 9;
+  ctx.beginPath();
+  for (let i = 0; i < n; i++){
+    const ang = (i / n) * 2 * Math.PI;
+    const rad = cell * (1.0 + 0.5 * rnd());
+    const px = cx + Math.cos(ang) * rad, py = cy + Math.sin(ang) * rad * .85;
+    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = "#4a4038";
+  ctx.fill();
+  ctx.strokeStyle = "#8a7a66";
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  for (let i = 0; i < 5; i++){                       // ore glints
+    ctx.fillStyle = count > 0 ? "#ffb74d" : "#4a4038";
+    ctx.beginPath();
+    ctx.arc(cx + (rnd() - .5) * cell * 1.4, cy + (rnd() - .5) * cell * 1.2,
+            1.5, 0, 7);
+    ctx.fill();
+  }
+  siteLabel(ctx, cell, pos, "#ffb74d", `⛏ ${label} · ${count}`);
+}
+
+const COMPANY = ["#64b5f6", "#f0a35e"];   // fleet ownership hues
+
+function drawRefinery(ctx, cell, pos, count, color, tag){
+  const cx = (pos[0] + .5) * cell, cy = (pos[1] + .5) * cell, r = cell * 1.25;
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++){
+    const ang = Math.PI / 6 + (i / 6) * 2 * Math.PI;
+    const px = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
+    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = color + "22";
+  ctx.fill();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * .35, 0, 7);
+  ctx.strokeStyle = color;
+  ctx.stroke();
+  siteLabel(ctx, cell, pos, color, `⬢ REFINERY${tag} · ${count}`);
+}
+
+function drawDock(ctx, cell, pos){
+  const cx = (pos[0] + .5) * cell, cy = (pos[1] + .5) * cell, r = cell * .8;
+  for (let i = 0; i < 8; i++){                        // solar rays
+    const ang = (i / 8) * 2 * Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r);
+    ctx.lineTo(cx + Math.cos(ang) * r * 1.6, cy + Math.sin(ang) * r * 1.6);
+    ctx.strokeStyle = "#4dd0e1";
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * .8, 0, 7);
+  ctx.fillStyle = "#4dd0e122";
+  ctx.fill();
+  ctx.strokeStyle = "#4dd0e1";
+  ctx.stroke();
+  // label goes BELOW the dock — the refinery sits two cells east and its
+  // label owns the line above
+  ctx.fillStyle = "#4dd0e1";
+  ctx.font = `${Math.max(9, cell * .8)}px ui-monospace`;
+  ctx.textAlign = "center";
+  ctx.fillText("☀ DOCK", cx, cy + cell * 2.4);
+}
+
+function draw(tr, t){
+  const {header: h, ticks, byTick, maxT, panel} = tr;
+  const T = Math.min(Math.max(1, Math.floor(t)), maxT);
+  const rec = ticks[T];
+  if (!rec) return;
+  const cv = panel.canvas, dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth;
+  if (cv.width !== w * dpr){ cv.width = w * dpr; cv.height = w * dpr; }
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, w);
+  const cell = w / (h.grid + 2);
+  ctx.save();
+  ctx.translate(cell, cell);
+
+  if (!tr.stars){   // deterministic starfield — atmosphere, NOT a hot spot:
+    const rnd = mulberry32(h.seed * 7919 + 17);      // dim + sparse so the
+    tr.stars = Array.from({length: 90}, () =>        // deals stay the heroes
+      [rnd(), rnd(), 0.3 + rnd() * 0.7, 0.10 + rnd() * 0.18]);
+  }
+  for (const [sx, sy, sr, sa] of tr.stars){
+    ctx.globalAlpha = sa;
+    ctx.fillStyle = "#aeb9c8";
+    ctx.beginPath();
+    ctx.arc(sx * h.grid * cell, sy * h.grid * cell, sr, 0, 7);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  drawAsteroid(ctx, cell, h.sources[0], 101, "A1", rec.stock[0]);
+  drawAsteroid(ctx, cell, h.sources[1], 202, "A2", rec.stock[1]);
+  if (h.refineries){                    // v4: one refinery per company
+    for (const rf of h.refineries){
+      const owner = rf.owner;
+      const count = (rec.co && owner !== null) ? rec.co[owner] : rec.delivered;
+      drawRefinery(ctx, cell, rf.pos, count,
+                   owner === null ? "#66bb6a" : COMPANY[owner],
+                   owner === null ? "" : ` C${owner}`);
+    }
+  } else {
+    drawRefinery(ctx, cell, h.sink, rec.delivered, "#66bb6a", "");
+  }
+  drawDock(ctx, cell, h.charger);
+
+  // next-tick positions for smooth interpolation at low speed
+  const nxt = ticks[Math.min(T + 1, maxT)];
+  const frac = (parseFloat($("speed").value) <= 1) ? t - Math.floor(t) : 0;
+
+  for (let i = 0; i < rec.r.length; i++){
+    const [x0, y0, b, load, dead] = rec.r[i];
+    const [x1, y1] = nxt ? nxt.r[i] : [x0, y0];
+    const x = (x0 + (x1 - x0) * frac + .5) * cell;
+    const y = (y0 + (y1 - y0) * frac + .5) * cell;
+    const rad = cell * (0.28 + 0.09 * h.robots[i].cap);
+    ctx.beginPath();
+    ctx.arc(x, y, rad, 0, 7);
+    ctx.fillStyle = dead ? "#3a3f45" : `hsl(${120 * b / 100} 70% 45%)`;
+    ctx.fill();
+    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = dead ? "#555" :
+      (h.robots[i].company !== undefined
+        ? COMPANY[h.robots[i].company]          // v4: outline = ownership
+        : SECTOR[h.robots[i].sector]);
+    ctx.stroke();
+    if (dead){
+      ctx.strokeStyle = "#8b949e";
+      ctx.beginPath();
+      ctx.moveTo(x - rad * .6, y - rad * .6); ctx.lineTo(x + rad * .6, y + rad * .6);
+      ctx.moveTo(x + rad * .6, y - rad * .6); ctx.lineTo(x - rad * .6, y + rad * .6);
+      ctx.stroke();
+    }
+    ctx.fillStyle = "#fff";                          // load pips
+    for (let p = 0; p < load; p++){
+      ctx.beginPath();
+      ctx.arc(x - (load - 1) * 2 + p * 4, y, 1.4, 0, 7);
+      ctx.fill();
+    }
+  }
+
+  // exchange arcs — THE HERO LAYER. Deals glow; captions are collected and
+  // drawn last with backing pills + collision nudging so hotspot pile-ups
+  // stay legible (attention-loop pass 1: captions were garbling exactly
+  // where the story happens).
+  let nx = 0, nd = 0;
+  const caps = [];
+  for (let tt = 1; tt <= T; tt++){
+    for (const e of (byTick[tt] || [])){
+      if (e.type === "xfer") nx++; else nd++;
+      const age = T - tt;
+      if (age > ARC_FADE) continue;
+      const a = rec.r[e.src !== undefined ? e.src : e.a];
+      const b2 = rec.r[e.dst !== undefined ? e.dst : e.b];
+      if (!a || !b2) continue;
+      const alpha = 1 - age / ARC_FADE;
+      const [ax, ay] = [(a[0] + .5) * cell, (a[1] + .5) * cell];
+      const [bx, by] = [(b2[0] + .5) * cell, (b2[1] + .5) * cell];
+      const mx = (ax + bx) / 2, my = (ay + by) / 2 - cell * 2.2;
+      const deal = e.type === "deal";
+      const color = deal ? "#ffffff" : COLORS[e.kind];
+      ctx.globalAlpha = alpha * .95;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = deal ? 3 : 1.6;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = deal ? 10 : 4;
+      ctx.setLineDash(e.kind === "sector" ? [4, 3] : []);
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.quadraticCurveTo(mx, my, bx, by);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+      caps.push({x: mx, y: my + cell, text: dealCaption(e),
+                 color, alpha, deal});
+    }
+  }
+  caps.sort((p, q) => (q.deal - p.deal) || (q.alpha - p.alpha));
+  const placed = [];
+  for (const c of caps.slice(0, 8)){          // clutter cap: 8 captions max
+    let y = c.y;
+    while (placed.some(p => Math.abs(p.x - c.x) < 90 && Math.abs(p.y - y) < 16))
+      y += 16;
+    placed.push({x: c.x, y});
+    const fs = Math.max(c.deal ? 11 : 9, cell * (c.deal ? .9 : .7));
+    ctx.font = `${c.deal ? "600 " : ""}${fs}px ui-monospace`;
+    ctx.textAlign = "center";
+    const tw = ctx.measureText(c.text).width;
+    ctx.globalAlpha = Math.min(1, c.alpha * 1.3);
+    ctx.fillStyle = "#0a0e13e6";                              // backing pill
+    ctx.fillRect(c.x - tw / 2 - 5, y - fs, tw + 10, fs + 6);
+    ctx.fillStyle = c.color;
+    ctx.fillText(c.text, c.x, y);
+    ctx.globalAlpha = 1;
+  }
+
+  // the race number — big, in-canvas, top-left (attention-loop pass 1: the
+  // score was the coldest band on the page; it IS the shareable number)
+  ctx.font = `700 ${cell * 1.7}px ui-monospace`;
+  ctx.fillStyle = "#ffb74d";
+  ctx.textAlign = "left";
+  ctx.fillText(String(rec.delivered), cell * .25, cell * 1.7);
+  ctx.font = `${cell * .65}px ui-monospace`;
+  ctx.fillStyle = "#8b949e";
+  ctx.fillText(`/ ${h.total_stock} ore`, cell * .3, cell * 2.5);
+  ctx.restore();
+
+  panel.dv.textContent = rec.delivered;
+  panel.st.textContent = rec.r.filter(r => r[4]).length;
+  panel.xf.textContent = nx;
+  panel.dl.textContent = nd;
+}
+
+function frame(){
+  if (playing){
+    cur += parseFloat($("speed").value);
+    const maxT = Math.max(1, ...traces.map(t => t.maxT));
+    if (cur >= maxT){ cur = maxT; playing = false; $("playBtn").textContent = "▶ play"; }
+    $("scrub").value = Math.floor(cur);
+  }
+  for (const tr of traces) draw(tr, cur);
+  $("tickLabel").textContent =
+    `tick ${Math.floor(cur)} / ${Math.max(1, ...traces.map(t => t.maxT))}`;
+  requestAnimationFrame(frame);
+}
+
+$("playBtn").onclick = () => {
+  playing = !playing;
+  $("playBtn").textContent = playing ? "⏸ pause" : "▶ play";
+};
+$("scrub").oninput = e => { cur = +e.target.value; playing = false;
+                            $("playBtn").textContent = "▶ play"; };
+document.addEventListener("keydown", e => {
+  if (e.key === " "){ e.preventDefault(); $("playBtn").click(); }
+  if (e.key === "ArrowRight") cur = Math.min(cur + 1, +$("scrub").max);
+  if (e.key === "ArrowLeft") cur = Math.max(cur - 1, 1);
+});
+
+const drop = $("drop");
+["dragover", "dragenter"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.add("hover"); }));
+drop.addEventListener("dragleave", () => drop.classList.remove("hover"));
+drop.addEventListener("drop", async e => {
+  e.preventDefault();
+  drop.classList.remove("hover");
+  const files = [...e.dataTransfer.files].slice(0, 2);
+  traces = await Promise.all(files.map(async f => parseTrace(await f.text())));
+  buildPanels();
+});
+
+(async function init(){
+  const p = new URLSearchParams(location.search);
+  const urls = [p.get("trace"), p.get("trace2")].filter(Boolean);
+  if (urls.length){
+    try {
+      traces = await Promise.all(urls.map(async u =>
+        parseTrace(await (await fetch(u)).text())));
+      buildPanels();
+      const t0 = parseInt(p.get("t") || "0", 10);   // deep-link a frame
+      if (t0 > 0){ cur = t0; $("scrub").value = t0; }
+      drop.style.display = "none";
+    } catch (err){
+      drop.textContent = `couldn't fetch trace (${err.message}) — drop files instead`;
+    }
+  }
+  frame();
+})();
+</script>
+</body>
+</html>
