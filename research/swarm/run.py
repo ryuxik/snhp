@@ -38,12 +38,14 @@ TAU_ARMS = ["null", "snhp-hz", "team"]
 
 def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              tau=0.0, preset: str = "v4", issues=FULL,
-             noise: float = 0.0) -> dict:
+             noise: float = 0.0, liar_frac: float = 0.0,
+             defended: bool = False) -> dict:
     hazard = arm_name.endswith("-hz")
     base = arm_name[:-3] if hazard else arm_name
     tau_pair = tuple(tau) if isinstance(tau, (tuple, list)) else (tau, tau)
     w = World(sigma=sigma, seed=seed, hazard_phi=hazard, preset=preset,
-              tau=tau_pair, internalize_tariffs=(base == "team"))
+              tau=tau_pair, internalize_tariffs=(base == "team"),
+              liar_frac=liar_frac, defended=defended)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
@@ -97,7 +99,13 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         co_credit=[round(w.company[c]["credit"], 1) for c in (0, 1)],
         co_tariffs=[round(w.company[c]["tariffs_earned"], 1) for c in (0, 1)],
         co_queue_wait=[w.company[c]["queue_wait"] for c in (0, 1)],
-        noise=noise,
+        noise=noise, liar_frac=liar_frac, defended=defended,
+        exploit_deals=getattr(arm, "exploit_deals", 0),
+        exploit_loss=round(getattr(arm, "exploit_loss", 0.0), 1),
+        liar_credit=(np.mean([r.credit for r in w.robots if r.liar])
+                     if any(r.liar for r in w.robots) else None),
+        honest_credit=(np.mean([r.credit for r in w.robots if not r.liar])
+                       if any(not r.liar for r in w.robots) else None),
         vetoes=getattr(arm, "vetoes", 0),
         guest_charged=round(w.guest_charged, 1),
         claim_swaps=sum(1 for d in deals if d["s"] == 1),
@@ -215,6 +223,32 @@ def build_jobs(column: str, seeds: int, ticks: int):
                         jobs.append(dict(arm_name=arm, sigma=sigma, seed=seed,
                                          ticks=ticks, tau=0.15, preset="v5",
                                          noise=noise))
+    if column in ("D", "all"):        # v6: strategic lies vs attestation
+        for arm in ("snhp-hz", "snhp+net"):
+            for seed in range(min(seeds, 16)):
+                jobs.append(dict(arm_name=arm, sigma=0.5, seed=seed,
+                                 ticks=ticks, tau=0.15, preset="v5"))
+            for f in (0.25, 0.5, 1.0):
+                for defended in (False, True):
+                    for seed in range(min(seeds, 16)):
+                        jobs.append(dict(arm_name=arm, sigma=0.5, seed=seed,
+                                         ticks=ticks, tau=0.15, preset="v5",
+                                         liar_frac=f, defended=defended))
+        for seed in range(min(seeds, 16)):    # collapse-floor reference
+            jobs.append(dict(arm_name="rules", sigma=0.5, seed=seed,
+                             ticks=ticks, tau=0.15, preset="v5"))
+    if column in ("E", "all"):        # v6.1: attestation gates cooperation
+        for arm in ("trust-open-hz", "trust-gated-hz"):
+            for f in (0.25, 0.5):
+                for seed in range(min(seeds, 16)):
+                    jobs.append(dict(arm_name=arm, sigma=0.5, seed=seed,
+                                     ticks=ticks, tau=0.15, preset="v5",
+                                     liar_frac=f, defended=True))
+        for arm in ("trust-gated-hz",):   # P11c: honest gated vs nash-only
+            for seed in range(min(seeds, 16)):
+                jobs.append(dict(arm_name=arm, sigma=0.5, seed=seed,
+                                 ticks=ticks, tau=0.15, preset="v5",
+                                 defended=True))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -225,7 +259,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))

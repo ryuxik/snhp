@@ -41,6 +41,8 @@ TARGET_MARGIN = 1.5                 # delivery-target hysteresis (score units)
 
 GUEST_RATE = 2.0                    # charge rate at a rival's charger (v5)
 GUEST_PENALTY = 6                   # routing penalty (cells) for guest charging
+LIE_LAMBDA = 0.5                    # v6: BATNA inflation aggressiveness
+DISTRUST_DELTA = 0.25               # v6: margin demanded vs unattested partners
 
 PRESETS = {
     # sources, refineries [(pos, owner)], chargers [(pos, owner)]
@@ -89,6 +91,8 @@ class Robot:
     charge_queued_at: int = -1
     ev: float = EV_INIT             # endogenous energy shadow price (lagged)
     target_ref: int | None = None   # delivery-target hysteresis state
+    liar: bool = False              # v6: inflates reported BATNA by LIE_LAMBDA
+    attested: bool = False          # v6: reports verifiably true (signed books)
 
     def step_cost(self) -> float:
         return self.eff * (1.0 + (LOADED_MULT if self.load > 0 else 0.0))
@@ -98,7 +102,8 @@ class World:
     def __init__(self, n_robots: int = 24, sigma: float = 1.0, seed: int = 0,
                  hazard_phi: bool = False, preset: str = "v4",
                  tau: tuple = (0.0, 0.0), internalize_tariffs: bool = False,
-                 freeze_ev: float | None = None):
+                 freeze_ev: float | None = None,
+                 liar_frac: float = 0.0, defended: bool = False):
         self.rng = np.random.RandomState(seed)
         self.hazard_phi = hazard_phi
         self.preset = preset
@@ -149,6 +154,19 @@ class World:
         self.energy_at_last_delivery = self.energy_initial
         # company-neutral charger tie-break (panel M2): seeded priority
         self._charge_prio = list(self.rng.permutation(len(self.robots)))
+        # v6: liar assignment, company-balanced (placebo preserved); in the
+        # DEFENDED condition every honest robot attests (liars can't while
+        # lying — attestation IS verifiable truth)
+        self.defended = defended
+        if liar_frac > 0:
+            per_co = round(liar_frac * len(self.robots) / 2)
+            for c in (0, 1):
+                ids = [r.rid for r in self.robots if r.company == c]
+                for rid in self.rng.permutation(ids)[:per_co]:
+                    self.robots[rid].liar = True
+        if defended:
+            for r in self.robots:
+                r.attested = not r.liar
 
     # mean-preserving draws (v2 review M1): σ widens spread, never the mean
     def _draw(self, sigma):

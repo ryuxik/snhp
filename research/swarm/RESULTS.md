@@ -1,5 +1,82 @@
 # Results — verdicts against the pre-registrations
 
+## v6.1: attestation gates cooperation (sweep_v6_E.json, 96 runs) — THE THESIS LANDS
+
+| condition | f | delivered | makespan | liar credit | honest credit | liar adv |
+|---|---|---|---|---|---|---|
+| trust-open | 0.25 | 240.0 | 619 | 230.4 | 54.7 | **+175.7 (p<0.0001)** |
+| trust-open | 0.50 | 239.9 | 798 | 165.7 | 31.7 | **+134.0 (p<0.0001)** |
+| trust-gated | 0.00 | 240.0 | 771 | — | 99.2 | — |
+| trust-gated | 0.25 | 239.6 | 834 | 81.6 | 104.4 | **−22.8 (p=0.006)** |
+| trust-gated | 0.50 | 239.1 | 1168 | 88.0 | 108.3 | **−20.3 (p=0.006)** |
+| nash-only (v6.0) | 0.00 | 238.9 | 1323 | — | ~98 | — |
+
+- **P11a PASS, dramatically:** ungated cooperation with liars is a feeding
+  frenzy — liars earn 230 while honest robots earn 55 (baseline ~99). The
+  joint tier trusts reported utilities and executes without a veto, so
+  utility inflation strip-mines honest counterparties. Notably the SYSTEM
+  still finishes (delivered 240) — exploitation is redistributive, which
+  is exactly why a fleet operator wouldn't notice until the books arrive.
+- **P11b PASS — the incentive flips:** gating the joint tier on
+  attestation (liars can't attest) relegates liars to the lie-tolerant
+  Nash-IR tier. Their advantage goes from +176 to **−23**: honest,
+  attested robots now out-earn liars by keeping the cooperation dividend
+  to themselves (104–108 vs the 99 honest baseline).
+- **P11c PASS (the dividend is speed):** gated honest fleets beat
+  nash-only by −551 ticks makespan (771 vs 1323, −42%) at the delivered
+  ceiling — cooperation is worth a lot, which is why gating it matters.
+- **Metric caveat (logged before interpretation):** `exploit_deals`
+  counts ALL no-veto true-loss executions, including benign cooperative
+  sacrifice between honest robots (joint-max ≠ IR even with true
+  reports — the f=0 gated fleet logs ~1600/run of these). The
+  liar-advantage credit flip is the clean exploitation evidence; per-deal
+  liar attribution is a v6.2 logging improvement.
+
+**The three-layer result, in one breath:** the bargaining tier is
+lie-tolerant by construction (v6.0 — the veto is the trust); the
+cooperation tier is 42% faster but strip-mines the honest when open
+(v6.1); attestation gates the valuable-but-fragile tier so that honesty
+becomes the top-earning strategy. That is the snhp architecture —
+Nash-IR bargaining as the deception-proof floor, attestation-gated joint
+optimization as the high-trust ceiling — demonstrated end-to-end in
+embodied form, replicating the arena finding.
+
+---
+
+## v6.0: strategic lies vs attestation (sweep_v6_D.json, 240 runs) — KILL FIRED
+
+The pre-registered kill condition fired and the headline is the failure,
+as promised: **attestation could not flip the lying incentive in Nash-IR
+bargaining — because there was almost nothing to flip.**
+
+- P10a REFUTED: lying barely pays (+3.9 credit on a ~95 base, p=0.71,
+  7/16 runs) and the system barely notices (Δdelivered ≈ 0 at f ≤ 0.5).
+- P10b PASS (mechanically): at f=1.0 deal volume collapses (90→37,
+  92→23 deals) and delivered lands exactly on the rules-arm floor
+  (231.2 vs 230.6) — mutual BATNA inflation empties the feasible set,
+  but the abundant stage cushions the output cost.
+- P10c PASS (pinned test): attested-all ≡ honest-all bit-identically.
+- P10d FAILED both halves: no deception tax to recover at f ≤ 0.5, and
+  the distrust defense is mathematically subsumed by the lie itself at
+  f=1.0 (a 50% self-margin strictly contains a 25% imposed margin —
+  defended and undefended runs are bit-identical there).
+
+**The discovery under the corpse: Nash-IR bargaining with a true-loss
+veto is intrinsically deception-tolerant.** Every executed deal clears
+both TRUE disagreement points by construction (BATNA inflation only makes
+the liar pickier — asserted in-arm), so lies can only skim small split
+amounts or kill marginal trades. Exploitation requires a tier that TRUSTS
+reports — the joint-maximizing cooperative tier, which executes without a
+veto. That is exactly the arena finding ("the multi-issue edge is
+attestation-gated"), and v6.1 tests it in embodied form.
+
+Bonus honest oddity (echoes v5's noise-speedup): moderate lying IMPROVED
+snhp-hz makespans (1323→~800) at zero output cost — liar pickiness prunes
+marginal deal churn. ~30% of honest-fleet deals were apparently
+low-value.
+
+---
+
 ## v5: imperfect information in a rich ecology (sweep_v5_C.json, 736 runs)
 
 Stage: 10 non-identical mirrored asteroids (240 units), 4 company-owned

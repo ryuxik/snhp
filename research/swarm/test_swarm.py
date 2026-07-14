@@ -213,3 +213,39 @@ def test_v5_noise_deals_still_true_positive():
     assert arm.vetoes > 0, "no vetoes at s=1.0 — noise not biting"
     for d in hazard_w.deal_log:
         assert d["sa"] > 0 and d["sb"] > 0
+
+
+def test_v6_liar_assignment_balanced():
+    w = World(sigma=0.5, seed=4, preset="v5", liar_frac=0.5, defended=True)
+    for c in (0, 1):
+        liars = sum(1 for r in w.robots if r.company == c and r.liar)
+        assert liars == 6, f"company {c}: {liars} liars (want 6)"
+    assert all(r.attested == (not r.liar) for r in w.robots)
+
+
+def test_v6_attested_all_equals_honest():
+    """P10c pinned: with zero liars, the defended condition is mechanically
+    identical to the honest baseline (attested pairs pay no distrust tax)."""
+    outs = []
+    for defended in (False, True):
+        w = World(sigma=0.5, seed=2, preset="v5", tau=(0.15, 0.15),
+                  hazard_phi=True, defended=defended)
+        arm = make_arm("snhp", w)
+        for _ in range(400):
+            arm.tick()
+        outs.append((w.delivered, arm.deals,
+                     round(sum(r.battery for r in w.robots), 6)))
+    assert outs[0] == outs[1], f"defended≠honest with zero liars: {outs}"
+
+
+def test_v6_lies_never_poison_executed_deals():
+    """BATNA inflation makes liars pickier, never poisonous: every executed
+    deal still exceeds both TRUE disagreement points (asserted in-arm too)."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              hazard_phi=True, liar_frac=0.5, defended=False)
+    arm = make_arm("snhp", w)
+    for _ in range(600):
+        arm.tick()
+    assert arm.deals > 0
+    for d in w.deal_log:
+        assert d["sa"] > 0 and d["sb"] > 0

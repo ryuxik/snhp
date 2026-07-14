@@ -1,0 +1,4882 @@
+[
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 0,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 238,
+  "makespan": 815,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 2.7109061857840895,
+  "lost_cargo": 0,
+  "deals": 1812,
+  "xfers": 2557,
+  "capture": 1.0,
+  "multi_issue_frac": 0.3945916114790287,
+  "foreign_refined": 14,
+  "delivered_matrix": [
+   [
+    102,
+    14
+   ],
+   [
+    27,
+    97
+   ]
+  ],
+  "border_cargo": 59,
+  "healthy_border_all": 49,
+  "border_deals": 905,
+  "healthy_border_q": 59,
+  "co_delivered": [
+   137,
+   103
+  ],
+  "co_credit": [
+   1353.5,
+   1025.5
+  ],
+  "co_tariffs": [
+   4.5,
+   16.5
+  ],
+  "co_queue_wait": [
+   4482,
+   2686
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 1759,
+  "exploit_loss": 1723.9,
+  "liar_credit": 128.41666666666666,
+  "honest_credit": 89.36111111111111,
+  "vetoes": 0,
+  "guest_charged": 4082.2,
+  "claim_swaps": 684
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 1,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 223,
+  "makespan": 910,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 1.949914369926307,
+  "lost_cargo": 0,
+  "deals": 2608,
+  "xfers": 3629,
+  "capture": 1.0,
+  "multi_issue_frac": 0.37078220858895705,
+  "foreign_refined": 18,
+  "delivered_matrix": [
+   [
+    79,
+    50
+   ],
+   [
+    31,
+    80
+   ]
+  ],
+  "border_cargo": 145,
+  "healthy_border_all": 135,
+  "border_deals": 1332,
+  "healthy_border_q": 145,
+  "co_delivered": [
+   120,
+   120
+  ],
+  "co_credit": [
+   1179.0,
+   1194.0
+  ],
+  "co_tariffs": [
+   6.0,
+   21.0
+  ],
+  "co_queue_wait": [
+   4818,
+   4512
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 2526,
+  "exploit_loss": 2966.2,
+  "liar_credit": 275.8333333333333,
+  "honest_credit": 39.888888888888886,
+  "vetoes": 0,
+  "guest_charged": 3952.0,
+  "claim_swaps": 889
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 2,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 508,
+  "stranded": 4,
+  "score_k2": 232,
+  "score_k5": 220,
+  "eff_last": 3.454826164545287,
+  "lost_cargo": 0,
+  "deals": 1130,
+  "xfers": 1769,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5070796460176992,
+  "foreign_refined": 37,
+  "delivered_matrix": [
+   [
+    86,
+    20
+   ],
+   [
+    32,
+    102
+   ]
+  ],
+  "border_cargo": 107,
+  "healthy_border_all": 84,
+  "border_deals": 511,
+  "healthy_border_q": 107,
+  "co_delivered": [
+   111,
+   129
+  ],
+  "co_credit": [
+   1087.5,
+   1257.0
+  ],
+  "co_tariffs": [
+   33.0,
+   22.5
+  ],
+  "co_queue_wait": [
+   707,
+   1547
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 1039,
+  "exploit_loss": 2764.6,
+  "liar_credit": 257.25,
+  "honest_credit": 44.5,
+  "vetoes": 0,
+  "guest_charged": 2721.6,
+  "claim_swaps": 509
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 3,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 650,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 2.559060846285211,
+  "lost_cargo": 0,
+  "deals": 1399,
+  "xfers": 2226,
+  "capture": 1.0,
+  "multi_issue_frac": 0.538241601143674,
+  "foreign_refined": 18,
+  "delivered_matrix": [
+   [
+    85,
+    39
+   ],
+   [
+    33,
+    83
+   ]
+  ],
+  "border_cargo": 126,
+  "healthy_border_all": 121,
+  "border_deals": 568,
+  "healthy_border_q": 126,
+  "co_delivered": [
+   110,
+   130
+  ],
+  "co_credit": [
+   1092.5,
+   1280.5
+  ],
+  "co_tariffs": [
+   19.5,
+   7.5
+  ],
+  "co_queue_wait": [
+   1721,
+   1861
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 1314,
+  "exploit_loss": 3361.2,
+  "liar_credit": 271.3333333333333,
+  "honest_credit": 41.388888888888886,
+  "vetoes": 0,
+  "guest_charged": 2724.2,
+  "claim_swaps": 662
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 4,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 480,
+  "stranded": 5,
+  "score_k2": 230,
+  "score_k5": 215,
+  "eff_last": 3.9923161668217273,
+  "lost_cargo": 0,
+  "deals": 1119,
+  "xfers": 1663,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4486148346738159,
+  "foreign_refined": 17,
+  "delivered_matrix": [
+   [
+    84,
+    54
+   ],
+   [
+    37,
+    65
+   ]
+  ],
+  "border_cargo": 98,
+  "healthy_border_all": 77,
+  "border_deals": 550,
+  "healthy_border_q": 98,
+  "co_delivered": [
+   124,
+   116
+  ],
+  "co_credit": [
+   1225.0,
+   1149.5
+  ],
+  "co_tariffs": [
+   10.5,
+   15.0
+  ],
+  "co_queue_wait": [
+   1405,
+   1170
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 1042,
+  "exploit_loss": 2415.6,
+  "liar_credit": 227.58333333333334,
+  "honest_credit": 56.05555555555556,
+  "vetoes": 0,
+  "guest_charged": 3740.0,
+  "claim_swaps": 445
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 5,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 562,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 3.023982475901349,
+  "lost_cargo": 0,
+  "deals": 1303,
+  "xfers": 1981,
+  "capture": 1.0,
+  "multi_issue_frac": 0.48119723714504986,
+  "foreign_refined": 23,
+  "delivered_matrix": [
+   [
+    88,
+    31
+   ],
+   [
+    35,
+    86
+   ]
+  ],
+  "border_cargo": 87,
+  "healthy_border_all": 75,
+  "border_deals": 545,
+  "healthy_border_q": 87,
+  "co_delivered": [
+   116,
+   124
+  ],
+  "co_credit": [
+   1148.0,
+   1217.5
+  ],
+  "co_tariffs": [
+   22.5,
+   12.0
+  ],
+  "co_queue_wait": [
+   3025,
+   765
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 1212,
+  "exploit_loss": 2913.5,
+  "liar_credit": 207.33333333333334,
+  "honest_credit": 62.30555555555556,
+  "vetoes": 0,
+  "guest_charged": 2579.9,
+  "claim_swaps": 558
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 6,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 661,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.5920135618837894,
+  "lost_cargo": 0,
+  "deals": 1811,
+  "xfers": 2635,
+  "capture": 1.0,
+  "multi_issue_frac": 0.42352291551628934,
+  "foreign_refined": 78,
+  "delivered_matrix": [
+   [
+    56,
+    61
+   ],
+   [
+    60,
+    63
+   ]
+  ],
+  "border_cargo": 151,
+  "healthy_border_all": 119,
+  "border_deals": 1038,
+  "healthy_border_q": 151,
+  "co_delivered": [
+   130,
+   110
+  ],
+  "co_credit": [
+   1231.0,
+   1052.0
+  ],
+  "co_tariffs": [
+   48.0,
+   69.0
+  ],
+  "co_queue_wait": [
+   3346,
+   3283
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 1752,
+  "exploit_loss": 2884.1,
+  "liar_credit": 236.0,
+  "honest_credit": 48.166666666666664,
+  "vetoes": 0,
+  "guest_charged": 5677.3,
+  "claim_swaps": 708
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 7,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 589,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.6693102392452803,
+  "lost_cargo": 0,
+  "deals": 1648,
+  "xfers": 2555,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5036407766990292,
+  "foreign_refined": 12,
+  "delivered_matrix": [
+   [
+    75,
+    62
+   ],
+   [
+    43,
+    60
+   ]
+  ],
+  "border_cargo": 187,
+  "healthy_border_all": 169,
+  "border_deals": 915,
+  "healthy_border_q": 187,
+  "co_delivered": [
+   112,
+   128
+  ],
+  "co_credit": [
+   1115.5,
+   1266.5
+  ],
+  "co_tariffs": [
+   13.5,
+   4.5
+  ],
+  "co_queue_wait": [
+   2440,
+   2491
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 1603,
+  "exploit_loss": 3315.6,
+  "liar_credit": 250.91666666666666,
+  "honest_credit": 48.69444444444444,
+  "vetoes": 0,
+  "guest_charged": 4608.1,
+  "claim_swaps": 759
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 8,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 710,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 3.145734604803217,
+  "lost_cargo": 0,
+  "deals": 1403,
+  "xfers": 2079,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4483250178189594,
+  "foreign_refined": 26,
+  "delivered_matrix": [
+   [
+    88,
+    20
+   ],
+   [
+    25,
+    107
+   ]
+  ],
+  "border_cargo": 69,
+  "healthy_border_all": 44,
+  "border_deals": 706,
+  "healthy_border_q": 69,
+  "co_delivered": [
+   109,
+   131
+  ],
+  "co_credit": [
+   1073.5,
+   1287.5
+  ],
+  "co_tariffs": [
+   22.5,
+   16.5
+  ],
+  "co_queue_wait": [
+   1689,
+   4478
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 1319,
+  "exploit_loss": 2064.4,
+  "liar_credit": 217.91666666666666,
+  "honest_credit": 58.52777777777778,
+  "vetoes": 0,
+  "guest_charged": 3262.8,
+  "claim_swaps": 583
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 9,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 515,
+  "stranded": 4,
+  "score_k2": 232,
+  "score_k5": 220,
+  "eff_last": 2.4352302198832736,
+  "lost_cargo": 0,
+  "deals": 1079,
+  "xfers": 1683,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5152919369786839,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    104,
+    5
+   ],
+   [
+    7,
+    124
+   ]
+  ],
+  "border_cargo": 14,
+  "healthy_border_all": 14,
+  "border_deals": 66,
+  "healthy_border_q": 14,
+  "co_delivered": [
+   111,
+   129
+  ],
+  "co_credit": [
+   1110.0,
+   1290.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   900,
+   680
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 992,
+  "exploit_loss": 2487.4,
+  "liar_credit": 275.0,
+  "honest_credit": 41.666666666666664,
+  "vetoes": 0,
+  "guest_charged": 232.1,
+  "claim_swaps": 497
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 10,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 662,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 2.9287951433480526,
+  "lost_cargo": 0,
+  "deals": 1475,
+  "xfers": 2199,
+  "capture": 1.0,
+  "multi_issue_frac": 0.46779661016949153,
+  "foreign_refined": 21,
+  "delivered_matrix": [
+   [
+    96,
+    10
+   ],
+   [
+    33,
+    101
+   ]
+  ],
+  "border_cargo": 80,
+  "healthy_border_all": 63,
+  "border_deals": 776,
+  "healthy_border_q": 80,
+  "co_delivered": [
+   128,
+   112
+  ],
+  "co_credit": [
+   1265.0,
+   1103.5
+  ],
+  "co_tariffs": [
+   16.5,
+   15.0
+  ],
+  "co_queue_wait": [
+   3880,
+   1290
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 1391,
+  "exploit_loss": 2079.7,
+  "liar_credit": 215.0,
+  "honest_credit": 59.916666666666664,
+  "vetoes": 0,
+  "guest_charged": 3218.8,
+  "claim_swaps": 646
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 11,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 212,
+  "makespan": 922,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 2.1804113565086607,
+  "lost_cargo": 0,
+  "deals": 2083,
+  "xfers": 3105,
+  "capture": 1.0,
+  "multi_issue_frac": 0.456553048487758,
+  "foreign_refined": 31,
+  "delivered_matrix": [
+   [
+    95,
+    49
+   ],
+   [
+    34,
+    62
+   ]
+  ],
+  "border_cargo": 164,
+  "healthy_border_all": 152,
+  "border_deals": 1104,
+  "healthy_border_q": 164,
+  "co_delivered": [
+   126,
+   114
+  ],
+  "co_credit": [
+   1239.0,
+   1114.5
+  ],
+  "co_tariffs": [
+   25.5,
+   21.0
+  ],
+  "co_queue_wait": [
+   3210,
+   5692
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 2008,
+  "exploit_loss": 3488.9,
+  "liar_credit": 220.5,
+  "honest_credit": 57.25,
+  "vetoes": 0,
+  "guest_charged": 6022.7,
+  "claim_swaps": 872
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 12,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 573,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 2.698849617139224,
+  "lost_cargo": 0,
+  "deals": 1514,
+  "xfers": 2294,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4808454425363276,
+  "foreign_refined": 35,
+  "delivered_matrix": [
+   [
+    58,
+    52
+   ],
+   [
+    51,
+    79
+   ]
+  ],
+  "border_cargo": 122,
+  "healthy_border_all": 112,
+  "border_deals": 813,
+  "healthy_border_q": 122,
+  "co_delivered": [
+   104,
+   136
+  ],
+  "co_credit": [
+   1017.5,
+   1330.0
+  ],
+  "co_tariffs": [
+   30.0,
+   22.5
+  ],
+  "co_queue_wait": [
+   3478,
+   1073
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 1456,
+  "exploit_loss": 2637.2,
+  "liar_credit": 228.0,
+  "honest_credit": 54.416666666666664,
+  "vetoes": 0,
+  "guest_charged": 3920.8,
+  "claim_swaps": 670
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 13,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 370,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 3.295429997622631,
+  "lost_cargo": 0,
+  "deals": 996,
+  "xfers": 1466,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4397590361445783,
+  "foreign_refined": 2,
+  "delivered_matrix": [
+   [
+    103,
+    9
+   ],
+   [
+    17,
+    111
+   ]
+  ],
+  "border_cargo": 40,
+  "healthy_border_all": 35,
+  "border_deals": 364,
+  "healthy_border_q": 40,
+  "co_delivered": [
+   118,
+   122
+  ],
+  "co_credit": [
+   1180.0,
+   1217.0
+  ],
+  "co_tariffs": [
+   3.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   1005,
+   1086
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 950,
+  "exploit_loss": 1715.5,
+  "liar_credit": 221.66666666666666,
+  "honest_credit": 59.27777777777778,
+  "vetoes": 0,
+  "guest_charged": 1968.3,
+  "claim_swaps": 403
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 14,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 465,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 3.1406783709611013,
+  "lost_cargo": 0,
+  "deals": 1314,
+  "xfers": 1939,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4459665144596651,
+  "foreign_refined": 12,
+  "delivered_matrix": [
+   [
+    108,
+    11
+   ],
+   [
+    15,
+    106
+   ]
+  ],
+  "border_cargo": 50,
+  "healthy_border_all": 46,
+  "border_deals": 698,
+  "healthy_border_q": 50,
+  "co_delivered": [
+   123,
+   117
+  ],
+  "co_credit": [
+   1221.0,
+   1161.0
+  ],
+  "co_tariffs": [
+   9.0,
+   9.0
+  ],
+  "co_queue_wait": [
+   1646,
+   2282
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 1276,
+  "exploit_loss": 2001.7,
+  "liar_credit": 241.66666666666666,
+  "honest_credit": 51.77777777777778,
+  "vetoes": 0,
+  "guest_charged": 3577.8,
+  "claim_swaps": 547
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 15,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 511,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 2.491776245076009,
+  "lost_cargo": 0,
+  "deals": 1347,
+  "xfers": 2066,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4892353377876763,
+  "foreign_refined": 7,
+  "delivered_matrix": [
+   [
+    111,
+    30
+   ],
+   [
+    12,
+    87
+   ]
+  ],
+  "border_cargo": 101,
+  "healthy_border_all": 88,
+  "border_deals": 512,
+  "healthy_border_q": 101,
+  "co_delivered": [
+   120,
+   120
+  ],
+  "co_credit": [
+   1197.0,
+   1192.5
+  ],
+  "co_tariffs": [
+   7.5,
+   3.0
+  ],
+  "co_queue_wait": [
+   1344,
+   1791
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 1298,
+  "exploit_loss": 2484.6,
+  "liar_credit": 211.83333333333334,
+  "honest_credit": 62.138888888888886,
+  "vetoes": 0,
+  "guest_charged": 2493.2,
+  "claim_swaps": 589
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 0,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 227,
+  "makespan": 831,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 2.7471176677427485,
+  "lost_cargo": 0,
+  "deals": 1576,
+  "xfers": 2349,
+  "capture": 1.0,
+  "multi_issue_frac": 0.467005076142132,
+  "foreign_refined": 18,
+  "delivered_matrix": [
+   [
+    92,
+    49
+   ],
+   [
+    28,
+    71
+   ]
+  ],
+  "border_cargo": 107,
+  "healthy_border_all": 86,
+  "border_deals": 852,
+  "healthy_border_q": 107,
+  "co_delivered": [
+   132,
+   108
+  ],
+  "co_credit": [
+   1297.5,
+   1075.5
+  ],
+  "co_tariffs": [
+   4.5,
+   22.5
+  ],
+  "co_queue_wait": [
+   1514,
+   4961
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 1485,
+  "exploit_loss": 2001.1,
+  "liar_credit": 144.20833333333334,
+  "honest_credit": 53.541666666666664,
+  "vetoes": 0,
+  "guest_charged": 4367.9,
+  "claim_swaps": 697
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 1,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 723,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 2.2333265488837775,
+  "lost_cargo": 0,
+  "deals": 1571,
+  "xfers": 2395,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4958625079567155,
+  "foreign_refined": 9,
+  "delivered_matrix": [
+   [
+    92,
+    52
+   ],
+   [
+    22,
+    74
+   ]
+  ],
+  "border_cargo": 97,
+  "healthy_border_all": 78,
+  "border_deals": 627,
+  "healthy_border_q": 97,
+  "co_delivered": [
+   111,
+   129
+  ],
+  "co_credit": [
+   1105.5,
+   1281.0
+  ],
+  "co_tariffs": [
+   9.0,
+   4.5
+  ],
+  "co_queue_wait": [
+   1047,
+   3951
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 1485,
+  "exploit_loss": 2528.8,
+  "liar_credit": 166.375,
+  "honest_credit": 32.5,
+  "vetoes": 0,
+  "guest_charged": 3380.2,
+  "claim_swaps": 723
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 2,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 669,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.8441411743655696,
+  "lost_cargo": 0,
+  "deals": 1458,
+  "xfers": 2205,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4739368998628258,
+  "foreign_refined": 30,
+  "delivered_matrix": [
+   [
+    80,
+    43
+   ],
+   [
+    45,
+    72
+   ]
+  ],
+  "border_cargo": 158,
+  "healthy_border_all": 131,
+  "border_deals": 790,
+  "healthy_border_q": 158,
+  "co_delivered": [
+   127,
+   113
+  ],
+  "co_credit": [
+   1246.0,
+   1109.0
+  ],
+  "co_tariffs": [
+   21.0,
+   24.0
+  ],
+  "co_queue_wait": [
+   1803,
+   3256
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 1378,
+  "exploit_loss": 2610.4,
+  "liar_credit": 189.83333333333334,
+  "honest_credit": 6.416666666666667,
+  "vetoes": 0,
+  "guest_charged": 4411.5,
+  "claim_swaps": 616
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 3,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 754,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.4733051103207786,
+  "lost_cargo": 0,
+  "deals": 1646,
+  "xfers": 2485,
+  "capture": 1.0,
+  "multi_issue_frac": 0.47509113001215064,
+  "foreign_refined": 17,
+  "delivered_matrix": [
+   [
+    102,
+    27
+   ],
+   [
+    23,
+    88
+   ]
+  ],
+  "border_cargo": 65,
+  "healthy_border_all": 56,
+  "border_deals": 754,
+  "healthy_border_q": 65,
+  "co_delivered": [
+   136,
+   104
+  ],
+  "co_credit": [
+   1339.0,
+   1035.5
+  ],
+  "co_tariffs": [
+   4.5,
+   21.0
+  ],
+  "co_queue_wait": [
+   3969,
+   1946
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 1556,
+  "exploit_loss": 2646.4,
+  "liar_credit": 170.875,
+  "honest_credit": 27.0,
+  "vetoes": 0,
+  "guest_charged": 3908.8,
+  "claim_swaps": 724
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 4,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 226,
+  "makespan": 1771,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.127103808478946,
+  "lost_cargo": 0,
+  "deals": 3912,
+  "xfers": 5756,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4550102249488753,
+  "foreign_refined": 21,
+  "delivered_matrix": [
+   [
+    79,
+    38
+   ],
+   [
+    48,
+    75
+   ]
+  ],
+  "border_cargo": 155,
+  "healthy_border_all": 133,
+  "border_deals": 2122,
+  "healthy_border_q": 155,
+  "co_delivered": [
+   130,
+   110
+  ],
+  "co_credit": [
+   1282.0,
+   1086.5
+  ],
+  "co_tariffs": [
+   13.5,
+   18.0
+  ],
+  "co_queue_wait": [
+   9020,
+   15871
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 3840,
+  "exploit_loss": 4030.9,
+  "liar_credit": 146.375,
+  "honest_credit": 51.0,
+  "vetoes": 0,
+  "guest_charged": 8370.0,
+  "claim_swaps": 1716
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 5,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 436,
+  "stranded": 2,
+  "score_k2": 236,
+  "score_k5": 230,
+  "eff_last": 3.292455868768131,
+  "lost_cargo": 0,
+  "deals": 1007,
+  "xfers": 1576,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5024826216484608,
+  "foreign_refined": 26,
+  "delivered_matrix": [
+   [
+    88,
+    31
+   ],
+   [
+    41,
+    80
+   ]
+  ],
+  "border_cargo": 70,
+  "healthy_border_all": 66,
+  "border_deals": 275,
+  "healthy_border_q": 70,
+  "co_delivered": [
+   129,
+   111
+  ],
+  "co_credit": [
+   1270.5,
+   1090.5
+  ],
+  "co_tariffs": [
+   19.5,
+   19.5
+  ],
+  "co_queue_wait": [
+   909,
+   715
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 907,
+  "exploit_loss": 2430.6,
+  "liar_credit": 139.0,
+  "honest_credit": 57.75,
+  "vetoes": 0,
+  "guest_charged": 992.0,
+  "claim_swaps": 451
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 6,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 624,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 2.9827009914975964,
+  "lost_cargo": 0,
+  "deals": 1416,
+  "xfers": 2084,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4279661016949153,
+  "foreign_refined": 47,
+  "delivered_matrix": [
+   [
+    90,
+    59
+   ],
+   [
+    34,
+    57
+   ]
+  ],
+  "border_cargo": 144,
+  "healthy_border_all": 113,
+  "border_deals": 752,
+  "healthy_border_q": 144,
+  "co_delivered": [
+   147,
+   93
+  ],
+  "co_credit": [
+   1417.5,
+   912.0
+  ],
+  "co_tariffs": [
+   18.0,
+   52.5
+  ],
+  "co_queue_wait": [
+   2892,
+   2381
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 1362,
+  "exploit_loss": 2736.0,
+  "liar_credit": 169.375,
+  "honest_credit": 24.75,
+  "vetoes": 0,
+  "guest_charged": 3646.0,
+  "claim_swaps": 545
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 7,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 530,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.6264449525185825,
+  "lost_cargo": 0,
+  "deals": 1291,
+  "xfers": 1993,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4957397366382649,
+  "foreign_refined": 32,
+  "delivered_matrix": [
+   [
+    82,
+    46
+   ],
+   [
+    36,
+    76
+   ]
+  ],
+  "border_cargo": 144,
+  "healthy_border_all": 125,
+  "border_deals": 578,
+  "healthy_border_q": 144,
+  "co_delivered": [
+   124,
+   116
+  ],
+  "co_credit": [
+   1211.5,
+   1140.5
+  ],
+  "co_tariffs": [
+   19.5,
+   28.5
+  ],
+  "co_queue_wait": [
+   1464,
+   1416
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 1213,
+  "exploit_loss": 3131.4,
+  "liar_credit": 169.25,
+  "honest_credit": 26.75,
+  "vetoes": 0,
+  "guest_charged": 2613.2,
+  "claim_swaps": 560
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 8,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 713,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.968435579634245,
+  "lost_cargo": 0,
+  "deals": 1386,
+  "xfers": 2138,
+  "capture": 1.0,
+  "multi_issue_frac": 0.49927849927849927,
+  "foreign_refined": 14,
+  "delivered_matrix": [
+   [
+    76,
+    30
+   ],
+   [
+    38,
+    96
+   ]
+  ],
+  "border_cargo": 104,
+  "healthy_border_all": 71,
+  "border_deals": 673,
+  "healthy_border_q": 104,
+  "co_delivered": [
+   122,
+   118
+  ],
+  "co_credit": [
+   1203.5,
+   1175.5
+  ],
+  "co_tariffs": [
+   4.5,
+   16.5
+  ],
+  "co_queue_wait": [
+   3271,
+   1996
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 1308,
+  "exploit_loss": 2325.3,
+  "liar_credit": 163.41666666666666,
+  "honest_credit": 34.833333333333336,
+  "vetoes": 0,
+  "guest_charged": 3367.6,
+  "claim_swaps": 630
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 9,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 498,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.38077986269053,
+  "lost_cargo": 0,
+  "deals": 1292,
+  "xfers": 2006,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5069659442724458,
+  "foreign_refined": 3,
+  "delivered_matrix": [
+   [
+    114,
+    12
+   ],
+   [
+    2,
+    112
+   ]
+  ],
+  "border_cargo": 27,
+  "healthy_border_all": 25,
+  "border_deals": 211,
+  "healthy_border_q": 27,
+  "co_delivered": [
+   119,
+   121
+  ],
+  "co_credit": [
+   1185.5,
+   1210.0
+  ],
+  "co_tariffs": [
+   0.0,
+   4.5
+  ],
+  "co_queue_wait": [
+   1179,
+   1616
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 1236,
+  "exploit_loss": 2948.5,
+  "liar_credit": 183.33333333333334,
+  "honest_credit": 16.291666666666668,
+  "vetoes": 0,
+  "guest_charged": 469.5,
+  "claim_swaps": 595
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 10,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 238,
+  "delivered_mid": 238,
+  "makespan": 2500,
+  "stranded": 1,
+  "score_k2": 236,
+  "score_k5": 233,
+  "eff_last": 2.716605669135955,
+  "lost_cargo": 2,
+  "deals": 1458,
+  "xfers": 2224,
+  "capture": 1.0,
+  "multi_issue_frac": 0.49725651577503427,
+  "foreign_refined": 30,
+  "delivered_matrix": [
+   [
+    80,
+    32
+   ],
+   [
+    30,
+    96
+   ]
+  ],
+  "border_cargo": 70,
+  "healthy_border_all": 55,
+  "border_deals": 575,
+  "healthy_border_q": 70,
+  "co_delivered": [
+   102,
+   136
+  ],
+  "co_credit": [
+   1003.5,
+   1331.5
+  ],
+  "co_tariffs": [
+   28.5,
+   16.5
+  ],
+  "co_queue_wait": [
+   2525,
+   1903
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 1383,
+  "exploit_loss": 2103.0,
+  "liar_credit": 146.79166666666666,
+  "honest_credit": 47.791666666666664,
+  "vetoes": 0,
+  "guest_charged": 2494.1,
+  "claim_swaps": 679
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 11,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 227,
+  "makespan": 1032,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 1.9460645037398534,
+  "lost_cargo": 0,
+  "deals": 2315,
+  "xfers": 3437,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4587473002159827,
+  "foreign_refined": 36,
+  "delivered_matrix": [
+   [
+    90,
+    43
+   ],
+   [
+    34,
+    73
+   ]
+  ],
+  "border_cargo": 127,
+  "healthy_border_all": 105,
+  "border_deals": 1177,
+  "healthy_border_q": 127,
+  "co_delivered": [
+   146,
+   94
+  ],
+  "co_credit": [
+   1416.5,
+   929.5
+  ],
+  "co_tariffs": [
+   10.5,
+   43.5
+  ],
+  "co_queue_wait": [
+   3257,
+   5714
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 2231,
+  "exploit_loss": 3037.9,
+  "liar_credit": 172.41666666666666,
+  "honest_credit": 23.083333333333332,
+  "vetoes": 0,
+  "guest_charged": 5726.7,
+  "claim_swaps": 991
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 12,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 402,
+  "stranded": 2,
+  "score_k2": 236,
+  "score_k5": 230,
+  "eff_last": 3.4002619501028786,
+  "lost_cargo": 0,
+  "deals": 1073,
+  "xfers": 1609,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4575955265610438,
+  "foreign_refined": 15,
+  "delivered_matrix": [
+   [
+    83,
+    39
+   ],
+   [
+    37,
+    81
+   ]
+  ],
+  "border_cargo": 95,
+  "healthy_border_all": 80,
+  "border_deals": 550,
+  "healthy_border_q": 95,
+  "co_delivered": [
+   119,
+   121
+  ],
+  "co_credit": [
+   1179.5,
+   1198.0
+  ],
+  "co_tariffs": [
+   12.0,
+   10.5
+  ],
+  "co_queue_wait": [
+   613,
+   980
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 1010,
+  "exploit_loss": 2467.6,
+  "liar_credit": 182.45833333333334,
+  "honest_credit": 15.666666666666666,
+  "vetoes": 0,
+  "guest_charged": 3180.0,
+  "claim_swaps": 436
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 13,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 438,
+  "stranded": 3,
+  "score_k2": 234,
+  "score_k5": 225,
+  "eff_last": 3.393704455482808,
+  "lost_cargo": 0,
+  "deals": 1178,
+  "xfers": 1750,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4592529711375212,
+  "foreign_refined": 6,
+  "delivered_matrix": [
+   [
+    105,
+    21
+   ],
+   [
+    11,
+    103
+   ]
+  ],
+  "border_cargo": 80,
+  "healthy_border_all": 69,
+  "border_deals": 470,
+  "healthy_border_q": 80,
+  "co_delivered": [
+   120,
+   120
+  ],
+  "co_credit": [
+   1192.5,
+   1198.5
+  ],
+  "co_tariffs": [
+   1.5,
+   7.5
+  ],
+  "co_queue_wait": [
+   643,
+   1961
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 1107,
+  "exploit_loss": 1959.0,
+  "liar_credit": 171.41666666666666,
+  "honest_credit": 27.833333333333332,
+  "vetoes": 0,
+  "guest_charged": 2183.1,
+  "claim_swaps": 492
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 14,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 273,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 4.317493433374363,
+  "lost_cargo": 0,
+  "deals": 768,
+  "xfers": 1190,
+  "capture": 1.0,
+  "multi_issue_frac": 0.48828125,
+  "foreign_refined": 15,
+  "delivered_matrix": [
+   [
+    93,
+    33
+   ],
+   [
+    26,
+    88
+   ]
+  ],
+  "border_cargo": 78,
+  "healthy_border_all": 67,
+  "border_deals": 277,
+  "healthy_border_q": 78,
+  "co_delivered": [
+   120,
+   120
+  ],
+  "co_credit": [
+   1188.0,
+   1189.5
+  ],
+  "co_tariffs": [
+   10.5,
+   12.0
+  ],
+  "co_queue_wait": [
+   297,
+   705
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 725,
+  "exploit_loss": 1898.7,
+  "liar_credit": 166.25,
+  "honest_credit": 31.875,
+  "vetoes": 0,
+  "guest_charged": 1098.0,
+  "claim_swaps": 329
+ },
+ {
+  "arm": "trust-open-hz",
+  "sigma": 0.5,
+  "seed": 15,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 580,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.598277064522232,
+  "lost_cargo": 0,
+  "deals": 1216,
+  "xfers": 1880,
+  "capture": 1.0,
+  "multi_issue_frac": 0.506578947368421,
+  "foreign_refined": 4,
+  "delivered_matrix": [
+   [
+    91,
+    16
+   ],
+   [
+    25,
+    108
+   ]
+  ],
+  "border_cargo": 77,
+  "healthy_border_all": 74,
+  "border_deals": 449,
+  "healthy_border_q": 77,
+  "co_delivered": [
+   120,
+   120
+  ],
+  "co_credit": [
+   1194.0,
+   1200.0
+  ],
+  "co_tariffs": [
+   0.0,
+   6.0
+  ],
+  "co_queue_wait": [
+   1965,
+   1114
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 1152,
+  "exploit_loss": 2077.2,
+  "liar_credit": 169.75,
+  "honest_credit": 29.75,
+  "vetoes": 0,
+  "guest_charged": 1771.0,
+  "claim_swaps": 556
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 0,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 504,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 3.3155577288326428,
+  "lost_cargo": 0,
+  "deals": 698,
+  "xfers": 1111,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5300859598853869,
+  "foreign_refined": 14,
+  "delivered_matrix": [
+   [
+    105,
+    10
+   ],
+   [
+    19,
+    106
+   ]
+  ],
+  "border_cargo": 51,
+  "healthy_border_all": 51,
+  "border_deals": 260,
+  "healthy_border_q": 51,
+  "co_delivered": [
+   118,
+   122
+  ],
+  "co_credit": [
+   1174.0,
+   1205.0
+  ],
+  "co_tariffs": [
+   15.0,
+   6.0
+  ],
+  "co_queue_wait": [
+   1685,
+   1070
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 628,
+  "exploit_loss": 1118.8,
+  "liar_credit": 85.66666666666667,
+  "honest_credit": 103.61111111111111,
+  "vetoes": 0,
+  "guest_charged": 1546.1,
+  "claim_swaps": 337
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 1,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 504,
+  "stranded": 3,
+  "score_k2": 234,
+  "score_k5": 225,
+  "eff_last": 2.687607034449407,
+  "lost_cargo": 0,
+  "deals": 714,
+  "xfers": 1098,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5028011204481793,
+  "foreign_refined": 9,
+  "delivered_matrix": [
+   [
+    95,
+    23
+   ],
+   [
+    27,
+    95
+   ]
+  ],
+  "border_cargo": 79,
+  "healthy_border_all": 73,
+  "border_deals": 272,
+  "healthy_border_q": 79,
+  "co_delivered": [
+   123,
+   117
+  ],
+  "co_credit": [
+   1222.5,
+   1164.0
+  ],
+  "co_tariffs": [
+   6.0,
+   7.5
+  ],
+  "co_queue_wait": [
+   696,
+   787
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 616,
+  "exploit_loss": 1385.3,
+  "liar_credit": 84.0,
+  "honest_credit": 104.58333333333333,
+  "vetoes": 0,
+  "guest_charged": 2396.0,
+  "claim_swaps": 306
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 2,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 238,
+  "delivered_mid": 238,
+  "makespan": 2500,
+  "stranded": 7,
+  "score_k2": 224,
+  "score_k5": 203,
+  "eff_last": 3.4524501055797057,
+  "lost_cargo": 2,
+  "deals": 657,
+  "xfers": 1006,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4855403348554033,
+  "foreign_refined": 28,
+  "delivered_matrix": [
+   [
+    90,
+    24
+   ],
+   [
+    32,
+    92
+   ]
+  ],
+  "border_cargo": 48,
+  "healthy_border_all": 35,
+  "border_deals": 253,
+  "healthy_border_q": 48,
+  "co_delivered": [
+   120,
+   118
+  ],
+  "co_credit": [
+   1180.5,
+   1157.5
+  ],
+  "co_tariffs": [
+   22.5,
+   19.5
+  ],
+  "co_queue_wait": [
+   494,
+   1053
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 580,
+  "exploit_loss": 1238.5,
+  "liar_credit": 56.166666666666664,
+  "honest_credit": 111.16666666666667,
+  "vetoes": 0,
+  "guest_charged": 2221.5,
+  "claim_swaps": 284
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 3,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 404,
+  "stranded": 3,
+  "score_k2": 234,
+  "score_k5": 225,
+  "eff_last": 3.382621375097628,
+  "lost_cargo": 0,
+  "deals": 591,
+  "xfers": 923,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5177664974619289,
+  "foreign_refined": 19,
+  "delivered_matrix": [
+   [
+    95,
+    26
+   ],
+   [
+    21,
+    98
+   ]
+  ],
+  "border_cargo": 44,
+  "healthy_border_all": 36,
+  "border_deals": 150,
+  "healthy_border_q": 44,
+  "co_delivered": [
+   113,
+   127
+  ],
+  "co_credit": [
+   1118.0,
+   1253.5
+  ],
+  "co_tariffs": [
+   16.5,
+   12.0
+  ],
+  "co_queue_wait": [
+   215,
+   486
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 513,
+  "exploit_loss": 1196.4,
+  "liar_credit": 75.41666666666667,
+  "honest_credit": 106.61111111111111,
+  "vetoes": 0,
+  "guest_charged": 1336.0,
+  "claim_swaps": 274
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 4,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 770,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 3.526727000119804,
+  "lost_cargo": 0,
+  "deals": 1195,
+  "xfers": 1764,
+  "capture": 1.0,
+  "multi_issue_frac": 0.46276150627615065,
+  "foreign_refined": 17,
+  "delivered_matrix": [
+   [
+    85,
+    18
+   ],
+   [
+    42,
+    95
+   ]
+  ],
+  "border_cargo": 55,
+  "healthy_border_all": 45,
+  "border_deals": 662,
+  "healthy_border_q": 55,
+  "co_delivered": [
+   126,
+   114
+  ],
+  "co_credit": [
+   1248.0,
+   1126.5
+  ],
+  "co_tariffs": [
+   13.5,
+   12.0
+  ],
+  "co_queue_wait": [
+   5757,
+   3857
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 1125,
+  "exploit_loss": 1114.9,
+  "liar_credit": 102.33333333333333,
+  "honest_credit": 97.80555555555556,
+  "vetoes": 0,
+  "guest_charged": 3778.1,
+  "claim_swaps": 533
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 5,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 309,
+  "stranded": 5,
+  "score_k2": 230,
+  "score_k5": 215,
+  "eff_last": 4.116333109896921,
+  "lost_cargo": 0,
+  "deals": 488,
+  "xfers": 765,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5204918032786885,
+  "foreign_refined": 32,
+  "delivered_matrix": [
+   [
+    88,
+    21
+   ],
+   [
+    40,
+    91
+   ]
+  ],
+  "border_cargo": 57,
+  "healthy_border_all": 55,
+  "border_deals": 182,
+  "healthy_border_q": 57,
+  "co_delivered": [
+   122,
+   118
+  ],
+  "co_credit": [
+   1200.5,
+   1151.5
+  ],
+  "co_tariffs": [
+   28.5,
+   19.5
+  ],
+  "co_queue_wait": [
+   703,
+   60
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 416,
+  "exploit_loss": 1379.6,
+  "liar_credit": 63.333333333333336,
+  "honest_credit": 109.55555555555556,
+  "vetoes": 0,
+  "guest_charged": 1150.0,
+  "claim_swaps": 210
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 6,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 379,
+  "stranded": 4,
+  "score_k2": 232,
+  "score_k5": 220,
+  "eff_last": 3.357329922638291,
+  "lost_cargo": 0,
+  "deals": 583,
+  "xfers": 913,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5248713550600344,
+  "foreign_refined": 32,
+  "delivered_matrix": [
+   [
+    93,
+    52
+   ],
+   [
+    32,
+    63
+   ]
+  ],
+  "border_cargo": 68,
+  "healthy_border_all": 59,
+  "border_deals": 232,
+  "healthy_border_q": 68,
+  "co_delivered": [
+   119,
+   121
+  ],
+  "co_credit": [
+   1170.5,
+   1181.5
+  ],
+  "co_tariffs": [
+   28.5,
+   19.5
+  ],
+  "co_queue_wait": [
+   597,
+   683
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 514,
+  "exploit_loss": 1375.2,
+  "liar_credit": 73.16666666666667,
+  "honest_credit": 106.27777777777777,
+  "vetoes": 0,
+  "guest_charged": 1490.6,
+  "claim_swaps": 263
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 7,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 516,
+  "stranded": 4,
+  "score_k2": 232,
+  "score_k5": 220,
+  "eff_last": 2.9851393053613435,
+  "lost_cargo": 0,
+  "deals": 763,
+  "xfers": 1161,
+  "capture": 1.0,
+  "multi_issue_frac": 0.48230668414154654,
+  "foreign_refined": 6,
+  "delivered_matrix": [
+   [
+    93,
+    34
+   ],
+   [
+    27,
+    86
+   ]
+  ],
+  "border_cargo": 67,
+  "healthy_border_all": 61,
+  "border_deals": 328,
+  "healthy_border_q": 67,
+  "co_delivered": [
+   114,
+   126
+  ],
+  "co_credit": [
+   1140.0,
+   1251.0
+  ],
+  "co_tariffs": [
+   9.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   364,
+   1394
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 707,
+  "exploit_loss": 1436.5,
+  "liar_credit": 69.5,
+  "honest_credit": 109.66666666666667,
+  "vetoes": 0,
+  "guest_charged": 2261.6,
+  "claim_swaps": 328
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 8,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 351,
+  "stranded": 4,
+  "score_k2": 232,
+  "score_k5": 220,
+  "eff_last": 4.029986434747433,
+  "lost_cargo": 0,
+  "deals": 466,
+  "xfers": 713,
+  "capture": 1.0,
+  "multi_issue_frac": 0.48497854077253216,
+  "foreign_refined": 10,
+  "delivered_matrix": [
+   [
+    103,
+    22
+   ],
+   [
+    8,
+    107
+   ]
+  ],
+  "border_cargo": 36,
+  "healthy_border_all": 36,
+  "border_deals": 172,
+  "healthy_border_q": 36,
+  "co_delivered": [
+   109,
+   131
+  ],
+  "co_credit": [
+   1084.0,
+   1301.0
+  ],
+  "co_tariffs": [
+   9.0,
+   6.0
+  ],
+  "co_queue_wait": [
+   241,
+   541
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 393,
+  "exploit_loss": 821.1,
+  "liar_credit": 67.58333333333333,
+  "honest_credit": 109.97222222222223,
+  "vetoes": 0,
+  "guest_charged": 1358.0,
+  "claim_swaps": 208
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 9,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 400,
+  "stranded": 4,
+  "score_k2": 232,
+  "score_k5": 220,
+  "eff_last": 2.881663467917914,
+  "lost_cargo": 0,
+  "deals": 593,
+  "xfers": 948,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5430016863406408,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    120,
+    4
+   ],
+   [
+    0,
+    116
+   ]
+  ],
+  "border_cargo": 4,
+  "healthy_border_all": 4,
+  "border_deals": 11,
+  "healthy_border_q": 4,
+  "co_delivered": [
+   120,
+   120
+  ],
+  "co_credit": [
+   1200.0,
+   1200.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   605,
+   561
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 501,
+  "exploit_loss": 1366.2,
+  "liar_credit": 98.33333333333333,
+  "honest_credit": 100.55555555555556,
+  "vetoes": 0,
+  "guest_charged": 62.9,
+  "claim_swaps": 275
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 10,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 527,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 3.3563200718492467,
+  "lost_cargo": 0,
+  "deals": 712,
+  "xfers": 1082,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4859550561797753,
+  "foreign_refined": 16,
+  "delivered_matrix": [
+   [
+    104,
+    22
+   ],
+   [
+    6,
+    108
+   ]
+  ],
+  "border_cargo": 64,
+  "healthy_border_all": 57,
+  "border_deals": 304,
+  "healthy_border_q": 64,
+  "co_delivered": [
+   120,
+   120
+  ],
+  "co_credit": [
+   1180.5,
+   1195.5
+  ],
+  "co_tariffs": [
+   4.5,
+   19.5
+  ],
+  "co_queue_wait": [
+   1268,
+   1716
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 642,
+  "exploit_loss": 1613.8,
+  "liar_credit": 146.0,
+  "honest_credit": 83.33333333333333,
+  "vetoes": 0,
+  "guest_charged": 2081.7,
+  "claim_swaps": 319
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 11,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 237,
+  "delivered_mid": 237,
+  "makespan": 2500,
+  "stranded": 3,
+  "score_k2": 231,
+  "score_k5": 222,
+  "eff_last": 2.3103592605105976,
+  "lost_cargo": 3,
+  "deals": 856,
+  "xfers": 1331,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5070093457943925,
+  "foreign_refined": 26,
+  "delivered_matrix": [
+   [
+    102,
+    23
+   ],
+   [
+    16,
+    96
+   ]
+  ],
+  "border_cargo": 51,
+  "healthy_border_all": 48,
+  "border_deals": 173,
+  "healthy_border_q": 51,
+  "co_delivered": [
+   122,
+   115
+  ],
+  "co_credit": [
+   1197.5,
+   1133.5
+  ],
+  "co_tariffs": [
+   16.5,
+   22.5
+  ],
+  "co_queue_wait": [
+   567,
+   1198
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 772,
+  "exploit_loss": 1359.9,
+  "liar_credit": 46.583333333333336,
+  "honest_credit": 113.97222222222223,
+  "vetoes": 0,
+  "guest_charged": 1872.1,
+  "claim_swaps": 378
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 12,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 495,
+  "stranded": 4,
+  "score_k2": 232,
+  "score_k5": 220,
+  "eff_last": 3.2551138505498365,
+  "lost_cargo": 0,
+  "deals": 808,
+  "xfers": 1242,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4962871287128713,
+  "foreign_refined": 27,
+  "delivered_matrix": [
+   [
+    91,
+    27
+   ],
+   [
+    16,
+    106
+   ]
+  ],
+  "border_cargo": 44,
+  "healthy_border_all": 44,
+  "border_deals": 342,
+  "healthy_border_q": 44,
+  "co_delivered": [
+   110,
+   130
+  ],
+  "co_credit": [
+   1077.5,
+   1282.0
+  ],
+  "co_tariffs": [
+   18.0,
+   22.5
+  ],
+  "co_queue_wait": [
+   2373,
+   501
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 742,
+  "exploit_loss": 1525.5,
+  "liar_credit": 76.66666666666667,
+  "honest_credit": 105.52777777777777,
+  "vetoes": 0,
+  "guest_charged": 2489.4,
+  "claim_swaps": 357
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 13,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 280,
+  "stranded": 6,
+  "score_k2": 228,
+  "score_k5": 210,
+  "eff_last": 5.103312042141826,
+  "lost_cargo": 0,
+  "deals": 444,
+  "xfers": 664,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4752252252252252,
+  "foreign_refined": 15,
+  "delivered_matrix": [
+   [
+    90,
+    10
+   ],
+   [
+    22,
+    118
+   ]
+  ],
+  "border_cargo": 25,
+  "healthy_border_all": 19,
+  "border_deals": 180,
+  "healthy_border_q": 25,
+  "co_delivered": [
+   99,
+   141
+  ],
+  "co_credit": [
+   988.5,
+   1389.0
+  ],
+  "co_tariffs": [
+   21.0,
+   1.5
+  ],
+  "co_queue_wait": [
+   323,
+   272
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 385,
+  "exploit_loss": 655.6,
+  "liar_credit": 86.83333333333333,
+  "honest_credit": 103.13888888888889,
+  "vetoes": 0,
+  "guest_charged": 1182.0,
+  "claim_swaps": 201
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 14,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 238,
+  "delivered_mid": 238,
+  "makespan": 2500,
+  "stranded": 6,
+  "score_k2": 226,
+  "score_k5": 208,
+  "eff_last": 4.142331455666346,
+  "lost_cargo": 2,
+  "deals": 654,
+  "xfers": 1035,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5428134556574924,
+  "foreign_refined": 13,
+  "delivered_matrix": [
+   [
+    99,
+    14
+   ],
+   [
+    16,
+    109
+   ]
+  ],
+  "border_cargo": 37,
+  "healthy_border_all": 33,
+  "border_deals": 242,
+  "healthy_border_q": 37,
+  "co_delivered": [
+   116,
+   122
+  ],
+  "co_credit": [
+   1149.5,
+   1211.0
+  ],
+  "co_tariffs": [
+   9.0,
+   10.5
+  ],
+  "co_queue_wait": [
+   1612,
+   806
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 613,
+  "exploit_loss": 899.5,
+  "liar_credit": 85.0,
+  "honest_credit": 102.80555555555556,
+  "vetoes": 0,
+  "guest_charged": 1297.2,
+  "claim_swaps": 326
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 15,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 404,
+  "stranded": 2,
+  "score_k2": 236,
+  "score_k5": 230,
+  "eff_last": 3.240651746481129,
+  "lost_cargo": 0,
+  "deals": 529,
+  "xfers": 830,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5349716446124764,
+  "foreign_refined": 14,
+  "delivered_matrix": [
+   [
+    97,
+    36
+   ],
+   [
+    23,
+    84
+   ]
+  ],
+  "border_cargo": 53,
+  "healthy_border_all": 48,
+  "border_deals": 209,
+  "healthy_border_q": 53,
+  "co_delivered": [
+   116,
+   124
+  ],
+  "co_credit": [
+   1152.5,
+   1226.5
+  ],
+  "co_tariffs": [
+   13.5,
+   7.5
+  ],
+  "co_queue_wait": [
+   387,
+   816
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.25,
+  "defended": true,
+  "exploit_deals": 447,
+  "exploit_loss": 880.2,
+  "liar_credit": 89.66666666666667,
+  "honest_credit": 102.27777777777777,
+  "vetoes": 0,
+  "guest_charged": 1645.4,
+  "claim_swaps": 250
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 0,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 237,
+  "delivered_mid": 237,
+  "makespan": 2500,
+  "stranded": 5,
+  "score_k2": 227,
+  "score_k5": 212,
+  "eff_last": 3.5479495331124986,
+  "lost_cargo": 3,
+  "deals": 337,
+  "xfers": 550,
+  "capture": 1.0,
+  "multi_issue_frac": 0.6112759643916914,
+  "foreign_refined": 24,
+  "delivered_matrix": [
+   [
+    79,
+    24
+   ],
+   [
+    24,
+    110
+   ]
+  ],
+  "border_cargo": 28,
+  "healthy_border_all": 26,
+  "border_deals": 152,
+  "healthy_border_q": 28,
+  "co_delivered": [
+   103,
+   134
+  ],
+  "co_credit": [
+   1012.0,
+   1322.0
+  ],
+  "co_tariffs": [
+   18.0,
+   18.0
+  ],
+  "co_queue_wait": [
+   872,
+   375
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 229,
+  "exploit_loss": 428.2,
+  "liar_credit": 94.0,
+  "honest_credit": 100.5,
+  "vetoes": 0,
+  "guest_charged": 1548.0,
+  "claim_swaps": 175
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 1,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 460,
+  "stranded": 11,
+  "score_k2": 218,
+  "score_k5": 185,
+  "eff_last": 3.135172823992359,
+  "lost_cargo": 0,
+  "deals": 328,
+  "xfers": 564,
+  "capture": 1.0,
+  "multi_issue_frac": 0.6707317073170732,
+  "foreign_refined": 19,
+  "delivered_matrix": [
+   [
+    102,
+    30
+   ],
+   [
+    18,
+    90
+   ]
+  ],
+  "border_cargo": 53,
+  "healthy_border_all": 40,
+  "border_deals": 129,
+  "healthy_border_q": 53,
+  "co_delivered": [
+   127,
+   113
+  ],
+  "co_credit": [
+   1250.5,
+   1121.0
+  ],
+  "co_tariffs": [
+   9.0,
+   19.5
+  ],
+  "co_queue_wait": [
+   580,
+   360
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 189,
+  "exploit_loss": 650.0,
+  "liar_credit": 98.16666666666667,
+  "honest_credit": 99.45833333333333,
+  "vetoes": 0,
+  "guest_charged": 2030.0,
+  "claim_swaps": 166
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 2,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 238,
+  "delivered_mid": 238,
+  "makespan": 2500,
+  "stranded": 10,
+  "score_k2": 218,
+  "score_k5": 188,
+  "eff_last": 4.136582021807663,
+  "lost_cargo": 2,
+  "deals": 243,
+  "xfers": 408,
+  "capture": 1.0,
+  "multi_issue_frac": 0.6049382716049383,
+  "foreign_refined": 26,
+  "delivered_matrix": [
+   [
+    106,
+    23
+   ],
+   [
+    23,
+    86
+   ]
+  ],
+  "border_cargo": 38,
+  "healthy_border_all": 33,
+  "border_deals": 113,
+  "healthy_border_q": 38,
+  "co_delivered": [
+   127,
+   111
+  ],
+  "co_credit": [
+   1252.0,
+   1089.0
+  ],
+  "co_tariffs": [
+   21.0,
+   18.0
+  ],
+  "co_queue_wait": [
+   130,
+   186
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 172,
+  "exploit_loss": 661.9,
+  "liar_credit": 93.66666666666667,
+  "honest_credit": 101.41666666666667,
+  "vetoes": 0,
+  "guest_charged": 1337.6,
+  "claim_swaps": 119
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 3,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 499,
+  "stranded": 5,
+  "score_k2": 230,
+  "score_k5": 215,
+  "eff_last": 3.4292870087853884,
+  "lost_cargo": 0,
+  "deals": 327,
+  "xfers": 548,
+  "capture": 1.0,
+  "multi_issue_frac": 0.6391437308868502,
+  "foreign_refined": 16,
+  "delivered_matrix": [
+   [
+    113,
+    25
+   ],
+   [
+    21,
+    81
+   ]
+  ],
+  "border_cargo": 32,
+  "healthy_border_all": 21,
+  "border_deals": 80,
+  "healthy_border_q": 32,
+  "co_delivered": [
+   128,
+   112
+  ],
+  "co_credit": [
+   1272.5,
+   1103.5
+  ],
+  "co_tariffs": [
+   16.5,
+   7.5
+  ],
+  "co_queue_wait": [
+   308,
+   515
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 211,
+  "exploit_loss": 526.6,
+  "liar_credit": 93.75,
+  "honest_credit": 104.25,
+  "vetoes": 0,
+  "guest_charged": 1300.6,
+  "claim_swaps": 180
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 4,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 302,
+  "stranded": 2,
+  "score_k2": 236,
+  "score_k5": 230,
+  "eff_last": 5.26614815198861,
+  "lost_cargo": 0,
+  "deals": 268,
+  "xfers": 430,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5783582089552238,
+  "foreign_refined": 40,
+  "delivered_matrix": [
+   [
+    97,
+    35
+   ],
+   [
+    26,
+    82
+   ]
+  ],
+  "border_cargo": 21,
+  "healthy_border_all": 17,
+  "border_deals": 143,
+  "healthy_border_q": 21,
+  "co_delivered": [
+   137,
+   103
+  ],
+  "co_credit": [
+   1329.5,
+   1010.5
+  ],
+  "co_tariffs": [
+   19.5,
+   40.5
+  ],
+  "co_queue_wait": [
+   744,
+   919
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 205,
+  "exploit_loss": 355.9,
+  "liar_credit": 105.375,
+  "honest_credit": 89.625,
+  "vetoes": 0,
+  "guest_charged": 1700.0,
+  "claim_swaps": 141
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 5,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 297,
+  "stranded": 9,
+  "score_k2": 222,
+  "score_k5": 195,
+  "eff_last": 4.701727657494102,
+  "lost_cargo": 0,
+  "deals": 211,
+  "xfers": 351,
+  "capture": 1.0,
+  "multi_issue_frac": 0.6208530805687204,
+  "foreign_refined": 19,
+  "delivered_matrix": [
+   [
+    105,
+    14
+   ],
+   [
+    14,
+    107
+   ]
+  ],
+  "border_cargo": 15,
+  "healthy_border_all": 11,
+  "border_deals": 51,
+  "healthy_border_q": 15,
+  "co_delivered": [
+   124,
+   116
+  ],
+  "co_credit": [
+   1222.0,
+   1149.5
+  ],
+  "co_tariffs": [
+   10.5,
+   18.0
+  ],
+  "co_queue_wait": [
+   71,
+   80
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 132,
+  "exploit_loss": 358.3,
+  "liar_credit": 80.0,
+  "honest_credit": 117.625,
+  "vetoes": 0,
+  "guest_charged": 456.0,
+  "claim_swaps": 98
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 6,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 406,
+  "stranded": 6,
+  "score_k2": 228,
+  "score_k5": 210,
+  "eff_last": 4.055443077123202,
+  "lost_cargo": 0,
+  "deals": 300,
+  "xfers": 487,
+  "capture": 1.0,
+  "multi_issue_frac": 0.58,
+  "foreign_refined": 52,
+  "delivered_matrix": [
+   [
+    84,
+    44
+   ],
+   [
+    34,
+    78
+   ]
+  ],
+  "border_cargo": 34,
+  "healthy_border_all": 24,
+  "border_deals": 153,
+  "healthy_border_q": 34,
+  "co_delivered": [
+   128,
+   112
+  ],
+  "co_credit": [
+   1233.5,
+   1088.5
+  ],
+  "co_tariffs": [
+   31.5,
+   46.5
+  ],
+  "co_queue_wait": [
+   460,
+   643
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 213,
+  "exploit_loss": 508.1,
+  "liar_credit": 85.875,
+  "honest_credit": 107.625,
+  "vetoes": 0,
+  "guest_charged": 1624.7,
+  "claim_swaps": 150
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 7,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 238,
+  "delivered_mid": 238,
+  "makespan": 2500,
+  "stranded": 7,
+  "score_k2": 224,
+  "score_k5": 203,
+  "eff_last": 3.862269442608638,
+  "lost_cargo": 2,
+  "deals": 302,
+  "xfers": 501,
+  "capture": 1.0,
+  "multi_issue_frac": 0.6192052980132451,
+  "foreign_refined": 14,
+  "delivered_matrix": [
+   [
+    103,
+    15
+   ],
+   [
+    12,
+    108
+   ]
+  ],
+  "border_cargo": 21,
+  "healthy_border_all": 16,
+  "border_deals": 96,
+  "healthy_border_q": 21,
+  "co_delivered": [
+   117,
+   121
+  ],
+  "co_credit": [
+   1158.0,
+   1201.0
+  ],
+  "co_tariffs": [
+   9.0,
+   12.0
+  ],
+  "co_queue_wait": [
+   206,
+   474
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 203,
+  "exploit_loss": 475.7,
+  "liar_credit": 87.58333333333333,
+  "honest_credit": 109.0,
+  "vetoes": 0,
+  "guest_charged": 1039.3,
+  "claim_swaps": 153
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 8,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 355,
+  "stranded": 8,
+  "score_k2": 224,
+  "score_k5": 200,
+  "eff_last": 4.976529339985242,
+  "lost_cargo": 0,
+  "deals": 222,
+  "xfers": 359,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5855855855855856,
+  "foreign_refined": 30,
+  "delivered_matrix": [
+   [
+    102,
+    24
+   ],
+   [
+    15,
+    99
+   ]
+  ],
+  "border_cargo": 23,
+  "healthy_border_all": 14,
+  "border_deals": 79,
+  "healthy_border_q": 23,
+  "co_delivered": [
+   113,
+   127
+  ],
+  "co_credit": [
+   1110.5,
+   1244.5
+  ],
+  "co_tariffs": [
+   25.5,
+   19.5
+  ],
+  "co_queue_wait": [
+   95,
+   144
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 145,
+  "exploit_loss": 287.2,
+  "liar_credit": 70.16666666666667,
+  "honest_credit": 126.08333333333333,
+  "vetoes": 0,
+  "guest_charged": 948.0,
+  "claim_swaps": 105
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 9,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 394,
+  "stranded": 8,
+  "score_k2": 224,
+  "score_k5": 200,
+  "eff_last": 3.294935678398816,
+  "lost_cargo": 0,
+  "deals": 289,
+  "xfers": 476,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5986159169550173,
+  "foreign_refined": 4,
+  "delivered_matrix": [
+   [
+    124,
+    11
+   ],
+   [
+    0,
+    105
+   ]
+  ],
+  "border_cargo": 7,
+  "healthy_border_all": 7,
+  "border_deals": 20,
+  "healthy_border_q": 7,
+  "co_delivered": [
+   128,
+   112
+  ],
+  "co_credit": [
+   1274.0,
+   1120.0
+  ],
+  "co_tariffs": [
+   0.0,
+   6.0
+  ],
+  "co_queue_wait": [
+   282,
+   267
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 196,
+  "exploit_loss": 474.5,
+  "liar_credit": 79.16666666666667,
+  "honest_credit": 120.33333333333333,
+  "vetoes": 0,
+  "guest_charged": 74.0,
+  "claim_swaps": 149
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 10,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 378,
+  "stranded": 6,
+  "score_k2": 228,
+  "score_k5": 210,
+  "eff_last": 4.06051836759855,
+  "lost_cargo": 0,
+  "deals": 265,
+  "xfers": 431,
+  "capture": 1.0,
+  "multi_issue_frac": 0.6113207547169811,
+  "foreign_refined": 27,
+  "delivered_matrix": [
+   [
+    102,
+    12
+   ],
+   [
+    18,
+    108
+   ]
+  ],
+  "border_cargo": 13,
+  "healthy_border_all": 2,
+  "border_deals": 93,
+  "healthy_border_q": 13,
+  "co_delivered": [
+   119,
+   121
+  ],
+  "co_credit": [
+   1170.5,
+   1189.0
+  ],
+  "co_tariffs": [
+   21.0,
+   19.5
+  ],
+  "co_queue_wait": [
+   406,
+   635
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 176,
+  "exploit_loss": 278.2,
+  "liar_credit": 106.08333333333333,
+  "honest_credit": 90.54166666666667,
+  "vetoes": 0,
+  "guest_charged": 824.0,
+  "claim_swaps": 148
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 11,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 239,
+  "delivered_mid": 239,
+  "makespan": 2500,
+  "stranded": 8,
+  "score_k2": 223,
+  "score_k5": 199,
+  "eff_last": 3.183343121565907,
+  "lost_cargo": 1,
+  "deals": 411,
+  "xfers": 671,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5888077858880778,
+  "foreign_refined": 42,
+  "delivered_matrix": [
+   [
+    89,
+    35
+   ],
+   [
+    24,
+    91
+   ]
+  ],
+  "border_cargo": 47,
+  "healthy_border_all": 35,
+  "border_deals": 157,
+  "healthy_border_q": 47,
+  "co_delivered": [
+   119,
+   120
+  ],
+  "co_credit": [
+   1154.0,
+   1173.0
+  ],
+  "co_tariffs": [
+   27.0,
+   36.0
+  ],
+  "co_queue_wait": [
+   342,
+   809
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 311,
+  "exploit_loss": 674.7,
+  "liar_credit": 56.541666666666664,
+  "honest_credit": 137.375,
+  "vetoes": 0,
+  "guest_charged": 2248.5,
+  "claim_swaps": 202
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 12,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 345,
+  "stranded": 4,
+  "score_k2": 232,
+  "score_k5": 220,
+  "eff_last": 3.9085643190782173,
+  "lost_cargo": 0,
+  "deals": 257,
+  "xfers": 441,
+  "capture": 1.0,
+  "multi_issue_frac": 0.6770428015564203,
+  "foreign_refined": 36,
+  "delivered_matrix": [
+   [
+    96,
+    25
+   ],
+   [
+    24,
+    95
+   ]
+  ],
+  "border_cargo": 25,
+  "healthy_border_all": 19,
+  "border_deals": 70,
+  "healthy_border_q": 25,
+  "co_delivered": [
+   124,
+   116
+  ],
+  "co_credit": [
+   1210.0,
+   1136.0
+  ],
+  "co_tariffs": [
+   24.0,
+   30.0
+  ],
+  "co_queue_wait": [
+   649,
+   311
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 183,
+  "exploit_loss": 437.1,
+  "liar_credit": 86.70833333333333,
+  "honest_credit": 108.79166666666667,
+  "vetoes": 0,
+  "guest_charged": 1042.6,
+  "claim_swaps": 143
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 13,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 236,
+  "delivered_mid": 236,
+  "makespan": 2500,
+  "stranded": 7,
+  "score_k2": 222,
+  "score_k5": 201,
+  "eff_last": 4.717836781233543,
+  "lost_cargo": 4,
+  "deals": 222,
+  "xfers": 349,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5405405405405406,
+  "foreign_refined": 12,
+  "delivered_matrix": [
+   [
+    102,
+    11
+   ],
+   [
+    17,
+    106
+   ]
+  ],
+  "border_cargo": 18,
+  "healthy_border_all": 13,
+  "border_deals": 87,
+  "healthy_border_q": 18,
+  "co_delivered": [
+   115,
+   121
+  ],
+  "co_credit": [
+   1144.0,
+   1198.0
+  ],
+  "co_tariffs": [
+   12.0,
+   6.0
+  ],
+  "co_queue_wait": [
+   461,
+   180
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 158,
+  "exploit_loss": 264.9,
+  "liar_credit": 99.25,
+  "honest_credit": 95.91666666666667,
+  "vetoes": 0,
+  "guest_charged": 1364.4,
+  "claim_swaps": 104
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 14,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 249,
+  "stranded": 4,
+  "score_k2": 232,
+  "score_k5": 220,
+  "eff_last": 4.873931181532133,
+  "lost_cargo": 0,
+  "deals": 231,
+  "xfers": 368,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5541125541125541,
+  "foreign_refined": 14,
+  "delivered_matrix": [
+   [
+    104,
+    16
+   ],
+   [
+    13,
+    107
+   ]
+  ],
+  "border_cargo": 27,
+  "healthy_border_all": 21,
+  "border_deals": 106,
+  "healthy_border_q": 27,
+  "co_delivered": [
+   115,
+   125
+  ],
+  "co_credit": [
+   1141.0,
+   1238.0
+  ],
+  "co_tariffs": [
+   12.0,
+   9.0
+  ],
+  "co_queue_wait": [
+   111,
+   523
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 178,
+  "exploit_loss": 306.1,
+  "liar_credit": 92.33333333333333,
+  "honest_credit": 105.91666666666667,
+  "vetoes": 0,
+  "guest_charged": 900.0,
+  "claim_swaps": 106
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 15,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 238,
+  "delivered_mid": 238,
+  "makespan": 2500,
+  "stranded": 6,
+  "score_k2": 226,
+  "score_k5": 208,
+  "eff_last": 3.5334699697552034,
+  "lost_cargo": 2,
+  "deals": 297,
+  "xfers": 497,
+  "capture": 1.0,
+  "multi_issue_frac": 0.6127946127946128,
+  "foreign_refined": 10,
+  "delivered_matrix": [
+   [
+    101,
+    13
+   ],
+   [
+    14,
+    110
+   ]
+  ],
+  "border_cargo": 29,
+  "healthy_border_all": 24,
+  "border_deals": 84,
+  "healthy_border_q": 29,
+  "co_delivered": [
+   117,
+   121
+  ],
+  "co_credit": [
+   1161.0,
+   1204.0
+  ],
+  "co_tariffs": [
+   6.0,
+   9.0
+  ],
+  "co_queue_wait": [
+   259,
+   95
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.5,
+  "defended": true,
+  "exploit_deals": 210,
+  "exploit_loss": 445.3,
+  "liar_credit": 78.75,
+  "honest_credit": 118.33333333333333,
+  "vetoes": 0,
+  "guest_charged": 673.4,
+  "claim_swaps": 152
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 0,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 227,
+  "makespan": 884,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.703429517416363,
+  "lost_cargo": 0,
+  "deals": 1744,
+  "xfers": 2556,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4466743119266055,
+  "foreign_refined": 6,
+  "delivered_matrix": [
+   [
+    102,
+    9
+   ],
+   [
+    38,
+    91
+   ]
+  ],
+  "border_cargo": 93,
+  "healthy_border_all": 93,
+  "border_deals": 873,
+  "healthy_border_q": 93,
+  "co_delivered": [
+   136,
+   104
+  ],
+  "co_credit": [
+   1358.5,
+   1032.5
+  ],
+  "co_tariffs": [
+   7.5,
+   1.5
+  ],
+  "co_queue_wait": [
+   5556,
+   3964
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.0,
+  "defended": true,
+  "exploit_deals": 1695,
+  "exploit_loss": 2411.5,
+  "liar_credit": null,
+  "honest_credit": 99.625,
+  "vetoes": 0,
+  "guest_charged": 4108.8,
+  "claim_swaps": 734
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 1,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 217,
+  "makespan": 2151,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 1.5289484464634304,
+  "lost_cargo": 0,
+  "deals": 4775,
+  "xfers": 7006,
+  "capture": 1.0,
+  "multi_issue_frac": 0.44900523560209427,
+  "foreign_refined": 7,
+  "delivered_matrix": [
+   [
+    96,
+    34
+   ],
+   [
+    25,
+    85
+   ]
+  ],
+  "border_cargo": 160,
+  "healthy_border_all": 148,
+  "border_deals": 2629,
+  "healthy_border_q": 160,
+  "co_delivered": [
+   128,
+   112
+  ],
+  "co_credit": [
+   1269.5,
+   1120.0
+  ],
+  "co_tariffs": [
+   0.0,
+   10.5
+  ],
+  "co_queue_wait": [
+   9123,
+   19255
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.0,
+  "defended": true,
+  "exploit_deals": 4696,
+  "exploit_loss": 4589.6,
+  "liar_credit": null,
+  "honest_credit": 99.5625,
+  "vetoes": 0,
+  "guest_charged": 9584.0,
+  "claim_swaps": 2044
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 2,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 644,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.860666254497304,
+  "lost_cargo": 0,
+  "deals": 1441,
+  "xfers": 2143,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4538514920194309,
+  "foreign_refined": 23,
+  "delivered_matrix": [
+   [
+    88,
+    40
+   ],
+   [
+    40,
+    72
+   ]
+  ],
+  "border_cargo": 173,
+  "healthy_border_all": 157,
+  "border_deals": 800,
+  "healthy_border_q": 173,
+  "co_delivered": [
+   123,
+   117
+  ],
+  "co_credit": [
+   1216.5,
+   1149.0
+  ],
+  "co_tariffs": [
+   21.0,
+   13.5
+  ],
+  "co_queue_wait": [
+   3363,
+   1976
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.0,
+  "defended": true,
+  "exploit_deals": 1379,
+  "exploit_loss": 2692.8,
+  "liar_credit": null,
+  "honest_credit": 98.5625,
+  "vetoes": 0,
+  "guest_charged": 4095.8,
+  "claim_swaps": 595
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 3,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 481,
+  "stranded": 5,
+  "score_k2": 230,
+  "score_k5": 215,
+  "eff_last": 2.859577802656016,
+  "lost_cargo": 0,
+  "deals": 1122,
+  "xfers": 1622,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4206773618538324,
+  "foreign_refined": 10,
+  "delivered_matrix": [
+   [
+    83,
+    28
+   ],
+   [
+    35,
+    94
+   ]
+  ],
+  "border_cargo": 53,
+  "healthy_border_all": 47,
+  "border_deals": 427,
+  "healthy_border_q": 53,
+  "co_delivered": [
+   122,
+   118
+  ],
+  "co_credit": [
+   1209.5,
+   1175.5
+  ],
+  "co_tariffs": [
+   4.5,
+   10.5
+  ],
+  "co_queue_wait": [
+   1062,
+   979
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.0,
+  "defended": true,
+  "exploit_deals": 1047,
+  "exploit_loss": 1595.2,
+  "liar_credit": null,
+  "honest_credit": 99.375,
+  "vetoes": 0,
+  "guest_charged": 2286.0,
+  "claim_swaps": 451
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 4,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 236,
+  "makespan": 1237,
+  "stranded": 2,
+  "score_k2": 236,
+  "score_k5": 230,
+  "eff_last": 2.6344452165311862,
+  "lost_cargo": 0,
+  "deals": 2068,
+  "xfers": 3208,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5130560928433269,
+  "foreign_refined": 13,
+  "delivered_matrix": [
+   [
+    74,
+    38
+   ],
+   [
+    39,
+    89
+   ]
+  ],
+  "border_cargo": 280,
+  "healthy_border_all": 266,
+  "border_deals": 1091,
+  "healthy_border_q": 280,
+  "co_delivered": [
+   112,
+   128
+  ],
+  "co_credit": [
+   1111.0,
+   1269.5
+  ],
+  "co_tariffs": [
+   10.5,
+   9.0
+  ],
+  "co_queue_wait": [
+   6693,
+   3297
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.0,
+  "defended": true,
+  "exploit_deals": 2012,
+  "exploit_loss": 6118.4,
+  "liar_credit": null,
+  "honest_credit": 99.1875,
+  "vetoes": 0,
+  "guest_charged": 5101.2,
+  "claim_swaps": 974
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 5,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 454,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 3.215696955933178,
+  "lost_cargo": 0,
+  "deals": 1146,
+  "xfers": 1800,
+  "capture": 1.0,
+  "multi_issue_frac": 0.5174520069808028,
+  "foreign_refined": 13,
+  "delivered_matrix": [
+   [
+    99,
+    27
+   ],
+   [
+    18,
+    96
+   ]
+  ],
+  "border_cargo": 94,
+  "healthy_border_all": 89,
+  "border_deals": 482,
+  "healthy_border_q": 94,
+  "co_delivered": [
+   122,
+   118
+  ],
+  "co_credit": [
+   1206.5,
+   1174.0
+  ],
+  "co_tariffs": [
+   6.0,
+   13.5
+  ],
+  "co_queue_wait": [
+   830,
+   2148
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.0,
+  "defended": true,
+  "exploit_deals": 1092,
+  "exploit_loss": 2460.3,
+  "liar_credit": null,
+  "honest_credit": 99.1875,
+  "vetoes": 0,
+  "guest_charged": 2436.4,
+  "claim_swaps": 546
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 6,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 575,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.9913175147297326,
+  "lost_cargo": 0,
+  "deals": 1289,
+  "xfers": 1913,
+  "capture": 1.0,
+  "multi_issue_frac": 0.44453064391000774,
+  "foreign_refined": 24,
+  "delivered_matrix": [
+   [
+    46,
+    31
+   ],
+   [
+    71,
+    92
+   ]
+  ],
+  "border_cargo": 132,
+  "healthy_border_all": 111,
+  "border_deals": 671,
+  "healthy_border_q": 132,
+  "co_delivered": [
+   119,
+   121
+  ],
+  "co_credit": [
+   1170.5,
+   1193.5
+  ],
+  "co_tariffs": [
+   16.5,
+   19.5
+  ],
+  "co_queue_wait": [
+   3224,
+   829
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.0,
+  "defended": true,
+  "exploit_deals": 1222,
+  "exploit_loss": 2410.0,
+  "liar_credit": null,
+  "honest_credit": 98.5,
+  "vetoes": 0,
+  "guest_charged": 3642.1,
+  "claim_swaps": 536
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 7,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 625,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.313152574429543,
+  "lost_cargo": 0,
+  "deals": 1500,
+  "xfers": 2312,
+  "capture": 1.0,
+  "multi_issue_frac": 0.49933333333333335,
+  "foreign_refined": 7,
+  "delivered_matrix": [
+   [
+    82,
+    30
+   ],
+   [
+    30,
+    98
+   ]
+  ],
+  "border_cargo": 119,
+  "healthy_border_all": 112,
+  "border_deals": 533,
+  "healthy_border_q": 119,
+  "co_delivered": [
+   111,
+   129
+  ],
+  "co_credit": [
+   1105.5,
+   1284.0
+  ],
+  "co_tariffs": [
+   6.0,
+   4.5
+  ],
+  "co_queue_wait": [
+   1758,
+   2110
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.0,
+  "defended": true,
+  "exploit_deals": 1444,
+  "exploit_loss": 3303.6,
+  "liar_credit": null,
+  "honest_credit": 99.5625,
+  "vetoes": 0,
+  "guest_charged": 2774.0,
+  "claim_swaps": 674
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 8,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 590,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.9518584939120673,
+  "lost_cargo": 0,
+  "deals": 1325,
+  "xfers": 1939,
+  "capture": 1.0,
+  "multi_issue_frac": 0.44,
+  "foreign_refined": 9,
+  "delivered_matrix": [
+   [
+    73,
+    6
+   ],
+   [
+    28,
+    133
+   ]
+  ],
+  "border_cargo": 71,
+  "healthy_border_all": 60,
+  "border_deals": 540,
+  "healthy_border_q": 71,
+  "co_delivered": [
+   98,
+   142
+  ],
+  "co_credit": [
+   975.5,
+   1411.0
+  ],
+  "co_tariffs": [
+   9.0,
+   4.5
+  ],
+  "co_queue_wait": [
+   2692,
+   1361
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.0,
+  "defended": true,
+  "exploit_deals": 1257,
+  "exploit_loss": 1577.1,
+  "liar_credit": null,
+  "honest_credit": 99.4375,
+  "vetoes": 0,
+  "guest_charged": 1845.9,
+  "claim_swaps": 551
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 9,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 536,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.2126169392825075,
+  "lost_cargo": 0,
+  "deals": 1412,
+  "xfers": 2110,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4660056657223796,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    120,
+    0
+   ],
+   [
+    0,
+    120
+   ]
+  ],
+  "border_cargo": 0,
+  "healthy_border_all": 0,
+  "border_deals": 5,
+  "healthy_border_q": 0,
+  "co_delivered": [
+   120,
+   120
+  ],
+  "co_credit": [
+   1200.0,
+   1200.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   1736,
+   1231
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.0,
+  "defended": true,
+  "exploit_deals": 1322,
+  "exploit_loss": 2388.1,
+  "liar_credit": null,
+  "honest_credit": 100.0,
+  "vetoes": 0,
+  "guest_charged": 0.0,
+  "claim_swaps": 625
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 10,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 727,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.8061663121649323,
+  "lost_cargo": 0,
+  "deals": 1516,
+  "xfers": 2302,
+  "capture": 1.0,
+  "multi_issue_frac": 0.48548812664907653,
+  "foreign_refined": 7,
+  "delivered_matrix": [
+   [
+    108,
+    33
+   ],
+   [
+    12,
+    87
+   ]
+  ],
+  "border_cargo": 96,
+  "healthy_border_all": 88,
+  "border_deals": 775,
+  "healthy_border_q": 96,
+  "co_delivered": [
+   127,
+   113
+  ],
+  "co_credit": [
+   1259.5,
+   1130.0
+  ],
+  "co_tariffs": [
+   0.0,
+   10.5
+  ],
+  "co_queue_wait": [
+   1942,
+   4982
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.0,
+  "defended": true,
+  "exploit_deals": 1447,
+  "exploit_loss": 2399.9,
+  "liar_credit": null,
+  "honest_credit": 99.5625,
+  "vetoes": 0,
+  "guest_charged": 2931.2,
+  "claim_swaps": 682
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 11,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 216,
+  "makespan": 1099,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.130832109529456,
+  "lost_cargo": 0,
+  "deals": 2249,
+  "xfers": 3346,
+  "capture": 1.0,
+  "multi_issue_frac": 0.46331702979101824,
+  "foreign_refined": 30,
+  "delivered_matrix": [
+   [
+    69,
+    32
+   ],
+   [
+    47,
+    92
+   ]
+  ],
+  "border_cargo": 175,
+  "healthy_border_all": 166,
+  "border_deals": 1249,
+  "healthy_border_q": 175,
+  "co_delivered": [
+   116,
+   124
+  ],
+  "co_credit": [
+   1137.5,
+   1217.5
+  ],
+  "co_tariffs": [
+   22.5,
+   22.5
+  ],
+  "co_queue_wait": [
+   8446,
+   3787
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.0,
+  "defended": true,
+  "exploit_deals": 2166,
+  "exploit_loss": 2963.5,
+  "liar_credit": null,
+  "honest_credit": 98.125,
+  "vetoes": 0,
+  "guest_charged": 5979.4,
+  "claim_swaps": 983
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 12,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 234,
+  "makespan": 925,
+  "stranded": 0,
+  "score_k2": 240,
+  "score_k5": 240,
+  "eff_last": 2.454513665178989,
+  "lost_cargo": 0,
+  "deals": 1949,
+  "xfers": 2868,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4448435094920472,
+  "foreign_refined": 35,
+  "delivered_matrix": [
+   [
+    79,
+    50
+   ],
+   [
+    48,
+    63
+   ]
+  ],
+  "border_cargo": 165,
+  "healthy_border_all": 151,
+  "border_deals": 1127,
+  "healthy_border_q": 165,
+  "co_delivered": [
+   130,
+   110
+  ],
+  "co_credit": [
+   1271.5,
+   1076.0
+  ],
+  "co_tariffs": [
+   24.0,
+   28.5
+  ],
+  "co_queue_wait": [
+   2254,
+   5778
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.0,
+  "defended": true,
+  "exploit_deals": 1875,
+  "exploit_loss": 3084.0,
+  "liar_credit": null,
+  "honest_credit": 97.8125,
+  "vetoes": 0,
+  "guest_charged": 5785.1,
+  "claim_swaps": 784
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 13,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 381,
+  "stranded": 2,
+  "score_k2": 236,
+  "score_k5": 230,
+  "eff_last": 3.4293382095105045,
+  "lost_cargo": 0,
+  "deals": 1000,
+  "xfers": 1489,
+  "capture": 1.0,
+  "multi_issue_frac": 0.46,
+  "foreign_refined": 3,
+  "delivered_matrix": [
+   [
+    98,
+    9
+   ],
+   [
+    21,
+    112
+   ]
+  ],
+  "border_cargo": 49,
+  "healthy_border_all": 40,
+  "border_deals": 366,
+  "healthy_border_q": 49,
+  "co_delivered": [
+   116,
+   124
+  ],
+  "co_credit": [
+   1160.0,
+   1235.5
+  ],
+  "co_tariffs": [
+   4.5,
+   0.0
+  ],
+  "co_queue_wait": [
+   1875,
+   377
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.0,
+  "defended": true,
+  "exploit_deals": 953,
+  "exploit_loss": 1703.6,
+  "liar_credit": null,
+  "honest_credit": 99.8125,
+  "vetoes": 0,
+  "guest_charged": 1997.4,
+  "claim_swaps": 431
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 14,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 432,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 3.961414366630892,
+  "lost_cargo": 0,
+  "deals": 851,
+  "xfers": 1302,
+  "capture": 1.0,
+  "multi_issue_frac": 0.500587544065805,
+  "foreign_refined": 16,
+  "delivered_matrix": [
+   [
+    107,
+    15
+   ],
+   [
+    16,
+    102
+   ]
+  ],
+  "border_cargo": 33,
+  "healthy_border_all": 31,
+  "border_deals": 375,
+  "healthy_border_q": 33,
+  "co_delivered": [
+   119,
+   121
+  ],
+  "co_credit": [
+   1181.0,
+   1195.0
+  ],
+  "co_tariffs": [
+   15.0,
+   9.0
+  ],
+  "co_queue_wait": [
+   323,
+   1853
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.0,
+  "defended": true,
+  "exploit_deals": 812,
+  "exploit_loss": 1266.5,
+  "liar_credit": null,
+  "honest_credit": 99.0,
+  "vetoes": 0,
+  "guest_charged": 1932.0,
+  "claim_swaps": 394
+ },
+ {
+  "arm": "trust-gated-hz",
+  "sigma": 0.5,
+  "seed": 15,
+  "tau": 0.15,
+  "tau1": 0.15,
+  "preset": "v5",
+  "delivered": 240,
+  "delivered_mid": 240,
+  "makespan": 602,
+  "stranded": 1,
+  "score_k2": 238,
+  "score_k5": 235,
+  "eff_last": 2.544129770609725,
+  "lost_cargo": 0,
+  "deals": 1339,
+  "xfers": 2014,
+  "capture": 1.0,
+  "multi_issue_frac": 0.4705003734129948,
+  "foreign_refined": 0,
+  "delivered_matrix": [
+   [
+    106,
+    32
+   ],
+   [
+    8,
+    94
+   ]
+  ],
+  "border_cargo": 86,
+  "healthy_border_all": 82,
+  "border_deals": 469,
+  "healthy_border_q": 86,
+  "co_delivered": [
+   114,
+   126
+  ],
+  "co_credit": [
+   1140.0,
+   1260.0
+  ],
+  "co_tariffs": [
+   0.0,
+   0.0
+  ],
+  "co_queue_wait": [
+   1273,
+   2249
+  ],
+  "noise": 0.0,
+  "liar_frac": 0.0,
+  "defended": true,
+  "exploit_deals": 1283,
+  "exploit_loss": 2297.4,
+  "liar_credit": null,
+  "honest_credit": 100.0,
+  "vetoes": 0,
+  "guest_charged": 2426.8,
+  "claim_swaps": 588
+ }
+]

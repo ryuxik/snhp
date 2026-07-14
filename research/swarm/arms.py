@@ -271,11 +271,47 @@ class SnhpArm(BaseArm):
         jitter = self.w.rng.normal(0.0, s_, size=len(u))
         return batna + (u - batna) * (1.0 + bias + jitter)
 
+    def _reported(self, r, batna, u):
+        """v6 reporting layer: a liar inflates its BATNA by LIE_LAMBDA of its
+        best achievable gain this encounter (uniform surplus scaling is
+        Nash-neutral, so the disagreement point is the meaningful lie).
+        Attested robots report truth by definition."""
+        if not r.liar or r.attested:
+            return batna
+        feas = np.isfinite(u)
+        if not feas.any():
+            return batna
+        best = float(u[feas].max()) - batna
+        return batna + W.LIE_LAMBDA * max(0.0, best)
+
+    def _distrust_mask(self, me, partner, u, batna):
+        """v6 defense: facing an UNattested partner, demand a safety margin
+        of DISTRUST_DELTA × own best gain — the distrust tax."""
+        if not self.w.defended or partner.attested:
+            return u
+        feas = np.isfinite(u)
+        if not feas.any():
+            return u
+        need = W.DISTRUST_DELTA * max(0.0, float(u[feas].max()) - batna)
+        out = u.copy()
+        out[(u - batna) < need] = -np.inf
+        return out
+
     def encounter(self, a, b) -> bool:
         w = self.w
         batna_a, batna_b = phi(a, w), phi(b, w)
         ua, ub = self._evaluate(a, b)
-        if self.noise <= 0:
+        rep_a = self._reported(a, batna_a, ua)
+        rep_b = self._reported(b, batna_b, ub)
+        if w.defended or a.liar or b.liar:
+            ua_m = self._distrust_mask(a, b, ua, batna_a)
+            ub_m = self._distrust_mask(b, a, ub, batna_b)
+            sol = self._pick(ua_m, ub_m, rep_a, rep_b, a, b)
+            # BATNA inflation only makes the liar pickier — any picked bundle
+            # exceeds the TRUE batnas of both sides by construction
+            if sol is not None:
+                assert ua[sol] - batna_a > 0 and ub[sol] - batna_b > 0
+        elif self.noise <= 0:
             sol = self._pick(ua, ub, batna_a, batna_b, a, b)
         else:
             # proposer a: own truth + noisy view of b; b vetoes true losses
@@ -356,6 +392,58 @@ class TwoFirmArm(SnhpArm):
         return SnhpArm._pick(self, ua, ub, batna_a, batna_b, a, b)
 
 
+class TrustArm(SnhpArm):
+    """v6.1: attestation gates the COOPERATIVE tier. Trusted pairs get the
+    joint argmax over REPORTED utilities with NO veto (that is what trust
+    means — and why it is exploitable); everyone else gets Nash-IR with the
+    true-loss guarantee. `gated=False` = naive cooperation (everyone
+    trusted); `gated=True` = only attested↔attested pairs are trusted."""
+    name = "trust"
+
+    def __init__(self, w: W.World, gated: bool,
+                 issues=("cargo", "energy", "sector")):
+        super().__init__(w, issues=issues)
+        self.gated = gated
+        self.exploit_deals = 0          # executed deals with a true loser
+        self.exploit_loss = 0.0
+
+    def _report_joint(self, r, batna, u):
+        """Joint-tier lie: inflate reported surplus ×(1+LIE_LAMBDA)."""
+        if not r.liar:
+            return u
+        out = u.copy()
+        feas = np.isfinite(u)
+        out[feas] = batna + (u[feas] - batna) * (1.0 + W.LIE_LAMBDA)
+        return out
+
+    def encounter(self, a, b) -> bool:
+        w = self.w
+        batna_a, batna_b = phi(a, w), phi(b, w)
+        ua, ub = self._evaluate(a, b)
+        trusted = (a.attested and b.attested) if self.gated else True
+        if trusted:
+            ra = self._report_joint(a, batna_a, ua)
+            rb = self._report_joint(b, batna_b, ub)
+            sol = TeamArm._pick(self, ra, rb, batna_a, batna_b, a, b)
+        else:
+            sol = SnhpArm._pick(self, ua, ub, batna_a, batna_b, a, b)
+        if sol is None:
+            return False
+        q, e, s_ = int(self.space[sol][0]), float(self.space[sol][1]), int(self.space[sol][2])
+        apply_bundle(w, a, b, q, e, s_, log=True)
+        sa, sb = float(ua[sol] - batna_a), float(ub[sol] - batna_b)
+        if trusted and min(sa, sb) < 0:     # exploitation: no veto up here
+            self.exploit_deals += 1
+            self.exploit_loss += -min(sa, sb)
+        w.deal_log.append(dict(
+            tick=w.tick, a=a.rid, b=b.rid, q=q, e=e, s=s_,
+            a_co=a.company, b_co=b.company,
+            border=int(a.company != b.company),
+            distress=0, sa=sa, sb=sb, capture=1.0))
+        self.deals += 1
+        return True
+
+
 def make_arm(name: str, w: W.World, issues=("cargo", "energy", "sector"),
              noise: float = 0.0):
     arms = {"null": NullArm, "rules": RulesArm, "auction": AuctionArm,
@@ -369,4 +457,8 @@ def make_arm(name: str, w: W.World, issues=("cargo", "energy", "sector"),
         return SnhpArm(w, issues=issues, noise=noise)
     if name == "snhp+net":
         return SnhpArm(w, issues=issues, safety_net=True, noise=noise)
+    if name == "trust-open":
+        return TrustArm(w, gated=False, issues=issues)
+    if name == "trust-gated":
+        return TrustArm(w, gated=True, issues=issues)
     raise ValueError(f"unknown arm {name!r}")

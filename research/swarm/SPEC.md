@@ -346,6 +346,105 @@ delivered unit vs the committed sweep artifacts, so column C re-runs its
 own same-code v4-preset anchor cells rather than reading sweep_v4_A.json
 (provenance: old artifacts reproduce at commit 279b21e).
 
+## v6 — strategic lies vs attestation (FINAL, pre-run)
+
+v5 established that estimation NOISE cannot kill the market (the veto does
+the work of trust). v6 tests what noise is not: DECEPTION. Robots may now
+misreport strategically; attestation (verifiable books — the abstract
+in-sim version of the engine's signed-state rails) is the countermeasure.
+This is the incentive-compatibility experiment the arena work predicted
+("the multi-issue edge is attestation-gated").
+
+### Mechanics (one lie channel, one defense)
+
+- **The lie:** BATNA inflation — the canonical bargaining lie. A liar
+  reports d̂ = d + λ·(its best achievable surplus in this encounter),
+  λ=0.5. Uniform surplus-scaling is Nash-neutral (cancels in the product),
+  so BATNA inflation is the strategically meaningful channel: it shifts
+  the split toward the liar and kills marginal deals. Reports enter the
+  Nash pick; the TRUE-loss veto stays (nobody accepts a real loss), so
+  lying redistributes surplus and destroys trades — it cannot poison an
+  executed deal.
+- **Attestation:** an attested robot's report is verifiably true (in-sim:
+  the flag forces truthful reporting; in-product: signed state). Liars by
+  definition cannot attest while lying.
+- **The defense (distrust tax):** against an UNattested counterparty, a
+  robot only accepts bundles paying it ≥ δ·(its best achievable surplus),
+  δ=0.25 — a safety margin against presumed inflation. Attested pairs
+  trade margin-free. The tax is itself a friction; whether it costs more
+  than the lies it deflects is genuinely open.
+
+### Conditions (v5 stage, no estimation noise — deception isolated)
+
+honest-all (baseline) · liars at f ∈ {0.25, 0.5, 1.0}, no defenses ·
+attested-all (mechanical recovery check) · **mixed-market**: same liar
+fractions, honest robots attested, distrust tax active. Arms: snhp-hz and
+snhp+net (the two IR champions); team/auction unaffected by reports (no
+reports consumed) run as constants. σ=0.5, 16 seeds, liar assignment
+seeded and company-balanced (placebo preserved).
+
+### Pre-registered predictions (P10)
+
+- **P10a (lying pays, alone):** without defenses, liars out-earn honest
+  robots within-run at f=0.25 (per-robot credit), while SYSTEM delivered
+  falls with f — individual incentive, collective tax: the unraveling
+  gradient.
+- **P10b (collapse):** at f=1.0 undefended, deal formation collapses
+  toward the null/rules regime (deals down by >50% vs honest; delivered
+  within noise of the rules arm) — mutual BATNA inflation empties the
+  feasible set.
+- **P10c (mechanical recovery):** attested-all ≡ honest-all exactly (same
+  trajectories, pinned as a test).
+- **P10d (THE claim):** in mixed markets, attestation + distrust tax
+  (i) recovers ≥50% of the deception tax on system delivered, and
+  (ii) FLIPS the individual incentive — attested honest robots out-earn
+  liars at every f. Two-sided risk, stated: the distrust tax may cost
+  more than the lies it deflects (net-negative defense), which would kill
+  the "rails pay for themselves" framing.
+- **KILL:** if P10d(ii) fails everywhere — lying still pays under
+  attestation — the attestation-gated thesis dies in its own benchmark;
+  report as the headline regardless of how embarrassing.
+
+## v6.1 — attestation gates COOPERATION (FINAL, pre-run)
+
+v6.0's pre-registered KILL fired: in Nash-IR bargaining the true-loss veto
+already provides the protection attestation was supposed to add (lying is
+near-harmless and near-profitless there — an intrinsic lie-tolerance
+result). The arena finding says where attestation actually matters: the
+JOINT tier. Cooperative picks maximize the SUM of reported utilities and
+execute without a veto — that is what trusting a counterparty means — so
+inflated reports can genuinely exploit. v6.1 tests attestation as the GATE
+to that tier.
+
+### Mechanics
+
+- **Trust-tier arm** (hazard Φ, v5 stage): if the pair qualifies as
+  trusted, pick = joint argmax over REPORTED utilities, NO veto; else pick
+  = Nash-IR on reports with the true-loss guarantee.
+- **The lie (joint-tier form):** liars inflate reported per-bundle surplus
+  ×1.5 (û = d + 1.5·(u−d)) — BATNA lies don't hijack a joint argmax;
+  utility inflation does.
+- **Conditions:** `trust-open` (everyone gets the joint tier — naive
+  cooperation), `trust-gated` (joint tier only for attested↔attested;
+  liars can't attest → they get Nash-IR), nash-only baseline (v6.0 rows).
+  f ∈ {0.25, 0.5}, σ=0.5, 16 seeds, company-balanced liars.
+
+### Pre-registered predictions (P11)
+
+- **P11a (cooperation is exploitable):** in trust-open with liars, honest
+  robots execute true-loss deals (>0 per run, impossible under IR) and
+  liars out-earn honest robots significantly (adv > +10 credit).
+- **P11b (the gate works):** in trust-gated, exploitation deals drop to 0
+  between honest pairs, and the liar advantage reverses or vanishes —
+  liars are relegated to the IR tier and lose the cooperation dividend.
+- **P11c (the dividend is real):** gated honest fleets outperform the
+  nash-only baseline on system delivered/makespan — else gating protects
+  nothing worth having.
+- **KILL:** liars don't out-earn in trust-open (cooperation not
+  exploitable here) OR gating fails to remove the advantage → the
+  attestation-gated-cooperation thesis fails in embodied form; headline
+  the failure.
+
 ## v4 PLAN — structural ownership + refining tariffs (SUPERSEDED DRAFT, kept for audit)
 
 Mixed ownership becomes PHYSICS, and refining prices become the market force.
