@@ -3,11 +3,16 @@ quote a declarative JSON menu spec. The missing product brick: an external
 agent can run the F1-validated general engine on THEIR menu without
 installing anything.
 
-One format everywhere: `spec` is exactly core.api.build_graph's declarative
-spec — the same JSON the public "run it on your own menu" page
-(arena/web/yourmenu.js) hands to the JS mirror's buildGraph and the same dict
-the Python engine accepts:
+BOTH formats accepted. `spec` may be either the RAW `dims` offer-graph spec
+(exactly core.api.build_graph's declarative dict) OR the FRIENDLY menu the
+public "run it on your own menu" page (arena/web/yourmenu.js) has a shop owner
+PASTE — the one an external agent reading that page would POST back. A spec
+carrying `items` is compiled through gametheory.server.menu_spec.friendly_to_dims
+(a field-for-field port of the page's own menuToSpec) BEFORE validation, so the
+hosted engine prices a pasted menu identically to the page; a spec carrying
+`dims` is used as-is.
 
+    RAW dims spec (the engine's native format):
     {"name": "corner coffee cart",
      "dims": [
        {"id": "item", "kind": "choice", "options": [
@@ -21,6 +26,14 @@ the Python engine accepts:
      "deps": {"valid_on": {...}, "requires": {...}, "excludes": {...}},
      "cost": ["const", "salvage_on_expiry", "scarcity_shadow",
               {"batch_economies": {"setup": 1.0, "marginal": 0.2}}]}
+
+    FRIENDLY pasted menu (what yourmenu.js accepts; compiled to the above):
+    {"name": "corner coffee cart",
+     "items":  [{"id": "oat-latte", "price": 5.25, "cost": 1.20}, ...],
+     "addons": [{"id": "extra-shot", "price": 1.00, "cost": 0.28}, ...],
+     "preferences": [{"id": "cup", "options": [{"id": "for-here"}, ...]}],
+     "slots":  [{"id": "now", "minutes": 0}, {"id": "in-20", "minutes": 20}],
+     "max_qty": 3}
 
 Three endpoints — stateless, no persistence, free-tier math:
 
@@ -67,6 +80,7 @@ from core.offer_graph import (MAX_ADDON_OPTIONS, DimKind, Dimension,
 from core.profiler import _default_config, _variants
 from core.profiler import profile as _core_profile
 from core.state import ShopState
+from gametheory.server.menu_spec import friendly_to_dims, is_friendly
 
 router = APIRouter(prefix="/v1/offer", tags=["offer"])
 
@@ -158,13 +172,33 @@ class DepsSpec(BaseModel):
 
 
 class MenuSpec(BaseModel):
-    """core.api.build_graph's declarative spec, validated for hosting."""
+    """core.api.build_graph's declarative spec, validated for hosting.
+
+    DUAL-ACCEPT: a body carrying `items` is the FRIENDLY pasted menu (what
+    arena/web/yourmenu.js accepts) and is compiled to the raw `dims` spec via
+    menu_spec.friendly_to_dims before the hosting checks below run — so the
+    hosted engine takes the exact JSON an agent reads off that page. A body
+    carrying `dims` is the native spec and passes through untouched."""
     model_config = ConfigDict(extra="forbid")
     name: str = Field(default="", max_length=120)
     dims: list[DimSpec] = Field(min_length=1, max_length=MAX_DIMS)
     deps: DepsSpec = Field(default_factory=DepsSpec)
     cost: list[str | dict] = Field(default_factory=lambda: ["const"],
                                    max_length=MAX_COST_ENTRIES)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_friendly(cls, data):
+        """Friendly menu (has `items`) → raw dims spec, before field checks.
+        friendly_to_dims raises a ValueError (friendly, multi-problem) that
+        pydantic surfaces as the 422, exactly like the page's error list."""
+        if is_friendly(data):
+            if "dims" in data:
+                raise ValueError(
+                    "send either the friendly 'items' menu or the raw 'dims' "
+                    "spec, not both")
+            return friendly_to_dims(data)
+        return data
 
     @model_validator(mode="after")
     def _validate(self) -> "MenuSpec":

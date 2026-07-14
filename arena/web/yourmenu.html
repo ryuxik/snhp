@@ -218,6 +218,10 @@
     background:#0d0a1a; border:1px solid var(--line); border-radius:10px; padding:12px 14px;
     white-space:pre; tab-size:2;
   }
+  .take .curl-note { font-size:11.5px; color:var(--dim); margin:2px 0 8px; line-height:1.6; }
+  .take .curl-note b { color:var(--ink); }
+  .take .curl-note code { color:var(--gold); background:rgba(255,224,138,.07); border-radius:4px; padding:1px 5px; font-size:11px; }
+  .take .curl-sub { font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--violet); font-weight:700; margin:14px 0 2px; }
 
   /* ── footer ───────────────────────────────────────────────────────────── */
   .honesty {
@@ -253,9 +257,12 @@
     <p class="sub"><b>What we can and can't know from a pasted menu:</b> FREE is proven from
     <i>your own numbers</i> — zero cost spread means there is never a cost basis to price that
     choice, whatever your demand looks like. LEVER means your inputs show real cost asymmetry,
-    so a deal <i>exists to be found</i> — but its dollar size depends on <i>your</i> customers'
-    flexibility, which no webpage can know. The quotes below use a stated example shopper;
-    your real numbers come from a shadow pilot on your actual order flow, not from us guessing.</p>
+    so a deal <i>exists to be found</i>. The big one — a later pickup that clears your rush —
+    pays off in proportion to how many of your customers are <i>flexible</i>, and we don't guess
+    that: we <b>offer them the choice, and the flexible ones take it</b> (they self-select), with
+    an attestation that the later slot they picked is the one they actually use. The quotes below
+    use a stated example shopper; your real dollars are what your customers reveal by taking (or
+    not taking) the offer — measured on your own order flow, not modelled by us.</p>
   </header>
 
   <!-- ── 1 · paste ─────────────────────────────────────────────────────── -->
@@ -300,6 +307,7 @@
             <li><code>name</code>, <code>currency</code> — display only.</li>
           </ul>
           <p>Limits: ≤ 40 items, ≤ 8 options per preference, ids unique across the whole menu, ≤ 300,000 enumerable configurations. Not exposed here (but in the engine): <code>batch_economies</code> (a per-order setup cost that makes quantity a real per-unit lever) and dependency edges (<code>requires</code>/<code>excludes</code>) — see <code>core/js/api.mjs</code>.</p>
+          <p><b>Same format, hosted.</b> This is exactly the JSON the deployed engine's HTTP API takes too — POST it as <code>{"spec": … }</code> to <code>api.snhp.dev/v1/offer/{profile,quote}</code> and the server compiles it with the same rules (smaller hosting caps: ≤ 12 options per dimension, ≤ 20,000 configurations). One format, page and API — the ready <code>curl</code> is under “Take it with you” below.</p>
         </div>
       </details>
     </div>
@@ -397,7 +405,7 @@
     <!-- ── 4 · take it with you ────────────────────────────────────────── -->
     <section class="sec take" aria-labelledby="h-take">
       <h2 id="h-take"><span class="n" aria-hidden="true">4 ·</span> Take it with you</h2>
-      <p class="lede">The engine is a plain, dependency-free JS module. Three copy-paste paths: your menu as data, the engine pricing it in node, and a prompt that hands your menu to an AI agent.</p>
+      <p class="lede">The engine runs anywhere. Four copy-paste paths — the <b>same friendly menu</b>, whichever you pick: your menu as data, the engine pricing it in node, a prompt that hands your menu to an AI agent, and a hosted <code style="font-size:inherit">curl</code> to the deployed engine.</p>
 
       <details open>
         <summary>a · your menu (the exact JSON you ran)</summary>
@@ -420,6 +428,19 @@
         <div class="d-body">
           <div class="copy-row"><button type="button" data-copy="code-agent">copy prompt</button></div>
           <pre id="code-agent" tabindex="0"></pre>
+        </div>
+      </details>
+
+      <details>
+        <summary>d · call the deployed engine — hosted HTTP (nothing installed)</summary>
+        <div class="d-body">
+          <p class="curl-note">The <b>same friendly menu you pasted</b>, POSTed to the deployed general engine at <code>api.snhp.dev</code> — it accepts this exact format (no separate spec to learn). <code>/profile</code> returns the FREE/LEVER verdicts from section 2; <code>/quote</code> runs the same search as the node snippet above — the engine's best deal for the simulated shopper — so the hosted reply is what “price it yourself” prints, with nothing installed.</p>
+          <p class="curl-sub">profile — FREE vs LEVER per dimension</p>
+          <div class="copy-row"><button type="button" data-copy="code-curl-profile">copy curl</button></div>
+          <pre id="code-curl-profile" tabindex="0"></pre>
+          <p class="curl-sub">quote — the Nash split, discount-only (never above list)</p>
+          <div class="copy-row"><button type="button" data-copy="code-curl-quote">copy curl</button></div>
+          <pre id="code-curl-quote" tabindex="0"></pre>
         </div>
       </details>
     </section>

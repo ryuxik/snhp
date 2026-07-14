@@ -760,6 +760,52 @@ export function agentPrompt(menu, profiled, rawJson) {
   return lines.join("\n");
 }
 
+// The DEPLOYED twin of the node snippet: the SAME friendly menu you pasted,
+// POSTed to the hosted general engine (gametheory/server/offer_api.py, which
+// now dual-accepts this friendly format via friendly_to_dims). /profile
+// returns the verdicts shown in section 2; /quote runs the same search the
+// node snippet runs (the engine's best deal for the simulated shopper) — so
+// the hosted response is byte-for-byte what "price it yourself" prints, with
+// nothing installed. `rawMenu` is the exact friendly paste (the spec body);
+// the state/buyer are built from the same makeState/makeBuyer the page uses.
+export const API_BASE = "https://api.snhp.dev";
+
+export function hostedCurl(menu, scenario, cart, rawMenu, apiBase = API_BASE) {
+  const st = makeState(menu, scenario);
+  const state = {
+    tick: st.tick,
+    inventory: st.inventory,
+    capacity: Object.fromEntries([...st.capacity.entries()]),
+    expiring: [...st.expiring],
+    expected_demand: st.expected_demand,
+  };
+  const buyer = makeBuyer(menu, scenario, cart);
+  const values = {};
+  for (const [k, v] of buyer.values.entries()) {
+    const i = k.indexOf(SEP);
+    const dim = k.slice(0, i), opt = k.slice(i + 1);
+    (values[dim] || (values[dim] = {}))[opt] = round2(v);
+  }
+  const buyerJson = {
+    values,
+    qty_decay: buyer.qty_decay,
+    outside: buyer.outside,
+    balk: buyer.balk,
+    defer: Object.fromEntries([...buyer.defer.entries()]),
+  };
+  const curl = (path, obj) =>
+    `curl -sS ${apiBase}/v1/offer/${path} \\\n` +
+    `  -H 'content-type: application/json' \\\n` +
+    `  -d '${JSON.stringify(obj, null, 2)}'`;
+  return {
+    profile: curl("profile", { spec: rawMenu, state }),
+    quote: curl("quote", {
+      spec: rawMenu, state, buyer: buyerJson,
+      opts: { min_price_frac: menu.min_price_frac },
+    }),
+  };
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 //  BROWSER — the page. (Nothing below runs under node.)
 // ════════════════════════════════════════════════════════════════════════════
@@ -1059,6 +1105,11 @@ function boot() {
     $("code-json").textContent = RAW_JSON.trim();
     $("code-node").textContent = nodeSnippet(MENU, SCN, CART);
     $("code-agent").textContent = agentPrompt(MENU, PROF, RAW_JSON);
+    let rawMenu;
+    try { rawMenu = JSON.parse(RAW_JSON); } catch (e) { rawMenu = MENU; }
+    const hc = hostedCurl(MENU, SCN, CART, rawMenu);
+    $("code-curl-profile").textContent = hc.profile;
+    $("code-curl-quote").textContent = hc.quote;
   }
 
   function copyFrom(preId, btn) {
