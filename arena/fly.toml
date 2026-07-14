@@ -24,6 +24,11 @@ primary_region = "sjc"
   LOG_LEVEL = "info"
   ARENA_DATA_DIR = "/data"
   ARENA_PERSIST = "1"
+  # The LIVE twin-street experiment: one sim-day per 2 minutes, telemetry JSONL
+  # on the persistent volume (defaults under ARENA_DATA_DIR). Every day-record
+  # is reproducible: python3 -m block.live --seed S --season N --day D
+  BLOCK_LIVE = "1"
+  BLOCK_LIVE_SECS_PER_DAY = "120"
 
 [http_service]
   internal_port = 8080

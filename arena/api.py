@@ -378,17 +378,26 @@ if os.environ.get("BLOCK_LIVE") == "1":
             BLOCK_BCAST.unregister(q)
 
 
-# ── the LEADERBOARD is the flagship: the root serves it. The evolution sim
-# (the lab that breeds the champion row) lives at /world.
+# ── the FUNNEL entry: the root serves the consumer hook (feel it), with the
+# live block (watch it) and your-menu (run yours) one tab away; the leaderboard
+# and the evolution sim live in the science room. Old URLs all still work.
 @app.get("/")
 def root() -> RedirectResponse:
-    return RedirectResponse("/leaderboard.html", status_code=302)
+    return RedirectResponse("/hook.html", status_code=302)
 
 
 @app.get("/world")
 def world() -> FileResponse:
     return FileResponse(os.path.join(os.path.dirname(__file__), "web", "index.html"))
 
+
+# The funnel pages (hook.html, yourmenu.html) import the general JS engine via
+# `../../core/js/*.mjs`, which the browser normalizes to /core/js/* — serve the
+# repo's core/js there (works identically on the repo-root dev server). Mounted
+# BEFORE the catch-all so it wins the prefix match.
+_CORE_JS = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "js")
+if os.path.isdir(_CORE_JS):
+    app.mount("/core/js", StaticFiles(directory=_CORE_JS), name="corejs")
 
 # Serve the renderer SPA same-origin; /arena/* and /health matched first.
 _WEB = os.path.join(os.path.dirname(__file__), "web")

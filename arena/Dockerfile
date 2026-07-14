@@ -22,6 +22,20 @@ COPY pyproject.toml README.md ./
 COPY gametheory/ ./gametheory/
 COPY snhp/ ./snhp/
 COPY arena/ ./arena/
+# The general offer-graph engine: core/js is served at /core/js for the funnel
+# pages (hook/yourmenu); core/ python backs the block-live adapters.
+COPY core/ ./core/
+# The LIVE twin-street experiment (BLOCK_LIVE=1): block/ + the vertical sims its
+# venue adapters import (venues.py/bundles.py: bakeshop boba buyer fashion slots
+# vend vintage).
+COPY block/ ./block/
+COPY bakeshop/ ./bakeshop/
+COPY boba/ ./boba/
+COPY buyer/ ./buyer/
+COPY fashion/ ./fashion/
+COPY slots/ ./slots/
+COPY vend/ ./vend/
+COPY vintage/ ./vintage/
 
 RUN python -m venv /venv \
  && /venv/bin/pip install --upgrade pip \
@@ -43,6 +57,15 @@ COPY --from=builder /venv /venv
 COPY --from=builder /build/gametheory ./gametheory
 COPY --from=builder /build/snhp ./snhp
 COPY --from=builder /build/arena ./arena
+COPY --from=builder /build/core ./core
+COPY --from=builder /build/block ./block
+COPY --from=builder /build/bakeshop ./bakeshop
+COPY --from=builder /build/boba ./boba
+COPY --from=builder /build/buyer ./buyer
+COPY --from=builder /build/fashion ./fashion
+COPY --from=builder /build/slots ./slots
+COPY --from=builder /build/vend ./vend
+COPY --from=builder /build/vintage ./vintage
 COPY --from=builder /build/pyproject.toml ./pyproject.toml
 
 RUN mkdir -p /data && chown -R arena:arena /app /data
