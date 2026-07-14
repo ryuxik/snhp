@@ -29,8 +29,8 @@ import sys
 import numpy as np
 
 from swarm import world as W
-from swarm.value import (delivery_target, phi, safe_return_threshold,
-                         stranding_hazard, update_ev)
+from swarm.value import (delivery_target, phi, phi_true,
+                         safe_return_threshold, stranding_hazard, update_ev)
 
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 _SNHP = os.path.join(_ROOT, "snhp")
@@ -56,15 +56,15 @@ def intent(r, w):
     if r.stranded:
         return None
     charger, _ = w.nearest_charger(r)
-    if r.charge_queued_at >= 0 and r.battery < 0.95 * W.BATTERY_MAX:
+    if r.charge_queued_at >= 0 and r.bat() < 0.95 * W.BATTERY_MAX:
         return charger
     if r.load > 0:
         ref = delivery_target(r, w)             # sticky (hysteresis)
         dest = w.refineries[ref]
         cost = W.manhattan(r.pos, dest) * r.eff * (1 + W.LOADED_MULT)
-        return dest if r.battery > cost else charger
+        return dest if r.bat() > cost else charger
     r.target_ref = None
-    if r.battery < safe_return_threshold(r, w):
+    if r.bat() < safe_return_threshold(r, w):
         return charger
     if w.stock[r.sector] <= 0:                  # claim depleted → re-claim
         r.sector = w.best_claim(r)
@@ -297,10 +297,25 @@ class SnhpArm(BaseArm):
         out[(u - batna) < need] = -np.inf
         return out
 
+    def _self_mask(self, u, batna):
+        """v7 defense: demand believed surplus >= DISTRUST_DELTA x own best —
+        the distrust tax aimed inward, at one's own sensor error."""
+        if not self.w.self_margin:
+            return u
+        feas = np.isfinite(u)
+        if not feas.any():
+            return u
+        need = W.DISTRUST_DELTA * max(0.0, float(u[feas].max()) - batna)
+        out = u.copy()
+        out[(u - batna) < need] = -np.inf
+        return out
+
     def encounter(self, a, b) -> bool:
         w = self.w
         batna_a, batna_b = phi(a, w), phi(b, w)
         ua, ub = self._evaluate(a, b)
+        ua = self._self_mask(ua, batna_a)
+        ub = self._self_mask(ub, batna_b)
         rep_a = self._reported(a, batna_a, ua)
         rep_b = self._reported(b, batna_b, ub)
         if w.defended or a.liar or b.liar:
@@ -333,6 +348,7 @@ class SnhpArm(BaseArm):
         q, e, s = int(self.space[sol][0]), float(self.space[sol][1]), int(self.space[sol][2])
         distress = (a.stranded or b.stranded
                     or stranding_hazard(a, w) > 0.5 or stranding_hazard(b, w) > 0.5)
+        self._true_pre = (phi_true(a, w), phi_true(b, w))
         apply_bundle(w, a, b, q, e, s, log=True)
         assert abs(phi(a, w) - ua[sol]) < 1e-9 and abs(phi(b, w) - ub[sol]) < 1e-9, \
             "executed state diverged from evaluated bundle"
@@ -341,11 +357,15 @@ class SnhpArm(BaseArm):
         feasible = np.isfinite(surplus)
         joint_best = float(surplus[feasible].max())
         achieved = float(surplus[sol])
+        ta0, tb0 = self._true_pre if hasattr(self, "_true_pre") else (None, None)
         w.deal_log.append(dict(
             tick=w.tick, a=a.rid, b=b.rid, q=q, e=e, s=s,
             a_co=a.company, b_co=b.company,
+            a_liar=int(a.liar), b_liar=int(b.liar),
             border=int(a.company != b.company), distress=int(distress),
             sa=float(ua[sol] - batna_a), sb=float(ub[sol] - batna_b),
+            sa_true=(float(phi_true(a, w) - ta0) if ta0 is not None else None),
+            sb_true=(float(phi_true(b, w) - tb0) if tb0 is not None else None),
             capture=achieved / joint_best if joint_best > 1e-12 else 1.0))
         self.deals += 1
         return True
@@ -404,8 +424,11 @@ class TrustArm(SnhpArm):
                  issues=("cargo", "energy", "sector")):
         super().__init__(w, issues=issues)
         self.gated = gated
-        self.exploit_deals = 0          # executed deals with a true loser
+        self.exploit_deals = 0          # all no-veto true-loss executions
         self.exploit_loss = 0.0
+        self.strip_deals = 0            # v6.2: liar gains while honest loses
+        self.strip_loss = 0.0
+        self.sacrifice_deals = 0        # benign joint-max losses
 
     def _report_joint(self, r, batna, u):
         """Joint-tier lie: inflate reported surplus ×(1+LIE_LAMBDA)."""
@@ -432,12 +455,20 @@ class TrustArm(SnhpArm):
         q, e, s_ = int(self.space[sol][0]), float(self.space[sol][1]), int(self.space[sol][2])
         apply_bundle(w, a, b, q, e, s_, log=True)
         sa, sb = float(ua[sol] - batna_a), float(ub[sol] - batna_b)
-        if trusted and min(sa, sb) < 0:     # exploitation: no veto up here
+        if trusted and min(sa, sb) < 0:     # no veto up here — attribute it
             self.exploit_deals += 1
             self.exploit_loss += -min(sa, sb)
+            honest_loses = (sa < 0 and not a.liar) or (sb < 0 and not b.liar)
+            liar_gains = (sa > 0 and a.liar) or (sb > 0 and b.liar)
+            if honest_loses and liar_gains:
+                self.strip_deals += 1
+                self.strip_loss += -min(sa, sb)
+            else:
+                self.sacrifice_deals += 1
         w.deal_log.append(dict(
             tick=w.tick, a=a.rid, b=b.rid, q=q, e=e, s=s_,
             a_co=a.company, b_co=b.company,
+            a_liar=int(a.liar), b_liar=int(b.liar),
             border=int(a.company != b.company),
             distress=0, sa=sa, sb=sb, capture=1.0))
         self.deals += 1

@@ -48,7 +48,7 @@ def delivery_target(r, w, from_pos=None, sticky: bool = True) -> int:
 def stranding_hazard(r, w) -> float:
     """P(strand soon), smooth in the energy margin to the charger (-hz Φ)."""
     _, d = w.nearest_charger(r)
-    margin = r.battery - d * r.step_cost()
+    margin = r.bat() - d * r.step_cost()
     return 1.0 / (1.0 + math.exp(margin / W.HAZARD_SCALE))
 
 
@@ -69,7 +69,7 @@ def _future_trips_value(r, w) -> float:
         leg = W.manhattan(src, w.refineries[ref])
         approach = W.manhattan(r.pos, src) * r.eff
         cycle_cost = 2 * leg * r.eff * (1 + W.LOADED_MULT / 2)
-        spare = max(0.0, r.battery - approach - 0.15 * W.BATTERY_MAX)
+        spare = max(0.0, r.bat() - approach - 0.15 * W.BATTERY_MAX)
         trips = spare / max(cycle_cost, 1e-9)
         claim = stock / max(1.0, len(w.robots) / 2)
         return (W.FUTURE_DISCOUNT * min(trips * r.cap, claim)
@@ -92,10 +92,10 @@ def phi(r, w) -> float:
         cost_to_ref = (W.manhattan(r.pos, w.refineries[ref])
                        * r.eff * (1 + W.LOADED_MULT))
         full = r.load * rate * W.V_DELIVER
-        if r.battery > cost_to_ref:
+        if r.bat() > cost_to_ref:
             v += full
         else:
-            v += 0.5 * full * r.battery / (cost_to_ref + 1e-9)
+            v += 0.5 * full * r.bat() / (cost_to_ref + 1e-9)
 
     v += _future_trips_value(r, w)
 
@@ -103,7 +103,7 @@ def phi(r, w) -> float:
         v -= W.P_STRAND * stranding_hazard(r, w)
     else:
         _, d = w.nearest_charger(r)
-        if r.battery < d * r.step_cost():
+        if r.bat() < d * r.step_cost():
             v -= W.P_STRAND
     return v
 
@@ -123,3 +123,13 @@ def update_ev(r, w, delta: float = 2.0) -> None:
     grad = (p1 - p0) / max(1e-9, delta)
     if grad > 1e-9:
         r.ev = float(min(W.EV_MAX, max(W.EV_MIN, grad)))
+
+
+def phi_true(r, w) -> float:
+    """Φ with the gauge suspended — the ground truth for poisoning audits."""
+    saved = r.gauge_bias
+    r.gauge_bias = 0.0
+    try:
+        return phi(r, w)
+    finally:
+        r.gauge_bias = saved

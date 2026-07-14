@@ -445,6 +445,40 @@ to that tier.
   attestation-gated-cooperation thesis fails in embodied form; headline
   the failure.
 
+## v7 — noisy self-knowledge (FINAL, pre-run)
+
+v6 proved the true-loss veto makes bargaining deception-tolerant. The veto
+assumes you know your OWN state — but a drone's battery gauge is a sensor
+like any other. v7: each robot carries a persistent gauge miscalibration
+(bias ~ N(0, s₇), twin-mirrored for the placebo); ALL beliefs (Φ, hazard,
+routing thresholds, veto) consume the believed battery; ALL physics (move
+costs, transfer clamps, stranding) uses the true one. Evaluated==executed
+stays belief-consistent; truth is logged separately per deal.
+
+v6.2 attribution fix ships with this: deal logs carry liar flags;
+trusted-tier true-loss deals split into STRIP (a liar gains while an
+honest robot loses) vs SACRIFICE (benign joint-max losses).
+
+Conditions (snhp-hz, v5 stage, σ=0.5, τ=0.15, 16 seeds): gauge noise
+s₇ ∈ {0, 0.15, 0.30} × liars f ∈ {0, 0.5} (BATNA lies) × self-margin
+defense {off, on} (a robot demands believed surplus ≥ 25% of its best —
+v6's useless distrust tax, aimed inward at its own sensor error).
+
+Pre-registered (P12):
+- **P12a:** self-noise alone degrades the fleet monotonically (strandings
+  ↑ — optimistic gauges overcommit; delivered ↓ or makespan ↑).
+- **P12b (the point):** deception-tolerance erodes — POISONED deals
+  (executed with negative TRUE surplus for an honest side; impossible at
+  s₇=0, pinned by test) appear and grow with s₇, and liar advantage grows
+  vs the s₇=0 baseline. The veto's guarantee is exactly as good as
+  self-knowledge.
+- **P12c (the defense):** the self-margin cuts poisoned deals ≥70% at
+  s₇=0.3; two-sided risk stated — the margin may cost more trade than it
+  saves (net delivered could fall).
+- **KILL:** if s₇>0 produces no poisoned deals (physics clamps protect
+  anyway), the v6 veto story stands unqualified and v7's premise is wrong
+  — report as such.
+
 ## v4 PLAN — structural ownership + refining tariffs (SUPERSEDED DRAFT, kept for audit)
 
 Mixed ownership becomes PHYSICS, and refining prices become the market force.

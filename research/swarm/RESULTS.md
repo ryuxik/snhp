@@ -1,5 +1,38 @@
 # Results — verdicts against the pre-registrations
 
+## v7: noisy self-knowledge (sweep_v7_F.json, 160 runs) — the veto is only as good as your gauge
+
+- **P12a PASS:** persistent gauge miscalibration devastates the fleet —
+  delivered 238.9 → 193.3 → 128.2 as gauge σ goes 0 → 0.15 → 0.30 (f=0).
+  Self-noise costs more than every deception scenario combined (lies never
+  cost more than ~8 delivered).
+- **P12b PASS (KILL did not fire):** poisoned deals — executed with
+  negative TRUE surplus for an honest robot, impossible at s₇=0 (pinned) —
+  appear at 9.0/run (s₇=0.15) and 10.6/run (s₇=0.30). The
+  deception-tolerance theorem inherits the quality of self-knowledge.
+- **P12c FAILS its bar:** the inward self-margin cuts poisoning only
+  39–46% (pre-registered ≥70%) with mixed output effects (+19 delivered
+  at f=0.5/s₇=0.3, −10 at f=0.5/s₇=0.15). Honest verdict: an economic
+  margin is a partial patch; the rest of the problem is state estimation,
+  not mechanism design.
+- **Emergent echo of v5/v6:** liar pickiness accidentally PROTECTS against
+  self-noise (poisoned 3.7 vs 10.6 at s₇=0.3; delivered 209.6 vs 193.3 at
+  s₇=0.15) — inflated BATNAs function as involuntary safety margins.
+- **Threat ranking, final:** partner-deception ≪ partner-estimation-noise
+  ≪ SELF-knowledge error. Know thyself.
+
+## v6.2 attribution fix (sweep_v6_E2.json)
+
+Deal logs now carry liar flags; trusted-tier true losses split into STRIP
+(liar gains, honest loses) vs SACRIFICE (benign joint-max). trust-open:
+341–488 strip deals/run (1,100–1,218 credit extracted). **trust-gated:
+strip = 0.0 exactly at both liar fractions** — gating eliminates malicious
+exploitation completely; all remaining true losses are honest↔honest
+cooperative sacrifice (599/194 per run). The v6.1 conclusion survives its
+metric caveat in the strongest possible form.
+
+---
+
 ## v6.1: attestation gates cooperation (sweep_v6_E.json, 96 runs) — THE THESIS LANDS
 
 | condition | f | delivered | makespan | liar credit | honest credit | liar adv |

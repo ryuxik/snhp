@@ -93,6 +93,12 @@ class Robot:
     target_ref: int | None = None   # delivery-target hysteresis state
     liar: bool = False              # v6: inflates reported BATNA by LIE_LAMBDA
     attested: bool = False          # v6: reports verifiably true (signed books)
+    gauge_bias: float = 0.0         # v7: persistent battery-gauge miscalibration
+
+    def bat(self) -> float:
+        """BELIEVED battery — what every decision layer consumes. Physics
+        (moves, transfers, stranding) reads .battery, the truth."""
+        return float(min(BATTERY_MAX, max(0.0, self.battery * (1.0 + self.gauge_bias))))
 
     def step_cost(self) -> float:
         return self.eff * (1.0 + (LOADED_MULT if self.load > 0 else 0.0))
@@ -103,7 +109,8 @@ class World:
                  hazard_phi: bool = False, preset: str = "v4",
                  tau: tuple = (0.0, 0.0), internalize_tariffs: bool = False,
                  freeze_ev: float | None = None,
-                 liar_frac: float = 0.0, defended: bool = False):
+                 liar_frac: float = 0.0, defended: bool = False,
+                 self_noise: float = 0.0, self_margin: bool = False):
         self.rng = np.random.RandomState(seed)
         self.hazard_phi = hazard_phi
         self.preset = preset
@@ -158,6 +165,14 @@ class World:
         # DEFENDED condition every honest robot attests (liars can't while
         # lying — attestation IS verifiable truth)
         self.defended = defended
+        self.self_margin = self_margin
+        if self_noise > 0:              # v7: twin-mirrored gauge miscalibration
+            half = len(self.robots) // 2
+            biases = self.rng.normal(0.0, self_noise, half)
+            for k in range(half):
+                self.robots[k].gauge_bias = float(biases[k])
+                if half + k < len(self.robots):
+                    self.robots[half + k].gauge_bias = float(biases[k])
         if liar_frac > 0:
             per_co = round(liar_frac * len(self.robots) / 2)
             for c in (0, 1):

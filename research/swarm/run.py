@@ -39,13 +39,15 @@ TAU_ARMS = ["null", "snhp-hz", "team"]
 def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              tau=0.0, preset: str = "v4", issues=FULL,
              noise: float = 0.0, liar_frac: float = 0.0,
-             defended: bool = False) -> dict:
+             defended: bool = False, self_noise: float = 0.0,
+             self_margin: bool = False) -> dict:
     hazard = arm_name.endswith("-hz")
     base = arm_name[:-3] if hazard else arm_name
     tau_pair = tuple(tau) if isinstance(tau, (tuple, list)) else (tau, tau)
     w = World(sigma=sigma, seed=seed, hazard_phi=hazard, preset=preset,
               tau=tau_pair, internalize_tariffs=(base == "team"),
-              liar_frac=liar_frac, defended=defended)
+              liar_frac=liar_frac, defended=defended,
+              self_noise=self_noise, self_margin=self_margin)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
@@ -102,6 +104,15 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         noise=noise, liar_frac=liar_frac, defended=defended,
         exploit_deals=getattr(arm, "exploit_deals", 0),
         exploit_loss=round(getattr(arm, "exploit_loss", 0.0), 1),
+        strip_deals=getattr(arm, "strip_deals", 0),
+        strip_loss=round(getattr(arm, "strip_loss", 0.0), 1),
+        sacrifice_deals=getattr(arm, "sacrifice_deals", 0),
+        self_noise=self_noise, self_margin=self_margin,
+        poisoned=sum(1 for d in deals
+                     if (d.get("sa_true") is not None and d["sa_true"] < -1e-9
+                         and not w.robots[d["a"]].liar)
+                     or (d.get("sb_true") is not None and d["sb_true"] < -1e-9
+                         and not w.robots[d["b"]].liar)),
         liar_credit=(np.mean([r.credit for r in w.robots if r.liar])
                      if any(r.liar for r in w.robots) else None),
         honest_credit=(np.mean([r.credit for r in w.robots if not r.liar])
@@ -249,6 +260,16 @@ def build_jobs(column: str, seeds: int, ticks: int):
                 jobs.append(dict(arm_name=arm, sigma=0.5, seed=seed,
                                  ticks=ticks, tau=0.15, preset="v5",
                                  defended=True))
+    if column in ("F", "all"):        # v7: noisy self-knowledge
+        for s7 in (0.0, 0.15, 0.30):
+            for f in (0.0, 0.5):
+                margins = ((False,) if s7 == 0 else (False, True))
+                for mg in margins:
+                    for seed in range(min(seeds, 16)):
+                        jobs.append(dict(arm_name="snhp-hz", sigma=0.5,
+                                         seed=seed, ticks=ticks, tau=0.15,
+                                         preset="v5", liar_frac=f,
+                                         self_noise=s7, self_margin=mg))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -259,7 +280,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
