@@ -44,11 +44,16 @@ RUN python -m venv /venv \
 # ─── runtime ────────────────────────────────────────────────────────────────
 FROM python:3.13-slim
 
+# The running code's git SHA, stamped on the block-live provenance badge (the
+# container has no .git). Pass at deploy: fly deploy --build-arg GIT_SHA=$(git rev-parse --short HEAD)
+ARG GIT_SHA=unknown
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/venv/bin:$PATH" \
     PYTHONPATH="/app" \
-    ARENA_DATA_DIR="/data"
+    ARENA_DATA_DIR="/data" \
+    SOURCE_VERSION="${GIT_SHA}"
 
 RUN groupadd -r arena && useradd -r -g arena -d /app -s /sbin/nologin arena
 WORKDIR /app
