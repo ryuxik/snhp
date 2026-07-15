@@ -4912,29 +4912,29 @@
     },
     "boba": {
      "totals": {
-      "revenue": 75959.41,
-      "cogs": 25200.42,
-      "units": 14525,
+      "revenue": 75967.7,
+      "cogs": 25205.35,
+      "units": 14527,
       "deals": 9422,
-      "negotiated": 5296,
-      "consumer_surplus": 44288.93,
-      "spoiled_units": 965,
-      "spoilage_cost": 96.5,
+      "negotiated": 5300,
+      "consumer_surplus": 44290.84,
+      "spoiled_units": 962,
+      "spoilage_cost": 96.2,
       "rent": 9900,
-      "margin": 40762.49
+      "margin": 40766.15
      },
      "per_day": [
       {
-       "revenue": 2357.77,
-       "cogs": 779.91,
-       "units": 454,
-       "deals": 299,
-       "negotiated": 158,
-       "consumer_surplus": 1469.65,
-       "spoiled_units": 38,
-       "spoilage_cost": 3.8,
+       "revenue": 2366.82,
+       "cogs": 784.21,
+       "units": 456,
+       "deals": 300,
+       "negotiated": 161,
+       "consumer_surplus": 1475.98,
+       "spoiled_units": 36,
+       "spoilage_cost": 3.6,
        "rent": 330,
-       "margin": 1244.06
+       "margin": 1249.01
       },
       {
        "revenue": 2447.55,
@@ -5057,16 +5057,16 @@
        "margin": 1386.51
       },
       {
-       "revenue": 2759.41,
-       "cogs": 903.87,
-       "units": 518,
+       "revenue": 2762.56,
+       "cogs": 906.57,
+       "units": 519,
        "deals": 331,
-       "negotiated": 177,
-       "consumer_surplus": 1735.81,
-       "spoiled_units": 50,
-       "spoilage_cost": 5.0,
+       "negotiated": 179,
+       "consumer_surplus": 1739.84,
+       "spoiled_units": 48,
+       "spoilage_cost": 4.8,
        "rent": 330,
-       "margin": 1520.54
+       "margin": 1521.19
       },
       {
        "revenue": 2787.79,
@@ -5093,16 +5093,16 @@
        "margin": 1289.78
       },
       {
-       "revenue": 2524.22,
-       "cogs": 835.15,
-       "units": 482,
-       "deals": 308,
-       "negotiated": 176,
-       "consumer_surplus": 1516.21,
-       "spoiled_units": 52,
-       "spoilage_cost": 5.2,
+       "revenue": 2518.67,
+       "cogs": 833.08,
+       "units": 481,
+       "deals": 307,
+       "negotiated": 175,
+       "consumer_surplus": 1509.41,
+       "spoiled_units": 53,
+       "spoilage_cost": 5.3,
        "rent": 330,
-       "margin": 1353.87
+       "margin": 1350.29
       },
       {
        "revenue": 2615.82,
@@ -5237,16 +5237,16 @@
        "margin": 1339.18
       },
       {
-       "revenue": 2469.88,
+       "revenue": 2471.52,
        "cogs": 841.15,
        "units": 492,
        "deals": 333,
        "negotiated": 193,
-       "consumer_surplus": 1434.25,
+       "consumer_surplus": 1432.61,
        "spoiled_units": 29,
        "spoilage_cost": 2.9,
        "rent": 330,
-       "margin": 1295.83
+       "margin": 1297.47
       },
       {
        "revenue": 2437.22,
@@ -7923,7 +7923,7 @@
     {
      "day": 0,
      "arrivals": 2195,
-     "no_sales": 615
+     "no_sales": 614
     },
     {
      "day": 1,
@@ -7993,7 +7993,7 @@
     {
      "day": 14,
      "arrivals": 2220,
-     "no_sales": 601
+     "no_sales": 602
     },
     {
      "day": 15,
@@ -8322,37 +8322,37 @@
   },
   "boba": {
    "margin": {
-    "mean": 336.45,
+    "mean": 336.57,
     "ci95": [
-     317.01,
-     355.89
+     317.43,
+     355.71
     ],
     "n": 6,
     "block": 5
    },
    "revenue": {
-    "mean": 798.04,
+    "mean": 798.32,
     "ci95": [
-     763.99,
-     832.1
+     764.5,
+     832.14
     ],
     "n": 6,
     "block": 5
    },
    "consumer_surplus": {
-    "mean": 496.49,
+    "mean": 496.55,
     "ci95": [
-     463.18,
-     529.79
+     463.34,
+     529.76
     ],
     "n": 6,
     "block": 5
    },
    "units": {
-    "mean": 257.97,
+    "mean": 258.03,
     "ci95": [
-     246.57,
-     269.37
+     246.65,
+     269.42
     ],
     "n": 6,
     "block": 5
@@ -8360,8 +8360,8 @@
    "deals": {
     "mean": 111.43,
     "ci95": [
-     108.34,
-     114.52
+     108.43,
+     114.44
     ],
     "n": 6,
     "block": 5
@@ -8698,37 +8698,37 @@
   },
   "block": {
    "margin": {
-    "mean": 1069.92,
+    "mean": 1070.04,
     "ci95": [
-     769.8,
-     1370.03
+     770.35,
+     1369.72
     ],
     "n": 6,
     "block": 5
    },
    "revenue": {
-    "mean": 2073.51,
+    "mean": 2073.79,
     "ci95": [
-     1911.07,
-     2235.95
+     1912.01,
+     2235.57
     ],
     "n": 6,
     "block": 5
    },
    "consumer_surplus": {
-    "mean": 1459.3,
+    "mean": 1459.36,
     "ci95": [
-     1263.44,
-     1655.16
+     1264.12,
+     1654.6
     ],
     "n": 6,
     "block": 5
    },
    "units": {
-    "mean": 433.7,
+    "mean": 433.77,
     "ci95": [
-     421.37,
-     446.03
+     421.54,
+     446.0
     ],
     "n": 6,
     "block": 5
@@ -8736,8 +8736,8 @@
    "deals": {
     "mean": 201.27,
     "ci95": [
-     180.4,
-     222.14
+     180.5,
+     222.04
     ],
     "n": 6,
     "block": 5
@@ -8745,10 +8745,10 @@
   }
  },
  "hud": {
-  "shoppers_kept_usd": 43778.97,
-  "merchants_earned_usd": 32097.49
+  "shoppers_kept_usd": 43780.89,
+  "merchants_earned_usd": 32101.15
  },
  "meta": {
-  "elapsed_s": 13.62
+  "elapsed_s": 34.04
  }
 }

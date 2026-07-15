@@ -24,7 +24,7 @@
         "vintage"
       ]
     },
-    "provenance": "REAL (traces to the committed twin, reproducible from the seed): the two HUD counters (block_mature = mean daily paired \u0394 \u2014 margin $1259.55/day merchants, consumer-surplus $1826.05/day shoppers, over 30 days), per_venue_mature, receipt savings (real per-SKU mean surplus), per-venue receipt frequency (real deal share), crowd density (real converting traffic: the sticker block converts 86% as many arrivals), and the per-venue decay ordering (real spoilage + surplus gap). REPRESENTATIVE (disclosed narrative, never a dollar figure): the day_weight identical\u2192diverged ramp (the sim diverges from day 0; the ramp is the arc, so the counters integrate the real daily rate over it \u2014 end-of-week \u2248 $7724 shoppers / $5328 merchants), the gray/decay intensities (a monotone visual encoding of the real gap, 3.0\u00d7 gain on the 12.2% CS gap), the named-regular churn days (the pool holds at 25 all week \u2014 churn dramatizes the real no-sale/spoilage/surplus gap), and the truck/weather beats + per-walker paths.",
+    "provenance": "REAL (traces to the committed twin, reproducible from the seed): the two HUD counters (block_mature = mean daily paired \u0394 \u2014 margin $1259.67/day merchants, consumer-surplus $1826.11/day shoppers, over 30 days), per_venue_mature, receipt savings (real per-SKU mean surplus), per-venue receipt frequency (real deal share), crowd density (real converting traffic: the sticker block converts 86% as many arrivals), and the per-venue decay ordering (real spoilage + surplus gap). REPRESENTATIVE (disclosed narrative, never a dollar figure): the day_weight identical\u2192diverged ramp (the sim diverges from day 0; the ramp is the arc, so the counters integrate the real daily rate over it \u2014 end-of-week \u2248 $7724 shoppers / $5328 merchants), the gray/decay intensities (a monotone visual encoding of the real gap, 3.0\u00d7 gain on the 12.2% CS gap), the named-regular churn days (the pool holds at 25 all week \u2014 churn dramatizes the real no-sale/spoilage/surplus gap), and the truck/weather beats + per-walker paths.",
     "day_seconds": 6,
     "days": 7,
     "day_start_hour": 5.0,
@@ -273,8 +273,8 @@
         "src": "run mean daily \u0394 (margin/consumer-surplus) over 30d; python3 -m block.gen_week"
       },
       "boba": {
-        "merchant": 336.45,
-        "shopper": 496.49,
+        "merchant": 336.57,
+        "shopper": 496.55,
         "src": "run mean daily \u0394 (margin/consumer-surplus) over 30d; python3 -m block.gen_week"
       },
       "bakery": {
@@ -314,8 +314,8 @@
       }
     },
     "block_mature": {
-      "merchant": 1259.55,
-      "shopper": 1826.05
+      "merchant": 1259.67,
+      "shopper": 1826.11
     },
     "week_total_note": "cumulative HUD after the 7-day ramp: merchants \u2248 $5328, shoppers \u2248 $7724 (block_mature \u00d7 \u03a3day_weight = 4.23). The per-DAY rate is the real committed twin's mean daily paired \u0394."
   },
