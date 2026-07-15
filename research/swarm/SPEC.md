@@ -783,3 +783,27 @@ were read; predictions unchanged):**
    beliefs AND gauge suspended — w._oracle_override): scoring the audit
    against the same stale map that signed the deal would hide exactly
    the poisoning P15c is looking for.
+
+**P15 VERDICT (2026-07-15, sweep_I.json, corrected v8 physics): the
+whole-column KILL fired — perfect field information was never
+load-bearing — and that is the most valuable possible answer.**
+- P15a: the price of ignorance is ZERO (oracle − belief snhp+net: +0.2
+  delivered, n.s. on every metric). No ordering inverts; no headline
+  moves >2. Every v8 conclusion survives imperfect information.
+- P15b: CONFIRMED as mechanism — the swarm IS the sensor network.
+  Deal-economy fleets hold ~3× fresher field maps than the auction
+  (staleness 165–173 vs 525 ticks; rules 363, team 22) because trade
+  moves robots around. The freshness just doesn't cash into gold here:
+  a fleet's own working set stays fresh by construction, and beliefs
+  are optimistic-only, so stale knowledge fails soft.
+- P15c: CONFIRMED, small — stale maps poison receipts exactly like bad
+  gauges did (belief-mode veto arms sign 3.4–9.2 truly-harmful deals/run
+  vs 0 under oracle at zero gauge noise). The v7 law generalizes: ANY
+  self-input error (sensor or map) leaves output flat and corrupts
+  books. Same receipt-shaped cure.
+- P15d: KILLED — the racing discount never pays (race-on is marginally
+  WORSE: −0.6 delivered p=.068, −9.1 k5 n.s.). On mirrored fields,
+  contested overlap is too rare; the static share was already the right
+  price. The racing layer stays in the code, off by default, honest.
+- v10c: inconclusive by design flaw (mine-rate draw degenerate at σ=0.5,
+  flagged pre-run); re-registration at σ=1.0 required before any claim.

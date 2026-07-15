@@ -432,3 +432,19 @@ test. Not done (v3+ ladder): noise/fault injection, N-sweep, partial
 information (the engine's Bayesian machinery is the natural next step),
 continuous space, hardware. Positioning: multi-robot mechanism benchmark,
 MRS/AAMAS lineage — per both reviews.
+
+## v10 (column I): imperfect field information — the omniscience was never doing the work
+
+Founder's premise ("companies don't have perfect info about the field;
+everyone works on estimates") built as company-level beliefs with
+proximity sensing + a rival-rate racing discount (SPEC P15). Verdict:
+**every v8 headline survives imperfect information unchanged** (oracle vs
+belief: +0.2 delivered n.s.; no ordering inverts) — the strongest
+robustness statement the benchmark can make. Mechanism confirmed on the
+way: **the swarm is its own sensor network** — trading fleets hold ~3×
+fresher maps than the auction (staleness 165 vs 525 ticks) because deals
+move robots. And the v7 law generalizes: stale maps, like bad gauges,
+leave output flat while quietly poisoning receipts (3.4–9.2 truly-harmful
+deals/run appear under belief-mode; zero under oracle). The racing
+discount died on its pre-registered kill (static share was already the
+right price on mirrored fields). Reproduce: `run.py --column I`.
