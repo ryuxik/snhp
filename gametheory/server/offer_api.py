@@ -63,6 +63,8 @@ from __future__ import annotations
 
 import math
 import time
+from collections import OrderedDict
+from dataclasses import replace
 from typing import Literal, Optional
 
 from fastapi import APIRouter, HTTPException, Response
@@ -72,6 +74,8 @@ from pydantic import (BaseModel, ConfigDict, Field, ValidationError,
 from core.api import build_graph
 from core.engine import QuoteOpts, SeparableBuyer
 from core.engine import quote as _engine_quote
+from core.notary import (_state_digest, canon_hash, emit_receipt,
+                         load_notary_key, regime_probe, spec_probe_buyer)
 from core.offer_graph import (MAX_ADDON_OPTIONS, DimKind, Dimension,
                               Negotiability, OfferGraph, qty_of)
 # Read-only reuse of the profiler's own probe helpers so the $-spread we
@@ -386,11 +390,15 @@ class QuoteRequest(BaseModel):
 # ─── spec → engine objects ───────────────────────────────────────────────────
 
 
-def _graph(spec: MenuSpec) -> OfferGraph:
+def _graph_from_dump(dump: dict) -> OfferGraph:
     try:
-        return build_graph(spec.model_dump(exclude_none=True))
+        return build_graph(dump)
     except (ValueError, KeyError) as e:          # belt-and-braces: the models
         raise ValueError(f"could not compile spec: {e}")   # above should catch
+
+
+def _graph(spec: MenuSpec) -> OfferGraph:
+    return _graph_from_dump(spec.model_dump(exclude_none=True))
 
 
 def _shop_state(s: Optional[StateSpec]) -> ShopState:
@@ -522,9 +530,79 @@ def _profile_impl(spec: MenuSpec, state: Optional[StateSpec]) -> dict:
                      "menu's economics, not of any buyer.")}
 
 
+# ─── notary attestation (the signed, replayable discount-only receipt) ──────
+# The regime — finite_stock vs capacity — is a PROPERTY OF (spec, state), not of
+# any caller's valuations: the (b)-probe is run against a SPEC-DERIVED synthetic
+# buyer (spec_probe_buyer), so two callers with wildly different WTPs get the
+# same regime on the same spec/state. It is cached per (spec dump, state VALUES
+# digest, realized goods) in a bounded LRU. The private key never leaves
+# core.notary; this layer only stamps public receipt fields.
+_REGIME_CACHE: "OrderedDict[str, str]" = OrderedDict()   # key -> regime string
+_REGIME_CACHE_MAX = 512
+
+
+def _goods_config(graph: OfferGraph, cfg: Optional[dict]) -> dict:
+    """The 'what' of a realized config — CHOICE/ADDON/PREFERENCE selections
+    (not fulfillment, not quantity). The regime probe pins these so only the
+    buyer's REPORT varies (fulfillment/price), never which good they bought —
+    a report-driven good-switch would move c_eff and masquerade as capacity."""
+    out: dict = {}
+    for d in graph.dims:
+        if d.kind in (DimKind.CHOICE, DimKind.ADDON, DimKind.PREFERENCE) \
+                and cfg is not None and d.id in cfg:
+            v = cfg[d.id]
+            out[d.id] = sorted(v) if isinstance(v, (frozenset, set)) else v
+    return out
+
+
+def _regime_for(graph: OfferGraph, st: ShopState, goods: dict,
+                qopts: QuoteOpts, spec_dump: dict) -> str:
+    """The venue's (b)-probe regime, cached in a bounded LRU. The probe runs
+    against a SPEC-DERIVED synthetic buyer (buyer-independent) with a stressed
+    outside option, so a capacity venue can never masquerade as finite-stock and
+    the regime is a pure property of (spec, state, goods). The cache key digests
+    the spec dump, the state VALUES (via notary._state_digest), and the goods."""
+    key = canon_hash({"spec": spec_dump, "state": _state_digest(st),
+                      "goods": goods})
+    hit = _REGIME_CACHE.get(key)
+    if hit is not None:
+        _REGIME_CACHE.move_to_end(key)         # LRU: touch on hit
+        return hit
+    # the (b)-probe is a venue property, not an IC-floor decision — force
+    # quote_lookers so the spec-derived buyer always yields a probe quote.
+    probe_opts = replace(qopts, quote_lookers=True)
+    reg, _ev = regime_probe(graph, st, spec_probe_buyer(graph),
+                            config=goods or None, opts=probe_opts)
+    _REGIME_CACHE[key] = reg
+    _REGIME_CACHE.move_to_end(key)
+    while len(_REGIME_CACHE) > _REGIME_CACHE_MAX:
+        _REGIME_CACHE.popitem(last=False)      # evict the least-recently-used
+    return reg
+
+
+def _attestation(graph: OfferGraph, st: ShopState, by: SeparableBuyer,
+                 q, qopts: QuoteOpts, spec_dump: dict) -> dict:
+    """A standalone NotaryReceipt for this quote: prev_hash null (unchained),
+    d=false (v1 advisory has NO outside-option attestation — honest), regime
+    from the cached spec-derived (b)-probe. The receipt carries only the
+    disclosure DIGEST, never the buyer's raw per-option WTP."""
+    goods = _goods_config(graph, q.config)
+    regime = _regime_for(graph, st, goods, qopts, spec_dump)
+    utilities = {f"{d}.{o}": v for (d, o), v in by.values.items()}
+    receipt = emit_receipt(
+        q, state=st, opts=qopts,
+        quote_ref="qr_" + canon_hash({"c": _json_config(q.config),
+                                      "p": round(q.price, 4)})[7:19],
+        venue_id=(graph.name or "hosted-menu"), regime=regime,
+        disclosure={"utilities": utilities, "walk": by.outside},
+        attested=False)                       # d=false: no attestation in v1
+    return receipt.to_dict()
+
+
 def _quote_impl(spec: MenuSpec, state: Optional[StateSpec], buyer: BuyerSpec,
                 config: Optional[dict], opts: QuoteOptsSpec) -> dict:
-    graph = _graph(spec)
+    spec_dump = spec.model_dump(exclude_none=True)   # computed ONCE per request
+    graph = _graph_from_dump(spec_dump)
     st = _shop_state(state)
     by = _sep_buyer(buyer)
     cfg = _engine_config(graph, config)
@@ -536,7 +614,7 @@ def _quote_impl(spec: MenuSpec, state: Optional[StateSpec], buyer: BuyerSpec,
 
     base = {"never_above_list": True, "advisory": True, "note": ADVISORY_NOTE}
     if q is None:
-        return {**base, "outcome": "walk", "quote": None,
+        return {**base, "outcome": "walk", "quote": None, "attestation": None,
                 "why": ["no available configuration beats this buyer's "
                         "outside option at or below list — nothing to quote "
                         "(a looker is refused rather than priced below the "
@@ -557,7 +635,7 @@ def _quote_impl(spec: MenuSpec, state: Optional[StateSpec], buyer: BuyerSpec,
         "buyer_gain": round(q.buyer_gain, 4),
         "feasible": q.feasible,
         "why": q.why,
-    }}
+    }, "attestation": _attestation(graph, st, by, q, qopts, spec_dump)}
 
 
 # ─── dict-in / dict-out surface (the MCP tools call these) ──────────────────
@@ -667,7 +745,10 @@ def offer_profile(req: ProfileRequest, response: Response):
         "discount-only — the price is never above the menu's list value "
         "(`never_above_list: true`, enforced in code). Quotes are advisory "
         "engine output on a caller-supplied menu, not a binding offer "
-        "(`advisory: true`)."
+        "(`advisory: true`). The response also carries an `attestation`: a "
+        "signed, replayable NotaryReceipt proving the quote was discount-only "
+        "and stamping the report-independence regime (b) — verify it offline "
+        "with GET /v1/notary/key (d=false: v1 has no outside-option attestation)."
     ),
 )
 def offer_quote(req: QuoteRequest, response: Response):

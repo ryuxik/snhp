@@ -543,6 +543,17 @@ try:
 except ImportError:
     pass
 
+# ─── NOTARY: signed, replayable discount-only receipts (core/notary.py) ──────
+# GET /v1/notary/key (the public signing key) + POST /v1/notary/verify (the
+# standalone verifier). The `attestation` block on every /v1/offer/quote is
+# signed by this key; a client fetches the key once and verifies quotes offline.
+# Guarded like offer/vend: core/ ships in the image but not the PyPI wheel.
+try:
+    from gametheory.server.notary_routes import router as _notary_router  # noqa: E402
+    app.include_router(_notary_router)
+except ImportError:
+    pass
+
 # Hosted MCP server (streamable HTTP) at /mcp — same toolkit, MCP-native, so
 # agents/clients that speak MCP over HTTP can connect without installing the
 # stdio package. (Endpoint serves at /mcp/; /mcp 307-redirects to it.)

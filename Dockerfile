@@ -28,10 +28,16 @@ RUN python -m venv /venv \
 # ─── runtime ────────────────────────────────────────────────────────────────
 FROM python:3.13-slim
 
+# The running code's git SHA — core.notary.engine_version() reads $SOURCE_VERSION
+# to stamp `engine_version` on every receipt (the container has no .git). Pass at
+# deploy: fly deploy --build-arg GIT_SHA=$(git rev-parse --short HEAD)
+ARG GIT_SHA=unknown
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/venv/bin:$PATH" \
-    PYTHONPATH="/app"
+    PYTHONPATH="/app" \
+    SOURCE_VERSION="${GIT_SHA}"
 # PYTHONPATH=/app is the key thing — the builder did `pip install -e .` which
 # leaves an egg-link pointing to /build/, dead in the runtime stage. Adding
 # /app explicitly makes `gametheory` importable from disk; from there

@@ -9,9 +9,13 @@ to a JSONL telemetry log — the day-one-useful experiment data that feeds back
 into SNHP.
 
 Determinism contract (tested in block/tests/test_live.py):
-  • season s runs seed = base_seed + s; day-record (s, d) is a pure function
-    of (base_seed, config, code version) — replay_day() reproduces any day
-    from scratch, byte-identical.
+  • season s runs seed = base_seed + s; the day-record's ECONOMIC fields (s, d)
+    are a pure function of (base_seed, config, code version) — replay_day()
+    reproduces any day from scratch, byte-identical ON THE ECONOMIC FIELDS (the
+    attestation excluded: an Ed25519 signature is key-dependent, and the key is
+    process-ephemeral unless NOTARY_KEY_PEM is set). Under a FIXED key the
+    attestation is deterministic too, so replay_day reproduces it as well; the
+    resume path compares _strip_det (attestation dropped) to stay key-agnostic.
   • the JSONL log adds ONLY a wall-clock "ts" field at write time; stripping
     it recovers the deterministic record.
   • on restart the driver RESUMES by re-simulating the current season up to
@@ -40,7 +44,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
 import sys
 from collections import deque
 from datetime import datetime, timezone
@@ -50,10 +53,15 @@ from block.runner import (ALL_VENUES, BLOCK_VERSION, WORLDS, _VENUE_CLASSES,
                           build_world, run_world_day)
 from block.venues import (BlockConfig, build_block_catalog,
                           build_fashion_plan)
+from core.notary import (canon_hash, emit_ledger_receipt, engine_version,
+                         load_notary_key)
+from core.state import ShopState
 
-DAY_SCHEMA = "block.live.day.v1"
-SNAP_SCHEMA = "block.live.v1"
-DRIVER_VERSION = 1
+# v2: day-records now carry a signed, chained NotaryReceipt under
+# "attestation" (the counterfactual ledger, notarized).
+DAY_SCHEMA = "block.live.day.v2"
+SNAP_SCHEMA = "block.live.v2"
+DRIVER_VERSION = 2
 SEED_DEFAULT = 20260710            # the committed gen_week seed
 SEASON_DAYS_DEFAULT = 98           # one full fashion season (14 weeks)
 WINDOW_DEFAULT = 14                # day-records kept in the rolling window
@@ -65,28 +73,24 @@ LIVE_CONFIG = dict(sigma_cal=0.15, anchor_mult=1.0, regulars=25,
                    bodega_adopts=True)
 
 
-def _git_sha() -> str:
-    """Short git SHA of the running code, or $SOURCE_VERSION, or 'unknown'
-    (deployed containers have no .git)."""
-    env = os.environ.get("SOURCE_VERSION", "").strip()
-    if env:
-        return env[:12]
-    try:
-        out = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
-                             cwd=os.path.dirname(os.path.abspath(__file__)),
-                             capture_output=True, text=True, timeout=5)
-        return out.stdout.strip() or "unknown"
-    except Exception:
-        return "unknown"
-
-
 def _r2(x: float) -> float:
     return round(float(x), 2)
 
 
 def strip_ts(rec: dict) -> dict:
-    """The deterministic part of a logged record (ts is write-time only)."""
+    """The record minus the write-time wall-clock ts. The `attestation` (a
+    signed receipt over the deterministic record) is KEPT — a stepped record
+    and a stripped logged record carry the same attestation."""
     return {k: v for k, v in rec.items() if k != "ts"}
+
+
+def _strip_det(rec: dict) -> dict:
+    """The DETERMINISTIC part used for resume verification: drop both the
+    write-time ts AND the attestation. The attestation's signature depends on
+    the notary key, which is process-ephemeral unless NOTARY_KEY_PEM is set, so
+    it is never part of the (base_seed, config, code)-pure record the resim
+    reproduces. Tamper detection still covers every economic field."""
+    return {k: v for k, v in rec.items() if k not in ("ts", "attestation")}
 
 
 def read_log(path: str) -> list[dict]:
@@ -95,6 +99,7 @@ def read_log(path: str) -> list[dict]:
     recs: list[dict] = []
     if not path or not os.path.exists(path):
         return recs
+    skipped_schemas: set[str] = set()
     with open(path) as f:
         for line in f:
             line = line.strip()
@@ -106,6 +111,15 @@ def read_log(path: str) -> list[dict]:
                 continue
             if isinstance(rec, dict) and rec.get("schema") == DAY_SCHEMA:
                 recs.append(rec)
+            elif isinstance(rec, dict) and "schema" in rec:
+                skipped_schemas.add(str(rec.get("schema")))
+    if skipped_schemas:
+        # ops visibility for the one-time v1→v2 boundary: an older-schema log is
+        # skipped (not resumed), so the driver starts fresh rather than silently
+        # ignoring history. One informative line, not per-record noise.
+        print(f"read_log: skipped records with schema(s) "
+              f"{sorted(skipped_schemas)} != {DAY_SCHEMA!r} (schema boundary)",
+              file=sys.stderr)
     return recs
 
 
@@ -136,11 +150,20 @@ class LiveBlock:
         self.season_days = int(season_days)
         self.log_path = log_path
         self.secs_per_day = secs_per_day        # display metadata only
-        self.git = _git_sha()
+        # record.git == attestation.engine_version by construction (both are
+        # core.notary.engine_version(): $SOURCE_VERSION else the short git SHA)
+        self.git = engine_version()
         self.window: deque = deque(maxlen=window)
         self.totals = _zero_totals(self.venue_names)          # lifetime
         self.season_totals = _zero_totals(self.venue_names)   # current season
         self.resume_info: dict = {"mode": "fresh"}
+        # the notary: one signed, chained day-receipt per day. Key from
+        # NOTARY_KEY_PEM (persistent) else ephemeral (key_source recorded on
+        # every receipt + in the snapshot). The chain is per-season — each
+        # season is an independent experiment (its own seed), so replay_day can
+        # reproduce a season's chain from day 0.
+        self.notary_key = load_notary_key()
+        self._chain_head: str | None = None
         self._start_season(0)
         self.public = self.snapshot()   # atomically-swapped read state
 
@@ -151,6 +174,7 @@ class LiveBlock:
     def _start_season(self, season: int) -> None:
         self.season = season
         self.day = 0                    # next day to run within the season
+        self._chain_head = None         # a fresh per-season receipt chain
         self.season_totals = _zero_totals(self.venue_names)
         seed = self.season_seed(season)
         self.ledger = BlockLedger(
@@ -253,27 +277,74 @@ class LiveBlock:
             pv["d_margin"] += row["d_margin"]
             pv["d_cs"] += row["d_cs"]
 
+    def _attest(self, rec: dict) -> dict:
+        """Notarize one deterministic day-record as a LEDGER receipt: a signed,
+        chained NotaryReceipt whose `counterfactual` block carries the day's
+        paired totals {sticker_world_total, snhp_world_total, delta} and whose
+        prev_hash is the previous day-receipt's digest (None at a season's first
+        day; chain_id = f"s{season}" so the season boundary is a legal reset).
+        A day is an AGGREGATE, not a single quote, so there is NO fabricated
+        shell Quote and NO by-fiat economics: regime is "ledger", the per-quote
+        economic fields are honestly null, and conditions a/a_prime/b/d are None
+        (only c, the engine version, is attested). ts is a DETERMINISTIC logical
+        stamp (not wall-clock) so replay_day reproduces the record. Per-day
+        receipts do NOT embed the PEM — trust pins on pubkey_fpr and the
+        snapshot's notary block carries the single PEM copy.
+        """
+        b = rec["block"]
+        cf = {"sticker_world_total": b["margin"]["sticker"],
+              "snhp_world_total": b["margin"]["snhp"],
+              "delta": b["d_margin"]}
+        season, day = rec["season"], rec["day"]
+        receipt = emit_ledger_receipt(
+            cf, quote_ref=f"block-s{season}-d{day}", venue_id="ten-venue-block",
+            prev_hash=self._chain_head, chain_id=f"s{season}",
+            state=ShopState(tick=day),
+            disclosure=canon_hash({"block_day": [season, day]}),
+            key=self.notary_key, ts=f"D{season:04d}-{day:03d}",
+            embed_pubkey=False)
+        self._chain_head = receipt.digest()
+        return receipt.to_dict()
+
+    def _persist_chain_head(self) -> None:
+        """Persist the chain head next to the JSONL (a small sidecar) so an
+        external consumer can pick up the head without re-reading the whole log.
+        Written atomically (temp file + os.replace) so a crash mid-write never
+        leaves a torn sidecar. The log itself remains authoritative on resume."""
+        if not self.log_path:
+            return
+        side = self.log_path + ".chain.json"
+        tmp = side + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump({"chain_head": self._chain_head, "season": self.season,
+                       "day": self.day, "pubkey_fpr": self.notary_key.pubkey_fpr,
+                       "key_source": self.notary_key.key_source}, f)
+        os.replace(tmp, side)
+
     def step_day(self) -> dict:
-        """Run the next day, fold it into the totals/window, append it to
-        the telemetry log (with a write-time ts), roll the season when it
-        completes, and swap the public snapshot. Returns the day-record."""
-        rec = self._run_day(self.day)
+        """Run the next day, notarize it, fold it into the totals/window,
+        append it to the telemetry log (with a write-time ts), roll the season
+        when it completes, and swap the public snapshot. Returns the attested
+        day-record."""
+        rec = self._run_day(self.day)              # the deterministic record
         self._accumulate(self.totals, rec)
         self._accumulate(self.season_totals, rec)
-        self.window.append(rec)
+        attested = {**rec, "attestation": self._attest(rec)}
+        self.window.append(attested)
         if self.log_path:
             line = json.dumps(
-                {**rec, "ts": datetime.now(timezone.utc)
+                {**attested, "ts": datetime.now(timezone.utc)
                  .isoformat(timespec="seconds")},
                 separators=(",", ":"))
             os.makedirs(os.path.dirname(self.log_path) or ".", exist_ok=True)
             with open(self.log_path, "a") as f:
                 f.write(line + "\n")
+            self._persist_chain_head()
         self.day += 1
         if self.day >= self.season_days:
             self._start_season(self.season + 1)
         self.public = self.snapshot()
-        return rec
+        return attested
 
     # ── resume (restart-safe determinism) ─────────────────────────────────
     def _compatible(self, rec: dict) -> bool:
@@ -305,7 +376,11 @@ class LiveBlock:
             self._accumulate(self.totals, strip_ts(r))
         last = compat[-1]
         season, day = last["season"], last["day"]
-        season_recs = {r["day"]: strip_ts(r) for r in compat
+        # verify against the DETERMINISTIC part only — the attestation's
+        # signature is process-ephemeral unless NOTARY_KEY_PEM is set, so
+        # comparing it would spuriously fail every restart under an ephemeral
+        # key. Every economic field is still covered, so tamper detection holds.
+        season_recs = {r["day"]: _strip_det(r) for r in compat
                        if r["season"] == season}
         self._start_season(season)
         verified, mismatch = 0, False
@@ -332,7 +407,12 @@ class LiveBlock:
         else:
             self.day = day + 1
             if self.day >= self.season_days:
-                self._start_season(season + 1)
+                self._start_season(season + 1)      # new season → fresh chain
+            else:
+                # continue the chain from the last logged day-receipt (hash-
+                # linked across the restart even if the key rotated)
+                att = last.get("attestation")
+                self._chain_head = canon_hash(att) if att else None
             for r in compat[-self.window.maxlen:]:
                 self.window.append(strip_ts(r))
             self.resume_info = {"mode": "resumed", "season": self.season,
@@ -374,6 +454,16 @@ class LiveBlock:
             "totals": {"lifetime": self._round_totals(self.totals),
                        "season": self._round_totals(self.season_totals)},
             "last_records": list(self.window),
+            "notary": {
+                "chain_head": self._chain_head,
+                "pubkey_pem": self.notary_key.pubkey_pem,
+                "pubkey_fpr": self.notary_key.pubkey_fpr,
+                "key_source": self.notary_key.key_source,
+                "algo": self.notary_key.algo,
+                "note": ("each day-record carries a signed, chained "
+                         "NotaryReceipt (attestation); verify a log with "
+                         "`python3 -m core.notary verify <log.jsonl>`"),
+            },
             "resume": self.resume_info,
             "reproduce": (f"python3 -m block.live --seed {self.seed} "
                           f"--season {self.season} --day D  "
@@ -387,14 +477,18 @@ class LiveBlock:
 def replay_day(season: int, day: int, seed: int = SEED_DEFAULT,
                venues=ALL_VENUES, cfg: BlockConfig | None = None,
                season_days: int = SEASON_DAYS_DEFAULT) -> dict:
-    """Reproduce ONE day-record from scratch — the 'rerun it yourself' path.
-    Re-simulates the season from day 0 (state carries across days, so day d
-    is a function of days 0..d) and returns the record for `day`."""
+    """Reproduce ONE attested day-record from scratch — the 'rerun it yourself'
+    path. Re-simulates the season from day 0 (state carries across days, so day
+    d is a function of days 0..d) and rebuilds the per-season receipt chain, so
+    the returned record — attestation included — is byte-identical to the
+    stepped one (given the same notary key; signatures are deterministic under
+    a fixed key, and the receipt ts is a logical, not wall-clock, stamp)."""
     lb = LiveBlock(seed=seed, venues=venues, cfg=cfg, season_days=season_days)
     lb._start_season(season)
     rec = None
     for d in range(day + 1):
-        rec = lb._run_day(d)
+        raw = lb._run_day(d)
+        rec = {**raw, "attestation": lb._attest(raw)}
     return rec
 
 

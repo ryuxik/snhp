@@ -11,8 +11,8 @@ import json
 import pytest
 
 from block.ledger import BlockLedger
-from block.live import (DAY_SCHEMA, SNAP_SCHEMA, LiveBlock, read_log,
-                        replay_day, strip_ts)
+from block.live import (DAY_SCHEMA, SNAP_SCHEMA, LiveBlock, _strip_det,
+                        read_log, replay_day, strip_ts)
 from block.runner import ALL_VENUES, WORLDS
 from block.venues import BlockConfig
 
@@ -41,13 +41,21 @@ def test_same_seed_same_day_identical_record():
 
 
 def test_replay_day_reproduces_stepped_record():
-    """Any day is reproducible FROM SCRATCH: replay_day re-simulates the
-    season and lands on the identical record — the 'rerun it yourself'
-    contract stamped on the HUD."""
+    """Any day is reproducible FROM SCRATCH on the ECONOMIC fields: replay_day
+    re-simulates the season and lands on the identical deterministic record.
+    The attestation's signature is key-dependent, so it is compared separately —
+    it must independently VERIFY under the process key, not be byte-equal to a
+    record that may have been signed by a different key."""
+    from core.notary import load_notary_key, verify_receipt
     d = _driver()
     recs = [d.step_day() for _ in range(3)]
     again = replay_day(0, 2, seed=SEED, venues=TWO, cfg=CFG2)
-    assert again == recs[2]
+    # deterministic economic fields are byte-identical (attestation excluded)
+    assert _strip_det(again) == _strip_det(recs[2])
+    # the replayed attestation verifies on its own under the process key
+    res = verify_receipt(again["attestation"],
+                         pubkey_pem=load_notary_key().pubkey_pem)
+    assert res["ok"]
 
 
 # ── conservation: the ledger law holds on live-driver records ─────────────
@@ -148,8 +156,10 @@ def test_snapshot_shape_stable():
     snap = d.public
     assert set(snap) == {"schema", "live", "seed", "season", "day",
                          "season_days", "venues", "engine", "config",
-                         "totals", "last_records", "resume", "reproduce",
-                         "secs_per_day"}
+                         "totals", "last_records", "notary", "resume",
+                         "reproduce", "secs_per_day"}
+    assert set(snap["notary"]) == {"chain_head", "pubkey_pem", "pubkey_fpr",
+                                   "key_source", "algo", "note"}
     assert snap["schema"] == SNAP_SCHEMA and snap["live"] is True
     assert snap["day"] == 1 and snap["season"] == 0
     assert set(snap["engine"]) == {"block_version", "driver_version", "git"}
@@ -161,7 +171,7 @@ def test_snapshot_shape_stable():
     rec = snap["last_records"][-1]
     assert set(rec) == {"schema", "seed", "season", "season_seed",
                         "season_days", "day", "engine", "block", "venues",
-                        "traffic", "waste", "conservation"}
+                        "traffic", "waste", "conservation", "attestation"}
     # snapshot totals are folds of the day-records — nothing invented
     assert snap["totals"]["lifetime"]["d_cs"] == rec["block"]["d_cs"]
     json.dumps(snap)                           # JSON-serializable end to end
