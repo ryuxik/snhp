@@ -931,3 +931,65 @@ half-confirms, and the moving field flips a headline.**
   worlds reward coverage over coordination** — the deepest scoping
   result in the program, and the honest motivation for any future
   map-trading registration.
+
+---
+
+## v12 pre-registration: pricing the unknown (column K) — scouting, map-selling, and claims on the unexplored
+
+*Registered 2026-07-15, BEFORE implementation. Founder, verbatim: "we are
+not pricing exploration (ie claim rights to unexplored parts) why did we
+not test selling maps?" GATE AMENDMENT, explicit: J2 was gated on P16a's
+output significance (missed, p=.15 at n=16) — the wrong variable, since
+both true motivations were significant on the same run (books +7.0
+poisoned p=.0004; discovery deficit −13.8 arrival units p=.03). The gate
+is opened by founder decision and this note is the audit trail. Runs on
+the v11 moving+contested world.*
+
+**K0 — price exploration in the movement policy.** An idle robot (no
+believed-stocked sector worth a trip) SCOUTS: it heads for the stalest
+point of its company's map, valuing the trip at
+E[discovery] = arrival_rate × staleness × V_DELIVER-scaled term. Without
+this no mechanism below can matter (nobody patrols what nobody values).
+All arms get K0 identically — it is policy, not mechanism.
+
+**K1 — map-selling (the 4th issue, cross-company).** Within-company maps
+are already shared radio; the tradeable good is the RIVAL's map. A bundle
+may include map-sync: the seller's fresher belief entries are escrowed
+into the deal and transferred on execution (union by last_seen). The
+buyer's utility for a sync is its Φ-delta computed on a belief COPY
+(deterministic ⇒ evaluated == executed holds). Info is non-rival: selling
+does not degrade the seller's copy — the seller's price is pure surplus
+extraction via Nash split.
+- **P17a (the market prices maps):** map-syncs trade at all (>1/run
+  cross-company) and belief-mode coordination arms with K1 close ≥40% of
+  their arrival-capture deficit vs auction (P16b's −13.8).
+- **P17b (books heal):** K1 cuts belief-mode poisoned deals ≥30% (fresher
+  rival intel = fewer ghost-priced deals).
+- **P17c (bad news is unsellable — the honest trap, predicted not
+  dodged):** syncs whose net Φ-delta for the buyer is negative (mostly
+  bad news: your target rock is dead) are structurally vetoed under IR,
+  so traded syncs skew toward good news; measure the skew. If confirmed,
+  the market self-censors depressing-but-valuable information — the
+  escrow/receipt argument in its purest form.
+- **KILL K1:** if map-syncs price at ≈0 (Φ-delta of stale-map correction
+  too small to clear TXN_COST + pause) the info market is stillborn in
+  this world — report, don't force.
+
+**K2 — claims on the UNEXPLORED (founder's mechanism), contingent on K0
+scouting being non-degenerate.** The field is partitioned into 4 quadrant
+prospecting claims, initially two per company, TRADEABLE as part of the
+sector issue. An arrival inside a claim is minable ONLY by the
+claim-holder's company for the first 150 ticks after discovery
+(prospecting window). Prediction **P17d:** claims make scouting
+investable — the claim-holder patrols its quadrants (staleness inside own
+claims < outside, and < the no-claims K0 baseline), and claim trades
+correlate with fleet position (sell the quadrant you can't patrol).
+**KILL K2:** if claims never trade or patrol behavior doesn't
+differentiate, territorial rights over unknowns don't bind in this world.
+
+**Arms (all belief-mode, moving+contested, σ=0.5, 16 seeds):** auction+K0,
+snhp+net+K0 (scouting baselines) · snhp+net+K0+K1 (map market) ·
+snhp+net+K0+K1+K2 (full) · oracle snhp+net+K0 (info ceiling). Auction
+cannot consume K1/K2 (no bundles) — it is the coverage benchmark.
+
+**Build note:** Opus build agent; Fable registered this and analyzes.
