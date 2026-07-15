@@ -119,8 +119,15 @@
    beat stays legible no matter the sim speed; crabs move on eased sim time. */
 
 const CELL = 10, MARGIN = 12, GRID = 32;
-const LOW = GRID * CELL + MARGIN * 2;
-const w2p = g => MARGIN + (g + 0.5) * CELL;
+const LOW = GRID * CELL + MARGIN * 2;      // default (32-cell) backbuffer
+// per-trace geometry: big-field traces (v8 column G) declare their grid in
+// the header; each panel gets its own cell size and backbuffer. CUR is the
+// panel being drawn (drawPanel is synchronous, one panel at a time).
+let CUR = {cell: CELL, low: LOW};
+const w2p = g => MARGIN + (g + 0.5) * CUR.cell;
+const geom = tr => { const g = (tr.header && tr.header.grid) || GRID;
+  tr.grid = g; tr.cell = Math.max(3, Math.round((GRID * CELL) / g));
+  tr.low = g * tr.cell + MARGIN * 2; };
 const COMPANY = ["#7fb4ff", "#ffb26e"];
 const CONAME = ["CRABAZON", "SHELL-MART"];      // rival megacorps (crab + retail puns)
 const BASE_TPS = 16;                                   // ticks/sec at "Read" base×0.6 ≈ 10; ×3 ≈ 48
@@ -313,19 +320,22 @@ function sizeFg(tr){
   fg.width=Math.round(cw*dpr); fg.height=Math.round(cw*dpr);
   tr.panel.fctx=fg.getContext("2d");
   tr.panel.fctx.setTransform(dpr,0,0,dpr,0,0);
-  tr.panel.s=cw/LOW;                                      // display px per backbuffer px
+  tr.panel.s=cw/tr.low;                                   // display px per backbuffer px
 }
 function buildPanels(){
   const root=$("panels"); root.innerHTML="";
   for(const tr of traces){
     const [name,color,sub]=fleet(tr.header.arm);
+    geom(tr);                                             // per-trace grid/cell/backbuffer
     const div=document.createElement("div"); div.className="panel";
     div.innerHTML=`<h2><span class="dot" style="background:${color}"></span>${name}</h2>
       <div class="sub">${sub}</div>
-      <div class="stage"><canvas class="bg" width="${LOW}" height="${LOW}"></canvas><canvas class="fg"></canvas></div>`;
+      <div class="stage"><canvas class="bg" width="${tr.low}" height="${tr.low}"></canvas><canvas class="fg"></canvas></div>`;
     root.appendChild(div);
     const bg=div.querySelector(".bg"), fg=div.querySelector(".fg");
     const ctx=bg.getContext("2d"); ctx.imageSmoothingEnabled=false;
+    const finRec=tr.ticks[tr.maxT];
+    tr.finished=!!(finRec && tr.header.total_stock && finRec.delivered>=tr.header.total_stock);
     tr.panel={stage:div.querySelector(".stage"), bg, fg, ctx, color, name, fx:[], disp:0};
     sizeFg(tr);
     new ResizeObserver(()=>sizeFg(tr)).observe(tr.panel.stage);   // robust squaring
@@ -333,8 +343,6 @@ function buildPanels(){
     fg.addEventListener("mouseleave", ()=>$("nametag").style.display="none");
   }
   maxT=Math.max(...traces.map(t=>t.maxT)); $("scrub").max=maxT; simT=1;
-  for(const tr of traces) if(tr.header.grid && tr.header.grid!==GRID)
-    console.warn(`trace grid ${tr.header.grid} ≠ viewer GRID ${GRID} — positions will render wrong`);
   $("score").style.display=traces.length===2?"flex":"none";
   $("ticker").style.display=$("legend").style.display="flex";
   if(traces[0]&&traces[0].header.robots.some(r=>r.company!==undefined))
@@ -348,23 +356,24 @@ function buildPanels(){
 
 /* ── render one panel: WORLD → bg (pixelated), TEXT+DEALS → fg (crisp) ── */
 function drawPanel(tr, aT){
+  CUR={cell:tr.cell||CELL, low:tr.low||LOW};              // per-trace geometry
   const c=tr.panel.ctx, fc=tr.panel.fctx, s=tr.panel.s, L={ctx:fc, s};
   const h=tr.header, ticks=tr.ticks, byTick=tr.byTick;
   // trace records start at t=1 — clamp so a paused load / scrub-to-start
   // draws the first frame instead of early-returning on the ticks[0] hole
   const T=Math.max(1, Math.min(Math.floor(simT), tr.maxT)), rec=ticks[T]; if(!rec) return;
   const nxt=ticks[Math.min(T+1,tr.maxT)]||rec, frac=easeIO(simT-Math.floor(simT));
-  fc.clearRect(0,0,LOW*s,LOW*s);                          // clear the crisp overlay
+  fc.clearRect(0,0,CUR.low*s,CUR.low*s);                          // clear the crisp overlay
   const P2=(gx,gy)=>[w2p(gx)*s, w2p(gy)*s];               // grid → overlay px
 
-  c.fillStyle="#040308"; c.fillRect(0,0,LOW,LOW);
+  c.fillStyle="#040308"; c.fillRect(0,0,CUR.low,CUR.low);
   // Fatbeard nebula haze (depth) + Galaga blinking colored parallax starfield
   if(!tr.stars){ const r=rnd(h.seed*7919+17); tr.stars=[]; tr.neb=[];
     const SC=[[255,255,255],[150,232,255],[255,214,120],[255,150,196]];
     for(let i=0;i<160;i++){ const tier=r(), col=SC[(r()*4)|0];
-      tr.stars.push([r()*LOW|0, r()*LOW|0, tier>0.92?2:1, col, r()*6.283, 1.4+r()*3.2, r()<0.32, 0.22+tier*0.78,
+      tr.stars.push([r()*CUR.low|0, r()*CUR.low|0, tier>0.92?2:1, col, r()*6.283, 1.4+r()*3.2, r()<0.32, 0.22+tier*0.78,
                      `rgba(${col[0]},${col[1]},${col[2]},`]); }   // cached prefix: ~19k string builds/s saved
-    for(let i=0;i<3;i++) tr.neb.push([r()*LOW, r()*LOW, 46+r()*54, ["#3a2560","#123a4a","#3a1846"][i]]); }
+    for(let i=0;i<3;i++) tr.neb.push([r()*CUR.low, r()*CUR.low, 46+r()*54, ["#3a2560","#123a4a","#3a1846"][i]]); }
   for(const nb of tr.neb) glow(c, nb[0],nb[1], nb[2], nb[3], 0.05);
   for(const s of tr.stars){
     const blink = s[6] ? (Math.sin(aT*s[5]+s[4])>0?1:0.12) : (0.55+0.45*Math.sin(aT*s[5]+s[4]));
@@ -390,10 +399,10 @@ function drawPanel(tr, aT){
     drawCharger(c, L, ch.pos[0],ch.pos[1], ch.owner===null?"#7fe0ff":COMPANY[ch.owner], aT);
 
   // staging: radial vignette that darkens all but the dealing pair (guided attention)
-  if(staged){ const sx=nmid?midx/nmid:LOW/2, sy=nmid?midy/nmid:LOW/2;
-    const g=c.createRadialGradient(sx,sy,CELL*2,sx,sy,LOW*.7);
+  if(staged){ const sx=nmid?midx/nmid:CUR.low/2, sy=nmid?midy/nmid:CUR.low/2;
+    const g=c.createRadialGradient(sx,sy,CUR.cell*2,sx,sy,CUR.low*.7);
     g.addColorStop(0,"rgba(7,6,13,0)"); g.addColorStop(1,"rgba(7,6,13,0.62)");
-    c.fillStyle=g; c.fillRect(0,0,LOW,LOW); }
+    c.fillStyle=g; c.fillRect(0,0,CUR.low,CUR.low); }
 
   tr.panel.pts=[];
   const order=rec.r.map((_,i)=>i).sort((a,b)=>{
@@ -452,6 +461,14 @@ function drawPanel(tr, aT){
       fc.fillStyle=col; fc.fillText(txt,mx,ry);
       fc.textBaseline="alphabetic"; fc.globalAlpha=1; }
   }
+  if(tr.finished && Math.floor(simT)>=tr.maxT){       // a WON race must read as won
+    const bw=170, bx=(CUR.low*s-bw)/2, by=10;
+    fc.globalAlpha=0.92; fc.fillStyle="#10141c";
+    roundRect(fc,bx,by,bw,26,6); fc.fill();
+    fc.strokeStyle=tr.panel.color; fc.lineWidth=1.5; fc.stroke();
+    fc.fillStyle=tr.panel.color; fc.font=`700 12px ${FF}`; fc.textAlign="center"; fc.textBaseline="middle";
+    fc.fillText(`✓ FINISHED — tick ${tr.maxT}`, bx+bw/2, by+13);
+    fc.textBaseline="alphabetic"; fc.globalAlpha=1; }
   tr._delivered=rec.delivered; tr._dead=rec.r.filter(r=>r[4]).length;
 }
 function roundRect(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y);
@@ -474,7 +491,7 @@ function fireDeals(tr, fromT, toT){
 }
 
 function hover(tr,ev){ if(!tr.panel.pts)return;
-  const rect=tr.panel.fg.getBoundingClientRect(), sc=rect.width/LOW;
+  const rect=tr.panel.fg.getBoundingClientRect(), sc=rect.width/(tr.low||LOW);
   const mx=(ev.clientX-rect.left)/sc, my=(ev.clientY-rect.top)/sc;
   let best=null,bd=12; for(const [x,y,i] of tr.panel.pts){const d=Math.hypot(mx-x,my-y); if(d<bd){bd=d;best=i;}}
   const tag=$("nametag"); if(best===null){tag.style.display="none";return;}
@@ -509,7 +526,11 @@ function frame(now){
       const wPct=Math.round(1000*d/total)/10;
       if(wPct!==p._w){ el.querySelector(".bar i").style.width=wPct+"%"; p._w=wPct; } }
     const lead=(traces[0]._delivered||0)-(traces[1]._delivered||0), ah=lead===0?null:(lead>0?0:1);
-    const v=ah===null?"<b>tied</b>":`<b style="color:${traces[ah].panel.color}">+${Math.abs(lead)}</b>${traces[ah].panel.name.split(" ")[0]} ahead`;
+    const fin=[0,1].map(i=>traces[i].finished && Math.floor(simT)>=traces[i].maxT);
+    let v;
+    if(fin[0]!==fin[1]){ const w_=fin[0]?0:1;
+      v=`<b style="color:${traces[w_].panel.color}">${traces[w_].panel.name.split(" ")[0]} FINISHED</b> t=${traces[w_].maxT}`; }
+    else v=ah===null?"<b>tied</b>":`<b style="color:${traces[ah].panel.color}">+${Math.abs(lead)}</b>${traces[ah].panel.name.split(" ")[0]} ahead`;
     if(v!==frame._v){ $("verdict").innerHTML=v; frame._v=v; }
   }
   requestAnimationFrame(frame);
@@ -550,7 +571,7 @@ drop.addEventListener("drop",async e=>{e.preventDefault();drop.classList.remove(
 (async function init(){
   const p=new URLSearchParams(location.search);
   let urls=[p.get("trace"),p.get("trace2")].filter(Boolean);
-  if(!urls.length) urls=["swarm-traces/trace_v5_snhp-hz_s0.5_seed3.jsonl","swarm-traces/trace_v5_auction_seed3.jsonl"];
+  if(!urls.length) urls=["swarm-traces/trace_v5_snhp%2Bnet_s0.5_seed5.jsonl","swarm-traces/trace_v5_auction_seed5.jsonl"];
   if(urls.length){ try{
     traces=await Promise.all(urls.map(async u=>parseTrace(await(await fetch(u)).text())));
     buildPanels();

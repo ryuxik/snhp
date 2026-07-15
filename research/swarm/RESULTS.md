@@ -1,6 +1,89 @@
 # Results — verdicts against the pre-registrations
 
-## ⚠ CORRECTION (2026-07-15): v7 and v6.1 re-run after adversarial review
+## ⚠ CORRECTION 2 (2026-07-15, evening): physics revision v8 — founder-spotted, everything re-run
+
+The founder watched the live replay and caught what 22 review agents missed:
+(1) **the pad-strand cargo trap** — a robot arriving at its target refinery
+could strand on the arrival step and hold its cargo forever (audit: ~9–15
+ore/run entered the trap in EVERY arm; rescue-capable arms ransomed it back
+at 94–100%, auction/rules at ~64% — **a differential subsidy to our own
+mechanism worth ~40% of the bargaining-vs-auction gap**); (2) **deals were
+temporally free** — robots kept driving mid-exchange (the "tethering" the
+founder saw). Fixes: the pad unloads on arrival (facility-side, same tick);
+every executed exchange now immobilizes both parties DEAL_PAUSE=3 ticks.
+Third finding, from the founder's lost-drone question: the scoreboard priced
+a dead drone at k=0 while the agents priced it at 1.5 ore internally — the
+k=2/k=5 flip analysis was pre-registered (SPEC §Metrics) and emitted in
+every row but never reported. It is now first-class below. ALL columns
+re-run on corrected physics (A–F + new G/H). Verdict shifts, honestly:
+
+- **DIED — "risk pricing beats the safety net when risk is heterogeneous"
+  (v3 regime law).** On its home v3 world under honest physics: hz never
+  significantly beats net at any σ (best +3.6, p=.17), strands 15–21 vs the
+  net's 2–7, k5 gaps −56 to −86. The old crossing was substantially the
+  cargo-ransom subsidy. Column H (below) shows the gap is institutional,
+  not a pricing bug.
+- **DIED — "cooperation is 43% faster."** The joint tier strikes ~1,100
+  deals/run; once deals cost time its speed edge is ~9% n.s. **The
+  dividend moved to survival: gated fleets end 1.06 stranded vs the veto
+  tier's 15.31 (k5: 235 vs 162).** Cooperation keeps drones alive; speed
+  was an artifact of free transaction time.
+- **SHRANK, SURVIVES — bargaining beats auction.** v5 anchor: snhp-hz
+  +3.4 (p=.005, was +9.6; ~40% of the old gap was the pad subsidy);
+  positive at every noise level (+0.8..+4.1, p≤.024). v4 preset: snhp
+  +14.1 (p<.001). **On k-scores only the safety-net arm survives:**
+  snhp+net vs auction +4.5 delivered AND +20.4 k5 (both sig) — the
+  -hz arm reverses at any k>0 (its edge ≈ the drone capital it burns).
+- **SURVIVES INTACT:** bundling necessity (structural, test-pinned); the
+  toll-booth result (posted-price revenue 72.1 → 26.8 at τ*=0.15 vs
+  bargaining fleets, **−63%**); border ≈ merger (team 118.6 vs twofirm
+  117.6, n.s.); the v6 feeding frenzy (+179/+126, p<1e-4, strip 271–326)
+  and the attestation gate (liar advantage → +9.5/−2.2 n.s., strip 0.0
+  exactly); v7's corrected headline (delivered flat, poisoned 0 → 13.2 →
+  23.4/run, self-margin halves it).
+- **RE-SCOPED — "safety net beats the hive."** On the harsh v3 world it
+  survives corrected physics (+2.1 delivered p=.041 at σ=0, HALF the
+  strandings — 2.3 vs 3.9 — and +9.9 k5 p=.006). On richer v4/v5 stages
+  the hive wins at every k. The law: the safety-netted market beats
+  central planning when SURVIVAL is the binding constraint; the hive wins
+  when logistics are.
+
+Reproduce: `run.py --column <A..H>` then `--analyze`. Full k-table policy:
+every headline is now reported at k ∈ {0, 2, 5} (delivered − k·stranded);
+"agents price a drone at 1.5 ore internally; verdicts must survive k=2."
+
+## v8 (column G): field geometry — the market needs meeting density
+
+Founder's pre-registered theory (SPEC P13): dense fields favor auction,
+sparse fields favor bargaining. **Verdict: KILLED as stated — the truth is
+a hump.** snhp+net − auction delivered: +4.1 (G=24) → +4.5 (32) → **+7.3
+(48)** → **−2.7 (64)**. Bargaining's edge GROWS with sparsity while the
+logistics thicken (the mechanism intuition was right mid-range) and then
+collapses when encounters themselves become scarce — at G=64 every
+coordination arm craters (net strands 17.9, hz 22.1, even team 19.2) while
+auction's direct hauling degrades most gracefully (235 → 231 across the
+whole range). P13b mechanism check: the deal MIX does not shift (energy
+share ~95% at both extremes); deal VOLUME rises (65 → 152/run). P13c:
+k-scores agree (net k5 dominates through G=48, loses at G=64). The honest
+law: **a market's advantage is hump-shaped in logistics complexity — it
+needs enough friction to be worth paying for and enough meeting density to
+physically convene.**
+
+## v9 (column H): endogenous drone valuation — the KILL fired, informatively
+
+Founder's pre-registered theory (SPEC P14): the flat 1.5-ore stranding
+price is the bug; price drones at their remaining career. **Verdict: the
+pre-registered KILL fired — the safety net's edge is institutional, not a
+pricing artifact.** Pure career pricing (snhp-lv) is WORSE than flat
+(delivered −16.5 p=.023, stranded +7.3 p=.001: the price decays with the
+field, so late-game drones become disposable). Career + capital floor
+(snhp-lvc, 2 ore) is the best pure-market arm ever recorded — delivered
+ties the net (239.6), **fastest selfish makespan in the project (688)**,
+beats flat-hz at every k — but still loses to the net by −36 k5 (p=.001).
+Better prices make the market FASTER; they cannot buy the net's survival
+record. Three attempts to replace the net with a smarter market (v3
+hazard, v6 defenses, v9 career pricing) have now died on pre-registered
+criteria.
 
 A 22-agent pre-merge review found the original v7 headline was an artifact:
 a **charger livelock** (the queue-release threshold read BELIEVED battery

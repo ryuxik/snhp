@@ -77,9 +77,43 @@ def _future_trips_value(r, w) -> float:
     return 0.0
 
 
+def v_life(r, w) -> float:
+    """v9: the drone's REMAINING CAREER value — its fleet-share of the whole
+    remaining field (a chassis re-claims sectors as they deplete, so the
+    career is field-bound, not sector-bound), net of haul energy at the
+    robot's own shadow price, plus the cargo it would take down with it,
+    plus exogenous replacement capital. Independent of current charge (a
+    dying robot's low battery must not talk itself into being worthless).
+    Decays to ~0 as the field depletes, so endgame abandonment stays
+    rational while early-run drones are expensive to lose."""
+    doomed = r.load * W.V_DELIVER + w.strand_cap
+    # nominal fleet size, not live count: a deal's own execution can strand
+    # the donor, and an alive-count share would make evaluated Φ diverge
+    # from executed Φ (the one invariant every arm asserts per deal)
+    share = sum(w.stock) / max(1, len(w.robots))
+    cand = r.sector if w.stock[r.sector] > 0 else w.best_claim(r)
+    if share <= 0 or w.stock[cand] <= 0:
+        return doomed
+    src = w.sources[cand]
+    ref = delivery_target(r, w, from_pos=src, sticky=False)
+    rate = w.credit_rate(r.company, ref)
+    leg = W.manhattan(src, w.refineries[ref])
+    cycle_cost = 2 * leg * r.eff * (1 + W.LOADED_MULT / 2)
+    net_per_unit = max(0.0, rate * W.V_DELIVER
+                       - cycle_cost * r.ev / max(r.cap, 1))
+    return share * net_per_unit + doomed
+
+
+def _strand_price(r, w) -> float:
+    """What Φ charges for a stranding: the drone's remaining career under
+    v9 life-pricing, the flat P_STRAND otherwise. Used consistently in the
+    stranded state, the hazard term, and (through both) rescue surplus."""
+    return v_life(r, w) if w.life_pricing else W.P_STRAND
+
+
 def phi(r, w) -> float:
     if r.stranded:
-        return -W.P_STRAND
+        return -_strand_price(r, w)
     v = 0.0
 
     # value of the load currently carried — tariff-aware, same routing the
@@ -100,11 +134,11 @@ def phi(r, w) -> float:
     v += _future_trips_value(r, w)
 
     if w.hazard_phi:
-        v -= W.P_STRAND * stranding_hazard(r, w)
+        v -= _strand_price(r, w) * stranding_hazard(r, w)
     else:
         _, d = w.nearest_charger(r)
         if r.bat() < d * r.step_cost():
-            v -= W.P_STRAND
+            v -= _strand_price(r, w)
     return v
 
 

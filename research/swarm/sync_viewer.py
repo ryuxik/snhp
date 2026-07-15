@@ -21,7 +21,7 @@ PATCHES = [
      '<div id="badge"><a href="/leaderboard.html">arena.snhp.dev</a> · replay of a real committed simulation · reproducible from the repo</div>'),
     ('  let urls=[p.get("trace"),p.get("trace2")].filter(Boolean);',
      '  let urls=[p.get("trace"),p.get("trace2")].filter(Boolean);\n'
-     '  if(!urls.length) urls=["swarm-traces/trace_v5_snhp-hz_s0.5_seed3.jsonl","swarm-traces/trace_v5_auction_seed3.jsonl"];'),
+     '  if(!urls.length) urls=["swarm-traces/trace_v5_snhp%2Bnet_s0.5_seed5.jsonl","swarm-traces/trace_v5_auction_seed5.jsonl"];'),
 ]
 
 

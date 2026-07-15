@@ -572,3 +572,115 @@ Run: `python research/swarm/run.py` · Tests: `pytest research/swarm/test_swarm.
 Viz: VIZ.md (`trace.py` → `viewer.html`, side-by-side compare).
 History: v1 spec is in git history; v1 findings and their demolition:
 review/ADVERSARIAL_REVIEW.md.
+
+---
+
+## v8 pre-registration: field geometry (column G) — "density decides the winner"
+
+*Registered 2026-07-15, BEFORE implementation or any pilot run. Founder's
+hypothesis, verbatim: "on a more dense field auction wins vs more sparse
+field bargain wins, because as the logistics gets more complicated bargain
+gets the advantage." Runs ONLY on the corrected physics (pad-unload +
+transaction-pause + any audit-mandated fixes), after the full A–F re-run.*
+
+**Manipulation:** grid side G ∈ {24, 32, 48, 64} with total stock (240),
+asteroid count (10 mirror-paired), charger count (4) and refinery count (2)
+held FIXED; all facility positions scale proportionally with G. Density =
+stock per unit area varies ~7× purely through geometry. Battery physics
+unchanged — bigger fields mean longer supply lines, more charge stops, and
+trips that are infeasible without mid-route energy trades.
+
+**Arms:** auction, snhp-hz, snhp+net, team (ceiling), rules (floor).
+σ=0.5, τ=0.15, 16 seeds, 2500 ticks (4000 at G=64 if horizon-censoring
+exceeds half the runs — decided by censoring rate, not by results).
+
+**Pre-registered predictions (P13):**
+- **P13a (the theory):** the auction-minus-bargaining delivered gap falls
+  monotonically with G: auction ≥ bargaining at G=24, bargaining > auction
+  at G=64 (bargaining = snhp+net, the shipped champion; snhp-hz reported
+  alongside). A crossover exists inside the tested range.
+- **P13b (the mechanism):** the energy+rescue share of executed bargained
+  issues RISES with G (logistics, not cargo arbitrage, is where sparse-field
+  value lives). If P13a passes but P13b fails, the theory's outcome is right
+  for the wrong reason — report as such.
+- **P13c (robustness):** P13a holds on delivered − 2·stranded and
+  delivered − 5·stranded (sparse fields must not win by strand-and-abandon).
+- **KILL:** if either arm wins at EVERY tested G (no crossover), the density
+  theory dies and the honest headline is whichever uniform result survived —
+  including "auction wins everywhere on corrected physics," if that is what
+  the data says.
+
+**Viewer prerequisite:** the replay currently hardcodes GRID=32 (header
+`grid` field ignored — review finding V4); per-trace cell scaling must land
+before any G≠32 trace is visualized, or the pixels will lie.
+
+---
+
+## v9 pre-registration: endogenous drone valuation (column H) — "price the drone's remaining career"
+
+*Registered 2026-07-15, BEFORE implementation or any pilot run. Founder's
+theory, verbatim: "if the overall goal is gold maximizing (as a company)
+then the best strategy would win — why are drones not priced as an
+expectation of what they can still mine?" Motivation: the k-audit showed
+every flat-P_STRAND hazard claim dies at k>0, with flip points clustered at
+the internal price (1.5 ore) — the signature of a mispriced asset, not
+necessarily a broken mechanism. Runs only on corrected physics, after the
+A–F re-run.*
+
+**Change under test (one change):** replace the flat stranding price
+P_STRAND=15 with the drone's LIFE VALUE, V_life(r) = future-trips value
+evaluated at a healthy reference battery (not current charge — a dying
+robot's low spare energy must not talk itself into being worthless) plus
+the value of carried load. Applied consistently in all three places the
+price appears: the hazard term (−V_life·P(strand)), the stranded-state Φ
+(−V_life at stranding time), and therefore rescue-deal surplus (a rescue
+buys back the victim's remaining career). Optional exogenous capital cost
+k_cap ∈ {0, 2, 5} ore-units added on top, mirroring the scoreboard's k.
+
+**Arms:** snhp-hz (flat, control) · snhp-lv (life-value) · snhp-lv+cap
+(k_cap=2) · snhp+net (champion control) · team (ceiling) · auction (floor).
+v5 preset, σ ∈ {0.5, 1.0}, τ=0.15, 16 seeds, 2500 ticks.
+
+**Pre-registered predictions (P14):**
+- **P14a (the mispricing claim):** snhp-lv strands ≤ HALF of snhp-hz's
+  end-state strandings at σ=0.5 with delivered within noise (survival is
+  nearly free once the price is right), and the reduction concentrates in
+  the EARLY run (t<800), where V_life is largest.
+- **P14b (the market catches the net):** snhp-lv ≥ snhp+net on
+  delivered − 2·stranded AND delivered − 5·stranded (the safety net's
+  k-dominance over the market disappears when the market prices drones
+  correctly — v3's dead hypothesis, resurrected with the right price).
+- **P14c (rescue timing):** distress-deal volume shifts earlier; endgame
+  abandonment of remote drones REMAINS (V_life→0 as stock depletes is
+  correct behavior, not a failure).
+- **Exploratory, no prediction:** snhp-lv vs team on v5 at k ∈ {0,2,5} —
+  whether ANY selfish arm beats the hive on the lean stage once assets are
+  priced. Reported either way; the v2.1-vs-v5 "who beats the hive"
+  discrepancy is resolved by data, not scoping language.
+- **KILL:** if snhp-lv fails P14b (net still k-dominates) or collapses
+  delivered by >10 (over-fear: fleet too precious to work), then flat
+  pricing was NOT the binding flaw — the safety net's edge is
+  institutional, not a pricing bug — and the article's scoping stands
+  as the honest fix.
+
+**P13 VERDICT (2026-07-15, sweep_G.json, corrected physics): KILLED as
+stated; replaced by the hump law.** P13a: refuted in both directions —
+bargaining (snhp+net) wins at G=24 (+4.1) and peaks at G=48 (+7.3), auction
+wins at G=64 (−2.7); the predicted dense-end auction win does not exist,
+and the sparse-end bargaining win inverts at the extreme. P13b: refuted —
+energy-issue share is flat (~95%) across G; volume rises instead (65→152
+deals/run). P13c: k-scores track delivered (net k5-dominates ≤G=48, loses
+at 64). KILL did not fire (no uniform winner). Honest law: the market's
+edge is hump-shaped in logistics complexity — enough friction to be worth
+paying for, enough meeting density to physically convene.
+
+**P14 VERDICT (2026-07-15, sweep_H.json, corrected physics): KILL FIRED —
+institutional, not a pricing bug.** P14a: failed (snhp-lv strands MORE,
++7.3 p=.001 — decaying career value makes late-game drones disposable).
+P14b: failed (snhp-lvc ties the net on delivered, sets the fastest selfish
+makespan recorded — 688 — and beats flat-hz at every k, but loses k5 to the
+net by −36, p=.001). P14c: directionally held (lvc's deals rise to 114/run
+with early distress trade). Exploratory: no selfish arm beats team on v5 at
+any k. Conclusion: better prices buy SPEED, not the net's survival record;
+the safety net is the better institution, not a patch over a mispriced
+market.

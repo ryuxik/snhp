@@ -347,3 +347,64 @@ def test_trust_arms_emit_audited_schema():
         assert 0.0 < d["capture"] <= 1.0 + 1e-9
     assert any(d["capture"] < 1.0 - 1e-9 for d in w.deal_log), \
         "every capture exactly 1.0 — smells hardcoded"
+
+
+def test_v8_pad_unloads_on_arrival():
+    """A robot that strands ON its target refinery still delivers (the pad
+    is facility-side). Minimal repro of the audit's cargo trap."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0))
+    r = w.robots[0]
+    ref = w.refineries[0]
+    r.pos = (ref[0] - 1, ref[1])
+    r.load, r.load_prov = 3, [3, 0]
+    r.company = 0
+    r.battery = r.step_cost() + 0.5      # arrival step leaves < RESCUE_FLOOR
+    r.sector = 0
+    before = w.delivered
+    from swarm.arms import drive
+    drive(r, w)
+    assert r.pos == ref and r.stranded, "repro setup broken"
+    assert r.load == 0 and w.delivered == before + 3, \
+        "pad-strand cargo trap is back"
+
+
+def test_v8_deal_pause_immobilizes_both():
+    """An executed exchange freezes both parties for DEAL_PAUSE ticks."""
+    w = World(sigma=0.5, seed=2, preset="v5", tau=(0.15, 0.15),
+              hazard_phi=True)
+    arm = make_arm("snhp", w)
+    for _ in range(600):
+        # robots already mid-pause when the tick STARTS must not move in it
+        held = {r.rid: r.pos for r in w.robots if w.tick < r.busy_until}
+        arm.tick()
+        for r in w.robots:
+            if r.rid in held:
+                assert r.pos == held[r.rid], f"robot {r.rid} moved mid-exchange"
+    assert arm.deals > 0
+    assert any(r.busy_until > 0 for r in w.robots), "pause never engaged"
+
+
+def test_v9_life_value_decays_with_stock():
+    """v_life prices the remaining career: it shrinks as the field empties
+    and hits ~0 when nothing is left to mine."""
+    from swarm.value import v_life
+    w = World(sigma=0.5, seed=1, preset="v5", tau=(0.15, 0.15),
+              hazard_phi=True, life_pricing=True)
+    r = w.robots[0]
+    early = v_life(r, w)
+    w.stock = [0] * len(w.stock)
+    late = v_life(r, w)
+    assert early > W.P_STRAND, f"early career worth {early} <= flat price"
+    assert late <= 1e-9, f"empty-field career still worth {late}"
+
+
+def test_v8_grid_scaling_preserves_baseline():
+    """grid=32 is bit-identical to the unparametrized world; grid=64 scales
+    facilities and keeps stock/robot counts fixed."""
+    w32 = World(sigma=0.5, seed=3, preset="v5", tau=(0.15, 0.15))
+    assert w32.refineries == [(26, 6), (26, 26)]
+    w64 = World(sigma=0.5, seed=3, preset="v5", tau=(0.15, 0.15), grid=64)
+    assert w64.refineries == [(52, 12), (52, 52)]
+    assert w64.total_stock == w32.total_stock
+    assert len(w64.robots) == len(w32.robots)
+    assert all(0 <= s[0] <= 64 and 0 <= s[1] <= 64 for s in w64.sources)

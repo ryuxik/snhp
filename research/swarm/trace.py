@@ -31,17 +31,24 @@ from swarm.world import TOTAL_STOCK, World
 
 def write_trace(arm_name: str, sigma: float, seed: int, ticks: int,
                 out_path: str, tau: float = 0.0, preset: str = "v4",
-                noise: float = 0.0,
+                noise: float = 0.0, grid: int = 32,
                 issues=("cargo", "energy", "sector")) -> dict:
-    hazard = arm_name.endswith("-hz")
-    base = arm_name[:-3] if hazard else arm_name
+    life = arm_name.endswith(("-lv", "-lvc"))
+    hazard = arm_name.endswith("-hz") or life
+    base = arm_name
+    for suf in ("-hz", "-lv", "-lvc"):
+        if base.endswith(suf):
+            base = base[:-len(suf)]
+            break
     w = World(sigma=sigma, seed=seed, hazard_phi=hazard, preset=preset,
-              tau=(tau, tau), internalize_tariffs=(base == "team"))
+              tau=(tau, tau), internalize_tariffs=(base == "team"),
+              grid=grid, life_pricing=life,
+              strand_cap=20.0 if arm_name.endswith("-lvc") else 0.0)
     arm = make_arm(base, w, issues=issues, noise=noise)
     n_events = n_deals = 0
     with open(out_path, "w") as f:
         f.write(json.dumps(dict(
-            type="header", grid=W.GRID, sources=w.sources,
+            type="header", grid=w.grid, sources=w.sources,
             refineries=[dict(pos=list(p), owner=o)
                         for p, o in zip(w.refineries, w.ref_owner)],
             chargers=[dict(pos=list(p_), owner=o)
@@ -87,6 +94,7 @@ def main() -> None:
     ap.add_argument("--preset", default="v4")
     ap.add_argument("--noise", type=float, default=0.0)
     ap.add_argument("--ticks", type=int, default=2500)
+    ap.add_argument("--grid", type=int, default=32)
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
     out = args.out or os.path.join(
@@ -95,7 +103,7 @@ def main() -> None:
     os.makedirs(os.path.dirname(out), exist_ok=True)
     print(json.dumps(write_trace(args.arm, args.sigma, args.seed, args.ticks,
                                  out, tau=args.tau, preset=args.preset,
-                                 noise=args.noise), indent=1))
+                                 noise=args.noise, grid=args.grid), indent=1))
 
 
 if __name__ == "__main__":

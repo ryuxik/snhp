@@ -34,6 +34,10 @@ V_DELIVER = 10.0                    # credit per unit refined at OWN refinery
 P_STRAND = 15.0                     # Φ penalty when charger is out of reach
 FUTURE_DISCOUNT = 0.5               # Φ weight on future-trip value
 TXN_COST = 0.05                     # per-side battery cost of striking a deal
+DEAL_PAUSE = 3                      # ticks BOTH parties hold position while an
+                                    # executed exchange physically transfers
+                                    # (v8 physics: deals cost time, not just
+                                    # paperwork — founder review 2026-07-15)
 HAZARD_SCALE = 8.0                  # hazard sigmoid softness (-hz arms)
 EV_INIT = 0.3                       # initial energy shadow price (endogenous
 EV_MIN, EV_MAX = 0.05, 1.0          # thereafter: lagged ∂Φ/∂battery, clamped)
@@ -94,6 +98,7 @@ class Robot:
     liar: bool = False              # v6: inflates reported BATNA by LIE_LAMBDA
     attested: bool = False          # v6: reports verifiably true (signed books)
     gauge_bias: float = 0.0         # v7: persistent battery-gauge miscalibration
+    busy_until: int = -1            # v8: docked mid-exchange until this tick
 
     def bat(self) -> float:
         """BELIEVED battery — what every decision layer consumes. Physics
@@ -110,14 +115,25 @@ class World:
                  tau: tuple = (0.0, 0.0), internalize_tariffs: bool = False,
                  freeze_ev: float | None = None,
                  liar_frac: float = 0.0, defended: bool = False,
-                 self_noise: float = 0.0, self_margin: bool = False):
+                 self_noise: float = 0.0, self_margin: bool = False,
+                 grid: int = GRID, life_pricing: bool = False,
+                 strand_cap: float = 0.0):
         self.rng = np.random.RandomState(seed)
         self.hazard_phi = hazard_phi
         self.preset = preset
+        # v8 geometry (column G): facility layout scales with grid size;
+        # stock/robots/batteries fixed, so density varies purely through
+        # distance. sc==1 leaves every draw and position bit-identical.
+        self.grid = grid
+        sc = grid / GRID
+        _P = (lambda p: (round(p[0] * sc), round(p[1] * sc))) if sc != 1 \
+            else (lambda p: tuple(p))
+        self.life_pricing = life_pricing   # v9: price drones by remaining career
+        self.strand_cap = strand_cap       # v9: exogenous replacement capital
         cfg = PRESETS[preset]
-        self.refineries = [tuple(p) for p, _ in cfg["refineries"]]
+        self.refineries = [_P(p) for p, _ in cfg["refineries"]]
         self.ref_owner = [o for _, o in cfg["refineries"]]
-        self.chargers = [tuple(p) for p, _ in cfg["chargers"]]
+        self.chargers = [_P(p) for p, _ in cfg["chargers"]]
         self.charger_owner = [o for _, o in cfg["chargers"]]
         self.n_companies = cfg["companies"]
         # v5 fleets launch lean (mean 40): with 4 chargers and a scattered
@@ -194,7 +210,7 @@ class World:
         eff = float(np.clip(1.0 + sigma * u(-0.5, 0.5), 0.5, 1.5))
         b0 = float(np.clip(self._b_mean + sigma * u(-self._b_spread, self._b_spread),
                            self._b_lo, BATTERY_MAX))
-        pos = (int(u(1, GRID)), int(u(1, GRID)))
+        pos = (int(u(1, self.grid)), int(u(1, self.grid)))   # == GRID at sc=1
         return cap, eff, b0, pos
 
     def _gen_asteroids(self):
@@ -202,20 +218,21 @@ class World:
         equal within a pair, total pinned to 2×TOTAL_STOCK (double workload:
         the rich stage needs a long game or coordination is decorative).
         Non-identical by construction: position and richness vary per pair."""
-        taken = {(26, 6), (26, 26), (12, 10), (22, 12), (12, 22), (22, 20)}
+        sc = self.grid / GRID
+        taken = set(self.refineries) | set(self.chargers)
         pos = []
         while len(pos) < 5:
-            x = int(self.rng.uniform(3, 29))
-            y = int(self.rng.uniform(3, 13))
+            x = int(self.rng.uniform(3 * sc, 29 * sc))   # bounds scale; at
+            y = int(self.rng.uniform(3 * sc, 13 * sc))   # sc=1 draws unchanged
             p_ = (x, y)
-            if p_ in taken or any(manhattan(p_, q) < 5 for q in pos):
+            if p_ in taken or any(manhattan(p_, q) < 5 * sc for q in pos):
                 continue
             pos.append(p_)
         raw = [int(self.rng.uniform(6, 19)) for _ in range(5)]
         scale = TOTAL_STOCK / sum(raw)
         stocks = [max(4, round(r * scale)) for r in raw]
         stocks[0] += TOTAL_STOCK - sum(stocks)           # pin the total
-        sources = pos + [(x, GRID - y) for x, y in pos]  # mirrors are idx+5
+        sources = pos + [(x, self.grid - y) for x, y in pos]  # mirrors idx+5
         return sources, stocks + list(stocks)
 
     def best_claim(self, r) -> int:
@@ -241,7 +258,7 @@ class World:
                 sector=k % 2, company=0))
         for k, (cap, eff, b0, (x, y)) in enumerate(draws):
             self.robots.append(Robot(
-                rid=half + k, pos=(x, GRID - y), battery=b0, cap=cap, eff=eff,
+                rid=half + k, pos=(x, self.grid - y), battery=b0, cap=cap, eff=eff,
                 sector=1 - (k % 2), company=1))
         if len(self.sources) > 2:            # v5: claims replace sectors —
             half_src = len(self.sources) // 2

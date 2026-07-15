@@ -40,19 +40,28 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              tau=0.0, preset: str = "v4", issues=FULL,
              noise: float = 0.0, liar_frac: float = 0.0,
              defended: bool = False, self_noise: float = 0.0,
-             self_margin: bool = False) -> dict:
+             self_margin: bool = False, grid: int = 32) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
         raise ValueError("v5 partner-noise and v6 lies/defense are separate "
                          "treatments; combining them silently disables noise")
-    hazard = arm_name.endswith("-hz")
-    base = arm_name[:-3] if hazard else arm_name
+    # v9 arms: "-lv" = life-value drone pricing (hazard-shaped Φ),
+    # "-lvc" = life-value + exogenous replacement capital (2 ore units)
+    life = arm_name.endswith(("-lv", "-lvc"))
+    cap = 20.0 if arm_name.endswith("-lvc") else 0.0
+    hazard = arm_name.endswith("-hz") or life
+    base = arm_name
+    for suf in ("-hz", "-lv", "-lvc"):
+        if base.endswith(suf):
+            base = base[:-len(suf)]
+            break
     tau_pair = tuple(tau) if isinstance(tau, (tuple, list)) else (tau, tau)
     w = World(sigma=sigma, seed=seed, hazard_phi=hazard, preset=preset,
               tau=tau_pair, internalize_tariffs=(base == "team"),
               liar_frac=liar_frac, defended=defended,
-              self_noise=self_noise, self_margin=self_margin)
+              self_noise=self_noise, self_margin=self_margin,
+              grid=grid, life_pricing=life, strand_cap=cap)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
@@ -106,7 +115,7 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         co_credit=[round(w.company[c]["credit"], 1) for c in (0, 1)],
         co_tariffs=[round(w.company[c]["tariffs_earned"], 1) for c in (0, 1)],
         co_queue_wait=[w.company[c]["queue_wait"] for c in (0, 1)],
-        noise=noise, liar_frac=liar_frac, defended=defended,
+        noise=noise, liar_frac=liar_frac, defended=defended, grid=grid,
         exploit_deals=getattr(arm, "exploit_deals", 0),
         exploit_loss=round(getattr(arm, "exploit_loss", 0.0), 1),
         strip_deals=getattr(arm, "strip_deals", 0),
@@ -137,11 +146,11 @@ def _cond(r) -> tuple:
     pooled every v6/v7 condition of an arm into one line (review S9)."""
     return (r.get("liar_frac", 0.0), bool(r.get("defended", False)),
             r.get("self_noise", 0.0), bool(r.get("self_margin", False)),
-            r.get("noise", 0.0))
+            r.get("noise", 0.0), r.get("grid", 32))
 
 
 def _cond_label(c) -> str:
-    f, dfd, s7, mg, nz = c
+    f, dfd, s7, mg, nz, g = c
     bits = []
     if f:
         bits.append(f"f={f:g}")
@@ -153,10 +162,12 @@ def _cond_label(c) -> str:
         bits.append("mg")
     if nz:
         bits.append(f"nz={nz:g}")
+    if g != 32:
+        bits.append(f"G={g}")
     return " ".join(bits)
 
 
-_BASE = (0.0, False, 0.0, False, 0.0)
+_BASE = (0.0, False, 0.0, False, 0.0, 32)
 
 
 def _paired(rows, arm_hi, arm_lo, sigma, field, tau=0.0, cond=_BASE):
@@ -183,8 +194,9 @@ def summarize(rows: list[dict]) -> None:
     keys = sorted({(r["arm"], r["sigma"], r["tau"], _cond(r)) for r in rows},
                   key=lambda k: (k[0], k[1], k[2], k[3]))
     hdr = (f"{'arm':<14} {'condition':<18} {'σ':>5} {'τ':>5} {'delivered':>11} "
-           f"{'strand':>7} {'effLast':>10} {'makespan':>10} {'deals':>6} "
-           f"{'borderQ':>8} {'hlthyBQ':>8} {'forRef':>7} {'coΔdlv':>7} {'coΔwait':>8}")
+           f"{'strand':>7} {'k2':>6} {'k5':>6} {'effLast':>10} {'makespan':>10} "
+           f"{'deals':>6} {'borderQ':>8} {'hlthyBQ':>8} {'forRef':>7} "
+           f"{'coΔdlv':>7} {'coΔwait':>8}")
     print(hdr)
     print("-" * len(hdr))
     for arm, sigma, tau, cond in keys:
@@ -197,6 +209,7 @@ def summarize(rows: list[dict]) -> None:
         print(f"{arm:<14} {_cond_label(cond):<18} {sigma:>5.2f} {tau:>5.2f} "
               f"{m('delivered').mean():>6.1f}±{m('delivered').std():<4.1f} "
               f"{m('stranded').mean():>7.2f} "
+              f"{m('score_k2').mean():>6.1f} {m('score_k5').mean():>6.1f} "
               f"{m('eff_last').mean():>5.2f}±{m('eff_last').std():<4.2f} "
               f"{m('makespan').mean():>6.0f}±{m('makespan').std():<4.0f} "
               f"{m('deals').mean():>6.1f} {m('border_cargo').mean():>8.1f} "
@@ -350,6 +363,20 @@ def build_jobs(column: str, seeds: int, ticks: int):
                                          seed=seed, ticks=ticks, tau=0.15,
                                          preset="v5", liar_frac=f,
                                          self_noise=s7, self_margin=mg))
+    if column == "H":                 # v9: endogenous drone valuation (P14)
+        for arm in ("snhp-hz", "snhp-lv", "snhp-lvc", "snhp+net",
+                    "team", "auction"):
+            for sigma in (0.5, 1.0):
+                for seed in range(min(seeds, 16)):
+                    jobs.append(dict(arm_name=arm, sigma=sigma, seed=seed,
+                                     ticks=ticks, tau=0.15, preset="v5"))
+    if column == "G":                 # v8: field geometry (P13)
+        for g in (24, 32, 48, 64):
+            for arm in ("auction", "snhp-hz", "snhp+net", "team", "rules"):
+                for seed in range(min(seeds, 16)):
+                    jobs.append(dict(arm_name=arm, sigma=0.5, seed=seed,
+                                     ticks=ticks, tau=0.15, preset="v5",
+                                     grid=g))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -360,7 +387,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))

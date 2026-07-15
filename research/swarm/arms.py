@@ -90,6 +90,16 @@ def drive(r, w):
             w.pick(r)
     else:
         w.move_toward(r, t)
+        # Pad unloads on arrival: if the arrival step itself stranded the
+        # robot ON its target refinery, the refinery still takes the cargo
+        # (facility-side action, same tick). Otherwise intent() returns None
+        # from now on and drop() can never fire — the ore is trapped on the
+        # pad unless a rescue arrives (audit: ~9-15 ore/run entered this trap
+        # in EVERY arm; rescue-capable arms ransomed it back, others lost it,
+        # a differential subsidy). Gated on `stranded` so healthy
+        # trajectories are unchanged (they still deliver next tick).
+        if r.stranded and r.pos == t and t in w.refineries:
+            w.drop(r)
 
 
 def trophallaxis(w, a, b) -> bool:
@@ -153,12 +163,16 @@ class BaseArm:
         order = list(w.robots)
         w.rng.shuffle(order)
         for r in order:
+            if w.tick < r.busy_until:      # docked mid-transfer — cannot move
+                continue
             drive(r, w)
         w.charge_step()
         busy = set()
         for a, b in w.encounters():
             if a.rid in busy or b.rid in busy:
                 continue
+            if w.tick < a.busy_until or w.tick < b.busy_until:
+                continue                    # still executing a prior exchange
             key = (min(a.rid, b.rid), max(a.rid, b.rid))
             last, was_deal = self._last_try.get(key, (-10**9, False))
             cool = DEAL_COOLDOWN if was_deal else ATTEMPT_COOLDOWN
@@ -166,6 +180,13 @@ class BaseArm:
                 continue
             struck = self.encounter(a, b)
             self._last_try[key] = (w.tick, struck)
+            if struck:
+                # transfers take time: both parties hold position while the
+                # exchange physically executes (energy docking / cargo
+                # handoff). Uniform across arms — bargains, auction handoffs
+                # and charity shares all pause.
+                a.busy_until = w.tick + W.DEAL_PAUSE
+                b.busy_until = w.tick + W.DEAL_PAUSE
             busy.add(a.rid)
             busy.add(b.rid)
         w.tick += 1
