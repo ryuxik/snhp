@@ -29,7 +29,7 @@ import sys
 import numpy as np
 
 from swarm import world as W
-from swarm.value import (delivery_target, phi, phi_true,
+from swarm.value import (delivery_target, phi, phi_true, phi_true_field,
                          safe_return_threshold, stranding_hazard,
                          stranding_hazard_true, update_ev)
 
@@ -60,6 +60,13 @@ def intent(r, w):
     if r.charge_queued_at >= 0 and r.bat() < 0.95 * W.BATTERY_MAX:
         return charger
     if r.load > 0:
+        # v10c: a rate-limited miner stays docked until cap-full — mining
+        # is stationary (no battery drain), so letting the load>0 branch
+        # pull it away would re-price mine_rate as trip SIZE, not speed
+        if (w.mine_trait and r.load < r.cap
+                and r.pos == w.sources[r.sector]
+                and w.stock_belief(r, r.sector) > 0):
+            return r.pos
         ref = delivery_target(r, w)             # sticky (hysteresis)
         dest = w.refineries[ref]
         cost = W.manhattan(r.pos, dest) * r.eff * (1 + W.LOADED_MULT)
@@ -67,10 +74,10 @@ def intent(r, w):
     r.target_ref = None
     if r.bat() < safe_return_threshold(r, w):
         return charger
-    if w.stock[r.sector] <= 0:                  # claim depleted → re-claim
-        r.sector = w.best_claim(r)
-    if w.stock[r.sector] > 0:
-        return w.sources[r.sector]
+    if w.stock_belief(r, r.sector) <= 0:        # claim BELIEVED depleted →
+        r.sector = w.best_claim(r)              # re-claim (v10a: a robot ON
+    if w.stock_belief(r, r.sector) > 0:         # an empty rock senses truth
+        return w.sources[r.sector]              # this tick — no livelock)
     return charger
 
 
@@ -157,6 +164,7 @@ class BaseArm:
 
     def tick(self):
         w = self.w
+        w._live_sense = True           # v10: drive/world phase — sensing live
         if w.tick % EV_REFRESH == 0:
             for r in w.robots:
                 update_ev(r, w)
@@ -167,7 +175,10 @@ class BaseArm:
                 continue
             drive(r, w)
         w.charge_step()
-        busy = set()
+        w.sense_step()                 # v10a: field sweep + belief freeze —
+        busy = set()                   # beliefs may NOT change during the
+                                       # encounter phase (evaluated Φ ==
+                                       # executed Φ is priced on them)
         for a, b in w.encounters():
             if a.rid in busy or b.rid in busy:
                 continue
@@ -377,9 +388,15 @@ class SnhpArm(BaseArm):
         distress = (a.stranded or b.stranded
                     or stranding_hazard_true(a, w) > 0.5
                     or stranding_hazard_true(b, w) > 0.5)
-        audit = a.gauge_bias != 0.0 or b.gauge_bias != 0.0
-        ta0 = phi_true(a, w) if audit else None
-        tb0 = phi_true(b, w) if audit else None
+        # v10: under belief_mode the TRUE-value audit suspends the FIELD
+        # beliefs too (phi_true_field flips w._oracle_override) — scoring
+        # sa_true against the same stale map that signed the deal would
+        # hide exactly the poisoning P15c is looking for. Gauge suspension
+        # rides along as in v7; phi_true_field ≡ phi_true when belief off.
+        audit = a.gauge_bias != 0.0 or b.gauge_bias != 0.0 or w.belief_mode
+        truth = phi_true_field if w.belief_mode else phi_true
+        ta0 = truth(a, w) if audit else None
+        tb0 = truth(b, w) if audit else None
         apply_bundle(w, a, b, q, e, s, log=True)
         assert abs(phi(a, w) - ua[sol]) < 1e-9 and abs(phi(b, w) - ub[sol]) < 1e-9, \
             "executed state diverged from evaluated bundle"
@@ -397,8 +414,8 @@ class SnhpArm(BaseArm):
             sa=sa, sb=sb,
             # gauge suspended = ground truth; at zero bias phi_true ≡ phi,
             # so the audit equals the believed surplus without 4 extra Φ evals
-            sa_true=(float(phi_true(a, w) - ta0) if audit else sa),
-            sb_true=(float(phi_true(b, w) - tb0) if audit else sb),
+            sa_true=(float(truth(a, w) - ta0) if audit else sa),
+            sb_true=(float(truth(b, w) - tb0) if audit else sb),
             capture=achieved / joint_best if joint_best > 1e-12 else 1.0))
         self.deals += 1
         return True

@@ -40,7 +40,9 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              tau=0.0, preset: str = "v4", issues=FULL,
              noise: float = 0.0, liar_frac: float = 0.0,
              defended: bool = False, self_noise: float = 0.0,
-             self_margin: bool = False, grid: int = 32) -> dict:
+             self_margin: bool = False, grid: int = 32,
+             belief_mode: bool = False, race_pricing: bool = True,
+             mine_trait: bool = False) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -61,12 +63,19 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               tau=tau_pair, internalize_tariffs=(base == "team"),
               liar_frac=liar_frac, defended=defended,
               self_noise=self_noise, self_margin=self_margin,
-              grid=grid, life_pricing=life, strand_cap=cap)
+              grid=grid, life_pricing=life, strand_cap=cap,
+              belief_mode=belief_mode, race_pricing=race_pricing,
+              mine_trait=mine_trait)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
-    for t in range(ticks):
+    stale = []          # v10 P15b: mean (tick − last_seen) over all
+    for t in range(ticks):        # (company, asteroid) pairs, every 50 ticks
         arm.tick()
+        if belief_mode and (t + 1) % 50 == 0:
+            stale.append(np.mean([w.tick - w.last_seen[co][i]
+                                  for co in range(w.n_companies)
+                                  for i in range(len(w.sources))]))
         if t + 1 == 800:
             delivered_mid = w.delivered   # time-resolved deadweight (v4.1)
         if w.delivered >= w.total_stock:
@@ -134,6 +143,10 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         vetoes=getattr(arm, "vetoes", 0),
         guest_charged=round(w.guest_charged, 1),
         claim_swaps=sum(1 for d in deals if d["s"] == 1),
+        # v10 (column I)
+        belief_mode=belief_mode, race_pricing=race_pricing,
+        mine_trait=mine_trait,
+        mean_staleness=(round(float(np.mean(stale)), 2) if stale else None),
     )
 
 
@@ -146,11 +159,14 @@ def _cond(r) -> tuple:
     pooled every v6/v7 condition of an arm into one line (review S9)."""
     return (r.get("liar_frac", 0.0), bool(r.get("defended", False)),
             r.get("self_noise", 0.0), bool(r.get("self_margin", False)),
-            r.get("noise", 0.0), r.get("grid", 32))
+            r.get("noise", 0.0), r.get("grid", 32),
+            bool(r.get("belief_mode", False)),
+            bool(r.get("race_pricing", True)),
+            bool(r.get("mine_trait", False)))
 
 
 def _cond_label(c) -> str:
-    f, dfd, s7, mg, nz, g = c
+    f, dfd, s7, mg, nz, g, bm, race, mt = c
     bits = []
     if f:
         bits.append(f"f={f:g}")
@@ -164,10 +180,16 @@ def _cond_label(c) -> str:
         bits.append(f"nz={nz:g}")
     if g != 32:
         bits.append(f"G={g}")
+    if bm:
+        bits.append("belief")
+    if bm and not race:
+        bits.append("norace")
+    if mt:
+        bits.append("mtrait")
     return " ".join(bits)
 
 
-_BASE = (0.0, False, 0.0, False, 0.0, 32)
+_BASE = (0.0, False, 0.0, False, 0.0, 32, False, True, False)
 
 
 def _paired(rows, arm_hi, arm_lo, sigma, field, tau=0.0, cond=_BASE):
@@ -246,10 +268,11 @@ def contrasts(rows: list[dict]) -> None:
     v67 = [r for r in rows if _cond(r) != _BASE or r["arm"].startswith("trust")]
     if not v67:
         return
-    print("\nv6/v7 contrasts (per condition; liarAdv = liar − honest mean credit):")
+    print("\nv6/v7/v10 contrasts (per condition; liarAdv = liar − honest mean credit):")
     keys = sorted({(r["arm"], _cond(r)) for r in v67})
     hdr = (f"  {'arm':<16} {'condition':<18} {'delivered':>11} {'deals':>6} "
-           f"{'poisoned':>9} {'exploit':>8} {'strip':>6} {'liarAdv':>9} {'p':>7}")
+           f"{'poisoned':>9} {'stale':>7} {'exploit':>8} {'strip':>6} "
+           f"{'liarAdv':>9} {'p':>7}")
     print(hdr)
     print("  " + "-" * (len(hdr) - 2))
     for arm, cond in keys:
@@ -266,10 +289,13 @@ def contrasts(rows: list[dict]) -> None:
         else:
             adv_s, p_s = f"{'—':>9}", f"{'—':>7}"
         dlv = np.array([r["delivered"] for r in g], dtype=float)
+        st = [r["mean_staleness"] for r in g
+              if r.get("mean_staleness") is not None]
+        st_s = f"{np.mean(st):>7.1f}" if st else f"{'—':>7}"
         print(f"  {arm:<16} {_cond_label(cond) or 'baseline':<18} "
               f"{dlv.mean():>6.1f}±{dlv.std():<4.1f} "
               f"{np.mean([r['deals'] for r in g]):>6.1f} "
-              f"{np.mean([r['poisoned'] for r in g]):>9.2f} "
+              f"{np.mean([r['poisoned'] for r in g]):>9.2f} {st_s} "
               f"{np.mean([r['exploit_deals'] for r in g]):>8.1f} "
               f"{np.mean([r['strip_deals'] for r in g]):>6.1f} "
               f"{adv_s} {p_s}")
@@ -377,6 +403,27 @@ def build_jobs(column: str, seeds: int, ticks: int):
                     jobs.append(dict(arm_name=arm, sigma=0.5, seed=seed,
                                      ticks=ticks, tau=0.15, preset="v5",
                                      grid=g))
+    if column == "I":                 # v10: field beliefs + priced race (P15)
+        for arm in ("auction", "snhp-hz", "snhp+net", "team", "rules"):
+            for seed in range(min(seeds, 16)):
+                jobs.append(dict(arm_name=arm, sigma=0.5, seed=seed,
+                                 ticks=ticks, tau=0.15, preset="v5",
+                                 belief_mode=True))
+        # P15a: oracle-mode control (old omniscient Φ) at the SAME seeds
+        for seed in range(min(seeds, 16)):
+            jobs.append(dict(arm_name="snhp+net", sigma=0.5, seed=seed,
+                             ticks=ticks, tau=0.15, preset="v5"))
+        # P15d: racing-blind ablation — beliefs on, race pricing off
+        for seed in range(min(seeds, 16)):
+            jobs.append(dict(arm_name="snhp+net", sigma=0.5, seed=seed,
+                             ticks=ticks, tau=0.15, preset="v5",
+                             belief_mode=True, race_pricing=False))
+        # v10c: mine-rate trait cell (belief-mode on)
+        for arm in ("snhp+net", "auction"):
+            for seed in range(min(seeds, 16)):
+                jobs.append(dict(arm_name=arm, sigma=0.5, seed=seed,
+                                 ticks=ticks, tau=0.15, preset="v5",
+                                 belief_mode=True, mine_trait=True))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -387,7 +434,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))

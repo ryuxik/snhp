@@ -398,6 +398,128 @@ def test_v9_life_value_decays_with_stock():
     assert late <= 1e-9, f"empty-field career still worth {late}"
 
 
+def test_v10_belief_default_off_is_flag_absent():
+    """belief_mode=False must be indistinguishable from a World that never
+    heard of beliefs — the accessor indirection may not perturb a bit."""
+    outs = []
+    for kw in ({}, dict(belief_mode=False)):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                  hazard_phi=True, **kw)
+        arm = make_arm("snhp", w)
+        for _ in range(400):
+            arm.tick()
+        outs.append((w.delivered, arm.deals,
+                     round(sum(r.battery for r in w.robots), 9),
+                     [r.pos for r in w.robots]))
+    assert outs[0] == outs[1], "belief plumbing leaked into the default path"
+
+
+def test_v10_perfect_sensing_is_the_oracle():
+    """The pinning placebo: R_SENSE covering the whole grid ⇒ every read is
+    truth and the belief-mode run is bit-exact with the oracle. Race pricing
+    OFF here: with per-tick observation the rival rate is genuinely nonzero
+    (the race is real), so the placebo isolates the belief PLUMBING."""
+    outs = []
+    for kw in ({}, dict(belief_mode=True, race_pricing=False, r_sense=64)):
+        w = World(sigma=0.5, seed=1, preset="v5", tau=(0.15, 0.15),
+                  hazard_phi=True, **kw)
+        arm = make_arm("snhp", w)
+        for _ in range(500):
+            arm.tick()
+        outs.append((w.delivered, arm.deals,
+                     round(sum(r.battery for r in w.robots), 9),
+                     [r.pos for r in w.robots]))
+    assert outs[0] == outs[1], f"perfect sensing != oracle: {outs}"
+
+
+def test_v10_on_empty_rock_resenses_within_a_tick():
+    """The v7 livelock lesson applied to beliefs: a robot standing ON a
+    mined-out asteroid it believed rich senses truth (R_SENSE covers its own
+    cell) and re-claims — no mining-nothing-forever loop."""
+    from swarm.arms import drive
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              hazard_phi=True, belief_mode=True)
+    r = w.robots[0]
+    i = r.sector
+    moved, w.stock[i] = w.stock[i], 0            # empty it behind the
+    w.stock[(i + 1) % len(w.sources)] += moved   # company's back (conserve)
+    w.belief[r.company][i] = max(moved, 12)      # ...belief stays rich
+    r.pos, r.load, r.battery = w.sources[i], 0, 80.0
+    drive(r, w)
+    assert w.belief[r.company][i] == 0, "on the rock, still deluded"
+    assert r.sector != i, "did not re-claim off the empty rock"
+    assert w.stock[r.sector] > 0
+
+
+def test_v10_rival_rate_prices_unexplained_depletion():
+    """Two companies, one shared rock: company 0 mines during company 1's
+    observation gap. On re-observation company 1's rival_rate turns positive
+    (it mined nothing — all depletion is rival) and its expected stock at
+    arrival drops below belief; company 0's OWN mining explains everything,
+    so its rival_rate stays 0."""
+    w = World(sigma=0.5, seed=2, preset="v5", tau=(0.15, 0.15),
+              hazard_phi=True, belief_mode=True)
+    i = 0
+    assert w.stock[i] >= 4
+    r0 = next(r for r in w.robots if r.company == 0)
+    r1 = next(r for r in w.robots if r.company == 1)
+    r0.sector, r0.pos, r0.load, r0.cap = i, w.sources[i], 0, 3
+    w.tick = 10
+    assert w.pick(r0) == 3                       # co-0 mines 3 in the gap
+    w.tick = 20
+    w._observe(1, i)                             # co-1 flies by and looks
+    w._observe(0, i)
+    assert w.rival_rate[1][i] > 0, "unexplained depletion not priced"
+    assert w.rival_rate[0][i] == 0.0, "own mining misread as a rival"
+    r1.pos = (30, 30)                            # far: eta > 0, out of sense
+    eta = W.manhattan(r1.pos, w.sources[i])
+    believed = w.stock_belief(r1, i)
+    expected = max(0.0, believed - w.rival_rate[1][i] * eta)
+    assert believed > 0 and expected < believed
+
+
+def test_v10_mine_trait_default_draws_identical():
+    """The gated trait draw must not shift the RNG stream: flag absent and
+    flag False produce identical fleets (the v7 seed-pairing lesson)."""
+    def tup(w):
+        return [(r.cap, round(r.eff, 12), round(r.battery, 12), r.pos,
+                 r.mine_rate) for r in w.robots]
+    w0 = World(sigma=1.0, seed=0, preset="v5")
+    w1 = World(sigma=1.0, seed=0, preset="v5", mine_trait=False)
+    assert tup(w0) == tup(w1)
+    assert all(r.mine_rate == 1 for r in w0.robots)
+
+
+def test_v10_mine_trait_rate_limits_pick():
+    w = World(sigma=1.0, seed=0, preset="v5", mine_trait=True)
+    assert all(1 <= r.mine_rate <= 3 for r in w.robots)
+    m0 = sorted(r.mine_rate for r in w.robots if r.company == 0)
+    m1 = sorted(r.mine_rate for r in w.robots if r.company == 1)
+    assert m0 == m1, "twin fleets drew different trait multisets"
+    r = w.robots[0]
+    r.sector, r.load, r.cap, r.mine_rate = 0, 0, 5, 2
+    r.pos = w.sources[0]
+    assert w.stock[0] > 4
+    assert w.pick(r) == 2 and r.load == 2, "mine_rate did not limit pick"
+    assert w.pick(r) == 2 and r.load == 4
+    assert w.own_mined[r.company][0] == 4
+
+
+def test_v10_belief_mode_keeps_evaluated_equals_executed():
+    """Beliefs may not change during the encounter phase (sensing lives in
+    the drive/world phase; sense_step freezes it before encounters — by
+    design). If they could, the in-arm evaluated==executed assert would
+    fire somewhere in 600 ticks; completing clean IS the test."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              hazard_phi=True, belief_mode=True)
+    arm = make_arm("snhp", w)
+    for _ in range(600):
+        arm.tick()
+    assert arm.deals > 0, "belief-mode snhp-hz struck no deals — vacuous"
+    for d in w.deal_log:
+        assert d.get("sa_true") is not None, "belief-mode audit not engaged"
+
+
 def test_v8_grid_scaling_preserves_baseline():
     """grid=32 is bit-identical to the unparametrized world; grid=64 scales
     facilities and keeps stock/robot counts fixed."""

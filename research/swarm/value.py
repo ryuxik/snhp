@@ -58,9 +58,16 @@ def _future_trips_value(r, w) -> float:
     sectors (v2.1 lesson: a free max prices sector swaps at zero and silently
     kills the issue). The refinery leg uses the same delivery_target scoring,
     tariff-aware."""
-    cand = r.sector if w.stock[r.sector] > 0 else w.best_claim(r)
+    cand = r.sector if w.stock_belief(r, r.sector) > 0 else w.best_claim(r)
     for s in (cand,):
-        stock = w.stock[s]
+        stock = w.stock_belief(r, s)          # v10a: the company's map
+        if w.belief_mode and w.race_pricing:
+            # v10b: rivals are racing you to the rock — expected stock at
+            # arrival discounts belief by the observed rival depletion rate
+            # over the approach ETA (movement is 1 cell/tick). Un-raced
+            # fields reduce to current behavior (rate → 0).
+            eta = W.manhattan(r.pos, w.sources[s])
+            stock = max(0.0, stock - w.rival_rate[r.company][s] * eta)
         if stock <= 0:
             continue
         src = w.sources[s]
@@ -90,9 +97,10 @@ def v_life(r, w) -> float:
     # nominal fleet size, not live count: a deal's own execution can strand
     # the donor, and an alive-count share would make evaluated Φ diverge
     # from executed Φ (the one invariant every arm asserts per deal)
-    share = sum(w.stock) / max(1, len(w.robots))
-    cand = r.sector if w.stock[r.sector] > 0 else w.best_claim(r)
-    if share <= 0 or w.stock[cand] <= 0:
+    share = sum(w.stock_belief(r, i)          # v10a: BELIEVED field share
+                for i in range(len(w.sources))) / max(1, len(w.robots))
+    cand = r.sector if w.stock_belief(r, r.sector) > 0 else w.best_claim(r)
+    if share <= 0 or w.stock_belief(r, cand) <= 0:
         return doomed
     src = w.sources[cand]
     ref = delivery_target(r, w, from_pos=src, sticky=False)
@@ -172,6 +180,21 @@ def phi_true(r, w) -> float:
         return phi(r, w)
     finally:
         r.gauge_bias = saved
+
+
+def phi_true_field(r, w) -> float:
+    """v10: Φ with the gauge AND the field beliefs suspended — under
+    belief_mode the sa_true/sb_true audit must be scored against the TRUE
+    field (w._oracle_override routes stock_belief to truth); phi_true alone
+    would audit against the same stale map that signed the deal."""
+    saved = r.gauge_bias
+    r.gauge_bias = 0.0
+    w._oracle_override = True
+    try:
+        return phi(r, w)
+    finally:
+        r.gauge_bias = saved
+        w._oracle_override = False
 
 
 def stranding_hazard_true(r, w) -> float:

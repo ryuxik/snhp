@@ -750,3 +750,36 @@ as the information-value control. σ=0.5, v5, τ=0.15, 16 seeds.
 already declares the toy honestly); v10 is the follow-up program — and
 its P15c, if it lands, is the natural sequel post ("your fleet's map is
 also a ledger someone can poison").
+
+**Implementation notes (logged 2026-07-15, before any column-I results
+were read; predictions unchanged):**
+1. pick() with mine_trait OFF keeps today's fill-cap-in-one-tick physics
+   (the draft's `else 1` would have silently rewritten every existing
+   column; bit-exactness of pre-v10 columns is the binding constraint,
+   verified by git-stash fingerprint diff across v3/v4/v5 presets).
+2. intent() keeps a mine_trait robot docked at its rock until cap-full
+   (mining is stationary — no battery drain); without this the load>0
+   branch departs after one tick and mine_rate re-prices as trip SIZE,
+   not speed. Gated on mine_trait; default trajectories untouched.
+3. Sensing is live (read-through in stock_belief within R_SENSE) during
+   the drive/world phase and frozen during the encounter phase. Reason:
+   the oracle is INTRA-tick omniscient (drive-order stock mutations are
+   visible immediately), so a frozen once-per-tick belief can never be
+   bit-exact with it and the perfect-sensing placebo would be unpinnable.
+   Beliefs still cannot change while bundles are priced (evaluated Φ ==
+   executed Φ), and the once-per-tick fleet sweep remains world-side.
+4. The placebo test pins belief_mode + R_SENSE=64 + race_pricing=OFF ==
+   oracle, bit-exact: with per-tick observation the rival rate is
+   genuinely nonzero in contested fields (the race is real), so the
+   racing term correctly diverges from the raceless oracle even under
+   perfect sensing. rival_rate is always ESTIMATED in belief_mode;
+   race_pricing gates only its consumption in Φ — P15d ablates pricing,
+   not estimation.
+5. The registered mine-rate draw round(2 + σ·U(−1,1)) is DEGENERATE at
+   σ=0.5 (always 2): the v10c cell as scheduled measures rate-limited
+   mining (2/tick vs fill-cap), not rate heterogeneity. Left as
+   registered; a σ=1.0 cell would be needed for the heterogeneity claim.
+6. sa_true/sb_true under belief_mode audit through phi_true_field (field
+   beliefs AND gauge suspended — w._oracle_override): scoring the audit
+   against the same stale map that signed the deal would hide exactly
+   the poisoning P15c is looking for.

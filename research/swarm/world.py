@@ -47,6 +47,10 @@ GUEST_RATE = 2.0                    # charge rate at a rival's charger (v5)
 GUEST_PENALTY = 6                   # routing penalty (cells) for guest charging
 LIE_LAMBDA = 0.5                    # v6: BATNA inflation aggressiveness
 DISTRUST_DELTA = 0.25               # v6: margin demanded vs unattested partners
+R_SENSE = 3                         # v10a: Chebyshev radius within which a
+                                    # robot refreshes its company's belief
+RIVAL_ALPHA = 0.2                   # v10b: exp-smoothing of the observed
+                                    # rival depletion rate (units/tick)
 
 PRESETS = {
     # sources, refineries [(pos, owner)], chargers [(pos, owner)]
@@ -99,6 +103,8 @@ class Robot:
     attested: bool = False          # v6: reports verifiably true (signed books)
     gauge_bias: float = 0.0         # v7: persistent battery-gauge miscalibration
     busy_until: int = -1            # v8: docked mid-exchange until this tick
+    mine_rate: int = 1              # v10c: units/tick trait (consumed only
+                                    # when World.mine_trait; drawn 1..3)
 
     def bat(self) -> float:
         """BELIEVED battery — what every decision layer consumes. Physics
@@ -117,10 +123,21 @@ class World:
                  liar_frac: float = 0.0, defended: bool = False,
                  self_noise: float = 0.0, self_margin: bool = False,
                  grid: int = GRID, life_pricing: bool = False,
-                 strand_cap: float = 0.0):
+                 strand_cap: float = 0.0, belief_mode: bool = False,
+                 race_pricing: bool = True, mine_trait: bool = False,
+                 r_sense: int = R_SENSE):
         self.rng = np.random.RandomState(seed)
         self.hazard_phi = hazard_phi
         self.preset = preset
+        # v10: field beliefs + priced race + mine-rate trait. ALL default
+        # off ⇒ every pre-v10 column is bit-identical (suite-verified).
+        self.belief_mode = belief_mode
+        self.race_pricing = race_pricing
+        self.mine_trait = mine_trait      # set BEFORE spawns: gates a draw
+        self.r_sense = r_sense
+        self._oracle_override = False     # phi_true_field: audit vs TRUE field
+        self._live_sense = True           # drive/world phase: sensing is live;
+                                          # frozen during encounters (v10)
         # v8 geometry (column G): facility layout scales with grid size;
         # stock/robots/batteries fixed, so density varies purely through
         # distance. sc==1 leaves every draw and position bit-identical.
@@ -155,6 +172,19 @@ class World:
         if not hasattr(self, "stock"):
             self.stock = [STOCK_PER_SOURCE, STOCK_PER_SOURCE]
         self.total_stock = sum(self.stock)
+        # v10a: per-company field beliefs, initialized to TRUE stock at t=0
+        # (companies surveyed the field once at launch — isolates STALENESS
+        # as the treatment, not an arbitrary prior). Belief >= truth always:
+        # stock only falls between observations, so staleness is purely
+        # optimistic and a believed-empty field really is empty (no
+        # under-estimate deadlock). Allocated unconditionally (cheap ints,
+        # no RNG); consumed only through stock_belief() when belief_mode.
+        n_src = len(self.sources)
+        self.belief = [list(self.stock) for _ in range(2)]
+        self.last_seen = [[0] * n_src for _ in range(2)]
+        self.rival_rate = [[0.0] * n_src for _ in range(2)]   # units/tick
+        self.own_mined = [[0] * n_src for _ in range(2)]      # cumulative
+        self._own_mined_seen = [[0] * n_src for _ in range(2)]
         self.guest_charged = 0.0            # energy served to rival fleets
         self.delivered = 0
         self.delivered_matrix = [[0, 0], [0, 0]]     # [miner co][refiner owner]
@@ -211,7 +241,13 @@ class World:
         b0 = float(np.clip(self._b_mean + sigma * u(-self._b_spread, self._b_spread),
                            self._b_lo, BATTERY_MAX))
         pos = (int(u(1, self.grid)), int(u(1, self.grid)))   # == GRID at sc=1
-        return cap, eff, b0, pos
+        # v10c: mine-rate trait, mean-preserving (mean 2). Drawn at the END
+        # of the sequence AND gated on mine_trait so pre-v10 worlds consume
+        # the stream identically (the v7 RNG-stream lesson: conditional
+        # draws de-pair seeds across cells — here the flag IS the cell).
+        mine = int(np.clip(round(2 + sigma * u(-1, 1)), 1, 3)) \
+            if self.mine_trait else 1
+        return cap, eff, b0, pos, mine
 
     def _gen_asteroids(self):
         """v5: 5 mirror-pairs of asteroids (reflection about y=16), stocks
@@ -236,15 +272,63 @@ class World:
         return sources, stocks + list(stocks)
 
     def best_claim(self, r) -> int:
-        """Policy claim choice: richest-per-distance stocked asteroid."""
+        """Policy claim choice: richest-per-distance stocked asteroid.
+        v10a: scores what the robot's company BELIEVES, not the field."""
         best, best_score = r.sector, -1.0
         for i, src in enumerate(self.sources):
-            if self.stock[i] <= 0:
+            s = self.stock_belief(r, i)
+            if s <= 0:
                 continue
-            score = self.stock[i] / (manhattan(r.pos, src) + 4.0)
+            score = s / (manhattan(r.pos, src) + 4.0)
             if score > best_score:
                 best, best_score = i, score
         return best
+
+    # ── v10a/b: company field beliefs ───────────────────────────────────
+    def _in_sense_range(self, pos, i) -> bool:
+        src = self.sources[i]
+        return max(abs(pos[0] - src[0]), abs(pos[1] - src[1])) <= self.r_sense
+
+    def stock_belief(self, r, i):
+        """Stock of asteroid i as robot r's COMPANY believes it. Every
+        decision layer routes here; physics (pick, conservation) reads
+        self.stock, the truth. During the drive/world phase a robot within
+        R_SENSE reads the rock live (without this, the oracle's INTRA-tick
+        omniscience makes the perfect-sensing placebo unpinnable); during
+        the encounter phase beliefs are frozen — evaluated Φ == executed Φ
+        depends on it."""
+        if not self.belief_mode or self._oracle_override:
+            return self.stock[i]
+        if self._live_sense and self._in_sense_range(r.pos, i):
+            self._observe(r.company, i)
+        return self.belief[r.company][i]
+
+    def _observe(self, co: int, i: int) -> None:
+        """One company observes one asteroid: pin belief to truth, update
+        the rival-rate estimate (v10b) from whatever depletion its OWN
+        mining over the gap does not explain. Consumes no RNG."""
+        dt = self.tick - self.last_seen[co][i]
+        if dt > 0:
+            depl = self.belief[co][i] - self.stock[i]
+            own = self.own_mined[co][i] - self._own_mined_seen[co][i]
+            rival = max(0.0, float(depl - own)) / dt
+            self.rival_rate[co][i] += RIVAL_ALPHA * (rival - self.rival_rate[co][i])
+        self.belief[co][i] = self.stock[i]
+        self.last_seen[co][i] = self.tick
+        self._own_mined_seen[co][i] = self.own_mined[co][i]
+
+    def sense_step(self) -> None:
+        """v10a: the once-per-tick field sweep — any robot within Chebyshev
+        R_SENSE of an asteroid refreshes its company's belief to truth (the
+        fleet is a shared sensor network). Called from BaseArm.tick AFTER
+        drive/charge and BEFORE encounters; it also freezes live sensing so
+        beliefs cannot change while bundles are being priced."""
+        if self.belief_mode:
+            for r in self.robots:
+                for i in range(len(self.sources)):
+                    if self._in_sense_range(r.pos, i):
+                        self._observe(r.company, i)
+        self._live_sense = False
 
     def _spawn_twin_fleets(self, n_robots, sigma):
         """Both companies receive the IDENTICAL draw multiset; company-1
@@ -252,14 +336,14 @@ class World:
         and mirrored so each company faces the same home/far structure."""
         half = n_robots // 2
         draws = [self._draw(sigma) for _ in range(half)]
-        for k, (cap, eff, b0, pos) in enumerate(draws):
+        for k, (cap, eff, b0, pos, mine) in enumerate(draws):
             self.robots.append(Robot(
                 rid=k, pos=pos, battery=b0, cap=cap, eff=eff,
-                sector=k % 2, company=0))
-        for k, (cap, eff, b0, (x, y)) in enumerate(draws):
+                sector=k % 2, company=0, mine_rate=mine))
+        for k, (cap, eff, b0, (x, y), mine) in enumerate(draws):
             self.robots.append(Robot(
                 rid=half + k, pos=(x, self.grid - y), battery=b0, cap=cap, eff=eff,
-                sector=1 - (k % 2), company=1))
+                sector=1 - (k % 2), company=1, mine_rate=mine))
         if len(self.sources) > 2:            # v5: claims replace sectors —
             half_src = len(self.sources) // 2
             for k in range(half):            # mirrored pairs stay symmetric
@@ -269,9 +353,10 @@ class World:
 
     def _spawn_v3(self, n_robots, sigma):
         for i in range(n_robots):
-            cap, eff, b0, pos = self._draw(sigma)
+            cap, eff, b0, pos, mine = self._draw(sigma)
             self.robots.append(Robot(rid=i, pos=pos, battery=b0, cap=cap,
-                                     eff=eff, sector=i % 2, company=0))
+                                     eff=eff, sector=i % 2, company=0,
+                                     mine_rate=mine))
 
     # ── credit / tariffs ────────────────────────────────────────────────
     def credit_rate(self, robot_company: int, ref_idx: int) -> float:
@@ -316,9 +401,15 @@ class World:
         s = r.sector
         if r.pos == self.sources[s] and self.stock[s] > 0:
             q = min(r.cap - r.load, self.stock[s])
+            if self.mine_trait:
+                # v10c: rate-limited mining. OFF keeps today's fill-cap-in-
+                # one-tick physics bit-identical (the registered `else 1`
+                # would have silently rewritten every existing column).
+                q = min(q, r.mine_rate)
             r.load += q
             r.load_prov[r.company] += q       # provenance: miner's company
             self.stock[s] -= q
+            self.own_mined[r.company][s] += q  # v10b: rival-rate accounting
             return q
         return 0
 
