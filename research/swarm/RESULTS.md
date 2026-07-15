@@ -454,3 +454,22 @@ leave output flat while quietly poisoning receipts (3.4–9.2 truly-harmful
 deals/run appear under belief-mode; zero under oracle). The racing
 discount died on its pre-registered kill (static share was already the
 right price on mirrored fields). Reproduce: `run.py --column I`.
+
+## v11 (column J): the moving field — the explorer's dividend
+
+Founder's critique built honestly (arrivals nobody knows about,
+departures that leave ghosts on stale maps, contested unmirrored ground).
+Verdicts: information's value on a moving field shows up FIRST in the
+books (belief-mode signs +7.0 more truly-harmful deals, p=.0004; output
+gap +11.4 directional but n.s. at 16 seeds — P16a fails as registered,
+J2 gate closed). The registered freshness prediction INVERTED: the
+auction, with maps 60% staler, captures MORE of the new rocks (46 vs 32
+units, p=.03) — discovery needs physical coverage, and the deal economy's
+efficiency converges robots onto known loops while the auction's
+wandering is accidental exploration. Downstream, a first headline
+inversion: **on moving contested fields the auction out-delivers every
+coordination arm on raw gold (net −12.6, p=.044) while replacement-cost
+scores are a wash — optimization buys blindness to novelty.** The
+bargaining advantage is a known-field phenomenon; novelty-rich worlds
+reward coverage over coordination. Racing discount: killed for good.
+Reproduce: `run.py --column J`.

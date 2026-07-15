@@ -901,3 +901,33 @@ U(400,2300), events fire at tick START, arrival band interior with ≥3
 spacing, contested rock-rock spacing ≥3, arrivals_mined provenance proxy,
 makespan pinned on the conservation ledger) are as the builder documented
 in code and its report.
+
+**P16 VERDICT (2026-07-15, sweep_J.json, n=16): the founder's premise
+half-confirms, and the moving field flips a headline.**
+- **P16a: FAIL as registered** — oracle − belief on delivered is +11.4,
+  ~50× the static-field gap but p=.15 at n=16 (underpowered, direction
+  right). The SIGNIFICANT info-value channel is the books: belief-mode
+  signs +7.0 more poisoned deals (p=.0004). Information's first casualty
+  is receipt integrity, not output. The J2 (map-trading) gate was tied to
+  P16a delivered significance and therefore DOES NOT FIRE — J2 stays
+  unbuilt until re-registered.
+- **P16b: INVERTED, significant** — the auction captures MORE arrival
+  stock (46.2 vs net's 32.4/run, p=.03) despite far STALER maps (305 vs
+  190 ticks). Freshness ≠ discovery: you cannot have a belief about a
+  rock you've never seen. The deal economy converges robots onto
+  known-profitable loops (exploitation); the auction's inefficient
+  roaming is accidental exploration. **Optimization buys blindness to
+  novelty.**
+- **P16c: KILLED, final** — the racing discount doesn't pay even on
+  contested ground (−5.9, n.s.). The layer stays off permanently.
+- **P16d: PARTIAL** — ghosts double the safety-net arm's poisoning
+  (3.4 → 7.0/run); flat for hz.
+- **Exploratory headline (same data, flagged as post-hoc):** on the
+  moving contested field the auction OUT-DELIVERS every coordination arm
+  (net −12.6, p=.044, 2/16; team −13.2, p=.075) while k5 is a wash
+  (auction pays its gold edge in dead drones). The discovery gap explains
+  the delivered gap almost exactly (13.8 arrival-units ≈ 12.6 delivered).
+  **The bargaining advantage is scoped to known fields; novelty-rich
+  worlds reward coverage over coordination** — the deepest scoping
+  result in the program, and the honest motivation for any future
+  map-trading registration.
