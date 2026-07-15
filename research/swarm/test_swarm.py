@@ -249,3 +249,101 @@ def test_v6_lies_never_poison_executed_deals():
     assert arm.deals > 0
     for d in w.deal_log:
         assert d["sa"] > 0 and d["sb"] > 0
+
+
+def test_v6_lying_has_an_effect():
+    """Review G4: no test failed if the lie wiring became a no-op. At f=1.0
+    undefended, universal BATNA inflation must visibly shrink deal volume
+    vs the honest twin (P10b's collapse direction)."""
+    counts = []
+    for f in (0.0, 1.0):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                  hazard_phi=True, liar_frac=f)
+        arm = make_arm("snhp", w)
+        for _ in range(600):
+            arm.tick()
+        counts.append(arm.deals)
+    assert counts[0] > 0
+    assert counts[1] < counts[0], \
+        f"universal lying did not reduce deals: {counts}"
+
+
+def test_v6_attested_test_strikes_deals():
+    """The defended==honest equivalence check is vacuous at zero deals —
+    pin that the config it runs actually trades."""
+    w = World(sigma=0.5, seed=2, preset="v5", tau=(0.15, 0.15),
+              hazard_phi=True, defended=True)
+    arm = make_arm("snhp", w)
+    for _ in range(400):
+        arm.tick()
+    assert arm.deals > 0
+
+
+def test_v6_team_constant_under_liars():
+    """SPEC control: arms that consume no reports run under liars without
+    crashing (review: the per-side IR assert fired through TeamArm's joint
+    pick) and with the lie machinery never engaged."""
+    for name in ("team", "auction"):
+        w = World(sigma=0.5, seed=1, preset="v5", tau=(0.15, 0.15),
+                  hazard_phi=(name != "team"), liar_frac=0.5)
+        arm = make_arm(name, w)
+        for _ in range(400):
+            arm.tick()
+        assert arm.deals >= 0    # completing without AssertionError IS the test
+
+
+def test_v7_no_charger_livelock():
+    """Review S1: a pessimistic gauge (bias < -0.05) could never read 95%
+    battery, so a docked robot parked at the charger forever. The charger's
+    meter now undocks at true-full; assert no robot sits docked and full."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              hazard_phi=True, self_noise=0.30)
+    assert any(r.gauge_bias < -0.05 for r in w.robots), "seed lost its pessimists"
+    arm = make_arm("snhp", w)
+    for _ in range(800):
+        arm.tick()
+        if w.tick % 20 == 0:
+            for r in w.robots:
+                assert not (r.charge_queued_at >= 0
+                            and r.battery >= W.BATTERY_MAX - 1e-9), \
+                    f"robot {r.rid} parked at charger at true-full (livelock)"
+
+
+def test_v7_poisoned_zero_without_gauge_noise():
+    """The veto guarantee, correctly scoped: for the Nash-IR arm at s7=0,
+    every executed deal has strictly positive TRUE surplus on both sides.
+    (Team/twofirm one-sided losses are by design, not poisoning — review S8.)"""
+    w = World(sigma=0.5, seed=3, preset="v5", tau=(0.15, 0.15),
+              hazard_phi=True, liar_frac=0.5)
+    arm = make_arm("snhp", w)
+    for _ in range(600):
+        arm.tick()
+    assert arm.deals > 0
+    for d in w.deal_log:
+        assert d["sa_true"] > 0 and d["sb_true"] > 0
+
+
+def test_v7_liar_sets_seed_paired_across_self_noise():
+    """Review S2: the gauge draw must consume the RNG stream at every s7 so
+    the liar permutation is identical across self-noise cells of a seed."""
+    sets = []
+    for s7 in (0.0, 0.15, 0.30):
+        w = World(sigma=0.5, seed=5, preset="v5", liar_frac=0.5, self_noise=s7)
+        sets.append({r.rid for r in w.robots if r.liar})
+    assert sets[0] == sets[1] == sets[2], f"liar sets differ across s7: {sets}"
+
+
+def test_trust_arms_emit_audited_schema():
+    """Review S6: trust arms fabricated capture=1.0/distress=0 and omitted
+    the true-surplus audit. Both tiers now share the SnhpArm log tail."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              hazard_phi=True, liar_frac=0.5, defended=True)
+    arm = make_arm("trust-gated", w)
+    for _ in range(600):
+        arm.tick()
+    assert arm.deals > 0
+    for d in w.deal_log:
+        assert "sa_true" in d and d["sa_true"] is not None
+        assert 0.0 < d["capture"] <= 1.0 + 1e-9
+    assert any(d["capture"] < 1.0 - 1e-9 for d in w.deal_log), \
+        "every capture exactly 1.0 — smells hardcoded"

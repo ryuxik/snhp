@@ -30,7 +30,8 @@ import numpy as np
 
 from swarm import world as W
 from swarm.value import (delivery_target, phi, phi_true,
-                         safe_return_threshold, stranding_hazard, update_ev)
+                         safe_return_threshold, stranding_hazard,
+                         stranding_hazard_true, update_ev)
 
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 _SNHP = os.path.join(_ROOT, "snhp")
@@ -92,9 +93,11 @@ def drive(r, w):
 
 
 def trophallaxis(w, a, b) -> bool:
-    lo, hi = (a, b) if a.battery <= b.battery else (b, a)
-    if lo.battery < 0.2 * W.BATTERY_MAX and hi.battery > 0.5 * W.BATTERY_MAX:
-        amount = (hi.battery - lo.battery) / 2.0
+    # decision layer → believed batteries (bat() contract); the transfer
+    # itself is physics and transfer_energy clamps to the TRUE donor charge
+    lo, hi = (a, b) if a.bat() <= b.bat() else (b, a)
+    if lo.bat() < 0.2 * W.BATTERY_MAX and hi.bat() > 0.5 * W.BATTERY_MAX:
+        amount = (hi.bat() - lo.bat()) / 2.0
         return w.transfer_energy(hi, lo, amount) > 0
     return False
 
@@ -195,7 +198,7 @@ class AuctionArm(RulesArm):
         ref = delivery_target(r, w, sticky=False)
         dest = w.refineries[ref]
         cost = W.manhattan(r.pos, dest) * r.eff * (1 + W.LOADED_MULT)
-        if r.battery <= cost:
+        if r.bat() <= cost:                 # decision layer → believed battery
             return float("-inf")
         rate = w.credit_rate(r.company, ref)
         return rate * W.V_DELIVER - cost * r.ev / max(r.load, 1)
@@ -284,24 +287,17 @@ class SnhpArm(BaseArm):
         best = float(u[feas].max()) - batna
         return batna + W.LIE_LAMBDA * max(0.0, best)
 
-    def _distrust_mask(self, me, partner, u, batna):
-        """v6 defense: facing an UNattested partner, demand a safety margin
-        of DISTRUST_DELTA × own best gain — the distrust tax."""
-        if not self.w.defended or partner.attested:
-            return u
-        feas = np.isfinite(u)
-        if not feas.any():
-            return u
-        need = W.DISTRUST_DELTA * max(0.0, float(u[feas].max()) - batna)
-        out = u.copy()
-        out[(u - batna) < need] = -np.inf
-        return out
+    # a merged/centralized picker (team, twofirm, team-co) coordinates on the
+    # firm's true internal books — the v6 reporting layer targets only the
+    # decentralized veto tier. Routing joint-pick arms through the liar branch
+    # (review) both fed them inflated BATNAs and tripped the per-side IR
+    # assert their joint pick never promised.
+    consumes_reports = True
 
-    def _self_mask(self, u, batna):
-        """v7 defense: demand believed surplus >= DISTRUST_DELTA x own best —
-        the distrust tax aimed inward, at one's own sensor error."""
-        if not self.w.self_margin:
-            return u
+    def _margin_mask(self, u, batna):
+        """Demand surplus >= DISTRUST_DELTA × own best gain. One body, two
+        gates at the call sites: v6 aims it at unattested partners (the
+        distrust tax), v7 aims it inward at one's own sensor error."""
         feas = np.isfinite(u)
         if not feas.any():
             return u
@@ -313,59 +309,75 @@ class SnhpArm(BaseArm):
     def encounter(self, a, b) -> bool:
         w = self.w
         batna_a, batna_b = phi(a, w), phi(b, w)
-        ua, ub = self._evaluate(a, b)
-        ua = self._self_mask(ua, batna_a)
-        ub = self._self_mask(ub, batna_b)
-        rep_a = self._reported(a, batna_a, ua)
-        rep_b = self._reported(b, batna_b, ub)
-        if w.defended or a.liar or b.liar:
-            ua_m = self._distrust_mask(a, b, ua, batna_a)
-            ub_m = self._distrust_mask(b, a, ub, batna_b)
+        ua, ub = self._evaluate(a, b)       # RAW: audit + frontier reference
+        ua_p, ub_p = ua, ub                 # pick-arrays (defense masks)
+        if w.self_margin:
+            ua_p = self._margin_mask(ua_p, batna_a)
+            ub_p = self._margin_mask(ub_p, batna_b)
+        if (w.defended or a.liar or b.liar) and self.consumes_reports:
+            rep_a = self._reported(a, batna_a, ua_p)
+            rep_b = self._reported(b, batna_b, ub_p)
+            ua_m = (self._margin_mask(ua_p, batna_a)
+                    if w.defended and not b.attested else ua_p)
+            ub_m = (self._margin_mask(ub_p, batna_b)
+                    if w.defended and not a.attested else ub_p)
             sol = self._pick(ua_m, ub_m, rep_a, rep_b, a, b)
             # BATNA inflation only makes the liar pickier — any picked bundle
             # exceeds the TRUE batnas of both sides by construction
             if sol is not None:
                 assert ua[sol] - batna_a > 0 and ub[sol] - batna_b > 0
         elif self.noise <= 0:
-            sol = self._pick(ua, ub, batna_a, batna_b, a, b)
+            sol = self._pick(ua_p, ub_p, batna_a, batna_b, a, b)
         else:
             # proposer a: own truth + noisy view of b; b vetoes true losses
-            sol = self._pick(ua, self._noisy(ub, batna_b), batna_a, batna_b, a, b)
+            sol = self._pick(ua_p, self._noisy(ub_p, batna_b), batna_a, batna_b, a, b)
             if sol is not None and ub[sol] - batna_b <= 0:
                 self.vetoes += 1
                 self.veto_est_surplus.append(
-                    float(self._noisy(ub, batna_b)[sol] - batna_b))
+                    float(self._noisy(ub_p, batna_b)[sol] - batna_b))
                 sol = None
                 # role-swapped retry: b proposes under its noisy view of a
-                sol2 = self._pick(self._noisy(ua, batna_a), ub, batna_a, batna_b, b, a)
+                sol2 = self._pick(self._noisy(ua_p, batna_a), ub_p, batna_a, batna_b, b, a)
                 if sol2 is not None and ua[sol2] - batna_a > 0:
                     sol = sol2
                 elif sol2 is not None:
                     self.vetoes += 1
         if sol is None:
             return trophallaxis(w, a, b) if self.safety_net else False
+        return self._finish_deal(a, b, sol, ua, ub, batna_a, batna_b)
 
+    def _finish_deal(self, a, b, sol, ua, ub, batna_a, batna_b) -> bool:
+        """Shared execute+log tail — ONE deal schema for every arm (review:
+        TrustArm's hand-copied tail fabricated capture=1.0/distress=0 and was
+        invisible to the poisoning audit). ua/ub must be the RAW evaluated
+        utilities: a defense-masked frontier inflates capture."""
+        w = self.w
         q, e, s = int(self.space[sol][0]), float(self.space[sol][1]), int(self.space[sol][2])
         distress = (a.stranded or b.stranded
-                    or stranding_hazard(a, w) > 0.5 or stranding_hazard(b, w) > 0.5)
-        self._true_pre = (phi_true(a, w), phi_true(b, w))
+                    or stranding_hazard_true(a, w) > 0.5
+                    or stranding_hazard_true(b, w) > 0.5)
+        audit = a.gauge_bias != 0.0 or b.gauge_bias != 0.0
+        ta0 = phi_true(a, w) if audit else None
+        tb0 = phi_true(b, w) if audit else None
         apply_bundle(w, a, b, q, e, s, log=True)
         assert abs(phi(a, w) - ua[sol]) < 1e-9 and abs(phi(b, w) - ub[sol]) < 1e-9, \
             "executed state diverged from evaluated bundle"
 
+        sa, sb = float(ua[sol] - batna_a), float(ub[sol] - batna_b)
         surplus = (ua - batna_a) + (ub - batna_b)
         feasible = np.isfinite(surplus)
         joint_best = float(surplus[feasible].max())
         achieved = float(surplus[sol])
-        ta0, tb0 = self._true_pre if hasattr(self, "_true_pre") else (None, None)
         w.deal_log.append(dict(
             tick=w.tick, a=a.rid, b=b.rid, q=q, e=e, s=s,
             a_co=a.company, b_co=b.company,
             a_liar=int(a.liar), b_liar=int(b.liar),
             border=int(a.company != b.company), distress=int(distress),
-            sa=float(ua[sol] - batna_a), sb=float(ub[sol] - batna_b),
-            sa_true=(float(phi_true(a, w) - ta0) if ta0 is not None else None),
-            sb_true=(float(phi_true(b, w) - tb0) if tb0 is not None else None),
+            sa=sa, sb=sb,
+            # gauge suspended = ground truth; at zero bias phi_true ≡ phi,
+            # so the audit equals the believed surplus without 4 extra Φ evals
+            sa_true=(float(phi_true(a, w) - ta0) if audit else sa),
+            sb_true=(float(phi_true(b, w) - tb0) if audit else sb),
             capture=achieved / joint_best if joint_best > 1e-12 else 1.0))
         self.deals += 1
         return True
@@ -375,6 +387,7 @@ class TeamArm(SnhpArm):
     """Cooperative greedy joint-Φ over the same bundle space (no IR)."""
     name = "team"
     company_walls = False
+    consumes_reports = False    # a merged firm's pick reads true internal books
 
     def _pick(self, ua, ub, batna_a, batna_b, a, b):
         joint = ua + ub
@@ -405,6 +418,7 @@ class TwoFirmArm(SnhpArm):
     """Within-company: joint-Φ (a firm coordinates internally); across the
     border: Nash-IR bargaining. The panel's decomposition arm."""
     name = "twofirm"
+    consumes_reports = False    # internal joint pick has no per-side IR
 
     def _pick(self, ua, ub, batna_a, batna_b, a, b):
         if a.company == b.company:
@@ -441,21 +455,22 @@ class TrustArm(SnhpArm):
 
     def encounter(self, a, b) -> bool:
         w = self.w
+        trusted = (a.attested and b.attested) if self.gated else True
+        if not trusted:
+            # the untrusted tier IS the veto tier — same lies, distrust tax
+            # and audit log as any defended Nash-IR encounter. (Review: this
+            # tier used to run lie-free on true books, so the gated result
+            # measured pure access denial rather than relegation.)
+            return SnhpArm.encounter(self, a, b)
         batna_a, batna_b = phi(a, w), phi(b, w)
         ua, ub = self._evaluate(a, b)
-        trusted = (a.attested and b.attested) if self.gated else True
-        if trusted:
-            ra = self._report_joint(a, batna_a, ua)
-            rb = self._report_joint(b, batna_b, ub)
-            sol = TeamArm._pick(self, ra, rb, batna_a, batna_b, a, b)
-        else:
-            sol = SnhpArm._pick(self, ua, ub, batna_a, batna_b, a, b)
+        ra = self._report_joint(a, batna_a, ua)
+        rb = self._report_joint(b, batna_b, ub)
+        sol = TeamArm._pick(self, ra, rb, batna_a, batna_b, a, b)
         if sol is None:
             return False
-        q, e, s_ = int(self.space[sol][0]), float(self.space[sol][1]), int(self.space[sol][2])
-        apply_bundle(w, a, b, q, e, s_, log=True)
         sa, sb = float(ua[sol] - batna_a), float(ub[sol] - batna_b)
-        if trusted and min(sa, sb) < 0:     # no veto up here — attribute it
+        if min(sa, sb) < 0:                 # no veto up here — attribute it
             self.exploit_deals += 1
             self.exploit_loss += -min(sa, sb)
             honest_loses = (sa < 0 and not a.liar) or (sb < 0 and not b.liar)
@@ -465,14 +480,7 @@ class TrustArm(SnhpArm):
                 self.strip_loss += -min(sa, sb)
             else:
                 self.sacrifice_deals += 1
-        w.deal_log.append(dict(
-            tick=w.tick, a=a.rid, b=b.rid, q=q, e=e, s=s_,
-            a_co=a.company, b_co=b.company,
-            a_liar=int(a.liar), b_liar=int(b.liar),
-            border=int(a.company != b.company),
-            distress=0, sa=sa, sb=sb, capture=1.0))
-        self.deals += 1
-        return True
+        return self._finish_deal(a, b, sol, ua, ub, batna_a, batna_b)
 
 
 def make_arm(name: str, w: W.World, issues=("cargo", "energy", "sector"),

@@ -117,7 +117,12 @@ def update_ev(r, w, delta: float = 2.0) -> None:
         return
     b0 = r.battery
     p0 = phi(r, w)
-    r.battery = min(W.BATTERY_MAX, b0 + delta)
+    # perturb the BELIEVED reading, not the true axis: Φ consumes bat(), so
+    # stepping .battery by delta measured (1+gauge_bias)·∂Φ/∂believed — a
+    # second, unintended miscalibration channel (review). At zero bias this
+    # is identical to the old step.
+    step = delta / max(0.05, 1.0 + r.gauge_bias)
+    r.battery = min(W.BATTERY_MAX, b0 + step)
     p1 = phi(r, w)
     r.battery = b0
     grad = (p1 - p0) / max(1e-9, delta)
@@ -131,5 +136,17 @@ def phi_true(r, w) -> float:
     r.gauge_bias = 0.0
     try:
         return phi(r, w)
+    finally:
+        r.gauge_bias = saved
+
+
+def stranding_hazard_true(r, w) -> float:
+    """stranding_hazard with the gauge suspended: audit fields in the deal
+    log are ground truth, not belief (review: the distress label followed
+    the miscalibrated gauge under v7)."""
+    saved = r.gauge_bias
+    r.gauge_bias = 0.0
+    try:
+        return stranding_hazard(r, w)
     finally:
         r.gauge_bias = saved

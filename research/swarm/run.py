@@ -41,6 +41,11 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              noise: float = 0.0, liar_frac: float = 0.0,
              defended: bool = False, self_noise: float = 0.0,
              self_margin: bool = False) -> dict:
+    if noise > 0 and (liar_frac > 0 or defended):
+        # the liar/defended branch pre-empts the v5 noise machinery, so the
+        # combination would run noiseless while the row claims noise>0
+        raise ValueError("v5 partner-noise and v6 lies/defense are separate "
+                         "treatments; combining them silently disables noise")
     hazard = arm_name.endswith("-hz")
     base = arm_name[:-3] if hazard else arm_name
     tau_pair = tuple(tau) if isinstance(tau, (tuple, list)) else (tau, tau)
@@ -127,11 +132,40 @@ def _star(args):
     return run_once(**args)
 
 
-def _paired(rows, arm_hi, arm_lo, sigma, field, tau=0.0):
+def _cond(r) -> tuple:
+    """Full treatment condition of a row — grouping by (arm, σ, τ) alone
+    pooled every v6/v7 condition of an arm into one line (review S9)."""
+    return (r.get("liar_frac", 0.0), bool(r.get("defended", False)),
+            r.get("self_noise", 0.0), bool(r.get("self_margin", False)),
+            r.get("noise", 0.0))
+
+
+def _cond_label(c) -> str:
+    f, dfd, s7, mg, nz = c
+    bits = []
+    if f:
+        bits.append(f"f={f:g}")
+    if dfd:
+        bits.append("dfd")
+    if s7:
+        bits.append(f"s7={s7:g}")
+    if mg:
+        bits.append("mg")
+    if nz:
+        bits.append(f"nz={nz:g}")
+    return " ".join(bits)
+
+
+_BASE = (0.0, False, 0.0, False, 0.0)
+
+
+def _paired(rows, arm_hi, arm_lo, sigma, field, tau=0.0, cond=_BASE):
     hi = {r["seed"]: r[field] for r in rows
-          if r["arm"] == arm_hi and r["sigma"] == sigma and r["tau"] == tau}
+          if r["arm"] == arm_hi and r["sigma"] == sigma and r["tau"] == tau
+          and _cond(r) == cond}
     lo = {r["seed"]: r[field] for r in rows
-          if r["arm"] == arm_lo and r["sigma"] == sigma and r["tau"] == tau}
+          if r["arm"] == arm_lo and r["sigma"] == sigma and r["tau"] == tau
+          and _cond(r) == cond}
     common = sorted(set(hi) & set(lo))
     if len(common) < 3:
         return None
@@ -146,20 +180,21 @@ def _paired(rows, arm_hi, arm_lo, sigma, field, tau=0.0):
 
 
 def summarize(rows: list[dict]) -> None:
-    keys = sorted({(r["arm"], r["sigma"], r["tau"]) for r in rows})
-    hdr = (f"{'arm':<14} {'σ':>5} {'τ':>5} {'delivered':>11} {'strand':>7} "
-           f"{'effLast':>10} {'makespan':>10} {'deals':>6} {'borderQ':>8} "
-           f"{'hlthyBQ':>8} {'forRef':>7} {'coΔdlv':>7} {'coΔwait':>8}")
+    keys = sorted({(r["arm"], r["sigma"], r["tau"], _cond(r)) for r in rows},
+                  key=lambda k: (k[0], k[1], k[2], k[3]))
+    hdr = (f"{'arm':<14} {'condition':<18} {'σ':>5} {'τ':>5} {'delivered':>11} "
+           f"{'strand':>7} {'effLast':>10} {'makespan':>10} {'deals':>6} "
+           f"{'borderQ':>8} {'hlthyBQ':>8} {'forRef':>7} {'coΔdlv':>7} {'coΔwait':>8}")
     print(hdr)
     print("-" * len(hdr))
-    for arm, sigma, tau in keys:
+    for arm, sigma, tau, cond in keys:
         g = [r for r in rows if r["arm"] == arm and r["sigma"] == sigma
-             and r["tau"] == tau]
+             and r["tau"] == tau and _cond(r) == cond]
         def m(f):
             return np.array([r[f] for r in g], dtype=float)
         codelta = np.array([r["co_delivered"][0] - r["co_delivered"][1] for r in g])
         cowait = np.array([r["co_queue_wait"][0] - r["co_queue_wait"][1] for r in g])
-        print(f"{arm:<14} {sigma:>5.2f} {tau:>5.2f} "
+        print(f"{arm:<14} {_cond_label(cond):<18} {sigma:>5.2f} {tau:>5.2f} "
               f"{m('delivered').mean():>6.1f}±{m('delivered').std():<4.1f} "
               f"{m('stranded').mean():>7.2f} "
               f"{m('eff_last').mean():>5.2f}±{m('eff_last').std():<4.2f} "
@@ -189,6 +224,42 @@ def summarize(rows: list[dict]) -> None:
             print(f"    {hi:>9} − {lo:<10} Δ={c['delta']:+7.1f}  "
                   f"p_t={c['p_t']:.3f} p_w={c['p_w']:.3f} "
                   f"wins {c['wins']}/{c['n']}   [{note}]")
+
+
+def contrasts(rows: list[dict]) -> None:
+    """The v6/v7 headline numbers, from the artifact (review G2: RESULTS.md
+    figures came from unversioned ad-hoc analysis; this commits the path:
+    sweep JSON → these tables)."""
+    v67 = [r for r in rows if _cond(r) != _BASE or r["arm"].startswith("trust")]
+    if not v67:
+        return
+    print("\nv6/v7 contrasts (per condition; liarAdv = liar − honest mean credit):")
+    keys = sorted({(r["arm"], _cond(r)) for r in v67})
+    hdr = (f"  {'arm':<16} {'condition':<18} {'delivered':>11} {'deals':>6} "
+           f"{'poisoned':>9} {'exploit':>8} {'strip':>6} {'liarAdv':>9} {'p':>7}")
+    print(hdr)
+    print("  " + "-" * (len(hdr) - 2))
+    for arm, cond in keys:
+        g = [r for r in v67 if r["arm"] == arm and _cond(r) == cond]
+        adv = [r["liar_credit"] - r["honest_credit"] for r in g
+               if r.get("liar_credit") is not None
+               and r.get("honest_credit") is not None]
+        if adv:
+            try:
+                _, p = stats.wilcoxon(adv) if np.any(np.array(adv) != 0) else (None, 1.0)
+            except ValueError:
+                p = float("nan")
+            adv_s, p_s = f"{np.mean(adv):+9.1f}", f"{p:7.4f}"
+        else:
+            adv_s, p_s = f"{'—':>9}", f"{'—':>7}"
+        dlv = np.array([r["delivered"] for r in g], dtype=float)
+        print(f"  {arm:<16} {_cond_label(cond) or 'baseline':<18} "
+              f"{dlv.mean():>6.1f}±{dlv.std():<4.1f} "
+              f"{np.mean([r['deals'] for r in g]):>6.1f} "
+              f"{np.mean([r['poisoned'] for r in g]):>9.2f} "
+              f"{np.mean([r['exploit_deals'] for r in g]):>8.1f} "
+              f"{np.mean([r['strip_deals'] for r in g]):>6.1f} "
+              f"{adv_s} {p_s}")
 
 
 def build_jobs(column: str, seeds: int, ticks: int):
@@ -248,6 +319,15 @@ def build_jobs(column: str, seeds: int, ticks: int):
         for seed in range(min(seeds, 16)):    # collapse-floor reference
             jobs.append(dict(arm_name="rules", sigma=0.5, seed=seed,
                              ticks=ticks, tau=0.15, preset="v5"))
+        # SPEC controls (review G3: pre-registered but never scheduled):
+        # arms that consume no reports run as statistical constants under
+        # liars — the demonstration that lies only matter where reports land
+        for arm in ("team", "auction"):
+            for f in (0.0, 0.5):
+                for seed in range(min(seeds, 16)):
+                    jobs.append(dict(arm_name=arm, sigma=0.5, seed=seed,
+                                     ticks=ticks, tau=0.15, preset="v5",
+                                     liar_frac=f))
     if column in ("E", "all"):        # v6.1: attestation gates cooperation
         for arm in ("trust-open-hz", "trust-gated-hz"):
             for f in (0.25, 0.5):
@@ -285,7 +365,17 @@ def main() -> None:
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
     ap.add_argument("--out", default=None)
+    ap.add_argument("--analyze", default=None, metavar="SWEEP_JSON",
+                    help="re-print summary + v6/v7 contrasts from an "
+                         "existing sweep artifact (no runs)")
     args = ap.parse_args()
+
+    if args.analyze:
+        with open(args.analyze) as f:
+            rows = json.load(f)
+        summarize(rows)
+        contrasts(rows)
+        return
 
     jobs = build_jobs(args.column, args.seeds, args.ticks)
     out = args.out or os.path.join(_HERE, "results",
@@ -301,6 +391,7 @@ def main() -> None:
         json.dump(rows, f, indent=1)
     print(f"\n{len(rows)} runs → {out}\n")
     summarize(rows)
+    contrasts(rows)
 
 
 if __name__ == "__main__":

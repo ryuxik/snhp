@@ -1,78 +1,101 @@
 # Results — verdicts against the pre-registrations
 
-## v7: noisy self-knowledge (sweep_v7_F.json, 160 runs) — the veto is only as good as your gauge
+## ⚠ CORRECTION (2026-07-15): v7 and v6.1 re-run after adversarial review
 
-- **P12a PASS:** persistent gauge miscalibration devastates the fleet —
-  delivered 238.9 → 193.3 → 128.2 as gauge σ goes 0 → 0.15 → 0.30 (f=0).
-  Self-noise costs more than every deception scenario combined (lies never
-  cost more than ~8 delivered).
-- **P12b PASS (KILL did not fire):** poisoned deals — executed with
-  negative TRUE surplus for an honest robot, impossible at s₇=0 (pinned) —
-  appear at 9.0/run (s₇=0.15) and 10.6/run (s₇=0.30). The
-  deception-tolerance theorem inherits the quality of self-knowledge.
-- **P12c FAILS its bar:** the inward self-margin cuts poisoning only
-  39–46% (pre-registered ≥70%) with mixed output effects (+19 delivered
-  at f=0.5/s₇=0.3, −10 at f=0.5/s₇=0.15). Honest verdict: an economic
-  margin is a partial patch; the rest of the problem is state estimation,
-  not mechanism design.
-- **Emergent echo of v5/v6:** liar pickiness accidentally PROTECTS against
-  self-noise (poisoned 3.7 vs 10.6 at s₇=0.3; delivered 209.6 vs 193.3 at
-  s₇=0.15) — inflated BATNAs function as involuntary safety margins.
-- **Threat ranking, final:** partner-deception ≪ partner-estimation-noise
-  ≪ SELF-knowledge error. Know thyself.
+A 22-agent pre-merge review found the original v7 headline was an artifact:
+a **charger livelock** (the queue-release threshold read BELIEVED battery
+while physics caps at TRUE max, so every robot with gauge bias < −0.05
+parked at a charger forever — reproduced 3×), plus a second unintended
+channel (update_ev perturbed the true axis, scaling the shadow price by
+(1+bias)). The trust-gated arm's untrusted tier also ran LIE-FREE on true
+books, so v6.1's −22.8 measured pure access denial. All fixed (charger
+meter undocks at true-full; EV perturbs the believed reading; the untrusted
+tier now runs the full defended Nash tier; one shared audited deal schema),
+regression-pinned in test_swarm.py, and columns D/E/F re-run. Old numbers
+are struck below; the corrected story is BETTER for the thesis, not worse.
+Reproduce: `run.py --column D|E|F` then `run.py --analyze <sweep.json>`.
 
-## v6.2 attribution fix (sweep_v6_E2.json)
+## v7: noisy self-knowledge (sweep_v7_F.json, 160 runs) — the fleet survives; the receipts don't
 
-Deal logs now carry liar flags; trusted-tier true losses split into STRIP
-(liar gains, honest loses) vs SACRIFICE (benign joint-max). trust-open:
-341–488 strip deals/run (1,100–1,218 credit extracted). **trust-gated:
-strip = 0.0 exactly at both liar fractions** — gating eliminates malicious
-exploitation completely; all remaining true losses are honest↔honest
-cooperative sacrifice (599/194 per run). The v6.1 conclusion survives its
-metric caveat in the strongest possible form.
+Superseded (livelock-confounded): ~~delivered 238.9 → 193.3 → 128.2~~.
 
----
+- **P12a REVERSED by the fix:** gauge miscalibration does NOT devastate
+  the fleet — delivered 238.9 → 239.8 → 229.5 (n.s., variance-driven) as
+  gauge σ goes 0 → 0.15 → 0.30 (f=0). The original collapse was parked
+  robots, not bad economics. Output is robust to self-knowledge error.
+- **P12b PASS, now the headline:** poisoned deals — executed with negative
+  TRUE surplus for an honest robot at the veto tier, impossible at s₇=0
+  (pinned by test_v7_poisoned_zero_without_gauge_noise; scoped to veto
+  arms — joint-pick arms execute one-sided losses BY DESIGN) — rise
+  0 → 14.6 → 24.6 per run. **The system dashboard stays green (delivered
+  ~flat) while individual books quietly bleed**: the v6 "green dashboard,
+  robbed books" pattern, this time from self-ignorance instead of malice.
+  The veto is only as good as the gauge reading the receipt.
+- **P12c PARTIAL (bar unchanged, honest miss):** the inward self-margin
+  halves poisoning (24.6 → 13.6 at s₇=0.3; 14.6 → 7.9 at 0.15) — short of
+  the pre-registered ≥70% — at ~30% fewer deals. A price-of-safety dial,
+  not a fix; the rest of the problem is state estimation.
+- **Emergent echo survives the fix:** liar pickiness still protects
+  against self-noise (poisoned 24.6 → 8.9 at s₇=0.3 when f=0.5) —
+  inflated BATNAs remain involuntary safety margins.
+- **Threat ranking, corrected:** partner-deception and partner-noise cost
+  output; self-knowledge error costs TRUTHFULNESS-OF-BOOKS at flat output.
+  The scary failure isn't a crash — it's an audit hole. Know thyself.
 
-## v6.1: attestation gates cooperation (sweep_v6_E.json, 96 runs) — THE THESIS LANDS
+## v6.1: attestation gates cooperation (sweep_v6_E.json, 80 runs) — THE THESIS LANDS
 
-| condition | f | delivered | makespan | liar credit | honest credit | liar adv |
-|---|---|---|---|---|---|---|
-| trust-open | 0.25 | 240.0 | 619 | 230.4 | 54.7 | **+175.7 (p<0.0001)** |
-| trust-open | 0.50 | 239.9 | 798 | 165.7 | 31.7 | **+134.0 (p<0.0001)** |
-| trust-gated | 0.00 | 240.0 | 771 | — | 99.2 | — |
-| trust-gated | 0.25 | 239.6 | 834 | 81.6 | 104.4 | **−22.8 (p=0.006)** |
-| trust-gated | 0.50 | 239.1 | 1168 | 88.0 | 108.3 | **−20.3 (p=0.006)** |
-| nash-only (v6.0) | 0.00 | 238.9 | 1323 | — | ~98 | — |
+Re-run 2026-07-15 with the untrusted tier fixed to be the FULL defended
+Nash tier (lies active + distrust tax) — the original ran it lie-free, so
+the old ~~−22.8~~ measured access denial, not relegation. Attribution
+(strip vs sacrifice) is now built into the shared deal schema, superseding
+the separate sweep_v6_E2.json artifact.
 
-- **P11a PASS, dramatically:** ungated cooperation with liars is a feeding
-  frenzy — liars earn 230 while honest robots earn 55 (baseline ~99). The
-  joint tier trusts reported utilities and executes without a veto, so
-  utility inflation strip-mines honest counterparties. Notably the SYSTEM
-  still finishes (delivered 240) — exploitation is redistributive, which
-  is exactly why a fleet operator wouldn't notice until the books arrive.
-- **P11b PASS — the incentive flips:** gating the joint tier on
-  attestation (liars can't attest) relegates liars to the lie-tolerant
-  Nash-IR tier. Their advantage goes from +176 to **−23**: honest,
-  attested robots now out-earn liars by keeping the cooperation dividend
-  to themselves (104–108 vs the 99 honest baseline).
-- **P11c PASS (the dividend is speed):** gated honest fleets beat
-  nash-only by −551 ticks makespan (771 vs 1323, −42%) at the delivered
-  ceiling — cooperation is worth a lot, which is why gating it matters.
-- **Metric caveat (logged before interpretation):** `exploit_deals`
-  counts ALL no-veto true-loss executions, including benign cooperative
-  sacrifice between honest robots (joint-max ≠ IR even with true
-  reports — the f=0 gated fleet logs ~1600/run of these). The
-  liar-advantage credit flip is the clean exploitation evidence; per-deal
-  liar attribution is a v6.2 logging improvement.
+| condition | f | delivered | makespan | strip/run | liar adv |
+|---|---|---|---|---|---|
+| trust-open | 0.25 | 239.6 | 992 | 361.0 | **+181.1 (p<0.0001)** |
+| trust-open | 0.50 | 238.9 | 1150 | 478.7 | **+137.6 (p<0.0001)** |
+| trust-gated | 0.00 | 240.0 | 749 | 0.0 | — |
+| trust-gated | 0.25 | 239.8 | 685 | 0.0 | +1.8 (p=0.98, n.s.) |
+| trust-gated | 0.50 | 239.0 | 768 | 0.0 | −5.1 (p=0.43, n.s.) |
+| nash-only (v6.0) | 0.00 | 238.9 | 1323 | 0.0 | — |
+
+- **P11a PASS, dramatically (replicates):** ungated cooperation with liars
+  is a feeding frenzy — liar advantage +181 credits, 361–479 strip deals
+  per run — while the SYSTEM still finishes (delivered ~240). Exploitation
+  is redistributive: a fleet operator wouldn't notice until the books
+  arrive. Green dashboard, robbed books.
+- **P11b PASS, corrected form — the advantage is ERASED, not inverted:**
+  with lies genuinely active at the lower tier, gating drops the liar
+  advantage from +181 to statistical zero (+1.8/−5.1, n.s.). Honesty wins
+  by ACCESS: attested robots keep the cooperation dividend; a liar's lie
+  earns ≈ nothing at the veto tier (v6.0's theorem, now exercised in the
+  same run). Strip deals at the gated tier: **0.0 exactly** at both liar
+  fractions.
+- **P11c PASS (the dividend is speed, replicates):** gated honest fleets
+  beat nash-only by −574 ticks makespan (749 vs 1323, **−43%**) at the
+  delivered ceiling — cooperation is worth a lot, which is why gating it
+  matters.
+- **New secondary:** relegated liars strand ~6× more than in the open
+  swarm (7.4 vs 1.3 at f=0.5) — locked out of the rescue-rich cooperative
+  tier, they bear their own risk. The gate prices dishonesty in safety,
+  not just credit.
+- **Metric note:** `exploit_deals` still counts benign honest↔honest
+  cooperative sacrifice at the joint tier (~1580/run at f=0, by design of
+  joint-max); STRIP (liar gains while honest loses) is the malice metric,
+  and it is zero under gating.
 
 **The three-layer result, in one breath:** the bargaining tier is
 lie-tolerant by construction (v6.0 — the veto is the trust); the
-cooperation tier is 42% faster but strip-mines the honest when open
+cooperation tier is 43% faster but strip-mines the honest when open
 (v6.1); attestation gates the valuable-but-fragile tier so that honesty
-becomes the top-earning strategy. That is the snhp architecture —
-Nash-IR bargaining as the deception-proof floor, attestation-gated joint
-optimization as the high-trust ceiling — demonstrated end-to-end in
-embodied form, replicating the arena finding.
+is the top-earning strategy and lying earns nothing anywhere. That is the
+snhp architecture — Nash-IR bargaining as the deception-proof floor,
+attestation-gated joint optimization as the high-trust ceiling —
+demonstrated end-to-end in embodied form, replicating the arena finding.
+And v7's corrected coda: the one thing NEITHER tier can supply is a true
+gauge — self-knowledge error leaves output intact and silently corrupts
+the books, which is precisely why the receipt (not the mechanism) is the
+product.
 
 ---
 

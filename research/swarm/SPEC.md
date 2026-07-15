@@ -469,9 +469,13 @@ Pre-registered (P12):
   ↑ — optimistic gauges overcommit; delivered ↓ or makespan ↑).
 - **P12b (the point):** deception-tolerance erodes — POISONED deals
   (executed with negative TRUE surplus for an honest side; impossible at
-  s₇=0, pinned by test) appear and grow with s₇, and liar advantage grows
-  vs the s₇=0 baseline. The veto's guarantee is exactly as good as
-  self-knowledge.
+  s₇=0 FOR VETO ARMS — joint-pick arms execute one-sided losses by
+  design; pinned by test_v7_poisoned_zero_without_gauge_noise, added
+  post-review 2026-07-15) appear and grow with s₇, and liar advantage
+  grows vs the s₇=0 baseline. The veto's guarantee is exactly as good as
+  self-knowledge. *(Post-review note: the across-s₇ liar contrast is
+  seed-paired only after the RNG-stream fix; the original draws gave the
+  s₇=0 cell a different liar set per seed.)*
 - **P12c (the defense):** the self-margin cuts poisoned deals ≥70% at
   s₇=0.3; two-sided risk stated — the margin may cost more trade than it
   saves (net delivered could fall).

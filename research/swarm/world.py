@@ -166,9 +166,13 @@ class World:
         # lying — attestation IS verifiable truth)
         self.defended = defended
         self.self_margin = self_margin
-        if self_noise > 0:              # v7: twin-mirrored gauge miscalibration
+        if self_noise > 0 or liar_frac > 0:
+            # v7: twin-mirrored gauge miscalibration. The stream is consumed
+            # in EVERY v6/v7 world (scaled by s7, zero at s7=0) so the liar
+            # permutation below stays seed-paired across self-noise cells —
+            # review: conditional draws gave the s7=0 cell different liars.
             half = len(self.robots) // 2
-            biases = self.rng.normal(0.0, self_noise, half)
+            biases = self.rng.normal(0.0, 1.0, half) * self_noise
             for k in range(half):
                 self.robots[k].gauge_bias = float(biases[k])
                 if half + k < len(self.robots):
@@ -353,6 +357,13 @@ class World:
                     r.stranded = False
             for r in queue[CHARGE_SLOTS:]:    # commons diagnostics
                 self.company[r.company]["queue_wait"] += 1
+        # the charger's meter is ground truth: at true-full it cuts the
+        # current and the robot undocks. Without this, a pessimistic gauge
+        # (bias < -0.05) can never read 95% and the robot parks forever —
+        # the v7 livelock that masqueraded as a negotiation-layer collapse.
+        for r in self.robots:
+            if r.charge_queued_at >= 0 and r.battery >= BATTERY_MAX - 1e-9:
+                r.charge_queued_at = -1
 
     def transfer_energy(self, donor: Robot, recv: Robot, amount: float,
                         log: bool = True) -> float:
