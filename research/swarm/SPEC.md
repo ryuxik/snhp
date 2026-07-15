@@ -1122,3 +1122,36 @@ guard). Metric: NET WORTH = credit + fleet × BUILD_COST; growth = log-slope.
 - **KILL:** equal growth rates ⇒ the mechanism edge is a level effect that
   does NOT compound — the strongest scoping result the program could
   produce, reported as such.
+
+**P18 VERDICT (2026-07-15, sweep_L.json; N=240 horizon amendment declared
+below):**
+- **P18b SUPPORTED — the headline: planning stops scaling.** Δ(costed hive
+  − market) on delivered_frac: +0.001 (N=24, n.s.) → 0.000 (96) →
+  **−0.053 (N=240, p=.008, 0/8 wins)**. The consensus-costed hive crosses
+  below pairwise bargaining exactly as predicted; its 11-tick pauses ×
+  4,151 deals/run is a crushing immobilization tax. Free-planning team
+  remains the ceiling — the gap between team-free and team-costed IS the
+  price of central coordination at scale.
+- **P18a holds where runs complete** (delivered_frac 0.998/1.000 at
+  N=24/96; eval==exec held across all 152 runs incl. N=240): the mechanism
+  is O(1)/encounter. At N=240 nothing finishes in 2,500 ticks — see
+  amendment.
+- **P18c REVERSED:** the market−auction gap SHRINKS with N (+0.019 p=.0015
+  → +0.002 → −0.020 at 240, auction 7/8) — ceiling compression at N≤96 +
+  deal-pause drag at 240. Market thickness did not materialize on this
+  metric.
+- **P18d — middlemen are a CENTRALIZATION phenomenon:** middleman fraction
+  rises with N under joint/auction coordination (team-costed 0.10→0.27;
+  auction 0.13→0.22) and stays low/flat under the IR market
+  (0.034/0.038/0.030). Bargaining keeps every robot an owner-operator;
+  consolidation onto carrier robots is what hives and auctions do.
+- **KILL — fired as registered, confound declared:** on delivered_frac at
+  the 2,500-tick horizon the market under-performs the auction at N=240
+  (−0.020, p=.0156). Confound (builder-diagnosed): 0% of ANY arm's N=240
+  runs finish — the metric measures throughput-in-truncation, and at
+  scales where runs complete the market clears the field ~2× faster than
+  the auction (makespan 1,066 vs 2,232 at N=24). **AMENDMENT (declared
+  post-hoc, before any amendment data seen): re-run N=240 × 8 seeds ×
+  {auction, snhp+net, team-costed} at 7,500 ticks; the un-truncated
+  verdict is delivered_frac + makespan there. The registered-metric KILL
+  stands on the record either way.**
