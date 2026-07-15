@@ -125,7 +125,8 @@ class World:
                  grid: int = GRID, life_pricing: bool = False,
                  strand_cap: float = 0.0, belief_mode: bool = False,
                  race_pricing: bool = True, mine_trait: bool = False,
-                 r_sense: int = R_SENSE):
+                 r_sense: int = R_SENSE,
+                 dynamic_field: bool = False, contested: bool = False):
         self.rng = np.random.RandomState(seed)
         self.hazard_phi = hazard_phi
         self.preset = preset
@@ -135,6 +136,13 @@ class World:
         self.race_pricing = race_pricing
         self.mine_trait = mine_trait      # set BEFORE spawns: gates a draw
         self.r_sense = r_sense
+        # v11 (column J): the moving field. Both default off ⇒ every pre-v11
+        # column stays bit-identical (suite-verified). `contested` reshapes
+        # the INITIAL field (read by _gen_asteroids, so set before it runs);
+        # `dynamic_field` schedules arrivals/departures drawn from a DEDICATED
+        # RandomState so the main stream is never perturbed.
+        self.dynamic_field = dynamic_field
+        self.contested = contested
         self._oracle_override = False     # phi_true_field: audit vs TRUE field
         self._live_sense = True           # drive/world phase: sensing is live;
                                           # frozen during encounters (v10)
@@ -185,6 +193,29 @@ class World:
         self.rival_rate = [[0.0] * n_src for _ in range(2)]   # units/tick
         self.own_mined = [[0] * n_src for _ in range(2)]      # cumulative
         self._own_mined_seen = [[0] * n_src for _ in range(2)]
+        # v11 provenance: units picked per asteroid (both companies pooled).
+        # Allocated + incremented unconditionally — pure bookkeeping, no RNG,
+        # no decision — so the dynamic_field=False path stays bit-identical.
+        self.mined_from = [0] * n_src
+        self.stock_lost = 0                 # v11: true stock erased by departures
+        self.arrival_indices: list[int] = []   # source idx of each arrival rock
+        self.field_log: list[dict] = []     # arrival/departure record (separate
+                                            # from event_log: keeps xfers/border
+                                            # metrics counting physical exchanges)
+        self._field_events: list[dict] = []
+        self._field_next = 0
+        if dynamic_field:
+            # DEDICATED stream (seed+7919): pre-draw a fixed schedule of 8
+            # arrivals ~U(200,2300) and 4 departures ~U(400,2300), sorted.
+            # Positions/stocks/targets are drawn from this same stream at FIRE
+            # time (they depend on the live field), never from self.rng.
+            self._field_rng = np.random.RandomState(seed + 7919)
+            arr = sorted(float(self._field_rng.uniform(200, 2300)) for _ in range(8))
+            dep = sorted(float(self._field_rng.uniform(400, 2300)) for _ in range(4))
+            evs = ([dict(t=t, kind="arrival") for t in arr]
+                   + [dict(t=t, kind="departure") for t in dep])
+            evs.sort(key=lambda e: e["t"])
+            self._field_events = evs
         self.guest_charged = 0.0            # energy served to rival fleets
         self.delivered = 0
         self.delivered_matrix = [[0, 0], [0, 0]]     # [miner co][refiner owner]
@@ -256,6 +287,30 @@ class World:
         Non-identical by construction: position and richness vary per pair."""
         sc = self.grid / GRID
         taken = set(self.refineries) | set(self.chargers)
+        if self.contested:
+            # v11 (column J): 10 rocks drawn INDEPENDENTLY in a central band
+            # y ∈ [10·sc, 22·sc] — no mirroring, so both companies mine the
+            # SAME overlapping field and the rival-depletion race actually
+            # bites. The twin-fleet mirror placebo (per-company ledger
+            # symmetry ⇒ expected difference 0) does NOT apply in this mode:
+            # geography is deliberately asymmetric. Uses self.rng (initial
+            # world generation, like the mirrored path) — the dedicated
+            # dynamic-field stream is reserved for arrivals/departures.
+            pos = []
+            while len(pos) < 10:
+                x = int(self.rng.uniform(3 * sc, 29 * sc))
+                y = int(self.rng.uniform(10 * sc, 22 * sc))
+                p_ = (x, y)
+                if any(manhattan(p_, f) < 3 for f in taken):      # ≥3 from
+                    continue                                      # facilities
+                if any(manhattan(p_, q) < 3 for q in pos):
+                    continue
+                pos.append(p_)
+            raw = [int(self.rng.uniform(6, 19)) for _ in range(10)]
+            scale = 2 * TOTAL_STOCK / sum(raw)
+            stocks = [max(4, round(r * scale)) for r in raw]
+            stocks[0] += 2 * TOTAL_STOCK - sum(stocks)            # pin the total
+            return pos, stocks
         pos = []
         while len(pos) < 5:
             x = int(self.rng.uniform(3 * sc, 29 * sc))   # bounds scale; at
@@ -330,6 +385,74 @@ class World:
                         self._observe(r.company, i)
         self._live_sense = False
 
+    # ── v11: the moving field ───────────────────────────────────────────
+    def field_step(self) -> None:
+        """Fire any scheduled arrival/departure whose time has arrived. Called
+        from BaseArm.tick at TICK START — before EV refresh, drives, sensing
+        and (critically) before any bundle is evaluated. That placement is the
+        invariant: no field change ever lands between a bundle's evaluation and
+        its execution, so evaluated Φ == executed Φ still holds. Consumes only
+        the dedicated field RNG; a no-op (and zero cost) when dynamic_field is
+        off, keeping every other column bit-identical."""
+        if not self.dynamic_field:
+            return
+        while (self._field_next < len(self._field_events)
+               and self._field_events[self._field_next]["t"] <= self.tick):
+            ev = self._field_events[self._field_next]
+            self._field_next += 1
+            if ev["kind"] == "arrival":
+                self._field_arrival()
+            else:
+                self._field_departure()
+
+    def _field_arrival(self) -> None:
+        """A fresh asteroid appears in the field band, ≥3 (Manhattan) from any
+        facility and any existing rock (rejection-sampled from the dedicated
+        RNG). Every per-asteroid array grows for BOTH companies; the new rock's
+        belief starts at 0 — unknown until a robot senses it — with last_seen
+        pinned to the arrival tick. total_stock grows so the makespan check
+        still requires delivering the newcomer too."""
+        frng = self._field_rng
+        sc = self.grid / GRID
+        lo, hi = 3 * sc, (GRID - 3) * sc        # interior field band
+        facilities = list(self.refineries) + list(self.chargers)
+        while True:
+            p = (int(frng.uniform(lo, hi)), int(frng.uniform(lo, hi)))
+            if any(manhattan(p, f) < 3 for f in facilities):
+                continue
+            if any(manhattan(p, s) < 3 for s in self.sources):
+                continue
+            break
+        stock = int(frng.uniform(8, 24))
+        i = len(self.sources)
+        self.sources.append(p)
+        self.stock.append(stock)
+        self.total_stock += stock
+        self.mined_from.append(0)
+        self.arrival_indices.append(i)
+        for co in (0, 1):
+            self.belief[co].append(0)           # unknown until sensed
+            self.last_seen[co].append(self.tick)
+            self.rival_rate[co].append(0.0)
+            self.own_mined[co].append(0)
+            self._own_mined_seen[co].append(0)
+        self.field_log.append(dict(t=self.tick, kind="arrival", src=i, amt=stock))
+
+    def _field_departure(self) -> None:
+        """A stocked asteroid is exhausted by an off-map rival: its remaining
+        TRUE stock is lost (recorded in stock_lost, so conservation still holds
+        exactly), stock[i]=0. Beliefs are deliberately NOT updated — the map
+        keeps a ghost until a robot re-senses the rock. Target chosen among
+        currently-stocked rocks via the dedicated RNG; skipped if none."""
+        stocked = [i for i in range(len(self.sources)) if self.stock[i] > 0]
+        if not stocked:
+            return
+        i = int(self._field_rng.choice(stocked))
+        lost = self.stock[i]
+        self.stock_lost += lost
+        self.stock[i] = 0
+        self.field_log.append(dict(t=self.tick, kind="departure", src=i, amt=lost))
+
     def _spawn_twin_fleets(self, n_robots, sigma):
         """Both companies receive the IDENTICAL draw multiset; company-1
         positions are the reflection (x, 32−y). Sectors stratified 6/6/6/6
@@ -349,6 +472,11 @@ class World:
             for k in range(half):            # mirrored pairs stay symmetric
                 c = self.best_claim(self.robots[k])
                 self.robots[k].sector = c
+                # (c + half_src) % len is the mirror-partner index for a
+                # mirrored field. Under contested=True the field is NOT
+                # mirrored, so this is just a company-neutral round-robin over
+                # valid rock indices — the mirror placebo does not apply there
+                # (noted at _gen_asteroids); the index stays in range either way.
                 self.robots[half + k].sector = (c + half_src) % len(self.sources)
 
     def _spawn_v3(self, n_robots, sigma):
@@ -410,6 +538,7 @@ class World:
             r.load_prov[r.company] += q       # provenance: miner's company
             self.stock[s] -= q
             self.own_mined[r.company][s] += q  # v10b: rival-rate accounting
+            self.mined_from[s] += q            # v11: per-asteroid provenance
             return q
         return 0
 
@@ -543,7 +672,10 @@ class World:
         return self.delivered + sum(self.stock) + sum(r.load for r in self.robots)
 
     def material_ok(self) -> bool:
-        return self.material_accounted() == self.total_stock
+        # v11: departures erase true stock, booked to stock_lost — accounted
+        # here explicitly so conservation stays EXACT. stock_lost is 0 in every
+        # non-dynamic column, so this is bit-identical to the old invariant.
+        return self.material_accounted() + self.stock_lost == self.total_stock
 
     def ledger_accounted(self) -> bool:
         """Σ company credit + Σ tariffs earned == V · delivered (unless the

@@ -42,7 +42,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              defended: bool = False, self_noise: float = 0.0,
              self_margin: bool = False, grid: int = 32,
              belief_mode: bool = False, race_pricing: bool = True,
-             mine_trait: bool = False) -> dict:
+             mine_trait: bool = False, dynamic_field: bool = False,
+             contested: bool = False) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -65,7 +66,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               self_noise=self_noise, self_margin=self_margin,
               grid=grid, life_pricing=life, strand_cap=cap,
               belief_mode=belief_mode, race_pricing=race_pricing,
-              mine_trait=mine_trait)
+              mine_trait=mine_trait, dynamic_field=dynamic_field,
+              contested=contested)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
@@ -147,6 +149,13 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         belief_mode=belief_mode, race_pricing=race_pricing,
         mine_trait=mine_trait,
         mean_staleness=(round(float(np.mean(stale)), 2) if stale else None),
+        # v11 (column J): the moving field
+        dynamic_field=dynamic_field, contested=contested,
+        stock_lost=w.stock_lost,
+        arrivals=len(w.arrival_indices),
+        # units MINED from arrival rocks (provenance proxy for delivered: a
+        # unit's origin asteroid is known at pick(), not at drop() — P16b)
+        arrivals_mined=sum(w.mined_from[i] for i in w.arrival_indices),
     )
 
 
@@ -162,11 +171,13 @@ def _cond(r) -> tuple:
             r.get("noise", 0.0), r.get("grid", 32),
             bool(r.get("belief_mode", False)),
             bool(r.get("race_pricing", True)),
-            bool(r.get("mine_trait", False)))
+            bool(r.get("mine_trait", False)),
+            bool(r.get("dynamic_field", False)),
+            bool(r.get("contested", False)))
 
 
 def _cond_label(c) -> str:
-    f, dfd, s7, mg, nz, g, bm, race, mt = c
+    f, dfd, s7, mg, nz, g, bm, race, mt, dyn, cnt = c
     bits = []
     if f:
         bits.append(f"f={f:g}")
@@ -186,10 +197,14 @@ def _cond_label(c) -> str:
         bits.append("norace")
     if mt:
         bits.append("mtrait")
+    if dyn:
+        bits.append("dyn")
+    if cnt:
+        bits.append("cnt")
     return " ".join(bits)
 
 
-_BASE = (0.0, False, 0.0, False, 0.0, 32, False, True, False)
+_BASE = (0.0, False, 0.0, False, 0.0, 32, False, True, False, False, False)
 
 
 def _paired(rows, arm_hi, arm_lo, sigma, field, tau=0.0, cond=_BASE):
@@ -424,6 +439,26 @@ def build_jobs(column: str, seeds: int, ticks: int):
                 jobs.append(dict(arm_name=arm, sigma=0.5, seed=seed,
                                  ticks=ticks, tau=0.15, preset="v5",
                                  belief_mode=True, mine_trait=True))
+    if column == "J":                 # v11: the moving field (P16)
+        moving = dict(belief_mode=True, dynamic_field=True, contested=True)
+        for arm in ("auction", "snhp-hz", "snhp+net", "team"):
+            for seed in range(min(seeds, 16)):
+                jobs.append(dict(arm_name=arm, sigma=0.5, seed=seed,
+                                 ticks=ticks, tau=0.15, preset="v5", **moving))
+        # P16a: oracle control — SAME dynamic+contested world, omniscient Φ
+        # (belief off); the belief-vs-oracle gap is the price of a stale map
+        # in a MOVING field (v10 measured it zero on a static one)
+        for seed in range(min(seeds, 16)):
+            jobs.append(dict(arm_name="snhp+net", sigma=0.5, seed=seed,
+                             ticks=ticks, tau=0.15, preset="v5",
+                             dynamic_field=True, contested=True))
+        # P16c: racing-blind ablation — beliefs on, race pricing off, in the
+        # contested moving field where the race finally has overlap to price
+        for seed in range(min(seeds, 16)):
+            jobs.append(dict(arm_name="snhp+net", sigma=0.5, seed=seed,
+                             ticks=ticks, tau=0.15, preset="v5",
+                             belief_mode=True, dynamic_field=True,
+                             contested=True, race_pricing=False))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -434,7 +469,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))

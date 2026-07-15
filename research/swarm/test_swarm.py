@@ -530,3 +530,132 @@ def test_v8_grid_scaling_preserves_baseline():
     assert w64.total_stock == w32.total_stock
     assert len(w64.robots) == len(w32.robots)
     assert all(0 <= s[0] <= 64 and 0 <= s[1] <= 64 for s in w64.sources)
+
+
+# ── v11: the moving field (column J) ──────────────────────────────────────
+def test_v11_dynamic_default_off_is_flag_absent():
+    """dynamic_field=False must be indistinguishable from a World that never
+    heard of the moving field — the dedicated RNG and the bookkeeping arrays
+    may not perturb a single bit of the default path."""
+    outs = []
+    for kw in ({}, dict(dynamic_field=False, contested=False)):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                  hazard_phi=True, belief_mode=True, **kw)
+        arm = make_arm("snhp", w)
+        for _ in range(400):
+            arm.tick()
+        outs.append((w.delivered, arm.deals,
+                     round(sum(r.battery for r in w.robots), 9),
+                     [r.pos for r in w.robots]))
+    assert outs[0] == outs[1], "moving-field plumbing leaked into the default path"
+
+
+def test_v11_arrival_adds_unknown_rock():
+    """An arrival appends a rock whose belief starts at 0 for BOTH companies —
+    unknown until sensed — with stock and total_stock grown; a robot placed on
+    it senses truth for its OWN company only."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              hazard_phi=True, belief_mode=True, dynamic_field=True)
+    n0 = len(w.sources)
+    total0 = w.total_stock
+    w._field_events = [dict(t=10.0, kind="arrival")]   # isolate ONE arrival
+    w._field_next = 0
+    w.tick = 10
+    w.field_step()
+    i = n0
+    assert len(w.sources) == n0 + 1 and w.arrival_indices == [i]
+    assert w.belief[0][i] == 0 and w.belief[1][i] == 0, "new rock not unknown"
+    assert w.stock[i] > 0 and w.total_stock == total0 + w.stock[i]
+    assert w.last_seen[0][i] == 10 and w.last_seen[1][i] == 10
+    # place a company-0 robot ON the rock, every other robot far away, sense
+    xi, yi = w.sources[i]
+    far = (1 if xi > 5 else 30, 1 if yi > 5 else 30)   # Chebyshev > 3 from i
+    for r in w.robots:
+        r.pos = far
+    w.robots[0].pos = w.sources[i]                      # rid 0 is company 0
+    assert w.robots[0].company == 0
+    w.sense_step()
+    assert w.belief[0][i] == w.stock[i], "company did not sense the new rock"
+    assert w.belief[1][i] == 0, "the other company magically learned it"
+
+
+def test_v11_departure_leaves_a_ghost():
+    """A departure erases the TRUE stock (booked to stock_lost, conservation
+    exact) but leaves the belief untouched — the ghost on the stale map that
+    P16 is about."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              hazard_phi=True, belief_mode=True, dynamic_field=True)
+    w._field_events = [dict(t=10.0, kind="departure")]
+    w._field_next = 0
+    w.tick = 10
+    w.field_step()
+    dep = w.field_log[-1]
+    i = dep["src"]
+    assert dep["kind"] == "departure" and dep["amt"] > 0
+    assert w.stock[i] == 0, "departed rock still has true stock"
+    # belief was pinned to truth at t=0 and never re-sensed → still positive
+    assert w.belief[0][i] > 0 and w.belief[1][i] > 0, "the ghost vanished"
+    assert w.stock_lost == dep["amt"]
+    assert w.material_ok(), "conservation broke — stock_lost not accounted"
+
+
+def test_v11_contested_unmirrored_band():
+    """The contested v5 field is 10 rocks drawn INDEPENDENTLY in the central
+    band y ∈ [10, 22), total pinned, each ≥3 from every facility, and NOT the
+    mirror-symmetric construction (the placebo does not apply here)."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), contested=True)
+    assert len(w.sources) == 10
+    assert sum(w.stock) == 2 * TOTAL_STOCK
+    assert all(10 <= y < 22 for _, y in w.sources), "rock outside central band"
+    srcset = set(w.sources)
+    assert not all((x, W.GRID - y) in srcset for x, y in w.sources), \
+        "contested field is still mirror-symmetric"
+    facs = list(w.refineries) + list(w.chargers)
+    assert all(W.manhattan(s, f) >= 3 for s in w.sources for f in facs), \
+        "a contested rock sits < 3 from a facility"
+
+
+def test_v11_belief_dynamic_evaluated_equals_executed():
+    """Field events fire at tick start, never during the encounter phase, so
+    the in-arm evaluated Φ == executed Φ assert never trips across arrivals and
+    departures. 600 belief+dynamic ticks completing clean IS the test; the
+    field must actually move (non-vacuity) and conservation must survive it."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              hazard_phi=True, belief_mode=True, dynamic_field=True)
+    arm = make_arm("snhp", w)
+    for _ in range(600):
+        arm.tick()
+        assert w.material_ok(), "conservation broke over the moving field"
+    assert arm.deals > 0, "belief+dynamic snhp-hz struck no deals — vacuous"
+    assert len(w.sources) > 10 or w.stock_lost > 0, "no field events fired"
+    for d in w.deal_log:
+        assert d.get("sa_true") is not None, "belief-mode audit not engaged"
+
+
+def test_v11_makespan_counts_arrival_stock():
+    """total_stock grows with an arrival, so the makespan check (delivered >=
+    total_stock) only fires once the newcomer's stock is delivered too. Driven
+    on the conservation ledger directly: a lean fleet is not guaranteed to
+    clear a live field 100%, but the threshold SEMANTIC is exact."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              dynamic_field=True)
+    w._field_events = [dict(t=5.0, kind="arrival")]
+    w._field_next = 0
+    w.tick = 5
+    w.field_step()
+    base = 2 * TOTAL_STOCK
+    arr = w.stock[-1]
+    assert w.arrival_indices == [10] and arr > 0
+    assert w.total_stock == base + arr, "arrival not counted in total_stock"
+    # deliver ONLY the original field: the break condition must NOT hold yet
+    for k in range(10):
+        w.stock[k] = 0
+    w.delivered = base
+    assert w.material_ok(), "conservation broke (arrival still in ground)"
+    assert w.delivered < w.total_stock, "makespan would fire before arrival is cleared"
+    # deliver the arrival too → the break condition now holds, and only now
+    w.stock[-1] = 0
+    w.delivered += arr
+    assert w.material_ok()
+    assert w.delivered >= w.total_stock, "full delivery incl. arrival must trip makespan"
+    assert w.delivered == base + arr

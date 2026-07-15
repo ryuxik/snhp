@@ -868,3 +868,36 @@ oracle-mode (the P16a control) and belief-mode with race_pricing=False
 
 **Build note (standing rule, this session):** implementation goes to an
 OPUS build agent; Fable plans, registers, reviews, and analyzes.
+
+**Implementation notes (logged 2026-07-15, before any 16-seed column-J run;
+predictions unchanged):**
+1. Field events fire at tick START (World.field_step from BaseArm.tick,
+   before drives) rather than inside sense_step: strictly outside the
+   encounter phase either way, but tick-start is the simplest placement that
+   provably keeps evaluated Φ == executed Φ across an arrival/departure.
+2. In belief-mode an arrival's stock is UNMINEABLE until a robot wanders
+   within R_SENSE (belief starts 0; best_claim skips stock≤0 beliefs), so
+   belief-mode fleets can leave arrival stock in the ground that oracle
+   fleets clear — this IS the P16a channel, confirmed in a 2-seed smoke
+   (oracle mined 80 arrival units vs belief-mode 61 at one seed). Correct
+   behavior, not a bug.
+3. arrivals_mined uses per-asteroid pick provenance (w.mined_from), NOT
+   delivered provenance: origin is known at pick(), and carrying per-unit
+   delivery origin would be invasive. Documented proxy for P16b.
+4. The lean v5 fleet does not clear a live field 100% (a couple of units
+   strand), so the makespan test pins the delivered ≥ total_stock THRESHOLD
+   semantics on the conservation ledger directly rather than requiring an
+   emergent full-clearance run; the real-run smoke nonetheless shows makespan
+   firing at the correct tick once an arrival's stock is delivered (seed 0
+   snhp-hz: delivered 259 = 240 base + 19 arrival, makespan 499).
+
+**Post-build note (audit trail):** the build agent's worktree forked before
+this registration was committed, so it reconstructed a conservative
+registration from the build contract; that text is superseded by THIS
+section (written pre-build) — predictions P16a–d and the J2 contingency
+above are the operative ones. Implementation mechanics (dedicated
+RandomState(seed+7919) schedule, 8 arrivals U(200,2300) + 4 departures
+U(400,2300), events fire at tick START, arrival band interior with ≥3
+spacing, contested rock-rock spacing ≥3, arrivals_mined provenance proxy,
+makespan pinned on the conservation ledger) are as the builder documented
+in code and its report.
