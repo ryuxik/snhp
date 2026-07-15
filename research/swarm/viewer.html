@@ -3,66 +3,143 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>swarm replay</title>
+<title>THE DRONE ECONOMY — same robots, different economics</title>
 <style>
   :root{
-    --bg:#0d1117; --panel:#161b22; --line:#21262d; --fg:#c9d1d9; --dim:#8b949e;
-    --amber:#ffb74d; --green:#66bb6a; --cyan:#4dd0e1; --violet:#b388ff;
+    --bg:#0b0a14; --panel:#12111e; --line:#2a2740; --ink:#f2eef7; --dim:#b3aecb;
+    --mut:#8a8794; --amber:#ffcf8a; --green:#8ee08a; --cyan:#7fe0ff;
+    --violet:#c9a6ff; --rose:#e58ab4;
+    --mono: ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
   }
   *{box-sizing:border-box; margin:0}
-  body{background:var(--bg); color:var(--fg);
-       font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; padding:14px}
-  header{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:12px}
-  h1{font-size:15px; font-weight:600; letter-spacing:.5px}
-  h1 span{color:var(--dim); font-weight:400}
-  button,select{background:var(--panel); color:var(--fg); border:1px solid var(--line);
-       border-radius:6px; padding:4px 12px; font:inherit; cursor:pointer}
-  button:hover,select:hover{border-color:var(--dim)}
-  #scrub{flex:1; min-width:160px; -webkit-appearance:none; appearance:none;
-       height:4px; background:var(--line); border-radius:2px; outline:none}
-  #scrub::-webkit-slider-thumb{-webkit-appearance:none; width:12px; height:12px;
-       border-radius:50%; background:var(--cyan); cursor:pointer}
-  #scrub::-moz-range-thumb{width:12px; height:12px; border:none;
-       border-radius:50%; background:var(--cyan); cursor:pointer}
-  #playBtn{color:var(--cyan); border-color:#2a4a52}
-  #tickLabel{color:var(--dim); min-width:110px; text-align:right}
-  #drop{border:1px dashed var(--line); border-radius:10px; padding:26px; text-align:center;
-       color:var(--dim); margin-bottom:12px}
-  #drop.hover{border-color:var(--cyan); color:var(--cyan)}
+  body{background:radial-gradient(120% 100% at 50% 30%, #14121f 0%, #0b0a14 75%);
+       color:var(--ink); font:14px/1.5 var(--mono); padding:16px; min-height:100vh}
+  header{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin:2px 4px 10px}
+  h1{font-size:17px; font-weight:700; letter-spacing:.04em}
+  h1 span{color:var(--dim); font-weight:400; font-size:13px}
+  #badge{margin-left:auto; font-size:10px; letter-spacing:.06em; text-transform:uppercase;
+       color:#f4d38a; background:rgba(240,198,116,.10); border:1px solid rgba(240,198,116,.35);
+       padding:3px 10px; border-radius:999px}
+  /* verdict scoreboard */
+  #score{display:flex; align-items:center; justify-content:center; gap:18px;
+       background:var(--panel); border:1px solid var(--line); border-radius:14px;
+       padding:10px 22px; margin-bottom:12px; flex-wrap:wrap}
+  .sc{display:flex; flex-direction:column; align-items:center; min-width:150px}
+  .sc .name{font-size:11px; letter-spacing:.12em; font-weight:700}
+  .sc .big{font-size:34px; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums}
+  .sc .big small{font-size:13px; color:var(--mut); font-weight:400}
+  .sc .bar{width:170px; height:7px; background:#1d1b2e; border-radius:4px; margin-top:5px; overflow:hidden}
+  .sc .bar i{display:block; height:100%; width:0%; border-radius:4px; transition:width .2s}
+  #verdict{font-size:12px; color:var(--dim); text-align:center; max-width:190px}
+  #verdict b{color:var(--ink); font-size:18px; display:block}
+  /* panels */
   #panels{display:flex; gap:14px; flex-wrap:wrap}
-  .panel{flex:1; min-width:340px; background:var(--panel); border:1px solid var(--line);
-       border-radius:10px; padding:10px}
-  .panel h2{font-size:13px; font-weight:600; margin-bottom:6px}
-  .panel h2 em{color:var(--dim); font-style:normal; font-weight:400}
-  .panel canvas{width:100%; display:block; border-radius:6px; background:#0a0e13}
-  .stats{display:flex; gap:14px; margin-top:6px; color:var(--dim); flex-wrap:wrap}
-  .stats b{color:var(--fg); font-weight:600}
-  kbd{background:var(--line); border-radius:4px; padding:0 5px}
+  .panel{flex:1; min-width:360px; background:var(--panel); border:1px solid var(--line);
+       border-radius:14px; padding:12px; position:relative}
+  .panel h2{font-size:14px; font-weight:800; letter-spacing:.06em;
+       display:flex; align-items:center; gap:8px}
+  .panel h2 .dot{width:10px; height:10px; border-radius:50%; display:inline-block}
+  .panel .sub{color:var(--dim); font-size:12px; margin:2px 0 8px; min-height:2.6em}
+  .panel canvas{width:100%; max-height:70vh; object-fit:contain; display:block; border-radius:10px; background:#0a0912; cursor:crosshair}
+  /* ticker */
+  #ticker{margin-top:12px; background:var(--panel); border:1px solid var(--line);
+       border-radius:10px; padding:7px 14px; color:var(--dim); font-size:13px;
+       white-space:nowrap; overflow:hidden}
+  #ticker b{color:var(--ink)}
+  /* legend */
+  #legend{display:flex; gap:18px; flex-wrap:wrap; margin-top:10px; padding:0 6px;
+       color:var(--dim); font-size:12px; align-items:center}
+  #legend .k{display:flex; align-items:center; gap:6px}
+  #legend .sw{width:13px; height:13px; border-radius:50%; display:inline-block}
+  #legend .ln{width:20px; height:0; border-top:2.5px solid; display:inline-block; border-radius:2px}
+  /* controls */
+  #controls{display:flex; align-items:center; gap:12px; margin-top:12px; flex-wrap:wrap}
+  button,select{background:var(--panel); color:var(--cyan); border:1px solid var(--line);
+       border-radius:8px; padding:6px 16px; font:inherit; font-weight:700; cursor:pointer}
+  button:hover,select:hover{border-color:var(--dim)}
+  #scrub{flex:1; min-width:180px; -webkit-appearance:none; appearance:none; height:5px;
+       background:#1d1b2e; border-radius:3px; outline:none}
+  #scrub::-webkit-slider-thumb{-webkit-appearance:none; width:15px; height:15px;
+       border-radius:50%; background:var(--cyan); cursor:pointer}
+  #scrub::-moz-range-thumb{width:15px; height:15px; border:none; border-radius:50%;
+       background:var(--cyan); cursor:pointer}
+  #tick{color:var(--mut); min-width:120px; text-align:right; font-size:12px}
+  #drop{border:1px dashed var(--line); border-radius:12px; padding:24px; text-align:center;
+       color:var(--mut); margin-bottom:12px}
+  #drop.hover{border-color:var(--cyan); color:var(--cyan)}
+  #nametag{position:fixed; display:none; background:rgba(9,8,16,.94); border:1px solid var(--line);
+       border-radius:8px; padding:7px 10px; font-size:12px; color:var(--ink);
+       pointer-events:none; z-index:10; max-width:240px; line-height:1.45}
+  #nametag .t{color:var(--dim)}
 </style>
 </head>
 <body>
 <header>
-  <h1>asteroid mining replay <span>— negotiating drone fleets: deals vs auctions vs rules</span></h1>
+  <h1>THE DRONE ECONOMY <span>— same asteroids, same robots, different economics</span></h1>
+  <div id="badge">replay of a real committed simulation · reproducible from the repo</div>
+</header>
+
+<div id="score" style="display:none">
+  <div class="sc" id="sc0"><div class="name"></div><div class="big"></div><div class="bar"><i></i></div></div>
+  <div id="verdict"><b>—</b>ore lead</div>
+  <div class="sc" id="sc1"><div class="name"></div><div class="big"></div><div class="bar"><i></i></div></div>
+</div>
+
+<div id="drop">drop 1–2 trace <b>.jsonl</b> files here (same seed = a fair race) — or serve with <b>?trace=…&amp;trace2=…</b></div>
+<div id="panels"></div>
+
+<div id="ticker" style="display:none"><span id="ticker-inner">▶ press play — every deal that happens gets narrated here in plain english</span></div>
+
+<div id="legend" style="display:none">
+  <span class="k"><span class="sw" style="background:linear-gradient(90deg,#e0524d,#e8c93f,#57c957)"></span>drone · color = battery</span>
+  <span class="k"><span class="sw" style="background:#3a3f45; position:relative">
+    <svg width="13" height="13" style="position:absolute;inset:0"><path d="M3 3l7 7M10 3l-7 7" stroke="#aaa" stroke-width="1.6"/></svg></span>adrift (dead battery)</span>
+  <span class="k"><span class="ln" style="border-color:#ffffff"></span>a DEAL (multi-part trade)</span>
+  <span class="k"><span class="ln" style="border-color:var(--cyan)"></span>energy moves</span>
+  <span class="k"><span class="ln" style="border-color:var(--amber)"></span>ore moves</span>
+  <span class="k">▣ ore &nbsp;·&nbsp; ⚡ energy &nbsp;·&nbsp; ↔ traded for</span>
+  <span class="k" id="legend-co"></span>
+</div>
+
+<div id="controls">
   <button id="playBtn">▶ play</button>
   <select id="speed">
     <option value="0.25">¼×</option><option value="1" selected>1×</option>
     <option value="4">4×</option><option value="16">16×</option><option value="64">64×</option>
   </select>
   <input type="range" id="scrub" min="1" max="1" value="1" step="1">
-  <span id="tickLabel">tick 0 / 0</span>
-</header>
-<div id="drop">drop 1–2 trace <b>.jsonl</b> files here (same seed for a fair race)
-  — or serve with <kbd>?trace=results/a.jsonl&amp;trace2=results/b.jsonl</kbd></div>
-<div id="panels"></div>
+  <span id="tick">tick 0 / 0</span>
+</div>
+
+<div id="nametag"></div>
 
 <script>
 "use strict";
-const COLORS = {energy:"#4dd0e1", cargo:"#ffb74d", sector:"#b388ff"};
-const SECTOR = ["#64b5f6", "#f06292"];
-const ARC_FADE = 32;              // ticks an exchange arc stays visible
-let traces = [];                  // [{header, ticks[], byTick{}, maxT, panel}]
-let cur = 1, playing = false;
+const XFER_COLORS = {energy:"#7fe0ff", cargo:"#ffcf8a", sector:"#c9a6ff"};
+const COMPANY = ["#7fb4ff", "#ffb26e"];
+const ARC_FADE = 32;
 
+/* plain-language identities for every arm in the repo */
+const FLEETS = {
+  "null":       ["LONER FLEET", "#8a8794", "no coordination at all — every drone hauls alone"],
+  "rules":      ["CHARITY FLEET", "#8ee08a", "shares battery when a neighbor runs low — the classic swarm rule"],
+  "auction":    ["AUCTION FLEET", "#e58ab4", "cargo goes to the cheapest hauler — one price, nothing else tradeable"],
+  "auction-co": ["WALLED AUCTION", "#e58ab4", "auctions, but never across company lines"],
+  "team":       ["HIVE MIND", "#c9a6ff", "one merged super-fleet, centrally cooperative"],
+  "team-co":    ["TWO HIVES", "#c9a6ff", "cooperative inside each company; strangers ignored"],
+  "twofirm":    ["TWO FIRMS", "#7fe0ff", "cooperative inside; NEGOTIATES at the company border"],
+  "snhp":       ["BARGAINING FLEET", "#7fe0ff", "drones strike multi-part deals: ore ↔ energy ↔ mining claims"],
+  "snhp-hz":    ["BARGAINING FLEET", "#7fe0ff", "multi-part deals, and each drone prices its own risk of dying"],
+  "snhp+net":   ["BARGAINING + SAFETY NET", "#7fe0ff", "deals for everything, plus unconditional rescue of the dying"],
+  "trust-open-hz":  ["TRUSTING FLEET", "#c9a6ff", "believes every reported number — cooperation with no verification"],
+  "trust-gated-hz": ["ATTESTATION-GATED", "#8ee08a", "cooperates only with verified books; everyone else must bargain"],
+};
+function fleet(arm){
+  const base = arm.replace(/-hz$/, "");
+  return FLEETS[arm] || FLEETS[base] || [arm.toUpperCase(), "#7fe0ff", ""];
+}
+
+let traces = [], cur = 1, playing = false, tickerQ = [], tickerAt = 0;
 const $ = id => document.getElementById(id);
 
 function parseTrace(text){
@@ -73,51 +150,82 @@ function parseTrace(text){
     const o = JSON.parse(line);
     if (o.type === "header") header = o;
     else if (o.type === "tick") ticks[o.t] = o;
-    else {                        // xfer | deal — logged one tick before the
-      o.t += 1;                   // tick record that contains their effect
-      (byTick[o.t] = byTick[o.t] || []).push(o);
+    else { o.t += 1; (byTick[o.t] = byTick[o.t] || []).push(o); }
+  }
+  const maxT = ticks.length - 1;
+  // prefix counts so the frame loop never scans full history (perf)
+  const cumX = new Array(maxT + 2).fill(0), cumD = new Array(maxT + 2).fill(0);
+  for (let t = 1; t <= maxT; t++){
+    cumX[t] = cumX[t - 1]; cumD[t] = cumD[t - 1];
+    for (const e of (byTick[t] || [])){
+      if (e.type === "xfer") cumX[t]++; else cumD[t]++;
     }
   }
-  let maxT = ticks.length - 1;
-  return {header, ticks, byTick, maxT};
+  return {header, ticks, byTick, maxT, cumX, cumD};
 }
 
-function dealCaption(d){
-  const parts = [];
-  if (d.type === "deal"){
-    if (d.q) parts.push(Math.abs(d.q) + "▣");
-    if (d.e) parts.push(Math.abs(d.e) + "⚡");
-    let cap = parts.join("⇄");
-    if (d.s) cap += (cap ? " " : "") + "+swap";
-    return cap;
+/* ── plain-language deal text ── */
+function dealWords(e, h){
+  const who = (i) => "#" + i;
+  if (e.type === "deal"){
+    const parts = [];
+    if (e.q) parts.push(`${Math.abs(e.q)} ore`);
+    if (e.e) parts.push(`${Math.abs(e.e)}⚡ energy`);
+    let s = `DEAL ${who(e.a)}↔${who(e.b)}: ` + (parts.length === 2 ? parts.join(" for ") : parts[0] || "");
+    if (e.s) s += (parts.length ? " + " : "") + "swap mining claims";
+    return s;
   }
-  if (d.kind === "energy") return Math.round(d.amt) + "⚡";
-  if (d.kind === "cargo") return d.amt + "▣";
-  return "swap";
+  if (e.kind === "energy") return `${who(e.src)} tops up ${who(e.dst)} (+${Math.round(e.amt)}⚡)`;
+  if (e.kind === "cargo") return `${who(e.src)} hands ${e.amt} ore to ${who(e.dst)}`;
+  return `${who(e.src)} and ${who(e.dst)} swap mining claims`;
+}
+function dealGlyph(e){
+  if (e.type !== "deal")
+    return e.kind === "energy" ? Math.round(e.amt) + "⚡" :
+           e.kind === "cargo" ? e.amt + "▣" : "claims↔";
+  const p = [];
+  if (e.q) p.push(Math.abs(e.q) + "▣");
+  if (e.e) p.push(Math.abs(e.e) + "⚡");
+  let cap = p.join("↔");
+  if (e.s) cap += (cap ? "+" : "") + "claims";
+  return cap;
 }
 
 function buildPanels(){
   const root = $("panels");
   root.innerHTML = "";
   for (const tr of traces){
+    const [name, color, sub] = fleet(tr.header.arm);
     const div = document.createElement("div");
     div.className = "panel";
-    const h = tr.header;
-    div.innerHTML = `<h2>${h.arm} <em>σ=${h.sigma} seed=${h.seed} ·
-      ${h.robots.length} drones</em></h2><canvas></canvas>
-      <div class="stats"><span>ore refined <b class="dv">0</b>/${h.total_stock}</span>
-      <span>adrift <b class="st">0</b></span><span>exchanges <b class="xf">0</b></span>
-      <span>deals <b class="dl">0</b></span></div>`;
+    div.innerHTML = `<h2><span class="dot" style="background:${color}"></span>${name}</h2>
+      <div class="sub">${sub}</div><canvas></canvas>`;
     root.appendChild(div);
-    tr.panel = {canvas: div.querySelector("canvas"),
-                dv: div.querySelector(".dv"), st: div.querySelector(".st"),
-                xf: div.querySelector(".xf"), dl: div.querySelector(".dl")};
+    tr.panel = {canvas: div.querySelector("canvas"), color, name};
+    tr.panel.canvas.addEventListener("mousemove", ev => hover(tr, ev));
+    tr.panel.canvas.addEventListener("mouseleave", () => $("nametag").style.display = "none");
   }
-  const maxT = Math.max(...traces.map(t => t.maxT));
-  $("scrub").max = maxT;
-  cur = 1;
+  $("scrub").max = Math.max(...traces.map(t => t.maxT));
+  cur = 1; tickerQ = []; tickerAt = 0;
+  const two = traces.length === 2;
+  $("score").style.display = two ? "flex" : "none";
+  $("ticker").style.display = $("legend").style.display = "flex";
+  if (traces[0] && traces[0].header.robots.some(r => r.company !== undefined)){
+    $("legend-co").innerHTML =
+      `<span class="sw" style="background:transparent;border:2.5px solid ${COMPANY[0]}"></span>Company A ·
+       <span class="sw" style="background:transparent;border:2.5px solid ${COMPANY[1]}"></span>Company B (ring)`;
+  }
+  if (two){
+    for (const i of [0, 1]){
+      const el = $("sc" + i);
+      el.querySelector(".name").textContent = traces[i].panel.name;
+      el.querySelector(".name").style.color = traces[i].panel.color;
+      el.querySelector(".bar i").style.background = traces[i].panel.color;
+    }
+  }
 }
 
+/* ── field rendering ── */
 function mulberry32(a){
   return function(){
     a |= 0; a = a + 0x6D2B79F5 | 0;
@@ -127,17 +235,17 @@ function mulberry32(a){
   };
 }
 
-function siteLabel(ctx, cell, pos, color, text){
+function label(ctx, cell, pos, color, text, dy = -1.4){
   ctx.fillStyle = color;
-  ctx.font = `${Math.max(9, cell * .8)}px ui-monospace`;
+  ctx.font = `600 ${Math.max(10, cell * .72)}px ui-monospace, Menlo, monospace`;
   ctx.textAlign = "center";
-  ctx.fillText(text, (pos[0] + .5) * cell, (pos[1] - 1.6) * cell);
+  ctx.fillText(text, (pos[0] + .5) * cell, (pos[1] + dy) * cell);
 }
 
-function drawAsteroid(ctx, cell, pos, seed, label, count){
+function drawAsteroid(ctx, cell, pos, seed, count){
   const cx = (pos[0] + .5) * cell, cy = (pos[1] + .5) * cell;
   const rnd = mulberry32(seed), n = 9;
-  const scale = label ? 1.0 : 0.55 + Math.min(count, 30) / 60;  // richness-sized
+  const scale = 0.6 + Math.min(count, 30) / 50;
   ctx.beginPath();
   for (let i = 0; i < n; i++){
     const ang = (i / n) * 2 * Math.PI;
@@ -146,68 +254,52 @@ function drawAsteroid(ctx, cell, pos, seed, label, count){
     i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
   }
   ctx.closePath();
-  ctx.fillStyle = "#4a4038";
-  ctx.fill();
-  ctx.strokeStyle = "#8a7a66";
-  ctx.lineWidth = 1.2;
-  ctx.stroke();
-  for (let i = 0; i < 5; i++){                       // ore glints
-    ctx.fillStyle = count > 0 ? "#ffb74d" : "#4a4038";
+  ctx.fillStyle = "#4a4038"; ctx.fill();
+  ctx.strokeStyle = "#8a7a66"; ctx.lineWidth = 1.4; ctx.stroke();
+  for (let i = 0; i < 5; i++){
+    ctx.fillStyle = count > 0 ? "#ffcf8a" : "#4a4038";
     ctx.beginPath();
-    ctx.arc(cx + (rnd() - .5) * cell * 1.4, cy + (rnd() - .5) * cell * 1.2,
-            1.5, 0, 7);
+    ctx.arc(cx + (rnd() - .5) * cell * 1.2, cy + (rnd() - .5) * cell, 1.6, 0, 7);
     ctx.fill();
   }
-  siteLabel(ctx, cell, pos, "#ffb74d", label ? `⛏ ${label} · ${count}` : `${count}`);
+  label(ctx, cell, pos, "#ffcf8a", count > 0 ? `⛏ ${count} ore` : "mined out");
 }
 
-const COMPANY = ["#64b5f6", "#f0a35e"];   // fleet ownership hues
-
 function drawRefinery(ctx, cell, pos, count, color, tag){
-  const cx = (pos[0] + .5) * cell, cy = (pos[1] + .5) * cell, r = cell * 1.25;
+  const cx = (pos[0] + .5) * cell, cy = (pos[1] + .5) * cell, r = cell * 1.3;
   ctx.beginPath();
   for (let i = 0; i < 6; i++){
     const ang = Math.PI / 6 + (i / 6) * 2 * Math.PI;
-    const px = cx + Math.cos(ang) * r, py = cy + Math.sin(ang) * r;
-    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    i ? ctx.lineTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r)
+      : ctx.moveTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r);
   }
   ctx.closePath();
-  ctx.fillStyle = color + "22";
-  ctx.fill();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1.6;
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(cx, cy, r * .35, 0, 7);
-  ctx.strokeStyle = color;
-  ctx.stroke();
-  siteLabel(ctx, cell, pos, color, `⬢ REFINERY${tag} · ${count}`);
+  ctx.fillStyle = color + "26"; ctx.fill();
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, r * .35, 0, 7); ctx.stroke();
+  label(ctx, cell, pos, color, `⬢ REFINERY${tag}`, -1.8);
+  label(ctx, cell, pos, color, `${count} refined`, 2.6);
 }
 
 function drawDock(ctx, cell, pos, color){
-  color = color || "#4dd0e1";
   const cx = (pos[0] + .5) * cell, cy = (pos[1] + .5) * cell, r = cell * .8;
-  for (let i = 0; i < 8; i++){                        // solar rays
+  for (let i = 0; i < 8; i++){
     const ang = (i / 8) * 2 * Math.PI;
     ctx.beginPath();
     ctx.moveTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r);
     ctx.lineTo(cx + Math.cos(ang) * r * 1.6, cy + Math.sin(ang) * r * 1.6);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
+    ctx.strokeStyle = color; ctx.lineWidth = 1.4; ctx.stroke();
   }
-  ctx.beginPath();
-  ctx.arc(cx, cy, r * .8, 0, 7);
-  ctx.fillStyle = color + "22";
-  ctx.fill();
-  ctx.strokeStyle = color;
-  ctx.stroke();
-  // label goes BELOW the dock — the refinery sits two cells east and its
-  // label owns the line above
-  ctx.fillStyle = color;
-  ctx.font = `${Math.max(9, cell * .8)}px ui-monospace`;
-  ctx.textAlign = "center";
-  ctx.fillText("☀ DOCK", cx, cy + cell * 2.4);
+  ctx.beginPath(); ctx.arc(cx, cy, r * .8, 0, 7);
+  ctx.fillStyle = color + "22"; ctx.fill();
+  ctx.strokeStyle = color; ctx.stroke();
+  label(ctx, cell, pos, color, "☀ charge", 2.4);
+}
+
+function batteryColor(b){
+  const t = Math.max(0, Math.min(1, b / 100));           // red → yellow → green
+  const h = 8 + 112 * t;
+  return `hsl(${h} 72% ${42 + 12 * t}%)`;
 }
 
 function draw(tr, t){
@@ -222,148 +314,136 @@ function draw(tr, t){
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, w);
   const cell = w / (h.grid + 2);
-  ctx.save();
-  ctx.translate(cell, cell);
+  ctx.save(); ctx.translate(cell, cell);
+  tr._cell = cell; tr._rec = rec;
 
-  if (!tr.stars){   // deterministic starfield — atmosphere, NOT a hot spot:
-    const rnd = mulberry32(h.seed * 7919 + 17);      // dim + sparse so the
-    tr.stars = Array.from({length: 90}, () =>        // deals stay the heroes
-      [rnd(), rnd(), 0.3 + rnd() * 0.7, 0.10 + rnd() * 0.18]);
+  if (!tr.stars){
+    const rnd = mulberry32(h.seed * 7919 + 17);
+    tr.stars = Array.from({length: 90}, () => [rnd(), rnd(), .3 + rnd() * .8, .10 + rnd() * .18]);
   }
   for (const [sx, sy, sr, sa] of tr.stars){
-    ctx.globalAlpha = sa;
-    ctx.fillStyle = "#aeb9c8";
-    ctx.beginPath();
-    ctx.arc(sx * h.grid * cell, sy * h.grid * cell, sr, 0, 7);
-    ctx.fill();
+    ctx.globalAlpha = sa; ctx.fillStyle = "#aeb9c8";
+    ctx.beginPath(); ctx.arc(sx * h.grid * cell, sy * h.grid * cell, sr, 0, 7); ctx.fill();
   }
   ctx.globalAlpha = 1;
 
   for (let i = 0; i < h.sources.length; i++)
-    drawAsteroid(ctx, cell, h.sources[i], 101 + i * 37,
-                 h.sources.length > 2 ? "" : "A" + (i + 1), rec.stock[i]);
-  if (h.refineries){                    // v4: one refinery per company
-    for (const rf of h.refineries){
-      const owner = rf.owner;
-      const count = (rec.co && owner !== null) ? rec.co[owner] : rec.delivered;
-      drawRefinery(ctx, cell, rf.pos, count,
-                   owner === null ? "#66bb6a" : COMPANY[owner],
-                   owner === null ? "" : ` C${owner}`);
-    }
-  } else {
-    drawRefinery(ctx, cell, h.sink, rec.delivered, "#66bb6a", "");
+    drawAsteroid(ctx, cell, h.sources[i], 101 + i * 37, rec.stock[i]);
+  const refs = h.refineries || [{pos: h.sink, owner: null}];
+  for (const rf of refs){
+    const own = rf.owner;
+    drawRefinery(ctx, cell, rf.pos,
+                 (rec.co && own !== null) ? rec.co[own] : rec.delivered,
+                 own === null ? "#8ee08a" : COMPANY[own],
+                 own === null ? "" : (own ? " B" : " A"));
   }
   for (const ch of (h.chargers || [{pos: h.charger, owner: null}]))
-    drawDock(ctx, cell, ch.pos, ch.owner === null ? "#4dd0e1" : COMPANY[ch.owner]);
+    drawDock(ctx, cell, ch.pos, ch.owner === null ? "#7fe0ff" : COMPANY[ch.owner]);
 
-  // next-tick positions for smooth interpolation at low speed
   const nxt = ticks[Math.min(T + 1, maxT)];
   const frac = (parseFloat($("speed").value) <= 1) ? t - Math.floor(t) : 0;
-
+  tr._pts = [];
   for (let i = 0; i < rec.r.length; i++){
     const [x0, y0, b, load, dead] = rec.r[i];
     const [x1, y1] = nxt ? nxt.r[i] : [x0, y0];
     const x = (x0 + (x1 - x0) * frac + .5) * cell;
     const y = (y0 + (y1 - y0) * frac + .5) * cell;
-    const rad = cell * (0.28 + 0.09 * h.robots[i].cap);
-    ctx.beginPath();
-    ctx.arc(x, y, rad, 0, 7);
-    ctx.fillStyle = dead ? "#3a3f45" : `hsl(${120 * b / 100} 70% 45%)`;
+    const rad = cell * (0.34 + 0.08 * h.robots[i].cap);
+    tr._pts.push([x, y, rad, i]);
+    ctx.beginPath(); ctx.arc(x, y, rad, 0, 7);
+    ctx.fillStyle = dead ? "#33313d" : batteryColor(b);
     ctx.fill();
-    ctx.lineWidth = 1.6;
-    ctx.strokeStyle = dead ? "#555" :
-      (h.robots[i].company !== undefined
-        ? COMPANY[h.robots[i].company]          // v4: outline = ownership
-        : SECTOR[h.robots[i].sector]);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = dead ? "#4a4754" :
+      (h.robots[i].company !== undefined ? COMPANY[h.robots[i].company] : "#8a8794");
     ctx.stroke();
     if (dead){
-      ctx.strokeStyle = "#8b949e";
+      ctx.strokeStyle = "#9a94a8"; ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.moveTo(x - rad * .6, y - rad * .6); ctx.lineTo(x + rad * .6, y + rad * .6);
-      ctx.moveTo(x + rad * .6, y - rad * .6); ctx.lineTo(x - rad * .6, y + rad * .6);
+      ctx.moveTo(x - rad * .55, y - rad * .55); ctx.lineTo(x + rad * .55, y + rad * .55);
+      ctx.moveTo(x + rad * .55, y - rad * .55); ctx.lineTo(x - rad * .55, y + rad * .55);
       ctx.stroke();
     }
-    ctx.fillStyle = "#fff";                          // load pips
+    ctx.fillStyle = "#fff";
     for (let p = 0; p < load; p++){
-      ctx.beginPath();
-      ctx.arc(x - (load - 1) * 2 + p * 4, y, 1.4, 0, 7);
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(x - (load - 1) * 2.2 + p * 4.4, y, 1.6, 0, 7); ctx.fill();
     }
   }
 
-  // exchange arcs — THE HERO LAYER. Deals glow; captions are collected and
-  // drawn last with backing pills + collision nudging so hotspot pile-ups
-  // stay legible (attention-loop pass 1: captions were garbling exactly
-  // where the story happens).
-  let nx = 0, nd = 0;
+  // exchange arcs + collected captions (windowed scan — never full history)
+  const nx = tr.cumX[T], nd = tr.cumD[T];
   const caps = [];
-  for (let tt = 1; tt <= T; tt++){
+  for (let tt = Math.max(1, T - ARC_FADE); tt <= T; tt++){
     for (const e of (byTick[tt] || [])){
-      if (e.type === "xfer") nx++; else nd++;
       const age = T - tt;
-      if (age > ARC_FADE) continue;
-      const a = rec.r[e.src !== undefined ? e.src : e.a];
-      const b2 = rec.r[e.dst !== undefined ? e.dst : e.b];
-      if (!a || !b2) continue;
+      const A = rec.r[e.src !== undefined ? e.src : e.a];
+      const B = rec.r[e.dst !== undefined ? e.dst : e.b];
+      if (!A || !B) continue;
       const alpha = 1 - age / ARC_FADE;
-      const [ax, ay] = [(a[0] + .5) * cell, (a[1] + .5) * cell];
-      const [bx, by] = [(b2[0] + .5) * cell, (b2[1] + .5) * cell];
+      const [ax, ay] = [(A[0] + .5) * cell, (A[1] + .5) * cell];
+      const [bx, by] = [(B[0] + .5) * cell, (B[1] + .5) * cell];
       const mx = (ax + bx) / 2, my = (ay + by) / 2 - cell * 2.2;
       const deal = e.type === "deal";
-      const color = deal ? "#ffffff" : COLORS[e.kind];
+      const color = deal ? "#ffffff" : XFER_COLORS[e.kind];
       ctx.globalAlpha = alpha * .95;
       ctx.strokeStyle = color;
-      ctx.lineWidth = deal ? 3 : 1.6;
-      ctx.shadowColor = color;
-      ctx.shadowBlur = deal ? 10 : 4;
+      ctx.lineWidth = deal ? 3 : 1.8;
+      ctx.shadowColor = color; ctx.shadowBlur = deal ? 12 : 5;
       ctx.setLineDash(e.kind === "sector" ? [4, 3] : []);
-      ctx.beginPath();
-      ctx.moveTo(ax, ay);
-      ctx.quadraticCurveTo(mx, my, bx, by);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.shadowBlur = 0;
-      ctx.globalAlpha = 1;
-      caps.push({x: mx, y: my + cell, text: dealCaption(e),
-                 color, alpha, deal});
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.quadraticCurveTo(mx, my, bx, by); ctx.stroke();
+      ctx.setLineDash([]); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+      caps.push({x: mx, y: my + cell, text: dealGlyph(e), color, alpha, deal});
+      if (age === 0 && playing) tickerQ.push(dealWords(e, h));
     }
   }
   caps.sort((p, q) => (q.deal - p.deal) || (q.alpha - p.alpha));
   const placed = [];
-  for (const c of caps.slice(0, 8)){          // clutter cap: 8 captions max
+  for (const c of caps.slice(0, 8)){
     let y = c.y;
-    while (placed.some(p => Math.abs(p.x - c.x) < 90 && Math.abs(p.y - y) < 16))
-      y += 16;
+    while (placed.some(p => Math.abs(p.x - c.x) < 95 && Math.abs(p.y - y) < 17)) y += 17;
     placed.push({x: c.x, y});
-    const fs = Math.max(c.deal ? 11 : 9, cell * (c.deal ? .9 : .7));
-    ctx.font = `${c.deal ? "600 " : ""}${fs}px ui-monospace`;
+    const fs = Math.max(c.deal ? 12 : 10, cell * (c.deal ? .85 : .68));
+    ctx.font = `${c.deal ? "700 " : ""}${fs}px ui-monospace, Menlo, monospace`;
     ctx.textAlign = "center";
     const tw = ctx.measureText(c.text).width;
     ctx.globalAlpha = Math.min(1, c.alpha * 1.3);
-    ctx.fillStyle = "#0a0e13e6";                              // backing pill
+    ctx.fillStyle = "#0a0912ee";
     ctx.fillRect(c.x - tw / 2 - 5, y - fs, tw + 10, fs + 6);
     ctx.fillStyle = c.color;
     ctx.fillText(c.text, c.x, y);
     ctx.globalAlpha = 1;
   }
-
-  // the race number — big, in-canvas, top-left (attention-loop pass 1: the
-  // score was the coldest band on the page; it IS the shareable number)
-  ctx.font = `700 ${cell * 1.7}px ui-monospace`;
-  ctx.fillStyle = "#ffb74d";
-  ctx.textAlign = "left";
-  ctx.fillText(String(rec.delivered), cell * .25, cell * 1.7);
-  ctx.font = `${cell * .65}px ui-monospace`;
-  ctx.fillStyle = "#8b949e";
-  ctx.fillText(`/ ${h.total_stock} ore`, cell * .3, cell * 2.5);
   ctx.restore();
-
-  panel.dv.textContent = rec.delivered;
-  panel.st.textContent = rec.r.filter(r => r[4]).length;
-  panel.xf.textContent = nx;
-  panel.dl.textContent = nd;
+  tr._delivered = rec.delivered;
+  tr._dead = rec.r.filter(r => r[4]).length;
+  tr._deals = nd; tr._xfers = nx;
 }
 
+/* hover nametag */
+function hover(tr, ev){
+  if (!tr._pts) return;
+  const rect = tr.panel.canvas.getBoundingClientRect();
+  const mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+  let best = null, bd = 1e9;
+  for (const [x, y, rad, i] of tr._pts){
+    const d = Math.hypot(mx - x, my - y);
+    if (d < Math.max(16, rad * 2) && d < bd){ bd = d; best = i; }
+  }
+  const tag = $("nametag");
+  if (best === null){ tag.style.display = "none"; return; }
+  const h = tr.header, r = tr._rec.r[best], meta = h.robots[best];
+  const co = meta.company !== undefined ? (meta.company ? "Company B" : "Company A") : "";
+  tag.innerHTML = `<b>Drone #${best}</b> ${co ? "· " + co : ""}<br>
+    <span class="t">battery</span> ${Math.round(r[2])}/100 ·
+    <span class="t">hauling</span> ${r[3]} ore<br>
+    ${r[4] ? "<b style='color:#e58ab4'>ADRIFT — needs a rescue</b>"
+           : `<span class="t">capacity ${meta.cap} · motor ×${meta.eff}</span>`}`;
+  tag.style.display = "block";
+  tag.style.left = (ev.clientX + 14) + "px";
+  tag.style.top = (ev.clientY + 10) + "px";
+}
+
+/* frame loop + scoreboard + ticker */
 function frame(){
   if (playing){
     cur += parseFloat($("speed").value);
@@ -372,8 +452,26 @@ function frame(){
     $("scrub").value = Math.floor(cur);
   }
   for (const tr of traces) draw(tr, cur);
-  $("tickLabel").textContent =
-    `tick ${Math.floor(cur)} / ${Math.max(1, ...traces.map(t => t.maxT))}`;
+  $("tick").textContent = `tick ${Math.floor(cur)} / ${Math.max(1, ...traces.map(t => t.maxT))}`;
+  if (traces.length === 2){
+    const total = traces[0].header.total_stock;
+    for (const i of [0, 1]){
+      const el = $("sc" + i), d = traces[i]._delivered || 0;
+      el.querySelector(".big").innerHTML =
+        `${d}<small> /${total} ore · ${traces[i]._dead || 0} adrift</small>`;
+      el.querySelector(".bar i").style.width = (100 * d / total) + "%";
+    }
+    const lead = (traces[0]._delivered || 0) - (traces[1]._delivered || 0);
+    const ahead = lead === 0 ? null : (lead > 0 ? 0 : 1);
+    $("verdict").innerHTML = ahead === null ? "<b>tied</b>" :
+      `<b style="color:${traces[ahead].panel.color}">+${Math.abs(lead)}</b>
+       ${traces[ahead].panel.name.split(" ")[0]} ahead`;
+  }
+  if (tickerQ.length && performance.now() - tickerAt > 1400){
+    tickerAt = performance.now();
+    if (tickerQ.length > 6) tickerQ = tickerQ.slice(-6);
+    $("ticker-inner").innerHTML = "<b>" + tickerQ.shift() + "</b>";
+  }
   requestAnimationFrame(frame);
 }
 
@@ -394,23 +492,22 @@ const drop = $("drop");
   e.preventDefault(); drop.classList.add("hover"); }));
 drop.addEventListener("dragleave", () => drop.classList.remove("hover"));
 drop.addEventListener("drop", async e => {
-  e.preventDefault();
-  drop.classList.remove("hover");
-  const files = [...e.dataTransfer.files].slice(0, 2);
-  traces = await Promise.all(files.map(async f => parseTrace(await f.text())));
+  e.preventDefault(); drop.classList.remove("hover");
+  traces = await Promise.all([...e.dataTransfer.files].slice(0, 2)
+    .map(async f => parseTrace(await f.text())));
   buildPanels();
 });
 
 (async function init(){
   const p = new URLSearchParams(location.search);
-  const urls = [p.get("trace"), p.get("trace2")].filter(Boolean);
+  let urls = [p.get("trace"), p.get("trace2")].filter(Boolean);
   if (urls.length){
     try {
-      traces = await Promise.all(urls.map(async u =>
-        parseTrace(await (await fetch(u)).text())));
+      traces = await Promise.all(urls.map(async u => parseTrace(await (await fetch(u)).text())));
       buildPanels();
-      const t0 = parseInt(p.get("t") || "0", 10);   // deep-link a frame
+      const t0 = parseInt(p.get("t") || "0", 10);
       if (t0 > 0){ cur = t0; $("scrub").value = t0; }
+      if (p.get("play") !== "0" && !t0){ $("speed").value = "4"; $("playBtn").click(); }
       drop.style.display = "none";
     } catch (err){
       drop.textContent = `couldn't fetch trace (${err.message}) — drop files instead`;
