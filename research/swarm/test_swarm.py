@@ -659,3 +659,176 @@ def test_v11_makespan_counts_arrival_stock():
     assert w.material_ok()
     assert w.delivered >= w.total_stock, "full delivery incl. arrival must trip makespan"
     assert w.delivered == base + arr
+
+
+# ── v12: pricing the unknown (column K) ────────────────────────────────────
+def test_v12_default_off_is_flag_absent():
+    """scouting / map_trading / prospect_claims all default off ⇒ a v11 world is
+    bit-identical to one that never heard of column K (the accessors, the extra
+    arrays and the widened contract space may not perturb a single bit)."""
+    outs = []
+    for kw in ({}, dict(scouting=False, map_trading=False, prospect_claims=False)):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                  hazard_phi=True, belief_mode=True, dynamic_field=True,
+                  contested=True, **kw)
+        arm = make_arm("snhp", w)
+        for _ in range(400):
+            arm.tick()
+        outs.append((w.delivered, arm.deals,
+                     round(sum(r.battery for r in w.robots), 9),
+                     [r.pos for r in w.robots]))
+    assert outs[0] == outs[1], "column-K plumbing leaked into the default path"
+
+
+def test_v12_scout_targets_stalest_respects_max_and_battery():
+    """K0: scout_target sends a robot to its company's stalest map point, caps
+    at SCOUTS_MAX per company (deterministic by rid), and refuses a robot that
+    lacks the battery for the round trip. Trigger A (believed-empty field) also
+    fires without the staleness threshold."""
+    from swarm.arms import scout_target, SCOUTS_MAX
+    w = World(sigma=0.5, seed=0, preset="v5", belief_mode=True, scouting=True)
+    n = len(w.sources)
+    w.tick = 300
+    for co in (0, 1):
+        w.last_seen[co] = [300] * n           # every company-1 point is fresh
+    idx = 3
+    w.last_seen[0][idx] = 0                    # company-0's one stale point
+    target = w.sources[idx]
+    near = (max(1, target[0] - 1), max(1, target[1] - 2))   # manhattan ≈ 3
+    for r in w.robots:
+        if r.company == 0:
+            r.pos, r.load, r.battery = near, 0, 90.0
+    w.robots[5].battery = 2.0                  # cannot afford the round trip
+    assert scout_target(w.robots[0], w) == target
+    assert scout_target(w.robots[1], w) == target   # rid 0,1 = the two scouts
+    assert scout_target(w.robots[2], w) is None, "SCOUTS_MAX not enforced"
+    assert scout_target(w.robots[5], w) is None, "low battery scouted anyway"
+    assert SCOUTS_MAX == 2
+    # a company-1 robot has no stale point (staleness 0, field not empty) → None
+    assert scout_target(w.robots[12], w) is None
+    # Trigger A: a believed-EMPTY field scouts even with fresh timestamps
+    w.belief[0] = [0] * n
+    w.last_seen[0] = [300] * n
+    tA = scout_target(w.robots[0], w)
+    assert tA in [w.sources[i] for i in range(n)], "empty-field robot did not scout"
+
+
+def test_v12_map_sync_evaluation_equals_execution():
+    """K1 (the hard one): 600 ticks of belief+dynamic+contested map trading with
+    the in-arm evaluated Φ == executed Φ assert live. If any synced view diverged
+    from its permanent overlay by >1e-9 the assert fires; completing clean IS the
+    test. Conservation must also survive, and at least one map deal must land."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              hazard_phi=True, belief_mode=True, dynamic_field=True,
+              contested=True, map_trading=True)
+    arm = make_arm("snhp", w)
+    for _ in range(600):
+        arm.tick()
+        assert w.material_ok(), "conservation broke under map trading"
+    assert arm.deals > 0, "map-trading snhp struck no deals — vacuous"
+    assert all(d.get("m") in (-1, 0, 1) for d in w.deal_log)
+    assert any(d["m"] != 0 for d in w.deal_log), "no map deal ever executed"
+
+
+def test_v12_map_sync_transfers_fresher_entries():
+    """K1: apply_map_sync copies a giver company's FRESHER (belief, last_seen,
+    rival_rate) onto the receiver — and only those; an entry the receiver knew
+    more recently is left alone."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              belief_mode=True, map_trading=True)
+    recv = next(r for r in w.robots if r.company == 0)
+    give = next(r for r in w.robots if r.company == 1)
+    w.tick = 500
+    i = 0                                   # giver saw i depleted, recently
+    w.stock[i] = 3
+    w.belief[1][i], w.last_seen[1][i], w.rival_rate[1][i] = 3, 480, 0.4
+    w.belief[0][i], w.last_seen[0][i], w.rival_rate[0][i] = 20, 50, 0.0
+    j = 1                                   # receiver is fresher here
+    w.belief[1][j], w.last_seen[1][j] = 5, 100
+    w.belief[0][j], w.last_seen[0][j] = 9, 400
+    b0j = w.belief[0][j]
+    copied = w.apply_map_sync(recv, give)
+    assert copied >= 1
+    assert w.belief[0][i] == 3, "receiver did not learn the depletion"
+    assert w.last_seen[0][i] == 480 and w.rival_rate[0][i] == 0.4, \
+        "last_seen / rival_rate not carried with the belief"
+    assert w.belief[0][j] == b0j, "overwrote an entry the receiver knew fresher"
+
+
+def test_v12_bad_news_sync_is_vetoed_by_ir():
+    """K1 / P17c: a map sync whose Φ-delta is NEGATIVE for the receiver (fresh
+    truth deflates a stale-optimistic belief) is present in the menu but never
+    executed — IR requires strictly positive surplus on BOTH sides."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              belief_mode=True, map_trading=True)
+    w._live_sense = False                      # encounter-phase semantics
+    a = next(r for r in w.robots if r.company == 1)
+    b = next(r for r in w.robots if r.company == 0)
+    arm = make_arm("snhp", w)
+    w.tick = 500
+    i = 0
+    for r in (a, b):                           # no cargo/energy/sector channel:
+        r.load, r.load_prov, r.battery = 0, [0, 0], W.BATTERY_MAX
+        r.sector = i                           # shared sector ⇒ swap is a no-op
+    a.pos, b.pos = (16, 16), (18, 18)          # adjacent, far from every rock
+    w.stock[i] = 2
+    w.belief[1][i], w.last_seen[1][i] = 2, 490    # giver: fresh + poor
+    w.belief[0][i], w.last_seen[0][i] = 24, 20    # receiver: stale + rich
+    batna_a, batna_b = phi(a, w), phi(b, w)
+    ua, ub = arm._evaluate(a, b)
+    map_rows = [k for k in range(len(arm.space)) if arm._row(k)[3] == 1]
+    assert any(ub[k] < batna_b - 1e-9 for k in map_rows), \
+        "no bad-news sync in the menu — test is vacuous"
+    sol = arm._pick(ua, ub, batna_a, batna_b, a, b)
+    assert sol is None or arm._row(sol)[3] == 0, \
+        "IR failed to veto a Φ-lowering map sync (P17c)"
+
+
+def test_v12_claim_window_gates_nonholder_pick():
+    """K2: an ARRIVAL rock is minable ONLY by its quadrant's claim-holder until
+    arrival_t + CLAIM_WINDOW. The non-holder sees 0 (belief gate) and mines 0
+    (physics gate); the holder mines; after the window the non-holder can mine."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              belief_mode=True, dynamic_field=True, prospect_claims=True)
+    w._field_events = [dict(t=10.0, kind="arrival")]
+    w._field_next = 0
+    w.tick = 10
+    w.field_step()
+    i = w.arrival_indices[-1]
+    holder = w.claim_owner[w.quadrant(w.sources[i])]
+    hb = next(r for r in w.robots if r.company == holder)
+    nb = next(r for r in w.robots if r.company == 1 - holder)
+    stock0 = w.stock[i]
+    assert stock0 > 0
+    for r in (hb, nb):
+        r.pos, r.sector, r.load, r.cap, r.battery = w.sources[i], i, 0, 5, 90.0
+    assert w.stock_belief(nb, i) == 0, "non-holder can see a claimed arrival"
+    assert w.stock_belief(hb, i) == w.stock[i], "holder blind to its own claim"
+    assert w.pick(nb) == 0 and w.stock[i] == stock0, "non-holder mined a claim"
+    got = w.pick(hb)
+    assert got > 0 and w.stock[i] == stock0 - got, "holder could not mine"
+    w.tick = 10 + W.CLAIM_WINDOW               # window expires
+    rem = w.stock[i]
+    got2 = w.pick(nb)
+    assert got2 > 0 and w.stock[i] == rem - got2, "claim never expired"
+
+
+def test_v12_claims_fixed_no_swap_issue():
+    """K2 FALLBACK (registered, flagged): claims are FIXED — not a tradeable
+    bundle issue — so the sector axis stays {0,1} (no s=2 claim swap) and the
+    claim map is invariant across a run. Patrol differentiation (P17d) is the
+    scientific payload; the belief gate above is its mechanism. Doubles as the
+    full K0+K1+K2 integration run (eval==exec assert live for 400 ticks)."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              hazard_phi=True, belief_mode=True, dynamic_field=True,
+              contested=True, prospect_claims=True, map_trading=True,
+              scouting=True)
+    arm = make_arm("snhp+net", w)
+    assert set(int(x) for x in arm.space[:, 2]) == {0, 1}, \
+        "sector issue gained a claim-swap option — fallback not honored"
+    before = list(w.claim_owner)
+    for _ in range(400):
+        arm.tick()
+        assert w.material_ok()
+    assert w.claim_owner == before, "claims changed — they must be fixed"
+    assert all(d["s"] in (0, 1) for d in w.deal_log), "a deal carried s=2"

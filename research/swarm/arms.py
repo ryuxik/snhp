@@ -50,9 +50,58 @@ CARGO_OPTS = [-4, -2, -1, 0, 1, 2, 4]
 ENERGY_OPTS = [-8.0, -4.0, -2.0, 0.0, 2.0, 4.0, 8.0]
 SECTOR_OPTS = [0, 1]
 MAX_CARGO = max(CARGO_OPTS)
+# v12 K1: map-sync as a 4th bundle issue. Directional — +1 = a→b, -1 = b→a,
+# 0 = no sync. Cross-company only (same-company rows masked in _evaluate). NOTE:
+# this is 3 options, so the contract space grows ×3 (7×7×2×3 = 294 rows) under
+# map_trading, not the ×2/196 the build note first sketched before revising the
+# design to a signed direction — flagged in the report.
+MAP_OPTS = [-1, 0, 1]
+# v12 K0: scouting thresholds (movement policy; consume no RNG).
+SCOUT_STALE = 250               # a company map point staler than this is worth
+                                # a scouting trip
+SCOUTS_MAX = 2                  # at most this many robots per company scout at
+                                # once (deterministic tie-break by rid)
 
 
 # ── shared movement policy ──────────────────────────────────────────────
+def scout_target(r, w):
+    """v12 K0: the asteroid position robot r should scout THIS tick, or None.
+    Gated on scouting+belief_mode. A robot scouts (heads to its company's
+    stalest map point — the one it saw least recently) when it has no load,
+    enough battery for the round trip (× 1.5 safety), and EITHER its company's
+    believed field is entirely empty (Trigger A — replaces the terminal idle
+    charge) OR that stalest point is staler than SCOUT_STALE (Trigger B — a
+    diversion from mining to refresh the map). At most SCOUTS_MAX robots per
+    company scout at once; the cap is applied to BOTH triggers (a believed-empty
+    field must not stampede the whole fleet to one rock), broken deterministically
+    by rid. Consumes NO RNG. Reads raw company belief (no live-sense side effect).
+    Unknown arrivals are discovered en route via R_SENSE (world sensing)."""
+    if not (w.scouting and w.belief_mode) or r.stranded or r.load > 0:
+        return None
+    co = r.company
+    ls = w.last_seen[co]
+    n = len(w.sources)
+    idx = min(range(n), key=lambda i: (ls[i], i))   # stalest (tie-break lo idx)
+    staleness = w.tick - ls[idx]
+    field_empty = all(w.belief[co][i] <= 0 for i in range(n))
+    if not (field_empty or staleness > SCOUT_STALE):
+        return None
+    pos = w.sources[idx]
+
+    def eligible(x) -> bool:
+        if x.company != co or x.stranded or x.load > 0:
+            return False
+        round_trip = 2 * W.manhattan(x.pos, pos) * x.eff
+        return x.bat() > 1.5 * round_trip
+
+    if not eligible(r):
+        return None
+    scouts = sorted(x.rid for x in w.robots if eligible(x))   # rid tie-break
+    if r.rid not in scouts[:SCOUTS_MAX]:
+        return None
+    return pos
+
+
 def intent(r, w):
     if r.stranded:
         return None
@@ -72,8 +121,13 @@ def intent(r, w):
         cost = W.manhattan(r.pos, dest) * r.eff * (1 + W.LOADED_MULT)
         return dest if r.bat() > cost else charger
     r.target_ref = None
-    if r.bat() < safe_return_threshold(r, w):
+    if r.bat() < safe_return_threshold(r, w):   # v12: charge precedence stays
         return charger
+    if w.scouting:                              # v12 K0: scout a stale/empty map
+        st = scout_target(r, w)                 # (both triggers; gated + no RNG)
+        if st is not None:
+            w.scout_ticks += 1
+            return st
     if w.stock_belief(r, r.sector) <= 0:        # claim BELIEVED depleted →
         r.sector = w.best_claim(r)              # re-claim (v10a: a robot ON
     if w.stock_belief(r, r.sector) > 0:         # an empty rock senses truth
@@ -277,17 +331,34 @@ class SnhpArm(BaseArm):
         opts = [CARGO_OPTS if "cargo" in issues else [0],
                 ENERGY_OPTS if "energy" in issues else [0.0],
                 SECTOR_OPTS if "sector" in issues else [0]]
+        # v12 K1: the map axis is appended ONLY under map_trading, so a world
+        # without the flag builds the EXACT pre-v12 space (bit-identical). The
+        # map dimension is priced/masked cross-company in _evaluate.
+        self.has_map = bool(getattr(w, "map_trading", False))
+        if self.has_map:
+            opts.append(MAP_OPTS)
         self.space = generate_contract_space(opts)
+
+    def _row(self, k):
+        """(q, e, s, m) for contract-space row k; m=0 unless the map issue is on."""
+        row = self.space[k]
+        m = int(row[3]) if self.has_map else 0
+        return int(row[0]), float(row[1]), int(row[2]), m
 
     def _evaluate(self, a, b):
         w = self.w
         n = len(self.space)
         ua = np.full(n, -np.inf)
         ub = np.full(n, -np.inf)
+        same_co = a.company == b.company
         for k in range(n):
-            q, e, s = int(self.space[k][0]), float(self.space[k][1]), int(self.space[k][2])
-            if q == 0 and e == 0 and s == 0:
+            q, e, s, m = self._row(k)
+            if q == 0 and e == 0 and s == 0 and m == 0:
                 ua[k], ub[k] = phi(a, w), phi(b, w)
+                continue
+            # v12 K1: a map sync is meaningless within a company (identical
+            # map) — mask (leave -inf). Cross-company syncs price below.
+            if m != 0 and same_co:
                 continue
             if not _feasible(a, b, q, e):
                 continue
@@ -295,7 +366,18 @@ class SnhpArm(BaseArm):
             ra.load_prov = list(a.load_prov)     # copies must not share buckets
             rb.load_prov = list(b.load_prov)
             apply_bundle(w, ra, rb, q, e, s, log=False)
-            ua[k], ub[k] = phi(ra, w), phi(rb, w)
+            if m == 0:
+                ua[k], ub[k] = phi(ra, w), phi(rb, w)
+            elif m == 1:
+                # a sells its fresher map to b: a's Φ is untouched, b's Φ is
+                # scored under a temporary overlay that restores exactly.
+                ua[k] = phi(ra, w)
+                with w.synced_phi_view(rb, ra):
+                    ub[k] = phi(rb, w)
+            else:                                # m == -1: b sells to a
+                ub[k] = phi(rb, w)
+                with w.synced_phi_view(ra, rb):
+                    ua[k] = phi(ra, w)
         return ua, ub
 
     def _pick(self, ua, ub, batna_a, batna_b, a, b):
@@ -389,7 +471,7 @@ class SnhpArm(BaseArm):
         invisible to the poisoning audit). ua/ub must be the RAW evaluated
         utilities: a defense-masked frontier inflates capture."""
         w = self.w
-        q, e, s = int(self.space[sol][0]), float(self.space[sol][1]), int(self.space[sol][2])
+        q, e, s, m = self._row(sol)
         distress = (a.stranded or b.stranded
                     or stranding_hazard_true(a, w) > 0.5
                     or stranding_hazard_true(b, w) > 0.5)
@@ -403,6 +485,14 @@ class SnhpArm(BaseArm):
         ta0 = truth(a, w) if audit else None
         tb0 = truth(b, w) if audit else None
         apply_bundle(w, a, b, q, e, s, log=True)
+        # v12 K1: execute the map sync PERMANENTLY (same overlay synced_phi_view
+        # priced). Kept out of apply_bundle because that runs on robot COPIES in
+        # evaluation, whereas a sync mutates shared COMPANY state — so evaluation
+        # must use the restoring view and only execution writes through.
+        if m == 1:
+            w.apply_map_sync(b, a)               # a → b
+        elif m == -1:
+            w.apply_map_sync(a, b)               # b → a
         assert abs(phi(a, w) - ua[sol]) < 1e-9 and abs(phi(b, w) - ub[sol]) < 1e-9, \
             "executed state diverged from evaluated bundle"
 
@@ -412,7 +502,7 @@ class SnhpArm(BaseArm):
         joint_best = float(surplus[feasible].max())
         achieved = float(surplus[sol])
         w.deal_log.append(dict(
-            tick=w.tick, a=a.rid, b=b.rid, q=q, e=e, s=s,
+            tick=w.tick, a=a.rid, b=b.rid, q=q, e=e, s=s, m=m,
             a_co=a.company, b_co=b.company,
             a_liar=int(a.liar), b_liar=int(b.liar),
             border=int(a.company != b.company), distress=int(distress),
