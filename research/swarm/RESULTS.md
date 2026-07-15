@@ -438,9 +438,15 @@ MRS/AAMAS lineage — per both reviews.
 Founder's premise ("companies don't have perfect info about the field;
 everyone works on estimates") built as company-level beliefs with
 proximity sensing + a rival-rate racing discount (SPEC P15). Verdict:
-**every v8 headline survives imperfect information unchanged** (oracle vs
-belief: +0.2 delivered n.s.; no ordering inverts) — the strongest
-robustness statement the benchmark can make. Mechanism confirmed on the
+**every v8 headline survives imperfect information unchanged IN A STATIC
+FIELD** (oracle vs belief: +0.2 delivered n.s.; no ordering inverts).
+Founder's post-hoc scoping, correct and adopted: the field never changes,
+grows, shrinks, or gets meaningfully mined by competitors on this mirrored
+map, so belief error is one-sided (optimistic only), bounded (a wasted
+trip), self-correcting on contact, and barely adversarial — wrong beliefs
+were structurally unpunishable. The robustness claim is scoped to static
+fields; v11 (column J, the moving field) is the fair test of information
+value. Mechanism confirmed on the
 way: **the swarm is its own sensor network** — trading fleets hold ~3×
 fresher maps than the auction (staleness 165 vs 525 ticks) because deals
 move robots. And the v7 law generalizes: stale maps, like bad gauges,

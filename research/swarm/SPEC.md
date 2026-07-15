@@ -807,3 +807,64 @@ load-bearing — and that is the most valuable possible answer.**
   price. The racing layer stays in the code, off by default, honest.
 - v10c: inconclusive by design flaw (mine-rate draw degenerate at σ=0.5,
   flagged pre-run); re-registration at σ=1.0 required before any claim.
+
+---
+
+## v11 pre-registration: the moving field (column J) — information value under non-stationarity
+
+*Registered 2026-07-15, BEFORE implementation. Founder's critique of the
+P15 verdict, verbatim: "thats because the asteroid field did not change
+over time or get bigger or smaller or mined by competitors so wrong
+belief was not penalized." Adopted: a static, once-surveyed, mirrored
+field makes belief error one-sided, bounded, self-correcting, and
+non-adversarial. v11 removes all four crutches.*
+
+**Change 1 — arrivals (two-sided belief error at last):** new asteroids
+spawn at seeded times (~every 300 ticks ± seeded jitter) and seeded
+positions, with stock from the standard draw. A company does NOT know a
+rock exists until a fleet member senses it. Total injected stock pinned
+per seed across arms (fairness).
+
+**Change 2 — departures (stale optimism finally costs):** at seeded
+times, a seeded existing asteroid goes dark (remaining stock lost —
+drifted out / claim-jumped by an off-map actor). A stale map keeps
+routing crabs to a ghost.
+
+**Change 3 — contested geography:** column J runs a NON-mirrored variant
+of the v5 field (asteroids drawn in a shared central band; fleets spawn
+on opposite sides). The twin-fleet placebo is unavailable by design —
+noted, accepted for this column — and the rival-rate estimator finally
+has something real to measure.
+
+**Arms:** auction, snhp-hz, snhp+net, team — belief-mode; snhp+net also
+oracle-mode (the P16a control) and belief-mode with race_pricing=False
+(P16c ablation). σ=0.5, τ=0.15, 16 seeds, 2500 ticks.
+
+**Pre-registered predictions (P16):**
+- **P16a (the founder's claim):** in the moving field the price of
+  ignorance is significantly positive — oracle-mode snhp+net beats
+  belief-mode on delivered (Wilcoxon p<0.05). If the gap is still ≈0,
+  the founder's objection is itself falsified and the static-field
+  robustness claim generalizes further than expected — report either way.
+- **P16b (freshness converts):** the fleet with fresher maps captures a
+  larger share of ARRIVAL stock — bargaining fleets (3× fresher per
+  P15b) out-collect the auction on post-arrival rocks specifically,
+  beyond their baseline edge.
+- **P16c (the race resurrected):** race_pricing now pays on contested
+  ground (belief+race beats belief−race on delivered; the P15d kill was
+  scoped to mirrored maps).
+- **P16d (books bleed harder):** poisoned-deal rate under belief-mode
+  rises vs the static field (departures make stale valuations actively
+  wrong, not just conservative).
+- **J2 (contingent, register-then-build only if P16a passes):**
+  information as the FOURTH issue — cross-company deals may bundle a
+  map-sync ("I'll top you up if you tell me what your side has seen").
+  Registered as a direction, not a design; full spec required before
+  building.
+- **KILL (column):** if P16a fails AND P16d fails, non-stationarity of
+  this magnitude still doesn't price information — accept that this
+  world-class genuinely doesn't reward maps, stop building info
+  machinery, and say so publicly.
+
+**Build note (standing rule, this session):** implementation goes to an
+OPUS build agent; Fable plans, registers, reviews, and analyzes.
