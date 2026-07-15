@@ -1059,6 +1059,14 @@ entries each tick (flooding). Beliefs become per-robot. Map-selling (K1)
 remains cross-company.
 **Arms:** auction, rules, snhp-hz, snhp+net (belief+gossip, moving field) +
 snhp+net free-radio control · 16 seeds, N=24.
+**Amendment (2026-07-15, pre-build, founder prompt "one unit can update
+global knowledge right?"):** R_RADIO runs as a ladder {2, 6} — 2 cells is
+the contact-only/stigmergy limit, 6 is short radio — so P21a/b separate
+"needs any locality" from "needs range". Named secondary: the SCOUT RETURN
+PROBLEM — under gossip a discovery is worth nothing until relayed, so
+scout_ticks stop converting to freshness unless scouts loop home; report
+K0-scouting's arrival-capture under gossip vs the free-radio K column as
+its own line (the v12 'scouting fixes discovery' claim is at stake).
 - **P21a (trade IS the network):** trading fleets still hold fresher maps
   than the auction under gossip — deal encounters double as relay
   encounters.
