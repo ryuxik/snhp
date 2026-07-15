@@ -165,6 +165,11 @@ class BaseArm:
     def tick(self):
         w = self.w
         w._live_sense = True           # v10: drive/world phase — sensing live
+        w.field_step()                 # v11: arrivals/departures fire at TICK
+                                       # START — before EV, drives and every
+                                       # bundle evaluation, so no field change
+                                       # ever lands mid-encounter (evaluated Φ
+                                       # == executed Φ). No-op when off.
         if w.tick % EV_REFRESH == 0:
             for r in w.robots:
                 update_ev(r, w)

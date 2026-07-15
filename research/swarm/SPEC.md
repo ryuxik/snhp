@@ -807,3 +807,111 @@ load-bearing — and that is the most valuable possible answer.**
   price. The racing layer stays in the code, off by default, honest.
 - v10c: inconclusive by design flaw (mine-rate draw degenerate at σ=0.5,
   flagged pre-run); re-registration at σ=1.0 required before any claim.
+
+---
+
+## v11 pre-registration: the moving field (column J) — "the map is stale AND the territory keeps moving"
+
+*Registered 2026-07-15, BEFORE any 16-seed column-J run. Motivation: v10's
+whole-column KILL (P15) found perfect field information worthless — but on a
+STATIC, MIRRORED field: every rock known at launch, both companies' rocks
+disjoint by symmetry, so contested overlap was too rare to price (P15d) and
+optimistic-only staleness "failed soft" because a fleet's own working set
+stays fresh by construction. v11 removes exactly those two escape hatches:
+the field MOVES (rocks arrive unknown, deplete into ghosts) and OVERLAPS
+(both fleets mine the same central band). If beliefs are still not
+load-bearing here, imperfect field information is dead for good; if they
+finally bite, v10's null was an artifact of a too-easy stage.*
+
+**Change 1 — arrivals (dynamic_field, on).** A seeded schedule of 8 arrival
+events (times ~U(200, 2300)) and 4 departures (~U(400, 2300)), pre-drawn at
+init from a DEDICATED RandomState(seed+7919) — the main stream is never
+touched, so every dynamic_field=False column stays bit-identical. Each
+arrival appends a fresh asteroid in the interior field band (≥3 Manhattan
+from any facility and existing rock, rejection-sampled from the dedicated
+RNG), stock ~U(8,24). Every per-asteroid array grows for BOTH companies; the
+newcomer's belief starts at **0 — unknown until a robot senses it**
+(last_seen = arrival tick). total_stock grows, so the makespan check
+(delivered ≥ total_stock) requires delivering the newcomer too.
+
+**Change 2 — departures (dynamic_field, on).** Each departure event exhausts
+one currently-stocked asteroid (chosen via the dedicated RNG): its remaining
+TRUE stock is lost (booked to `stock_lost`, so `material_ok()` —
+delivered + stock + carried + stock_lost == total_stock — stays EXACT),
+stock[i]=0. Beliefs are NOT updated: the map keeps a **ghost** until a robot
+re-senses the rock. Departures can permanently prevent full delivery, so
+makespan is legitimately censored on any run that loses stock.
+
+**Change 3 — contested geography (contested, on; v5 preset).** The initial
+field is 10 rocks drawn INDEPENDENTLY in a central band y ∈ [10·sc, 22·sc],
+NOT the 5-pair mirror. Total pinned to 2·TOTAL_STOCK; each rock ≥3 from every
+facility. Both fleets now mine the SAME overlapping field, so rival depletion
+finally has contested overlap to price. **The twin-fleet mirror placebo does
+not apply in this mode** (per-company ledger symmetry is deliberately broken —
+geography is asymmetric by design); it is noted in code and excluded from any
+placebo read.
+
+**Invariants (the hard-won review lessons, none violated):** field events fire
+at TICK START — before EV refresh, drives, sensing, and every bundle
+evaluation — so no field change ever lands between a bundle's evaluation and
+its execution (evaluated Φ == executed Φ holds through arrivals/departures);
+the dedicated RNG is the ONLY new randomness (main stream untouched, verified
+by the 39-test suite passing unchanged); physics reads truth, decisions read
+beliefs; conservation exact via stock_lost; sense_step stays O(N_robots ·
+N_asteroids) with N_asteroids ≤ 18.
+
+**Arms/grid:** {auction, snhp-hz, snhp+net, team} × {belief, dynamic,
+contested} × 16 seeds, σ=0.5, v5, τ=0.15; PLUS snhp+net oracle-mode (belief
+OFF, same moving+contested world — P16a info-value control); PLUS snhp+net
+belief-mode with race_pricing OFF (P16c ablation). New row fields:
+dynamic_field, contested, stock_lost, arrivals, arrivals_mined (units MINED
+from arrival rocks — a provenance proxy for delivered, since a unit's origin
+asteroid is known at pick() not drop(); documented as such for P16b).
+
+**Pre-registered predictions (P16):**
+- **P16a (info value returns):** oracle-mode snhp+net ≥ belief-mode snhp+net
+  on delivered in the moving+contested world — the gap v10 measured at ZERO
+  on a static field reopens, because arrivals are invisible until sensed and
+  departures leave ghosts. Genuinely two-sided: if the gap is still ≈0
+  (<2 delivered, n.s.), imperfect field info is not load-bearing even under
+  churn — the strongest possible generalization of the v10 null.
+- **P16b (the swarm finds the newcomers):** deal-economy fleets mine MORE
+  arrival stock than the auction (arrivals_mined higher) — trade-driven
+  movement diversity discovers fresh rocks faster, the P15b freshness
+  mechanism finally cashing into gold where new stock only exists off the
+  launch map. Could fail: arrivals found equally by all if coverage is
+  luck-dominated.
+- **P16c (the race finally has overlap):** in the CONTESTED field, racing-
+  aware pricing (race on) ≥ racing-blind (race off) on delivered — the
+  overlap that was too rare on v10's mirrored field (the P15d KILL) now
+  exists. If off ≈ on, contested overlap STILL isn't enough and the racing
+  layer stays off-by-default, honest.
+- **Placebo note (not a prediction):** contested breaks the per-company
+  ledger placebo by construction — coΔdelivered is expected nonzero and is
+  NOT read as a symmetry violation.
+- **KILL (whole column):** if belief-mode inverts NO ordering and shifts no
+  headline by >2 delivered vs oracle even in the moving+contested world, then
+  imperfect field information is decisively not load-bearing and v8 physics
+  stands as the honest final world — v10's null was not an artifact.
+
+**Implementation notes (logged 2026-07-15, before any 16-seed column-J run;
+predictions unchanged):**
+1. Field events fire at tick START (World.field_step from BaseArm.tick,
+   before drives) rather than inside sense_step: strictly outside the
+   encounter phase either way, but tick-start is the simplest placement that
+   provably keeps evaluated Φ == executed Φ across an arrival/departure.
+2. In belief-mode an arrival's stock is UNMINEABLE until a robot wanders
+   within R_SENSE (belief starts 0; best_claim skips stock≤0 beliefs), so
+   belief-mode fleets can leave arrival stock in the ground that oracle
+   fleets clear — this IS the P16a channel, confirmed in a 2-seed smoke
+   (oracle mined 80 arrival units vs belief-mode 61 at one seed). Correct
+   behavior, not a bug.
+3. arrivals_mined uses per-asteroid pick provenance (w.mined_from), NOT
+   delivered provenance: origin is known at pick(), and carrying per-unit
+   delivery origin would be invasive. Documented proxy for P16b.
+4. The lean v5 fleet does not clear a live field 100% (a couple of units
+   strand), so the makespan test pins the delivered ≥ total_stock THRESHOLD
+   semantics on the conservation ledger directly rather than requiring an
+   emergent full-clearance run; the real-run smoke nonetheless shows makespan
+   firing at the correct tick once an arrival's stock is delivered (seed 0
+   snhp-hz: delivered 259 = 240 base + 19 arrival, makespan 499).
