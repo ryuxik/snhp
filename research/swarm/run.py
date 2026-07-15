@@ -43,12 +43,17 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              self_margin: bool = False, grid: int = 32,
              belief_mode: bool = False, race_pricing: bool = True,
              mine_trait: bool = False, dynamic_field: bool = False,
-             contested: bool = False) -> dict:
+             contested: bool = False, scouting: bool = False,
+             map_trading: bool = False, prospect_claims: bool = False) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
         raise ValueError("v5 partner-noise and v6 lies/defense are separate "
                          "treatments; combining them silently disables noise")
+    if map_trading and liar_frac > 0:
+        # v12 K1: map trading is an HONEST SnhpArm-family mechanism this column;
+        # mixing it with liars (TrustArm territory) is explicitly out of scope
+        raise ValueError("map_trading is honest-only this column: liar_frac==0")
     # v9 arms: "-lv" = life-value drone pricing (hazard-shaped Φ),
     # "-lvc" = life-value + exogenous replacement capital (2 ore units)
     life = arm_name.endswith(("-lv", "-lvc"))
@@ -67,17 +72,30 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               grid=grid, life_pricing=life, strand_cap=cap,
               belief_mode=belief_mode, race_pricing=race_pricing,
               mine_trait=mine_trait, dynamic_field=dynamic_field,
-              contested=contested)
+              contested=contested, scouting=scouting,
+              map_trading=map_trading, prospect_claims=prospect_claims)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
     stale = []          # v10 P15b: mean (tick − last_seen) over all
+    stale_own, stale_other = [], []   # v12 K2 P17d: patrol differentiation
     for t in range(ticks):        # (company, asteroid) pairs, every 50 ticks
         arm.tick()
         if belief_mode and (t + 1) % 50 == 0:
             stale.append(np.mean([w.tick - w.last_seen[co][i]
                                   for co in range(w.n_companies)
                                   for i in range(len(w.sources))]))
+            if prospect_claims:
+                own, other = [], []
+                for cc in range(w.n_companies):
+                    for i in range(len(w.sources)):
+                        st = w.tick - w.last_seen[cc][i]
+                        quad = w.quadrant(w.sources[i])
+                        (own if w.claim_owner[quad] == cc else other).append(st)
+                if own:
+                    stale_own.append(np.mean(own))
+                if other:
+                    stale_other.append(np.mean(other))
         if t + 1 == 800:
             delivered_mid = w.delivered   # time-resolved deadweight (v4.1)
         if w.delivered >= w.total_stock:
@@ -156,6 +174,15 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         # units MINED from arrival rocks (provenance proxy for delivered: a
         # unit's origin asteroid is known at pick(), not at drop() — P16b)
         arrivals_mined=sum(w.mined_from[i] for i in w.arrival_indices),
+        # v12 (column K): pricing the unknown
+        scouting=scouting, map_trading=map_trading,
+        prospect_claims=prospect_claims,
+        scout_ticks=w.scout_ticks,             # K0: robot-ticks scouting
+        map_deals=sum(1 for d in deals if d.get("m", 0) != 0),  # K1
+        staleness_own_claims=(round(float(np.mean(stale_own)), 2)
+                              if stale_own else None),          # K2 P17d
+        staleness_other=(round(float(np.mean(stale_other)), 2)
+                         if stale_other else None),
     )
 
 
@@ -173,11 +200,14 @@ def _cond(r) -> tuple:
             bool(r.get("race_pricing", True)),
             bool(r.get("mine_trait", False)),
             bool(r.get("dynamic_field", False)),
-            bool(r.get("contested", False)))
+            bool(r.get("contested", False)),
+            bool(r.get("scouting", False)),
+            bool(r.get("map_trading", False)),
+            bool(r.get("prospect_claims", False)))
 
 
 def _cond_label(c) -> str:
-    f, dfd, s7, mg, nz, g, bm, race, mt, dyn, cnt = c
+    f, dfd, s7, mg, nz, g, bm, race, mt, dyn, cnt, scout, maptr, pros = c
     bits = []
     if f:
         bits.append(f"f={f:g}")
@@ -201,10 +231,17 @@ def _cond_label(c) -> str:
         bits.append("dyn")
     if cnt:
         bits.append("cnt")
+    if scout:
+        bits.append("K0")
+    if maptr:
+        bits.append("K1")
+    if pros:
+        bits.append("K2")
     return " ".join(bits)
 
 
-_BASE = (0.0, False, 0.0, False, 0.0, 32, False, True, False, False, False)
+_BASE = (0.0, False, 0.0, False, 0.0, 32, False, True, False, False, False,
+         False, False, False)
 
 
 def _paired(rows, arm_hi, arm_lo, sigma, field, tau=0.0, cond=_BASE):
@@ -459,6 +496,37 @@ def build_jobs(column: str, seeds: int, ticks: int):
                              ticks=ticks, tau=0.15, preset="v5",
                              belief_mode=True, dynamic_field=True,
                              contested=True, race_pricing=False))
+    if column == "K":                 # v12: pricing the unknown (P17)
+        # everything rides the v11 moving field: belief + dynamic + contested
+        moving = dict(belief_mode=True, dynamic_field=True, contested=True)
+        # auction + K0 (scouting) — the movement-policy treatment on a coverage
+        # baseline (the auction out-collected arrivals in v11 by accident)
+        for seed in range(min(seeds, 16)):
+            jobs.append(dict(arm_name="auction", sigma=0.5, seed=seed,
+                             ticks=ticks, tau=0.15, preset="v5",
+                             scouting=True, **moving))
+        # snhp+net + K0 · +K0+K1 (map trading) · +K0+K1+K2 (prospect claims):
+        # the ladder that prices the unknown one layer at a time
+        for seed in range(min(seeds, 16)):
+            jobs.append(dict(arm_name="snhp+net", sigma=0.5, seed=seed,
+                             ticks=ticks, tau=0.15, preset="v5",
+                             scouting=True, **moving))
+        for seed in range(min(seeds, 16)):
+            jobs.append(dict(arm_name="snhp+net", sigma=0.5, seed=seed,
+                             ticks=ticks, tau=0.15, preset="v5",
+                             scouting=True, map_trading=True, **moving))
+        for seed in range(min(seeds, 16)):
+            jobs.append(dict(arm_name="snhp+net", sigma=0.5, seed=seed,
+                             ticks=ticks, tau=0.15, preset="v5",
+                             scouting=True, map_trading=True,
+                             prospect_claims=True, **moving))
+        # oracle control: SAME dynamic+contested world, omniscient Φ (belief
+        # off) and NO K flags — scouting requires belief_mode, so the oracle
+        # runs plain, exactly as v11's P16a oracle did
+        for seed in range(min(seeds, 16)):
+            jobs.append(dict(arm_name="snhp+net", sigma=0.5, seed=seed,
+                             ticks=ticks, tau=0.15, preset="v5",
+                             dynamic_field=True, contested=True))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -469,7 +537,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))

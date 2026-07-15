@@ -16,6 +16,7 @@ v4 additions (all panel-mandated, review/PANEL_V4.md):
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -51,6 +52,8 @@ R_SENSE = 3                         # v10a: Chebyshev radius within which a
                                     # robot refreshes its company's belief
 RIVAL_ALPHA = 0.2                   # v10b: exp-smoothing of the observed
                                     # rival depletion rate (units/tick)
+CLAIM_WINDOW = 150                  # v12 K2: ticks an ARRIVAL rock is minable
+                                    # only by its quadrant's claim-holder
 
 PRESETS = {
     # sources, refineries [(pos, owner)], chargers [(pos, owner)]
@@ -126,7 +129,9 @@ class World:
                  strand_cap: float = 0.0, belief_mode: bool = False,
                  race_pricing: bool = True, mine_trait: bool = False,
                  r_sense: int = R_SENSE,
-                 dynamic_field: bool = False, contested: bool = False):
+                 dynamic_field: bool = False, contested: bool = False,
+                 scouting: bool = False, map_trading: bool = False,
+                 prospect_claims: bool = False):
         self.rng = np.random.RandomState(seed)
         self.hazard_phi = hazard_phi
         self.preset = preset
@@ -143,6 +148,18 @@ class World:
         # RandomState so the main stream is never perturbed.
         self.dynamic_field = dynamic_field
         self.contested = contested
+        # v12 (column K): pricing the unknown. All three default off ⇒ every
+        # pre-v12 column stays bit-identical (suite-verified). K0 scouting needs
+        # a belief map to have any staleness to patrol; K2 claims gate ARRIVALS,
+        # which only exist on a moving field.
+        assert not (scouting and not belief_mode), \
+            "scouting requires belief_mode (no map ⇒ no staleness to patrol)"
+        assert not (prospect_claims and not dynamic_field), \
+            "prospect_claims requires dynamic_field (claims gate ARRIVALS)"
+        self.scouting = scouting
+        self.map_trading = map_trading
+        self.prospect_claims = prospect_claims
+        self.scout_ticks = 0              # K0: robot-ticks spent scouting
         self._oracle_override = False     # phi_true_field: audit vs TRUE field
         self._live_sense = True           # drive/world phase: sensing is live;
                                           # frozen during encounters (v10)
@@ -198,6 +215,18 @@ class World:
         # no decision — so the dynamic_field=False path stays bit-identical.
         self.mined_from = [0] * n_src
         self.stock_lost = 0                 # v11: true stock erased by departures
+        # v12 K2: quadrant prospecting claims. The grid halves into 4 quadrants
+        # (quadrant()); each company holds 2 — init [0,1,0,1], deterministic.
+        # An ARRIVAL rock in a quadrant is minable ONLY by the holder company
+        # until arrival_t + CLAIM_WINDOW (belief gate in stock_belief + physics
+        # gate in pick). Claims are FIXED this column (the registered fallback —
+        # see run.py/SPEC): never traded, so no synced-claim-view is needed and
+        # evaluated Φ == executed Φ holds trivially over a constant claim map.
+        # Both allocated unconditionally (cheap, no RNG); arrival_t is populated
+        # in _field_arrival and read only by _claim_gated, so a non-prospect
+        # world is bit-identical.
+        self.claim_owner = [0, 1, 0, 1]
+        self.arrival_t: dict[int, int] = {}
         self.arrival_indices: list[int] = []   # source idx of each arrival rock
         self.field_log: list[dict] = []     # arrival/departure record (separate
                                             # from event_log: keeps xfers/border
@@ -344,6 +373,21 @@ class World:
         src = self.sources[i]
         return max(abs(pos[0] - src[0]), abs(pos[1] - src[1])) <= self.r_sense
 
+    def quadrant(self, pos) -> int:
+        """v12 K2: which grid-half quadrant a position sits in (0..3)."""
+        half = self.grid / 2
+        return 2 * int(pos[1] >= half) + int(pos[0] >= half)
+
+    def _claim_gated(self, co: int, i: int) -> bool:
+        """v12 K2: True iff asteroid i is a still-claimed ARRIVAL sitting in a
+        quadrant company `co` does NOT hold — a non-holder then sees 0 stock
+        (belief gate) and mines 0 (pick gate) until arrival_t + CLAIM_WINDOW.
+        Original (non-arrival) rocks and expired windows are never gated."""
+        t0 = self.arrival_t.get(i)
+        if t0 is None or self.tick >= t0 + CLAIM_WINDOW:
+            return False
+        return self.claim_owner[self.quadrant(self.sources[i])] != co
+
     def stock_belief(self, r, i):
         """Stock of asteroid i as robot r's COMPANY believes it. Every
         decision layer routes here; physics (pick, conservation) reads
@@ -354,6 +398,12 @@ class World:
         depends on it."""
         if not self.belief_mode or self._oracle_override:
             return self.stock[i]
+        # v12 K2 belief-side gate: a non-holder cannot believe in a claimed
+        # arrival during its window, so best_claim skips it and the fleet never
+        # routes there (documented gate). Placed BEFORE live-sense so a
+        # non-holder flying past does not even record it as routable stock.
+        if self.prospect_claims and self._claim_gated(r.company, i):
+            return 0
         if self._live_sense and self._in_sense_range(r.pos, i):
             self._observe(r.company, i)
         return self.belief[r.company][i]
@@ -384,6 +434,58 @@ class World:
                     if self._in_sense_range(r.pos, i):
                         self._observe(r.company, i)
         self._live_sense = False
+
+    # ── v12 K1: map-selling (a sync is a copy of fresher map entries) ────
+    def _map_overlay_entries(self, rc: int, gc: int):
+        """The entries a giver company `gc` can freshen for a receiver `rc`:
+        every asteroid gc saw MORE recently than rc (higher last_seen), as
+        (i, belief, last_seen, rival_rate) tuples to copy gc→rc. Deterministic;
+        consumes no RNG. Beliefs are frozen during the encounter phase, so this
+        returns the SAME set in evaluation (synced_phi_view) and in execution
+        (apply_map_sync) — the exact-restore/exact-replay that keeps evaluated
+        Φ == executed Φ across a map deal."""
+        return [(i, self.belief[gc][i], self.last_seen[gc][i],
+                 self.rival_rate[gc][i])
+                for i in range(len(self.sources))
+                if self.last_seen[gc][i] > self.last_seen[rc][i]]
+
+    @contextmanager
+    def synced_phi_view(self, receiver, giver):
+        """Price a map sync: temporarily overlay the RECEIVER company's
+        (belief, last_seen, rival_rate) with the giver's fresher entries,
+        compute Φ inside, then restore EXACTLY (only the touched entries are
+        saved). The giver's own map is untouched — a sync is a copy, not a
+        move. No clamping: a sync that overwrites stale-optimistic belief with
+        fresher-but-lower truth LOWERS the receiver's Φ (bad news); IR vetoes
+        those downstream (registered P17c), so this must not special-case it."""
+        rc, gc = receiver.company, giver.company
+        entries = self._map_overlay_entries(rc, gc)
+        saved = [(i, self.belief[rc][i], self.last_seen[rc][i],
+                  self.rival_rate[rc][i]) for (i, _, _, _) in entries]
+        for (i, bel, ls, rr) in entries:
+            self.belief[rc][i] = bel
+            self.last_seen[rc][i] = ls
+            self.rival_rate[rc][i] = rr
+        try:
+            yield
+        finally:
+            for (i, bel, ls, rr) in saved:
+                self.belief[rc][i] = bel
+                self.last_seen[rc][i] = ls
+                self.rival_rate[rc][i] = rr
+
+    def apply_map_sync(self, receiver, giver) -> int:
+        """Execute a map sync: permanently copy the giver company's fresher
+        (belief, last_seen, rival_rate) entries onto the receiver company.
+        Same entries synced_phi_view priced ⇒ evaluated Φ == executed Φ.
+        Returns the number of entries copied (0 is a legal no-op sync)."""
+        rc, gc = receiver.company, giver.company
+        entries = self._map_overlay_entries(rc, gc)
+        for (i, bel, ls, rr) in entries:
+            self.belief[rc][i] = bel
+            self.last_seen[rc][i] = ls
+            self.rival_rate[rc][i] = rr
+        return len(entries)
 
     # ── v11: the moving field ───────────────────────────────────────────
     def field_step(self) -> None:
@@ -430,6 +532,7 @@ class World:
         self.total_stock += stock
         self.mined_from.append(0)
         self.arrival_indices.append(i)
+        self.arrival_t[i] = self.tick           # v12 K2: claim-window origin
         for co in (0, 1):
             self.belief[co].append(0)           # unknown until sensed
             self.last_seen[co].append(self.tick)
@@ -527,6 +630,11 @@ class World:
 
     def pick(self, r: Robot) -> int:
         s = r.sector
+        # v12 K2 physics gate: a non-holder mines 0 from a claimed arrival
+        # inside its window (hard guarantee; the belief gate already keeps the
+        # fleet from routing here, but claims bind on the ore, not just beliefs)
+        if self.prospect_claims and self._claim_gated(r.company, s):
+            return 0
         if r.pos == self.sources[s] and self.stock[s] > 0:
             q = min(r.cap - r.load, self.stock[s])
             if self.mine_trait:
