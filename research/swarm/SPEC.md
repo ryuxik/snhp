@@ -993,3 +993,24 @@ snhp+net+K0+K1+K2 (full) · oracle snhp+net+K0 (info ceiling). Auction
 cannot consume K1/K2 (no bundles) — it is the coverage benchmark.
 
 **Build note:** Opus build agent; Fable registered this and analyzes.
+
+**P17 VERDICT (2026-07-15, sweep_K.json, n=16):**
+- **P17a FAIL — but because K0 already won.** Scouting alone (+2 patrol
+  robots/company) closed the v11 discovery deficit: net arrivals-mined
+  44.8 vs auction 47.5 (the −13.8 p=.03 gap → −3.4 n.s.), delivered gap
+  erased (284.1 vs 286.6), and the ORACLE advantage vanished (282.8 vs
+  belief 284.1 — with patrols, information is free again). The map market
+  on top adds nothing to discovery (−0.7, p=1.0) despite 40 executed
+  syncs/run. **The exploration deficit was a POLICY gap, not an
+  information-market gap.**
+- **P17b PASS at the registered bar:** map-buying cuts poisoned deals 30%
+  (5.38 → 3.75, p=.04). **The information market's real product is
+  receipt integrity, not output.**
+- **P17c CONFIRMED, structural:** bad-news-only syncs are IR-vetoed by
+  construction (unit-pinned). But bad news CAN travel when the sync
+  bundles it with enough good news to clear the buyer's veto — **the
+  bundling-necessity law (C1, the program's first result) recurses into
+  the information layer: single-issue bad news is unsellable; bundled
+  truth trades.**
+- **P17d mechanism-only:** claim-holders patrol their quadrants fresher
+  (22.7 vs 25.4) with zero output effect at this scale.

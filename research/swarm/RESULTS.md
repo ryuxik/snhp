@@ -473,3 +473,19 @@ scores are a wash — optimization buys blindness to novelty.** The
 bargaining advantage is a known-field phenomenon; novelty-rich worlds
 reward coverage over coordination. Racing discount: killed for good.
 Reproduce: `run.py --column J`.
+
+## v12 (column K): pricing the unknown — scouting fixes discovery; the map market fixes the books
+
+Founder's mechanisms built and run. The discovery deficit died to POLICY,
+not markets: two scouts per company erased the auction's explorer edge
+(arrivals gap −13.8 p=.03 → −3.4 n.s.; delivered inversion gone) and even
+made the oracle redundant (282.8 vs 284.1 — patrolled beliefs ≈ perfect
+information). The map market (40 syncs/run, real Nash-priced trades)
+added nothing to discovery but **cut poisoned deals 30% (p=.04): traded
+information's product is audit integrity, not output**. And the registered
+bad-news trap confirmed structurally: a sync that only carries bad news
+is IR-vetoed — it trades only when BUNDLED with enough good news, i.e.
+the program's first law (bundling or silence) reappears one level up, in
+the market for information itself. Fixed prospecting claims produce real
+patrol differentiation (22.7 vs 25.4 staleness) and no output change.
+Reproduce: `run.py --column K`.
