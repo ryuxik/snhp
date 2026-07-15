@@ -39,9 +39,9 @@
   .panel h2{font-size:14px; font-weight:800; letter-spacing:.06em; display:flex; align-items:center; gap:8px}
   .panel h2 .dot{width:11px; height:11px; border-radius:3px; display:inline-block}
   .panel .sub{color:var(--dim); font-size:12px; margin:3px 0 9px; min-height:2.6em}
-  .stage{position:relative; width:100%; border-radius:10px; overflow:hidden; background:#040308}
+  .stage{position:relative; width:100%; aspect-ratio:1/1; border-radius:10px; overflow:hidden; background:#040308}
   .stage canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
-  .stage .bg{image-rendering:pixelated; position:relative}
+  .stage .bg{image-rendering:pixelated}
   .stage .fg{cursor:crosshair}
   #ticker{margin-top:12px; background:var(--panel); border:1px solid var(--line);
        border-radius:10px; padding:8px 15px; color:var(--dim); font-size:13px; overflow:hidden;
@@ -123,6 +123,7 @@ const CELL = 10, MARGIN = 12, GRID = 32;
 const LOW = GRID * CELL + MARGIN * 2;
 const w2p = g => MARGIN + (g + 0.5) * CELL;
 const COMPANY = ["#7fb4ff", "#ffb26e"];
+const CONAME = ["CRABAZON", "SHELL-MART"];      // rival megacorps (crab + retail puns)
 const BASE_TPS = 16;                                   // ticks/sec at "Read" base×0.6 ≈ 10; ×3 ≈ 48
 const DEAL_MS = 1500;
 const FF = "ui-monospace, Menlo, monospace";
@@ -259,7 +260,7 @@ function drawRefinery(c, L, gx, gy, count, color, tag, aT){
   c.fillStyle=mix(color,"#fff",.7); c.fillRect(cx-1,cy-1,3,3);   // hot core
   const puff=(aT*7)%7; c.fillStyle=mix(color,"#fff",.5);
   c.globalAlpha=clamp01(1-puff/7)*.6; c.fillRect((cx+r-4)|0,(cy-r-puff)|0,2,3); c.globalAlpha=1;
-  lbl(L, gx, gy, -r-5, color, "⬢ REFINERY"+tag, 10);
+  lbl(L, gx, gy, -r-5, color, tag ? "⬢"+tag+" REFINERY" : "⬢ REFINERY", 10);
   lbl(L, gx, gy, r+11, mix(color,"#fff",.25), count+" refined", 11);
 }
 function drawCharger(c, L, gx, gy, color, aT){
@@ -308,9 +309,9 @@ function dealGlyph(e){
 
 function sizeFg(tr){
   const st=tr.panel.stage, dpr=window.devicePixelRatio||1, cw=st.clientWidth||360;
-  st.style.height=cw+"px";                                // keep it square
-  const fg=tr.panel.fg;
-  fg.width=cw*dpr; fg.height=cw*dpr;
+  if(cw<8) return;                                        // layout not settled yet
+  const fg=tr.panel.fg;                                   // stage is CSS-square (aspect-ratio)
+  fg.width=Math.round(cw*dpr); fg.height=Math.round(cw*dpr);
   tr.panel.fctx=fg.getContext("2d");
   tr.panel.fctx.setTransform(dpr,0,0,dpr,0,0);
   tr.panel.s=cw/LOW;                                      // display px per backbuffer px
@@ -328,16 +329,16 @@ function buildPanels(){
     const ctx=bg.getContext("2d"); ctx.imageSmoothingEnabled=false;
     tr.panel={stage:div.querySelector(".stage"), bg, fg, ctx, color, name, fx:[], disp:0};
     sizeFg(tr);
+    new ResizeObserver(()=>sizeFg(tr)).observe(tr.panel.stage);   // robust squaring
     fg.addEventListener("mousemove", ev=>hover(tr,ev));
     fg.addEventListener("mouseleave", ()=>$("nametag").style.display="none");
   }
-  window.onresize=()=>{ for(const tr of traces) sizeFg(tr); };
   maxT=Math.max(...traces.map(t=>t.maxT)); $("scrub").max=maxT; simT=0;
   $("score").style.display=traces.length===2?"flex":"none";
   $("ticker").style.display=$("legend").style.display="flex";
   if(traces[0]&&traces[0].header.robots.some(r=>r.company!==undefined))
-    $("legend-co").innerHTML=`<span class="sw" style="background:transparent;border:2px solid ${COMPANY[0]}"></span>Company A ·
-      <span class="sw" style="background:transparent;border:2px solid ${COMPANY[1]}"></span>Company B`;
+    $("legend-co").innerHTML=`<span class="sw" style="background:transparent;border:2px solid ${COMPANY[0]}"></span>${CONAME[0]} ·
+      <span class="sw" style="background:transparent;border:2px solid ${COMPANY[1]}"></span>${CONAME[1]} (ring color)`;
   if(traces.length===2) for(const i of [0,1]){
     const el=$("sc"+i); el.querySelector(".name").textContent=traces[i].panel.name;
     el.querySelector(".name").style.color=traces[i].panel.color;
@@ -380,7 +381,7 @@ function drawPanel(tr, aT){
   const refs=h.refineries||[{pos:h.sink,owner:null}];
   for(const rf of refs){ const o=rf.owner;
     drawRefinery(c, L, rf.pos[0],rf.pos[1], (rec.co&&o!==null)?rec.co[o]:rec.delivered,
-      o===null?"#8ee08a":COMPANY[o], o===null?"":(o?" B":" A"), aT); }
+      o===null?"#8ee08a":COMPANY[o], o===null?"":" "+CONAME[o], aT); }
   for(const ch of (h.chargers||[{pos:h.charger,owner:null}]))
     drawCharger(c, L, ch.pos[0],ch.pos[1], ch.owner===null?"#7fe0ff":COMPANY[ch.owner], aT);
 
@@ -473,7 +474,7 @@ function hover(tr,ev){ if(!tr.panel.pts)return;
   let best=null,bd=12; for(const [x,y,i] of tr.panel.pts){const d=Math.hypot(mx-x,my-y); if(d<bd){bd=d;best=i;}}
   const tag=$("nametag"); if(best===null){tag.style.display="none";return;}
   const T=Math.min(Math.floor(simT),tr.maxT), r=tr.ticks[T].r[best], m=tr.header.robots[best];
-  const co=m.company!==undefined?(m.company?"Company B":"Company A"):"";
+  const co=m.company!==undefined?CONAME[m.company]:"";
   tag.innerHTML=`<b>Crab #${best}</b> ${co?"· "+co:""}<br><span class="t">battery</span> ${Math.round(r[2])}/100 ·
     <span class="t">hauling</span> ${r[3]} ore<br>${r[4]?"<b style='color:#e58ab4'>ADRIFT — needs rescue</b>":`<span class="t">capacity ${m.cap} · motor ×${m.eff}</span>`}`;
   tag.style.display="block"; tag.style.left=(ev.clientX+14)+"px"; tag.style.top=(ev.clientY+10)+"px";
@@ -522,11 +523,12 @@ drop.addEventListener("drop",async e=>{e.preventDefault();drop.classList.remove(
   if(urls.length){ try{
     traces=await Promise.all(urls.map(async u=>parseTrace(await(await fetch(u)).text())));
     buildPanels();
-    const t0=parseInt(p.get("t")||"0",10);
-    if(t0>0){ simT=t0; frozen=true; $("scrub").value=t0;
-      for(const tr of traces){ tr.panel.disp=(tr.ticks[Math.min(t0,tr.maxT)]||{delivered:0}).delivered;
-        // seed a deal from the nearest tick that has one, so a freeze shows a beat
-        for(let dt=0; dt<10; dt++){ const evs=tr.byTick[t0+dt]||tr.byTick[t0-dt]; if(evs&&evs.length){ fireDeals(tr, (t0+dt)-1, t0+dt); if(tr.panel.fx.length) break; } } } }
+    const t0=parseFloat(p.get("t")||"0"), gif=p.get("gif")==="1";
+    if(t0>0){ simT=t0; frozen=true; $("scrub").value=Math.floor(t0);
+      for(const tr of traces){ tr.panel.disp=(tr.ticks[Math.min(Math.floor(t0),tr.maxT)]||{delivered:0}).delivered;
+        if(gif){ fireDeals(tr, Math.floor(t0)-1, Math.floor(t0)); }   // GIF: deals at natural young age
+        else for(let dt=0; dt<10; dt++){ const evs=tr.byTick[Math.floor(t0)+dt]||tr.byTick[Math.floor(t0)-dt];
+          if(evs&&evs.length){ fireDeals(tr, (Math.floor(t0)+dt)-1, Math.floor(t0)+dt); if(tr.panel.fx.length) break; } } } }
     else if(p.get("play")!=="0"){ playing=true; $("playBtn").textContent="⏸ pause"; }
     drop.style.display="none";
   }catch(err){ drop.textContent=`couldn't fetch trace (${err.message}) — drop files instead`; } }
