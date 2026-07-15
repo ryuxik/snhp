@@ -684,3 +684,69 @@ with early distress trade). Exploratory: no selfish arm beats team on v5 at
 any k. Conclusion: better prices buy SPEED, not the net's survival record;
 the safety net is the better institution, not a patch over a mispriced
 market.
+
+---
+
+## v10 pre-registration: imperfect field information + the priced race (column I)
+
+*Registered 2026-07-15 late, BEFORE implementation or any pilot run.
+Founder's critique, verbatim: "companies dont have perfect info about the
+asteroid field hence the swarm robotics and everyone is working on
+estimates of information" and "we are not pricing in mining speed; there
+has to be some decay every tick on the total claims because other
+companies are racing you to get there." Diagnosis confirmed in code: Φ,
+best_claim and v_life read w.stock globally — omniscient valuation over a
+perfectly-known field; the race is physically real but priced as a static
+share.*
+
+**Change 1 — field beliefs (v10a):** each COMPANY maintains a belief of
+every asteroid's stock. A robot within R_SENSE=3 of an asteroid updates
+its company's belief to truth (the fleet is a shared sensor network — the
+point of a swarm); between observations the belief persists with recorded
+staleness. ALL decision layers (Φ future-trips, best_claim, v_life,
+auction's net-value) consume the belief; physics (pick) consumes truth.
+Mirrors the v7 bat() contract, extended to the field.
+
+**Change 2 — the priced race (v10b):** per-asteroid, a company estimates
+the RIVAL depletion rate from successive observations (stock fell faster
+than own mining explains ⇒ rate estimate, exponentially smoothed). The
+future-trips claim becomes racing-aware:
+expected_stock_on_arrival = belief − rival_rate × ETA, floored at 0 —
+your "decay every tick" as an expectation, not a hack. Un-raced fields
+reduce to current behavior (rate→0).
+
+**Change 3 — mine-rate heterogeneity (v10c, one arm):** mining speed
+becomes a σ-scaled trait (1..3 units/tick, mean-preserving) so "fast
+miner" is a real comparative advantage the market can price (claim swaps
+gain a speed dimension).
+
+**Arms:** auction, snhp-hz, snhp+net, team, rules — each in
+belief-mode; snhp+net additionally in oracle-mode (the old omniscient Φ)
+as the information-value control. σ=0.5, v5, τ=0.15, 16 seeds.
+
+**Pre-registered predictions (P15):**
+- **P15a (info has value):** oracle-mode snhp+net ≥ belief-mode snhp+net
+  on delivered; the gap is the price of ignorance. If the gap is ≈0, the
+  belief layer is decorative — report as such (KILL for the premise).
+- **P15b (the swarm IS the sensor):** belief-mode arms with more
+  spatial-coverage (more deals → more movement diversity) hold fresher
+  beliefs; bargaining's belief-staleness < auction's. Mechanism metric:
+  mean staleness at decision time.
+- **P15c (v7 echo, the receipts bleed again):** field-belief error acts
+  like gauge error — belief-mode veto arms sign poisoned deals (true-value
+  negative) at a rate growing with staleness, while delivered stays
+  robust. The fix is the same receipt/attestation layer — this time for
+  CLAIMS, not batteries.
+- **P15d (the race matters):** racing-aware pricing (v10b on) beats
+  racing-blind (v10b off) in belief-mode two-company worlds on delivered,
+  concentrated in contested asteroids (both companies mining the same
+  rock). If off≈on, the static share was already fine — kill the racing
+  layer, keep the beliefs.
+- **KILL (whole column):** if belief-mode inverts NO ordering and shifts
+  no headline by >2 delivered, perfect information was never load-bearing
+  and v8 physics stands as the honest final world.
+
+**Sequencing note:** the article ships on v8 physics (its limits section
+already declares the toy honestly); v10 is the follow-up program — and
+its P15c, if it lands, is the natural sequel post ("your fleet's map is
+also a ledger someone can poison").

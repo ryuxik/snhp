@@ -100,7 +100,7 @@
 <div id="controls">
   <button id="playBtn">▶ play</button>
   <select id="speed">
-    <option value="0.6">Read</option><option value="1.4" selected>Brisk</option><option value="3" >Skim</option>
+    <option value="auto" selected>Auto</option><option value="0.6">Read</option><option value="1.4">Brisk</option><option value="3">Skim</option>
   </select>
   <input type="range" id="scrub" min="1" max="1" value="1" step="1">
   <span id="tick">tick 0 / 0</span>
@@ -334,6 +334,7 @@ function buildPanels(){
     root.appendChild(div);
     const bg=div.querySelector(".bg"), fg=div.querySelector(".fg");
     const ctx=bg.getContext("2d"); ctx.imageSmoothingEnabled=false;
+    tr.evtTicks=Object.keys(tr.byTick).map(Number).sort((a,b)=>a-b);
     const finRec=tr.ticks[tr.maxT];
     tr.finished=!!(finRec && tr.header.total_stock && finRec.delivered>=tr.header.total_stock);
     tr.panel={stage:div.querySelector(".stage"), bg, fg, ctx, color, name, fx:[], disp:0};
@@ -506,9 +507,29 @@ function hover(tr,ev){ if(!tr.panel.pts)return;
 
 /* ── loop ── */
 let last=performance.now(), realSec=0;
+let autoSpd=1;
+function nextEvtDist(t){                      // ticks until the next deal/exchange
+  let d=1e9;
+  for(const tr of traces){
+    if(t>=tr.maxT || !tr.evtTicks || !tr.evtTicks.length) continue;
+    const a=tr.evtTicks; let lo=0,hi=a.length;
+    while(lo<hi){const m=(lo+hi)>>1; if(a[m]<t)lo=m+1; else hi=m;}
+    if(lo<a.length) d=Math.min(d,a[lo]-t);
+  }
+  return d;
+}
 function frame(now){
   let dt=(now-last)/1000; last=now; if(dt>0.1)dt=0.1; realSec+=dt;
-  if(playing){ const spd=parseFloat($("speed").value), prev=simT;
+  if(playing){
+    let spd;
+    if($("speed").value==="auto"){            // dead ticks skim themselves:
+      const fxHot=traces.some(tr=>tr.panel.fx.some(f=>(now-f.born)<DEAL_MS*0.9));
+      const d=nextEvtDist(Math.floor(simT));  // hold ~1× through a beat, glide
+      const target=(fxHot||d<12)?0.9:(d<36?2.0:5.5);   // to 5.5× through quiet
+      autoSpd+=(target-autoSpd)*0.06;
+      spd=autoSpd;
+    } else spd=parseFloat($("speed").value);
+    const prev=simT;
     simT=Math.min(simT+dt*BASE_TPS*spd, maxT);
     for(const tr of traces) fireDeals(tr, prev, simT);
     $("scrub").value=Math.floor(simT);
