@@ -12,71 +12,69 @@
     --mono: ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
   }
   *{box-sizing:border-box; margin:0}
-  body{background:radial-gradient(120% 100% at 50% 30%, #14121f 0%, #0b0a14 75%);
-       color:var(--ink); font:14px/1.5 var(--mono); padding:16px; min-height:100vh}
+  body{background:radial-gradient(120% 100% at 50% 24%, #16121f 0%, #0b0a14 72%);
+       color:var(--ink); font:14px/1.5 var(--mono); padding:16px; min-height:100vh;
+       -webkit-font-smoothing:none}
   header{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin:2px 4px 10px}
-  h1{font-size:17px; font-weight:700; letter-spacing:.04em}
+  h1{font-size:18px; font-weight:700; letter-spacing:.06em}
   h1 span{color:var(--dim); font-weight:400; font-size:13px}
   #badge{margin-left:auto; font-size:10px; letter-spacing:.06em; text-transform:uppercase;
        color:#f4d38a; background:rgba(240,198,116,.10); border:1px solid rgba(240,198,116,.35);
        padding:3px 10px; border-radius:999px}
-  /* verdict scoreboard */
-  #score{display:flex; align-items:center; justify-content:center; gap:18px;
+  #badge a{color:#f4d38a; text-decoration:none}
+  #score{display:flex; align-items:center; justify-content:center; gap:20px;
        background:var(--panel); border:1px solid var(--line); border-radius:14px;
-       padding:10px 22px; margin-bottom:12px; flex-wrap:wrap}
-  .sc{display:flex; flex-direction:column; align-items:center; min-width:150px}
+       padding:11px 24px; margin-bottom:12px; flex-wrap:wrap}
+  .sc{display:flex; flex-direction:column; align-items:center; min-width:158px}
   .sc .name{font-size:11px; letter-spacing:.12em; font-weight:700}
-  .sc .big{font-size:34px; font-weight:800; line-height:1.1; font-variant-numeric:tabular-nums}
+  .sc .big{font-size:36px; font-weight:800; line-height:1.05; font-variant-numeric:tabular-nums}
   .sc .big small{font-size:13px; color:var(--mut); font-weight:400}
-  .sc .bar{width:170px; height:7px; background:#1d1b2e; border-radius:4px; margin-top:5px; overflow:hidden}
-  .sc .bar i{display:block; height:100%; width:0%; border-radius:4px; transition:width .2s}
-  #verdict{font-size:12px; color:var(--dim); text-align:center; max-width:190px}
-  #verdict b{color:var(--ink); font-size:18px; display:block}
-  /* panels */
+  .sc .bar{width:180px; height:8px; background:#1d1b2e; border-radius:4px; margin-top:6px; overflow:hidden}
+  .sc .bar i{display:block; height:100%; width:0%; border-radius:4px; transition:width .25s ease-out}
+  #verdict{font-size:12px; color:var(--dim); text-align:center; max-width:200px}
+  #verdict b{font-size:20px; display:block}
   #panels{display:flex; gap:14px; flex-wrap:wrap}
-  .panel{flex:1; min-width:360px; background:var(--panel); border:1px solid var(--line);
-       border-radius:14px; padding:12px; position:relative}
-  .panel h2{font-size:14px; font-weight:800; letter-spacing:.06em;
-       display:flex; align-items:center; gap:8px}
-  .panel h2 .dot{width:10px; height:10px; border-radius:50%; display:inline-block}
-  .panel .sub{color:var(--dim); font-size:12px; margin:2px 0 8px; min-height:2.6em}
-  .panel canvas{width:100%; max-height:70vh; object-fit:contain; display:block; border-radius:10px; background:#0a0912; cursor:crosshair}
-  /* ticker */
+  .panel{flex:1; min-width:340px; background:var(--panel); border:1px solid var(--line);
+       border-radius:14px; padding:12px 12px 10px; position:relative; overflow:hidden}
+  .panel h2{font-size:14px; font-weight:800; letter-spacing:.06em; display:flex; align-items:center; gap:8px}
+  .panel h2 .dot{width:11px; height:11px; border-radius:3px; display:inline-block}
+  .panel .sub{color:var(--dim); font-size:12px; margin:3px 0 9px; min-height:2.6em}
+  .stage{position:relative; width:100%; border-radius:10px; overflow:hidden; background:#040308}
+  .stage canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
+  .stage .bg{image-rendering:pixelated; position:relative}
+  .stage .fg{cursor:crosshair}
   #ticker{margin-top:12px; background:var(--panel); border:1px solid var(--line);
-       border-radius:10px; padding:7px 14px; color:var(--dim); font-size:13px;
-       white-space:nowrap; overflow:hidden}
+       border-radius:10px; padding:8px 15px; color:var(--dim); font-size:13px; overflow:hidden;
+       white-space:nowrap; text-overflow:ellipsis; transition:opacity .25s}
   #ticker b{color:var(--ink)}
-  /* legend */
-  #legend{display:flex; gap:18px; flex-wrap:wrap; margin-top:10px; padding:0 6px;
+  #ticker .amt{color:var(--amber); font-weight:700}
+  #legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; padding:0 6px;
        color:var(--dim); font-size:12px; align-items:center}
   #legend .k{display:flex; align-items:center; gap:6px}
-  #legend .sw{width:13px; height:13px; border-radius:50%; display:inline-block}
-  #legend .ln{width:20px; height:0; border-top:2.5px solid; display:inline-block; border-radius:2px}
-  /* controls */
+  #legend .sw{width:13px; height:13px; border-radius:3px; display:inline-block}
+  #legend .ln{width:20px; border-top:2.5px solid; display:inline-block; border-radius:2px}
   #controls{display:flex; align-items:center; gap:12px; margin-top:12px; flex-wrap:wrap}
   button,select{background:var(--panel); color:var(--cyan); border:1px solid var(--line);
        border-radius:8px; padding:6px 16px; font:inherit; font-weight:700; cursor:pointer}
   button:hover,select:hover{border-color:var(--dim)}
   #scrub{flex:1; min-width:180px; -webkit-appearance:none; appearance:none; height:5px;
        background:#1d1b2e; border-radius:3px; outline:none}
-  #scrub::-webkit-slider-thumb{-webkit-appearance:none; width:15px; height:15px;
-       border-radius:50%; background:var(--cyan); cursor:pointer}
-  #scrub::-moz-range-thumb{width:15px; height:15px; border:none; border-radius:50%;
+  #scrub::-webkit-slider-thumb{-webkit-appearance:none; width:15px; height:15px; border-radius:50%;
        background:var(--cyan); cursor:pointer}
+  #scrub::-moz-range-thumb{width:15px; height:15px; border:none; border-radius:50%; background:var(--cyan); cursor:pointer}
   #tick{color:var(--mut); min-width:120px; text-align:right; font-size:12px}
-  #drop{border:1px dashed var(--line); border-radius:12px; padding:24px; text-align:center;
-       color:var(--mut); margin-bottom:12px}
+  #drop{border:1px dashed var(--line); border-radius:12px; padding:24px; text-align:center; color:var(--mut); margin-bottom:12px}
   #drop.hover{border-color:var(--cyan); color:var(--cyan)}
-  #nametag{position:fixed; display:none; background:rgba(9,8,16,.94); border:1px solid var(--line);
-       border-radius:8px; padding:7px 10px; font-size:12px; color:var(--ink);
-       pointer-events:none; z-index:10; max-width:240px; line-height:1.45}
+  #nametag{position:fixed; display:none; background:rgba(9,8,16,.95); border:1px solid var(--line);
+       border-radius:8px; padding:7px 10px; font-size:12px; color:var(--ink); pointer-events:none;
+       z-index:10; max-width:230px; line-height:1.45}
   #nametag .t{color:var(--dim)}
 </style>
 </head>
 <body>
 <header>
   <h1>THE DRONE ECONOMY <span>— same asteroids, same robots, different economics</span></h1>
-  <div id="badge"><a href="/leaderboard.html" style="color:#f4d38a;text-decoration:none">arena.snhp.dev</a> · replay of a real committed simulation · reproducible from the repo</div>
+  <div id="badge"><a href="/leaderboard.html">arena.snhp.dev</a> · replay of a real committed simulation · reproducible from the repo</div>
 </header>
 
 <div id="score" style="display:none">
@@ -88,434 +86,452 @@
 <div id="drop">drop 1–2 trace <b>.jsonl</b> files here (same seed = a fair race) — or serve with <b>?trace=…&amp;trace2=…</b></div>
 <div id="panels"></div>
 
-<div id="ticker" style="display:none"><span id="ticker-inner">▶ press play — every deal that happens gets narrated here in plain english</span></div>
+<div id="ticker" style="display:none;opacity:0"><span id="ticker-inner"></span></div>
 
 <div id="legend" style="display:none">
-  <span class="k"><span class="sw" style="background:linear-gradient(90deg,#e0524d,#e8c93f,#57c957)"></span>drone · color = battery</span>
-  <span class="k"><span class="sw" style="background:#3a3f45; position:relative">
-    <svg width="13" height="13" style="position:absolute;inset:0"><path d="M3 3l7 7M10 3l-7 7" stroke="#aaa" stroke-width="1.6"/></svg></span>adrift (dead battery)</span>
-  <span class="k"><span class="ln" style="border-color:#ffffff"></span>a DEAL (multi-part trade)</span>
-  <span class="k"><span class="ln" style="border-color:var(--cyan)"></span>energy moves</span>
-  <span class="k"><span class="ln" style="border-color:var(--amber)"></span>ore moves</span>
-  <span class="k">▣ ore &nbsp;·&nbsp; ⚡ energy &nbsp;·&nbsp; ↔ traded for</span>
+  <span class="k"><span class="sw" style="background:linear-gradient(90deg,#e0524d,#e8c93f,#57c957)"></span>crab-drone · color = battery</span>
+  <span class="k"><span class="sw" style="background:#3a3742"></span>✕ adrift (dead battery)</span>
+  <span class="k"><span class="ln" style="border-color:#fff"></span>a DEAL (multi-part trade)</span>
+  <span class="k"><span class="ln" style="border-color:var(--cyan)"></span>energy</span>
+  <span class="k"><span class="ln" style="border-color:var(--amber)"></span>ore</span>
+  <span class="k">▣ ore · ⚡ energy · ↔ traded for</span>
   <span class="k" id="legend-co"></span>
 </div>
 
 <div id="controls">
   <button id="playBtn">▶ play</button>
   <select id="speed">
-    <option value="0.25">¼×</option><option value="1" selected>1×</option>
-    <option value="4">4×</option><option value="16">16×</option><option value="64">64×</option>
+    <option value="0.6">Read</option><option value="1.4" selected>Brisk</option><option value="3" >Skim</option>
   </select>
-  <input type="range" id="scrub" min="1" max="1" value="1" step="1">
+  <input type="range" id="scrub" min="0" max="1" value="0" step="1">
   <span id="tick">tick 0 / 0</span>
 </div>
-
 <div id="nametag"></div>
 
 <script>
 "use strict";
-const XFER_COLORS = {energy:"#7fe0ff", cargo:"#ffcf8a", sector:"#c9a6ff"};
+/* ═══════════ THE DRONE ECONOMY — pixel-art replay ═══════════
+   Craft from block/web (low-res backbuffer, cached fillRect sprites, sel-out
+   outlines, additive glow). Animation follows Disney's principles + a Vox/
+   Johnny-Harris explainer grammar (see research/swarm/review/): easeInOutCubic
+   on ALL motion at every speed, deals STAGE (dim the rest — humans track ~4
+   moving objects), the trade-arc DRAWS ITSELF, the receipt POPS with outBack
+   overshoot, scores COUNT UP with easing. Deal FX play on wall-clock ms so a
+   beat stays legible no matter the sim speed; crabs move on eased sim time. */
+
+const CELL = 10, MARGIN = 12, GRID = 32;
+const LOW = GRID * CELL + MARGIN * 2;
+const w2p = g => MARGIN + (g + 0.5) * CELL;
 const COMPANY = ["#7fb4ff", "#ffb26e"];
-const ARC_FADE = 32;
+const BASE_TPS = 16;                                   // ticks/sec at "Read" base×0.6 ≈ 10; ×3 ≈ 48
+const DEAL_MS = 1500;
+const FF = "ui-monospace, Menlo, monospace";
 
-/* plain-language identities for every arm in the repo */
 const FLEETS = {
-  "null":       ["LONER FLEET", "#8a8794", "no coordination at all — every drone hauls alone"],
-  "rules":      ["CHARITY FLEET", "#8ee08a", "shares battery when a neighbor runs low — the classic swarm rule"],
-  "auction":    ["AUCTION FLEET", "#e58ab4", "cargo goes to the cheapest hauler — one price, nothing else tradeable"],
-  "auction-co": ["WALLED AUCTION", "#e58ab4", "auctions, but never across company lines"],
-  "team":       ["HIVE MIND", "#c9a6ff", "one merged super-fleet, centrally cooperative"],
-  "team-co":    ["TWO HIVES", "#c9a6ff", "cooperative inside each company; strangers ignored"],
-  "twofirm":    ["TWO FIRMS", "#7fe0ff", "cooperative inside; NEGOTIATES at the company border"],
-  "snhp":       ["BARGAINING FLEET", "#7fe0ff", "drones strike multi-part deals: ore ↔ energy ↔ mining claims"],
-  "snhp-hz":    ["BARGAINING FLEET", "#7fe0ff", "multi-part deals, and each drone prices its own risk of dying"],
-  "snhp+net":   ["BARGAINING + SAFETY NET", "#7fe0ff", "deals for everything, plus unconditional rescue of the dying"],
-  "trust-open-hz":  ["TRUSTING FLEET", "#c9a6ff", "believes every reported number — cooperation with no verification"],
-  "trust-gated-hz": ["ATTESTATION-GATED", "#8ee08a", "cooperates only with verified books; everyone else must bargain"],
+  "null":["LONER FLEET","#8a8794","no coordination — every drone hauls alone"],
+  "rules":["CHARITY FLEET","#8ee08a","shares battery when a neighbor runs low — the classic swarm rule"],
+  "auction":["AUCTION FLEET","#e58ab4","cargo goes to the cheapest hauler — one price, nothing else tradeable"],
+  "auction-co":["WALLED AUCTION","#e58ab4","auctions, but never across company lines"],
+  "team":["HIVE MIND","#c9a6ff","one merged super-fleet, centrally cooperative"],
+  "team-co":["TWO HIVES","#c9a6ff","cooperative inside each company; strangers ignored"],
+  "twofirm":["TWO FIRMS","#7fe0ff","cooperative inside; NEGOTIATES at the company border"],
+  "snhp":["BARGAINING FLEET","#7fe0ff","crabs strike multi-part deals: ore ↔ energy ↔ mining claims"],
+  "snhp-hz":["BARGAINING FLEET","#7fe0ff","multi-part deals, and each crab prices its own risk of dying"],
+  "snhp+net":["BARGAINING + SAFETY NET","#7fe0ff","deals for everything, plus unconditional rescue of the dying"],
+  "trust-open-hz":["TRUSTING FLEET","#c9a6ff","believes every reported number — cooperation with no verification"],
+  "trust-gated-hz":["ATTESTATION-GATED","#8ee08a","cooperates only with verified books; everyone else must bargain"],
 };
-function fleet(arm){
-  const base = arm.replace(/-hz$/, "");
-  return FLEETS[arm] || FLEETS[base] || [arm.toUpperCase(), "#7fe0ff", ""];
-}
+const fleet = a => FLEETS[a] || FLEETS[a.replace(/-hz$/,"")] || [a.toUpperCase(),"#7fe0ff",""];
 
-let traces = [], cur = 1, playing = false, tickerQ = [], tickerAt = 0;
 const $ = id => document.getElementById(id);
+let traces = [], simT = 0, playing = false, maxT = 1, frozen = false;
 
-function parseTrace(text){
-  const ticks = [], byTick = {};
-  let header = null;
-  for (const line of text.split("\n")){
-    if (!line.trim()) continue;
-    const o = JSON.parse(line);
-    if (o.type === "header") header = o;
-    else if (o.type === "tick") ticks[o.t] = o;
-    else { o.t += 1; (byTick[o.t] = byTick[o.t] || []).push(o); }
-  }
-  const maxT = ticks.length - 1;
-  // prefix counts so the frame loop never scans full history (perf)
-  const cumX = new Array(maxT + 2).fill(0), cumD = new Array(maxT + 2).fill(0);
-  for (let t = 1; t <= maxT; t++){
-    cumX[t] = cumX[t - 1]; cumD[t] = cumD[t - 1];
-    for (const e of (byTick[t] || [])){
-      if (e.type === "xfer") cumX[t]++; else cumD[t]++;
-    }
-  }
-  return {header, ticks, byTick, maxT, cumX, cumD};
+/* ── easing (research/swarm/review) ── */
+const easeIO = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+const easeOut = t => 1-Math.pow(1-t,3);
+const easeExpo = t => t===1?1:1-Math.pow(2,-10*t);
+const easeBack = t => { const c1=1.70158,c3=c1+1; return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2); };
+const clamp01 = x => x<0?0:x>1?1:x;
+function mix(h1,h2,t){const a=parseInt(h1.slice(1),16),b=parseInt(h2.slice(1),16);
+  const A=[(a>>16)&255,(a>>8)&255,a&255],B=[(b>>16)&255,(b>>8)&255,b&255];
+  const L=(x,y)=>Math.round(x+(y-x)*t);
+  return "#"+[L(A[0],B[0]),L(A[1],B[1]),L(A[2],B[2])].map(v=>v.toString(16).padStart(2,"0")).join("");}
+function batHue(b){const t=clamp01(b/100);   // saturated Galaga ramp: red→gold→green
+  return t<0.5 ? mix("#ff4d4d","#ffd23a",t*2) : mix("#ffd23a","#4fe06a",(t-0.5)*2);}
+
+/* ── crab-drone sprite cache ── */
+const CW=15, CH=13, PAD=1, _crab=new Map();
+function crab(batBucket, company, load, frame, dead){
+  const k=batBucket+"|"+company+"|"+Math.min(load,4)+"|"+frame+"|"+(dead?1:0);
+  if(_crab.has(k)) return _crab.get(k);
+  const hue=dead?"#3a3742":batHue(batBucket*12.5);
+  const cv=document.createElement("canvas"); cv.width=CW; cv.height=CH;
+  const c=cv.getContext("2d"); c.imageSmoothingEnabled=false;
+  const px=(x,y,wd,ht,col)=>{c.fillStyle=col;c.fillRect(PAD+x,PAD+y,wd,ht);};
+  const shell=hue, shellHi=dead?"#4a4754":mix(hue,"#fff",.30), shellLo=dead?"#2a2830":mix(hue,"#000",.35);
+  const leg=dead?"#3a3742":mix(hue,"#000",.15);
+  const rim=dead?"#4a4754":(company===0?COMPANY[0]:company===1?COMPANY[1]:"#c9a6ff");
+  [3,6,9].forEach((y,i)=>{const up=(frame+i)%2;
+    px(0,y+up,2,1,leg); px(1,y+up-1,1,1,leg);
+    px(11,y-up,2,1,leg); px(12,y-up+1,1,1,leg);});
+  px(3,3,7,6,shell); px(4,2,5,1,shell); px(4,9,5,1,shell);
+  px(3,4,1,4,shell); px(9,4,1,4,shell); px(2,5,1,2,shell); px(10,5,1,2,shell);
+  px(4,3,5,1,shellHi); px(3,8,7,1,shellLo);
+  if(!dead) px(4,2,3,1,mix(hue,"#c9d4ff",.55));          // rim-light (cool top edge)
+  px(3,3,1,1,rim); px(9,3,1,1,rim);                       // company shoulder studs
+  px(9,1,1,2,leg); px(10,0,1,1,"#101018"); px(11,1,1,1,dead?"#555":"#fff"); // eyestalk+eye
+  px(11,4,2,1,leg); px(12,3,1,1,leg); px(12,5,1,1,leg);   // claw
+  for(let j=0;j<Math.min(load,4);j++) px(4+(j%2)*3,4+((j/2)|0)*2,2,1,"#ffcf8a"); // ore
+  if(dead){c.strokeStyle="#9a94a8";c.lineWidth=1;c.beginPath();
+    c.moveTo(4,3.5);c.lineTo(9,9.5);c.moveTo(9,3.5);c.lineTo(4,9.5);c.stroke();}
+  const out=outline(cv, dead?"#26242f":"#0d0a14"); _crab.set(k,out); return out;
 }
+function outline(cv, ocol){
+  const c=cv.getContext("2d"), img=c.getImageData(0,0,CW,CH), d=img.data;
+  const idx=(x,y)=>(y*CW+x)*4, op=(x,y)=>x>=0&&x<CW&&y>=0&&y<CH&&d[idx(x,y)+3]>0;
+  const out=document.createElement("canvas"); out.width=CW; out.height=CH;
+  const oc=out.getContext("2d"); oc.imageSmoothingEnabled=false; oc.drawImage(cv,0,0);
+  oc.fillStyle=ocol;
+  for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){ if(op(x,y))continue;
+    if(op(x-1,y)||op(x+1,y)||op(x,y-1)||op(x,y+1))oc.fillRect(x,y,1,1);}
+  return out;
+}
+function rnd(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 
-/* ── plain-language deal text ── */
-function dealWords(e, h){
-  const who = (i) => "#" + i;
-  if (e.type === "deal"){
-    const parts = [];
-    if (e.q) parts.push(`${Math.abs(e.q)} ore`);
-    if (e.e) parts.push(`${Math.abs(e.e)}⚡ energy`);
-    let s = `DEAL ${who(e.a)}↔${who(e.b)}: ` + (parts.length === 2 ? parts.join(" for ") : parts[0] || "");
-    if (e.s) s += (parts.length ? " + " : "") + "swap mining claims";
-    return s;
+/* ── sites: BODY drawn in the low-res buffer (c), LABEL on the crisp overlay
+   (L, a {ctx, s} where s = display px per backbuffer px) ── */
+function lbl(L, gx, gy, dy, color, text, size){
+  L.ctx.fillStyle=color; L.ctx.font=`${size||9}px ${FF}`; L.ctx.textAlign="center";
+  L.ctx.fillText(text, w2p(gx)*L.s, (w2p(gy)+dy)*L.s);
+}
+/* chunky pixel rock, cached by (seed, ore-bucket): lambert-shaded facets, a
+   lumpy silhouette, craters, and sockets where ore crystals sit (glow live). */
+const _ast=new Map();
+function astSprite(seed, stock){
+  const bucket=Math.max(1, Math.min(9, Math.ceil(stock/2.5)));
+  const key=seed+"|"+bucket; if(_ast.has(key)) return _ast.get(key);
+  const rad=6+bucket*1.7, S=Math.ceil(rad*2)+8, cx=S/2, cy=S/2, rr=rnd(seed*131+bucket);
+  const cv=document.createElement("canvas"); cv.width=S; cv.height=S;
+  const c=cv.getContext("2d"); c.imageSmoothingEnabled=false;
+  const bumps=[]; for(let i=0;i<12;i++) bumps.push(0.8+0.3*rr());
+  const rAt=ang=>{const f=ang/6.283*12, i=Math.floor(f)%12, t=f-Math.floor(f); return rad*(bumps[i]*(1-t)+bumps[(i+1)%12]*t);};
+  const SHAD="#241a12", MID="#4a3826", LIT="#7a5e42", RIM="#a8895c";
+  for(let y=-rad-3;y<=rad+3;y++)for(let x=-rad-3;x<=rad+3;x++){
+    const d=Math.hypot(x,y*1.12), ang=Math.atan2(y,x)+Math.PI; const R=rAt(ang);
+    if(d>R) continue;
+    const light=(-x*0.72-y*0.72)/rad;
+    let col = d>R-1.4 ? (light>0.05?RIM:SHAD) : (light>0.34?LIT:light>-0.12?MID:SHAD);
+    c.fillStyle=col; c.fillRect((cx+x)|0,(cy+y)|0,1,1);
   }
-  if (e.kind === "energy") return `${who(e.src)} tops up ${who(e.dst)} (+${Math.round(e.amt)}⚡)`;
-  if (e.kind === "cargo") return `${who(e.src)} hands ${e.amt} ore to ${who(e.dst)}`;
-  return `${who(e.src)} and ${who(e.dst)} swap mining claims`;
+  for(let k=0;k<1+(bucket>>2);k++){ const a=rr()*6.283, dd=rr()*rad*0.5, px=cx+Math.cos(a)*dd, py=cy+Math.sin(a)*dd;
+    c.fillStyle=SHAD; c.fillRect((px-1)|0,(py-1)|0,3,2); c.fillStyle=RIM; c.fillRect((px-1)|0,(py-2)|0,3,1); }
+  const ore=[]; for(let k=0;k<Math.min(bucket,5);k++){ const a=rr()*6.283, dd=0.25*rad+rr()*rad*0.5;
+    ore.push([cx+Math.cos(a)*dd, cy+Math.sin(a)*dd]); }
+  const out={cv,ore,S,rad}; _ast.set(key,out); return out;
+}
+function drawAsteroid(c, L, gx, gy, seed, stock, aT){
+  const cx=w2p(gx), cy=w2p(gy), a=astSprite(seed, stock);
+  if(stock<=0){ c.globalAlpha=.55; c.drawImage(a.cv,(cx-a.S/2)|0,(cy-a.S/2)|0); c.globalAlpha=1;
+    lbl(L,gx,gy,-a.rad-6,"#6a5c48","mined out"); return; }
+  c.drawImage(a.cv,(cx-a.S/2)|0,(cy-a.S/2)|0);
+  for(const [ox,oy] of a.ore){ const px=(cx-a.S/2+ox)|0, py=(cy-a.S/2+oy)|0, pulse=.55+.45*Math.sin(aT*3+ox);
+    glow(c,px,py,4,"#ffce5a",0.55*pulse);
+    c.fillStyle="#ffe27a"; c.fillRect(px-1,py,3,1); c.fillRect(px,py-1,1,3); c.fillStyle="#fff6d0"; c.fillRect(px,py,1,1); }
+  lbl(L,gx,gy,-a.rad-6,"#ffce5a","⛏ "+stock);
+}
+function drawRefinery(c, L, gx, gy, count, color, tag, aT){
+  const cx=w2p(gx), cy=w2p(gy), r=13;                      // LARGE — a real station
+  glow(c,cx,cy,r*1.8,color,0.16);                          // station halo
+  // outer hull ring
+  c.beginPath();
+  for(let i=0;i<6;i++){const a=Math.PI/6+i/6*6.283;
+    i?c.lineTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r):c.moveTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r);}
+  c.closePath(); c.fillStyle=mix(color,"#04030a",.80); c.fill();
+  c.strokeStyle=color; c.lineWidth=2; c.stroke();
+  // 6 dock struts
+  for(let i=0;i<6;i++){const a=Math.PI/6+i/6*6.283; c.strokeStyle=mix(color,"#04030a",.35); c.lineWidth=1;
+    c.beginPath(); c.moveTo(cx+Math.cos(a)*4,cy+Math.sin(a)*4); c.lineTo(cx+Math.cos(a)*(r-1),cy+Math.sin(a)*(r-1)); c.stroke();}
+  // spinning bright intake core
+  c.save(); c.translate(cx,cy); c.rotate(aT*1.4);
+  c.fillStyle=mix(color,"#fff",.5); for(let i=0;i<4;i++){const a=i/4*6.283; c.fillRect(Math.cos(a)*4-1,Math.sin(a)*4-1,2,2);}
+  c.restore();
+  c.fillStyle=mix(color,"#fff",.7); c.fillRect(cx-1,cy-1,3,3);   // hot core
+  const puff=(aT*7)%7; c.fillStyle=mix(color,"#fff",.5);
+  c.globalAlpha=clamp01(1-puff/7)*.6; c.fillRect((cx+r-4)|0,(cy-r-puff)|0,2,3); c.globalAlpha=1;
+  lbl(L, gx, gy, -r-5, color, "⬢ REFINERY"+tag, 10);
+  lbl(L, gx, gy, r+11, mix(color,"#fff",.25), count+" refined", 11);
+}
+function drawCharger(c, L, gx, gy, color, aT){
+  const cx=w2p(gx), cy=w2p(gy), pulse=.5+.5*Math.sin(aT*5);   // MEDIUM — electric pylon
+  glow(c,cx,cy,12,color,0.12+0.10*pulse);
+  for(let i=0;i<8;i++){const a=i/8*6.283+aT*0.3;
+    c.strokeStyle=color; c.globalAlpha=.55+.4*pulse; c.lineWidth=1.4; c.beginPath();
+    c.moveTo(cx+Math.cos(a)*4,cy+Math.sin(a)*4); c.lineTo(cx+Math.cos(a)*(7+pulse*3),cy+Math.sin(a)*(7+pulse*3)); c.stroke();}
+  c.globalAlpha=1;
+  c.fillStyle=mix(color,"#04030a",.4); c.beginPath(); c.arc(cx,cy,4.5,0,6.283); c.fill();
+  c.strokeStyle=color; c.lineWidth=1.6; c.stroke();
+  c.fillStyle=mix(color,"#fff",.6); c.fillRect(cx-1,cy-3,2,6); c.fillRect(cx-3,cy-1,6,2);  // bright ⚡ plus
+  lbl(L, gx, gy, 13, color, "charge");
+}
+function glow(c,x,y,r,col,a){ if(a<=0)return;
+  const n=parseInt(col.slice(1),16), R=(n>>16)&255,G=(n>>8)&255,B=n&255;
+  c.globalCompositeOperation="lighter";
+  const g=c.createRadialGradient(x,y,0,x,y,r);
+  g.addColorStop(0,`rgba(${R},${G},${B},${a})`); g.addColorStop(1,`rgba(${R},${G},${B},0)`);
+  c.fillStyle=g; c.fillRect(x-r,y-r,r*2,r*2); c.globalCompositeOperation="source-over"; }
+
+/* ── traces ── */
+function parseTrace(text){
+  const ticks=[], byTick={}; let header=null;
+  for(const line of text.split("\n")){ if(!line.trim())continue;
+    const o=JSON.parse(line);
+    if(o.type==="header") header=o;
+    else if(o.type==="tick") ticks[o.t]=o;
+    else { o.t+=1; (byTick[o.t]=byTick[o.t]||[]).push(o); } }
+  return {header, ticks, byTick, maxT:ticks.length-1};
+}
+function dealWords(e){ const who=i=>"crab #"+i;
+  if(e.type==="deal"){ const p=[];
+    if(e.q) p.push(`${Math.abs(e.q)} ore`); if(e.e) p.push(`${Math.abs(e.e)}⚡ energy`);
+    let s=`<b>${who(e.a)} ↔ ${who(e.b)}</b>: `+(p.length===2?p.join(" <span class='amt'>for</span> "):p[0]||"");
+    if(e.s) s+=(p.length?" + ":"")+"swap mining claims"; return s; }
+  if(e.kind==="energy") return `<b>${who(e.src)}</b> tops up <b>${who(e.dst)}</b> <span class="amt">+${Math.round(e.amt)}⚡</span>`;
+  if(e.kind==="cargo") return `<b>${who(e.src)}</b> hands <span class="amt">${e.amt} ore</span> to <b>${who(e.dst)}</b>`;
+  return `<b>${who(e.src)}</b> &amp; <b>${who(e.dst)}</b> swap mining claims`;
 }
 function dealGlyph(e){
-  if (e.type !== "deal")
-    return e.kind === "energy" ? Math.round(e.amt) + "⚡" :
-           e.kind === "cargo" ? e.amt + "▣" : "claims↔";
-  const p = [];
-  if (e.q) p.push(Math.abs(e.q) + "▣");
-  if (e.e) p.push(Math.abs(e.e) + "⚡");
-  let cap = p.join("↔");
-  if (e.s) cap += (cap ? "+" : "") + "claims";
-  return cap;
+  if(e.type!=="deal") return e.kind==="energy"?Math.round(e.amt)+"⚡":e.kind==="cargo"?e.amt+"▣":"claims";
+  const p=[]; if(e.q)p.push(Math.abs(e.q)+"▣"); if(e.e)p.push(Math.abs(e.e)+"⚡");
+  let s=p.join("↔"); if(e.s)s+=(s?"+":"")+"claims"; return s;
 }
 
+function sizeFg(tr){
+  const st=tr.panel.stage, dpr=window.devicePixelRatio||1, cw=st.clientWidth||360;
+  st.style.height=cw+"px";                                // keep it square
+  const fg=tr.panel.fg;
+  fg.width=cw*dpr; fg.height=cw*dpr;
+  tr.panel.fctx=fg.getContext("2d");
+  tr.panel.fctx.setTransform(dpr,0,0,dpr,0,0);
+  tr.panel.s=cw/LOW;                                      // display px per backbuffer px
+}
 function buildPanels(){
-  const root = $("panels");
-  root.innerHTML = "";
-  for (const tr of traces){
-    const [name, color, sub] = fleet(tr.header.arm);
-    const div = document.createElement("div");
-    div.className = "panel";
-    div.innerHTML = `<h2><span class="dot" style="background:${color}"></span>${name}</h2>
-      <div class="sub">${sub}</div><canvas></canvas>`;
+  const root=$("panels"); root.innerHTML="";
+  for(const tr of traces){
+    const [name,color,sub]=fleet(tr.header.arm);
+    const div=document.createElement("div"); div.className="panel";
+    div.innerHTML=`<h2><span class="dot" style="background:${color}"></span>${name}</h2>
+      <div class="sub">${sub}</div>
+      <div class="stage"><canvas class="bg" width="${LOW}" height="${LOW}"></canvas><canvas class="fg"></canvas></div>`;
     root.appendChild(div);
-    tr.panel = {canvas: div.querySelector("canvas"), color, name};
-    tr.panel.canvas.addEventListener("mousemove", ev => hover(tr, ev));
-    tr.panel.canvas.addEventListener("mouseleave", () => $("nametag").style.display = "none");
+    const bg=div.querySelector(".bg"), fg=div.querySelector(".fg");
+    const ctx=bg.getContext("2d"); ctx.imageSmoothingEnabled=false;
+    tr.panel={stage:div.querySelector(".stage"), bg, fg, ctx, color, name, fx:[], disp:0};
+    sizeFg(tr);
+    fg.addEventListener("mousemove", ev=>hover(tr,ev));
+    fg.addEventListener("mouseleave", ()=>$("nametag").style.display="none");
   }
-  $("scrub").max = Math.max(...traces.map(t => t.maxT));
-  cur = 1; tickerQ = []; tickerAt = 0;
-  const two = traces.length === 2;
-  $("score").style.display = two ? "flex" : "none";
-  $("ticker").style.display = $("legend").style.display = "flex";
-  if (traces[0] && traces[0].header.robots.some(r => r.company !== undefined)){
-    $("legend-co").innerHTML =
-      `<span class="sw" style="background:transparent;border:2.5px solid ${COMPANY[0]}"></span>Company A ·
-       <span class="sw" style="background:transparent;border:2.5px solid ${COMPANY[1]}"></span>Company B (ring)`;
+  window.onresize=()=>{ for(const tr of traces) sizeFg(tr); };
+  maxT=Math.max(...traces.map(t=>t.maxT)); $("scrub").max=maxT; simT=0;
+  $("score").style.display=traces.length===2?"flex":"none";
+  $("ticker").style.display=$("legend").style.display="flex";
+  if(traces[0]&&traces[0].header.robots.some(r=>r.company!==undefined))
+    $("legend-co").innerHTML=`<span class="sw" style="background:transparent;border:2px solid ${COMPANY[0]}"></span>Company A ·
+      <span class="sw" style="background:transparent;border:2px solid ${COMPANY[1]}"></span>Company B`;
+  if(traces.length===2) for(const i of [0,1]){
+    const el=$("sc"+i); el.querySelector(".name").textContent=traces[i].panel.name;
+    el.querySelector(".name").style.color=traces[i].panel.color;
+    el.querySelector(".bar i").style.background=traces[i].panel.color; }
+}
+
+/* ── render one panel: WORLD → bg (pixelated), TEXT+DEALS → fg (crisp) ── */
+function drawPanel(tr, aT){
+  const c=tr.panel.ctx, fc=tr.panel.fctx, s=tr.panel.s, L={ctx:fc, s};
+  const h=tr.header, ticks=tr.ticks, byTick=tr.byTick;
+  const T=Math.min(Math.floor(simT), tr.maxT), rec=ticks[T]; if(!rec) return;
+  const nxt=ticks[Math.min(T+1,tr.maxT)]||rec, frac=easeIO(simT-Math.floor(simT));
+  fc.clearRect(0,0,LOW*s,LOW*s);                          // clear the crisp overlay
+  const P2=(gx,gy)=>[w2p(gx)*s, w2p(gy)*s];               // grid → overlay px
+
+  c.fillStyle="#040308"; c.fillRect(0,0,LOW,LOW);
+  // Fatbeard nebula haze (depth) + Galaga blinking colored parallax starfield
+  if(!tr.stars){ const r=rnd(h.seed*7919+17); tr.stars=[]; tr.neb=[];
+    const SC=[[255,255,255],[150,232,255],[255,214,120],[255,150,196]];
+    for(let i=0;i<160;i++){ const tier=r();
+      tr.stars.push([r()*LOW|0, r()*LOW|0, tier>0.92?2:1, SC[(r()*4)|0], r()*6.283, 1.4+r()*3.2, r()<0.32, 0.22+tier*0.78]); }
+    for(let i=0;i<3;i++) tr.neb.push([r()*LOW, r()*LOW, 46+r()*54, ["#3a2560","#123a4a","#3a1846"][i]]); }
+  for(const nb of tr.neb) glow(c, nb[0],nb[1], nb[2], nb[3], 0.05);
+  for(const s of tr.stars){
+    const blink = s[6] ? (Math.sin(aT*s[5]+s[4])>0?1:0.12) : (0.55+0.45*Math.sin(aT*s[5]+s[4]));
+    const a=s[7]*blink; if(a<0.05) continue;
+    const [R,G,B]=s[3]; c.fillStyle=`rgba(${R},${G},${B},${a})`; c.fillRect(s[0],s[1],s[2],s[2]);
+    if(s[2]>1 && blink>0.7){ c.globalAlpha=a*0.45;   // twinkle cross on bright stars
+      c.fillRect(s[0]-1,s[1],1,1); c.fillRect(s[0]+2,s[1],1,1); c.fillRect(s[0],s[1]-1,1,1); c.fillRect(s[0],s[1]+2,1,1); c.globalAlpha=1; } }
+
+  const now=performance.now();
+  if(!frozen) tr.panel.fx=tr.panel.fx.filter(f=>now-f.born<DEAL_MS);
+  const fage=f=>frozen?0.42:(now-f.born)/DEAL_MS;         // freeze holds the beat mid-pose
+  const spot=new Set(); let midx=0,midy=0,nmid=0;
+  for(const f of tr.panel.fx){ if(fage(f)<.72){ spot.add(f.a); spot.add(f.b);
+    const ar=rec.r[f.a],br=rec.r[f.b]; if(ar&&br){ midx+=w2p((ar[0]+br[0])/2); midy+=w2p((ar[1]+br[1])/2); nmid++; } } }
+  const staged=spot.size>0;
+
+  for(let i=0;i<h.sources.length;i++) drawAsteroid(c, L, h.sources[i][0],h.sources[i][1], 101+i*37, rec.stock[i], aT);
+  const refs=h.refineries||[{pos:h.sink,owner:null}];
+  for(const rf of refs){ const o=rf.owner;
+    drawRefinery(c, L, rf.pos[0],rf.pos[1], (rec.co&&o!==null)?rec.co[o]:rec.delivered,
+      o===null?"#8ee08a":COMPANY[o], o===null?"":(o?" B":" A"), aT); }
+  for(const ch of (h.chargers||[{pos:h.charger,owner:null}]))
+    drawCharger(c, L, ch.pos[0],ch.pos[1], ch.owner===null?"#7fe0ff":COMPANY[ch.owner], aT);
+
+  // staging: radial vignette that darkens all but the dealing pair (guided attention)
+  if(staged){ const sx=nmid?midx/nmid:LOW/2, sy=nmid?midy/nmid:LOW/2;
+    const g=c.createRadialGradient(sx,sy,CELL*2,sx,sy,LOW*.7);
+    g.addColorStop(0,"rgba(7,6,13,0)"); g.addColorStop(1,"rgba(7,6,13,0.62)");
+    c.fillStyle=g; c.fillRect(0,0,LOW,LOW); }
+
+  tr.panel.pts=[];
+  const order=rec.r.map((_,i)=>i).sort((a,b)=>{
+    const ya=rec.r[a][1]+(nxt.r[a][1]-rec.r[a][1])*frac, yb=rec.r[b][1]+(nxt.r[b][1]-rec.r[b][1])*frac; return ya-yb;});
+  for(const i of order){
+    const a=rec.r[i], n=nxt.r[i];
+    const gx=a[0]+(n[0]-a[0])*frac, gy=a[1]+(n[1]-a[1])*frac, x=w2p(gx), y=w2p(gy);
+    const dead=a[4], vx=n[0]-a[0], vy=n[1]-a[1], moving=Math.abs(vx)+Math.abs(vy)>0.01;
+    const facing=vx<-0.01?-1:1, frame=moving?(Math.floor(aT*7+i)%2):0;
+    const dim=staged && !spot.has(i);
+    tr.panel.pts.push([x,y,i]);
+    c.globalAlpha=dim?0.12:0.32; c.fillStyle="#000";
+    c.beginPath(); c.ellipse(x,y+7,5,1.5,0,0,6.283); c.fill(); c.globalAlpha=1;
+    if(!dead && a[2]>60 && !dim) glow(c,x,y,9,batHue(a[2]),0.10);
+    if(spot.has(i)) glow(c,x,y,13,batHue(a[2]),0.20);        // hero halo
+    if(moving && !dead && !dim){                             // thruster flame at the rear
+      const bl=Math.hypot(vx,vy)||1, rx=x-vx/bl*7, ry=y-vy/bl*7;
+      glow(c,rx,ry,4,"#8fe8ff",0.32);
+      c.fillStyle="#bff2ff"; c.fillRect((rx-1)|0,(ry-1)|0,2,2); c.fillStyle="#eafcff"; c.fillRect(rx|0,ry|0,1,1); }
+    const spr=crab(Math.round(a[2]/12.5), h.robots[i].company??-1, a[3], frame, dead);
+    c.globalAlpha=dim?0.32:1;
+    // squash & stretch along heading on fast movement (subtle at this size)
+    const sp=Math.hypot(vx,vy), kk=clamp01(sp*0.35)*0.14;
+    if(kk>0.01 && !dead){ c.save(); c.translate(x,y); c.rotate(Math.atan2(vy,vx)*facing);
+      c.scale(1+kk,1-kk*0.6);
+      if(facing<0){c.translate(CW/2,-CH/2);c.scale(-1,1);c.drawImage(spr,0,0);}
+      else c.drawImage(spr,(-CW/2)|0,(-CH/2)|0); c.restore(); }
+    else if(facing<0){ c.save(); c.translate((x+CW/2)|0,(y-CH/2)|0); c.scale(-1,1); c.drawImage(spr,0,0); c.restore(); }
+    else c.drawImage(spr,(x-CW/2)|0,(y-CH/2)|0);
+    c.globalAlpha=1;
   }
-  if (two){
-    for (const i of [0, 1]){
-      const el = $("sc" + i);
-      el.querySelector(".name").textContent = traces[i].panel.name;
-      el.querySelector(".name").style.color = traces[i].panel.color;
-      el.querySelector(".bar i").style.background = traces[i].panel.color;
+
+  // deal beats on the CRISP overlay: self-drawing arc → pulse dot → receipt
+  for(const f of tr.panel.fx){
+    const age=fage(f), ar=rec.r[f.a], br=rec.r[f.b]; if(!ar||!br) continue;
+    const [ax,ay]=P2(ar[0]+(nxt.r[f.a][0]-ar[0])*frac, ar[1]+(nxt.r[f.a][1]-ar[1])*frac);
+    const [bx,by]=P2(br[0]+(nxt.r[f.b][0]-br[0])*frac, br[1]+(nxt.r[f.b][1]-br[1])*frac);
+    const mx=(ax+bx)/2, my=(ay+by)/2-CELL*1.4*s+Math.sin(aT*3)*1.5;
+    const col=f.deal?"#ffffff":({energy:"#7fe0ff",cargo:"#ffcf8a",sector:"#c9a6ff"}[f.kind]||"#fff");
+    const grow=easeOut(clamp01(age/0.30));
+    fc.strokeStyle=col; fc.lineWidth=f.deal?2.4:1.6; fc.globalAlpha=clamp01(1-Math.max(0,age-0.72)/0.28);
+    fc.shadowColor=col; fc.shadowBlur=f.deal?10:5; fc.lineCap="round";
+    fc.beginPath(); fc.moveTo(ax,ay);
+    fc.quadraticCurveTo(ax+(mx-ax)*grow,ay+(my-ay)*grow, ax+(bx-ax)*grow,ay+(by-ay)*grow); fc.stroke();
+    fc.shadowBlur=0;
+    if(age<0.72){ const pt=easeIO(age/0.72), px=ax+(bx-ax)*pt, py=(ay+(by-ay)*pt)+(my-(ay+by)/2)*4*pt*(1-pt);
+      fc.fillStyle=col; fc.globalAlpha=.9; fc.beginPath(); fc.arc(px,py,3,0,6.283); fc.fill(); }
+    fc.globalAlpha=1;
+    const rr=clamp01((age-0.18)/0.8), ry=my-14-rr*22*s, ra=clamp01(1-Math.max(0,rr-0.6)/0.4);
+    const pop=age<0.42?easeBack(clamp01(age/0.42)):1;
+    if(ra>0.02){ const txt=f.glyph; fc.font=`700 ${13*pop}px ${FF}`; fc.textAlign="center"; fc.textBaseline="middle";
+      const tw=fc.measureText(txt).width+12*pop;
+      fc.globalAlpha=ra; fc.fillStyle="#150f1c"; roundRect(fc,mx-tw/2,ry-9*pop,tw,17*pop,4*pop); fc.fill();
+      fc.strokeStyle=col; fc.lineWidth=1.5; fc.stroke();
+      fc.fillStyle=col; fc.fillText(txt,mx,ry);
+      fc.textBaseline="alphabetic"; fc.globalAlpha=1; }
+  }
+  tr._delivered=rec.delivered; tr._dead=rec.r.filter(r=>r[4]).length;
+}
+function roundRect(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y);
+  c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
+
+/* ── fire deal FX as playback passes ticks (queued, max 3 concurrent) ── */
+let lastTicker=0, tickerTO=0;
+function fireDeals(tr, fromT, toT){
+  const now=performance.now(), p=tr.panel;
+  for(let t=Math.floor(fromT)+1; t<=Math.floor(toT); t++){
+    for(const e of (tr.byTick[t]||[])){
+      const a=e.a!==undefined?e.a:e.src, b=e.b!==undefined?e.b:e.dst;
+      if(p.fx.filter(f=>now-f.born<400).length>=3) continue;
+      p.fx.push({a,b,kind:e.kind,deal:e.type==="deal",glyph:dealGlyph(e),born:now});
+      if(now-lastTicker>900){ lastTicker=now; $("ticker-inner").innerHTML=dealWords(e);
+        $("ticker").style.opacity="1"; clearTimeout(tickerTO);
+        tickerTO=setTimeout(()=>$("ticker").style.opacity="0.4",2600); }
     }
   }
 }
 
-/* ── field rendering ── */
-function mulberry32(a){
-  return function(){
-    a |= 0; a = a + 0x6D2B79F5 | 0;
-    let t = Math.imul(a ^ a >>> 15, 1 | a);
-    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  };
+function hover(tr,ev){ if(!tr.panel.pts)return;
+  const rect=tr.panel.fg.getBoundingClientRect(), sc=rect.width/LOW;
+  const mx=(ev.clientX-rect.left)/sc, my=(ev.clientY-rect.top)/sc;
+  let best=null,bd=12; for(const [x,y,i] of tr.panel.pts){const d=Math.hypot(mx-x,my-y); if(d<bd){bd=d;best=i;}}
+  const tag=$("nametag"); if(best===null){tag.style.display="none";return;}
+  const T=Math.min(Math.floor(simT),tr.maxT), r=tr.ticks[T].r[best], m=tr.header.robots[best];
+  const co=m.company!==undefined?(m.company?"Company B":"Company A"):"";
+  tag.innerHTML=`<b>Crab #${best}</b> ${co?"· "+co:""}<br><span class="t">battery</span> ${Math.round(r[2])}/100 ·
+    <span class="t">hauling</span> ${r[3]} ore<br>${r[4]?"<b style='color:#e58ab4'>ADRIFT — needs rescue</b>":`<span class="t">capacity ${m.cap} · motor ×${m.eff}</span>`}`;
+  tag.style.display="block"; tag.style.left=(ev.clientX+14)+"px"; tag.style.top=(ev.clientY+10)+"px";
 }
 
-function label(ctx, cell, pos, color, text, dy = -1.4){
-  ctx.fillStyle = color;
-  ctx.font = `600 ${Math.max(10, cell * .72)}px ui-monospace, Menlo, monospace`;
-  ctx.textAlign = "center";
-  ctx.fillText(text, (pos[0] + .5) * cell, (pos[1] + dy) * cell);
-}
-
-function drawAsteroid(ctx, cell, pos, seed, count){
-  const cx = (pos[0] + .5) * cell, cy = (pos[1] + .5) * cell;
-  const rnd = mulberry32(seed), n = 9;
-  const scale = 0.6 + Math.min(count, 30) / 50;
-  ctx.beginPath();
-  for (let i = 0; i < n; i++){
-    const ang = (i / n) * 2 * Math.PI;
-    const rad = cell * scale * (1.0 + 0.5 * rnd());
-    const px = cx + Math.cos(ang) * rad, py = cy + Math.sin(ang) * rad * .85;
-    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
-  }
-  ctx.closePath();
-  ctx.fillStyle = "#4a4038"; ctx.fill();
-  ctx.strokeStyle = "#8a7a66"; ctx.lineWidth = 1.4; ctx.stroke();
-  for (let i = 0; i < 5; i++){
-    ctx.fillStyle = count > 0 ? "#ffcf8a" : "#4a4038";
-    ctx.beginPath();
-    ctx.arc(cx + (rnd() - .5) * cell * 1.2, cy + (rnd() - .5) * cell, 1.6, 0, 7);
-    ctx.fill();
-  }
-  label(ctx, cell, pos, "#ffcf8a", count > 0 ? `⛏ ${count} ore` : "mined out");
-}
-
-function drawRefinery(ctx, cell, pos, count, color, tag){
-  const cx = (pos[0] + .5) * cell, cy = (pos[1] + .5) * cell, r = cell * 1.3;
-  ctx.beginPath();
-  for (let i = 0; i < 6; i++){
-    const ang = Math.PI / 6 + (i / 6) * 2 * Math.PI;
-    i ? ctx.lineTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r)
-      : ctx.moveTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r);
-  }
-  ctx.closePath();
-  ctx.fillStyle = color + "26"; ctx.fill();
-  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
-  ctx.beginPath(); ctx.arc(cx, cy, r * .35, 0, 7); ctx.stroke();
-  label(ctx, cell, pos, color, `⬢ REFINERY${tag}`, -1.8);
-  label(ctx, cell, pos, color, `${count} refined`, 2.6);
-}
-
-function drawDock(ctx, cell, pos, color){
-  const cx = (pos[0] + .5) * cell, cy = (pos[1] + .5) * cell, r = cell * .8;
-  for (let i = 0; i < 8; i++){
-    const ang = (i / 8) * 2 * Math.PI;
-    ctx.beginPath();
-    ctx.moveTo(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r);
-    ctx.lineTo(cx + Math.cos(ang) * r * 1.6, cy + Math.sin(ang) * r * 1.6);
-    ctx.strokeStyle = color; ctx.lineWidth = 1.4; ctx.stroke();
-  }
-  ctx.beginPath(); ctx.arc(cx, cy, r * .8, 0, 7);
-  ctx.fillStyle = color + "22"; ctx.fill();
-  ctx.strokeStyle = color; ctx.stroke();
-  label(ctx, cell, pos, color, "☀ charge", 2.4);
-}
-
-function batteryColor(b){
-  const t = Math.max(0, Math.min(1, b / 100));           // red → yellow → green
-  const h = 8 + 112 * t;
-  return `hsl(${h} 72% ${42 + 12 * t}%)`;
-}
-
-function draw(tr, t){
-  const {header: h, ticks, byTick, maxT, panel} = tr;
-  const T = Math.min(Math.max(1, Math.floor(t)), maxT);
-  const rec = ticks[T];
-  if (!rec) return;
-  const cv = panel.canvas, dpr = window.devicePixelRatio || 1;
-  const w = cv.clientWidth;
-  if (cv.width !== w * dpr){ cv.width = w * dpr; cv.height = w * dpr; }
-  const ctx = cv.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, w, w);
-  const cell = w / (h.grid + 2);
-  ctx.save(); ctx.translate(cell, cell);
-  tr._cell = cell; tr._rec = rec;
-
-  if (!tr.stars){
-    const rnd = mulberry32(h.seed * 7919 + 17);
-    tr.stars = Array.from({length: 90}, () => [rnd(), rnd(), .3 + rnd() * .8, .10 + rnd() * .18]);
-  }
-  for (const [sx, sy, sr, sa] of tr.stars){
-    ctx.globalAlpha = sa; ctx.fillStyle = "#aeb9c8";
-    ctx.beginPath(); ctx.arc(sx * h.grid * cell, sy * h.grid * cell, sr, 0, 7); ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-
-  for (let i = 0; i < h.sources.length; i++)
-    drawAsteroid(ctx, cell, h.sources[i], 101 + i * 37, rec.stock[i]);
-  const refs = h.refineries || [{pos: h.sink, owner: null}];
-  for (const rf of refs){
-    const own = rf.owner;
-    drawRefinery(ctx, cell, rf.pos,
-                 (rec.co && own !== null) ? rec.co[own] : rec.delivered,
-                 own === null ? "#8ee08a" : COMPANY[own],
-                 own === null ? "" : (own ? " B" : " A"));
-  }
-  for (const ch of (h.chargers || [{pos: h.charger, owner: null}]))
-    drawDock(ctx, cell, ch.pos, ch.owner === null ? "#7fe0ff" : COMPANY[ch.owner]);
-
-  const nxt = ticks[Math.min(T + 1, maxT)];
-  const frac = (parseFloat($("speed").value) <= 1) ? t - Math.floor(t) : 0;
-  tr._pts = [];
-  for (let i = 0; i < rec.r.length; i++){
-    const [x0, y0, b, load, dead] = rec.r[i];
-    const [x1, y1] = nxt ? nxt.r[i] : [x0, y0];
-    const x = (x0 + (x1 - x0) * frac + .5) * cell;
-    const y = (y0 + (y1 - y0) * frac + .5) * cell;
-    const rad = cell * (0.34 + 0.08 * h.robots[i].cap);
-    tr._pts.push([x, y, rad, i]);
-    ctx.beginPath(); ctx.arc(x, y, rad, 0, 7);
-    ctx.fillStyle = dead ? "#33313d" : batteryColor(b);
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = dead ? "#4a4754" :
-      (h.robots[i].company !== undefined ? COMPANY[h.robots[i].company] : "#8a8794");
-    ctx.stroke();
-    if (dead){
-      ctx.strokeStyle = "#9a94a8"; ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(x - rad * .55, y - rad * .55); ctx.lineTo(x + rad * .55, y + rad * .55);
-      ctx.moveTo(x + rad * .55, y - rad * .55); ctx.lineTo(x - rad * .55, y + rad * .55);
-      ctx.stroke();
-    }
-    ctx.fillStyle = "#fff";
-    for (let p = 0; p < load; p++){
-      ctx.beginPath(); ctx.arc(x - (load - 1) * 2.2 + p * 4.4, y, 1.6, 0, 7); ctx.fill();
-    }
-  }
-
-  // exchange arcs + collected captions (windowed scan — never full history)
-  const nx = tr.cumX[T], nd = tr.cumD[T];
-  const caps = [];
-  for (let tt = Math.max(1, T - ARC_FADE); tt <= T; tt++){
-    for (const e of (byTick[tt] || [])){
-      const age = T - tt;
-      const A = rec.r[e.src !== undefined ? e.src : e.a];
-      const B = rec.r[e.dst !== undefined ? e.dst : e.b];
-      if (!A || !B) continue;
-      const alpha = 1 - age / ARC_FADE;
-      const [ax, ay] = [(A[0] + .5) * cell, (A[1] + .5) * cell];
-      const [bx, by] = [(B[0] + .5) * cell, (B[1] + .5) * cell];
-      const mx = (ax + bx) / 2, my = (ay + by) / 2 - cell * 2.2;
-      const deal = e.type === "deal";
-      const color = deal ? "#ffffff" : XFER_COLORS[e.kind];
-      ctx.globalAlpha = alpha * .95;
-      ctx.strokeStyle = color;
-      ctx.lineWidth = deal ? 3 : 1.8;
-      ctx.shadowColor = color; ctx.shadowBlur = deal ? 12 : 5;
-      ctx.setLineDash(e.kind === "sector" ? [4, 3] : []);
-      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.quadraticCurveTo(mx, my, bx, by); ctx.stroke();
-      ctx.setLineDash([]); ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-      caps.push({x: mx, y: my + cell, text: dealGlyph(e), color, alpha, deal});
-      if (age === 0 && playing) tickerQ.push(dealWords(e, h));
-    }
-  }
-  caps.sort((p, q) => (q.deal - p.deal) || (q.alpha - p.alpha));
-  const placed = [];
-  for (const c of caps.slice(0, 8)){
-    let y = c.y;
-    while (placed.some(p => Math.abs(p.x - c.x) < 95 && Math.abs(p.y - y) < 17)) y += 17;
-    placed.push({x: c.x, y});
-    const fs = Math.max(c.deal ? 12 : 10, cell * (c.deal ? .85 : .68));
-    ctx.font = `${c.deal ? "700 " : ""}${fs}px ui-monospace, Menlo, monospace`;
-    ctx.textAlign = "center";
-    const tw = ctx.measureText(c.text).width;
-    ctx.globalAlpha = Math.min(1, c.alpha * 1.3);
-    ctx.fillStyle = "#0a0912ee";
-    ctx.fillRect(c.x - tw / 2 - 5, y - fs, tw + 10, fs + 6);
-    ctx.fillStyle = c.color;
-    ctx.fillText(c.text, c.x, y);
-    ctx.globalAlpha = 1;
-  }
-  ctx.restore();
-  tr._delivered = rec.delivered;
-  tr._dead = rec.r.filter(r => r[4]).length;
-  tr._deals = nd; tr._xfers = nx;
-}
-
-/* hover nametag */
-function hover(tr, ev){
-  if (!tr._pts) return;
-  const rect = tr.panel.canvas.getBoundingClientRect();
-  const mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
-  let best = null, bd = 1e9;
-  for (const [x, y, rad, i] of tr._pts){
-    const d = Math.hypot(mx - x, my - y);
-    if (d < Math.max(16, rad * 2) && d < bd){ bd = d; best = i; }
-  }
-  const tag = $("nametag");
-  if (best === null){ tag.style.display = "none"; return; }
-  const h = tr.header, r = tr._rec.r[best], meta = h.robots[best];
-  const co = meta.company !== undefined ? (meta.company ? "Company B" : "Company A") : "";
-  tag.innerHTML = `<b>Drone #${best}</b> ${co ? "· " + co : ""}<br>
-    <span class="t">battery</span> ${Math.round(r[2])}/100 ·
-    <span class="t">hauling</span> ${r[3]} ore<br>
-    ${r[4] ? "<b style='color:#e58ab4'>ADRIFT — needs a rescue</b>"
-           : `<span class="t">capacity ${meta.cap} · motor ×${meta.eff}</span>`}`;
-  tag.style.display = "block";
-  tag.style.left = (ev.clientX + 14) + "px";
-  tag.style.top = (ev.clientY + 10) + "px";
-}
-
-/* frame loop + scoreboard + ticker */
-function frame(){
-  if (playing){
-    cur += parseFloat($("speed").value);
-    const maxT = Math.max(1, ...traces.map(t => t.maxT));
-    if (cur >= maxT){ cur = maxT; playing = false; $("playBtn").textContent = "▶ play"; }
-    $("scrub").value = Math.floor(cur);
-  }
-  for (const tr of traces) draw(tr, cur);
-  $("tick").textContent = `tick ${Math.floor(cur)} / ${Math.max(1, ...traces.map(t => t.maxT))}`;
-  if (traces.length === 2){
-    const total = traces[0].header.total_stock;
-    for (const i of [0, 1]){
-      const el = $("sc" + i), d = traces[i]._delivered || 0;
-      el.querySelector(".big").innerHTML =
-        `${d}<small> /${total} ore · ${traces[i]._dead || 0} adrift</small>`;
-      el.querySelector(".bar i").style.width = (100 * d / total) + "%";
-    }
-    const lead = (traces[0]._delivered || 0) - (traces[1]._delivered || 0);
-    const ahead = lead === 0 ? null : (lead > 0 ? 0 : 1);
-    $("verdict").innerHTML = ahead === null ? "<b>tied</b>" :
-      `<b style="color:${traces[ahead].panel.color}">+${Math.abs(lead)}</b>
-       ${traces[ahead].panel.name.split(" ")[0]} ahead`;
-  }
-  if (tickerQ.length && performance.now() - tickerAt > 1400){
-    tickerAt = performance.now();
-    if (tickerQ.length > 6) tickerQ = tickerQ.slice(-6);
-    $("ticker-inner").innerHTML = "<b>" + tickerQ.shift() + "</b>";
+/* ── loop ── */
+let last=performance.now(), realSec=0;
+function frame(now){
+  let dt=(now-last)/1000; last=now; if(dt>0.1)dt=0.1; realSec+=dt;
+  if(playing){ const spd=parseFloat($("speed").value), prev=simT;
+    simT=Math.min(simT+dt*BASE_TPS*spd, maxT);
+    for(const tr of traces) fireDeals(tr, prev, simT);
+    $("scrub").value=Math.floor(simT);
+    if(simT>=maxT){ playing=false; $("playBtn").textContent="▶ replay"; } }
+  for(const tr of traces) drawPanel(tr, realSec);
+  $("tick").textContent=`tick ${Math.floor(simT)} / ${maxT}`;
+  if(traces.length===2){ const total=traces[0].header.total_stock;
+    for(const i of [0,1]){ const el=$("sc"+i), d=traces[i]._delivered||0, p=traces[i].panel;
+      p.disp += (d-p.disp)*0.18;                          // count-up (eased)
+      const dd=Math.round(p.disp);
+      el.querySelector(".big").innerHTML=`${dd}<small> /${total} ore · ${traces[i]._dead||0} adrift</small>`;
+      el.querySelector(".bar i").style.width=(100*d/total)+"%"; }
+    const lead=(traces[0]._delivered||0)-(traces[1]._delivered||0), ah=lead===0?null:(lead>0?0:1);
+    $("verdict").innerHTML=ah===null?"<b>tied</b>":`<b style="color:${traces[ah].panel.color}">+${Math.abs(lead)}</b>${traces[ah].panel.name.split(" ")[0]} ahead`;
   }
   requestAnimationFrame(frame);
 }
 
-$("playBtn").onclick = () => {
-  playing = !playing;
-  $("playBtn").textContent = playing ? "⏸ pause" : "▶ play";
-};
-$("scrub").oninput = e => { cur = +e.target.value; playing = false;
-                            $("playBtn").textContent = "▶ play"; };
-document.addEventListener("keydown", e => {
-  if (e.key === " "){ e.preventDefault(); $("playBtn").click(); }
-  if (e.key === "ArrowRight") cur = Math.min(cur + 1, +$("scrub").max);
-  if (e.key === "ArrowLeft") cur = Math.max(cur - 1, 1);
-});
+$("playBtn").onclick=()=>{ frozen=false; if(simT>=maxT){simT=0; for(const tr of traces){tr.panel.fx=[];tr.panel.disp=0;}}
+  playing=!playing; $("playBtn").textContent=playing?"⏸ pause":"▶ play"; };
+$("scrub").oninput=e=>{ frozen=false; simT=+e.target.value; playing=false; $("playBtn").textContent="▶ play";
+  for(const tr of traces) tr.panel.fx=[]; };
+document.addEventListener("keydown",e=>{ if(e.key===" "){e.preventDefault();$("playBtn").click();}
+  if(e.key==="ArrowRight")simT=Math.min(simT+1,maxT); if(e.key==="ArrowLeft")simT=Math.max(simT-1,0); });
 
-const drop = $("drop");
-["dragover", "dragenter"].forEach(ev => drop.addEventListener(ev, e => {
-  e.preventDefault(); drop.classList.add("hover"); }));
-drop.addEventListener("dragleave", () => drop.classList.remove("hover"));
-drop.addEventListener("drop", async e => {
-  e.preventDefault(); drop.classList.remove("hover");
-  traces = await Promise.all([...e.dataTransfer.files].slice(0, 2)
-    .map(async f => parseTrace(await f.text())));
-  buildPanels();
-});
+const drop=$("drop");
+["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("hover");}));
+drop.addEventListener("dragleave",()=>drop.classList.remove("hover"));
+drop.addEventListener("drop",async e=>{e.preventDefault();drop.classList.remove("hover");
+  traces=await Promise.all([...e.dataTransfer.files].slice(0,2).map(async f=>parseTrace(await f.text())));
+  buildPanels();});
 
 (async function init(){
-  const p = new URLSearchParams(location.search);
-  let urls = [p.get("trace"), p.get("trace2")].filter(Boolean);
-  if (!urls.length) urls = ["swarm-traces/trace_v5_snhp-hz_s0.5_seed3.jsonl",
-                            "swarm-traces/trace_v5_auction_seed3.jsonl"];
-  if (urls.length){
-    try {
-      traces = await Promise.all(urls.map(async u => parseTrace(await (await fetch(u)).text())));
-      buildPanels();
-      const t0 = parseInt(p.get("t") || "0", 10);
-      if (t0 > 0){ cur = t0; $("scrub").value = t0; }
-      if (p.get("play") !== "0" && !t0){ $("speed").value = "4"; $("playBtn").click(); }
-      drop.style.display = "none";
-    } catch (err){
-      drop.textContent = `couldn't fetch trace (${err.message}) — drop files instead`;
-    }
-  }
-  frame();
+  const p=new URLSearchParams(location.search);
+  let urls=[p.get("trace"),p.get("trace2")].filter(Boolean);
+  if(!urls.length) urls=["swarm-traces/trace_v5_snhp-hz_s0.5_seed3.jsonl","swarm-traces/trace_v5_auction_seed3.jsonl"];
+  if(urls.length){ try{
+    traces=await Promise.all(urls.map(async u=>parseTrace(await(await fetch(u)).text())));
+    buildPanels();
+    const t0=parseInt(p.get("t")||"0",10);
+    if(t0>0){ simT=t0; frozen=true; $("scrub").value=t0;
+      for(const tr of traces){ tr.panel.disp=(tr.ticks[Math.min(t0,tr.maxT)]||{delivered:0}).delivered;
+        // seed a deal from the nearest tick that has one, so a freeze shows a beat
+        for(let dt=0; dt<10; dt++){ const evs=tr.byTick[t0+dt]||tr.byTick[t0-dt]; if(evs&&evs.length){ fireDeals(tr, (t0+dt)-1, t0+dt); if(tr.panel.fx.length) break; } } } }
+    else if(p.get("play")!=="0"){ playing=true; $("playBtn").textContent="⏸ pause"; }
+    drop.style.display="none";
+  }catch(err){ drop.textContent=`couldn't fetch trace (${err.message}) — drop files instead`; } }
+  requestAnimationFrame(frame);
 })();
 </script>
 </body>
