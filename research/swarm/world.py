@@ -108,6 +108,11 @@ class Robot:
     busy_until: int = -1            # v8: docked mid-exchange until this tick
     mine_rate: int = 1              # v10c: units/tick trait (consumed only
                                     # when World.mine_trait; drawn 1..3)
+    mined_units: int = 0            # v13: units this robot mined itself
+    received_units: int = 0         # v13: units received IN via deals/transfers
+                                    # (delivered_units is the existing .delivered).
+                                    # Pure bookkeeping — no RNG, no decision — so
+                                    # the middleman metric never perturbs a bit.
 
     def bat(self) -> float:
         """BELIEVED battery — what every decision layer consumes. Physics
@@ -131,10 +136,19 @@ class World:
                  r_sense: int = R_SENSE,
                  dynamic_field: bool = False, contested: bool = False,
                  scouting: bool = False, map_trading: bool = False,
-                 prospect_claims: bool = False):
+                 prospect_claims: bool = False,
+                 consensus_cost: bool = False):
         self.rng = np.random.RandomState(seed)
         self.hazard_phi = hazard_phi
         self.preset = preset
+        # v13 (column L): density-fixed scale. n_robots drives the scaled
+        # asteroid count, stock pin and charger count (all via _gen_asteroids /
+        # _scaled_chargers); consensus_cost lengthens ONLY team-family deal
+        # pauses (arms.py TeamArm.deal_pause). Both reduce to today's world at
+        # n_robots==24 (fingerprint-verified) — the scale paths are gated on
+        # n_robots != 24 so every pre-L column stays bit-identical.
+        self.n_robots = n_robots
+        self.consensus_cost = consensus_cost
         # v10: field beliefs + priced race + mine-rate trait. ALL default
         # off ⇒ every pre-v10 column is bit-identical (suite-verified).
         self.belief_mode = belief_mode
@@ -175,8 +189,8 @@ class World:
         cfg = PRESETS[preset]
         self.refineries = [_P(p) for p, _ in cfg["refineries"]]
         self.ref_owner = [o for _, o in cfg["refineries"]]
-        self.chargers = [_P(p) for p, _ in cfg["chargers"]]
-        self.charger_owner = [o for _, o in cfg["chargers"]]
+        self.chargers, self.charger_owner = self._scaled_chargers(
+            cfg["chargers"], _P)
         self.n_companies = cfg["companies"]
         # v5 fleets launch lean (mean 40): with 4 chargers and a scattered
         # field, abundance made coordination irrelevant at mean 60 (smoke:
@@ -309,11 +323,47 @@ class World:
             if self.mine_trait else 1
         return cap, eff, b0, pos, mine
 
+    def _scaled_chargers(self, base, _P):
+        """Charger geometry. At n_robots==24 (EVERY pre-v13 run, any preset)
+        this is exactly the preset list scaled by grid — bit-identical.
+
+        v13 (column L): charger count scales as 4·N/24 at fixed density. The v5
+        motif is 2 mirror-pairs (company-0 chargers in the top half, their y=grid/2
+        reflections owned by company 1); the scaled field tiles 2·N/24 such pairs
+        on a company-balanced lattice over the interior, owners alternating so
+        per-company counts stay equal and the twin-fleet mirror placebo survives.
+        Consumes no RNG; only the n_robots != 24 branch changes any bit."""
+        scaled_pos = [_P(p) for p, _ in base]
+        scaled_own = [o for _, o in base]
+        if self.n_robots == 24:
+            return scaled_pos, scaled_own
+        n_ch = 4 * self.n_robots // 24            # 16 at N=96, 40 at N=240
+        n_pairs = n_ch // 2                        # mirror pairs (top/bottom)
+        cols = int(np.ceil(np.sqrt(n_pairs)))
+        rows = int(np.ceil(n_pairs / cols))
+        g = self.grid
+        pos, own = [], []
+        for k in range(n_pairs):
+            c, rw = k % cols, k // cols
+            x = int(round(g * (0.12 + 0.76 * (c + 0.5) / cols)))
+            y = int(round(g * (0.12 + 0.30 * (rw + 0.5) / max(rows, 1))))
+            pos.append((x, y)); own.append(0)         # top half → company 0
+            pos.append((x, g - y)); own.append(1)     # mirror  → company 1
+        return pos, own
+
     def _gen_asteroids(self):
         """v5: 5 mirror-pairs of asteroids (reflection about y=16), stocks
         equal within a pair, total pinned to 2×TOTAL_STOCK (double workload:
         the rich stage needs a long game or coordination is decorative).
-        Non-identical by construction: position and richness vary per pair."""
+        Non-identical by construction: position and richness vary per pair.
+
+        v13 (column L): at n_robots != 24 the count scales to 5·N/24 pairs and
+        the total to 2×TOTAL_STOCK·N/24 (= 10·N units) at FIXED density. Because
+        density is fixed, mean inter-rock spacing is N-invariant, so the
+        min-separation stays CONSTANT (=5) rather than scaling with the grid —
+        a grid-scaled separation would demand impossible packing as the count
+        grows. At N=24 the count/total/min-sep all reduce to today's values
+        (n_robots==24 keeps the legacy 5·sc separation for column G runs)."""
         sc = self.grid / GRID
         taken = set(self.refineries) | set(self.chargers)
         if self.contested:
@@ -340,19 +390,22 @@ class World:
             stocks = [max(4, round(r * scale)) for r in raw]
             stocks[0] += 2 * TOTAL_STOCK - sum(stocks)            # pin the total
             return pos, stocks
+        n_pairs = 5 * self.n_robots // 24                # 5 at N=24
+        half_total = TOTAL_STOCK * self.n_robots // 24   # TOTAL_STOCK at N=24
+        min_sep = 5 * sc if self.n_robots == 24 else 5.0
         pos = []
-        while len(pos) < 5:
+        while len(pos) < n_pairs:
             x = int(self.rng.uniform(3 * sc, 29 * sc))   # bounds scale; at
             y = int(self.rng.uniform(3 * sc, 13 * sc))   # sc=1 draws unchanged
             p_ = (x, y)
-            if p_ in taken or any(manhattan(p_, q) < 5 * sc for q in pos):
+            if p_ in taken or any(manhattan(p_, q) < min_sep for q in pos):
                 continue
             pos.append(p_)
-        raw = [int(self.rng.uniform(6, 19)) for _ in range(5)]
-        scale = TOTAL_STOCK / sum(raw)
+        raw = [int(self.rng.uniform(6, 19)) for _ in range(n_pairs)]
+        scale = half_total / sum(raw)
         stocks = [max(4, round(r * scale)) for r in raw]
-        stocks[0] += TOTAL_STOCK - sum(stocks)           # pin the total
-        sources = pos + [(x, self.grid - y) for x, y in pos]  # mirrors idx+5
+        stocks[0] += half_total - sum(stocks)            # pin the total
+        sources = pos + [(x, self.grid - y) for x, y in pos]  # mirrors idx+n
         return sources, stocks + list(stocks)
 
     def best_claim(self, r) -> int:
@@ -644,6 +697,7 @@ class World:
                 q = min(q, r.mine_rate)
             r.load += q
             r.load_prov[r.company] += q       # provenance: miner's company
+            r.mined_units += q                 # v13: middleman metric
             self.stock[s] -= q
             self.own_mined[r.company][s] += q  # v10b: rival-rate accounting
             self.mined_from[s] += q            # v11: per-asteroid provenance
@@ -742,6 +796,7 @@ class World:
             moved += take
         giver.load -= q
         taker.load += q
+        taker.received_units += q               # v13: units acquired via a deal
         giver.target_ref = None                 # re-evaluate routing
         taker.target_ref = None
         if log:

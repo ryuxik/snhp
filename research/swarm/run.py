@@ -44,7 +44,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              belief_mode: bool = False, race_pricing: bool = True,
              mine_trait: bool = False, dynamic_field: bool = False,
              contested: bool = False, scouting: bool = False,
-             map_trading: bool = False, prospect_claims: bool = False) -> dict:
+             map_trading: bool = False, prospect_claims: bool = False,
+             n_robots: int = 24, consensus_cost: bool = False) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -65,15 +66,17 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
             base = base[:-len(suf)]
             break
     tau_pair = tuple(tau) if isinstance(tau, (tuple, list)) else (tau, tau)
-    w = World(sigma=sigma, seed=seed, hazard_phi=hazard, preset=preset,
-              tau=tau_pair, internalize_tariffs=(base == "team"),
+    w = World(n_robots=n_robots, sigma=sigma, seed=seed, hazard_phi=hazard,
+              preset=preset, tau=tau_pair,
+              internalize_tariffs=(base == "team"),
               liar_frac=liar_frac, defended=defended,
               self_noise=self_noise, self_margin=self_margin,
               grid=grid, life_pricing=life, strand_cap=cap,
               belief_mode=belief_mode, race_pricing=race_pricing,
               mine_trait=mine_trait, dynamic_field=dynamic_field,
               contested=contested, scouting=scouting,
-              map_trading=map_trading, prospect_claims=prospect_claims)
+              map_trading=map_trading, prospect_claims=prospect_claims,
+              consensus_cost=consensus_cost)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
@@ -119,6 +122,13 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
                            if not d["distress"] and d["q"] != 0)
     n_multi = sum(1 for d in deals
                   if (d["q"] != 0) + (d["e"] != 0) + (d["s"] != 0) >= 2)
+    # v13 (column L): emergent middlemen. A robot is a middleman if it delivered
+    # anything and RECEIVED (via deals/transfers in) more than it MINED itself —
+    # its throughput is dominated by buy-far/sell-near resale, not its own dig.
+    deliverers = [r for r in w.robots if r.delivered > 0]
+    middlemen = [r for r in deliverers if r.received_units > r.mined_units]
+    middleman_frac = (len(middlemen) / len(deliverers)) if deliverers else 0.0
+    delivered_frac = w.delivered / max(1, w.total_stock)
     label = arm_name if tuple(issues) == FULL else \
         f"{arm_name}[{'+'.join(issues)}]"
     return dict(
@@ -183,6 +193,10 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
                               if stale_own else None),          # K2 P17d
         staleness_other=(round(float(np.mean(stale_other)), 2)
                          if stale_other else None),
+        # v13 (column L): scale
+        n_robots=n_robots, consensus_cost=consensus_cost,
+        delivered_frac=round(delivered_frac, 4),
+        middleman_frac=round(middleman_frac, 4),
     )
 
 
@@ -203,11 +217,14 @@ def _cond(r) -> tuple:
             bool(r.get("contested", False)),
             bool(r.get("scouting", False)),
             bool(r.get("map_trading", False)),
-            bool(r.get("prospect_claims", False)))
+            bool(r.get("prospect_claims", False)),
+            int(r.get("n_robots", 24)),
+            bool(r.get("consensus_cost", False)))
 
 
 def _cond_label(c) -> str:
-    f, dfd, s7, mg, nz, g, bm, race, mt, dyn, cnt, scout, maptr, pros = c
+    (f, dfd, s7, mg, nz, g, bm, race, mt, dyn, cnt, scout, maptr, pros,
+     nr, cc) = c
     bits = []
     if f:
         bits.append(f"f={f:g}")
@@ -237,11 +254,15 @@ def _cond_label(c) -> str:
         bits.append("K1")
     if pros:
         bits.append("K2")
+    if nr != 24:
+        bits.append(f"N={nr}")
+    if cc:
+        bits.append("cc")
     return " ".join(bits)
 
 
 _BASE = (0.0, False, 0.0, False, 0.0, 32, False, True, False, False, False,
-         False, False, False)
+         False, False, False, 24, False)
 
 
 def _paired(rows, arm_hi, arm_lo, sigma, field, tau=0.0, cond=_BASE):
@@ -527,6 +548,25 @@ def build_jobs(column: str, seeds: int, ticks: int):
             jobs.append(dict(arm_name="snhp+net", sigma=0.5, seed=seed,
                              ticks=ticks, tau=0.15, preset="v5",
                              dynamic_field=True, contested=True))
+    if column == "L":                 # v13: scale (P18) — density-fixed N
+        # N ∈ {24, 96, 240} at FIXED density; grid = round(32·√(N/24)); the
+        # world scales asteroid count, stock pin and charger count with N.
+        # team-costed = TeamArm with consensus_cost=True (pause grows with N);
+        # team-free = TeamArm without it (free-planning ceiling control).
+        import math as _math
+        specs = [("auction", False), ("snhp+net", False),
+                 ("team", True), ("team", False)]   # (arm, consensus_cost)
+        for N in (24, 96, 240):
+            grid = int(round(32 * _math.sqrt(N / 24)))
+            # N=240 core arms only (drop team-free), 8-seed compute cap;
+            # N=24/96 all four arms at up to 16 seeds. Caps enforced HERE.
+            arms_L = specs if N < 240 else specs[:3]
+            n_seeds = min(seeds, 16) if N < 240 else min(seeds, 8)
+            for arm_name, cc in arms_L:
+                for seed in range(n_seeds):
+                    jobs.append(dict(arm_name=arm_name, sigma=0.5, seed=seed,
+                                     ticks=ticks, tau=0.15, preset="v5",
+                                     n_robots=N, grid=grid, consensus_cost=cc))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -537,7 +577,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))

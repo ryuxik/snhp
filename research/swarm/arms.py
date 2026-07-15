@@ -23,6 +23,7 @@ SINK-hardcoded baseline would be silently sandbagged in v4).
 from __future__ import annotations
 
 import copy
+import math
 import os
 import sys
 
@@ -216,6 +217,12 @@ class BaseArm:
         self.deals = 0
         self._last_try: dict = {}
 
+    def deal_pause(self) -> int:
+        """Ticks BOTH parties hold position after an executed exchange.
+        Uniform W.DEAL_PAUSE for pairwise arms (two parties is two parties at
+        any N). TeamArm overrides to add the v13 consensus cost."""
+        return W.DEAL_PAUSE
+
     def tick(self):
         w = self.w
         w._live_sense = True           # v10: drive/world phase — sensing live
@@ -253,10 +260,11 @@ class BaseArm:
             if struck:
                 # transfers take time: both parties hold position while the
                 # exchange physically executes (energy docking / cargo
-                # handoff). Uniform across arms — bargains, auction handoffs
-                # and charity shares all pause.
-                a.busy_until = w.tick + W.DEAL_PAUSE
-                b.busy_until = w.tick + W.DEAL_PAUSE
+                # handoff). Pairwise arms pause W.DEAL_PAUSE; the team's joint
+                # pick pays the v13 consensus cost on top (deal_pause()).
+                pause = self.deal_pause()
+                a.busy_until = w.tick + pause
+                b.busy_until = w.tick + pause
             busy.add(a.rid)
             busy.add(b.rid)
         w.tick += 1
@@ -521,6 +529,15 @@ class TeamArm(SnhpArm):
     name = "team"
     company_walls = False
     consumes_reports = False    # a merged firm's pick reads true internal books
+
+    def deal_pause(self) -> int:
+        """v13 (column L): the team's joint pick is a CONSENSUS, and consensus
+        costs rounds. With w.consensus_cost the pause becomes DEAL_PAUSE +
+        ⌈log₂(N)⌉ ticks (planning that scales with fleet size); off, it is the
+        free-planning ceiling control at plain DEAL_PAUSE."""
+        if self.w.consensus_cost:
+            return W.DEAL_PAUSE + int(math.ceil(math.log2(len(self.w.robots))))
+        return W.DEAL_PAUSE
 
     def _pick(self, ua, ub, batna_a, batna_b, a, b):
         joint = ua + ub

@@ -832,3 +832,166 @@ def test_v12_claims_fixed_no_swap_issue():
         assert w.material_ok()
     assert w.claim_owner == before, "claims changed — they must be fixed"
     assert all(d["s"] in (0, 1) for d in w.deal_log), "a deal carried s=2"
+
+
+# ── v13: scale (column L) ──────────────────────────────────────────────────
+import math as _math                                             # noqa: E402
+
+
+def _grid_L(N):
+    return int(round(32 * _math.sqrt(N / 24)))
+
+
+def test_v13_scale_default_off_is_flag_absent():
+    """The N=24 fingerprint: n_robots==24 (with or without consensus_cost) must
+    be bit-identical to a World that never heard of column L — the scale
+    plumbing (n_robots/consensus_cost, the middleman counters, the scaled
+    asteroid/charger paths) may not perturb a single bit of the default path."""
+    outs = []
+    for kw in ({}, dict(n_robots=24, consensus_cost=False)):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                  hazard_phi=True, **kw)
+        arm = make_arm("snhp+net", w)
+        for _ in range(400):
+            arm.tick()
+        outs.append((w.delivered, arm.deals,
+                     round(sum(r.battery for r in w.robots), 9),
+                     [r.pos for r in w.robots],
+                     list(w.sources), list(w.chargers), list(w.charger_owner)))
+    assert outs[0] == outs[1], "column-L plumbing leaked into the default path"
+
+
+def test_v13_scaled_world_sanity():
+    """N=96 at fixed density: 96 robots, 5·96/24=20 asteroid mirror-pairs on a
+    64-grid, total stock pinned to 10·96, 4·96/24=16 chargers balanced per
+    company, the field still mirror-symmetric about y=grid/2, and every robot's
+    claimed sector is a valid asteroid index."""
+    N, g = 96, _grid_L(96)
+    assert g == 64
+    w = World(n_robots=N, sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              grid=g)
+    n_src = len(w.sources)
+    assert len(w.robots) == N
+    assert n_src == 2 * (5 * N // 24) == 40, "asteroid count did not scale"
+    assert w.total_stock == 10 * N == 960, "stock pin did not scale"
+    assert sum(w.stock) == w.total_stock
+    n_pairs = n_src // 2
+    for i in range(n_pairs):                              # mirror discipline
+        x, y = w.sources[i]
+        assert w.sources[i + n_pairs] == (x, g - y)
+        assert w.stock[i] == w.stock[i + n_pairs]
+    assert len(w.chargers) == 4 * N // 24 == 16, "charger count did not scale"
+    assert sorted(w.charger_owner) == [0] * 8 + [1] * 8, "chargers unbalanced"
+    assert all(0 <= r.sector < n_src for r in w.robots), "invalid sector claim"
+
+
+def test_v13_density_is_fixed_across_N():
+    """The manipulation is density-fixed: robots, asteroids, stock and chargers
+    all scale linearly with N while grid AREA scales as N (grid side √N), so
+    every per-area count is N-invariant. Pin the four ratios at N∈{24,96,240}."""
+    ratios = []
+    for N in (24, 96, 240):
+        g = _grid_L(N)
+        w = World(n_robots=N, sigma=0.5, seed=1, preset="v5", tau=(0.15, 0.15),
+                  grid=g)
+        area = g * g
+        ratios.append((round(len(w.robots) / area * 1e4, 3),
+                       round(len(w.sources) / area * 1e4, 3),
+                       round(w.total_stock / area * 1e4, 3),
+                       round(len(w.chargers) / area * 1e4, 3)))
+    # areas are integer-rounded so densities match only approximately; the
+    # point is they do NOT drift with N (they'd scale ∝N under a fixed grid)
+    for j in range(4):
+        vals = [ratios[k][j] for k in range(3)]
+        assert max(vals) / min(vals) < 1.15, \
+            f"density ratio {j} drifts with N: {vals}"
+
+
+def test_v13_consensus_cost_lengthens_team_pause():
+    """The realistic hive: with consensus_cost the team's joint pick pauses
+    DEAL_PAUSE+⌈log₂N⌉ ticks; without it, the free-planning ceiling at
+    DEAL_PAUSE. Pairwise arms (snhp) never pay the cost. The costed run must
+    exhibit strictly longer team busy spans, observed directly."""
+    for N in (24, 96):
+        exp = W.DEAL_PAUSE + _math.ceil(_math.log2(N))
+        wc = World(n_robots=N, sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                   grid=_grid_L(N), internalize_tariffs=True,
+                   consensus_cost=True)
+        assert make_arm("team", wc).deal_pause() == exp
+        wf = World(n_robots=N, sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                   grid=_grid_L(N), internalize_tariffs=True,
+                   consensus_cost=False)
+        assert make_arm("team", wf).deal_pause() == W.DEAL_PAUSE
+        # snhp is a pairwise arm: it pays no consensus cost even in a cc world
+        assert make_arm("snhp+net", wc).deal_pause() == W.DEAL_PAUSE
+    # observed busy spans: a struck team deal at tick t sets busy_until=t+pause
+    def max_span(cc):
+        w = World(n_robots=24, sigma=0.5, seed=2, preset="v5", tau=(0.15, 0.15),
+                  internalize_tariffs=True, consensus_cost=cc)
+        arm = make_arm("team", w)
+        best = 0
+        for _ in range(500):
+            t0, pre = w.tick, [r.busy_until for r in w.robots]
+            arm.tick()
+            for r, pb in zip(w.robots, pre):
+                if r.busy_until != pb and r.busy_until >= t0:
+                    best = max(best, r.busy_until - t0)
+        return best, arm.deals
+    costed, dc = max_span(True)
+    free, df = max_span(False)
+    assert dc > 0 and df > 0, "team struck no deals — span test vacuous"
+    assert free == W.DEAL_PAUSE, f"free team span {free} != {W.DEAL_PAUSE}"
+    assert costed == W.DEAL_PAUSE + _math.ceil(_math.log2(24)), \
+        f"costed team span {costed} != expected {W.DEAL_PAUSE + 5}"
+
+
+def test_v13_consensus_off_bit_identical_to_flag_absent():
+    """consensus_cost=False must be indistinguishable from a team run that never
+    heard of the flag — the cost gate may not perturb the free-planning ceiling
+    control (which IS the team-free arm)."""
+    outs = []
+    for kw in ({}, dict(consensus_cost=False)):
+        w = World(sigma=0.5, seed=1, preset="v5", tau=(0.15, 0.15),
+                  internalize_tariffs=True, **kw)
+        arm = make_arm("team", w)
+        for _ in range(400):
+            arm.tick()
+        outs.append((w.delivered, arm.deals,
+                     round(sum(r.battery for r in w.robots), 9),
+                     [r.pos for r in w.robots]))
+    assert outs[0] == outs[1], "consensus_cost=False perturbed the team arm"
+
+
+def test_v13_middleman_conservation():
+    """The middleman counters obey conservation: a robot delivers only what it
+    mined itself plus what it received via deals/transfers in, so
+    mined_units + received_units >= delivered for EVERY robot — the middleman
+    metric can never manufacture throughput. Non-vacuous: some units change
+    hands (received_units > 0 somewhere)."""
+    N = 96
+    w = World(n_robots=N, sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              grid=_grid_L(N))
+    arm = make_arm("snhp+net", w)
+    for _ in range(400):
+        arm.tick()
+        assert w.material_ok()
+    for r in w.robots:
+        assert r.mined_units + r.received_units >= r.delivered, \
+            f"robot {r.rid} delivered {r.delivered} > mined+received"
+    assert any(r.received_units > 0 for r in w.robots), "no cargo ever received"
+    assert arm.deals > 0
+
+
+def test_v13_evaluated_equals_executed_at_scale():
+    """The core invariant survives scale: 600 ticks of N=96 snhp+net with the
+    in-arm evaluated Φ == executed Φ assert live. Any divergence over 96 robots
+    and 40 asteroids fires the assert; completing clean IS the test, with
+    conservation intact throughout and deals actually struck (non-vacuous)."""
+    N = 96
+    w = World(n_robots=N, sigma=0.5, seed=3, preset="v5", tau=(0.15, 0.15),
+              grid=_grid_L(N))
+    arm = make_arm("snhp+net", w)
+    for _ in range(600):
+        arm.tick()
+        assert w.material_ok(), "conservation broke at scale"
+    assert arm.deals > 0, "no deals at N=96 — vacuous"
