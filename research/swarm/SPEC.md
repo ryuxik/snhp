@@ -1014,3 +1014,103 @@ cannot consume K1/K2 (no bundles) — it is the coverage benchmark.
   truth trades.**
 - **P17d mechanism-only:** claim-holders patrol their quadrants fresher
   (22.7 vs 25.4) with zero output effect at this scale.
+
+---
+
+# THE SCALE PROGRAM — four pre-registrations (columns L, M, N, O)
+
+*All four registered 2026-07-15, BEFORE any implementation. Founder mandate:
+"test things about swarms" — scale, asset diversity, drone production, plus
+communication locality. Builds are SEQUENTIAL (L → O → M → N; shared files),
+each by an Opus build agent that also RUNS its full column; Fable registers,
+merges, and writes verdicts. L's results may re-scope the interpretation of
+M/N/O but do not block their builds.*
+
+## v13 (column L): scale — "markets are what coordination looks like when planning stops scaling"
+
+**Manipulation:** N ∈ {24, 96, 240} at FIXED density: grid side scales as
+32·√(N/24); asteroid count and total stock scale with N (10·N/24 rocks,
+10·N units); charger count scales with N (4·N/24, positions tiled). Fleet
+composition mean-preserving as always.
+**The realistic hive:** team's joint pick is consensus, and consensus costs
+rounds: team's DEAL_PAUSE becomes 3 + ⌈log₂(N)⌉ ticks (pairwise bargaining
+stays at 3 — two parties is two parties at any N). Team WITHOUT the cost
+runs as the free-planning ceiling control.
+**Arms:** auction, snhp+net, team-costed, team-free · 16 seeds at N=24/96;
+8 seeds core arms at N=240 (compute).
+- **P18a (scale-free market):** snhp+net delivered-per-robot at fixed
+  density is N-invariant within noise — the mechanism is O(1) per encounter.
+- **P18b (planning doesn't scale):** team-costed degrades relative to
+  snhp+net as N grows; a crossing (market ≥ costed hive) exists by N=240.
+- **P18c (market thickness):** the snhp+net − auction gap GROWS 24→96
+  (thicker markets match better).
+- **P18d (emergent middlemen, exploratory):** at N=240, count robots whose
+  income is dominated by buy-far/sell-near resale spread; report, no
+  threshold.
+- **KILL:** if the market's per-robot output degrades with N faster than
+  the auction's, decentralized bargaining is anti-swarm — the program's
+  swarm story dies and we say so publicly.
+
+## v14 (column O): communication locality — "trade is the network"
+
+**Manipulation:** company-wide free radio is removed; observations propagate
+by GOSSIP: fleet-mates within R_RADIO=6 cells exchange fresher belief
+entries each tick (flooding). Beliefs become per-robot. Map-selling (K1)
+remains cross-company.
+**Arms:** auction, rules, snhp-hz, snhp+net (belief+gossip, moving field) +
+snhp+net free-radio control · 16 seeds, N=24.
+- **P21a (trade IS the network):** trading fleets still hold fresher maps
+  than the auction under gossip — deal encounters double as relay
+  encounters.
+- **P21b (books bleed first, 4th replication):** gossip staleness raises
+  poisoned deals while delivered stays flat vs free radio.
+- **P21c (structural):** belief freshness correlates with deal-degree
+  centrality — the trade graph and the information graph are the same
+  graph. Measured, with a shuffled-null control.
+- **KILL:** if gossip collapses coordination output at N=24 density, free
+  radio was load-bearing and every belief-mode result re-scopes.
+
+## v15 (column M): asset diversity — "does money emerge?"
+
+**Manipulation:** three ore types: gold (value 10, haul ×1.0), iron (6,
+×1.4), ice (4, ×0.7); per-asteroid single type (mirrored assignment);
+refineries pay a blend bonus (×1.25 on all deliveries while the company's
+rolling 100-tick delivered mix is within ±15% of 1:1:1) — complementary
+demand creates cross-commodity logrolling. Contract space: per-type cargo
+{-2,0,+2} (27 cargo combos × 7 energy × 2 sector = 378 rows). Variants with
+1 and 2 commodities for the dimensionality ladder.
+**Arms:** auction, snhp+net, team · 16 seeds, N=24, static known field
+(isolate the commodity effect).
+- **P19a (dimensionality):** the snhp+net − auction VALUE gap grows
+  monotonically with commodity count (1 → 2 → 3).
+- **P19b (specialization):** trait-task assortment emerges — thrifty/fast
+  crabs over-carry high-value-per-weight ore vs a shuffled null.
+- **P19c (the money test, index pre-registered):** medium-of-exchange index
+  M(x) = P(x on the opposite side of a cross-commodity bundle). Prediction:
+  M(energy) exceeds M(every ore) with p<.05 across seeds — energy becomes
+  the medium of exchange. KILL for money: no asymmetry.
+- **KILL (column):** if the 3-commodity gap ≤ the 1-commodity gap,
+  bundling's value saturates at low dimension — report as the honest bound.
+
+## v16 (column N): drone production — "does the edge compound?"
+
+**Manipulation:** a factory at each company refinery: spend BUILD_COST=150
+credits + BUILD_TIME=100 ticks → one new drone, company picks an archetype
+(hauler cap5/eff1.15 · runner cap2/eff0.7 · prospector cap3 + scout-role).
+Reinvestment rule identical across arms (build when credit ≥ 1.5×cost —
+policy, not mechanism). Moving field with arrivals every 150 ticks sustains
+workload; horizon 6000 ticks; fleet hard-capped at 96/company (runaway
+guard). Metric: NET WORTH = credit + fleet × BUILD_COST; growth = log-slope.
+**Arms:** auction, snhp+net, team-costed · 12 seeds, base N=24.
+- **P20a (compounding):** snhp+net's net-worth growth RATE exceeds
+  auction's, and the level gap widens over time (divergence, not parallel
+  lines).
+- **P20b (endogenous k):** the sim now sets its own replacement price;
+  report the realized effective k (replacement spend per delivered unit) —
+  prediction: it lands in [1, 5] ore-units, the range the k-audit debated.
+- **P20c (the market prices phenotypes):** archetype mix differs by
+  mechanism (bargaining fleets buy different bodies than auction fleets),
+  beyond a seed-shuffled null.
+- **KILL:** equal growth rates ⇒ the mechanism edge is a level effect that
+  does NOT compound — the strongest scoping result the program could
+  produce, reported as such.
