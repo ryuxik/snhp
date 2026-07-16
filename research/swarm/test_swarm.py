@@ -1510,6 +1510,12 @@ _ORACLE_SUBSET = (
        dict(arm_name="snhp+net", preset="v5", seed=0, dynamic_field=True),
        dict(arm_name="snhp", preset="v5", seed=0, mine_trait=True),
        dict(arm_name="snhp+net", preset="v5", seed=0, ticks=120, n_robots=96)]
+    # v22 (column U): reputation keeps the fast path (Φ untouched) — the fast
+    # and scalar evaluators must stay byte-identical under blacklists + slander
+    + [dict(arm_name="trust-open", preset="v5", seed=0, liar_frac=0.25,
+            reputation=True, false_accuse=0.05),
+       dict(arm_name="trust-gated", preset="v5", seed=0, liar_frac=0.25,
+            defended=True, reputation=True, false_accuse=0.05)]
 )
 
 
@@ -1543,6 +1549,143 @@ def test_differential_oracle_fallback_configs_are_scalar():
             assert fast == scalar, f"{cfg} {kw}"
         finally:
             _ARMS.FORCE_SCALAR_EVAL = False
+
+
+# ── v22 (column U): reputation vs receipts — the scaling law of trust ──────
+def test_v22_reputation_off_bit_identical():
+    """reputation=False (with or without false_accuse/r_radio) must be
+    bit-identical to a World that never heard of column U — the blacklist
+    plumbing, the dedicated ε stream, the pair-meet counter and the
+    _blacklist_gossip_step may not perturb a single bit of the default path.
+    Checked on a trust arm (would refuse/mark) AND the auction (moves cargo)."""
+    for arm_name in ("trust-open", "auction"):
+        outs = []
+        for kw in ({}, dict(reputation=False, false_accuse=0.05, r_radio=6)):
+            w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                      hazard_phi=(arm_name != "auction"), liar_frac=0.25, **kw)
+            arm = make_arm(arm_name, w)
+            for _ in range(400):
+                arm.tick()
+            outs.append((w.delivered, arm.deals,
+                         round(sum(r.battery for r in w.robots), 9),
+                         [r.pos for r in w.robots],
+                         [tuple(sorted(d.items())) for d in w.deal_log]))
+        assert outs[0] == outs[1], f"column-U plumbing leaked into {arm_name}"
+
+
+def test_v22_caught_liar_blacklisted_and_refused():
+    """A liar who exploits an honest partner in the naive-cooperation tier gets
+    blacklisted (the honest robot's own realized surplus went negative), and a
+    blacklisted pair is then REFUSED — encounter returns False, strikes no deal,
+    and (ATTEMPT_COOLDOWN semantics) applies no pause."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), hazard_phi=True,
+              liar_frac=0.25, reputation=True)
+    arm = make_arm("trust-open", w)     # everyone trusted ⇒ liars can exploit
+    for _ in range(1200):
+        arm.tick()
+    assert arm.deals > 0, "no deals — catch test vacuous"
+    liars = {r.rid for r in w.robots if r.liar}
+    honest = [r for r in w.robots if not r.liar]
+    caught = any(w.blacklist[r.rid] & liars for r in honest)
+    assert caught, "no liar was ever caught and blacklisted by an honest robot"
+    # refusal: a manually blacklisted, adjacent pair strikes nothing and pauses none
+    a, b = w.robots[0], w.robots[1]
+    a.pos = b.pos = (10, 10)
+    a.busy_until = b.busy_until = -1
+    w.blacklist[a.rid].add(b.rid)
+    n0 = len(w.deal_log)
+    assert arm.encounter(a, b) is False, "blacklisted pair was not refused"
+    assert len(w.deal_log) == n0, "a refused encounter still logged a deal"
+
+
+def test_v22_blacklist_propagates_by_contact_only():
+    """A mark floods to same-company fleet-mates within Chebyshev r_radio, ONE
+    hop per tick — a distant fleet-mate stays clean until a contact relays it,
+    and a cross-company robot never adopts (warnings stay within a fleet)."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), reputation=True,
+              r_radio=6)
+    co0 = [r for r in w.robots if r.company == 0]
+    a, b, c = co0[0], co0[1], co0[2]
+    x = next(r for r in w.robots if r.company == 1)
+    victim = w.robots[-1].rid                       # some marked rid
+    a.pos, b.pos, x.pos = (16, 16), (18, 18), (17, 17)   # within r6 of a
+    c.pos = (1, 1)                                   # far from a and b
+    w.blacklist[a.rid].add(victim)
+    w._blacklist_gossip_step()
+    assert victim in w.blacklist[b.rid], "fleet-mate did not adopt the mark by contact"
+    assert victim not in w.blacklist[c.rid], "distant fleet-mate adopted without contact"
+    assert victim not in w.blacklist[x.rid], "the mark crossed the company border"
+    c.pos = (18, 17)                                 # bring c into contact with a/b
+    w._blacklist_gossip_step()
+    assert victim in w.blacklist[c.rid], "the mark did not reach c after contact"
+
+
+def test_v22_epsilon_false_marks_from_dedicated_stream():
+    """Slander (ε) fires from the DEDICATED stream only. On the Nash-IR arm the
+    veto keeps BOTH surpluses positive, so with no liars there is no genuine
+    catch and the sole source of a mark is the ε draw: at ε=0 every blacklist
+    stays empty; at ε>0 honest robots get falsely blacklisted. And the main RNG
+    is untouched — the deal stream is identical between ε=0 and ε=0.05 up to the
+    first false mark (a separate stream cannot shift the main one)."""
+    def build(eps):
+        w = World(sigma=0.5, seed=1, preset="v5", tau=(0.15, 0.15),
+                  hazard_phi=True, liar_frac=0.0, reputation=True,
+                  false_accuse=eps)
+        return w, make_arm("snhp+net", w)
+    w0, a0 = build(0.0)
+    we, ae = build(0.05)
+    assert we._eps_rng is not we.rng, "ε stream is not a dedicated RandomState"
+    first_mark = None
+    for _ in range(1000):
+        a0.tick()
+        ae.tick()
+        if first_mark is None and any(we.blacklist[r.rid] for r in we.robots):
+            first_mark = we.tick
+            break
+    assert first_mark is not None, "ε never fired a false mark"
+    assert all(not w0.blacklist[r.rid] for r in w0.robots), \
+        "marks appeared at ε=0 with no liars"
+
+    def deals_before(w, t):
+        return {(d["tick"], d["a"], d["b"]) for d in w.deal_log if d["tick"] < t}
+    assert deals_before(w0, first_mark) == deals_before(we, first_mark), \
+        "ε perturbed the main-RNG deal stream before it had any behavioural effect"
+
+
+def test_v22_reencounter_rate_falls_with_N():
+    """The mechanism's premise, pinned: at FIXED density the mean number of
+    (post-cooldown) meetings per distinct pair FALLS as the fleet grows — the
+    partner pool widens, so any given pair re-meets less often (why reputation
+    stops scaling). Measured on a plain arm: this is geometry, not enforcement."""
+    def reenc(N):
+        w = World(n_robots=N, sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                  grid=_grid_L(N))
+        arm = make_arm("snhp+net", w)
+        for _ in range(600):
+            arm.tick()
+        meets = arm._pair_meets
+        return sum(meets.values()) / len(meets) if meets else 0.0
+    r24, r96 = reenc(24), reenc(96)
+    assert r24 > r96, f"re-encounter rate did not fall with N: N24={r24} N96={r96}"
+
+
+def test_v22_evaluated_equals_executed_under_reputation():
+    """The core invariant survives reputation: 600 ticks of the trust arms with
+    reputation + slander + liars and the in-arm evaluated Φ == executed Φ assert
+    live. Reputation never touches Φ (only refusals/marks), so any divergence
+    fires the assert; completing clean IS the test, conservation intact, deals
+    struck (non-vacuous) and blacklists actually forming."""
+    for arm_name, defended in (("trust-open", False), ("trust-gated", True)):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                  hazard_phi=True, liar_frac=0.25, defended=defended,
+                  reputation=True, false_accuse=0.05)
+        arm = make_arm(arm_name, w)
+        for _ in range(600):
+            arm.tick()
+            assert w.material_ok(), "conservation broke under reputation"
+        assert arm.deals > 0, f"{arm_name}+reputation struck no deals — vacuous"
+        assert any(w.blacklist[r.rid] for r in w.robots), \
+            f"{arm_name}+reputation formed no blacklists — vacuous"
 
 
 def benchmark(ticks=2500):

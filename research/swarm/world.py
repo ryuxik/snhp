@@ -167,7 +167,8 @@ class World:
                  consensus_cost: bool = False,
                  gossip: bool = False, r_radio: int = R_RADIO,
                  lineage: bool = False,
-                 bills: bool = False, firm_relay: bool = False):
+                 bills: bool = False, firm_relay: bool = False,
+                 reputation: bool = False, false_accuse: float = 0.0):
         self.rng = np.random.RandomState(seed)
         self.hazard_phi = hazard_phi
         self.preset = preset
@@ -336,6 +337,20 @@ class World:
         self.lineage = lineage or bills or firm_relay
         self.charge_served_slots = 0
         self.delivered_parcels: list[dict] = []
+        # v22 (column U): community reputation. `reputation` turns on per-robot
+        # pairwise blacklists (populated by the arm after a deal a counterpart
+        # lied on, propagated by contact — _blacklist_gossip_step) with NO
+        # attestation; a robot then REFUSES blacklisted counterparts. `false_accuse`
+        # (ε) is the slander rate: a per-deal draw from a DEDICATED RandomState
+        # (seed+424242, never the main stream) that marks an honest counterpart as
+        # if it had lied. Both default off ⇒ every prior column is bit-identical:
+        # reputation is post-deal BOOKKEEPING + a pre-evaluate refusal gate — it
+        # never touches Φ (the fast path stays; oracles green), never touches the
+        # main RNG, and the blacklist sets are allocated but never consulted when
+        # reputation is off. The blacklist list itself is built after the spawn.
+        self.reputation = reputation
+        self.false_accuse = false_accuse
+        self._eps_rng = np.random.RandomState(seed + 424242)
 
         self.robots: list[Robot] = []
         if self.n_companies == 2:
@@ -344,6 +359,10 @@ class World:
             self._spawn_v3(n_robots, sigma)
         self.energy_initial = sum(r.battery for r in self.robots)
         self.energy_at_last_delivery = self.energy_initial
+        # v22 (column U): one blacklist per robot (rid → set of refused rids).
+        # Allocated unconditionally (empty sets, no RNG) so the off path is
+        # bit-identical; consulted only when reputation is on.
+        self.blacklist = [set() for _ in range(len(self.robots))]
         # company-neutral charger tie-break (panel M2): seeded priority
         self._charge_prio = list(self.rng.permutation(len(self.robots)))
         # v6: liar assignment, company-balanced (placebo preserved); in the
@@ -588,6 +607,8 @@ class World:
                             self._observe(r.company, i)
             if self.gossip:
                 self._gossip_step()        # v14: one hop of belief flooding
+        if self.reputation:
+            self._blacklist_gossip_step()  # v22: one hop of blacklist flooding
         self._live_sense = False
 
     def _gossip_step(self) -> None:
@@ -638,6 +659,37 @@ class World:
                     self.last_seen[ai][k] = s_ls[best_j][k]
                     self.rival_rate[ai][k] = s_rr[best_j][k]
                     self._own_mined_seen[ai][k] = s_oms[best_j][k]
+
+    def _blacklist_gossip_step(self) -> None:
+        """v22 (column U): one hop of blacklist flooding — a same-company
+        fleet-mate within Chebyshev r_radio UNIONS in a neighbour's blacklist, so
+        a mark spreads by CONTACT exactly like a gossiped belief entry (per-robot
+        blacklists). Every blacklist is SNAPSHOT first, so a robot never adopts a
+        set another robot adopted this same tick: propagation is exactly one hop
+        per tick (order-independent, no RNG), and a distant fleet-mate stays clean
+        until a chain of contacts relays the mark to it. Cross-company robots never
+        adopt (a fleet's warnings stay within the fleet). O(N) spatial-hashed by
+        r_radio-sized cells (the same bucketing as _gossip_step / encounters).
+        Runs in the drive/world phase from sense_step, BEFORE the encounter phase,
+        so refusals this tick already see the freshly-propagated marks."""
+        R = max(1, self.r_radio)
+        rs = self.robots
+        snap = [set(bl) for bl in self.blacklist]      # snapshot every read set
+        buckets: dict = {}
+        for idx, r in enumerate(rs):
+            buckets.setdefault((r.pos[0] // R, r.pos[1] // R), []).append(idx)
+        for a in rs:
+            cx, cy = a.pos[0] // R, a.pos[1] // R
+            for ox in (-1, 0, 1):
+                for oy in (-1, 0, 1):
+                    for j in buckets.get((cx + ox, cy + oy), ()):
+                        b = rs[j]
+                        if b.rid == a.rid or b.company != a.company:
+                            continue
+                        if (abs(a.pos[0] - b.pos[0]) <= R
+                                and abs(a.pos[1] - b.pos[1]) <= R
+                                and snap[b.rid]):
+                            self.blacklist[a.rid] |= snap[b.rid]
 
     # ── v12 K1: map-selling (a sync is a copy of fresher map entries) ────
     def _map_overlay_entries(self, rc: int, gc: int):
