@@ -1975,3 +1975,88 @@ pinned/escrow retire to 0).
   Product translation, on the record: agent commerce is not short of
   posting infrastructure (every marketplace posts); it is short of the
   binding claim. Do not build the bulletin board; build the receipt.
+
+**P24 RESULTS (2026-07-16, sweep_v4_Q.json — report, not verdict; the numbers,
+loudly either way). Endogenous infrastructure: the sim grows landlords.** N=240
+scaled v5 (grid 101), σ=0.5, τ=0.15, 8 seeds, BOTH horizons {2,500 · 7,500} (the
+mandatory fair pair — building is the most truncation-exposed mechanism yet).
+Design: a SEPARATE matter field (build_matter=0.5 → 50 mirror-pair matter rocks,
+disjoint from ore — ore routing / Φ / conservation untouched by construction, all
+prior columns bit-identical, differential oracle green WITH mid-run built chargers)
+is mined-to-pool by ≤3 designated gatherers/company; a company spends MATTER_COST=6
+matter + BUILD_CREDIT_COST=30 credits to PLACE one charger. Placement is derived
+from the EXISTING loaded-haul valuation (not a new planner): a within-loaded-reach
+STEPPING STONE (0.9·BATTERY_MAX/(eff·(1+λ)) ≈ 56 cells from the home refinery)
+toward the LOAD-weighted centroid of the company's own trapped-return drones (the
+stranding-concentration argmax), with a forgone-far-ore fallback (stock×charge-
+distance) for the early game. Guest toll grid {0, 1, 2, 4}=cost×{0,1,2,4} credits/
+guest slot-fill on BUILT chargers only (a TOLL_ROUTE_PENALTY=3 cells/credit guest-
+avoidance gives the toll a demand channel). Refinery tier DEFERRED (charger-only —
+not cheap given the structures; registered, not forced). Conservation exact across
+all 128 runs: material_ok, ledger_accounted (extended with build_spend),
+matter_conserved (field+pools+spent == mined == initial) and toll_conserved
+(guest→owner net-zero) all green.
+
+- **P24a: KILL FIRES — built chargers do NOT lift the N=240 plateau.** Paired
+  build−control delivered_frac edge = **+0.001** (snhp+net, p=0.67, 4/8 wins) and
+  **−0.004** (auction, p=0.34, 3/8) — nowhere near the registered +0.05. Delivered:
+  snhp+net 1990.2 (frac .829) → 1992.5/1993.4 build (.830/.831); auction 2037.4
+  (.849) → 2028.6 build (.845, building HURTS the auction −8.8). ~13.6 chargers
+  built/run (6+6/company). Placement does NOT "cluster where far-ore decay was":
+  100% of built sites fired in TRAPPED-RETURN mode (the far-ore fallback never
+  triggered), landing centrally near the y=50 company boundary (seed-0 sites
+  [51,44],[50,57],[49,42],…, forgone weights 93–148), because the binding
+  stranding is loaded-return, not far-ore.
+- **NOT truncation — a HARD STALL.** Delivered is FLAT 2,500→7,500 (no-build +0.0
+  both arms; build +0.9 snhp, +0.0 auction) — 5,000 extra ticks deliver nothing.
+  And building is EARLY, not late (first@tick 25, median@~156–302, only ~3/13 built
+  after the half-horizon), so the null is not horizon-censored capital. The
+  P28-H/P18 truncation trap does NOT apply here: the horizon was tested and the gap
+  did not narrow.
+- **THE PLATEAU MECHANISM — the constraint is charge-ROUTING, not charge-SUPPLY.**
+  At the horizon ~410 ore units (snhp) / ~363 (auction) are MINED but never
+  delivered — held in the loads of ~166 drones sitting at FULL battery (median 100)
+  AT a charger, of which **98% are >62 cells (single-hop loaded reach) from their
+  refinery**. The greedy nearest-charger policy pins a loaded low-battery drone at
+  the closest charger; if that dead-end charger is itself beyond loaded reach of the
+  refinery, the drone oscillates forever. Infrastructure cannot relieve this: a
+  stepping-stone charger only helps a drone that ROUTES to it, but a stuck drone's
+  nearest charger is always the dead-end it already occupies. Building drains only
+  ~3 units of held_load. Stranding stays tiny (2–4) throughout — this is TRAPPING,
+  not classical stranding, and capital does not touch it.
+- **P24c: bargaining tolerates building better than the auction (weak support).**
+  build-gain = +2.2/+3.1 (snhp+net) vs −8.8 (auction) at both horizons: the auction
+  is the STRONGER no-build baseline at N=240 (2037 vs 1990 — its blunter cargo
+  reassignment traps less), and building DEGRADES it (gathering diversion + charger
+  churn with no delivery payoff), while it marginally helps the bargaining fleet.
+  Directionally P24c holds (claim/deal coordination sites infrastructure less
+  destructively), but at a scale where both effects are ≤ the KILL threshold.
+- **P24b [UNDER-PROVISION]: REFUTED.** Welfare (delivered) vs FORCED per-company
+  build budget {0,2,4,8,16} = {1990.2, 1982.9, 1978.0, 1993.8, 1992.5}: NON-
+  monotonic — 2–4 forced chargers HURT (gathering + churn), 8+ recovers to ~+3.6
+  over control, and the peak (budget 8 ≈ 16 total capacity) coincides with the
+  voluntary build (~13.6). Welfare does NOT rise past the voluntary count, so there
+  is no gap between private and social provision to under-fill. The public-goods
+  under-provision does not arise because the marginal charger has ~zero social
+  product here (the routing deadlock caps it).
+- **P24b [CROSS-COMPANY TOLL PRICING]: above marginal cost, but economically
+  marginal.** The trapped-centroid stepping stones land where cross-company traffic
+  passes, so at toll 0 the BUILT (endogenous) chargers serve **267 guest slot-fills/
+  run**. Demand is hyper-elastic: guest slots 267 → 7.9 → 0 → 0 and owner revenue
+  0 → **7.88** → 0 → 0 as toll goes 0 → 1 → 2 → 4. The revenue-maximizing toll is
+  the lowest positive rung (1× cost = ABOVE marginal cost ≈ 0), so the toll-booth
+  DOES recurse onto endogenous capital — but it extracts trivially (7.88 credits in
+  a ~20,000-credit economy) and mostly diverts guests to the free preset chargers
+  (which serve ~52,650 guest-energy/run). Priced above marginal cost: technically
+  yes; the wedge that matters: no.
+- **Read (KILL headline).** At N=240 the binding constraint is charge-PLANNING —
+  single-hop, greedy, myopic loaded-return charge routing that traps ~1/5 of all
+  mined ore at dead-end chargers — NOT charge CAPITAL. So endogenous infrastructure
+  is decorative: no charger count, cost, horizon, or arm lifts the plateau, and
+  forced over-provision does not help. This is the SAME lesson as P18/P28-H one
+  layer down: it is PLANNING, not supply (compute, chargers, receipts, capital),
+  that stops scaling. Product translation, on the record: at fleet scale, do not
+  sell more infrastructure into a routing-deadlocked commons; sell the multi-hop
+  charge PLAN (the thing that would let a trapped hauler route through a stepping
+  stone). The landlord cannot fix a traffic-routing failure by building more
+  toll-booths — and the guests just take the free road anyway.

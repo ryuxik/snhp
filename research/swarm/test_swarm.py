@@ -2119,6 +2119,183 @@ def test_v23_sparse_field_relay_without_colocation():
     assert w.credit_conserved() and w.material_ok()
 
 
+# ── v18 (column Q): endogenous infrastructure — the sim grows landlords ──────
+def test_v18_build_off_bit_identical():
+    """build_matter=0 / build=False (and a SEEDED-but-untouched matter field with
+    build off) must be bit-identical to a World that never heard of column Q — the
+    matter arrays, the toll/built parallel charger arrays, build_step,
+    assign_gatherers and pick_matter may not perturb a single bit of the default
+    path. Checked on snhp+net (fast path) and auction (moves cargo)."""
+    for arm_name in ("snhp+net", "auction"):
+        outs = []
+        for kw in ({},
+                   dict(build_matter=0.0, build=False, toll_level=0.0),
+                   dict(build_matter=0.5, build=False)):      # matter field inert
+            w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                      hazard_phi=(arm_name != "auction"), **kw)
+            arm = make_arm(arm_name, w)
+            for _ in range(400):
+                arm.tick()
+            outs.append((w.delivered, arm.deals, len(w.event_log),
+                         round(sum(r.battery for r in w.robots), 9),
+                         [r.pos for r in w.robots],
+                         [tuple(sorted(d.items())) for d in w.deal_log]))
+        assert outs[0] == outs[1] == outs[2], \
+            f"column-Q plumbing leaked into {arm_name}"
+
+
+def test_v18_fast_equals_scalar_with_built_chargers():
+    """The registrar's sacred concern: Φ evaluation must see the CURRENT charger
+    set. Built chargers change the energy landscape, yet the fast path caches
+    nearest_charger per encounter — so fast and scalar Φ MUST stay byte-identical
+    across a run that BUILDS chargers mid-flight (differential oracle, N=48 so
+    building fires within the horizon)."""
+    def fp(force_scalar):
+        _ARMS.FORCE_SCALAR_EVAL = force_scalar
+        w = World(n_robots=48, sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                  grid=_grid_L(48), build_matter=1.0, build=True, toll_level=2.0)
+        arm = make_arm("snhp+net", w)
+        for _ in range(700):
+            arm.tick()
+        return (w.delivered, arm.deals, sum(c["built"] for c in w.company),
+                [round(r.battery, 12) for r in w.robots],
+                [tuple(sorted(d.items())) for d in w.deal_log])
+    try:
+        fast, scalar = fp(False), fp(True)
+    finally:
+        _ARMS.FORCE_SCALAR_EVAL = False
+    assert fast == scalar, "fast != scalar with built chargers (Φ saw a stale set)"
+    assert fast[2] > 0, "no charger built — the built-charger oracle is vacuous"
+
+
+def test_v18_matter_and_credit_conserved():
+    """Every invariant survives building: over a full N=96 build run, matter
+    (field + pools + spent == mined == initial-remaining), credit (ledger with
+    build_spend), material (ore) and tolls all conserve, live — non-vacuously
+    (chargers actually built, matter actually mined)."""
+    w = World(n_robots=96, sigma=0.5, seed=1, preset="v5", tau=(0.15, 0.15),
+              grid=_grid_L(96), build_matter=1.0, build=True, toll_level=2.0)
+    arm = make_arm("snhp+net", w)
+    for _ in range(1200):
+        arm.tick()
+        assert w.material_ok(), "ore material leaked under build"
+        assert w.matter_conserved(), "matter leaked under build"
+        assert w.toll_conserved(), "toll transfer not conserved"
+    assert w.ledger_accounted(), "ledger (with build_spend) leaked under build"
+    assert sum(c["built"] for c in w.company) > 0, "no charger built — vacuous"
+    assert w.matter_mined > 0, "no matter mined — vacuous"
+    # build_spend exactly equals BUILD_CREDIT_COST × chargers built
+    spent = sum(c["build_spend"] for c in w.company)
+    built = sum(c["built"] for c in w.company)
+    assert abs(spent - built * W.BUILD_CREDIT_COST) < 1e-9, "build_spend mismatch"
+
+
+def test_v18_toll_paid_guest_to_owner_exactly():
+    """A guest slot-fill at a BUILT charger with toll>0 moves EXACTLY `toll`
+    credits guest-company→owner-company (a pure transfer: net-zero in Σ credit,
+    so ledger_accounted holds), and a guest at a toll-free preset charger pays
+    nothing."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0),
+              build_matter=0.5, build=True, toll_level=3.0)
+    # hand-build one owned charger for company 0 and dock a company-1 guest on it
+    w.chargers.append((15, 15)); w.charger_owner.append(0)
+    w.charger_toll.append(3.0); w.charger_built.append(True)
+    guest = next(r for r in w.robots if r.company == 1)
+    guest.pos = (15, 15); guest.battery = 50.0; guest.charge_queued_at = w.tick
+    guest.stranded = False
+    c0_before = w.company[0]["credit"]
+    c1_before = w.company[1]["credit"]
+    w.charge_step()
+    assert w.company[0]["toll_earned"] == 3.0, "owner did not earn exactly one toll"
+    assert w.company[1]["toll_paid"] == 3.0, "guest did not pay exactly one toll"
+    assert abs(w.company[0]["credit"] - (c0_before + 3.0)) < 1e-9
+    assert abs(w.company[1]["credit"] - (c1_before - 3.0)) < 1e-9
+    assert w.toll_conserved()
+    guest.charge_queued_at = -1                           # undock the guest
+    # a company-0 host charging at its OWN toll-free preset charger costs no toll
+    te_before = w.company[0]["toll_earned"]
+    host = next(r for r in w.robots if r.company == 0)
+    host.pos = w.chargers[0]; host.battery = 50.0        # own charger (toll 0)
+    host.charge_queued_at = w.tick; host.stranded = False
+    w.charge_step()
+    assert w.company[0]["toll_earned"] == te_before, "a toll-free charge levied a toll"
+
+
+def test_v18_placement_deterministic_given_seed():
+    """Placement is a deterministic function of world state: two build runs at the
+    SAME seed produce IDENTICAL built logs (ticks + sites); a DIFFERENT seed
+    generally does not (the matter field and trajectories differ)."""
+    def built(seed):
+        w = World(n_robots=96, sigma=0.5, seed=seed, preset="v5", tau=(0.15, 0.15),
+                  grid=_grid_L(96), build_matter=1.0, build=True)
+        arm = make_arm("snhp+net", w)
+        for _ in range(900):
+            arm.tick()
+        return [(b["tick"], b["co"], b["pos"]) for b in w.built_log]
+    a, a2, b = built(0), built(0), built(3)
+    assert a == a2, "placement not deterministic at fixed seed"
+    assert len(a) > 0, "no charger built — placement test vacuous"
+    assert a != b, "two different seeds built identically (suspicious)"
+
+
+def test_v18_built_charger_unstrands_a_known_stranded_route():
+    """The hand-built scenario: a loaded drone is STRANDED (battery 0) partway
+    along its route to the refinery, with NO charger in reach — it stays stranded
+    and never delivers. Place ONE far-field charger on the stranded cell and the
+    same drone tops up, un-strands and DELIVERS. Isolated (preset chargers stripped
+    so the built charger is the ONLY infrastructure — an unambiguous far-field
+    rescue)."""
+    from swarm.arms import drive
+
+    def run(with_built):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0),
+                  build_matter=0.5, build=True)
+        w._live_sense = False
+        w.chargers, w.charger_owner = [], []          # strip preset infra
+        w.charger_toll, w.charger_built = [], []
+        make_arm("null", w)                           # bare movement, no deals
+        for r in w.robots:                            # neutralize the rest
+            r.stranded, r.battery, r.load, r.load_prov = True, 0.0, 0, [0, 0]
+        R = w.robots[0]
+        ref = w.refineries[0]                         # (26, 6)
+        R.company, R.sector, R.cap, R.eff = 0, 0, 3, 1.0
+        # STRANDED loaded, 10 cells short of the refinery, battery dead
+        R.stranded, R.pos, R.battery = True, (16, 6), 0.0
+        R.load, R.load_prov = 2, [2, 0]
+        R.charge_queued_at = w.tick
+        if with_built:                                # a far-field charger on the cell
+            w.chargers.append((16, 6)); w.charger_owner.append(0)
+            w.charger_toll.append(0.0); w.charger_built.append(True)
+        for _ in range(400):
+            drive(R, w)
+            w.charge_step()
+            if R.pos == ref and R.load == 0:
+                break
+        return R.stranded, w.delivered
+
+    stranded_no, delivered_no = run(False)
+    stranded_yes, delivered_yes = run(True)
+    assert stranded_no and delivered_no == 0, \
+        "the route was NOT stranded without a charger — scenario invalid"
+    assert (not stranded_yes) and delivered_yes >= 2, \
+        "the built far-field charger failed to un-strand the route"
+
+
+def test_v18_evaluated_equals_executed_live_under_build():
+    """The sacred bills-style invariant, exercised under build: 800 ticks of
+    snhp+net with a live matter field and mid-run charger placement. The in-arm
+    evaluated Φ == executed Φ assert fires on any divergence; completing clean IS
+    the test — non-vacuous (deals struck, chargers built), conservation intact."""
+    w = World(n_robots=96, sigma=0.5, seed=2, preset="v5", tau=(0.15, 0.15),
+              grid=_grid_L(96), build_matter=1.0, build=True, toll_level=1.0)
+    arm = make_arm("snhp+net", w)
+    for _ in range(800):
+        arm.tick()
+        assert w.material_ok() and w.matter_conserved()
+    assert arm.deals > 0, "no deal struck — evaluated==executed test vacuous"
+    assert sum(c["built"] for c in w.company) > 0, "no charger built — vacuous"
+
+
 def benchmark(ticks=2500):
     """Timing harness (NOT a test): reports seconds for the three reference runs.
     Run with:  python -c 'from swarm.test_swarm import benchmark; benchmark()'"""

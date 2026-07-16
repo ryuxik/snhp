@@ -27,8 +27,9 @@ import numpy as np
 from scipy import stats
 
 from swarm.arms import make_arm
-from swarm.world import (CHARGE_SLOTS, DWELL_DECAY_LAMBDA, TOTAL_STOCK,
-                         V_DELIVER, World, manhattan)
+from swarm.world import (BUILD_CREDIT_COST, CHARGE_SLOTS, DWELL_DECAY_LAMBDA,
+                         MATTER_COST, TOLL_GRID, TOTAL_STOCK, V_DELIVER, World,
+                         manhattan)
 
 FULL = ("cargo", "energy", "sector")
 LADDER = ["null", "rules", "auction", "auction-co", "team", "team-co",
@@ -127,7 +128,9 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              lineage: bool = False, bills: bool = False,
              firm_relay: bool = False, dwell: bool = False,
              bills_contingent: bool = False, reputation: bool = False,
-             false_accuse: float = 0.0, order_book: bool = False) -> dict:
+             false_accuse: float = 0.0, order_book: bool = False,
+             build_matter: float = 0.0, build: bool = False,
+             toll_level: float = 0.0, build_budget: int = 10**9) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -162,7 +165,9 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               lineage=lineage, bills=bills, firm_relay=firm_relay,
               dwell=dwell, bills_contingent=bills_contingent,
               reputation=reputation, false_accuse=false_accuse,
-              order_book=order_book)
+              order_book=order_book,
+              build_matter=build_matter, build=build,
+              toll_level=toll_level, build_budget=build_budget)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
@@ -201,6 +206,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         delivered_mid = w.total_stock   # finished before the checkpoint
     assert w.material_ok(), "material leak"
     assert w.ledger_accounted(), "ledger leak"
+    assert w.matter_conserved(), "matter leak"        # v18 (column Q)
+    assert w.toll_conserved(), "toll leak"            # v18 (column Q)
 
     deals = w.deal_log
     stranded = sum(r.stranded for r in w.robots)
@@ -359,10 +366,50 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
             cargo_writeoff=w.cargo_writeoff,
             escrow_ok=bool(w.escrow_conserved()),
         )
+    # v18 (column Q): endogenous-infrastructure blob (only when the matter field is
+    # seeded). Built-charger count/timing, the placement map (built sites vs their
+    # forgone-far-ore rock), matter economy, and the toll-booth throughput
+    # (guest slot-fills served AT built chargers + toll revenue) — the P24 numbers.
+    build_detail = None
+    if build_matter > 0:
+        bl = w.built_log
+        built_ticks = [b["tick"] for b in bl]
+        # far-ore decay reference: mined-vs-stranded is not tracked per rock, but the
+        # placement rocks' distance-from-refinery band shows WHERE building clustered.
+        rock_bands = []
+        for b in bl:
+            src = w.sources[b["rock"]] if b["rock"] >= 0 else None
+            if src is not None:
+                d = min(manhattan(src, rf) for rf in w.refineries)
+                rock_bands.append(_dist_band(d))
+        band_hist = [rock_bands.count(k) for k in (0, 1, 2)]
+        build_detail = dict(
+            built=[w.company[c]["built"] for c in (0, 1)],
+            n_built=len(bl),
+            first_built=(min(built_ticks) if built_ticks else None),
+            median_built_tick=(float(np.median(built_ticks)) if built_ticks else None),
+            late_built=sum(1 for t in built_ticks if t > makespan // 2),
+            matter_mined=w.matter_mined, matter_initial=w.matter_initial,
+            matter_pool=[round(w.company[c]["matter"], 1) for c in (0, 1)],
+            build_spend=[round(w.company[c]["build_spend"], 1) for c in (0, 1)],
+            build_credit_cost=BUILD_CREDIT_COST, matter_cost=MATTER_COST,
+            built_guest_slots=w.built_guest_slots,     # slot-fills served to guests
+            toll_earned=[round(w.company[c]["toll_earned"], 2) for c in (0, 1)],
+            toll_paid=[round(w.company[c]["toll_paid"], 2) for c in (0, 1)],
+            toll_level=toll_level, toll_grid=list(TOLL_GRID),
+            placement_band_hist=band_hist,             # built rocks by dist band
+            built_sites=[list(b["pos"]) for b in bl],
+            built_forgone=[b["forgone"] for b in bl],
+            n_chargers_final=len(w.chargers),
+            n_matter_rocks=len(w.matter_sources),
+            matter_conserved=bool(w.matter_conserved()),
+            toll_conserved=bool(w.toll_conserved()),
+        )
     # v17 PHASE 2: the mechanism rides the same snhp+net base (SnhpArm) — the
     # world flag IS the treatment, so relabel for the tables/pairings.
     # P23e: contingent splits get a distinct label so spot/flat/contingent pair.
-    base_label = ("snhp+ob" if order_book        # v23: order-book relays (bills-settled)
+    base_label = (f"{arm_name}+B" if build        # v18: endogenous infrastructure
+                  else "snhp+ob" if order_book        # v23: order-book relays (bills-settled)
                   else "snhp+billC" if (bills and bills_contingent)
                   else "snhp+bill" if bills
                   else "snhp+firm" if firm_relay else arm_name)
@@ -371,11 +418,15 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
     return dict(
         arm=label, sigma=sigma, seed=seed, tau=tau_pair[0], tau1=tau_pair[1],
         preset=preset, delivered=w.delivered, delivered_mid=delivered_mid,
-        makespan=makespan, stranded=stranded,
+        makespan=makespan, ticks_horizon=ticks, stranded=stranded,
         score_k2=w.delivered - 2 * stranded,
         score_k5=w.delivered - 5 * stranded,
         eff_last=100.0 * w.delivered / max(1e-9, w.energy_at_last_delivery),
         lost_cargo=sum(r.load for r in w.robots if r.stranded),
+        # v18 (column Q): ore MINED but never delivered — held in robot loads at
+        # the horizon. The N=240 plateau's trapped-return signature (loaded drones
+        # pinned at dead-end chargers beyond single-hop refinery range).
+        held_load=sum(r.load for r in w.robots),
         deals=arm.deals, xfers=len(w.event_log),
         capture=float(np.mean([d["capture"] for d in deals])) if deals else None,
         multi_issue_frac=(n_multi / len(deals)) if deals else None,
@@ -452,6 +503,10 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         # v23 (column V): the stigmergic order book
         order_book=order_book,
         order_book_detail=order_book_detail,
+        # v18 (column Q): endogenous infrastructure
+        build_matter=build_matter, build=build, toll_level=toll_level,
+        build_budget=(build_budget if build_budget < 10**9 else None),
+        build_detail=build_detail,
     )
 
 
@@ -478,12 +533,16 @@ def _cond(r) -> tuple:
             bool(r.get("gossip", False)),
             int(r.get("r_radio", 6)),
             bool(r.get("reputation", False)),
-            r.get("false_accuse", 0.0))
+            r.get("false_accuse", 0.0),
+            r.get("build_matter", 0.0),          # v18 (column Q)
+            bool(r.get("build", False)),
+            r.get("toll_level", 0.0),
+            (r.get("build_budget") if r.get("build_budget") is not None else -1))
 
 
 def _cond_label(c) -> str:
     (f, dfd, s7, mg, nz, g, bm, race, mt, dyn, cnt, scout, maptr, pros,
-     nr, cc, gs, rr, rep, fa) = c
+     nr, cc, gs, rr, rep, fa, bmat, bld, toll, bbud) = c
     bits = []
     if f:
         bits.append(f"f={f:g}")
@@ -523,11 +582,20 @@ def _cond_label(c) -> str:
         bits.append("rep")               # v22: community reputation
     if fa:
         bits.append(f"ε={fa:g}")         # v22: false-accusation (slander) rate
+    if bmat:
+        bits.append(f"bm={bmat:g}")      # v18: matter-field fraction
+    if bld:
+        bits.append("build")             # v18: build-capable
+    if toll:
+        bits.append(f"toll={toll:g}")    # v18: guest toll on built chargers
+    if bbud is not None and bbud >= 0:
+        bits.append(f"bud={bbud}")       # v18: forced per-company build budget
     return " ".join(bits)
 
 
 _BASE = (0.0, False, 0.0, False, 0.0, 32, False, True, False, False, False,
-         False, False, False, 24, False, False, 6, False, 0.0)
+         False, False, False, 24, False, False, 6, False, 0.0,
+         0.0, False, 0.0, -1)
 
 
 def _paired(rows, arm_hi, arm_lo, sigma, field, tau=0.0, cond=_BASE):
@@ -1407,6 +1475,203 @@ def p29(rows: list[dict]) -> None:
               f"{hump[48][0]['delta']:+.2f} — the book lowers the DENSE-field peak.")
 
 
+def p24(rows: list[dict]) -> None:
+    """v18 (column Q) — endogenous infrastructure ("the sim grows landlords").
+    Report, not verdict: P24a (do built chargers lift the N=240 plateau by ≥0.05
+    delivered_frac?), P24b (under-provision + cross-company toll pricing), P24c
+    (build-auction vs build-bargaining), and the KILL (building never beats saving
+    the resources). No-op unless the sweep carries the matter field."""
+    if not any(r.get("build_matter", 0) for r in rows):
+        return
+    ORE_TOTAL = 2 * TOTAL_STOCK * 240 // 24            # N=240 ore total = 2400
+
+    def sel(label, horizon=None, budget=None, toll=0.0):
+        # Defaults isolate the CORE cell (unlimited budget → None, toll-free):
+        # no-build and CORE-build rows both carry build_budget=None, toll_level=0,
+        # so sel(arm[,+B], H) returns ONLY the core arm — the budget sweep
+        # (build_budget∈{0,2,4,8,16}) and toll sweep (toll_level∈{1,2,4}) are
+        # reached by overriding budget=/toll= explicitly.
+        out = []
+        for r in rows:
+            if r["arm"] != label:
+                continue
+            if horizon is not None and r.get("ticks_horizon") != horizon:
+                continue
+            if budget != "__any__" and r.get("build_budget") != budget:
+                continue
+            if toll != "__any__" and abs(r.get("toll_level", 0.0) - toll) > 1e-9:
+                continue
+            out.append(r)
+        return out
+
+    def mean(rs, field, sub=None):
+        vals = []
+        for r in rs:
+            v = r.get(field) if sub is None else (r.get("build_detail") or {}).get(field)
+            if v is not None:
+                vals.append(v)
+        return float(np.mean(vals)) if vals else float("nan")
+
+    def paired(hi_rs, lo_rs, field):
+        hi = {r["seed"]: r[field] for r in hi_rs if r.get(field) is not None}
+        lo = {r["seed"]: r[field] for r in lo_rs if r.get(field) is not None}
+        common = sorted(set(hi) & set(lo))
+        if len(common) < 3:
+            return None
+        d = np.array([hi[s] - lo[s] for s in common])
+        _, pt = stats.ttest_rel([hi[s] for s in common], [lo[s] for s in common])
+        return dict(delta=float(d.mean()), p=float(pt),
+                    wins=int((d > 0).sum()), n=len(common))
+
+    print("\n" + "=" * 100)
+    print("P24 (column Q) — ENDOGENOUS INFRASTRUCTURE: the sim grows landlords "
+          "(N=240 scaled v5, σ=0.5, τ=0.15, build_matter=0.5, 8 seeds)")
+    print("=" * 100)
+
+    print("\n[1] DELIVERED & delivered_frac by arm × horizon "
+          "(no-build control vs build-capable):")
+    h = (f"  {'arm':>10} {'H':>6} {'no-build':>9} {'frac':>6} {'build':>9} "
+         f"{'frac':>6} {'built':>6} {'Δdeliv':>8} {'Δfrac':>7}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    p24a = {}
+    for arm in ("snhp+net", "auction"):
+        for H in (2500, 7500):
+            nb = sel(arm, H)
+            bd = sel(arm + "+B", H)
+            dnb, fnb = mean(nb, "delivered"), mean(nb, "delivered_frac")
+            dbd, fbd = mean(bd, "delivered"), mean(bd, "delivered_frac")
+            nbuilt = mean(bd, "n_built", sub=True)
+            pe = paired(bd, nb, "delivered")
+            pf = paired(bd, nb, "delivered_frac")
+            p24a[(arm, H)] = (pe, pf)
+            print(f"  {arm:>10} {H:>6} {dnb:>9.1f} {fnb:>6.3f} {dbd:>9.1f} "
+                  f"{fbd:>6.3f} {nbuilt:>6.1f} "
+                  f"{(pe['delta'] if pe else float('nan')):>+8.1f} "
+                  f"{(pf['delta'] if pf else float('nan')):>+7.3f}")
+
+    print("\n[2] P24a [DOES BUILDING LIFT THE PLATEAU?] — paired build−control "
+          "delivered_frac edge (threshold +0.05):")
+    for arm in ("snhp+net", "auction"):
+        for H in (2500, 7500):
+            pf = p24a[(arm, H)][1]
+            if pf:
+                verdict = "LIFTS (P24a)" if pf["delta"] >= 0.05 else "no lift"
+                print(f"    {arm:>10} H={H}: Δfrac={pf['delta']:+.3f} "
+                      f"(p={pf['p']:.3f}, {pf['wins']}/{pf['n']} wins) → {verdict}")
+
+    print("\n[3] TRUNCATION CHECK — delivered at 2500 vs 7500 (if flat, the "
+          "plateau is a HARD STALL, not horizon-censoring):")
+    for arm in ("snhp+net", "auction"):
+        for tag, lbl in (("", "no-build"), ("+B", "build")):
+            d25 = mean(sel(arm + tag, 2500), "delivered")
+            d75 = mean(sel(arm + tag, 7500), "delivered")
+            print(f"    {arm+tag:>12} ({lbl:>8}): 2500t={d25:.1f}  7500t={d75:.1f} "
+                  f"  Δ(5000 extra ticks)={d75-d25:+.1f}")
+
+    print("\n[4] THE PLATEAU MECHANISM — ore MINED but never delivered (held in "
+          "loads at horizon) & stranding. Building should DRAIN held_load if it "
+          "relieves the constraint:")
+    h = f"  {'arm':>12} {'H':>6} {'delivered':>10} {'held_load':>10} {'stranded':>9}"
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for arm in ("snhp+net", "auction"):
+        for tag in ("", "+B"):
+            for H in (2500, 7500):
+                rs = sel(arm + tag, H)
+                print(f"  {arm+tag:>12} {H:>6} {mean(rs,'delivered'):>10.1f} "
+                      f"{mean(rs,'held_load'):>10.1f} {mean(rs,'stranded'):>9.1f}")
+
+    print("\n[5] P24c [SITING COORDINATION] — build gain (build−control delivered) "
+          "for the BARGAINING fleet vs the AUCTION fleet (P24c: bargaining should "
+          "gain MORE):")
+    for H in (2500, 7500):
+        gs = p24a[("snhp+net", H)][0]
+        ga = p24a[("auction", H)][0]
+        if gs and ga:
+            print(f"    H={H}: snhp+net build-gain={gs['delta']:+.1f}  "
+                  f"auction build-gain={ga['delta']:+.1f}  "
+                  f"→ {'bargaining gains more (P24c)' if gs['delta']>ga['delta'] else 'auction ≥ bargaining (P24c refuted)'}")
+
+    print("\n[6] PLACEMENT MAP — built-charger count/timing & distance band of the "
+          "targeted rock (≤30 home · 31-62 mid · >62 far). early sites target "
+          "far-ore; later sites target the loaded-return trapped-cargo centroid:")
+    bd = sel("snhp+net+B", 2500)
+    if bd:
+        det = [r["build_detail"] for r in bd if r.get("build_detail")]
+        if det:
+            print(f"    built total = {mean(bd,'n_built',sub=True):.1f}; "
+                  f"first@tick~{mean(bd,'first_built',sub=True):.0f}, "
+                  f"median@tick~{mean(bd,'median_built_tick',sub=True):.0f}, "
+                  f"late(>½horizon)~{mean(bd,'late_built',sub=True):.1f}")
+            bh = np.mean([d["placement_band_hist"] for d in det], axis=0)
+            print(f"    placement dist-band histogram (far-ore fallback sites only) "
+                  f"[home,mid,far] = {[round(x,1) for x in bh]}")
+            print(f"    sample built sites (seed {det[0].get('toll_level','?')}): "
+                  f"{det[0]['built_sites'][:6]}")
+            print(f"    matter mined~{mean(bd,'matter_mined',sub=True):.0f} of "
+                  f"{mean(bd,'matter_initial',sub=True):.0f} seeded; "
+                  f"build_credit_spend/co~{[round(x) for x in np.mean([d['build_spend'] for d in det],axis=0)]}")
+
+    print("\n[7] P24b [UNDER-PROVISION] — welfare (delivered) vs FORCED per-company "
+          "build budget (2500t). Under-provision ⇒ welfare rises with count PAST "
+          "the voluntary build:")
+    h = f"  {'budget':>7} {'delivered':>10} {'frac':>6} {'built_tot':>10} {'held_load':>10}"
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    welf = {}
+    for budget in (0, 2, 4, 8, 16):
+        rs = sel("snhp+net+B", 2500, budget=budget)
+        if not rs:
+            continue
+        d = mean(rs, "delivered")
+        welf[budget] = d
+        print(f"  {budget:>7} {d:>10.1f} {mean(rs,'delivered_frac'):>6.3f} "
+              f"{mean(rs,'n_built',sub=True):>10.1f} {mean(rs,'held_load'):>10.1f}")
+    if welf:
+        best_b = max(welf, key=welf.get)
+        volb = mean(sel("snhp+net+B", 2500, budget=None), "n_built", sub=True)
+        print(f"    welfare-optimal forced budget = {best_b}/co "
+              f"(delivered {welf[best_b]:.1f}); voluntary build ≈ {volb:.1f} total. "
+              f"{'UNDER-PROVISION' if welf.get(best_b,0) - welf.get(0,0) > 5 and best_b*2 > volb else 'NO under-provision — welfare flat/negative in count'}")
+
+    print("\n[8] P24b [CROSS-COMPANY TOLL PRICING] — the toll dial on ENDOGENOUS "
+          "chargers (2500t). owner guest-revenue & built-charger guest slots by "
+          "toll level (grid = free/cost/2×/4×):")
+    h = (f"  {'toll':>6} {'delivered':>10} {'built_guest_slots':>18} "
+         f"{'toll_earned_tot':>16} {'built':>7}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    from swarm.world import TOLL_GRID as _TG
+    for toll in _TG:
+        rs = (sel("snhp+net+B", 2500, budget=None, toll=toll) if toll == 0.0
+              else sel("snhp+net+B", 2500, toll=toll))
+        if not rs:
+            continue
+        det = [r["build_detail"] for r in rs if r.get("build_detail")]
+        gslots = float(np.mean([d["built_guest_slots"] for d in det])) if det else 0.0
+        tearn = float(np.mean([sum(d["toll_earned"]) for d in det])) if det else 0.0
+        print(f"  {toll:>6.1f} {mean(rs,'delivered'):>10.1f} {gslots:>18.1f} "
+              f"{tearn:>16.2f} {mean(rs,'n_built',sub=True):>7.1f}")
+    pg = mean(sel("snhp+net+B", 2500, budget=None), "guest_charged")
+    print(f"    CONTRAST: PRESET (exogenous, central) chargers serve "
+          f"~{pg:.0f} guest-energy/run — the built (endogenous, own-corridor) "
+          f"chargers' guest throughput above is the toll-booth's ACTUAL reach.")
+
+    print("\n[9] KILL STATUS — 'if building never beats saving the resources for "
+          "direct operations, infrastructure is decorative at these scales.'")
+    lifts = [p24a[k][1] for k in p24a if p24a[k][1] and p24a[k][1]["delta"] >= 0.05]
+    anypos = any(p24a[k][0] and p24a[k][0]["delta"] > 2.0 for k in p24a)
+    if lifts:
+        print("    → P24a SUPPORTED: at least one arm/horizon lifts frac ≥0.05.")
+    else:
+        print("    → KILL FIRES: no arm/horizon lifts the plateau ≥0.05 delivered_frac; "
+              "welfare is flat/negative in charger count. Building is decorative — the "
+              "N=240 constraint is charge-ROUTING (single-hop loaded-return planning "
+              "traps mined ore at dead-end chargers), NOT charge-SUPPLY (capital). "
+              f"{'(build did edge delivered slightly positive but far below threshold.)' if anypos else ''}")
+
+
 def build_jobs(column: str, seeds: int, ticks: int):
     jobs = []
     if column in ("A", "all"):
@@ -1753,6 +2018,41 @@ def build_jobs(column: str, seeds: int, ticks: int):
                 jobs.append(dict(arm_name="snhp+net", seed=seed, **base))
                 jobs.append(dict(arm_name="snhp+net", seed=seed, bills=True, **base))
                 jobs.append(dict(arm_name="snhp+net", seed=seed, order_book=True, **base))
+    if column == "Q":                 # v18: endogenous infrastructure (P24)
+        # N=240 scaled v5 grid (the P18 charge-bound config), σ=0.5, τ=0.15,
+        # build_matter=0.5 (a separate matter field seeded in both arms — the
+        # no-build control simply never touches it). 8 seeds.
+        #   CORE (P24a + P24c): {no-build, build} × {snhp+net, auction} at BOTH
+        #     horizons {2500, 7500} — the mandatory fair-horizon pair (building is
+        #     the most truncation-exposed mechanism yet: it amortizes late).
+        #   BUDGET (P24b under-provision): snhp+net build across FORCED per-company
+        #     build budgets {0,2,4,8,16} at 2500t — welfare(count). budget 0 is a
+        #     clean control (never builds/gathers). The cheaper of the two
+        #     registered designs (vs a social-planner arm).
+        #   TOLL (P24b cross-company pricing): snhp+net build across the toll grid
+        #     {cost,2·,4·} on ENDOGENOUS chargers at 2500t (toll 0 == the CORE
+        #     build arm) — owner guest revenue vs marginal cost.
+        import math as _math
+        g240 = int(round(32 * _math.sqrt(240 / 24)))
+        base = dict(sigma=0.5, tau=0.15, preset="v5", n_robots=240, grid=g240,
+                    build_matter=0.5)
+        n8 = min(seeds, 8)
+        for horizon in (2500, 7500):
+            for arm in ("snhp+net", "auction"):
+                for seed in range(n8):
+                    jobs.append(dict(arm_name=arm, seed=seed, ticks=horizon, **base))
+                    jobs.append(dict(arm_name=arm, seed=seed, ticks=horizon,
+                                     build=True, toll_level=0.0, **base))
+        for budget in (0, 2, 4, 8, 16):
+            for seed in range(n8):
+                jobs.append(dict(arm_name="snhp+net", seed=seed, ticks=2500,
+                                 build=True, toll_level=0.0, build_budget=budget,
+                                 **base))
+        from swarm.world import TOLL_GRID as _TG
+        for toll in _TG[1:]:
+            for seed in range(n8):
+                jobs.append(dict(arm_name="snhp+net", seed=seed, ticks=2500,
+                                 build=True, toll_level=float(toll), **base))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -1763,7 +2063,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "U", "UH", "V", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "U", "UH", "V", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -1784,6 +2084,7 @@ def main() -> None:
         phase2e(rows)
         u_report(rows)
         p29(rows)
+        p24(rows)
         return
 
     jobs = build_jobs(args.column, args.seeds, args.ticks)
@@ -1820,6 +2121,7 @@ def main() -> None:
     phase2e(rows)
     u_report(rows)
     p29(rows)
+    p24(rows)
 
 
 if __name__ == "__main__":

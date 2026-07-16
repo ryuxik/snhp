@@ -189,6 +189,10 @@ def intent(r, w):
     r.target_ref = None
     if r.bat() < safe_return_threshold(r, w):   # v12: charge precedence stays
         return charger
+    if w.build:                                 # v18 (column Q): a DESIGNATED
+        gt = w._gather_target.get(r.rid)        # gatherer diverts to the matter
+        if gt is not None:                      # field (below charging, above ore
+            return gt                           # mining — the ore-vs-matter trade)
     if w.order_book:                            # v23: route to a known relay order
         ot = order_target(r, w)                 # (below charging, above mining —
         if ot is not None:                      # servicing a pin competes with a
@@ -219,6 +223,8 @@ def drive(r, w):
             w.drop(r)
         elif t in w.sources:
             w.pick(r)
+        elif w.build and t in w.matter_sources:   # v18: mine matter to the pool
+            w.pick_matter(r)
     else:
         w.move_toward(r, t)
         # Pad unloads on arrival: if the arrival step itself stranded the
@@ -346,6 +352,14 @@ class BaseArm:
                                        # bundle evaluation, so no field change
                                        # ever lands mid-encounter (evaluated Φ
                                        # == executed Φ). No-op when off.
+        w.build_step()                 # v18 (column Q): place any afforded charger
+                                       # at TICK START (same invariant: a new
+                                       # charger never appears mid-encounter, so
+                                       # phi_ctx's cached nearest_charger is current
+                                       # for the whole encounter phase). No-op off.
+        w.assign_gatherers()           # v18: designate this tick's matter gatherers
+                                       # (once per tick, O(N·matter) — never per
+                                       # robot). No-op when build is off.
         if w.tick % EV_REFRESH == 0:
             for r in w.robots:
                 update_ev(r, w)
