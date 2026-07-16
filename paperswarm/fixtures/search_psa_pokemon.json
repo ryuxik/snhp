@@ -1,0 +1,82 @@
+{
+  "href": "https://api.ebay.com/buy/browse/v1/item_summary/search?q=PSA+Pokemon+graded+card",
+  "total": 6,
+  "limit": 50,
+  "offset": 0,
+  "itemSummaries": [
+    {
+      "itemId": "v1|110000000001|0",
+      "title": "2016 Pokemon XY Evolutions Charizard PSA 10 GEM MINT #11 Holo",
+      "price": {"value": "150.00", "currency": "USD"},
+      "currentBidPrice": {"value": "150.00", "currency": "USD"},
+      "bidCount": 7,
+      "buyingOptions": ["AUCTION"],
+      "itemEndDate": "2026-07-16T20:00:00.000Z",
+      "seller": {"username": "cardshark_88", "feedbackPercentage": "99.5", "feedbackScore": 4210},
+      "itemWebUrl": "https://www.ebay.com/itm/110000000001",
+      "condition": "Ungraded",
+      "categories": [{"categoryId": "183454", "categoryName": "CCG Individual Cards"}]
+    },
+    {
+      "itemId": "v1|110000000002|0",
+      "title": "Pokemon Base Set Blastoise PSA 9 MINT #2 Unlimited WOTC",
+      "price": {"value": "88.50", "currency": "USD"},
+      "currentBidPrice": {"value": "88.50", "currency": "USD"},
+      "bidCount": 12,
+      "buyingOptions": ["AUCTION"],
+      "itemEndDate": "2026-07-16T21:30:00.000Z",
+      "seller": {"username": "vintagevault", "feedbackPercentage": "100.0", "feedbackScore": 9871},
+      "itemWebUrl": "https://www.ebay.com/itm/110000000002",
+      "condition": "Ungraded",
+      "categories": [{"categoryId": "183454", "categoryName": "CCG Individual Cards"}]
+    },
+    {
+      "itemId": "v1|110000000003|0",
+      "title": "2021 Pokemon Sword Shield Umbreon VMAX Alt Art PSA 10 #215 Evolving Skies",
+      "price": {"value": "620.00", "currency": "USD"},
+      "currentBidPrice": {"value": "620.00", "currency": "USD"},
+      "bidCount": 3,
+      "buyingOptions": ["AUCTION"],
+      "itemEndDate": "2026-07-16T22:15:00.000Z",
+      "seller": {"username": "raincity_cards", "feedbackPercentage": "99.8", "feedbackScore": 15230},
+      "itemWebUrl": "https://www.ebay.com/itm/110000000003",
+      "condition": "Ungraded",
+      "categories": [{"categoryId": "183454", "categoryName": "CCG Individual Cards"}]
+    },
+    {
+      "itemId": "v1|110000000004|0",
+      "title": "Pokemon Neo Genesis Lugia PSA 8 NM-MT #9 Holo First Edition",
+      "price": {"value": "210.00", "currency": "USD"},
+      "buyingOptions": ["FIXED_PRICE"],
+      "itemEndDate": null,
+      "seller": {"username": "bindbox", "feedbackPercentage": "98.9", "feedbackScore": 3312},
+      "itemWebUrl": "https://www.ebay.com/itm/110000000004",
+      "condition": "Ungraded",
+      "categories": [{"categoryId": "183454", "categoryName": "CCG Individual Cards"}]
+    },
+    {
+      "itemId": "v1|110000000005|0",
+      "title": "PSA Cert 88123456 Pokemon Team Rocket Dark Charizard PSA 9 #4",
+      "price": {"value": "175.00", "currency": "USD"},
+      "currentBidPrice": {"value": "175.00", "currency": "USD"},
+      "bidCount": 5,
+      "buyingOptions": ["AUCTION", "FIXED_PRICE"],
+      "itemEndDate": "2026-07-16T23:45:00.000Z",
+      "seller": {"username": "holo_hunter", "feedbackPercentage": "99.2", "feedbackScore": 6644},
+      "itemWebUrl": "https://www.ebay.com/itm/110000000005",
+      "condition": "Ungraded",
+      "categories": [{"categoryId": "183454", "categoryName": "CCG Individual Cards"}]
+    },
+    {
+      "itemId": "v1|110000000006|0",
+      "title": "Lot of Pokemon Sleeves and Toploaders - Bulk Accessories",
+      "price": {"value": "14.99", "currency": "USD"},
+      "buyingOptions": ["FIXED_PRICE"],
+      "itemEndDate": null,
+      "seller": {"username": "suppliesdepot", "feedbackPercentage": "97.5", "feedbackScore": 1201},
+      "itemWebUrl": "https://www.ebay.com/itm/110000000006",
+      "condition": "New",
+      "categories": [{"categoryId": "183454", "categoryName": "CCG Individual Cards"}]
+    }
+  ]
+}

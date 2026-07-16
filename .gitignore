@@ -45,6 +45,9 @@ snhp/.daily_llm_usage.json
 # Dispute-tool analytics event log — runtime data.
 snhp/dispute_events.jsonl
 
+# PAPERSWARM runtime store — sqlite comp DB + hash-chained ledger; rebuilt per run.
+paperswarm/data/
+
 # Editor / OS noise
 .DS_Store
 .idea/

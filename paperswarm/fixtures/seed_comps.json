@@ -1,0 +1,24 @@
+{
+  "_comment": "Realized SOLD comps for bootstrapping/demo. Real mode builds this store itself via outcomes.py (SPEC Phase 1: 'our OWN outcome tracker building the sold-comp DB'). Spans 14 days so marks + cold-start have data offline. Prices are realized hammer, pre-friction.",
+  "comps": [
+    {"card_name": "charizard", "number": "11", "grade": "10", "sold_price": 155.00, "sold_time": "2026-07-02T18:00:00Z", "cert": "77010001", "listing_id": "seed-0001", "status": "SOLD"},
+    {"card_name": "charizard", "number": "11", "grade": "10", "sold_price": 148.00, "sold_time": "2026-07-03T18:00:00Z", "cert": "77010002", "listing_id": "seed-0002", "status": "SOLD"},
+    {"card_name": "charizard", "number": "11", "grade": "10", "sold_price": 162.00, "sold_time": "2026-07-05T18:00:00Z", "cert": "77010003", "listing_id": "seed-0003", "status": "SOLD"},
+    {"card_name": "charizard", "number": "11", "grade": "10", "sold_price": 139.00, "sold_time": "2026-07-07T18:00:00Z", "cert": "77010004", "listing_id": "seed-0004", "status": "SOLD"},
+    {"card_name": "charizard", "number": "11", "grade": "10", "sold_price": 151.00, "sold_time": "2026-07-09T18:00:00Z", "cert": "77010005", "listing_id": "seed-0005", "status": "SOLD"},
+    {"card_name": "charizard", "number": "11", "grade": "10", "sold_price": 158.00, "sold_time": "2026-07-11T18:00:00Z", "cert": "77010006", "listing_id": "seed-0006", "status": "SOLD"},
+    {"card_name": "charizard", "number": "11", "grade": "10", "sold_price": 145.00, "sold_time": "2026-07-13T18:00:00Z", "cert": "77010007", "listing_id": "seed-0007", "status": "SOLD"},
+    {"card_name": "charizard", "number": "11", "grade": "10", "sold_price": 149.00, "sold_time": "2026-07-15T18:00:00Z", "cert": "77010008", "listing_id": "seed-0008", "status": "SOLD"},
+    {"card_name": "charizard", "number": "11", "grade": "10", "sold_price": null,   "sold_time": "2026-07-08T18:00:00Z", "cert": null,       "listing_id": "seed-0009", "status": "UNSOLD"},
+    {"card_name": "charizard", "number": "11", "grade": "10", "sold_price": null,   "sold_time": "2026-07-12T18:00:00Z", "cert": null,       "listing_id": "seed-0010", "status": "UNSOLD"},
+
+    {"card_name": "blastoise", "number": "2", "grade": "9", "sold_price": 92.00,  "sold_time": "2026-07-04T18:00:00Z", "cert": "66020001", "listing_id": "seed-0101", "status": "SOLD"},
+    {"card_name": "blastoise", "number": "2", "grade": "9", "sold_price": 88.00,  "sold_time": "2026-07-06T18:00:00Z", "cert": "66020002", "listing_id": "seed-0102", "status": "SOLD"},
+    {"card_name": "blastoise", "number": "2", "grade": "9", "sold_price": 97.00,  "sold_time": "2026-07-09T18:00:00Z", "cert": "66020003", "listing_id": "seed-0103", "status": "SOLD"},
+    {"card_name": "blastoise", "number": "2", "grade": "9", "sold_price": 84.00,  "sold_time": "2026-07-12T18:00:00Z", "cert": "66020004", "listing_id": "seed-0104", "status": "SOLD"},
+    {"card_name": "blastoise", "number": "2", "grade": "9", "sold_price": 91.00,  "sold_time": "2026-07-14T18:00:00Z", "cert": "66020005", "listing_id": "seed-0105", "status": "SOLD"},
+
+    {"card_name": "umbreon vmax", "number": "215", "grade": "10", "sold_price": 640.00, "sold_time": "2026-07-05T18:00:00Z", "cert": "99010001", "listing_id": "seed-0201", "status": "SOLD"},
+    {"card_name": "umbreon vmax", "number": "215", "grade": "10", "sold_price": 610.00, "sold_time": "2026-07-10T18:00:00Z", "cert": "99010002", "listing_id": "seed-0202", "status": "SOLD"}
+  ]
+}

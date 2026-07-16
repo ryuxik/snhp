@@ -1,0 +1,20 @@
+{
+  "itemId": "v1|110000000001|0",
+  "title": "2016 Pokemon XY Evolutions Charizard PSA 10 GEM MINT #11 Holo",
+  "price": {"value": "150.00", "currency": "USD"},
+  "currentBidPrice": {"value": "150.00", "currency": "USD"},
+  "bidCount": 7,
+  "buyingOptions": ["AUCTION"],
+  "itemEndDate": "2026-07-16T20:00:00.000Z",
+  "seller": {"username": "cardshark_88", "feedbackPercentage": "99.5", "feedbackScore": 4210},
+  "itemWebUrl": "https://www.ebay.com/itm/110000000001",
+  "condition": "Ungraded",
+  "localizedAspects": [
+    {"type": "STRING", "name": "Grade", "value": "10"},
+    {"type": "STRING", "name": "Professional Grader", "value": "Professional Sports Authenticator (PSA)"},
+    {"type": "STRING", "name": "Certification Number", "value": "77012345"},
+    {"type": "STRING", "name": "Card Name", "value": "Charizard"},
+    {"type": "STRING", "name": "Set", "value": "XY Evolutions"},
+    {"type": "STRING", "name": "Card Number", "value": "11"}
+  ]
+}

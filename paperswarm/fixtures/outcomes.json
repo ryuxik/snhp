@@ -1,0 +1,7 @@
+{
+  "_comment": "Deterministic terminal outcomes for tracked listings in FIXTURE mode. Real mode discovers these by re-polling to end-state (outcomes.py). hammer = final auction price actually realized. Tuned so listing 1 hammers below our max bid (a WIN) and listing 2 above it (a LOSS) — exercises both fill paths.",
+  "v1|110000000001|0": {"status": "SOLD", "hammer": 92.00,  "end_time": "2026-07-16T20:00:00.000Z"},
+  "v1|110000000002|0": {"status": "SOLD", "hammer": 95.00,  "end_time": "2026-07-16T21:30:00.000Z"},
+  "v1|110000000003|0": {"status": "SOLD", "hammer": 655.00, "end_time": "2026-07-16T22:15:00.000Z"},
+  "v1|110000000005|0": {"status": "UNSOLD", "hammer": null, "end_time": "2026-07-16T23:45:00.000Z"}
+}
