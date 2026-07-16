@@ -2286,3 +2286,21 @@ firm, the receipt beats the boss.**
   channel, prices redistribute without producing, and attested claims are
   the only interior mechanism that turns scale from a liability into
   throughput. Y2's gate (org structure on X's mechanics) is now OPEN.
+
+**Y1 VISUAL DIRECTION (founder-directed amendment to v26, 2026-07-16).**
+Art style: GROW Cube (the old EYEZMAZE web game) — STYLE ONLY, all assets
+original (no copied sprites/characters; the style is chunky isometric
+cutaway diorama, soft pastels on warm cream, clean dark outlines, flat
+two-tone shading, rounded oversized miniatures, discrete pop/level-up
+animations). The company is a CUTAWAY ISOMETRIC CUBE that GROWS as the
+pipeline replay advances: rooms sprout on events, floors stack, and each
+completed column fires a GROW-style LEVEL-UP on the subsystem it touched.
+A GROW-style panel row shows the mechanisms/columns in the ORDER they were
+applied — the composition rule as UI. Honesty bindings (per Y1's
+registration): every rendered event maps to a real commit (hover = the
+hash); time compression declared on screen as a GROW-style turn counter
+("TURN n = <real timestamp>"); no decorative agents. Data source: the
+repo's own git history + SPEC ledger, parsed to an events.json by a
+checked-in generator. Lives in arena/web/antfarm/, unlinked from the
+arena index; deployment is a founder decision (assets public only when
+the founder publishes).
