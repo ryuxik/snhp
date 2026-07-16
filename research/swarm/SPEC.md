@@ -1378,3 +1378,34 @@ informativeness principle says to contract on).
   the direct-haul counterfactual); contingent splits compress dwell toward
   efficient levels at equal or better delivered. KILL: no dwell inflation
   under flat splits ⇒ no moral hazard to price in this world.
+
+**P21 VERDICT (2026-07-16, sweep_O.json, n=16, N=24): free radio was NOT
+load-bearing — and one of our own earlier findings gets honestly downgraded.**
+- **Column KILL does not fire:** gossip snhp+net (289–294 delivered) ≥
+  free-radio control (284) ≥ auction (286–289). Every belief-mode result
+  survives communication locality at this density.
+- **P21a REFUTED, and it re-scopes P15b:** under local radio the deal
+  economy holds NO freshness edge over the auction (Δstaleness n.s. at both
+  radii). The celebrated "trading fleets hold 3× fresher maps" (v10/P15b)
+  was a BROADCAST artifact — deals moved robots whose observations were
+  then amplified by free company-wide radio; remove the radio and the
+  auction's roaming senses just as well. The sensor-network claim is
+  hereby scoped: it is a property of trade + broadcast, not trade alone.
+- **P21b: the ladder splits exactly as registered.** Contact-only radio
+  (r=2) bleeds books (+5.31 poisoned, p=.001, 14/16) at flat delivered —
+  the FIFTH replication of "self-input error corrupts receipts before
+  output" — while short radio (r=6) fully restores free-radio freshness
+  and poisoning. Locality matters; RANGE beyond 6 cells does not.
+- **P21c: the trade graph IS the information graph — but only once radio
+  is local.** Freshness↔deal-degree correlation +0.13/+0.16 (hz p=.044)
+  under gossip vs ~0 under broadcast and vs the 200-permutation null.
+  Broadcast had erased the network structure; locality reveals it.
+- **Scout-return problem did not materialize** at N=24 density (arrivals
+  captured under gossip ≥ free radio): v12's "scouting fixes discovery"
+  survives without global broadcast. The map market under gossip again
+  buys freshness/integrity (staleness −6.0, p=.008), not throughput —
+  third consistent verdict that information trade's product is audit
+  quality.
+- Builder correctness catch adopted: the rival-rate baseline
+  (_own_mined_seen) must travel with gossiped last_seen or depletion
+  deltas are mis-scored — documented in code.
