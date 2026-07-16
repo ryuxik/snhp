@@ -27,12 +27,15 @@ for *deal formation* (not as implementations, not as security artifacts):
 
 | Spec | Owner(s) | Version examined | Role in stack | Source rows |
 |------|----------|------------------|---------------|-------------|
-| **AP2** — Agent Payments Protocol | Google-led | self-labelled "**v0.2**" (`docs/ap2/specification.md`); no ISO date found on fetched pages | payment authorization via signed mandates | A-1…A-6 |
-| **ACP** — Agentic Commerce Protocol | OpenAI + Stripe (+ Meta) | **2026-04-17** (date-versioned) | discovery → checkout session → delegated payment | C-1…C-6 |
+| **AP2** — Agent Payments Protocol | Google-led | self-labelled "**v0.2**" (`docs/ap2/specification.md`); no ISO date found on fetched pages; verified against `main`@`e1ea56d` (2026-07-16) | payment authorization via signed mandates | A-1…A-6 |
+| **ACP** — Agentic Commerce Protocol | OpenAI + Stripe (+ Meta) | **2026-04-17** (date-versioned; `main`@`c2afc86`, `spec/2026-04-17/` dir last amended 2026-05-01) | discovery → checkout session → delegated payment | C-1…C-6 |
 | **UCP** — Universal Commerce Protocol | Google + Shopify | 2026 (Apache-2.0; announced NRF, 2026-01-11) | discovery, capability manifest, checkout, post-purchase | U-1, U-2 |
 
 All fetches: **access date 2026-07-16**. Exact URLs + verbatim quotes:
-`specaudit/sources.md`. UCP is included **at the stack level only** — a public
+`specaudit/sources.md`. Primary sources re-verified in a verbatim-quote pass at
+AP2 `main`@`e1ea56d` and ACP `main`@`c2afc86` (2026-07-16); per-quote verdicts,
+diffs, and unresolved founder-blocking items: `specaudit/quote-audit.md`. UCP is
+included **at the stack level only** — a public
 spec is fetchable (`ucp.dev`, Google/Shopify docs), but the deep field-level
 mapping below is done against AP2 and ACP, whose machine-readable schemas
 (SD-JWT claim sets; OpenAPI) were fetched directly.
@@ -144,7 +147,7 @@ the menu is merchant-enumerated and merchant-priced with no counter.
 |---|---|---|---|
 | **Payment vs delivery ordering** | Payment authorized when MPP verifies the Payment Mandate in the token and returns an **MPP-signed Payment Receipt**; **delivery is out of scope** ("The exact details of the Commerce Protocol … are outside the scope of AP2"). | Payment applied at `POST /checkout_sessions/{id}/complete` (creates the `Order`); fulfillment (`Fulfillment.status` shipped/delivered) follows. **Authorization precedes delivery.** | A-2, A-5; C-2, C-3 |
 | **Amount cap primitive** | Payment Mandate can carry an `amount_range{min,max}` (open) or concrete `payment_amount` (closed). | Delegated-payment `allowance.max_amount` (`reason:"one_time"`), `merchant_id`, `expires_at`, bound to `checkout_session_id`. **Fixed at token creation.** | A-4; C-4 |
-| **Clawback / dispute surface** | Checkout Mandate "may be shared with the merchant" as **dispute evidence** (evidentiary, not a settlement mechanism). | First-class `Adjustment.type` ∈ {`refund`,`credit`,`return`,`exchange`,`dispute`} on the `Order`; `amount_refunded` total. Rides existing card rails via the PSP. | A-6; C-3 |
+| **Clawback / dispute surface** | Checkout Mandate is "shared with the Merchant so they can use this as evidence in case of disputes" — **dispute evidence** (evidentiary, not a settlement mechanism). | First-class `Adjustment.type` ∈ {`refund`,`credit`,`return`,`exchange`,`dispute`} on the `Order`; `amount_refunded` total. Rides existing card rails via the PSP. | A-6; C-3 |
 | **Deceptive-counterparty exposure window (per spec's own flow)** | Undefined at the AP2 layer — inherited by whatever commerce protocol carries delivery. | Between `complete` (funds authorized up to `max_amount`) and delivery/refund. Recourse is **post-hoc** (chargeback / refund Adjustment), not a pre-settlement gate. | A-2; C-3, C-4 |
 
 **Finding (certain).** Both stacks authorize payment against a **merchant-asserted**
