@@ -129,6 +129,45 @@ def scout_target(r, w):
     return pos
 
 
+def order_target(r, w):
+    """v23 (column V): the pinned-order location an EMPTY robot r should route to
+    in order to accept it, or None. A drone with capacity heads to the best known
+    relay order whose residual cargo it can profitably haul FROM HERE — net
+    delivery credit beats the (empty-to-pin + loaded-pin-to-refinery) haul at its
+    own shadow price, and it has battery for the whole trip. Reuses the delivery
+    valuation (delivery_target/credit_rate) — no new planner. Reads known_orders
+    (proximity-discovered) only; consumes no RNG. Value-per-distance tie-break
+    mirrors best_claim so routing is deterministic."""
+    if not w.order_book or r.stranded or r.load >= r.cap or not w.known_orders[r.rid]:
+        return None
+    ref = w._home_ref(r.company)
+    dest = w.refineries[ref]
+    rate = w.credit_rate(r.company, ref)
+    by_oid = {o["oid"]: o for o in w.orders}
+    best_loc, best_score = None, 0.0
+    for oid in w.known_orders[r.rid]:
+        o = by_oid.get(oid)
+        if o is None or o["poster"] == r.rid or o["poster_co"] != r.company:
+            continue
+        if r.load + o["q"] > r.cap:
+            continue
+        to_pin = W.manhattan(r.pos, o["loc"])
+        pin_to_ref = W.manhattan(o["loc"], dest)
+        need = to_pin * r.eff + pin_to_ref * r.eff * (1 + W.LOADED_MULT)
+        if r.bat() <= need:                       # can't complete the trip
+            continue
+        resid = (1.0 - o["alpha"]) * o["q"]
+        credit = resid * rate * W.V_DELIVER + o["energy"] * (1 - W.TRANSFER_LOSS)
+        haul_cost = (to_pin + pin_to_ref * (1 + W.LOADED_MULT)) * r.eff * r.ev
+        net = credit - haul_cost
+        if net <= 0:
+            continue
+        score = net / (to_pin + 4.0)
+        if score > best_score:
+            best_loc, best_score = o["loc"], score
+    return best_loc
+
+
 def intent(r, w):
     if r.stranded:
         return None
@@ -150,6 +189,10 @@ def intent(r, w):
     r.target_ref = None
     if r.bat() < safe_return_threshold(r, w):   # v12: charge precedence stays
         return charger
+    if w.order_book:                            # v23: route to a known relay order
+        ot = order_target(r, w)                 # (below charging, above mining —
+        if ot is not None:                      # servicing a pin competes with a
+            return ot                           # fresh dig for an empty drone)
     if w.scouting:                              # v12 K0: scout a stale/empty map
         st = scout_target(r, w)                 # (both triggers; gated + no RNG)
         if st is not None:
@@ -314,6 +357,8 @@ class BaseArm:
             drive(r, w)
         w.charge_step()
         w.sense_step()                 # v10a: field sweep + belief freeze —
+                                       # (v23: also stigmergic order discovery)
+        w.expire_orders()              # v23: retire lapsed orders (no-op off)
         busy = set()                   # beliefs may NOT change during the
                                        # encounter phase (evaluated Φ ==
                                        # executed Φ is priced on them)
@@ -340,7 +385,14 @@ class BaseArm:
                 b.busy_until = w.tick + pause
             busy.add(a.rid)
             busy.add(b.rid)
+        self._order_phase()            # v23: post + accept pinned orders
         w.tick += 1
+
+    def _order_phase(self) -> None:
+        """v23 (column V): the order-book posting + acceptance hook. No-op for
+        non-order arms (auction/rules), so the order book is a bargaining-family
+        primitive — the auction stays the unperturbed comparator."""
+        return
 
     def encounter(self, a, b) -> bool:
         return False
@@ -833,6 +885,130 @@ class SnhpArm(BaseArm):
         if w.reputation:                    # v22: record the counterpart's honesty
             self._reputation_record(a, b, sa, sb)
         return True
+
+    # ── v23 (column V): the stigmergic order book ─────────────────────────
+    def _order_phase(self) -> None:
+        """Post new relay orders, then accept known ones within pickup range.
+        Bargaining-family only (BaseArm's hook is a no-op), so order books are an
+        SNHP-native surface; the auction is the unperturbed comparator."""
+        w = self.w
+        if not w.order_book:
+            return
+        self._post_orders()
+        self._accept_orders()
+
+    def _plausible_taker_clears(self, r, alpha) -> bool:
+        """Registered posting gate: would a HEALTHY fleetmate hauling the residual
+        FROM r's location to the company refinery clear IR? Residual delivery
+        credit vs the loaded haul at the reference shadow price (EV_INIT). Derived
+        from the delivery valuation — no new planner."""
+        w = self.w
+        ref = w._home_ref(r.company)
+        dest = w.refineries[ref]
+        rate = w.credit_rate(r.company, ref)
+        resid_units = (1.0 - alpha) * r.load
+        haul = W.manhattan(r.pos, dest) * (1 + W.LOADED_MULT)   # ref eff = 1.0
+        return resid_units * rate * W.V_DELIVER > haul * W.EV_INIT
+
+    def _phi_without_load(self, r) -> float:
+        """Spot Φ if r shed its whole load (load→0). phi() reads r.load directly
+        and never the parcels/claims, so toggling the integer load is exact — a
+        lighter drone faces a smaller loaded-move cost and strand hazard, so this
+        is 'the Φ of holding' counterfactual, read off the existing phi()."""
+        saved = r.load
+        r.load = 0
+        val = phi(r, self.w)
+        r.load = saved
+        return val
+
+    def _post_orders(self) -> None:
+        """The registered trigger: post when the drone's own Φ for HAULING/HOLDING
+        the load is negative — read as the generous faithful union of (a) stranded
+        (it cannot move at all, so async is its only channel), (b) shedding the
+        load would RAISE its spot Φ (the discounted cargo value no longer covers
+        the strand hazard the load adds), or (c) it cannot feasibly complete the
+        LOADED haul from here (disc<1) — AND the posted terms clear IR for a
+        plausible taker (the registered gate). Straight off phi()/load_factors; no
+        new planner. One active order per poster. The split α* = (1+giver_disc)/2
+        is the exact Nash division bills uses at a synchronous handoff — a
+        function of the poster's PRE-post discount only, so it is split-independent
+        and reproduced identically at acceptance."""
+        w = self.w
+        posted = {o["poster"] for o in w.orders}
+        for r in w.robots:
+            if r.rid in posted or w.tick < r.busy_until or r.load <= 0:
+                continue
+            _rate, disc = load_factors(r, w)
+            burdened = (r.stranded or disc < 1.0 - 1e-9
+                        or self._phi_without_load(r) > phi(r, w) + 1e-9)
+            if not burdened:                            # holding still pays → keep
+                continue
+            alpha = 0.5 * (1.0 + disc)
+            if not self._plausible_taker_clears(r, alpha):
+                continue
+            w.post_order(r, r.load, alpha)              # relay the whole burden
+
+    def _accept_orders(self) -> None:
+        """Every non-busy, un-stranded drone within pickup range of a KNOWN order
+        accepts the one that most raises its Φ (IR>0). Acceptance is UNILATERAL
+        (no consensus) and pays NO DEAL_PAUSE. The evaluated Φ (a tentative pickup
+        on exactly the taker-state fields Φ reads) MUST equal the executed Φ — the
+        sacred bills invariant, asserted live. An order inspected-and-declined at
+        range is dropped from memory so the drone does not re-route to it."""
+        w = self.w
+        by_oid = {o["oid"]: o for o in w.orders}
+        for r in w.robots:
+            if w.tick < r.busy_until or r.stranded:
+                continue
+            kn = w.known_orders[r.rid]
+            if not kn:
+                continue
+            phi_before = phi_bills(r, w)
+            best, best_gain, best_eval = None, 1e-9, None
+            declined_here = []
+            for oid in list(kn):
+                o = by_oid.get(oid)
+                if o is None:
+                    kn.discard(oid)
+                    continue
+                if o["poster"] == r.rid or o["poster_co"] != r.company:
+                    continue
+                if max(abs(r.pos[0] - o["loc"][0]),
+                       abs(r.pos[1] - o["loc"][1])) > W.R_PICKUP:
+                    continue
+                if r.load + o["q"] > r.cap:
+                    continue
+                phi_eval = self._accept_phi(r, o)
+                gain = phi_eval - phi_before
+                declined_here.append(oid)
+                if gain > best_gain:
+                    best, best_gain, best_eval = o, gain, phi_eval
+            if best is None:
+                for oid in declined_here:              # inspected, IR failed → forget
+                    kn.discard(oid)
+                continue
+            w.accept_order(r, best)
+            kn.discard(best["oid"])
+            by_oid.pop(best["oid"], None)
+            phi_exec = phi_bills(r, w)
+            assert abs(phi_exec - best_eval) < 1e-9, \
+                "order acceptance diverged from evaluated Φ"
+
+    def _accept_phi(self, r, o) -> float:
+        """Tentative Φ_bills after picking up order o — mutates ONLY the taker
+        fields Φ reads (load, parcels, battery), exactly as accept_order will, then
+        restores. This makes evaluated==executed hold by construction."""
+        w = self.w
+        saved_load, saved_parcels, saved_bat = r.load, r.parcels, r.battery
+        r.load = r.load + o["q"]
+        r.parcels = r.parcels + o["parcels"]
+        if o["energy"] > 0:
+            got = min(o["energy"] * (1 - W.TRANSFER_LOSS),
+                      W.BATTERY_MAX - r.battery)
+            r.battery = r.battery + max(0.0, got)
+        val = phi_bills(r, w)
+        r.load, r.parcels, r.battery = saved_load, saved_parcels, saved_bat
+        return val
 
 
 class TeamArm(SnhpArm):

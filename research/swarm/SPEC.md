@@ -1823,3 +1823,68 @@ chapter of the follow-up article.
   refuse hard routes — we just watched it happen. The builder's follow-up
   (slack-band / chain-aggregate contract) stays REGISTERED-OPEN; queue
   priority remains V → Q → X.
+
+**P29 RESULTS (2026-07-16, sweep_v4_V.json — report, not verdict; the numbers,
+loudly either way). The column-G geometry ladder (grid ∈ {24,32,48,64}, σ=0.5,
+τ=0.15, v5, 2,500 ticks, 16 seeds — the G config REPLICATED EXACTLY, and the v8
+hump reproduces to the decimal) × {order_book off, on} × {auction (unperturbed
+comparator), snhp+net (spot bargaining, the hump), snhp+bill (bills-only control),
+snhp+ob (order book = bills-settled async relays).** Design: a drone PINS a
+binding cargo-relay order at a location — q cargo escrowed as a lien (folded into
+material conservation) with the poster's α*=(1+giver_disc)/2 claim banked, expiry
+400t. DISCOVERY is stigmergic (Chebyshev R_SENSE, no free broadcast — the P21
+lesson); ACCEPTANCE is unilateral by a passer whose Φ_bills IR clears, pays NO
+DEAL_PAUSE (the registered advantage). Order book ⇒ bills (async settlement is
+claim-denominated by necessity — energy cannot teleport to an absent poster; the
+directionality constraint, documented). All conservation exact across 256 runs
+(material_ok, ledger_accounted, credit_conserved, escrow_conserved all green;
+pinned/escrow retire to 0).
+
+- **The hump REPLICATES exactly (edge = arm−auction delivered, paired):**
+  edge_off (snhp+net−auction) = +4.12@G24, +4.50@G32, +7.31@G48 (peak), −2.69@G64
+  — matching the registered v8 hump (+4.1 / +7.3 / −2.7) to the decimal. The G
+  config is faithfully reproduced.
+- **P29a: KILL FIRES — the order book does NOT flatten the hump.** edge_ON
+  (snhp+ob−auction) = +0.88@G24, +0.69@G32, +4.06@G48, −2.69@G64. The G64 edge is
+  UNCHANGED (recovery edge_ON(G64)−edge_off(G64) = +0.00); the hump only looks
+  "flatter" because the DENSE-field peak came DOWN (G48 +7.31→+4.06) — the book
+  HURTING, not the trough recovering. The order book delivers LESS at every grid
+  (235.7/235.7/234.7/228.4 vs spot 238.9/239.5/237.9/228.4): async posting +
+  taker-routing is pure overhead where direct delivery already works, and it is
+  inert at G64.
+- **P29b: REVERSED.** async-trade share of deals = 0.076@G24, 0.064@G32,
+  0.041@G48, 0.018@G64 — HIGHEST where meetings are densest, LOWEST where sparsest.
+  corr(encounter_rate, async_share) across G = **+0.967** (the prediction was
+  NEGATIVE: async should fill in where meetings fail). It does the opposite,
+  because at G64 the far haul makes the residual unattractive (a plausible taker's
+  IR rarely clears across the long supply line) and posters strand before a taker
+  arrives (cargo_writeoff rises 3.4→6.9 units with G).
+- **The KILL DIAGNOSIS — what binds at G64 is NOT meeting formation.** (i) The
+  fleet still trades heavily at G64 (320 sync deals in snhp+ob; meetings are not
+  absent). (ii) The registered candidates fire instead: makespan is HORIZON-
+  CENSORED (snhp+net 2353/2500, snhp+ob 2500/2500 — every seed runs out of clock),
+  and stranding TRIPLES (6.2→17.9) — supply lines outrun battery radius. Travel
+  time + battery radius, not convening. (iii) The decisive control: **bills-ONLY
+  (synchronous pre-commitment claims, NO async posting) RECOVERS G64** on its own —
+  edge(G64) −2.69 → **+4.50**, delivered 228.4 → 235.6 (+7.2). The G64 collapse is
+  a chain-formation / hold-up problem (exactly P23's finding: receipts make chains
+  exist), which the SYNCHRONOUS receipt already solves. Layering the async order
+  book on top CANNIBALIZES it (bills+book = 228.4 < bills-only = 235.6): a drone
+  that would have handed cargo to a present claim instead posts to a pin that may
+  never be serviced.
+- **Pause-ticks saved (reported per the registration):** the mechanism's genuine
+  advantage — unilateral acceptance skips DEAL_PAUSE — saves only ~17–31 tick-holds
+  per run (3× accepted-count, mean 5.8–10.3 accepts), negligible against 2,500
+  ticks. Escrow accounting per run: posted 10.8–16.9, accepted 5.8–10.3, expired
+  5.1–6.6, pinned/escrow → 0, escrow_conserved on all 256 runs.
+- **Read:** the async surface is the RIGHT primitive for a meeting-formation
+  constraint and the WRONG one here — the geometry hump was never a "can't convene"
+  problem. Sparse fields don't lack partners; they lack CLOCK (travel time) and
+  BATTERY (radius), and where a real coordination gap remains (far-ore hold-up),
+  the SYNCHRONOUS receipt (bills) closes it and the async book only dilutes it.
+  Thesis translation, on the record: attestation's value is PRE-COMMITMENT (a
+  binding claim that forms a chain), not ASYNCHRONY (a posted offer that saves a
+  rendezvous); the order book conflates the two and the geometry ladder separates
+  them. Registrar's KILL clause satisfied: the hump survived order books intact,
+  the constraint was diagnosed (travel/battery, not meetings), and the mechanism
+  that DOES move G64 (synchronous bills) is named.
