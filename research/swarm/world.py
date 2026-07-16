@@ -58,6 +58,11 @@ R_RADIO = 6                         # v14 (column O): Chebyshev radius within
                                     # which same-company fleet-mates gossip
                                     # fresher belief entries (short radio); the
                                     # ladder also runs r_radio=2 (contact-only)
+FIRM_MARGIN = 0.15                  # v17 (column P) PHASE 2 (snhp+firm): the
+                                    # treasury's fixed handoff margin, a fraction
+                                    # of the cargo's home-refinery value, added
+                                    # to the receiver's marginal haul cost as the
+                                    # internal transfer price (Coase settlement)
 
 PRESETS = {
     # sources, refineries [(pos, owner)], chargers [(pos, owner)]
@@ -125,6 +130,16 @@ class Robot:
                                     # list, untouched — bit-identical, like
                                     # load_prov). Off ⇒ no code runs; on consumes
                                     # no RNG and mutates no physics.
+                                    # v17 PHASE 2 (bills): each parcel also carries
+                                    # a "claims" list of (rid, share) — a notarized
+                                    # split of its terminal payout — appended
+                                    # deterministically at each hop.
+    claim_value: float = 0.0        # v17 PHASE 2 (snhp+bill): running Σ(own claim
+                                    # share × V_DELIVER) over parcels this robot
+                                    # gave away — the UNDISCOUNTED terminal claim Φ
+                                    # values (paid at delivery regardless of this
+                                    # robot's position). 0 unless World.bills; pure
+                                    # bookkeeping otherwise (never read by Φ off).
 
     def bat(self) -> float:
         """BELIEVED battery — what every decision layer consumes. Physics
@@ -151,7 +166,8 @@ class World:
                  prospect_claims: bool = False,
                  consensus_cost: bool = False,
                  gossip: bool = False, r_radio: int = R_RADIO,
-                 lineage: bool = False):
+                 lineage: bool = False,
+                 bills: bool = False, firm_relay: bool = False):
         self.rng = np.random.RandomState(seed)
         self.hazard_phi = hazard_phi
         self.preset = preset
@@ -298,7 +314,7 @@ class World:
                                     # company's refinery (robot-co channel;
                                     # laundering = matrix off-diag beyond this)
         self.company = [dict(credit=0.0, tariffs_earned=0.0, tariffs_paid=0.0,
-                             queue_wait=0) for _ in range(2)]
+                             queue_wait=0, treasury=0.0) for _ in range(2)]
         self.tick = 0
         self.energy_charged = 0.0
         self.deal_log: list[dict] = []
@@ -310,7 +326,14 @@ class World:
         # `lineage`). charge_served_slots counts slot-fills for the charger duty
         # cycle; delivered_parcels retires each delivered unit's (origin, hops,
         # tick, deliverer, chain).
-        self.lineage = lineage
+        # v17 PHASE 2 (column P): the two pre-commitment mechanisms. Both default
+        # off ⇒ every prior column stays bit-identical (claim_value/treasury are
+        # allocated but never read/written when off). Both need the lineage
+        # instrument (claims/advanced live on parcels), so either implies it —
+        # off leaves self.lineage == lineage exactly (no bit perturbed).
+        self.bills = bills              # snhp+bill: negotiable delivery claims
+        self.firm_relay = firm_relay    # snhp+firm: treasury transfer pricing
+        self.lineage = lineage or bills or firm_relay
         self.charge_served_slots = 0
         self.delivered_parcels: list[dict] = []
 
@@ -789,6 +812,25 @@ class World:
             return 1.0
         return 1.0 - self.tau[owner]
 
+    def _home_ref(self, co: int) -> int:
+        """The refinery index company `co` owns (its delivery target for firm
+        settlement); falls back to refinery 0 for the single-refinery presets."""
+        for i, o in enumerate(self.ref_owner):
+            if o == co:
+                return i
+        return 0
+
+    def _firm_transfer_price(self, taker: Robot, q: int) -> float:
+        """v17 PHASE 2 (snhp+firm): the internal transfer price the treasury pays
+        the receiving robot on a within-company handoff — its marginal haul cost
+        (shadow-priced energy to its home refinery) plus a fixed margin on the
+        cargo's home value. Deterministic (no RNG); a credit figure only."""
+        ref = self._home_ref(taker.company)
+        haul = manhattan(taker.pos, self.refineries[ref]) * taker.eff \
+            * (1 + LOADED_MULT) * taker.ev
+        margin = FIRM_MARGIN * q * V_DELIVER
+        return haul + margin
+
     # ── physics ─────────────────────────────────────────────────────────
     def move_toward(self, r: Robot, target) -> None:
         if r.stranded or r.pos == target:
@@ -819,6 +861,18 @@ class World:
                 all(manhattan(r.pos, c) > 1 for c in self.chargers):
             r.stranded = True
 
+    def _new_parcel(self, origin: int) -> dict:
+        """A fresh 0-hop parcel for one mined unit. Under bills it carries an
+        empty claim stack (holder residual == 1); under firm it carries a 0
+        advanced-transfer-price. Keys are added ONLY under their flag, so a
+        lineage-only parcel is the exact pre-PHASE-2 dict (bit-identical)."""
+        p = {"origin": origin, "hops": 0, "chain": []}
+        if self.bills:
+            p["claims"] = []
+        if self.firm_relay:
+            p["advanced"] = 0.0
+        return p
+
     def pick(self, r: Robot) -> int:
         s = r.sector
         # v12 K2 physics gate: a non-holder mines 0 from a claimed arrival
@@ -841,7 +895,7 @@ class World:
             self.mined_from[s] += q            # v11: per-asteroid provenance
             if self.lineage and q:             # v17: one 0-hop parcel per unit,
                 r.parcels.extend(              # tagged with its origin rock
-                    {"origin": s, "hops": 0, "chain": []} for _ in range(q))
+                    self._new_parcel(s) for _ in range(q))
             return q
         return 0
 
@@ -852,18 +906,45 @@ class World:
             if r.pos != pos or r.load <= 0:
                 continue
             q, r.load = r.load, 0
+            owner = self.ref_owner[ref_idx]
+            rate = self.credit_rate(r.company, ref_idx)
+            unit = rate * V_DELIVER             # per-unit delivery credit
+            earned = unit * q
             if self.lineage:                    # v17: retire this unit's lineage
                 for p in r.parcels:             # (origin, hops it took to arrive,
                     self.delivered_parcels.append(dict(   # tick, who delivered)
                         origin=p["origin"], hops=p["hops"], tick=self.tick,
                         deliverer=r.rid, chain=p["chain"]))
+                    # v17 PHASE 2 (snhp+bill): distribute this unit's credit per
+                    # its notarized claim stack — each recorded claimant is paid
+                    # share × unit; the deliverer keeps the residual (1 − Σshare).
+                    # The shares sum to ≤1, so Σdistributed == unit EXACTLY (credit
+                    # conservation), and each payout is booked to the CLAIMANT's
+                    # company — laundering-proof like the provenance matrix.
+                    if self.bills:
+                        csum = 0.0
+                        for rid, share in p["claims"]:
+                            cl = self.robots[rid]
+                            cl.credit += share * unit
+                            self.company[cl.company]["credit"] += share * unit
+                            cl.claim_value -= share * V_DELIVER
+                            csum += share
+                        resid = 1.0 - csum
+                        r.credit += resid * unit
+                        self.company[r.company]["credit"] += resid * unit
+                    # v17 PHASE 2 (snhp+firm): recoup the transfer price the
+                    # treasury advanced for this unit — deliverer→treasury, the
+                    # exact inverse of the handoff advance (net-zero within-company
+                    # reallocation; treasury+robot credit conserves).
+                    if self.firm_relay:
+                        adv = p["advanced"]
+                        r.credit -= adv
+                        self.company[r.company]["treasury"] += adv
                 r.parcels = []
-            owner = self.ref_owner[ref_idx]
-            rate = self.credit_rate(r.company, ref_idx)
-            earned = rate * V_DELIVER * q
             r.delivered += q
-            r.credit += earned
-            self.company[r.company]["credit"] += earned
+            if not self.bills:                  # spot/firm: deliverer books it all
+                r.credit += earned              # (firm then recoups the advances
+                self.company[r.company]["credit"] += earned   # above; net earned)
             if owner is not None and owner != r.company:
                 self.foreign_refined += q
                 tariff = self.tau[owner] * V_DELIVER * q
@@ -961,6 +1042,20 @@ class World:
                 p["hops"] += 1
                 p["chain"] = p["chain"] + [hop]
             taker.parcels.extend(moving)
+            # v17 PHASE 2 (snhp+firm): a WITHIN-company handoff settles internally
+            # — the treasury advances the receiver a transfer price (marginal haul
+            # cost + fixed margin), tagged onto the moved parcels and recouped from
+            # whoever delivers them (drop). Cross-company handoffs are untouched
+            # spot. This is a pure CREDIT reallocation (treasury↔robot); it never
+            # touches Φ/physics/RNG, so the fast path stays and trajectories match
+            # spot exactly — the transfer price only re-books who is paid.
+            if self.firm_relay and giver.company == taker.company:
+                tp = self._firm_transfer_price(taker, q)
+                self.company[taker.company]["treasury"] -= tp
+                taker.credit += tp
+                per = tp / q
+                for p in moving:
+                    p["advanced"] += per
         if log:
             self.event_log.append(dict(t=self.tick, kind="cargo",
                                        src=giver.rid, dst=taker.rid, amt=q,
@@ -1030,3 +1125,17 @@ class World:
         credit = sum(c["credit"] for c in self.company)
         tariffs = sum(c["tariffs_earned"] for c in self.company)
         return abs(credit + tariffs - V_DELIVER * self.delivered) < 1e-6
+
+    def credit_conserved(self) -> bool:
+        """v17 PHASE 2: per-company, Σ(robot credit) + treasury == the company's
+        booked delivery credit. Under snhp+bill the deliverer's payout is split
+        across claimants (by their company) yet each split is mirrored to a
+        company total; under snhp+firm the treasury advances/recoups net-zero
+        within the company. Holds for every prior arm too (treasury==0 and each
+        robot's credit is booked to its company at drop) — a general invariant."""
+        for c in range(len(self.company)):
+            rob = sum(r.credit for r in self.robots if r.company == c)
+            if abs(rob + self.company[c]["treasury"]
+                   - self.company[c]["credit"]) > 1e-6:
+                return False
+        return True

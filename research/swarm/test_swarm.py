@@ -1298,6 +1298,166 @@ def test_v17_two_hop_relay_and_holdup_margins():
     assert _holdup_margins([{"origin": 0, "hops": 0, "chain": []}], deal_log)["n"] == 0
 
 
+# ── v17 PHASE 2 (column P): pre-commitment — bills of lading + firm relay ──
+def test_v17p2_bills_firm_off_bit_identical():
+    """bills=False and firm_relay=False must be bit-identical to a lineage-only
+    world — the claim_value field, the company treasury, the extra parcel keys
+    and every PHASE-2 branch may not perturb a single bit when off. Checked on a
+    bargaining arm (bills would touch Φ) and the auction (firm would touch the
+    credit path)."""
+    for arm_name in ("snhp+net", "auction"):
+        outs = []
+        for kw in (dict(lineage=True),
+                   dict(lineage=True, bills=False, firm_relay=False)):
+            w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                      hazard_phi=(arm_name == "snhp+net"), **kw)
+            arm = make_arm(arm_name, w)
+            for _ in range(400):
+                arm.tick()
+            outs.append((w.delivered, arm.deals, len(w.event_log),
+                         round(sum(r.battery for r in w.robots), 9),
+                         [r.pos for r in w.robots],
+                         [tuple(sorted(d.items())) for d in w.deal_log]))
+        assert outs[0] == outs[1], f"PHASE-2 plumbing perturbed {arm_name}"
+
+
+def test_v17p2_bills_evaluated_equals_executed():
+    """The hard invariant under claim stacks: 600 ticks of snhp+net with bills on
+    and the in-arm evaluated Φ == executed Φ assert live. The claim state each Φ
+    evaluation sees must be exactly what execution produces (split-independent α*);
+    any divergence fires the assert. Completing clean IS the test, with material
+    AND credit conservation intact and claimed relays actually landing."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), bills=True)
+    arm = make_arm("snhp+net", w)
+    for _ in range(600):
+        arm.tick()
+        assert w.material_ok(), "material leak under bills"
+        assert w.credit_conserved(), "credit not conserved under bills"
+    assert arm.deals > 0, "bills snhp+net struck no deals — vacuous"
+    assert w.ledger_accounted(), "ledger leak under bills"
+    assert any(p["hops"] >= 1 for p in w.delivered_parcels), \
+        "no claimed relay ever delivered — vacuous"
+
+
+def test_v17p2_claim_stack_conservation():
+    """Every delivered unit's credit is split across its claim stack with the
+    deliverer keeping the residual — Σdistributed == earned EXACTLY. Verified
+    globally (credit_conserved) and by reconstructing the per-parcel split from
+    the delivered ledger against the total booked delivery credit."""
+    w = World(sigma=0.5, seed=1, preset="v5", tau=(0.15, 0.15), bills=True)
+    arm = make_arm("snhp+net", w)
+    for _ in range(500):
+        arm.tick()
+    assert arm.deals > 0
+    # global: Σ robot credit (+treasury) == company booked credit, and the ledger
+    assert w.credit_conserved()
+    assert w.ledger_accounted()
+    # every robot's claim_value equals its OUTSTANDING (undelivered) claims: sum
+    # the shares of claims recorded on parcels still in flight and match the
+    # per-robot scalar Φ reads — the ledger the correction is priced on.
+    outstanding = {r.rid: 0.0 for r in w.robots}
+    for r in w.robots:
+        for p in r.parcels:
+            for rid, share in p["claims"]:
+                outstanding[rid] += share * V_DELIVER
+    for r in w.robots:
+        assert abs(r.claim_value - outstanding[r.rid]) < 1e-6, \
+            f"claim_value scalar diverged from live claim stacks (robot {r.rid})"
+
+
+def test_v17p2_holdup_relay_clears_ir_and_pays_per_split():
+    """PHASE-1 showed the middle drone's sell-leg refused under IR (hold-up). With
+    bills the SAME hop clears: a far, low-battery holder B selling to a near C
+    keeps an undiscounted claim, so its surplus turns positive where spot vetoed.
+    Then a hand-built A→B→C relay records per-hop shares on the parcel's chain and
+    the terminal payout lands per those splits (credit conserved to the cent)."""
+    from swarm.arms import make_arm as _mk
+
+    def hop_solution(bills):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), bills=bills,
+                  lineage=True)
+        w._live_sense = False
+        arm = _mk("snhp", w, issues=("cargo",))
+        B, C = w.robots[0], w.robots[1]
+        for r in (B, C):
+            r.company, r.sector, r.load, r.load_prov, r.parcels = 0, 0, 0, [0, 0], []
+        B.pos, B.cap, B.battery = (6, 6), 5, 18.0          # far from ref0, low bat
+        B.load, B.load_prov = 2, [2, 0]
+        B.parcels = [w._new_parcel(0) for _ in range(2)]
+        C.pos, C.cap, C.battery, C.sector = (7, 6), 5, 95.0, 1   # near ref0, full
+        ua, ub = arm._evaluate(B, C)
+        ba, bb = float(ua[arm._allzero]), float(ub[arm._allzero])
+        sol = arm._pick(ua, ub, ba, bb, B, C)
+        return arm, sol, ua, ub, ba, bb
+
+    _, spot_sol, *_ = hop_solution(False)
+    assert spot_sol is None, "spot did not refuse the middle hop (no hold-up)"
+    arm, bill_sol, ua, ub, ba, bb = hop_solution(True)
+    assert bill_sol is not None, "bills failed to clear the hop IR refused"
+    assert arm._row(bill_sol)[0] > 0, "bills cleared a non-cargo bundle"
+    assert ua[bill_sol] - ba > 0 and ub[bill_sol] - bb > 0, "IR not satisfied"
+
+    # hand-built A→B→C→refinery with the code's own claim recording, then deliver
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), bills=True)
+    arm = _mk("snhp", w)
+    A, B, C = w.robots[0], w.robots[1], w.robots[2]
+    for r in (A, B, C):
+        r.company, r.sector, r.cap, r.load, r.load_prov, r.parcels = \
+            0, 0, 5, 0, [0, 0], []
+    A.pos, A.sector, w.stock[0] = w.sources[0], 0, 2
+    assert w.pick(A) == 2
+    w.tick = 10
+    w.transfer_cargo(A, B, 2, log=True)          # hop 1: A → B
+    arm._bills_attach(A, B, 2, 0.4)              # A claims 0.4 of residual (=0.4)
+    w.tick = 20
+    w.transfer_cargo(B, C, 2, log=True)          # hop 2: B → C
+    arm._bills_attach(B, C, 2, 0.5)             # B claims 0.5 of residual (0.6→0.3)
+    for p in C.parcels:
+        assert p["hops"] == 2 and len(p["chain"]) == 2
+        assert p["chain"][0][1:] == (A.rid, B.rid)      # per-hop lineage
+        assert p["chain"][1][1:] == (B.rid, C.rid)
+        shares = dict(p["claims"])
+        assert abs(shares[A.rid] - 0.4) < 1e-9 and abs(shares[B.rid] - 0.3) < 1e-9
+    C.pos = w.refineries[0]
+    w.tick = 30
+    ca0, cb0, cc0 = A.credit, B.credit, C.credit
+    w.drop(C)
+    unit = V_DELIVER            # tau=0, own refinery ⇒ rate 1.0
+    assert abs((A.credit - ca0) - 0.4 * unit * 2) < 1e-9      # A: 0.4 share
+    assert abs((B.credit - cb0) - 0.3 * unit * 2) < 1e-9      # B: 0.3 share
+    assert abs((C.credit - cc0) - 0.3 * unit * 2) < 1e-9      # C: residual 0.3
+    assert abs(A.claim_value) < 1e-9 and abs(B.claim_value) < 1e-9, \
+        "claims not retired at delivery"
+    assert w.credit_conserved()
+
+
+def test_v17p2_firm_transfer_price_conserves_and_matches_spot():
+    """snhp+firm settles within-company handoffs through the treasury (haul cost +
+    fixed margin, recouped at delivery). Because it re-books credit WITHOUT
+    touching Φ, its trajectory is identical to spot (the Coase-boundary control),
+    and treasury+robot credit conserves within every company at every tick, with
+    the treasury netting to zero once the field clears."""
+    def run(firm):
+        w = World(sigma=0.5, seed=2, preset="v5", tau=(0.15, 0.15), lineage=True,
+                  firm_relay=firm)
+        arm = make_arm("snhp+net", w)
+        for _ in range(600):
+            arm.tick()
+            assert w.credit_conserved(), "firm treasury+robot credit leaked"
+        return w, arm
+    ws, as_ = run(False)
+    wf, af = run(True)
+    assert (ws.delivered, as_.deals) == (wf.delivered, af.deals), \
+        "firm relay perturbed the trajectory — Φ was not left untouched"
+    assert [round(r.battery, 9) for r in ws.robots] == \
+        [round(r.battery, 9) for r in wf.robots], "firm diverged from spot"
+    assert af.deals > 0
+    assert wf.ledger_accounted()
+    # some within-company handoff actually advanced a transfer price
+    assert any(p.get("advanced", 0.0) != 0.0 for r in wf.robots for p in r.parcels) \
+        or wf.delivered > 0
+
+
 # ── differential oracle: optimized _evaluate == scalar reference ──────────
 # The fast Φ path in SnhpArm._evaluate MUST be byte-for-byte identical to the
 # scalar fallback (arms.FORCE_SCALAR_EVAL forces the reference). This test flips

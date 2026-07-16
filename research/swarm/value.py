@@ -174,6 +174,60 @@ def update_ev(r, w, delta: float = 2.0) -> None:
         r.ev = float(min(W.EV_MAX, max(W.EV_MIN, grad)))
 
 
+# ── v17 PHASE 2 (snhp+bill): claimed-cargo Φ ──────────────────────────────
+# A bill of lading splits a parcel's terminal payout into recorded (rid, share)
+# claims; the current HOLDER owns the residual (1 − Σshare). Under bills Φ values
+# carried cargo at the holder's RESIDUAL units (feasibility-discounted exactly as
+# the load term) and ADDS the robot's outstanding own-claims UNDISCOUNTED — a
+# claim pays out at delivery regardless of the claimant's position, which is the
+# whole point (it lifts the feasibility discount off the value a far middle drone
+# locks in, so the sell-leg clears IR where spot's hold-up refused it). Bills
+# dispatch to the scalar path (arms._fast_ok); this is the correction added on top
+# of scalar phi(). NOT byte-identical to spot BY DESIGN — bills is a new mechanism.
+def load_factors(r, w):
+    """(rate, disc) EXACTLY as phi()'s load block computes them: the tariff-aware
+    per-unit rate for the delivery_target refinery and the feasibility discount
+    (1 if the battery clears the haul, else the same 0.5·bat/cost taper). Bills
+    reuses these to swap the load term's integer COUNT for the holder's residual
+    UNITS — op-for-op, so evaluated Φ == executed Φ survives."""
+    ref = delivery_target(r, w, sticky=False)
+    rate = w.credit_rate(r.company, ref)
+    cost = W.manhattan(r.pos, w.refineries[ref]) * r.eff * (1 + W.LOADED_MULT)
+    bat = r.bat()
+    disc = 1.0 if bat > cost else 0.5 * bat / (cost + 1e-9)
+    return rate, disc
+
+
+def owned_and_claim(r):
+    """(Σ holder-residual over carried parcels, outstanding own-claim value).
+    Read from r's ACTUAL parcels — used at execution and by phi_bills."""
+    owned = 0.0
+    for p in r.parcels:
+        owned += 1.0 - sum(sh for _, sh in p["claims"])
+    return owned, r.claim_value
+
+
+def bills_correction(r, w, owned=None, claim=None):
+    """The additive term that turns scalar phi(r) into the bills Φ: replace the
+    integer-load contribution (load·rate·V·disc) with the holder-residual value
+    (owned·rate·V·disc) and add the UNDISCOUNTED own-claims. owned/claim default
+    to the robot's ACTUAL parcels (execution / the eval==exec assert); the
+    evaluator passes ANALYTIC post-state values because the log=False bundle pass
+    moves load but not parcels."""
+    if owned is None:
+        owned, claim = owned_and_claim(r)
+    if r.load <= 0:                       # no load term in phi ⇒ just the claims
+        return claim
+    rate, disc = load_factors(r, w)
+    return rate * W.V_DELIVER * disc * (owned - r.load) + claim
+
+
+def phi_bills(r, w) -> float:
+    """Bills Φ from the robot's ACTUAL claim state — the reference the in-arm
+    evaluated==executed assert compares against."""
+    return phi(r, w) + bills_correction(r, w)
+
+
 def phi_true(r, w) -> float:
     """Φ with the gauge suspended — the ground truth for poisoning audits."""
     saved = r.gauge_bias
