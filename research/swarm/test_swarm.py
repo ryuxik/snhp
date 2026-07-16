@@ -1030,3 +1030,140 @@ def test_encounters_bit_exact_vs_brute_force():
         w.rng.set_state(st)
         exp = [(id(a), id(b)) for a, b in brute(w.robots, w.rng, W.R_COMM)]
         assert got == exp, f"encounters diverged when fully clustered at N={N}"
+
+
+# ── v14: communication locality (column O) ─────────────────────────────────
+def test_v14_gossip_default_off_is_flag_absent():
+    """gossip=False (with or without r_radio) must be bit-identical to a World
+    that never heard of column O — the per-robot belief plumbing, the _bx
+    indirection and the gossip step may not perturb a single bit of the
+    free-radio (belief-mode) path, INCLUDING the belief/last_seen arrays."""
+    outs = []
+    for kw in ({}, dict(gossip=False, r_radio=6)):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                  hazard_phi=True, belief_mode=True, dynamic_field=True,
+                  contested=True, scouting=True, **kw)
+        arm = make_arm("snhp+net", w)
+        for _ in range(400):
+            arm.tick()
+        outs.append((w.delivered, arm.deals,
+                     round(sum(r.battery for r in w.robots), 9),
+                     [r.pos for r in w.robots],
+                     [list(b) for b in w.belief],
+                     [list(l) for l in w.last_seen]))
+    assert outs[0] == outs[1], "gossip plumbing leaked into the free-radio path"
+
+
+def test_v14_gossip_requires_belief_mode():
+    """No shared map to fan out ⇒ gossip is only defined under belief_mode."""
+    import pytest
+    with pytest.raises(AssertionError):
+        World(sigma=0.5, seed=0, preset="v5", gossip=True, belief_mode=False)
+
+
+def test_v14_gossip_transfers_fresher_within_company_only():
+    """One hop of flooding: a same-company fleet-mate within Chebyshev r_radio
+    adopts a robot's FRESHER (higher last_seen) entry — belief, last_seen AND
+    rival_rate together — while a cross-company robot at the same distance does
+    NOT (gossip is within-fleet)."""
+    w = World(sigma=0.5, seed=0, preset="v5", belief_mode=True,
+              gossip=True, r_radio=6)
+    a = next(r for r in w.robots if r.company == 0)
+    b = next(r for r in w.robots if r.company == 0 and r.rid != a.rid)
+    c = next(r for r in w.robots if r.company == 1)
+    a.pos, b.pos, c.pos = (16, 16), (18, 18), (17, 17)   # all within r6 of a
+    w.tick, i = 100, 0
+    w.belief[a.rid][i], w.last_seen[a.rid][i], w.rival_rate[a.rid][i] = 7, 90, 0.5
+    w.belief[b.rid][i], w.last_seen[b.rid][i], w.rival_rate[b.rid][i] = 20, 10, 0.0
+    w.belief[c.rid][i], w.last_seen[c.rid][i], w.rival_rate[c.rid][i] = 20, 10, 0.0
+    w._gossip_step()
+    assert w.belief[b.rid][i] == 7 and w.last_seen[b.rid][i] == 90, \
+        "fleet-mate did not adopt the fresher entry"
+    assert w.rival_rate[b.rid][i] == 0.5, "rival_rate did not travel with the belief"
+    assert w.belief[c.rid][i] == 20 and w.last_seen[c.rid][i] == 10, \
+        "a cross-company robot adopted a fleet entry (gossip crossed the border)"
+
+
+def test_v14_r2_slower_than_r6():
+    """The founder's ladder: on a fixed line of same-company robots spaced 4
+    cells apart, r_radio=6 floods along the chain (one hop per tick) while
+    r_radio=2 cannot bridge the 4-cell gap at all — locality range is real."""
+    def spread(r_radio, ticks):
+        w = World(sigma=0.5, seed=0, preset="v5", belief_mode=True,
+                  gossip=True, r_radio=r_radio)
+        for r in w.robots:                       # park everyone; neutralise i
+            r.pos = (1, 1)
+            w.belief[r.rid][0], w.last_seen[r.rid][0] = 0, 0
+        line = [r for r in w.robots if r.company == 0][:4]
+        for k, r in enumerate(line):
+            r.pos = (4 + 4 * k, 16)              # x = 4, 8, 12, 16
+        w.tick = 100
+        head = line[0]
+        w.belief[head.rid][0], w.last_seen[head.rid][0] = 9, 99
+        for _ in range(ticks):
+            w._gossip_step()
+        return [w.last_seen[r.rid][0] for r in line]
+    r2, r6 = spread(2, 3), spread(6, 3)
+    assert sum(v == 99 for v in r6) > sum(v == 99 for v in r2), \
+        f"r6 did not out-propagate r2: r2={r2} r6={r6}"
+    assert r2[1] != 99, "r2 relayed across a 4-cell gap it cannot reach"
+    assert r6[1] == 99, "r6 failed to relay across a 4-cell gap"
+
+
+def test_v14_per_robot_maps_diverge_within_fleet():
+    """Under a tight radius the fleet is NOT globally synced: two same-company
+    robots hold different last_seen vectors — the whole point of per-robot maps
+    (a free-radio company would have one shared vector)."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), hazard_phi=True,
+              belief_mode=True, dynamic_field=True, contested=True,
+              scouting=True, gossip=True, r_radio=2)
+    arm = make_arm("snhp+net", w)
+    for _ in range(300):
+        arm.tick()
+    co0 = [r for r in w.robots if r.company == 0]
+    diverged = any(w.last_seen[a.rid] != w.last_seen[b.rid]
+                   for idx, a in enumerate(co0) for b in co0[idx + 1:])
+    assert diverged, "gossip fleet is globally synced — per-robot maps never diverged"
+    assert arm.deals > 0, "no deals — divergence test vacuous"
+
+
+def test_v14_gossip_map_trading_evaluated_equals_executed():
+    """The hard invariant under the new plumbing: 600 ticks of gossip +
+    map-trading with the in-arm evaluated Φ == executed Φ assert live. Any
+    per-robot synced view diverging from its permanent overlay fires the assert;
+    completing clean IS the test, with conservation intact and map deals landing
+    (cross-company, robot-to-robot) at a material rate."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), hazard_phi=True,
+              belief_mode=True, dynamic_field=True, contested=True,
+              scouting=True, gossip=True, r_radio=6, map_trading=True)
+    arm = make_arm("snhp+net", w)
+    for _ in range(600):
+        arm.tick()
+        assert w.material_ok(), "conservation broke under gossip map trading"
+    assert arm.deals > 0, "gossip map-trading struck no deals — vacuous"
+    assert all(d.get("m") in (-1, 0, 1) for d in w.deal_log)
+    assert any(d["m"] != 0 for d in w.deal_log), "no map deal executed under gossip"
+
+
+def test_v14_map_sync_is_robot_to_robot_under_gossip():
+    """K1 under gossip is seller ROBOT → buyer ROBOT: only that one buyer's map
+    learns the sold entry. A distant same-company fleet-mate of the buyer stays
+    dark until gossip relays it onward (contrast the free-radio K column, where a
+    sync updated the whole company at once)."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              belief_mode=True, gossip=True, r_radio=6, map_trading=True)
+    recv = next(r for r in w.robots if r.company == 0)
+    give = next(r for r in w.robots if r.company == 1)
+    distant = next(r for r in w.robots if r.company == 0 and r.rid != recv.rid)
+    w.tick, i = 500, 0
+    w.stock[i] = 3
+    w.belief[give.rid][i], w.last_seen[give.rid][i], w.rival_rate[give.rid][i] = 3, 480, 0.4
+    w.belief[recv.rid][i], w.last_seen[recv.rid][i] = 20, 50
+    w.belief[distant.rid][i], w.last_seen[distant.rid][i] = 20, 50
+    copied = w.apply_map_sync(recv, give)
+    assert copied >= 1
+    assert w.belief[recv.rid][i] == 3 and w.last_seen[recv.rid][i] == 480, \
+        "buyer robot did not learn the sold entry"
+    assert w.rival_rate[recv.rid][i] == 0.4, "rival_rate not carried in the robot-to-robot sync"
+    assert w.belief[distant.rid][i] == 20 and w.last_seen[distant.rid][i] == 50, \
+        "a distant fleet-mate learned the entry without gossip relaying it"

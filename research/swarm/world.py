@@ -54,6 +54,10 @@ RIVAL_ALPHA = 0.2                   # v10b: exp-smoothing of the observed
                                     # rival depletion rate (units/tick)
 CLAIM_WINDOW = 150                  # v12 K2: ticks an ARRIVAL rock is minable
                                     # only by its quadrant's claim-holder
+R_RADIO = 6                         # v14 (column O): Chebyshev radius within
+                                    # which same-company fleet-mates gossip
+                                    # fresher belief entries (short radio); the
+                                    # ladder also runs r_radio=2 (contact-only)
 
 PRESETS = {
     # sources, refineries [(pos, owner)], chargers [(pos, owner)]
@@ -137,7 +141,8 @@ class World:
                  dynamic_field: bool = False, contested: bool = False,
                  scouting: bool = False, map_trading: bool = False,
                  prospect_claims: bool = False,
-                 consensus_cost: bool = False):
+                 consensus_cost: bool = False,
+                 gossip: bool = False, r_radio: int = R_RADIO):
         self.rng = np.random.RandomState(seed)
         self.hazard_phi = hazard_phi
         self.preset = preset
@@ -155,6 +160,16 @@ class World:
         self.race_pricing = race_pricing
         self.mine_trait = mine_trait      # set BEFORE spawns: gates a draw
         self.r_sense = r_sense
+        # v14 (column O): communication locality. gossip default off ⇒ every
+        # pre-v14 column is bit-identical (suite-verified). Gossip removes the
+        # company-wide free radio: beliefs become PER-ROBOT (indexed by rid via
+        # _bx) and same-company fleet-mates within Chebyshev r_radio flood each
+        # other's fresher entries once per tick (_gossip_step). belief_mode with
+        # gossip OFF is the free-radio control — unchanged company-shared map.
+        assert not (gossip and not belief_mode), \
+            "gossip requires belief_mode (no map ⇒ nothing to propagate)"
+        self.gossip = gossip
+        self.r_radio = r_radio
         # v11 (column J): the moving field. Both default off ⇒ every pre-v11
         # column stays bit-identical (suite-verified). `contested` reshapes
         # the INITIAL field (read by _gen_asteroids, so set before it runs);
@@ -219,11 +234,19 @@ class World:
         # under-estimate deadlock). Allocated unconditionally (cheap ints,
         # no RNG); consumed only through stock_belief() when belief_mode.
         n_src = len(self.sources)
-        self.belief = [list(self.stock) for _ in range(2)]
-        self.last_seen = [[0] * n_src for _ in range(2)]
-        self.rival_rate = [[0.0] * n_src for _ in range(2)]   # units/tick
-        self.own_mined = [[0] * n_src for _ in range(2)]      # cumulative
-        self._own_mined_seen = [[0] * n_src for _ in range(2)]
+        # v14 (column O): under gossip the belief/last_seen/rival_rate maps are
+        # PER-ROBOT (n_robots arrays, indexed by rid); off, they are the two
+        # company-shared free-radio maps (bit-identical to every pre-v14 column).
+        # own_mined is a PHYSICAL company aggregate — always company-indexed;
+        # _own_mined_seen (the rival-rate baseline) rides with the belief map so
+        # a gossiped entry carries the reference against which the next observed
+        # depletion is scored (see _gossip_step / _observe_idx).
+        n_belief = n_robots if gossip else 2
+        self.belief = [list(self.stock) for _ in range(n_belief)]
+        self.last_seen = [[0] * n_src for _ in range(n_belief)]
+        self.rival_rate = [[0.0] * n_src for _ in range(n_belief)]   # units/tick
+        self.own_mined = [[0] * n_src for _ in range(2)]      # cumulative (co)
+        self._own_mined_seen = [[0] * n_src for _ in range(n_belief)]
         # v11 provenance: units picked per asteroid (both companies pooled).
         # Allocated + incremented unconditionally — pure bookkeeping, no RNG,
         # no decision — so the dynamic_field=False path stays bit-identical.
@@ -433,7 +456,14 @@ class World:
                 best, best_score = i, score
         return best
 
-    # ── v10a/b: company field beliefs ───────────────────────────────────
+    # ── v10a/b: company field beliefs (v14: per-robot under gossip) ──────
+    def _bx(self, r) -> int:
+        """Belief-array index for robot r: its OWN rid under gossip (per-robot
+        maps), else its company (the free-radio shared map). Reduces to the
+        company index when gossip is off ⇒ every pre-v14 belief read is
+        bit-identical (robots are appended in rid order, so rid == list index)."""
+        return r.rid if self.gossip else r.company
+
     def _in_sense_range(self, pos, i) -> bool:
         src = self.sources[i]
         return max(abs(pos[0] - src[0]), abs(pos[1] - src[1])) <= self.r_sense
@@ -470,22 +500,35 @@ class World:
         if self.prospect_claims and self._claim_gated(r.company, i):
             return 0
         if self._live_sense and self._in_sense_range(r.pos, i):
-            self._observe(r.company, i)
-        return self.belief[r.company][i]
+            if self.gossip:
+                self._observe_r(r, i)          # v14: writes r's OWN map
+            else:
+                self._observe(r.company, i)
+        return self.belief[self._bx(r)][i]
+
+    def _observe_idx(self, bx: int, co: int, i: int) -> None:
+        """Pin belief-array `bx`'s view of asteroid i to truth and update its
+        rival-rate estimate (v10b) from whatever depletion company `co`'s OWN
+        mining over the gap does not explain. Consumes no RNG. In free-radio
+        mode bx == co (the company map); under gossip bx == rid (the robot's
+        own map) while own_mined stays the shared company aggregate."""
+        dt = self.tick - self.last_seen[bx][i]
+        if dt > 0:
+            depl = self.belief[bx][i] - self.stock[i]
+            own = self.own_mined[co][i] - self._own_mined_seen[bx][i]
+            rival = max(0.0, float(depl - own)) / dt
+            self.rival_rate[bx][i] += RIVAL_ALPHA * (rival - self.rival_rate[bx][i])
+        self.belief[bx][i] = self.stock[i]
+        self.last_seen[bx][i] = self.tick
+        self._own_mined_seen[bx][i] = self.own_mined[co][i]
 
     def _observe(self, co: int, i: int) -> None:
-        """One company observes one asteroid: pin belief to truth, update
-        the rival-rate estimate (v10b) from whatever depletion its OWN
-        mining over the gap does not explain. Consumes no RNG."""
-        dt = self.tick - self.last_seen[co][i]
-        if dt > 0:
-            depl = self.belief[co][i] - self.stock[i]
-            own = self.own_mined[co][i] - self._own_mined_seen[co][i]
-            rival = max(0.0, float(depl - own)) / dt
-            self.rival_rate[co][i] += RIVAL_ALPHA * (rival - self.rival_rate[co][i])
-        self.belief[co][i] = self.stock[i]
-        self.last_seen[co][i] = self.tick
-        self._own_mined_seen[co][i] = self.own_mined[co][i]
+        """Free-radio observation: the company's shared map (bx == company)."""
+        self._observe_idx(co, co, i)
+
+    def _observe_r(self, r, i: int) -> None:
+        """v14 gossip observation: robot r's OWN map (bx == rid)."""
+        self._observe_idx(self._bx(r), r.company, i)
 
     def sense_step(self) -> None:
         """v10a: the once-per-tick field sweep — any robot within Chebyshev
@@ -497,8 +540,62 @@ class World:
             for r in self.robots:
                 for i in range(len(self.sources)):
                     if self._in_sense_range(r.pos, i):
-                        self._observe(r.company, i)
+                        if self.gossip:
+                            self._observe_r(r, i)
+                        else:
+                            self._observe(r.company, i)
+            if self.gossip:
+                self._gossip_step()        # v14: one hop of belief flooding
         self._live_sense = False
+
+    def _gossip_step(self) -> None:
+        """v14 (column O): one hop of belief flooding. Each same-company
+        fleet-mate within Chebyshev r_radio adopts, per rock, its neighbourhood's
+        FRESHER (higher last_seen) entry — belief, last_seen, rival_rate AND the
+        rival-rate baseline _own_mined_seen travel together. All four read arrays
+        are SNAPSHOT first, so a robot never adopts an entry another robot adopted
+        this same tick: propagation is exactly one hop per tick (order-independent,
+        no RNG), and over ticks the freshest observation floods the connected
+        fleet — a longer radius floods farther per tick. Spatial-hashed by
+        r_radio-sized cells (~O(N), the same bucketing idea as encounters(), which
+        is left untouched). Runs in the drive/world phase from sense_step (before
+        the belief freeze), so beliefs never change during the encounter phase and
+        evaluated Φ == executed Φ still holds."""
+        R = max(1, self.r_radio)
+        rs = self.robots
+        s_ls = [row[:] for row in self.last_seen]     # snapshot every read array
+        s_bel = [row[:] for row in self.belief]
+        s_rr = [row[:] for row in self.rival_rate]
+        s_oms = [row[:] for row in self._own_mined_seen]
+        buckets: dict = {}
+        for idx, r in enumerate(rs):
+            buckets.setdefault((r.pos[0] // R, r.pos[1] // R), []).append(idx)
+        n_src = len(self.sources)
+        for a in rs:
+            cx, cy = a.pos[0] // R, a.pos[1] // R
+            neigh = []
+            for ox in (-1, 0, 1):
+                for oy in (-1, 0, 1):
+                    for j in buckets.get((cx + ox, cy + oy), ()):
+                        b = rs[j]
+                        if b.rid == a.rid or b.company != a.company:
+                            continue
+                        if (abs(a.pos[0] - b.pos[0]) <= R
+                                and abs(a.pos[1] - b.pos[1]) <= R):
+                            neigh.append(b.rid)
+            if not neigh:
+                continue
+            ai = a.rid
+            for k in range(n_src):
+                best_j, best_ls = -1, s_ls[ai][k]
+                for bj in neigh:
+                    if s_ls[bj][k] > best_ls:
+                        best_ls, best_j = s_ls[bj][k], bj
+                if best_j >= 0:
+                    self.belief[ai][k] = s_bel[best_j][k]
+                    self.last_seen[ai][k] = s_ls[best_j][k]
+                    self.rival_rate[ai][k] = s_rr[best_j][k]
+                    self._own_mined_seen[ai][k] = s_oms[best_j][k]
 
     # ── v12 K1: map-selling (a sync is a copy of fresher map entries) ────
     def _map_overlay_entries(self, rc: int, gc: int):
@@ -522,8 +619,10 @@ class World:
         saved). The giver's own map is untouched — a sync is a copy, not a
         move. No clamping: a sync that overwrites stale-optimistic belief with
         fresher-but-lower truth LOWERS the receiver's Φ (bad news); IR vetoes
-        those downstream (registered P17c), so this must not special-case it."""
-        rc, gc = receiver.company, giver.company
+        those downstream (registered P17c), so this must not special-case it.
+        v14: under gossip a sync is seller ROBOT's map → buyer ROBOT (_bx=rid);
+        free-radio it is seller-company → buyer-company, unchanged."""
+        rc, gc = self._bx(receiver), self._bx(giver)
         entries = self._map_overlay_entries(rc, gc)
         saved = [(i, self.belief[rc][i], self.last_seen[rc][i],
                   self.rival_rate[rc][i]) for (i, _, _, _) in entries]
@@ -543,8 +642,11 @@ class World:
         """Execute a map sync: permanently copy the giver company's fresher
         (belief, last_seen, rival_rate) entries onto the receiver company.
         Same entries synced_phi_view priced ⇒ evaluated Φ == executed Φ.
-        Returns the number of entries copied (0 is a legal no-op sync)."""
-        rc, gc = receiver.company, giver.company
+        Returns the number of entries copied (0 is a legal no-op sync).
+        v14: seller ROBOT → buyer ROBOT under gossip (only that one buyer's
+        per-robot map learns it — a distant fleet-mate stays dark until gossip
+        relays the entry onward)."""
+        rc, gc = self._bx(receiver), self._bx(giver)
         entries = self._map_overlay_entries(rc, gc)
         for (i, bel, ls, rr) in entries:
             self.belief[rc][i] = bel
@@ -598,12 +700,17 @@ class World:
         self.mined_from.append(0)
         self.arrival_indices.append(i)
         self.arrival_t[i] = self.tick           # v12 K2: claim-window origin
-        for co in (0, 1):
-            self.belief[co].append(0)           # unknown until sensed
-            self.last_seen[co].append(self.tick)
-            self.rival_rate[co].append(0.0)
+        # v14: the belief-map arrays grow per belief-index (2 companies for free
+        # radio, n_robots under gossip); own_mined is the physical company
+        # aggregate and grows per company. At len(belief)==2 this is exactly the
+        # old five-append loop (bit-identical), just split by index space.
+        for bx in range(len(self.belief)):
+            self.belief[bx].append(0)           # unknown until sensed
+            self.last_seen[bx].append(self.tick)
+            self.rival_rate[bx].append(0.0)
+            self._own_mined_seen[bx].append(0)
+        for co in range(2):
             self.own_mined[co].append(0)
-            self._own_mined_seen[co].append(0)
         self.field_log.append(dict(t=self.tick, kind="arrival", src=i, amt=stock))
 
     def _field_departure(self) -> None:
