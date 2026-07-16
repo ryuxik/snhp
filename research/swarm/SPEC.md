@@ -1474,3 +1474,33 @@ were pre-registered against these exact rules):**
   Coase-boundary control: integration via transfer PRICING alone cannot
   re-route Φ-driven haulers, so it forms no new chains; measured, not
   asserted). Cross-company handoffs are untouched spot.
+
+**P23 VERDICT (2026-07-16, registrar) — the founder's pre-commitment
+theory CONFIRMED; the program's strongest mechanism result.**
+- **P23a SUPPORTED:** negotiable delivery claims (bills of lading) lift
+  N=240 delivered_frac +0.0295 (p=.005, 7/8), concentrated exactly where
+  phase 1 said the bodies were: far-band delivered/mined 0.40 → 0.47, and
+  ≥2-hop delivered share 0.025 → 0.500 — a 20× rise in real relay chains.
+  The KILL (≤+0.01) did not fire. Chains were binding; pre-commitment
+  forms them. Bonus mechanism dividend: stranding halves (2.12 → 1.12) —
+  dying carriers offload cargo to a claim before the strand.
+- **P23b REFUTED, informatively — with a scoping caveat.** The firm arm
+  (treasury transfer pricing, haul cost + 15% margin) is EXACTLY inert:
+  zero new chains, trajectory bit-identical to spot. Reason: re-booking
+  credit does not change what a drone's Φ values; bills DO (a locked
+  claim on the terminal payout enters the holder's objective). The honest
+  scope: we tested integration-as-settlement, not integration-as-command
+  (a firm that ORDERS the relay would be a different arm). Within that
+  scope the Coase boundary is sharp: **a coordination mechanism must
+  change the agent's objective, not just the internal price.**
+- **P23c CONFIRMED — the hold-up fingerprint:** 67k bill-relay legs show
+  NO sell-side compression (meanΔ +0.08); the split predates the position
+  risk, so there is no quasi-rent to expropriate. Spot shows none either —
+  because its veto refuses the compressible hops and the chains never
+  exist. Exactly the registered two-sided prediction.
+- **Thesis translation, on the record:** the notarized claim stack IS the
+  snhp receipt, acting not as audit integrity but as WORKING CAPITAL —
+  attestation-backed pre-commitment forms supply chains that spot
+  bargaining structurally cannot. Receipts don't just keep books honest;
+  they make chains exist. P23e (moral hazard / contingent splits) is now
+  buildable and queued.
