@@ -241,7 +241,8 @@ class World:
                  order_book: bool = False,
                  build_matter: float = 0.0, build: bool = False,
                  toll_level: float = 0.0, build_budget: int = 10**9,
-                 command: bool = False, deadlock_track: bool = False):
+                 command: bool = False, deadlock_track: bool = False,
+                 charger_band: float = 0.0):
         self.rng = np.random.RandomState(seed)
         self.rng_seed = seed                 # v18: matter-field RNG keys off this
         self.hazard_phi = hazard_phi
@@ -513,6 +514,18 @@ class World:
         if self.build_matter > 0:
             self._gen_matter()
 
+        # v18-R (column Q2): FRONTIER SCARCITY. charger_band is the home-band radius
+        # (Manhattan) around a refinery inside which preset free chargers survive;
+        # presets in the FAR band (beyond single-hop loaded reach of EVERY refinery)
+        # are removed, so built capital is the only far supply. Default 0.0 ⇒ NO
+        # filter ⇒ every prior column is bit-identical (suite-verified). Applied AFTER
+        # _gen_asteroids AND _gen_matter (both key their `taken` set off the FULL
+        # preset charger list), so the ore/matter fields are byte-for-byte Q's — the
+        # ONLY thing scarcity removes is operational far-band charging capacity.
+        self.charger_band = float(charger_band)
+        if self.charger_band > 0:
+            self._apply_charger_band()
+
         self.robots: list[Robot] = []
         if self.n_companies == 2:
             self._spawn_twin_fleets(n_robots, sigma)
@@ -625,6 +638,23 @@ class World:
             pos.append((x, y)); own.append(0)         # top half → company 0
             pos.append((x, g - y)); own.append(1)     # mirror  → company 1
         return pos, own
+
+    def _apply_charger_band(self) -> None:
+        """v18-R (column Q2): keep only preset chargers whose nearest refinery is
+        within `charger_band` Manhattan cells — the FAR band (beyond single-hop
+        loaded reach of every refinery) loses its free public chargers, so built
+        capital is the only far supply. Filters the four parallel preset arrays in
+        lock-step (positions/owner/toll/built). Runs BEFORE any charger is built
+        (all `charger_built` are False here) and AFTER both field generators, so ore
+        and matter are untouched; consumes no RNG. band radius is the caller's dial
+        (Q2 uses BATTERY_MAX/(1+LOADED_MULT) = single-hop loaded reach; see run.py)."""
+        keep = [k for k, c in enumerate(self.chargers)
+                if min(manhattan(c, rf) for rf in self.refineries)
+                <= self.charger_band]
+        self.chargers = [self.chargers[k] for k in keep]
+        self.charger_owner = [self.charger_owner[k] for k in keep]
+        self.charger_toll = [self.charger_toll[k] for k in keep]
+        self.charger_built = [self.charger_built[k] for k in keep]
 
     def _gen_asteroids(self):
         """v5: 5 mirror-pairs of asteroids (reflection about y=16), stocks

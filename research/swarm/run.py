@@ -143,7 +143,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              false_accuse: float = 0.0, order_book: bool = False,
              build_matter: float = 0.0, build: bool = False,
              toll_level: float = 0.0, build_budget: int = 10**9,
-             command: bool = False, deadlock_track: bool = False) -> dict:
+             command: bool = False, deadlock_track: bool = False,
+             charger_band: float = 0.0) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -181,7 +182,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               order_book=order_book,
               build_matter=build_matter, build=build,
               toll_level=toll_level, build_budget=build_budget,
-              command=command, deadlock_track=deadlock_track)
+              command=command, deadlock_track=deadlock_track,
+              charger_band=charger_band)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
@@ -397,6 +399,13 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
                 d = min(manhattan(src, rf) for rf in w.refineries)
                 rock_bands.append(_dist_band(d))
         band_hist = [rock_bands.count(k) for k in (0, 1, 2)]
+        # v18-R (column Q2): band of the built-charger SITE itself (distance to the
+        # nearest refinery), for ALL builds — trapped-return (rock=-1) sites included,
+        # which the placement_band_hist (fallback-only) drops. Shows where CAPITAL
+        # actually lands under frontier scarcity (built stepping-stones sit ~0.9·reach).
+        site_bands = [_dist_band(min(manhattan(tuple(b["pos"]), rf)
+                                     for rf in w.refineries)) for b in bl]
+        site_band_hist = [site_bands.count(k) for k in (0, 1, 2)]
         build_detail = dict(
             built=[w.company[c]["built"] for c in (0, 1)],
             n_built=len(bl),
@@ -411,7 +420,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
             toll_earned=[round(w.company[c]["toll_earned"], 2) for c in (0, 1)],
             toll_paid=[round(w.company[c]["toll_paid"], 2) for c in (0, 1)],
             toll_level=toll_level, toll_grid=list(TOLL_GRID),
-            placement_band_hist=band_hist,             # built rocks by dist band
+            placement_band_hist=band_hist,             # fallback TARGET rocks by band
+            site_band_hist=site_band_hist,             # ALL built SITES by band (Q2)
             built_sites=[list(b["pos"]) for b in bl],
             built_forgone=[b["forgone"] for b in bl],
             n_chargers_final=len(w.chargers),
@@ -422,7 +432,15 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
     # v17 PHASE 2: the mechanism rides the same snhp+net base (SnhpArm) — the
     # world flag IS the treatment, so relabel for the tables/pairings.
     # P23e: contingent splits get a distinct label so spot/flat/contingent pair.
-    base_label = (f"{arm_name}+B" if build        # v18: endogenous infrastructure
+    # v18-R (column Q2): a BUILD row now also carries its settlement mechanism in
+    # the label, so a bills-build ("snhp+net+B+bill") is distinguishable from a
+    # spot-build ("snhp+net+B") — the P24R-c layering pair. Spot/firm build labels
+    # are unchanged from column Q (build+no-mechanism ⇒ "…+B"), so every prior Q
+    # row keeps its label and the Q report/tests stay valid.
+    _build_mech = ("+bill" if (bills and not bills_contingent)
+                   else "+billC" if (bills and bills_contingent)
+                   else "+firm" if firm_relay else "")
+    base_label = (f"{arm_name}+B{_build_mech}" if build   # v18: endogenous infrastructure
                   else "snhp+cmd" if command          # v25 (column X): COMMAND regime
                   else "snhp+ob" if order_book        # v23: order-book relays (bills-settled)
                   else "snhp+billC" if (bills and bills_contingent)
@@ -522,6 +540,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         build_matter=build_matter, build=build, toll_level=toll_level,
         build_budget=(build_budget if build_budget < 10**9 else None),
         build_detail=build_detail,
+        # v18-R (column Q2): frontier scarcity (home-band radius; 0 ⇒ off)
+        charger_band=charger_band,
         # v25 (column X): the firm's interior — command / prices / claims
         command=command,
         deadlock_count=(w.deadlock_count if w.deadlock_track else None),
@@ -577,12 +597,13 @@ def _cond(r) -> tuple:
             r.get("build_matter", 0.0),          # v18 (column Q)
             bool(r.get("build", False)),
             r.get("toll_level", 0.0),
-            (r.get("build_budget") if r.get("build_budget") is not None else -1))
+            (r.get("build_budget") if r.get("build_budget") is not None else -1),
+            r.get("charger_band", 0.0))          # v18-R (column Q2)
 
 
 def _cond_label(c) -> str:
     (f, dfd, s7, mg, nz, g, bm, race, mt, dyn, cnt, scout, maptr, pros,
-     nr, cc, gs, rr, rep, fa, bmat, bld, toll, bbud) = c
+     nr, cc, gs, rr, rep, fa, bmat, bld, toll, bbud, cband) = c
     bits = []
     if f:
         bits.append(f"f={f:g}")
@@ -630,12 +651,14 @@ def _cond_label(c) -> str:
         bits.append(f"toll={toll:g}")    # v18: guest toll on built chargers
     if bbud is not None and bbud >= 0:
         bits.append(f"bud={bbud}")       # v18: forced per-company build budget
+    if cband:
+        bits.append(f"cband={cband:g}")  # v18-R (Q2): frontier-scarcity band radius
     return " ".join(bits)
 
 
 _BASE = (0.0, False, 0.0, False, 0.0, 32, False, True, False, False, False,
          False, False, False, 24, False, False, 6, False, 0.0,
-         0.0, False, 0.0, -1)
+         0.0, False, 0.0, -1, 0.0)
 
 
 def _paired(rows, arm_hi, arm_lo, sigma, field, tau=0.0, cond=_BASE):
@@ -1712,6 +1735,234 @@ def p24(rows: list[dict]) -> None:
               f"{'(build did edge delivered slightly positive but far below threshold.)' if anypos else ''}")
 
 
+def p24r(rows: list[dict]) -> None:
+    """v18-R (column Q2) — LANDLORDS ON THE FRONTIER: column Q re-run under FRONTIER
+    SCARCITY (preset free chargers only within single-hop loaded reach of a refinery)
+    + BILLS ON for the bargaining fleet. Report, not verdict: P24R-a (does building
+    lift the far-band ≥0.05 over the BILLS no-build control at 7,500t, and does the
+    far-ore placement fallback fire?), P24R-b (do tolls on far chargers extract real
+    rent above Q's 7.88cr; budget-sweep under-provision), P24R-c (build edge under
+    bills > build edge under spot — the layering claim), and the KILL (building AND
+    tolls stay decorative even with scarcity + bills). No-op unless the sweep carries
+    a frontier-scarce (charger_band>0) cell."""
+    if not any(r.get("charger_band", 0.0) > 0 for r in rows):
+        return
+    from swarm.world import (BATTERY_MAX as _BM, LOADED_MULT as _LM,
+                             MATTER_COST as _MC, BUILD_CREDIT_COST as _BCC)
+    BAND = _BM / (1.0 + _LM)
+
+    def sel(label, horizon=None, budget=None, toll=0.0, scarce=True):
+        out = []
+        for r in rows:
+            if r["arm"] != label:
+                continue
+            if (r.get("charger_band", 0.0) > 0) != scarce:
+                continue
+            if horizon is not None and r.get("ticks_horizon") != horizon:
+                continue
+            if budget != "__any__" and r.get("build_budget") != budget:
+                continue
+            if toll != "__any__" and abs(r.get("toll_level", 0.0) - toll) > 1e-9:
+                continue
+            out.append(r)
+        return out
+
+    def _far(r):
+        ld = r.get("lineage_detail")
+        if not ld:
+            return None
+        bm = ld["band_mined"][2]
+        return (ld["band_delivered"][2] / bm) if bm else None
+
+    def _hop2(r):
+        ld = r.get("lineage_detail")
+        return ld["hop_shares"][2] if ld else None
+
+    def mean(rs, field):
+        vals = [r[field] for r in rs if r.get(field) is not None]
+        return float(np.mean(vals)) if vals else float("nan")
+
+    def meanf(rs, fn):
+        vals = [fn(r) for r in rs]
+        vals = [v for v in vals if v is not None]
+        return float(np.mean(vals)) if vals else float("nan")
+
+    def paired(hi_rs, lo_rs, fn):
+        """Paired hi−lo on a per-row extractor fn (delivered/frac/far-band)."""
+        hi = {r["seed"]: fn(r) for r in hi_rs if fn(r) is not None}
+        lo = {r["seed"]: fn(r) for r in lo_rs if fn(r) is not None}
+        common = sorted(set(hi) & set(lo))
+        if len(common) < 3:
+            return None
+        d = np.array([hi[s] - lo[s] for s in common])
+        _, pt = stats.ttest_rel([hi[s] for s in common], [lo[s] for s in common])
+        return dict(delta=float(d.mean()), p=float(pt),
+                    wins=int((d > 0).sum()), n=len(common))
+
+    # arm family → (no-build label, build label)
+    FAM = [("snhp+net+bills", "snhp+bill", "snhp+net+B+bill"),
+           ("snhp+net spot ", "snhp+net",  "snhp+net+B"),
+           ("auction       ", "auction",   "auction+B")]
+
+    print("\n" + "=" * 100)
+    print("P24-R (column Q2) — LANDLORDS ON THE FRONTIER: frontier scarcity + bills "
+          f"(N=240 scaled v5, σ=0.5, τ=0.15, build_matter=0.5, band={BAND:g}, 8 seeds)")
+    print("=" * 100)
+
+    # [0] BILLS-FLAG VERIFICATION — the scarcity-OFF bills no-build MUST reproduce the
+    # P23 bills signature (0.857 / 0.47 / 0.50); the SPOT signature (0.829/0.40/0.025)
+    # would mean bills never fired (the Q miss). Scarcity-ON bills no-build alongside.
+    print("\n[0] BILLS-SIGNATURE CHECK (the Q-miss guard) — snhp+net BILLS no-build:")
+    print(f"    {'regime':>22} {'delivered_frac':>15} {'far-band d/m':>13} {'≥2-hop':>8}")
+    for tag, scarce in (("scarcity OFF (pure P23)", False),
+                        ("scarcity ON  (Q2 base )", True)):
+        rs = sel("snhp+bill", 2500, scarce=scarce)
+        print(f"    {tag:>22} {mean(rs,'delivered_frac'):>15.3f} "
+              f"{meanf(rs,_far):>13.3f} {meanf(rs,_hop2):>8.3f}")
+    print("    P23 bills signature = 0.857 / 0.470 / 0.492 ;  SPOT signature = "
+          "0.829 / 0.399 / 0.025.")
+    off = sel("snhp+bill", 2500, scarce=False)
+    sig_ok = (not np.isnan(meanf(off, _hop2))) and meanf(off, _hop2) > 0.30
+    print(f"    → BILLS FLAG {'CONFIRMED ON' if sig_ok else 'NOT FIRING — STOP'} "
+          f"(scarcity-OFF ≥2-hop = {meanf(off,_hop2):.3f}; bills⇒~0.49, spot⇒~0.025).")
+
+    # [1] the master table: delivered_frac / far-band / ≥2-hop, no-build vs build.
+    print("\n[1] DELIVERED_FRAC · FAR-BAND d/m · ≥2-HOP SHARE, by arm × horizon "
+          "(scarcity ON):")
+    hdr = (f"  {'arm':>15} {'H':>5} | {'nb_frac':>7} {'bd_frac':>7} {'Δfrac':>7} | "
+           f"{'nb_far':>6} {'bd_far':>6} {'Δfar':>6} | {'nb_h2':>6} {'bd_h2':>6} | "
+           f"{'built':>5}")
+    print(hdr)
+    print("  " + "-" * (len(hdr) - 2))
+    farlift = {}      # (fam, H) → paired far-band build−nobuild
+    edgeD = {}        # (fam, H) → paired delivered build−nobuild
+    for fam, nbl, bdl in FAM:
+        for H in (2500, 7500):
+            nb, bd = sel(nbl, H), sel(bdl, H)
+            pf = paired(bd, nb, _far)
+            pfrac = paired(bd, nb, lambda r: r.get("delivered_frac"))
+            pe = paired(bd, nb, lambda r: r.get("delivered"))
+            farlift[(fam, H)] = pf
+            edgeD[(fam, H)] = pe
+            nbuilt = np.mean([(r.get("build_detail") or {}).get("n_built", 0)
+                              for r in bd]) if bd else float("nan")
+            print(f"  {fam:>15} {H:>5} | {mean(nb,'delivered_frac'):>7.3f} "
+                  f"{mean(bd,'delivered_frac'):>7.3f} "
+                  f"{(pfrac['delta'] if pfrac else float('nan')):>+7.3f} | "
+                  f"{meanf(nb,_far):>6.3f} {meanf(bd,_far):>6.3f} "
+                  f"{(pf['delta'] if pf else float('nan')):>+6.3f} | "
+                  f"{meanf(nb,_hop2):>6.3f} {meanf(bd,_hop2):>6.3f} | "
+                  f"{nbuilt:>5.1f}")
+
+    # [2] P24R-a — far-band lift over the BILLS no-build control at 7,500t (≥0.05).
+    print("\n[2] P24R-a [DOES BUILDING LIFT THE FAR BAND?] — paired build−no-build "
+          "far-band d/m (threshold +0.05, headline arm = snhp+net+bills @ 7,500t):")
+    for fam, _, _ in FAM:
+        for H in (2500, 7500):
+            pf = farlift[(fam, H)]
+            if pf:
+                v = "LIFTS (P24R-a)" if pf["delta"] >= 0.05 else "no lift"
+                print(f"    {fam:>15} H={H}: Δfar={pf['delta']:+.3f} "
+                      f"(p={pf['p']:.3f}, {pf['wins']}/{pf['n']}) → {v}")
+
+    # [3] PLACEMENT — does the far-ore fallback fire? (band of the TARGETED rock).
+    print("\n[3] PLACEMENT BANDS [home≤30 · mid31-62 · far>62] (snhp+net+bills build). "
+          "site-hist = ALL built SITES; fallback-hist = far-ore TARGET rocks (>0 ⇒ "
+          "the far-ore fallback fires; else all builds are trapped-return corridor):")
+    for H in (2500, 7500):
+        bd = sel("snhp+net+B+bill", H)
+        det = [r["build_detail"] for r in bd if r.get("build_detail")]
+        if det:
+            sh = np.mean([d["site_band_hist"] for d in det], axis=0)
+            fh = np.mean([d["placement_band_hist"] for d in det], axis=0)
+            fb = [d["first_built"] for d in det if d["first_built"] is not None]
+            print(f"    H={H}: built~{np.mean([d['n_built'] for d in det]):.1f}"
+                  f"  first@~{(np.mean(fb) if fb else float('nan')):.0f}"
+                  f"  matter_mined~{np.mean([d['matter_mined'] for d in det]):.0f}")
+            print(f"          site-band-hist    =[{sh[0]:.1f}, {sh[1]:.1f}, {sh[2]:.1f}]")
+            print(f"          fallback-band-hist=[{fh[0]:.1f}, {fh[1]:.1f}, {fh[2]:.1f}]")
+            print(f"          sample built sites: {det[0]['built_sites'][:6]}")
+
+    # [4] P24R-c — the layering claim: build edge (delivered) under BILLS vs SPOT.
+    print("\n[4] P24R-c [LAYERING] — build−no-build DELIVERED edge: BILLS vs SPOT "
+          "(claim: infrastructure and claim-chains are complements ⇒ bills edge > spot):")
+    for H in (2500, 7500):
+        eb, es = edgeD[("snhp+net+bills", H)], edgeD[("snhp+net spot ", H)]
+        if eb and es:
+            v = ("bills edge > spot (P24R-c SUPPORTED)"
+                 if eb["delta"] > es["delta"] else "spot ≥ bills (P24R-c refuted)")
+            print(f"    H={H}: bills build-edge={eb['delta']:+.1f}  "
+                  f"spot build-edge={es['delta']:+.1f}  → {v}")
+
+    # [5] P24R-b (toll) — cross-company rent on ENDOGENOUS chargers, vs Q's 7.88cr.
+    print("\n[5] P24R-b [CROSS-COMPANY TOLL RENT] — owner guest-revenue on BUILT "
+          "chargers by toll (snhp+net+bills build, 2500t; Q's farce was 7.88cr total):")
+    from swarm.world import TOLL_GRID as _TG
+    print(f"    {'toll':>6} {'delivered':>10} {'built_guest_slots':>18} "
+          f"{'toll_earned_tot':>16} {'built':>7}")
+    tearn_by = {}
+    for toll in _TG:
+        rs = sel("snhp+net+B+bill", 2500, toll=toll)
+        if not rs:
+            continue
+        det = [r["build_detail"] for r in rs if r.get("build_detail")]
+        gslots = float(np.mean([d["built_guest_slots"] for d in det])) if det else 0.0
+        tearn = float(np.mean([sum(d["toll_earned"]) for d in det])) if det else 0.0
+        tearn_by[toll] = tearn
+        nb = float(np.mean([d["n_built"] for d in det])) if det else 0.0
+        print(f"    {toll:>6.1f} {mean(rs,'delivered'):>10.1f} {gslots:>18.1f} "
+              f"{tearn:>16.2f} {nb:>7.1f}")
+    pg = mean(sel("snhp+net+B+bill", 2500), "guest_charged")
+    best_rent = max(tearn_by.values()) if tearn_by else 0.0
+    print(f"    PRESET (in-band, free) chargers serve ~{pg:.0f} guest-energy/run. "
+          f"max built-charger toll rent = {best_rent:.2f}cr "
+          f"({'ABOVE' if best_rent > 7.88 else 'AT/BELOW'} Q's 7.88cr).")
+
+    # [6] P24R-b (budget) — under-provision where capital is actually scarce.
+    print("\n[6] P24R-b [UNDER-PROVISION] — welfare (delivered) vs FORCED per-company "
+          "build budget (snhp+net+bills build, 2500t):")
+    print(f"    {'budget':>7} {'delivered':>10} {'frac':>6} {'far-band':>9} "
+          f"{'built_tot':>10} {'held_load':>10}")
+    welf = {}
+    for budget in (0, 2, 4, 8, 16):
+        rs = sel("snhp+net+B+bill", 2500, budget=budget)
+        if not rs:
+            continue
+        det = [r["build_detail"] for r in rs if r.get("build_detail")]
+        nb = float(np.mean([d["n_built"] for d in det])) if det else 0.0
+        welf[budget] = mean(rs, "delivered")
+        print(f"    {budget:>7} {mean(rs,'delivered'):>10.1f} "
+              f"{mean(rs,'delivered_frac'):>6.3f} {meanf(rs,_far):>9.3f} "
+              f"{nb:>10.1f} {mean(rs,'held_load'):>10.1f}")
+    if welf:
+        best_b = max(welf, key=welf.get)
+        volb = float(np.mean([d["n_built"]
+                     for r in sel("snhp+net+B+bill", 2500, budget=None)
+                     if (d := r.get("build_detail"))])) if \
+            sel("snhp+net+B+bill", 2500, budget=None) else float("nan")
+        up = welf.get(best_b, 0) - welf.get(0, 0) > 5 and best_b * 2 > volb
+        print(f"    welfare-optimal forced budget = {best_b}/co "
+              f"(delivered {welf[best_b]:.1f}); voluntary build ≈ {volb:.1f} total → "
+              f"{'UNDER-PROVISION' if up else 'no under-provision'}.")
+
+    # [7] KILL — building AND tolls decorative even with scarcity + bills?
+    print("\n[7] KILL STATUS — 'if building and tolls stay decorative even with "
+          "frontier scarcity and bills, infrastructure rent is genuinely absent.'")
+    hp = farlift.get(("snhp+net+bills", 7500))
+    far_lift = hp["delta"] if hp else float("nan")
+    rent_real = best_rent > 7.88
+    if (hp and hp["delta"] >= 0.05) or rent_real:
+        print(f"    → KILL DOES NOT FIRE: far-band lift={far_lift:+.3f} "
+              f"(P24R-a {'MET' if hp and hp['delta']>=0.05 else 'unmet'}) · "
+              f"max toll rent={best_rent:.2f}cr (P24R-b {'MET' if rent_real else 'unmet'}). "
+              "Infrastructure rent is present under scarcity + bills.")
+    else:
+        print(f"    → KILL FIRES: far-band lift={far_lift:+.3f} (<0.05) AND max toll "
+              f"rent={best_rent:.2f}cr (de minimis). Even with frontier scarcity and "
+              "bills, building and tolls are decorative — the infrastructure-rent null "
+              "graduates from artifact to LAW at these scales.")
+
+
 def px(rows: list[dict]) -> None:
     """v25 (column X) — THE FIRM'S INTERIOR: command / prices / claims vs the
     no-mechanism baseline. Report, not verdict: PXa (command wins at small N,
@@ -2269,6 +2520,74 @@ def build_jobs(column: str, seeds: int, ticks: int):
             for seed in range(n8):
                 jobs.append(dict(arm_name="snhp+net", seed=seed, ticks=2500,
                                  build=True, toll_level=float(toll), **base))
+    if column == "Q2":                # v18-R: landlords on the frontier (P24-R)
+        # The P24-R amendment: column Q re-run in a SCARCE, COMPOSED world. Two
+        # changes from Q, and NOTHING else (SPEC "v18-R (column Q2)"):
+        #   (i)  FRONTIER SCARCITY — charger_band = single-hop loaded reach
+        #        (BATTERY_MAX/(1+LOADED_MULT) = 62.5 Manhattan cells, derived from
+        #        the SAME constants Q's placement/deadlock code uses). Preset free
+        #        chargers survive ONLY within that home band of a refinery; the far
+        #        band (>62.5, == the LINEAGE far-band edge 62) loses its free public
+        #        chargers, so BUILT capital is the only far supply. ON for EVERY Q2
+        #        cell — it is the world, not a treatment.
+        #   (ii) BILLS ON for the bargaining fleet (bills=True, VERIFIED in the cell
+        #        dicts below — the registrar diffs these lines; the Q miss was a
+        #        silently-absent bills flag). Bills auto-enable lineage; spot/auction
+        #        carry lineage=True explicitly so the far-band/≥2-hop table is uniform.
+        # Everything else identical to Q: build_matter=0.5, MATTER_COST/BUILD_CREDIT_COST,
+        # the Q placement rule, toll grid {0,1,2,4}×cost, budget sweep {0,2,4,8,16},
+        # N=240 v5 scaled grid, 8 seeds, BOTH horizons {2500,7500}, deadlock instrument.
+        import math as _math
+        from swarm.world import (BATTERY_MAX as _BM, LOADED_MULT as _LM,
+                                 TOLL_GRID as _TG)
+        g240 = int(round(32 * _math.sqrt(240 / 24)))
+        BAND = _BM / (1.0 + _LM)                 # 62.5 = single-hop loaded reach
+        n8 = min(seeds, 8)
+        base = dict(sigma=0.5, tau=0.15, preset="v5", n_robots=240, grid=g240,
+                    build_matter=0.5, charger_band=BAND,   # (i) FRONTIER SCARCITY
+                    lineage=True, deadlock_track=True)
+        # CORE (P24R-a far-band lift, P24R-c bills-vs-spot layering): {no-build, build}
+        # × {snhp+net+bills, snhp+net spot, auction} × horizons {2500, 7500}.
+        for horizon in (2500, 7500):
+            for seed in range(n8):
+                # snhp+net + BILLS (the composed arm — bills=True is the fix)
+                jobs.append(dict(arm_name="snhp+net", seed=seed, ticks=horizon,
+                                 bills=True, **base))
+                jobs.append(dict(arm_name="snhp+net", seed=seed, ticks=horizon,
+                                 bills=True, build=True, toll_level=0.0, **base))
+                # snhp+net SPOT (bills=False — the P24R-c layering control)
+                jobs.append(dict(arm_name="snhp+net", seed=seed, ticks=horizon,
+                                 **base))
+                jobs.append(dict(arm_name="snhp+net", seed=seed, ticks=horizon,
+                                 build=True, toll_level=0.0, **base))
+                # AUCTION (unperturbed comparator; no bills path in AuctionArm)
+                jobs.append(dict(arm_name="auction", seed=seed, ticks=horizon,
+                                 **base))
+                jobs.append(dict(arm_name="auction", seed=seed, ticks=horizon,
+                                 build=True, toll_level=0.0, **base))
+        # BUDGET sweep (P24R-b under-provision) — on the snhp+net+BILLS build arm.
+        for budget in (0, 2, 4, 8, 16):
+            for seed in range(n8):
+                jobs.append(dict(arm_name="snhp+net", seed=seed, ticks=2500,
+                                 bills=True, build=True, toll_level=0.0,
+                                 build_budget=budget, **base))
+        # TOLL sweep (P24R-b cross-company pricing) — on the snhp+net+BILLS build arm.
+        for toll in _TG[1:]:
+            for seed in range(n8):
+                jobs.append(dict(arm_name="snhp+net", seed=seed, ticks=2500,
+                                 bills=True, build=True, toll_level=float(toll),
+                                 **base))
+        # BILLS-FLAG VERIFICATION control — the SAME bills no-build cell with frontier
+        # scarcity OFF (charger_band=0), so it must reproduce the P23 bills signature
+        # EXACTLY (delivered_frac≈0.857, far-band≈0.47, ≥2-hop≈0.50). It isolates
+        # "is bills on?" from "does scarcity move the numbers?"; if it shows the SPOT
+        # signature (≈0.829/0.40/0.025) the bills flag never fired — the Q miss.
+        base_noscar = dict(sigma=0.5, tau=0.15, preset="v5", n_robots=240,
+                           grid=g240, build_matter=0.5, lineage=True,
+                           deadlock_track=True)         # charger_band absent ⇒ 0.0
+        for seed in range(n8):
+            jobs.append(dict(arm_name="snhp+net", seed=seed, ticks=2500,
+                             bills=True, **base_noscar))
     if column == "X":                 # v25: the firm's interior (P X)
         # One firm owns the fleet; the question is what allocation mechanism runs
         # its interior. Four regimes on ONE information environment (P21 realism —
@@ -2306,7 +2625,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "U", "UH", "V", "X", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "U", "UH", "V", "X", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -2328,6 +2647,7 @@ def main() -> None:
         u_report(rows)
         p29(rows)
         p24(rows)
+        p24r(rows)
         px(rows)
         return
 
@@ -2366,6 +2686,7 @@ def main() -> None:
     u_report(rows)
     p29(rows)
     p24(rows)
+    p24r(rows)
     px(rows)
 
 

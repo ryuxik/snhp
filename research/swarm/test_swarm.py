@@ -2433,6 +2433,223 @@ def test_v25_command_runs_conserves_and_delivers():
     assert len(w.cmd_plan_versions) > 0, "the planner never planned"
 
 
+# ── v18-R (column Q2): landlords on the frontier — frontier scarcity + bills ────
+def test_q2_charger_band_off_bit_identical():
+    """charger_band=0.0 (the default) must be bit-identical to a World that never
+    heard of the Q2 amendment — the band filter, the stored flag and the (skipped)
+    _apply_charger_band may not perturb a single bit of the default path. Checked on
+    the fast (snhp+net) and cargo-moving (auction) arms, AND with the full column-Q +
+    bills machinery live (band=0 must still vanish inside a build+bills world)."""
+    for arm_name in ("snhp+net", "auction"):
+        outs = []
+        for kw in ({}, dict(charger_band=0.0)):
+            w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                      hazard_phi=(arm_name != "auction"), **kw)
+            arm = make_arm(arm_name, w)
+            for _ in range(400):
+                arm.tick()
+            outs.append((w.delivered, arm.deals, len(w.event_log),
+                         round(sum(r.battery for r in w.robots), 9),
+                         [r.pos for r in w.robots]))
+        assert outs[0] == outs[1], f"charger_band=0 plumbing perturbed {arm_name}"
+    outs = []
+    for kw in (dict(build_matter=0.5, build=True, bills=True),
+               dict(build_matter=0.5, build=True, bills=True, charger_band=0.0)):
+        w = World(n_robots=96, sigma=0.5, seed=1, preset="v5", tau=(0.15, 0.15),
+                  grid=_grid_L(96), **kw)
+        arm = make_arm("snhp+net", w)
+        for _ in range(500):
+            arm.tick()
+        outs.append((w.delivered, arm.deals, sum(c["built"] for c in w.company),
+                     round(sum(r.battery for r in w.robots), 9)))
+    assert outs[0] == outs[1], "charger_band=0 perturbed a live build+bills world"
+
+
+def test_q2_band_excludes_far_presets_exactly():
+    """FRONTIER SCARCITY, exactly: at N=240 the band (= single-hop loaded reach,
+    BATTERY_MAX/(1+LOADED_MULT)=62.5) keeps EVERY preset within loaded reach of a
+    refinery and removes EVERY far one — 40→30, the 10 far-band chargers gone. The
+    four parallel charger arrays stay aligned, and because the filter runs AFTER both
+    field generators, the ore and matter fields are byte-identical to the no-band
+    world (the ONLY thing scarcity removes is far-band charging capacity)."""
+    reach = W.BATTERY_MAX / (1.0 + W.LOADED_MULT)
+    g = _grid_L(240)
+    w0 = World(n_robots=240, sigma=0.5, seed=0, preset="v5", grid=g,
+               build_matter=0.5)
+    wb = World(n_robots=240, sigma=0.5, seed=0, preset="v5", grid=g,
+               build_matter=0.5, charger_band=reach)
+
+    def near(c):
+        return min(W.manhattan(c, rf) for rf in w0.refineries)
+
+    expected = [c for c in w0.chargers if near(c) <= reach]
+    assert wb.chargers == expected, "band kept the wrong preset set"
+    assert len(w0.chargers) == 40 and len(wb.chargers) == 30, \
+        "band did not strip exactly the 10 far-band presets"
+    assert all(near(c) <= reach for c in wb.chargers), "a kept charger is far-band"
+    removed = [c for c in w0.chargers if c not in wb.chargers]
+    assert removed and all(near(c) > reach for c in removed), \
+        "a removed charger was actually in-band"
+    assert len(wb.charger_owner) == len(wb.charger_toll) == \
+        len(wb.charger_built) == len(wb.chargers), "parallel arrays desynced"
+    assert w0.sources == wb.sources and w0.stock == wb.stock, \
+        "frontier scarcity perturbed the ORE field"
+    assert w0.matter_sources == wb.matter_sources and \
+        w0.matter_stock == wb.matter_stock, \
+        "frontier scarcity perturbed the MATTER field"
+
+
+def test_q2_job_matrix_sets_bills_on_intended_arms():
+    """The cells-match-registration guard (the Q miss was a silently-absent bills
+    flag). Asserts the built Q2 job matrix ACTUALLY sets bills=True on the bargaining
+    cells the registration names, carries frontier scarcity (band == single-hop
+    loaded reach) on every grid cell, keeps a SPOT build for the P24R-c pair, keeps
+    the auction bills-free, rides both sweeps on the bills build arm, and carries the
+    scarcity-OFF bills flag-verification control."""
+    from swarm.run import build_jobs
+    BAND = W.BATTERY_MAX / (1.0 + W.LOADED_MULT)
+    jobs = build_jobs("Q2", 8, 2500)
+
+    def has(pred):
+        return any(pred(j) for j in jobs)
+
+    scarce = [j for j in jobs if j.get("charger_band", 0.0) > 0]
+    assert scarce and all(abs(j["charger_band"] - BAND) < 1e-9 for j in scarce), \
+        "grid cells must carry band == single-hop loaded reach"
+    for H in (2500, 7500):
+        assert has(lambda j, H=H: j["arm_name"] == "snhp+net" and j.get("bills")
+                   and not j.get("build") and j["ticks"] == H
+                   and j.get("charger_band", 0) > 0), f"no bills no-build @ {H}"
+        assert has(lambda j, H=H: j["arm_name"] == "snhp+net" and j.get("bills")
+                   and j.get("build") and j["ticks"] == H
+                   and j.get("charger_band", 0) > 0), f"no bills build @ {H}"
+    assert has(lambda j: j["arm_name"] == "snhp+net" and not j.get("bills")
+               and j.get("build") and j.get("charger_band", 0) > 0), \
+        "no SPOT build (the P24R-c layering pair) under scarcity"
+    assert has(lambda j: j["arm_name"] == "auction" and j.get("charger_band", 0) > 0)
+    assert not has(lambda j: j["arm_name"] == "auction" and j.get("bills")), \
+        "auction must stay bills-free (no bills path in AuctionArm)"
+    for b in (0, 2, 4, 8, 16):
+        assert has(lambda j, b=b: j.get("bills") and j.get("build")
+                   and j.get("build_budget") == b), f"budget {b} not on bills build"
+    for t in (1.0, 2.0, 4.0):
+        assert has(lambda j, t=t: j.get("bills") and j.get("build")
+                   and abs(j.get("toll_level", 0.0) - t) < 1e-9), \
+            f"toll {t} not on bills build"
+    assert has(lambda j: j["arm_name"] == "snhp+net" and j.get("bills")
+               and not j.get("build") and j.get("charger_band", 0.0) == 0.0), \
+        "missing the scarcity-OFF bills flag-verification control"
+
+
+def test_q2_toll_conserved_on_frontier_built_charger():
+    """Toll conservation under frontier scarcity: with the far presets stripped by
+    the band, a company-1 guest docking on a company-0 BUILT far-band charger moves
+    EXACTLY `toll` credits guest→owner (net-zero; ledger intact), the built-guest-slot
+    meter ticks, and toll_conserved() holds."""
+    BAND = W.BATTERY_MAX / (1.0 + W.LOADED_MULT)
+    g = _grid_L(240)
+    w = World(n_robots=240, sigma=0.5, seed=0, preset="v5", grid=g, tau=(0.0, 0.0),
+              build_matter=0.5, build=True, toll_level=2.0, charger_band=BAND)
+    assert len(w.chargers) == 30, "frontier scarcity inactive — test vacuous"
+    far = (5, 50)                       # far from BOTH refineries (82,19)/(82,82)
+    assert min(W.manhattan(far, rf) for rf in w.refineries) > BAND, \
+        "test site is not in the far band"
+    w.chargers.append(far); w.charger_owner.append(0)
+    w.charger_toll.append(2.0); w.charger_built.append(True)
+    guest = next(r for r in w.robots if r.company == 1)
+    guest.pos = far; guest.battery = 50.0
+    guest.charge_queued_at = w.tick; guest.stranded = False
+    c0, c1 = w.company[0]["credit"], w.company[1]["credit"]
+    w.charge_step()
+    assert w.company[0]["toll_earned"] == 2.0 and w.company[1]["toll_paid"] == 2.0, \
+        "the frontier toll did not levy exactly one unit guest→owner"
+    assert abs(w.company[0]["credit"] - (c0 + 2.0)) < 1e-9 and \
+        abs(w.company[1]["credit"] - (c1 - 2.0)) < 1e-9
+    assert w.built_guest_slots >= 1 and w.toll_conserved()
+
+
+def test_q2_evaluated_equals_executed_under_scarcity_bills_build():
+    """The sacred evaluated Φ == executed Φ invariant, exercised with all three Q2
+    surfaces composed AT ONCE: frontier scarcity (active — 40→30 presets), bills, and
+    live charger building, at N=240. The in-arm assert fires on any divergence;
+    completing 300 ticks clean IS the test — non-vacuous (deals struck, chargers built
+    under scarcity, bills chains formed), with material/matter/toll conservation live."""
+    BAND = W.BATTERY_MAX / (1.0 + W.LOADED_MULT)
+    g = _grid_L(240)
+    w = World(n_robots=240, sigma=0.5, seed=3, preset="v5", grid=g, tau=(0.15, 0.15),
+              build_matter=0.5, build=True, bills=True, toll_level=1.0,
+              charger_band=BAND)
+    assert len(w.chargers) == 30, "frontier scarcity inactive — test vacuous"
+    arm = make_arm("snhp+net", w)
+    for _ in range(300):
+        arm.tick()
+        assert w.material_ok() and w.matter_conserved() and w.toll_conserved()
+    assert arm.deals > 0, "no deal struck — evaluated==executed test vacuous"
+    assert w.ledger_accounted()
+    assert sum(c["built"] for c in w.company) > 0, "no charger built under scarcity"
+    assert any(p["hops"] >= 2 for p in w.delivered_parcels), \
+        "no ≥2-hop bills chain formed — composition test vacuous"
+
+
+def test_q2_far_band_built_charger_is_sole_return_path_for_a_bills_chain():
+    """The hand-built frontier scenario: with every free charger stripped (scarcity
+    taken to its limit), a loaded drone deep in the FAR band cannot get its cargo home
+    at all. Place ONE built far-band charger on its corridor and it tops up, hauls to a
+    waiting fleet-mate, and hands the cargo off — a BILLS chain (delivered parcels with
+    hops≥1) that settles only because the far-band capital exists. Without the charger
+    the drone strands short and nothing delivers."""
+    BAND = W.BATTERY_MAX / (1.0 + W.LOADED_MULT)
+
+    def run(with_far_charger):
+        w = World(sigma=0.5, seed=0, preset="v5", grid=64, tau=(0.0, 0.0),
+                  build_matter=0.5, build=True, bills=True, charger_band=BAND)
+        w.chargers, w.charger_owner = [], []          # strip EVERY free charger
+        w.charger_toll, w.charger_built = [], []
+        for r in w.robots:                            # neutralize the fleet
+            r.stranded, r.battery, r.load, r.load_prov = True, 0.0, 0, [0, 0]
+            r.parcels = []
+        R = w.refineries[0]                           # company-0 home (52,12) @ g=64
+        C = (0, 25)                                   # far-band charger site
+        assert min(W.manhattan(C, rf) for rf in w.refineries) > BAND, \
+            "the charger site is not in the far band"
+        A, B = w.robots[0], w.robots[1]
+        for X in (A, B):
+            X.company, X.stranded, X.eff, X.cap = 0, False, 1.0, 5
+        A.pos, A.load, A.load_prov = C, 2, [2, 0]     # loaded, deep in the far band
+        A.parcels = [w._new_parcel(0), w._new_parcel(0)]
+        A.battery = 10.0                              # too low to move far unaided
+        B.pos, B.load, B.battery, B.parcels = (40, 25), 0, 100.0, []  # a fresh relay taker
+        if with_far_charger:
+            w.chargers.append(C); w.charger_owner.append(0)
+            w.charger_toll.append(0.0); w.charger_built.append(True)
+            for _ in range(30):                       # A tops up on the built charger
+                A.charge_queued_at = w.tick
+                w.charge_step()
+            A.charge_queued_at = -1
+        for _ in range(80):                           # A hauls toward the refinery
+            if A.pos == B.pos or A.stranded:
+                break
+            w.move_toward(A, R)
+        if W.manhattan(A.pos, B.pos) <= W.R_COMM and A.load > 0:
+            w.transfer_cargo(A, B, A.load, log=True)  # the bills hand-off
+        for _ in range(80):                           # B carries it home
+            if B.pos == R:
+                break
+            w.move_toward(B, R)
+        w.drop(B)
+        return (w.delivered, w.charge_served_slots,
+                [p["hops"] for p in w.delivered_parcels], A.stranded)
+
+    dn, slots_n, hops_n, stranded_n = run(False)
+    dy, slots_y, hops_y, stranded_y = run(True)
+    assert dn == 0 and stranded_n, \
+        "the far cargo returned WITHOUT any charger — scenario invalid"
+    assert dy == 2, "the built far-band charger failed to bring the far cargo home"
+    assert slots_y > 0, "the far-band charger served no charge — it was not used"
+    assert hops_y and all(h >= 1 for h in hops_y), \
+        "delivery was not a bills chain (no hand-off recorded on the parcels)"
+
+
 def benchmark(ticks=2500):
     """Timing harness (NOT a test): reports seconds for the three reference runs.
     Run with:  python -c 'from swarm.test_swarm import benchmark; benchmark()'"""
