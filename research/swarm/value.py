@@ -67,7 +67,9 @@ def _future_trips_value(r, w) -> float:
             # over the approach ETA (movement is 1 cell/tick). Un-raced
             # fields reduce to current behavior (rate → 0).
             eta = W.manhattan(r.pos, w.sources[s])
-            stock = max(0.0, stock - w.rival_rate[r.company][s] * eta)
+            # v14: the rival-rate estimate is per-robot under gossip (_bx=rid),
+            # the shared company estimate under free radio (_bx=company).
+            stock = max(0.0, stock - w.rival_rate[w._bx(r)][s] * eta)
         if stock <= 0:
             continue
         src = w.sources[s]

@@ -80,11 +80,16 @@ def scout_target(r, w):
     if not (w.scouting and w.belief_mode) or r.stranded or r.load > 0:
         return None
     co = r.company
-    ls = w.last_seen[co]
+    # v14: scouting is mechanically unchanged, but under gossip a robot reads
+    # its OWN map (_bx=rid) — discoveries spread only by contact, so a scout's
+    # find is worthless until gossip relays it (the registered scout-return
+    # problem). Free radio keeps the shared company map (_bx=company).
+    bx = w._bx(r)
+    ls = w.last_seen[bx]
     n = len(w.sources)
     idx = min(range(n), key=lambda i: (ls[i], i))   # stalest (tie-break lo idx)
     staleness = w.tick - ls[idx]
-    field_empty = all(w.belief[co][i] <= 0 for i in range(n))
+    field_empty = all(w.belief[bx][i] <= 0 for i in range(n))
     if not (field_empty or staleness > SCOUT_STALE):
         return None
     pos = w.sources[idx]

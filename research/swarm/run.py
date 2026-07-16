@@ -45,7 +45,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              mine_trait: bool = False, dynamic_field: bool = False,
              contested: bool = False, scouting: bool = False,
              map_trading: bool = False, prospect_claims: bool = False,
-             n_robots: int = 24, consensus_cost: bool = False) -> dict:
+             n_robots: int = 24, consensus_cost: bool = False,
+             gossip: bool = False, r_radio: int = 6) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -76,7 +77,7 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               mine_trait=mine_trait, dynamic_field=dynamic_field,
               contested=contested, scouting=scouting,
               map_trading=map_trading, prospect_claims=prospect_claims,
-              consensus_cost=consensus_cost)
+              consensus_cost=consensus_cost, gossip=gossip, r_radio=r_radio)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
@@ -85,9 +86,16 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
     for t in range(ticks):        # (company, asteroid) pairs, every 50 ticks
         arm.tick()
         if belief_mode and (t + 1) % 50 == 0:
-            stale.append(np.mean([w.tick - w.last_seen[co][i]
-                                  for co in range(w.n_companies)
-                                  for i in range(len(w.sources))]))
+            if gossip:
+                # v14: fleet-average per-robot staleness (each robot carries its
+                # own map under gossip, indexed by rid)
+                stale.append(np.mean([w.tick - w.last_seen[rr.rid][i]
+                                      for rr in w.robots
+                                      for i in range(len(w.sources))]))
+            else:
+                stale.append(np.mean([w.tick - w.last_seen[co][i]
+                                      for co in range(w.n_companies)
+                                      for i in range(len(w.sources))]))
             if prospect_claims:
                 own, other = [], []
                 for cc in range(w.n_companies):
@@ -129,6 +137,32 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
     middlemen = [r for r in deliverers if r.received_units > r.mined_units]
     middleman_frac = (len(middlemen) / len(deliverers)) if deliverers else 0.0
     delivered_frac = w.delivered / max(1, w.total_stock)
+    # v14 P21c: is the trade graph the information graph? Pearson corr across
+    # robots between deal-degree (times in the deal log) and end-of-run map
+    # freshness (mean last_seen over rocks — higher = more recently known),
+    # against a shuffled null (mean over 200 permutations of freshness, drawn
+    # from a DEDICATED RandomState(seed+31337) so the main stream is untouched).
+    # None for no-deal arms (auction/rules never write the deal log).
+    freshness_deal_corr = None
+    freshness_deal_corr_null = None
+    if deals:
+        degree = {r.rid: 0 for r in w.robots}
+        for d in deals:
+            degree[d["a"]] += 1
+            degree[d["b"]] += 1
+        fresh = {r.rid: float(np.mean(w.last_seen[w._bx(r)])) for r in w.robots}
+        deg = np.array([degree[r.rid] for r in w.robots], dtype=float)
+        frr = np.array([fresh[r.rid] for r in w.robots], dtype=float)
+        if deg.std() > 1e-9 and frr.std() > 1e-9:
+            freshness_deal_corr = float(np.corrcoef(deg, frr)[0, 1])
+            nrng = np.random.RandomState(seed + 31337)
+            nulls = []
+            for _ in range(200):
+                sh = frr.copy()
+                nrng.shuffle(sh)
+                if sh.std() > 1e-9:
+                    nulls.append(np.corrcoef(deg, sh)[0, 1])
+            freshness_deal_corr_null = (float(np.mean(nulls)) if nulls else None)
     label = arm_name if tuple(issues) == FULL else \
         f"{arm_name}[{'+'.join(issues)}]"
     return dict(
@@ -197,6 +231,10 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         n_robots=n_robots, consensus_cost=consensus_cost,
         delivered_frac=round(delivered_frac, 4),
         middleman_frac=round(middleman_frac, 4),
+        # v14 (column O): communication locality
+        gossip=gossip, r_radio=r_radio,
+        freshness_deal_corr=freshness_deal_corr,
+        freshness_deal_corr_null=freshness_deal_corr_null,
     )
 
 
@@ -219,12 +257,14 @@ def _cond(r) -> tuple:
             bool(r.get("map_trading", False)),
             bool(r.get("prospect_claims", False)),
             int(r.get("n_robots", 24)),
-            bool(r.get("consensus_cost", False)))
+            bool(r.get("consensus_cost", False)),
+            bool(r.get("gossip", False)),
+            int(r.get("r_radio", 6)))
 
 
 def _cond_label(c) -> str:
     (f, dfd, s7, mg, nz, g, bm, race, mt, dyn, cnt, scout, maptr, pros,
-     nr, cc) = c
+     nr, cc, gs, rr) = c
     bits = []
     if f:
         bits.append(f"f={f:g}")
@@ -258,11 +298,13 @@ def _cond_label(c) -> str:
         bits.append(f"N={nr}")
     if cc:
         bits.append("cc")
+    if gs:
+        bits.append(f"gossip r{rr}")     # v14: radius only meaningful w/ gossip
     return " ".join(bits)
 
 
 _BASE = (0.0, False, 0.0, False, 0.0, 32, False, True, False, False, False,
-         False, False, False, 24, False)
+         False, False, False, 24, False, False, 6)
 
 
 def _paired(rows, arm_hi, arm_lo, sigma, field, tau=0.0, cond=_BASE):
@@ -372,6 +414,135 @@ def contrasts(rows: list[dict]) -> None:
               f"{np.mean([r['exploit_deals'] for r in g]):>8.1f} "
               f"{np.mean([r['strip_deals'] for r in g]):>6.1f} "
               f"{adv_s} {p_s}")
+
+
+def p21(rows: list[dict]) -> None:
+    """v14 (column O): the communication-locality tables. Printed numbers ARE
+    the artifact. No-op unless the sweep contains gossip rows."""
+    orows = [r for r in rows if r.get("belief_mode") and r.get("dynamic_field")
+             and r.get("contested") and r.get("scouting")]
+    if not any(r.get("gossip") for r in orows):
+        return
+
+    def sel(arm, gossip, r_radio, maptr=False):
+        return {r["seed"]: r for r in orows
+                if r["arm"] == arm and bool(r.get("gossip", False)) == gossip
+                and int(r.get("r_radio", 6)) == r_radio
+                and bool(r.get("map_trading", False)) == maptr}
+
+    def paired(hi, lo, field):
+        common = sorted(s for s in set(hi) & set(lo)
+                        if hi[s].get(field) is not None
+                        and lo[s].get(field) is not None)
+        if len(common) < 3:
+            return None
+        d = np.array([hi[s][field] - lo[s][field] for s in common], float)
+        _, pt = stats.ttest_rel([hi[s][field] for s in common],
+                                [lo[s][field] for s in common])
+        try:
+            _, pw = stats.wilcoxon(d) if np.any(d != 0) else (None, 1.0)
+        except ValueError:
+            pw = float("nan")
+        return dict(delta=float(d.mean()), p_t=float(pt), p_w=float(pw),
+                    wins=int((d > 0).sum()), n=len(common))
+
+    def paired_self(m, f_hi, f_lo):
+        common = sorted(s for s in m if m[s].get(f_hi) is not None
+                        and m[s].get(f_lo) is not None)
+        if len(common) < 3:
+            return None
+        d = np.array([m[s][f_hi] - m[s][f_lo] for s in common], float)
+        try:
+            _, pw = stats.wilcoxon(d) if np.any(d != 0) else (None, 1.0)
+        except ValueError:
+            pw = float("nan")
+        return dict(delta=float(d.mean()), p_w=float(pw),
+                    wins=int((d > 0).sum()), n=len(common))
+
+    def mean_of(m, field):
+        vals = [r[field] for r in m.values() if r.get(field) is not None]
+        return float(np.mean(vals)) if vals else float("nan")
+
+    def clabel(gossip, r_radio, maptr):
+        if not gossip:
+            return "free-radio"
+        return f"gossip r{r_radio}" + ("+K1" if maptr else "")
+
+    conds = [("auction", True, 2, False), ("auction", True, 6, False),
+             ("rules", True, 2, False), ("rules", True, 6, False),
+             ("snhp-hz", True, 2, False), ("snhp-hz", True, 6, False),
+             ("snhp+net", True, 2, False), ("snhp+net", True, 6, False),
+             ("snhp+net", False, 6, False), ("snhp+net", True, 6, True)]
+
+    print("\n" + "=" * 78)
+    print("P21 — COMMUNICATION LOCALITY (column O): trade is the network")
+    print("=" * 78)
+    hdr = (f"{'arm':<10} {'radio':<12} {'deliv':>7} {'strand':>7} {'stale':>7} "
+           f"{'poison':>7} {'arrMin':>7} {'mapDl':>6} {'deals':>7} {'corr/null':>12}")
+    print(hdr)
+    print("-" * len(hdr))
+    for arm, gs, rr, mt in conds:
+        m = sel(arm, gs, rr, mt)
+        if not m:
+            continue
+        corr, null = mean_of(m, "freshness_deal_corr"), mean_of(m, "freshness_deal_corr_null")
+        cs = "—" if corr != corr else f"{corr:+.2f}/{0.0 if null!=null else null:+.2f}"
+        print(f"{arm:<10} {clabel(gs, rr, mt):<12} "
+              f"{mean_of(m,'delivered'):>7.1f} {mean_of(m,'stranded'):>7.2f} "
+              f"{mean_of(m,'mean_staleness'):>7.1f} {mean_of(m,'poisoned'):>7.2f} "
+              f"{mean_of(m,'arrivals_mined'):>7.1f} {mean_of(m,'map_deals'):>6.1f} "
+              f"{mean_of(m,'deals'):>7.1f} {cs:>12}")
+
+    print("\nP21a — trade IS the network (staleness vs auction, paired; Δ<0 ⇒ trader FRESHER):")
+    for rr in (2, 6):
+        au = sel("auction", True, rr)
+        for arm in ("snhp+net", "snhp-hz", "rules"):
+            c = paired(sel(arm, True, rr), au, "mean_staleness")
+            if c:
+                print(f"    r{rr}: {arm:>9} − auction   Δstale={c['delta']:+7.1f}  "
+                      f"p_t={c['p_t']:.3f} p_w={c['p_w']:.3f} wins {c['wins']}/{c['n']}")
+
+    print("\nP21b — books bleed first (gossip vs free-radio, paired; poisoned↑ delivered flat):")
+    free = sel("snhp+net", False, 6)
+    for rr in (2, 6):
+        g = sel("snhp+net", True, rr)
+        for field in ("poisoned", "delivered", "mean_staleness"):
+            c = paired(g, free, field)
+            if c:
+                print(f"    snhp+net r{rr} − free-radio  {field:<14} Δ={c['delta']:+7.2f}  "
+                      f"p_t={c['p_t']:.3f} p_w={c['p_w']:.3f} wins {c['wins']}/{c['n']}")
+
+    print("\nP21c — trade graph == information graph (freshness_deal_corr vs shuffled null):")
+    for arm, gs, rr, mt in [("snhp+net", True, 2, False), ("snhp+net", True, 6, False),
+                            ("snhp+net", False, 6, False), ("snhp+net", True, 6, True),
+                            ("snhp-hz", True, 6, False)]:
+        m = sel(arm, gs, rr, mt)
+        c = paired_self(m, "freshness_deal_corr", "freshness_deal_corr_null")
+        if c:
+            print(f"    {arm:>9} {clabel(gs,rr,mt):<11} corr={mean_of(m,'freshness_deal_corr'):+.3f} "
+                  f"null={mean_of(m,'freshness_deal_corr_null'):+.3f}  "
+                  f"Δ={c['delta']:+.3f} p_w={c['p_w']:.3f} wins {c['wins']}/{c['n']}")
+
+    print("\nSCOUT-RETURN — arrivals_mined under gossip vs free radio "
+          "(does v12 'scouting fixes discovery' survive?):")
+    print(f"    free-radio snhp+net arrivals_mined = {mean_of(free,'arrivals_mined'):.1f}")
+    for rr in (2, 6):
+        g = sel("snhp+net", True, rr)
+        c = paired(g, free, "arrivals_mined")
+        au = sel("auction", True, rr)
+        if c:
+            print(f"    gossip r{rr}: snhp+net={mean_of(g,'arrivals_mined'):.1f} "
+                  f"(Δ vs free {c['delta']:+.1f}, p_w={c['p_w']:.3f}) | "
+                  f"auction={mean_of(au,'arrivals_mined'):.1f}")
+
+    print("\nMAP-MARKET UNDER GOSSIP — snhp+net r6 +K1 vs r6 (paired):")
+    mapm, base = sel("snhp+net", True, 6, True), sel("snhp+net", True, 6, False)
+    print(f"    map_deals/run (K1) = {mean_of(mapm,'map_deals'):.1f}")
+    for field in ("delivered", "poisoned", "arrivals_mined", "mean_staleness"):
+        c = paired(mapm, base, field)
+        if c:
+            print(f"    +K1 − r6   {field:<14} Δ={c['delta']:+7.2f}  "
+                  f"p_t={c['p_t']:.3f} p_w={c['p_w']:.3f} wins {c['wins']}/{c['n']}")
 
 
 def build_jobs(column: str, seeds: int, ticks: int):
@@ -567,6 +738,31 @@ def build_jobs(column: str, seeds: int, ticks: int):
                     jobs.append(dict(arm_name=arm_name, sigma=0.5, seed=seed,
                                      ticks=ticks, tau=0.15, preset="v5",
                                      n_robots=N, grid=grid, consensus_cost=cc))
+    if column == "O":                 # v14: communication locality (P21)
+        # Everything rides the v11 moving+contested field with belief maps and
+        # K0 scouting ON everywhere (the free-radio K column's scouting baseline
+        # IS the gossip control). gossip removes the company radio: fleet-mates
+        # only relay within Chebyshev r_radio. The ladder r_radio ∈ {2, 6}
+        # separates "needs any locality" (contact/stigmergy) from "needs range"
+        # (short radio) — the founder's amendment.
+        base = dict(sigma=0.5, ticks=ticks, tau=0.15, preset="v5",
+                    belief_mode=True, dynamic_field=True, contested=True,
+                    scouting=True)
+        for arm in ("auction", "rules", "snhp-hz", "snhp+net"):
+            for r_radio in (2, 6):
+                for seed in range(min(seeds, 16)):
+                    jobs.append(dict(arm_name=arm, seed=seed, gossip=True,
+                                     r_radio=r_radio, **base))
+        # free-radio control: belief maps + K0 but company-wide radio (gossip
+        # off) — the P21b/scout-return reference (== the K column's snhp+net+K0)
+        for seed in range(min(seeds, 16)):
+            jobs.append(dict(arm_name="snhp+net", seed=seed, gossip=False,
+                             **base))
+        # the map market UNDER gossip (r_radio=6): does priced cross-company
+        # map-selling add anything once within-fleet radio is only local?
+        for seed in range(min(seeds, 16)):
+            jobs.append(dict(arm_name="snhp+net", seed=seed, gossip=True,
+                             r_radio=6, map_trading=True, **base))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -577,7 +773,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -592,6 +788,7 @@ def main() -> None:
             rows = json.load(f)
         summarize(rows)
         contrasts(rows)
+        p21(rows)
         return
 
     jobs = build_jobs(args.column, args.seeds, args.ticks)
@@ -609,6 +806,7 @@ def main() -> None:
     print(f"\n{len(rows)} runs → {out}\n")
     summarize(rows)
     contrasts(rows)
+    p21(rows)
 
 
 if __name__ == "__main__":
