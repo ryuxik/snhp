@@ -48,11 +48,17 @@ mapping below is done against AP2 and ACP, whose machine-readable schemas
 and UCP, the stack specifies **discovery → cart assembly → checkout → payment
 authorization**, and in every one of them **the merchant computes and returns all
 commercial terms**. There is **no message anywhere in these specifications that
-carries a buyer/agent counteroffer** — no field to propose a price, to trade price
-against delivery timing, or to bundle price × quantity × timing × conditions as a
-single negotiable object. The agent's degrees of freedom are: *pick catalog items,
-set quantity, choose from a merchant-enumerated fulfillment menu, and submit
-merchant-defined discount codes.* This is not hidden and it is arguably by design
+carries a buyer/agent counteroffer** — no defined semantics for proposing terms and
+having them accepted, rejected, or countered; no way to trade price against
+delivery timing; no way to bundle price × quantity × timing × conditions as a
+single negotiable object. (One schema nuance, caught in our own verification pass
+and stated against ourselves: ACP's checkout-request `Item` *does* carry an
+agent-writable `unit_amount` — a price field. But the spec attaches no offer
+semantics to it: `totals[]` is merchant-recomputed on every response and no
+accept/reject/counter message exists. The gap is not "no price field"; it is "no
+negotiation protocol.") The agent's degrees of freedom are: *pick catalog items
+and quantities where the schema admits them, choose from a merchant-enumerated
+fulfillment menu, and submit merchant-defined discount codes.* This is not hidden and it is arguably by design
 — but it means **deal formation is the part of the pipeline the stack leaves
 unspecified and delegates to implementers.** (S1.)
 
@@ -110,24 +116,26 @@ bodies (C-2) and AP2's SD-JWT claim sets (A-2…A-4). Field/endpoint facts below
 
 | Deal dimension | AP2 (Checkout/Payment Mandate) | ACP (Checkout Session) | UCP (Checkout capability) | Citation |
 |---|---|---|---|---|
-| **Price — merchant sets** | Merchant signs `checkout_jwt` containing "line items with … prices, quantities, total price, currency." | `totals[]` (incl. `total`) is a **merchant-computed response**; enum-typed, never an agent request field. | Catalog carries merchant `price` (e.g. `26550`); merchant is "Merchant of Record." | A-3; C-2; U-1/U-2 |
-| **Price — agent counter?** | **None.** Closed mandate is `checkout_hash` over the *merchant's* JWT; "unidirectional flow from open to closed." | **None.** No request body (`create`/`update`/`complete`) admits `unit_amount`/`total`. Agent input caps at `line_items{id,quantity}`, `buyer`, `fulfillment_*`, `discounts{codes}`. | **None.** Discounts are "merchant-defined codes … not agent-negotiated rates." | A-3; C-2; U-2 |
-| **Quantity** | Fixed in the signed cart the agent assembled. | Agent-composable: `line_items[].quantity` (min 1). | Agent-composable via Cart Building. | A-3; C-2; U-1 |
+| **Price — merchant sets** | Merchant signs `checkout_jwt`; AP2 defers the payload ("The details of the payload are outside the scope of this specification"; with UCP it "MUST be the Checkout object") — i.e., UCP's merchant-priced line items and totals. | `totals[]` (incl. `total`) is a **merchant-computed response**; never an agent request field. | Catalog carries merchant `price` (e.g. `26550`); merchant is "Merchant of Record." | A-3; C-2; U-1/U-2 |
+| **Price — agent counter?** | **None.** Closed mandate is `checkout_hash` over the *merchant's* JWT; mandates move open → closed and no message carries terms back (paraphrase; schema-supported). | **None as protocol.** The request `Item` is `{id, name, unit_amount}` (required: `id`) — `unit_amount` **is agent-writable**, but no accept/reject/counter semantics attach to it; every response returns merchant-recomputed `totals[]`. Other agent inputs: `buyer`, `fulfillment_*`, `discounts{codes}`. | **None.** Published material shows only merchant-defined discount codes; no agent-priced surface appears (paraphrase of the published examples). | A-3; C-2; U-2 |
+| **Quantity** | Fixed in the signed cart the agent assembled. | `quantity` (min 1) lives on the merchant's **response** `LineItem`, not the request `Item`; request composition is by item `id`. | Agent-composable via Cart Building. | A-3; C-2; U-1 |
 | **Delivery / timing** | In the merchant cart; not independently negotiable. | Agent **selects from** `fulfillment_options` via `selected_fulfillment_options`; cannot set its own terms/price. | Merchant shipping options; agent selects. | A-3; C-2; U-1 |
-| **Conditions (returns, SLAs, penalties)** | `checkout_jwt` includes "shipping and return policies" — **stated by merchant, not negotiated.** | Merchant-stated (`Order.support`, policy fields); refund/return exist post-hoc as `Adjustment.type`. | Merchant-stated. | A-3; C-3 |
+| **Conditions (returns, SLAs, penalties)** | Policy fields ride the UCP Checkout object that AP2's `checkout_jwt` carries (AP2 itself declares the payload out of scope) — **merchant-stated, not negotiated.** | Merchant-stated (`Order.support`, policy fields); refund/return exist post-hoc as `Adjustment.type`. | Merchant-stated. | A-3; C-3 |
 | **Bundle (joint multi-issue object)** | No. Terms are packaged by the merchant, taken or left. | No. Session is a merchant-authoritative state the agent nudges by composition, not a counteroffer. | No. | A-2/A-3; C-2 |
 | **A counteroffer message exists?** | **No.** | **No.** | **No.** | — |
 
 **Finding (certain).** None of the three specifications defines a counteroffer.
 The expressible "deal" is a point the merchant priced, which the agent may accept,
 abandon, or nudge by *changing what is in the cart* — not by proposing terms. The
-richest surface is ACP's session-update loop, but every update returns
-`totals[]` **recomputed by the merchant** (C-2); it is cart *composition*, not
-*bargaining*.
+closest thing to a price surface in the stack is ACP's agent-writable
+`Item.unit_amount`, and it is semantically inert: nothing in the spec describes,
+let alone obliges, a merchant response to it. The richest surface is ACP's
+session-update loop, but every update returns `totals[]` **recomputed by the
+merchant** (C-2); it is cart *composition*, not *bargaining*.
 
 **Fairness note on the word "negotiation."** ACP's RFC list contains
-`capability_negotiation` and UCP markets "capability negotiation" (C-1, U-2).
-Verified against the primary text, this denotes **feature/capability discovery** —
+`capability_negotiation`, and UCP documents "capability discovery" (C-1, U-2).
+Verified against the primary text, both denote **feature/capability discovery** —
 UCP's `/.well-known/ucp` manifest; ACP's `capabilities` field — i.e., which
 protocol features a party supports, **not** negotiation of commercial terms. We
 flag this so the S1 finding is not misread as contradicting the specs' own words;
@@ -173,7 +181,7 @@ real receipt primitive with the same rigor as any gap.
 
 | Object | Signer | Covers | Format |
 |---|---|---|---|
-| `checkout_jwt` | **Merchant** | merchant identity, line items+prices, quantities, total, currency, shipping/return policy | merchant-signed JWT |
+| `checkout_jwt` | **Merchant** | the checkout payload AP2 itself defers ("The details of the payload are outside the scope of this specification"; with UCP it "MUST be the Checkout object" — merchant-priced line items, totals, currency, fulfillment/policy fields per UCP) | merchant-signed JWT |
 | Checkout Mandate (closed) | **User** (`user_sk`, human-present) or **Agent** (`agent_sk`, human-not-present) | `checkout_hash` binding to the exact `checkout_jwt` | SD-JWT, `vct:mandate.checkout.1` |
 | Payment Mandate | User or Agent; **verified by** Credential Provider, Network, MPP | `transaction_id`, `payee`, `payment_amount`/`amount_range`, `payment_instrument`, `constraints` | SD-JWT, `vct:mandate.payment.1` |
 | **Payment Receipt** | **MPP** | the authorized transaction | MPP-signed, returned to SA, CP, Network |
@@ -325,10 +333,13 @@ merchant participation is out of this model's scope.
 ## What we did NOT find
 
 1. **No hidden counteroffer surface.** We looked, at the schema level, for any
-   agent-writable price/term field in ACP (`create`/`update`/`complete` bodies) and
-   any bidirectional bargaining construct in AP2. There is none (S1). We did **not**
-   find that the specs *claim* to support term negotiation and fail to — they do not
-   claim it; "capability negotiation" is feature discovery (verified, U-2).
+   negotiation construct in ACP (`create`/`update`/`complete` bodies) and any
+   bidirectional bargaining construct in AP2. ACP's request `Item` does expose an
+   agent-writable `unit_amount` (a price field), but no spec text gives it offer
+   semantics — no accept/reject/counter response is defined anywhere (S1). We did
+   **not** find that the specs *claim* to support term negotiation and fail to —
+   they do not claim it; ACP's `capability_negotiation` RFC and UCP's "capability
+   discovery" are feature discovery (verified, U-2).
 2. **No security vulnerability.** Consistent with the protocol, we found nothing we
    would characterize as a vulnerability, exploit, or spec bug. The gap is an
    *economic delegation*, not a defect.
@@ -362,6 +373,9 @@ merchant participation is out of this model's scope.
 
 Each of these is a place where we were **unsure of the spec's intent** or hit a
 **provenance limit**. Resolve with a human before any external use.
+*Status (2026-07-16): a verbatim-quote pass against pinned raw sources
+(AP2 `main`@`e1ea56d`, ACP `main`@`c2afc86`) resolved flags 1, 3, 4, 5, 6 as
+noted inline below; the full evidence table is `specaudit/quote-audit.md`.*
 
 1. **AP2 mandate count/naming/format.** The task brief and prior memory describe
    AP2 as "three Mandates: Intent/Cart/Payment as **W3C Verifiable Credentials**,
@@ -372,6 +386,10 @@ Each of these is a place where we were **unsure of the spec's intent** or hit a
    body self-labels "v0.2"). **Before publishing, confirm which AP2 revision we are
    mapping and reconcile the VC-vs-SD-JWT and 2-vs-3-mandate wording.** We mapped the
    current spec and flagged rather than silently reconciling.
+   *Resolved CONFIRMED-AS-WRITTEN at `e1ea56d`: `specification.md` names exactly
+   two mandate types, SD-JWT throughout, zero W3C/VC hits — though AP2's landing
+   page still markets "verifiable digital credentials," so the wording seam is
+   real and worth one careful sentence if raised.*
 2. **Human-not-present consent sufficiency (S3).** Whether user-signed *open*
    constraints are intended to constitute sufficient consent for an *agent-signed
    closed* transaction is a design-intent question. We described the mechanism; we
@@ -381,16 +399,32 @@ Each of these is a place where we were **unsure of the spec's intent** or hit a
    funds are *captured* immediately or at fulfillment is a PSP/merchant policy the
    protocol doesn't pin. Our S5b models the authorization-before-delivery ordering;
    confirm this matches intended deployment semantics before citing externally.
+   *Resolved CONFIRMED-AS-WRITTEN: neither OpenAPI pins capture timing; it is
+   PSP/merchant policy, exactly as the row states.*
 4. **Verbatim-quote pass.** Several table cells rely on the fetch summarizer's
    rendering of spec prose (marked `[paraphrase]` in `sources.md`). Field names and
    enums are `[schema]`-exact; **prose quotes should be re-verified against the
    primary text before any external publication.**
+   *Run 2026-07-16 — and it caught real defects: 40 items checked, 4 MISMATCH /
+   3 UNSUPPORTED / 2 OVERSTATED, including the S1 keystone cell (ACP's request
+   `Item` DOES carry an agent-writable `unit_amount`, and `quantity` is
+   response-side) and a UCP field enumeration misattributed to AP2 (whose
+   `checkout_jwt` payload is explicitly out of scope). All defective passages
+   have been redrafted against the pinned sources; diffs in `quote-audit.md`.
+   The structural finding survives in a stronger form ("no negotiation
+   semantics" rather than "no price field").*
 5. **UCP depth.** UCP is mapped at stack level from `ucp.dev`/vendor docs, not from
    its full checkout JSON schema. If UCP is to be a first-class subject, fetch and
    map its checkout capability schema directly.
+   *Resolved CONFIRMED-AS-WRITTEN: the pass verified the UCP quotes used against
+   `ucp.dev`/the vendor blog (two paraphrases-in-quotes were fixed), but no UCP
+   checkout schema was fetched — the depth limit stands as stated.*
 6. **Instant-Checkout data point provenance.** The ~2026-03-05 pullback rests on
    multiple secondary outlets (X-1…X-3), not a single primary OpenAI post. Keep it
    as clearly-attributed context or source a primary statement.
+   *Resolved CONFIRMED-AS-WRITTEN: corroborated across outlets (incl. an OpenAI
+   spokesperson confirming the shift) but still secondary; the report's caveat is
+   accurate and must stay.*
 
 ---
 
