@@ -2060,3 +2060,42 @@ matter_conserved (field+pools+spent == mined == initial) and toll_conserved
   charge PLAN (the thing that would let a trapped hauler route through a stepping
   stone). The landlord cannot fix a traffic-routing failure by building more
   toll-booths — and the guests just take the free road anyway.
+
+**P24 VERDICTS (2026-07-16, registrar).**
+- **KILL FIRES — infrastructure is decorative at these scales.** No arm at
+  either horizon lifts the N=240 plateau by ≥0.05 (best: +0.001); welfare
+  is flat-to-negative in charger count. And this time truncation is RULED
+  OUT, not suspected: building happens early (first build tick 25, median
+  ~156–302) and delivered is flat 2,500→7,500. The fair-horizon pair did
+  its job in the boring direction.
+- **The diagnosis is the finding: the plateau is charge-ROUTING, not
+  charge-SUPPLY.** ~166 loaded drones sit at FULL battery at dead-end
+  chargers, 98% of them beyond single-hop loaded reach of the refinery —
+  a routing deadlock capital cannot fix. P18/P28-H one layer down: the
+  binding constraint at scale is planning, and you cannot buy planning
+  with capital expenditure. Registered-open ENGINE observation: a
+  multi-hop loaded-return policy (stepping-stone routing) is a physics/
+  policy revision that would lift ALL N=240 baselines and requires
+  re-running scale columns if adopted — founder decision, not a column.
+- **P24b REFUTED — the landlord rent dies.** No public-goods
+  under-provision (welfare peaks at ~the voluntary build count); toll
+  demand is hyper-elastic against free preset chargers, and the
+  revenue-maximizing toll extracts 7.88 credits in a ~20,000-credit
+  economy. Own-the-bottleneck is not a business in this world: another
+  adjacent-rent null in the long series (firm-agent, middlemen, compute
+  moat, transfer pricing, now landlording). The mechanism layer keeps
+  being the only durable value.
+- **P24c: weak directional support, honestly scoped.** Bargaining gains
+  from building (+2.2/+3.1) while auction loses (−8.8), but auction's
+  no-build baseline is stronger; the comparison says building composes
+  with claim coordination and degrades pure price competition — at
+  magnitudes too small to carry any claim.
+- **DESIGN CAVEAT FOR COLUMN X (amendment to v25, registered before its
+  build):** Q's deadlock diagnosis contaminates naive interior
+  comparisons — a command planner with a bespoke multi-hop router would
+  beat claims via ROUTING competence, not settlement mechanics. The X
+  builder MUST (i) give the command planner only the shared policy
+  primitives every arm uses (no stepping-stone superpower), and (ii)
+  instrument the routing-deadlock count (loaded-at-full-battery,
+  refinery-unreachable-in-one-hop) per regime so settlement effects
+  decompose from routing effects in the report.
