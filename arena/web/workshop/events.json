@@ -1,9 +1,9 @@
 {
   "generated_from": {
-    "repo_head": "3b38fb7",
-    "repo_head_subject": "Y1 visual direction (founder): GROW Cube style — cutaway isometric growing cube, level-ups per column, panel row = composition order; style only, original assets; honesty bindings restated",
+    "repo_head": "9cd974e",
+    "repo_head_subject": "Relabel pipeline replay as standalone 'workshop' artifact per v26-R (column Y = the company); dir renamed, scope note added",
     "swarm_root": "279b21e",
-    "commits_in_scope": 64
+    "commits_in_scope": 65
   },
   "note": "Replay is time-compressed. Every event maps to a real commit on this repo's history; hover any element for hash + subject + timestamp. No fabricated activity.",
   "columns": [
@@ -131,11 +131,11 @@
       "letter": "Y",
       "first_time": "2026-07-16T14:12:44-04:00",
       "first_hash": "545d056",
-      "run_time": null,
+      "run_time": "2026-07-16T18:12:20-04:00",
       "label": "v26",
-      "title": null,
+      "title": "column Y revised per founder correction",
       "registered": true,
-      "built": false,
+      "built": true,
       "verdict": false,
       "completed": false
     }
@@ -783,6 +783,17 @@
       "iso_time": "2026-07-16T17:32:34-04:00",
       "type": "REGISTRATION",
       "summary": "Y1 visual direction (founder): GROW Cube style — cutaway isometric growing cube, level-ups per column, panel row = composition order; style only, original assets; honesty bindings restated"
+    },
+    {
+      "hash": "d67854d",
+      "full_hash": "d67854d15d9bcf6390790139691ae79268e5954d",
+      "iso_time": "2026-07-16T18:12:20-04:00",
+      "type": "BUILDRUN",
+      "summary": "v26-R: column Y revised per founder correction — Y = THE COMPANY (engine re-skin, fidelity kill, honesty rule, regime-toggle demo); pipeline replay demoted to standalone artifact",
+      "column": "Y",
+      "column_source": "vN-map",
+      "label": "v26",
+      "test_count": 112
     }
   ]
 }
