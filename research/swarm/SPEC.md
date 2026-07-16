@@ -1587,3 +1587,74 @@ any horizon we can afford, and the notary's scaling story must rest on
 selectivity (who keeps honest cooperation) rather than throughput. KILL for
 the amendment: attest still < reput on honest payoff AND delivered at 7,500
 ticks ⇒ record the reversal as robust and say so loudly.
+
+**P28-H RESULTS (2026-07-16, sweep_v4_UH.json — N=240, ε=0, 8 seeds,
+ticks=7,500 = 3× the sweep_v4_U horizon; REPORT, not verdict; the numbers,
+LOUDLY).** Identical to sweep_v4_U's N=240 ε=0 cells except the horizon: same
+four column-E TrustArm regimes, σ=0.5, τ=0.15, liar_frac=0.25, v5 scaled grid
+(grid=101). 32 runs, ~4.8 min wall-clock on 12 workers.
+
+**THE 2,500 → 7,500-TICK REVERSAL FLIPS. The 2,500-tick "reputation beats
+receipts at N=240" was HORIZON TRUNCATION, not a scaling law.** At the fair
+horizon attestation OVERTAKES reputation on BOTH metrics the amendment named:
+
+| N=240, ε=0 | honest 2500→7500 | deliv 2500→7500 | coop deals 2500→7500 | liar adv 7500 | reEnc 2500→7500 |
+|---|---|---|---|---|---|
+| reput   | 58.9 → **59.1** | 1503 → **1508** | ~500 → 497    | +5.5   | 31.8 → 98.8 |
+| attest  | 40.3 → **90.4** | 996 → **1975**  | 12.5k → 34.5k | **−37.3** | — → 70.7 |
+| both    | 60.2 → 60.4     | 1630 → 1640     | — → 587       | +21.3  | 28.6 → 89.8 |
+| neither | — → 27.4        | — → 1827        | — → 44.8k     | +189.9 | — → 76.0 |
+
+- attest honest 40.3 → **90.4** (now **+31.3 ABOVE** reput's 59.1); attest
+  delivered 996 → **1975** (now **+468 ABOVE** reput's 1508). The 2,500-tick
+  reput>attest ordering on honest AND delivered is **GONE.** The amendment
+  KILL (attest still < reput on BOTH) does **NOT fire.**
+- **Registered prediction CONFIRMED — and it FLIPS, not merely narrows:**
+  attestation's cooperative tier recoups the DEAL_PAUSE tax and passes
+  reputation on both axes at the fair horizon.
+
+**Tier-size & pause-tax accounting (WHY it flips).**
+- **Reputation's tier is DEAD and SATURATED.** It carpet-blacklists ~96% of
+  honest robots (falseBL 0.968, blMean 172/240) and collapses cooperation to
+  ~500 deals. Those deals are exhausted early: delivered 1503 → 1508 and
+  honest 58.9 → 59.1 are FLAT across 3× the horizon. Reputation cannot convert
+  more time into more delivery — there is no live tier left to run. Its
+  re-encounter climbs 31.8 → 98.8 only because the same frozen handful of
+  un-blacklisted pairs re-meet ~3× as often.
+- **Attestation's tier is LIVE and keeps delivering.** 12.5k → 34.5k deals
+  (scales ~with horizon), each paying the DEAL_PAUSE immobilization tax. At
+  2,500 ticks that tax was paid up front but the deliveries had not accrued
+  (996 delivered, honest 40.3 — mid-amortization). By 7,500 ticks the live
+  tier's throughput dominates: 1975 delivered (HIGHEST of all four regimes),
+  honest 90.4 (HIGHEST). The pause tax is a fixed per-deal cost; over 3× the
+  horizon the delivery yield of a live cooperative tier overtakes a dead one.
+- **Attestation is the ONLY regime where lying is net-negative:** liar adv
+  −37.3 (honest 90.4 > liar 53.1). Reputation only crushes adv to +5.5;
+  neither runs wild at +189.9; both tracks reputation at +21.3 — the P28c
+  reversal HOLDS at horizon (combining does not help; blacklisting pre-empts
+  the gate).
+
+**Scope & caveats.** ε=0 only — the amendment dropped the slander channel
+(P28b was already untestable at ε=0: outcome-marking saturates the
+false-blacklist rate on benign joint-max sacrifice, so u_report's [4] ε-table
+is EMPTY by design here). This is reputation-by-REALIZED-OUTCOME under naive
+cooperation; a reputation that could observe counterpart honesty directly
+would blacklist far less. Within that scope the 2,500-tick headline is
+RETRACTED: **receipts DO out-scale outcome-based reputation at N=240 once the
+horizon is fair** — attestation delivers most, pays honest cooperation best,
+and is the only mechanism under which lying does not pay.
+
+**One-paragraph read — truncation or robust?** The reversal is **horizon
+truncation, decisively.** The discriminating fact is that reputation's
+delivery is FLAT (1503→1508) while attestation's nearly DOUBLES (996→1975)
+over the same added 5,000 ticks: reputation has no live cooperative tier left
+to convert time into output, whereas attestation does. At 2,500 ticks we
+caught attestation mid-amortization — the DEAL_PAUSE tax on its 12.5k-deal
+tier was fully paid but the deliveries it buys had not yet accrued, so it
+looked dominated. Extend to the P18 fair horizon and the live tier's
+throughput overtakes the dead one on every axis (honest +31, delivered +468,
+and uniquely negative liar advantage). This is the textbook **P18 trap
+signature** — coordination costs paid up front, recouped late — resolving
+exactly as P18's own market-vs-hive amendment did. The "cities need receipts"
+claim, buried by the 2,500-tick run, is **REINSTATED at N=240 for any horizon
+long enough to amortize the pause tax.**

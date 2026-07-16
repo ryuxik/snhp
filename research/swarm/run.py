@@ -1325,6 +1325,28 @@ def build_jobs(column: str, seeds: int, ticks: int):
                                          n_robots=N, grid=grid, liar_frac=0.25,
                                          defended=defended, reputation=reputation,
                                          false_accuse=eps))
+    if column == "UH":                # v22 P28-H horizon amendment (registered)
+        # IDENTICAL to the column-U N=240, ε=0 cells, but at the fair horizon
+        # (ticks=7,500 = 3× the sweep_v4_U 2,500). No new mechanism: same four
+        # column-E TrustArm regimes, same v5 scaled grid (N=240 ⇒ grid=101),
+        # liar_frac=0.25, σ=0.5, τ=0.15, 8 seeds. THE question: does
+        # attestation's cooperative tier recoup the DEAL_PAUSE tax at horizon
+        # (does the 2,500-tick reput>attest reversal narrow / flip / hold).
+        import math as _math
+        specs = [("trust-open-hz",  False, True),    # (a) reputation-only
+                 ("trust-gated-hz", True,  False),   # (b) attestation-only
+                 ("trust-gated-hz", True,  True),    # (c) both
+                 ("trust-open-hz",  False, False)]   # (d) neither (baseline)
+        N = 240
+        grid = int(round(32 * _math.sqrt(N / 24)))
+        n_seeds = min(seeds, 8)
+        for arm_name, defended, reputation in specs:
+            for seed in range(n_seeds):
+                jobs.append(dict(arm_name=arm_name, sigma=0.5, seed=seed,
+                                 ticks=ticks, tau=0.15, preset="v5",
+                                 n_robots=N, grid=grid, liar_frac=0.25,
+                                 defended=defended, reputation=reputation,
+                                 false_accuse=0.0))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -1335,7 +1357,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "U", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "U", "UH", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -1360,8 +1382,21 @@ def main() -> None:
     out = args.out or os.path.join(_HERE, "results",
                                    f"sweep_v4_{args.column}.json")
     if args.jobs > 1:
+        # imap_unordered streams each run back the moment it finishes, so the
+        # FIRST completion's wall-clock gives an early tractability estimate
+        # (progress + ETA to stderr). Order-independent: rows self-describe by
+        # (arm, n_robots, seed, false_accuse), and every summary groups on keys.
+        import time as _time
+        t0 = _time.time()
+        rows = []
         with Pool(args.jobs) as pool:
-            rows = pool.map(_star, jobs)
+            for i, row in enumerate(
+                    pool.imap_unordered(_star, jobs, chunksize=1), 1):
+                rows.append(row)
+                el = _time.time() - t0
+                eta = el / i * (len(jobs) - i)
+                print(f"[{i}/{len(jobs)}] {el:8.1f}s elapsed · "
+                      f"~{eta:8.1f}s remaining", file=sys.stderr, flush=True)
     else:
         rows = [_star(j) for j in jobs]
 
