@@ -1792,3 +1792,34 @@ operator of an internal AI-agent fleet is currently answering by vibes —
 command (orchestrator assigns), chargeback (measured inert), or attested
 claims on outcomes. Whichever way it falls, the result is the doctrine
 chapter of the follow-up article.
+
+**P23e VERDICTS (2026-07-16, registrar).**
+- **KILL REFUTED — moral hazard in the relay is real and large.** A
+  bills-flat parcel sits 195 ticks over its direct-haul geodesic vs spot's
+  78 (+116.6/parcel, p<.001, 8/8 seeds at N=240). Once the claim stack
+  guarantees a carrier's split regardless of haste, carriers dawdle. There
+  is something to price.
+- **P23e SPLITS, and the split is the finding.** Compression: SUPPORTED
+  cleanly — exp-decay on own-leg excess dwell cuts inflation −88.4 all /
+  −102.3 on ≥2-hop legs, every seed, with NO hold-up reintroduced (middle
+  margins stay ≥0; the P23c property survives the contract change).
+  Equal-or-better delivered: REFUTED — delivered 0.819 < spot's 0.829, and
+  far-band d/m 0.368 falls UNDER spot's 0.399, erasing the entire P23a lift
+  (0.40→0.47). Monotone in λ; intrinsic, not a tuning artifact.
+- **Diagnosis (Holmström, applied honestly):** dwell is informative about
+  effort but MORE informative about assignment difficulty. Far relays have
+  intrinsically long, variance-heavy dwell (congestion, charge stops,
+  rendezvous waits — none of it shirking), so a per-leg dwell price is a
+  tax on exactly the hard hops the bill existed to finance. The claim
+  stack's economic function (P23) is INSURANCE against position risk;
+  naive incentive terms claw back the insurance, and the far chains
+  dissolve again. Pricing an observable is not pricing effort.
+- **Thesis translation:** the receipt can carry incentive terms, but
+  performance-linked receipts must contract on CONTROLLABLE excess (slack
+  band above the counterfactual, or the chain's aggregate dwell vs its
+  direct-haul counterfactual) or they burn the working-capital function
+  that made chains form. Business shadow, on the record: an SLA that
+  penalizes raw latency instead of controllable latency makes carriers
+  refuse hard routes — we just watched it happen. The builder's follow-up
+  (slack-band / chain-aggregate contract) stays REGISTERED-OPEN; queue
+  priority remains V → Q → X.
