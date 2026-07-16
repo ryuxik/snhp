@@ -1894,6 +1894,231 @@ def test_v22_evaluated_equals_executed_under_reputation():
             f"{arm_name}+reputation formed no blacklists — vacuous"
 
 
+# ── v23 (column V): the stigmergic order book ────────────────────────────────
+def test_v23_order_book_off_bit_identical():
+    """order_book=False must be bit-identical to a world that never heard of
+    column V — the orders list, the pinned/escrow ledgers, the known_orders sets
+    and every order phase may not perturb a single bit when off. Checked on the
+    bargaining arm (order book would touch Φ via bills) and the auction. BONUS:
+    the auction is the unperturbed COMPARATOR — even with order_book ON, AuctionArm
+    posts nothing (no _order_phase), so no order forms and delivered/deals are
+    unchanged; the order book is a bargaining-family primitive."""
+    def fp(w, arm):
+        return (w.delivered, arm.deals, len(w.event_log),
+                round(sum(r.battery for r in w.robots), 9),
+                [r.pos for r in w.robots],
+                [tuple(sorted(d.items())) for d in w.deal_log])
+
+    for arm_name in ("snhp+net", "auction"):
+        outs = []
+        for kw in (dict(), dict(order_book=False)):
+            w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                      hazard_phi=(arm_name == "snhp+net"), **kw)
+            arm = make_arm(arm_name, w)
+            for _ in range(400):
+                arm.tick()
+            outs.append(fp(w, arm))
+        assert outs[0] == outs[1], f"order-book plumbing perturbed {arm_name} when off"
+
+    # auction comparator: order_book ON forms no order and does not move delivered
+    wa = World(sigma=0.5, seed=1, preset="v5", tau=(0.15, 0.15), order_book=True)
+    aa = make_arm("auction", wa)
+    for _ in range(400):
+        aa.tick()
+    assert wa.orders_posted == 0 and wa.orders_accepted == 0, \
+        "the auction posted/accepted an order — comparator perturbed"
+    wb = World(sigma=0.5, seed=1, preset="v5", tau=(0.15, 0.15))
+    ab = make_arm("auction", wb)
+    for _ in range(400):
+        ab.tick()
+    assert wa.delivered == wb.delivered, "auction delivered moved under order_book"
+
+
+def test_v23_escrow_conserved_post_and_accept():
+    """Post→accept mechanics + conservation. Posting escrows q cargo (a lien folded
+    into material conservation) and banks the poster's α claim; acceptance transfers
+    cargo+claim to the taker with NO deal pause. pinned_cargo, escrow_conserved,
+    material_ok and credit_conserved hold at every step."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), order_book=True)
+    w._live_sense = False
+    A, B = w.robots[0], w.robots[1]
+    for r in (A, B):
+        r.company, r.sector, r.load, r.load_prov, r.parcels = 0, 0, 0, [0, 0], []
+    A.pos = w.sources[0]
+    A.load, A.load_prov, w.stock[0] = 3, [3, 0], w.stock[0] - 3   # conserve material
+    A.parcels = [w._new_parcel(0) for _ in range(3)]
+    acc0 = w.material_accounted()
+    o = w.post_order(A, 3, alpha=0.4)
+    assert o is not None and w.pinned_cargo == 3 and A.load == 0 and not A.parcels
+    assert w.material_accounted() == acc0, "pinned cargo left material conservation"
+    assert w.material_ok() and w.escrow_conserved() and w.credit_conserved()
+    assert abs(A.claim_value - 0.4 * 3 * V_DELIVER) < 1e-9, "claim not banked at post"
+    assert sum(A.load_prov) == A.load == 0                # provenance moved out
+    B.pos, B.cap, B.battery = o["loc"], 5, 90.0
+    got = w.accept_order(B, o)
+    assert got == 3 and w.pinned_cargo == 0 and B.load == 3 and len(B.parcels) == 3
+    assert B.busy_until < w.tick, "acceptance immobilized the taker (paid a pause)"
+    assert w.pause_ticks_saved == W.DEAL_PAUSE, "pause-ticks-saved not booked"
+    assert sum(B.load_prov) == B.load == 3, "provenance did not ride the cargo"
+    for p in B.parcels:                                   # poster's claim rode along
+        assert dict((c[0], c[1]) for c in p["claims"])[A.rid] == 0.4
+    assert w.material_ok() and w.escrow_conserved() and w.credit_conserved()
+
+
+def test_v23_expiry_refunds_alive_and_dead():
+    """Expiry refunds escrow. ALIVE poster: cargo returns to its load, the banked
+    claim is stripped, the energy bounty returns to its battery. DEAD poster: the
+    cargo is written off to stock_lost (material_ok still holds — abandoned, not
+    leaked) and the bounty is written off (documented). Conservation throughout."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), order_book=True)
+    w._live_sense = False
+    A = w.robots[0]
+    A.company, A.sector, A.load, A.load_prov, A.parcels = 0, 0, 0, [0, 0], []
+    A.pos = w.sources[0]
+    A.load, A.load_prov, w.stock[0] = 2, [2, 0], w.stock[0] - 2   # conserve material
+    A.parcels = [w._new_parcel(0) for _ in range(2)]
+    bat0, cl0 = A.battery, A.claim_value
+    o = w.post_order(A, 2, alpha=0.5, energy=5.0)
+    assert w.pinned_cargo == 2 and w.escrowed_energy == o["energy"] > 0
+    assert A.battery == bat0 - o["energy"]
+    w.tick = o["expiry"]
+    w.expire_orders()
+    assert w.orders_expired == 1 and w.pinned_cargo == 0 and not w.orders
+    assert A.load == 2 and len(A.parcels) == 2, "cargo not refunded to live poster"
+    assert abs(A.claim_value - cl0) < 1e-9, "banked claim not stripped on expiry"
+    assert abs(A.battery - bat0) < 1e-9, "energy bounty not refunded to live poster"
+    assert w.escrowed_energy == 0.0 and w.escrow_conserved() and w.material_ok()
+
+    # DEAD poster: cargo → stock_lost, bounty → writeoff
+    w2 = World(sigma=0.5, seed=1, preset="v5", tau=(0.0, 0.0), order_book=True)
+    w2._live_sense = False
+    D = w2.robots[0]
+    D.company, D.sector, D.load, D.load_prov, D.parcels = 0, 0, 0, [0, 0], []
+    D.pos = w2.sources[0]
+    D.load, D.load_prov, w2.stock[0] = 2, [2, 0], w2.stock[0] - 2  # conserve material
+    D.parcels = [w2._new_parcel(0) for _ in range(2)]
+    o2 = w2.post_order(D, 2, alpha=0.5, energy=4.0)
+    D.stranded = True                                    # poster dies before pickup
+    w2.tick = o2["expiry"]
+    w2.expire_orders()
+    assert w2.cargo_writeoff == 2 and w2.stock_lost >= 2, "dead-poster cargo not written off"
+    assert w2.escrow_energy_writeoff == o2["energy"], "dead-poster bounty not written off"
+    assert w2.material_ok(), "conservation broke on a dead-poster write-off"
+    assert w2.escrow_conserved()
+
+
+def test_v23_discovery_only_by_proximity():
+    """Stigmergy, no free broadcast (the P21 lesson): an order is discovered ONLY
+    when its pinned location enters a robot's Chebyshev R_SENSE. Just outside the
+    radius ⇒ unknown; at the radius ⇒ known. Cross-company robots never discover
+    a relay (own fleet services it)."""
+    w = World(sigma=0.5, seed=0, preset="v5", order_book=True)
+    w._live_sense = False
+    A, B, C = w.robots[0], w.robots[1], w.robots[2]
+    A.company, B.company = 0, 0
+    A.pos, A.load, A.load_prov = (16, 16), 2, [2, 0]
+    A.sector, A.parcels = 0, [w._new_parcel(0) for _ in range(2)]
+    o = w.post_order(A, 2, 0.5)
+    rs = W.R_SENSE
+    B.pos = (16 + rs + 4, 16)                            # far: not discovered
+    w._discover_orders()
+    assert o["oid"] not in w.known_orders[B.rid]
+    B.pos = (16 + rs + 1, 16)                            # just outside: not discovered
+    w._discover_orders()
+    assert o["oid"] not in w.known_orders[B.rid]
+    B.pos = (16 + rs, 16)                                # AT the radius: discovered
+    w._discover_orders()
+    assert o["oid"] in w.known_orders[B.rid]
+    # a different-company robot at the pin never learns the relay
+    C.company = 1
+    C.pos = o["loc"]
+    w._discover_orders()
+    assert o["oid"] not in w.known_orders[C.rid], "cross-company discovered a relay"
+
+
+def test_v23_acceptance_evaluated_equals_executed():
+    """evaluated Φ == executed Φ is sacred: acceptance executes at exactly the
+    posted terms and the acceptor's post-pickup Φ_bills equals what it evaluated.
+    Checked (a) hand-built to the bit, and (b) live over a full order-book run with
+    conservation, non-vacuously (orders accepted AND a relayed unit delivered)."""
+    from swarm.value import phi_bills
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), order_book=True)
+    w._live_sense = False
+    arm = make_arm("snhp", w, issues=("cargo",))
+    A, B = w.robots[0], w.robots[1]
+    for r in (A, B):
+        r.company, r.sector, r.load, r.load_prov, r.parcels = 0, 0, 0, [0, 0], []
+    A.pos, A.load, A.load_prov = (6, 6), 2, [2, 0]
+    A.parcels = [w._new_parcel(0) for _ in range(2)]
+    o = w.post_order(A, 2, 0.4)
+    B.pos, B.cap, B.battery = o["loc"], 5, 95.0
+    w.known_orders[B.rid].add(o["oid"])
+    phi_eval = arm._accept_phi(B, o)
+    w.accept_order(B, o)
+    assert abs(phi_bills(B, w) - phi_eval) < 1e-9, "acceptance diverged from evaluation"
+
+    w2 = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), grid=24,
+               order_book=True)
+    arm2 = make_arm("snhp+net", w2)
+    for _ in range(1800):
+        arm2.tick()
+        assert w2.material_ok(), "material leak under order book"
+        assert w2.credit_conserved(), "credit not conserved under order book"
+        assert w2.escrow_conserved(), "escrow ledger diverged"
+    assert w2.ledger_accounted(), "ledger leak under order book"
+    assert w2.orders_accepted > 0, "no order ever accepted — vacuous"
+    assert any(p["hops"] >= 1 for p in w2.delivered_parcels), \
+        "no relayed unit ever delivered — vacuous"
+
+
+def test_v23_sparse_field_relay_without_colocation():
+    """The registered sparse-field scenario: two drones that NEVER co-locate still
+    trade via a pinned order. A stuck low-battery drone pins its cargo and parks
+    far away; a healthy drone discovers the pin by proximity, hauls it in, and
+    delivers — and the poster earns its claim credit at delivery though it was
+    never within interaction range of the taker."""
+    from swarm.value import phi_bills  # noqa: F401  (import parity with the arm)
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), order_book=True)
+    w._live_sense = False
+    arm = make_arm("snhp", w)
+    A, B = w.robots[0], w.robots[1]
+    for r in w.robots:                                   # neutralize the rest
+        r.company, r.sector, r.cap, r.load, r.load_prov, r.parcels = \
+            0, 0, 5, 0, [0, 0], []
+    for r in w.robots[2:]:
+        r.pos, r.stranded, r.battery = (1, 1), True, 0.0
+    L, ref0 = (8, 8), w.refineries[0]
+    A.pos, A.battery, A.load, A.load_prov = L, 12.0, 2, [2, 0]
+    w.stock[0] -= 2                                       # conserve material
+    A.parcels = [w._new_parcel(0) for _ in range(2)]
+    o = w.post_order(A, 2, alpha=0.3)
+    A.pos, A.stranded, A.battery = (2, 30), True, 0.0    # A parks/dies FAR from L and B
+    B.pos, B.battery, B.cap = (30, 8), 100.0, 5
+    w.known_orders[B.rid].add(o["oid"])
+    picked, min_cheby = False, 10 ** 9
+    for _ in range(800):
+        min_cheby = min(min_cheby, max(abs(A.pos[0] - B.pos[0]),
+                                       abs(A.pos[1] - B.pos[1])))
+        if not picked:
+            if max(abs(B.pos[0] - L[0]), abs(B.pos[1] - L[1])) <= W.R_PICKUP:
+                arm._accept_phi(B, o)                    # eval (parity with the arm)
+                w.accept_order(B, o)
+                picked = True
+            else:
+                w.move_toward(B, L)
+        elif B.pos == ref0:
+            w.drop(B)
+            break
+        else:
+            w.move_toward(B, ref0)
+        w.tick += 1
+    assert picked, "the taker never reached the pinned order"
+    assert w.delivered >= 2, "the async-relayed cargo never delivered"
+    assert min_cheby > W.R_COMM, f"A and B co-located (min Chebyshev {min_cheby})"
+    assert A.credit > 0, "the poster earned no claim credit from the async relay"
+    assert w.credit_conserved() and w.material_ok()
+
+
 def benchmark(ticks=2500):
     """Timing harness (NOT a test): reports seconds for the three reference runs.
     Run with:  python -c 'from swarm.test_swarm import benchmark; benchmark()'"""

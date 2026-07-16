@@ -74,6 +74,20 @@ DWELL_DECAY_LAMBDA = 0.05           # P23e (column P phase-2e): the TIME-CONTING
                                     # observable Holmström says to contract on;
                                     # off (flat splits) ⇒ every claim decay ≡ 1.
 
+ORDER_EXPIRY = 400                  # v23 (column V): ticks a pinned order lives
+                                    # before it expires and refunds its escrow.
+                                    # Long relative to the 2500-tick horizon and
+                                    # to the field diagonal so a fleetmate can
+                                    # route across even G=64 to service it — the
+                                    # persistence IS the async advantage (a fixed
+                                    # pin any passer can take at any tick, vs two
+                                    # movers meeting at the same tick).
+R_PICKUP = R_COMM                   # Chebyshev radius to ACCEPT a pinned order
+                                    # (== the synchronous encounter radius);
+                                    # DISCOVERY uses the wider R_SENSE, mirroring
+                                    # the world's two existing radii (sense wide,
+                                    # interact near).
+
 PRESETS = {
     # sources, refineries [(pos, owner)], chargers [(pos, owner)]
     "v5": dict(sources=None,        # mirrored asteroid field, seeded in init
@@ -179,7 +193,8 @@ class World:
                  lineage: bool = False,
                  bills: bool = False, firm_relay: bool = False,
                  dwell: bool = False, bills_contingent: bool = False,
-                 reputation: bool = False, false_accuse: float = 0.0):
+                 reputation: bool = False, false_accuse: float = 0.0,
+                 order_book: bool = False):
         self.rng = np.random.RandomState(seed)
         self.hazard_phi = hazard_phi
         self.preset = preset
@@ -343,7 +358,24 @@ class World:
         # allocated but never read/written when off). Both need the lineage
         # instrument (claims/advanced live on parcels), so either implies it —
         # off leaves self.lineage == lineage exactly (no bit perturbed).
-        self.bills = bills              # snhp+bill: negotiable delivery claims
+        # v23 (column V): the stigmergic order book. order_book default off ⇒
+        # every prior column is bit-identical (all order state is allocated but
+        # never touched, and the arm phases are gated). A pinned order is a
+        # signed binding limit offer at a LOCATION: escrow (a cargo lien +
+        # optional energy bounty) is reserved at post time, the order is
+        # discovered ONLY by physical proximity (R_SENSE — the P21 lesson: no
+        # free broadcast), and acceptance is UNILATERAL by a passer whose IR
+        # clears — no consensus, NO DEAL_PAUSE (the mechanism's registered
+        # advantage, reported explicitly). Settlement rides the bills claim
+        # stack, so credit conservation is the existing invariant; therefore
+        # order_book IMPLIES bills. The poster is compensated in a CLAIM (credit
+        # at delivery), never in energy, by necessity: energy cannot teleport to
+        # a poster who has moved on — the async-settlement directionality
+        # constraint (documented in the report).
+        self.order_book = order_book
+        assert not (order_book and bills_contingent), \
+            "order_book relays settle flat 2-tuple claims (contingent off)"
+        self.bills = bills or order_book   # negotiable delivery claims
         self.firm_relay = firm_relay    # snhp+firm: treasury transfer pricing
         # P23e (column P phase-2e): moral hazard in the relay. `dwell` is a PURE
         # instrument — parcels carry (acq_tick, acq_pos, mined_tick, src_pos, uid),
@@ -360,12 +392,30 @@ class World:
             "bills_contingent requires bills (it decays the claim-stack payout)"
         self.bills_contingent = bills_contingent
         self.dwell = dwell or bills_contingent
-        self.lineage = lineage or bills or firm_relay or self.dwell
+        self.lineage = lineage or self.bills or firm_relay or self.dwell
         self._parcel_uid = 0
         self.hop_dwells: list[dict] = []        # P23e: per-carrier leg records
         self.delivered_dwells: list[dict] = []  # P23e: per-parcel total dwell
         self.charge_served_slots = 0
         self.delivered_parcels: list[dict] = []
+        # v23 (column V): order-book ledger. All zero/empty and pure bookkeeping
+        # when order_book is off ⇒ every prior column bit-identical. orders holds
+        # the active pinned offers; pinned_cargo is folded into material
+        # conservation (like stock_lost); the escrow-energy totals let the
+        # escrow-conservation test balance post→accept and post→expire.
+        self.orders: list[dict] = []
+        self.order_log: list[dict] = []      # accepted-async records (audit)
+        self._order_uid = 0
+        self.pinned_cargo = 0                # units escrowed across live relays
+        self.escrowed_energy = 0.0           # bounty energy currently held
+        self.orders_posted = 0
+        self.orders_accepted = 0
+        self.orders_expired = 0
+        self.pause_ticks_saved = 0           # DEAL_PAUSE NOT paid on acceptance
+        self.escrow_energy_paid = 0.0        # bounty released to takers
+        self.escrow_energy_refunded = 0.0    # bounty returned to live posters
+        self.escrow_energy_writeoff = 0.0    # bounty of dead posters (see report)
+        self.cargo_writeoff = 0              # relay cargo abandoned on death
         # v22 (column U): community reputation. `reputation` turns on per-robot
         # pairwise blacklists (populated by the arm after a deal a counterpart
         # lied on, propagated by contact — _blacklist_gossip_step) with NO
@@ -392,6 +442,11 @@ class World:
         # Allocated unconditionally (empty sets, no RNG) so the off path is
         # bit-identical; consulted only when reputation is on.
         self.blacklist = [set() for _ in range(len(self.robots))]
+        # v23 (column V): per-robot memory of orders discovered by proximity
+        # (stigmergy — no global feed). Allocated unconditionally (empty sets,
+        # no RNG) so the off path is bit-identical; consulted only under
+        # order_book.
+        self.known_orders = [set() for _ in range(len(self.robots))]
         # company-neutral charger tie-break (panel M2): seeded priority
         self._charge_prio = list(self.rng.permutation(len(self.robots)))
         # v6: liar assignment, company-balanced (placebo preserved); in the
@@ -638,6 +693,8 @@ class World:
                 self._gossip_step()        # v14: one hop of belief flooding
         if self.reputation:
             self._blacklist_gossip_step()  # v22: one hop of blacklist flooding
+        if self.order_book:
+            self._discover_orders()        # v23: stigmergic order discovery
         self._live_sense = False
 
     def _gossip_step(self) -> None:
@@ -1258,12 +1315,19 @@ class World:
         return self.energy_initial + self.energy_charged
 
     def material_accounted(self) -> int:
-        return self.delivered + sum(self.stock) + sum(r.load for r in self.robots)
+        # v23: pinned_cargo (units escrowed in live relay orders) is neither in a
+        # robot's load nor in stock nor delivered — accounted here so an escrowed
+        # lien never reads as a material leak. 0 in every non-order column, so the
+        # invariant is bit-identical when order_book is off.
+        return (self.delivered + sum(self.stock)
+                + sum(r.load for r in self.robots) + self.pinned_cargo)
 
     def material_ok(self) -> bool:
         # v11: departures erase true stock, booked to stock_lost — accounted
         # here explicitly so conservation stays EXACT. stock_lost is 0 in every
         # non-dynamic column, so this is bit-identical to the old invariant.
+        # v23: relay cargo abandoned on a poster's death is folded into stock_lost
+        # (a documented write-off — material honestly leaves the productive pool).
         return self.material_accounted() + self.stock_lost == self.total_stock
 
     def ledger_accounted(self) -> bool:
@@ -1288,3 +1352,163 @@ class World:
                    - self.company[c]["credit"]) > 1e-6:
                 return False
         return True
+
+    # ── v23 (column V): the stigmergic order book ─────────────────────────
+    def post_order(self, poster: Robot, q: int, alpha: float,
+                   energy: float = 0.0, expiry: int | None = None):
+        """Pin a binding cargo-relay order at the poster's location. Escrow at
+        post time (binding = no vaporware): q FIFO-head cargo parcels are lifted
+        off the poster's load into the order (a cargo LIEN, folded into material
+        conservation via pinned_cargo), the poster's α claim is banked onto each
+        (its compensation — a credit claim on the terminal payout, paid whoever
+        delivers, so it survives the poster moving on or dying), and an optional
+        energy bounty is reserved from the poster's battery. Returns the order or
+        None. Deterministic; consumes no RNG."""
+        if not self.order_book or q <= 0 or poster.load < q:
+            return None
+        parcels = poster.parcels[:q]
+        poster.parcels = poster.parcels[q:]
+        poster.load -= q
+        # move provenance (miner-company buckets) with the escrowed cargo, FIFO-
+        # ish exactly as transfer_cargo does, so sum(load_prov)==load holds and
+        # the delivered_matrix stays correct when a taker later delivers it.
+        prov = [0, 0]
+        rem = q
+        for co in (0, 1):
+            take = min(rem, poster.load_prov[co])
+            poster.load_prov[co] -= take
+            prov[co] += take
+            rem -= take
+        # bank the poster's α claim on each escrowed parcel (the future holder
+        # keeps the residual). Matches _bills_attach exactly, but the CLAIMANT
+        # holds nothing physical while the cargo is pinned (no taker yet).
+        s_val = 0.0
+        for p in parcels:
+            res = 1.0 - sum(sh for _rid, sh, *_ in p["claims"])
+            share = alpha * res
+            p["claims"].append((poster.rid, share))
+            s_val += share
+        poster.claim_value += s_val * V_DELIVER
+        self.pinned_cargo += q
+        if energy > 0:
+            energy = min(energy, max(0.0, poster.battery - 1.0))
+            poster.battery -= energy
+            self.escrowed_energy += energy
+        o = dict(oid=self._order_uid, kind="relay", loc=poster.pos,
+                 poster=poster.rid, poster_co=poster.company,
+                 expiry=(self.tick + ORDER_EXPIRY if expiry is None else expiry),
+                 q=q, alpha=alpha, energy=energy, parcels=parcels, prov=prov,
+                 posted_tick=self.tick)
+        self._order_uid += 1
+        self.orders.append(o)
+        self.orders_posted += 1
+        return o
+
+    def accept_order(self, taker: Robot, o: dict) -> int:
+        """Unilateral acceptance — the acceptor's IR was cleared by the arm. The
+        escrowed cargo (with the poster's claim riding along) and any energy
+        bounty transfer to the taker; the order retires. NO DEAL_PAUSE is charged
+        (the registered advantage) — the saved ticks are booked to
+        pause_ticks_saved. Mutates EXACTLY the taker-state fields Φ reads
+        (load, parcels, battery) so the arm's evaluated==executed assert holds.
+        Returns units taken. Consumes no RNG."""
+        q = o["q"]
+        for co in (0, 1):
+            taker.load_prov[co] += o["prov"][co]
+        taker.load += q
+        taker.parcels.extend(o["parcels"])
+        taker.received_units += q
+        taker.target_ref = None
+        self.pinned_cargo -= q
+        if o["energy"] > 0:
+            got = min(o["energy"] * (1 - TRANSFER_LOSS),
+                      BATTERY_MAX - taker.battery)
+            taker.battery += max(0.0, got)
+            self.escrowed_energy -= o["energy"]
+            self.escrow_energy_paid += o["energy"]
+            if taker.stranded and taker.battery >= RESCUE_FLOOR:
+                taker.stranded = False
+        self.orders.remove(o)
+        self.orders_accepted += 1
+        self.pause_ticks_saved += DEAL_PAUSE
+        self.event_log.append(dict(t=self.tick, kind="cargo", src=o["poster"],
+                                   dst=taker.rid, amt=q, d=0))
+        self.order_log.append(dict(t=self.tick, oid=o["oid"], poster=o["poster"],
+                                   taker=taker.rid, q=q,
+                                   wait=self.tick - o["posted_tick"]))
+        return q
+
+    def expire_orders(self) -> None:
+        """Retire every order past its expiry (unaccepted), refunding escrow.
+        No-op when order_book is off ⇒ bit-identical."""
+        if not self.order_book:
+            return
+        live = []
+        for o in self.orders:
+            if self.tick < o["expiry"]:
+                live.append(o)
+            else:
+                self._refund_order(o)
+        self.orders = live
+
+    def _refund_order(self, o: dict) -> None:
+        """Refund a lapsed order's escrow. Cargo returns to the poster if it is
+        alive with capacity; otherwise the material is written off to stock_lost
+        (abandoned — a dead/full poster cannot reclaim it), which material_ok
+        already accounts. The poster's banked claim is stripped from the parcels
+        and un-banked. Energy refunds to a live poster's battery; a DEAD poster's
+        bounty is written off (registered: 'escrow refunds to the company' — for
+        pinned energy the honest analog is a write-off, since a stranded robot
+        cannot use a refund and there is no company energy pool; no phantom
+        credit is minted, so every ledger stays conserved)."""
+        q = o["q"]
+        poster = self.robots[o["poster"]]
+        s_val = 0.0
+        for p in o["parcels"]:
+            rid, share = p["claims"].pop()      # the poster's claim (last added)
+            assert rid == poster.rid, "refund stripped the wrong claim"
+            s_val += share
+        poster.claim_value -= s_val * V_DELIVER
+        self.pinned_cargo -= q
+        if not poster.stranded and poster.load + q <= poster.cap:
+            poster.load += q
+            poster.parcels.extend(o["parcels"])
+            for co in (0, 1):
+                poster.load_prov[co] += o["prov"][co]
+        else:
+            self.stock_lost += q
+            self.cargo_writeoff += q
+        if o["energy"] > 0:
+            self.escrowed_energy -= o["energy"]
+            if not poster.stranded:
+                poster.battery = min(BATTERY_MAX, poster.battery + o["energy"])
+                self.escrow_energy_refunded += o["energy"]
+            else:
+                self.escrow_energy_writeoff += o["energy"]
+        self.orders_expired += 1
+
+    def _discover_orders(self) -> None:
+        """Stigmergic discovery: a robot learns of an order ONLY when the order's
+        pinned location enters its physical sensing range (Chebyshev R_SENSE).
+        No global feed (the P21 lesson). Memory persists in known_orders so a
+        robot may route back to service it. Own-company orders only (a relay is
+        serviced by the poster's fleet). Consumes no RNG."""
+        rs = self.r_sense
+        for r in self.robots:
+            kn = self.known_orders[r.rid]
+            for o in self.orders:
+                if o["poster_co"] != r.company or o["oid"] in kn:
+                    continue
+                if (abs(r.pos[0] - o["loc"][0]) <= rs
+                        and abs(r.pos[1] - o["loc"][1]) <= rs):
+                    kn.add(o["oid"])
+
+    def escrow_conserved(self) -> bool:
+        """v23: the order ledger is internally consistent — pinned_cargo equals
+        the cargo held across live orders, and the live-energy escrow equals the
+        running escrowed_energy balance. (material_ok already ties pinned_cargo
+        into GLOBAL material conservation; this is the order-local check.)"""
+        pinned = sum(o["q"] for o in self.orders)
+        live_e = sum(o["energy"] for o in self.orders)
+        return (pinned == self.pinned_cargo
+                and abs(live_e - self.escrowed_energy) < 1e-9)

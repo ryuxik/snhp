@@ -127,7 +127,7 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              lineage: bool = False, bills: bool = False,
              firm_relay: bool = False, dwell: bool = False,
              bills_contingent: bool = False, reputation: bool = False,
-             false_accuse: float = 0.0) -> dict:
+             false_accuse: float = 0.0, order_book: bool = False) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -161,7 +161,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               consensus_cost=consensus_cost, gossip=gossip, r_radio=r_radio,
               lineage=lineage, bills=bills, firm_relay=firm_relay,
               dwell=dwell, bills_contingent=bills_contingent,
-              reputation=reputation, false_accuse=false_accuse)
+              reputation=reputation, false_accuse=false_accuse,
+              order_book=order_book)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
@@ -334,10 +335,35 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
                 for hh in (0, 1, 2)],
             decay_lambda=DWELL_DECAY_LAMBDA,
         )
+    # v23 (column V): order-book accounting blob (only when order_book is on).
+    # Posted/accepted/expired counts, pause-ticks saved (the DEAL_PAUSE NOT paid
+    # on unilateral acceptance — the mechanism's registered advantage, reported
+    # explicitly), async-trade share of deals, encounter rate (post-cooldown
+    # meetings per tick — P29b needs async-share vs encounter-rate), and the
+    # escrow-conservation finals (pinned/escrow should retire to ~0).
+    order_book_detail = None
+    if w.order_book:
+        total_meets = sum(arm._pair_meets.values())
+        acc, sync = w.orders_accepted, arm.deals
+        order_book_detail = dict(
+            posted=w.orders_posted, accepted=acc, expired=w.orders_expired,
+            pause_ticks_saved=w.pause_ticks_saved,
+            sync_deals=sync,
+            async_share=round(acc / max(1, acc + sync), 4),
+            encounter_rate=round(total_meets / max(1, makespan), 4),
+            total_meets=total_meets,
+            pinned_final=w.pinned_cargo, escrow_final=round(w.escrowed_energy, 6),
+            escrow_paid=round(w.escrow_energy_paid, 4),
+            escrow_refunded=round(w.escrow_energy_refunded, 4),
+            escrow_writeoff=round(w.escrow_energy_writeoff, 4),
+            cargo_writeoff=w.cargo_writeoff,
+            escrow_ok=bool(w.escrow_conserved()),
+        )
     # v17 PHASE 2: the mechanism rides the same snhp+net base (SnhpArm) — the
     # world flag IS the treatment, so relabel for the tables/pairings.
     # P23e: contingent splits get a distinct label so spot/flat/contingent pair.
-    base_label = ("snhp+billC" if (bills and bills_contingent)
+    base_label = ("snhp+ob" if order_book        # v23: order-book relays (bills-settled)
+                  else "snhp+billC" if (bills and bills_contingent)
                   else "snhp+bill" if bills
                   else "snhp+firm" if firm_relay else arm_name)
     label = base_label if tuple(issues) == FULL else \
@@ -423,6 +449,9 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         # v22 (column U): reputation vs receipts
         reputation=reputation, false_accuse=false_accuse,
         **_reputation_metrics(w, arm),
+        # v23 (column V): the stigmergic order book
+        order_book=order_book,
+        order_book_detail=order_book_detail,
     )
 
 
@@ -1221,6 +1250,163 @@ def u_report(rows: list[dict]) -> None:
               f"{mean(gb,'delivered'):>11.1f} {mean(ga,'delivered'):>13.1f}")
 
 
+def p29(rows: list[dict]) -> None:
+    """v23 (column V) — the stigmergic order book on the column-G geometry ladder.
+    Printed numbers ARE the artifact. Report, not verdict: P29a (does the
+    meeting-density hump flatten?), P29b (async-share highest where encounters are
+    rarest?), and the KILL (hump survives ⇒ the constraint was never meetings).
+    No-op unless the sweep carries an order_book arm."""
+    if not any(r.get("order_book") for r in rows):
+        return
+    GS = [24, 32, 48, 64]
+
+    def cond_g(g):                     # _BASE with the grid slot (index 5) set
+        c = list(_BASE)
+        c[5] = g
+        return tuple(c)
+
+    def dmean(arm, g):
+        vals = [r["delivered"] for r in rows
+                if r["arm"] == arm and r.get("grid") == g and _cond(r) == cond_g(g)]
+        return float(np.mean(vals)) if vals else float("nan")
+
+    def edge(hi, g):                   # paired hi − auction on delivered at grid g
+        return _paired(rows, hi, "auction", 0.5, "delivered", tau=0.15,
+                       cond=cond_g(g))
+
+    def obdet(arm, g, field):
+        vals = [r["order_book_detail"][field] for r in rows
+                if r["arm"] == arm and r.get("grid") == g
+                and r.get("order_book_detail") is not None]
+        return float(np.mean(vals)) if vals else float("nan")
+
+    def rmean(arm, g, field):          # mean of a top-level row field
+        vals = [r[field] for r in rows
+                if r["arm"] == arm and r.get("grid") == g and r.get(field) is not None]
+        return float(np.mean(vals)) if vals else float("nan")
+
+    def meets_per_tick(arm, g):        # encounters/tick for ANY arm (P29b/KILL)
+        vals = []
+        for r in rows:
+            if r["arm"] != arm or r.get("grid") != g:
+                continue
+            d, re, mk = r.get("distinct_pairs"), r.get("reencounter_rate"), r.get("makespan")
+            if d and re is not None and mk:
+                vals.append(d * re / mk)
+        return float(np.mean(vals)) if vals else float("nan")
+
+    print("\n" + "=" * 100)
+    print("P29 (column V) — THE STIGMERGIC ORDER BOOK on the G geometry ladder "
+          "(σ=0.5, τ=0.15, v5, 2500t, 16 seeds)")
+    print("=" * 100)
+
+    print("\n[1] DELIVERED by grid × arm (auction=comparator · snhp+net=spot "
+          "bargaining · snhp+bill=bills control · snhp+ob=order book):")
+    h = (f"  {'G':>4} {'auction':>9} {'snhp+net':>9} {'snhp+bill':>10} "
+         f"{'snhp+ob':>9}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for g in GS:
+        print(f"  {g:>4} {dmean('auction',g):>9.1f} {dmean('snhp+net',g):>9.1f} "
+              f"{dmean('snhp+bill',g):>10.1f} {dmean('snhp+ob',g):>9.1f}")
+
+    print("\n[2] P29a [THE HUMP] — bargaining-minus-auction delivered edge by G, "
+          "order books OFF vs ON (paired on seed):")
+    print("    edge_off = snhp+net − auction (the v8 hump: +@G24, peak@G48, "
+          "−@G64) · edge_bill = bills only · edge_ON = snhp+ob − auction")
+    h = (f"  {'G':>4} {'edge_off':>9} {'p':>6} {'edge_bill':>10} {'p':>6} "
+         f"{'edge_ON':>9} {'p':>6} {'ON−off':>8}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    hump = {}
+    for g in GS:
+        eo, eb, en = edge("snhp+net", g), edge("snhp+bill", g), edge("snhp+ob", g)
+        hump[g] = (eo, en)
+        def fmt(c):
+            return (f"{c['delta']:>9.2f} {c['p_t']:>6.3f}") if c else f"{'—':>9} {'—':>6}"
+        don = (en["delta"] - eo["delta"]) if (en and eo) else float("nan")
+        print(f"  {g:>4} {fmt(eo)} {fmt(eb)} {fmt(en)} {don:>+8.2f}")
+
+    print("\n[3] P29b [MECHANISM] — async-trade share of deals & encounter rate "
+          "by G (async should be HIGHEST where encounters are RAREST):")
+    h = (f"  {'G':>4} {'enc/tick':>9} {'async_sh':>9} {'accepted':>9} "
+         f"{'posted':>8} {'expired':>8} {'sync_dl':>8} {'pauseSaved':>11}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    encs, ashares = [], []
+    for g in GS:
+        er = obdet("snhp+ob", g, "encounter_rate")
+        ash = obdet("snhp+ob", g, "async_share")
+        encs.append(er); ashares.append(ash)
+        print(f"  {g:>4} {er:>9.3f} {ash:>9.3f} "
+              f"{obdet('snhp+ob',g,'accepted'):>9.1f} "
+              f"{obdet('snhp+ob',g,'posted'):>8.1f} "
+              f"{obdet('snhp+ob',g,'expired'):>8.1f} "
+              f"{obdet('snhp+ob',g,'sync_deals'):>8.1f} "
+              f"{obdet('snhp+ob',g,'pause_ticks_saved'):>11.0f}")
+    if len(encs) >= 3:
+        eok = [e for e, a in zip(encs, ashares) if e == e and a == a]
+        aok = [a for e, a in zip(encs, ashares) if e == e and a == a]
+        if len(eok) >= 3 and np.std(eok) > 1e-9 and np.std(aok) > 1e-9:
+            rho = float(np.corrcoef(eok, aok)[0, 1])
+            print(f"    → corr(encounter_rate, async_share) across G = {rho:+.3f} "
+                  f"(P29b predicts NEGATIVE: async fills in where meetings fail)")
+
+    print("\n[4] ESCROW & ORDER ACCOUNTING (snhp+ob; conservation must hold):")
+    h = (f"  {'G':>4} {'posted':>8} {'accepted':>9} {'expired':>8} "
+         f"{'pinnedEnd':>10} {'escrowEnd':>10} {'cargoWO':>8} {'escrowOK':>9}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for g in GS:
+        oks = [r["order_book_detail"]["escrow_ok"] for r in rows
+               if r["arm"] == "snhp+ob" and r.get("grid") == g
+               and r.get("order_book_detail")]
+        print(f"  {g:>4} {obdet('snhp+ob',g,'posted'):>8.1f} "
+              f"{obdet('snhp+ob',g,'accepted'):>9.1f} "
+              f"{obdet('snhp+ob',g,'expired'):>8.1f} "
+              f"{obdet('snhp+ob',g,'pinned_final'):>10.2f} "
+              f"{obdet('snhp+ob',g,'escrow_final'):>10.3f} "
+              f"{obdet('snhp+ob',g,'cargo_writeoff'):>8.2f} "
+              f"{('all' if all(oks) else 'FAIL!'):>9}")
+
+    print("\n[5] KILL DIAGNOSIS — if the hump survives, what binds at G64 if not "
+          "meetings? (spot snhp+net; enc/tick falls only modestly while sync_dl "
+          "stays high — the fleet still trades heavily — but makespan is HORIZON-"
+          "CENSORED and stranding TRIPLES: the constraint is travel time + battery "
+          "radius, not convening):")
+    h = (f"  {'G':>4} {'enc/tick':>9} {'sync_dl':>8} {'makespan':>9} "
+         f"{'stranded':>9} {'delivered':>10} {'deliv/mine%':>11}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for g in GS:
+        mk = rmean("snhp+net", g, "makespan")
+        dl = rmean("snhp+net", g, "delivered")
+        st = rmean("snhp+net", g, "stranded")
+        dm = 100.0 * dl / 480.0            # total_stock = 2·TOTAL_STOCK = 480
+        print(f"  {g:>4} {meets_per_tick('snhp+net',g):>9.3f} "
+              f"{rmean('snhp+net',g,'deals'):>8.1f} {mk:>9.0f} {st:>9.2f} "
+              f"{dl:>10.1f} {dm:>11.1f}")
+
+    print("\n[6] READ (P29a / P29b / KILL): P29a is a RECOVERY test — did the "
+          "order book lift edge_ON(G64) toward the G48 peak? That is edge_ON(G64) "
+          "− edge_off(G64), NOT a smaller G48→G64 drop (the peak coming DOWN is "
+          "the book HURTING, not the trough recovering).")
+    if all(g in hump and hump[g][0] and hump[g][1] for g in (48, 64)):
+        e64_off, e64_on = hump[64][0]["delta"], hump[64][1]["delta"]
+        recovery = e64_on - e64_off          # >0 ⇒ order books lift the G64 edge
+        e48_on = hump[48][1]["delta"]
+        eb64 = edge("snhp+bill", 64)         # bills-only decomposition at G64
+        print(f"    edge_off(G64) = {e64_off:+.2f}  edge_ON(G64) = {e64_on:+.2f} "
+              f" ⇒ order-book recovery at G64 = {recovery:+.2f} "
+              f"({'FLATTENS (P29a)' if recovery > 1.0 else 'NO RECOVERY → KILL'})")
+        if eb64:
+            print(f"    decomposition: bills-ONLY edge(G64) = {eb64['delta']:+.2f} "
+                  f"(pre-commitment claims recover G64 SYNCHRONOUSLY) vs "
+                  f"+order-book = {e64_on:+.2f} (the async book cannibalizes it)")
+        print(f"    peak edge_ON(G48) = {e48_on:+.2f} vs edge_off(G48) = "
+              f"{hump[48][0]['delta']:+.2f} — the book lowers the DENSE-field peak.")
+
+
 def build_jobs(column: str, seeds: int, ticks: int):
     jobs = []
     if column in ("A", "all"):
@@ -1548,6 +1734,25 @@ def build_jobs(column: str, seeds: int, ticks: int):
                                  n_robots=N, grid=grid, liar_frac=0.25,
                                  defended=defended, reputation=reputation,
                                  false_accuse=0.0))
+    if column == "V":                 # v23: the stigmergic order book (P29)
+        # The column-G geometry ladder REPLICATED EXACTLY (grid ∈ {24,32,48,64},
+        # σ=0.5, τ=0.15, v5, 2500 ticks, 16 seeds) — the G config wins for
+        # comparability. Arms: the bargaining/snhp arm and the auction arm as G
+        # ran them, × {order_book off, on}. The order book is an SNHP-native
+        # (attestation) primitive, so it attaches ONLY to the snhp arm; the
+        # auction is the unperturbed comparator (order_book has no code path in
+        # AuctionArm — auction on ≡ off, a live bit-identical confirmation). The
+        # bills-only control (order_book off, bills on) decomposes the treatment:
+        # how much of any edge shift is the async channel vs the claim stack it
+        # settles on. Labels: auction / snhp+net (spot, reproduces the hump) /
+        # snhp+bill (bills control) / snhp+ob (order book, bills-settled).
+        for g in (24, 32, 48, 64):
+            base = dict(sigma=0.5, ticks=ticks, tau=0.15, preset="v5", grid=g)
+            for seed in range(min(seeds, 16)):
+                jobs.append(dict(arm_name="auction", seed=seed, **base))
+                jobs.append(dict(arm_name="snhp+net", seed=seed, **base))
+                jobs.append(dict(arm_name="snhp+net", seed=seed, bills=True, **base))
+                jobs.append(dict(arm_name="snhp+net", seed=seed, order_book=True, **base))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -1558,7 +1763,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "U", "UH", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "U", "UH", "V", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -1578,6 +1783,7 @@ def main() -> None:
         phase2(rows)
         phase2e(rows)
         u_report(rows)
+        p29(rows)
         return
 
     jobs = build_jobs(args.column, args.seeds, args.ticks)
@@ -1613,6 +1819,7 @@ def main() -> None:
     phase2(rows)
     phase2e(rows)
     u_report(rows)
+    p29(rows)
 
 
 if __name__ == "__main__":
