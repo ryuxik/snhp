@@ -1793,6 +1793,99 @@ command (orchestrator assigns), chargeback (measured inert), or attested
 claims on outcomes. Whichever way it falls, the result is the doctrine
 chapter of the follow-up article.
 
+**PX RESULTS (2026-07-16, sweep_v4_X.json — report, not verdict; the numbers,
+loudly either way). One firm owns the fleet; four interior regimes on ONE
+information environment (P21 realism — belief maps + gossip, r_radio=6, so
+COMMAND gets NO free oracle and all four share the same single-hop routing
+competence): the no-mechanism BASELINE (default solo objectives), (a) COMMAND
+(a central planner replaces the drone decision rule — deconflicted mine beats +
+directed local single-hop hand-offs, propagated from HQ by the SAME radio
+physics as gossip; the mechanical deliver/charge reflexes stay the shared
+primitives, the P24 caveat), (b) INTERNAL PRICES (the P23b firm_relay transfer
+price, unchanged), (c) CLAIM SETTLEMENT (the P23 bills machinery inside the
+firm). N ∈ {24,96,240} × ticks {2500,7500} (the fair-horizon pair), σ=0.5,
+τ=0.15, v5 scaled grids, 16 seeds / 8 at N=240. lineage + the routing-deadlock
+instrument on for all four. Material + ledger + credit conservation green across
+all 320 runs.
+
+- **delivered_frac by regime × N (both horizons; the N=240 plateau is the
+  headline):** N=24 baseline/prices 0.999, claims 0.996, command 0.852. N=96
+  baseline/prices 1.000, claims 0.999, command 0.975–0.988. **N=240 baseline
+  0.825, prices 0.825, command 0.790→0.814, claims 0.863→0.873.** Only CLAIMS
+  lifts the P24 charge-routing plateau (0.825 → 0.873 at the fair horizon).**
+
+- **THE KILL DOES NOT FIRE — receipts beat hierarchy inside the firm.** At
+  N=240 / 7,500 ticks: claims delivered 2096.0 vs command 1954.8, Δ(command −
+  claims) = **−141.2, p=0.001, 0/8 seeds**. Command is NOT ≥ claims; the
+  agent-fleet "internal notary" doctrine SURVIVES. Central planning on shared
+  belief does not match attested claims on outcomes in this world.
+
+- **PXa REFUTED (both directions of the prediction fail on the WIN, hold on the
+  MECHANISM).** Command was predicted to WIN at small N and degrade with N.
+  Instead command LOSES at every cell: command − baseline delivered = −35.2@N24,
+  −24.2@N96/2500, −11.5@N96/7500, −83.5@N240/2500, −25.8@N240/7500 (this last
+  p=0.248, 3/8 — command only ties baseline at the fair horizon at scale, as the
+  staleness self-corrects over the long clock). The predicted small-N advantage
+  (deconfliction + zero bargaining overhead) is DOMINATED, even at N=24, by the
+  registered failure mode itself: plan-staleness. Belief-age of the assignments
+  at source grows 8.8 → 21 → 49.6 with N; assignment reach-latency 7.8 → 17.6 →
+  41.7. At N=240 the plan is ~50-tick-stale when computed and ~42 ticks in
+  transit — ≈90-tick-stale by execution — and command forms NO opportunistic
+  chains (≥2-hop share 0.000 at every cell). The "books-bleed-first, for the
+  planner" MECHANISM is real and measured; it just bleeds at ALL N, not only
+  large N, so the small-N-win half of PXa is refuted.
+
+- **PXb CONFIRMED — maximally.** Internal prices are BIT-IDENTICAL to the
+  baseline on delivered at every N and horizon (Δ = +0.0, all seeds). The
+  transfer price is a pure credit reallocation that never touches physics/Φ/RNG,
+  so throughput is provably unchanged — it moves ONLY the internal payout
+  distribution (per-drone credit Gini 0.541 → 0.528 at N=240). The measured-inert
+  control replicates exactly in the intra-firm frame: chargeback changes
+  who-gets-paid, never how-much-gets-delivered.
+
+- **PXc CONFIRMED.** Claims − baseline delivered = **+91.8 @ N=240/2500 (p=0.001,
+  8/8)** and **+115.5 @ N=240/7500 (p<0.001, 8/8)**, with the internal ≥2-hop
+  hand-off share **0.514 / 0.520 vs 0.023 (baseline & prices) and 0.000
+  (command)** — claims' relay share exceeds every alternative by ~20×. At small N
+  (24, 96) claims ≈ baseline (−0.6/−0.4, n.s.): the dense field is not
+  chain-bound there, so the receipt adds nothing — exactly the P23 signature,
+  transplanted inside the firm boundary. The claim stack is the only instrument
+  that forms the far-frontier chains, and it is the only one that moves the
+  plateau.
+
+- **CONTAMINATION CHECK — the decomposition holds, and the instrument itself
+  taught us something.** Routing-deadlock entries (loaded, ~full battery,
+  refinery-unreachable-in-one-hop): command ≈ baseline ≈ prices (N=240: command
+  369 / 455 vs baseline 434 / 438 vs prices 434 / 438) — command is NOT
+  routing-advantaged (it uses no bespoke router, has ~the same deadlock rate, and
+  LOSES on delivered), so the P24-caveat concern is satisfied and the
+  command-vs-claims comparison is clean on the routing axis. CLAIMS shows ~4×
+  MORE entries (1767 / 1933). This is NOT a routing edge but SETTLEMENT resolving
+  the deadlock: a stuck loaded drone hands its cargo to a passer via a claim and
+  cycles BACK to the frontier, re-entering the loaded-stuck state — so a
+  mechanism that RESCUES deadlocks generates MORE entries. The registered
+  assumption ("counts ~equal iff routing competence shared") is falsified in an
+  informative direction, and the settlement-vs-routing split is exactly what the
+  4× gap decomposes: same routing everywhere (command≈baseline≈prices), claims'
+  win is the recycled frontier throughput (2400 ore, +115 delivered at the fair
+  horizon).
+
+- **Read (KILL headline).** Inside one firm's fleet, the allocation contest
+  resolves for ATTESTED CLAIMS ON OUTCOMES over CENTRAL COMMAND and over INTERNAL
+  CHARGEBACK. Command is beaten by its own information latency — a plan on
+  gossip-merged belief is stale by the time it reaches the edge, and directed
+  assignment forms none of the opportunistic ≥2-hop chains that clear the
+  scale-binding hold-up. Chargeback is provably inert on throughput. Only the
+  receipt makes a stuck-drone hand-off worth striking, and only the receipt lifts
+  the N=240 plateau P24 diagnosed as charge-ROUTING. Thesis translation, on the
+  record: the internal-notary doctrine LIVES — an AI-agent fleet's interior wants
+  receipts on delivered outcomes, not an orchestrator's standing orders and not a
+  transfer-pricing book. Design caveats honoured: command got only shared
+  single-hop primitives (verified routing-neutral by the deadlock instrument),
+  planned on merged belief not field truth, and propagated orders by contact;
+  the evaluated Φ == executed Φ assert scopes to the bargaining path, which
+  command's direct-transfer hand-offs never enter (documented in CommandArm).
+
 **P23e VERDICTS (2026-07-16, registrar).**
 - **KILL REFUTED — moral hazard in the relay is real and large.** A
   bills-flat parcel sits 195 ticks over its direct-haul geodesic vs spot's

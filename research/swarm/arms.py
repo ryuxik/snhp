@@ -174,6 +174,16 @@ def intent(r, w):
     charger, _ = w.nearest_charger(r)
     if r.charge_queued_at >= 0 and r.bat() < 0.95 * W.BATTERY_MAX:
         return charger
+    if w.command:                               # v25 (column X): the planner's
+        ct = w.cmd_resolve(r)                    # order REPLACES the decision rule
+        if ct is not None:                       # below (radio-propagated target)
+            # the shared charge-safety reflex still binds (the SAME primitive the
+            # default rule uses): an order never drives a drone to its death — a
+            # stale plan degrades throughput, it does not strand the fleet.
+            if r.load == 0 and r.bat() < safe_return_threshold(r, w):
+                return charger
+            return ct
+        # never reached by radio → the drone keeps the default solo policy below
     if r.load > 0:
         # v10c: a rate-limited miner stays docked until cap-full — mining
         # is stationary (no battery drain), so letting the load>0 branch
@@ -360,6 +370,9 @@ class BaseArm:
         w.assign_gatherers()           # v18: designate this tick's matter gatherers
                                        # (once per tick, O(N·matter) — never per
                                        # robot). No-op when build is off.
+        w.command_step()               # v25 (column X): re-plan + radio-propagate
+                                       # the central plan BEFORE drive reads targets
+                                       # (the COMMAND regime). No-op when off.
         if w.tick % EV_REFRESH == 0:
             for r in w.robots:
                 update_ev(r, w)
@@ -370,6 +383,9 @@ class BaseArm:
                 continue
             drive(r, w)
         w.charge_step()
+        w.deadlock_step()              # v25 (column X): count routing-deadlock
+                                       # entries AFTER charging (the "at full battery,
+                                       # refinery-unreachable" predicate). No-op off.
         w.sense_step()                 # v10a: field sweep + belief freeze —
                                        # (v23: also stigmergic order discovery)
         w.expire_orders()              # v23: retire lapsed orders (no-op off)
@@ -1065,6 +1081,35 @@ class TeamCoArm(TeamArm):
     company_walls = True
 
 
+class CommandArm(SnhpArm):
+    """v25 (column X) regime (a) — COMMAND. A central planner assigns every drone
+    a target/hand-off (World.command_step, on the company's gossip-merged belief);
+    the drone decision rule is REPLACED by that order (intent() reads it). Encounters
+    execute ONLY the planner-DIRECTED cargo hand-off (no Nash bargaining, so no
+    bargaining overhead) plus the shared trophallaxis survival reflex.
+
+    Φ-invariant scope: a directed hand-off calls transfer_cargo (the execution
+    primitive) DIRECTLY — there is no bundle-space evaluation pass and no priced
+    deal — so the "evaluated Φ == executed Φ" assert (which guards the bargaining
+    snapshot/restore path only) has nothing to reconcile here; it is vacuously held.
+    Only shared single-hop primitives are used (planner + reachability), never a
+    multi-hop router (the P24 caveat)."""
+    name = "command"
+
+    def encounter(self, a, b) -> bool:
+        w = self.w
+        for giver, taker in ((a, b), (b, a)):
+            spec = w.cmd_spec(giver)
+            if (spec is not None and spec[0] == "handoff" and spec[1] == taker.rid
+                    and giver.load > 0 and taker.cap - taker.load > 0):
+                q = min(giver.load, taker.cap - taker.load)
+                if w.transfer_cargo(giver, taker, q) > 0:
+                    self.deals += 1
+                    w.cmd_handoffs += 1
+                    return True
+        return trophallaxis(w, a, b)         # shared survival reflex (every arm)
+
+
 class TwoFirmArm(SnhpArm):
     """Within-company: joint-Φ (a firm coordinates internally); across the
     border: Nash-IR bargaining. The panel's decomposition arm."""
@@ -1148,6 +1193,10 @@ def make_arm(name: str, w: W.World, issues=("cargo", "energy", "sector"),
     if name == "snhp":
         return SnhpArm(w, issues=issues, noise=noise)
     if name == "snhp+net":
+        # v25 (column X): the COMMAND regime rides the snhp+net base but the world
+        # flag swaps in the central planner (intent()/encounter() both change).
+        if getattr(w, "command", False):
+            return CommandArm(w, issues=issues, noise=noise)
         return SnhpArm(w, issues=issues, safety_net=True, noise=noise)
     if name == "trust-open":
         return TrustArm(w, gated=False, issues=issues)

@@ -48,6 +48,18 @@ def _dist_band(d: float) -> int:
     return 0 if d <= LINEAGE_BANDS[0] else (1 if d <= LINEAGE_BANDS[1] else 2)
 
 
+def _gini(vals) -> float:
+    """v25 (column X): per-drone payoff dispersion. 0 = every drone paid equally,
+    →1 = one drone captures all. Clamped ≥0 credit; empty/zero-sum → 0."""
+    a = np.sort(np.array(vals, dtype=float))
+    n = len(a)
+    tot = a.sum()
+    if n == 0 or tot <= 0:
+        return 0.0
+    idx = np.arange(1, n + 1)
+    return float((2.0 * np.sum(idx * a)) / (n * tot) - (n + 1) / n)
+
+
 def _holdup_margins(delivered_parcels, deal_log):
     """Hop-margin ledger for relayed (≥2-hop) parcels. For each interior holder
     of a chain — the drone that BOUGHT the parcel at hop k and SOLD it at hop k+1
@@ -130,7 +142,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              bills_contingent: bool = False, reputation: bool = False,
              false_accuse: float = 0.0, order_book: bool = False,
              build_matter: float = 0.0, build: bool = False,
-             toll_level: float = 0.0, build_budget: int = 10**9) -> dict:
+             toll_level: float = 0.0, build_budget: int = 10**9,
+             command: bool = False, deadlock_track: bool = False) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -167,7 +180,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               reputation=reputation, false_accuse=false_accuse,
               order_book=order_book,
               build_matter=build_matter, build=build,
-              toll_level=toll_level, build_budget=build_budget)
+              toll_level=toll_level, build_budget=build_budget,
+              command=command, deadlock_track=deadlock_track)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
@@ -409,6 +423,7 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
     # world flag IS the treatment, so relabel for the tables/pairings.
     # P23e: contingent splits get a distinct label so spot/flat/contingent pair.
     base_label = (f"{arm_name}+B" if build        # v18: endogenous infrastructure
+                  else "snhp+cmd" if command          # v25 (column X): COMMAND regime
                   else "snhp+ob" if order_book        # v23: order-book relays (bills-settled)
                   else "snhp+billC" if (bills and bills_contingent)
                   else "snhp+bill" if bills
@@ -507,6 +522,31 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         build_matter=build_matter, build=build, toll_level=toll_level,
         build_budget=(build_budget if build_budget < 10**9 else None),
         build_detail=build_detail,
+        # v25 (column X): the firm's interior — command / prices / claims
+        command=command,
+        deadlock_count=(w.deadlock_count if w.deadlock_track else None),
+        # per-drone payoff dispersion (delivery credit) — reported for every regime
+        payoff_gini=round(_gini([max(0.0, r.credit) for r in w.robots]), 4),
+        payoff_std=round(float(np.std([r.credit for r in w.robots])), 3),
+        command_detail=(dict(
+            handoffs=w.cmd_handoffs,
+            n_plans=len(w.cmd_plan_versions),
+            # plan-staleness AT SOURCE: mean age of the merged-belief entries the
+            # mine-assignments were computed from (over all planning events).
+            plan_belief_age_mean=(
+                float(np.mean([a for _, a in w.cmd_belief_age_traj]))
+                if w.cmd_belief_age_traj else None),
+            plan_belief_age_traj=[(t, round(a, 2))
+                                  for t, a in w.cmd_belief_age_traj],
+            # AT EXECUTION: fraction of commanded mine drone-ticks whose target
+            # rock was already truly depleted (the plan went stale before it ran).
+            stale_assign_frac=(round(w.cmd_mine_stale / w.cmd_mine_exec, 4)
+                               if w.cmd_mine_exec else None),
+            # assignment-reach latency: ticks from a plan's computation to a drone
+            # adopting it over the radio.
+            reach_latency_mean=(float(np.mean(w.cmd_reach_lat))
+                                if w.cmd_reach_lat else None),
+        ) if command else None),
     )
 
 
@@ -1672,6 +1712,182 @@ def p24(rows: list[dict]) -> None:
               f"{'(build did edge delivered slightly positive but far below threshold.)' if anypos else ''}")
 
 
+def px(rows: list[dict]) -> None:
+    """v25 (column X) — THE FIRM'S INTERIOR: command / prices / claims vs the
+    no-mechanism baseline. Report, not verdict: PXa (command wins at small N,
+    degrades with N), PXb (internal prices == baseline everywhere), PXc (claims
+    win at N=240/7500 with the highest ≥2-hop hand-off share), and the KILL
+    (command ≥ claims at N=240/7500 ⇒ receipts add nothing over hierarchy inside
+    the firm). No-op unless the sweep carries the column-X deadlock instrument."""
+    xr = [r for r in rows if r.get("deadlock_count") is not None]
+    if not xr:
+        return
+
+    def regime(r) -> str:
+        if r.get("command"):
+            return "command"
+        if r.get("firm_relay"):
+            return "prices"
+        if r.get("bills"):
+            return "claims"
+        return "baseline"
+
+    Ns = sorted({r["n_robots"] for r in xr})
+    Hs = sorted({r["ticks_horizon"] for r in xr})
+    REG = ("baseline", "command", "prices", "claims")
+
+    def sel(reg, N, H):
+        return [r for r in xr if regime(r) == reg
+                and r["n_robots"] == N and r["ticks_horizon"] == H]
+
+    def hop2(r):
+        ld = r.get("lineage_detail") or {}
+        hs = ld.get("hop_shares")
+        return hs[2] if hs else None
+
+    def mean(g, getter):
+        vals = [getter(r) for r in g]
+        vals = [v for v in vals if v is not None]
+        return float(np.mean(vals)) if vals else float("nan")
+
+    def paired(hi, lo, N, H, getter):
+        A = {r["seed"]: getter(r) for r in sel(hi, N, H) if getter(r) is not None}
+        B = {r["seed"]: getter(r) for r in sel(lo, N, H) if getter(r) is not None}
+        common = sorted(set(A) & set(B))
+        if len(common) < 3:
+            return None
+        d = np.array([A[s] - B[s] for s in common])
+        _, pt = stats.ttest_rel([A[s] for s in common], [B[s] for s in common])
+        return dict(delta=float(d.mean()), p=float(pt),
+                    wins=int((d > 0).sum()), n=len(common))
+
+    print("\n" + "=" * 100)
+    print("PX (column X) — THE FIRM'S INTERIOR: command / prices / claims vs the "
+          "no-mechanism baseline")
+    print("  (N ∈ {24,96,240} × ticks {2500,7500}, σ=0.5, τ=0.15, v5 scaled grids, "
+          "belief+gossip r_radio=6, 16 seeds / 8 at N=240)")
+    print("=" * 100)
+
+    print("\n[1] delivered / delivered_frac / per-drone payoff (mean credit) / "
+          "≥2-hop hand-off share / deadlock entries, by regime × N × horizon:")
+    h = (f"  {'regime':>9} {'N':>4} {'H':>6} {'deliv':>8} {'frac':>6} "
+         f"{'payoff':>8} {'gini':>6} {'≥2hop':>7} {'deadlk':>7} {'hand':>6}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for H in Hs:
+            for reg in REG:
+                g = sel(reg, N, H)
+                if not g:
+                    continue
+                hand = mean(g, lambda r: (r.get("command_detail") or {}).get("handoffs")) \
+                    if reg == "command" else float("nan")
+                print(f"  {reg:>9} {N:>4} {H:>6} "
+                      f"{mean(g, lambda r: r['delivered']):>8.1f} "
+                      f"{mean(g, lambda r: r['delivered_frac']):>6.3f} "
+                      f"{mean(g, lambda r: r['co_credit'][0] + r['co_credit'][1]) / N:>8.1f} "
+                      f"{mean(g, lambda r: r['payoff_gini']):>6.3f} "
+                      f"{mean(g, hop2):>7.3f} "
+                      f"{mean(g, lambda r: r['deadlock_count']):>7.1f} "
+                      f"{hand:>6.1f}")
+
+    print("\n[2] CONTAMINATION CHECK — routing-deadlock entries per regime. The P24-caveat "
+          "concern is COMMAND being routing-ADVANTAGED (a bespoke router ⇒ FEWER entries "
+          "AND more delivered). A regime with MORE entries is resolving deadlocks (settlement "
+          "recycling stuck drones through the frontier), not cheating on routing:")
+    for N in Ns:
+        for H in Hs:
+            vals = {reg: mean(sel(reg, N, H), lambda r: r["deadlock_count"])
+                    for reg in REG if sel(reg, N, H)}
+            if not vals:
+                continue
+            cells = "  ".join(f"{k}={v:.1f}" for k, v in vals.items())
+            base = vals.get("baseline")
+            cmd = vals.get("command")
+            note = ""
+            if base is not None and cmd is not None and base > 0:
+                # the caveat's red flag: command routing-advantaged (fewer deadlocks)
+                cmd_lo = (base - cmd) / base
+                if cmd_lo > 0.25:
+                    note = f"  <-- command −{cmd_lo:.0%} vs baseline: CHECK it isn't a routing edge"
+                else:
+                    note = f"  (command≈baseline: no routing edge, Δ={cmd - base:+.0f})"
+            print(f"    N={N:>3} H={H:>4}: {cells}{note}")
+
+    print("\n[3] PXa — command − baseline on delivered (command should WIN small-N, "
+          "DEGRADE with N):")
+    for N in Ns:
+        for H in Hs:
+            c = paired("command", "baseline", N, H, lambda r: r["delivered"])
+            if c:
+                print(f"    N={N:>3} H={H:>4}: Δ={c['delta']:+7.1f}  p={c['p']:.3f}  "
+                      f"wins {c['wins']}/{c['n']}")
+
+    print("\n[4] PXb — internal prices − baseline on delivered (should be "
+          "INDISTINGUISHABLE everywhere):")
+    for N in Ns:
+        for H in Hs:
+            c = paired("prices", "baseline", N, H, lambda r: r["delivered"])
+            if c:
+                if c["delta"] == 0.0:
+                    sig = "  (BIT-IDENTICAL — PXb maximally confirmed)"
+                elif c["p"] == c["p"] and c["p"] < 0.05:   # p==p excludes nan
+                    sig = "  <-- SIGNIFICANT (PXb strained)"
+                else:
+                    sig = "  (indistinguishable)"
+                print(f"    N={N:>3} H={H:>4}: Δ={c['delta']:+7.1f}  p={c['p']:.3f}  "
+                      f"wins {c['wins']}/{c['n']}{sig}")
+
+    print("\n[5] PXc — claims − baseline on delivered, and the ≥2-hop hand-off share "
+          "by regime (claims should top both at N=240/7500):")
+    for N in Ns:
+        for H in Hs:
+            c = paired("claims", "baseline", N, H, lambda r: r["delivered"])
+            if c:
+                print(f"    N={N:>3} H={H:>4}: claims−base Δ={c['delta']:+7.1f}  "
+                      f"p={c['p']:.3f}  wins {c['wins']}/{c['n']}")
+    print("    ≥2-hop hand-off share (baseline / command / prices / claims):")
+    for N in Ns:
+        for H in Hs:
+            shares = {reg: mean(sel(reg, N, H), hop2) for reg in REG if sel(reg, N, H)}
+            if shares:
+                print(f"      N={N:>3} H={H:>4}: " +
+                      "  ".join(f"{k}={v:.3f}" for k, v in shares.items()))
+
+    print("\n[6] PLAN-STALENESS (command): mean belief-age of mine-assignments at "
+          "source · stale-at-execution frac · reach latency, by N × H:")
+    for N in Ns:
+        for H in Hs:
+            g = sel("command", N, H)
+            if not g:
+                continue
+            age = mean(g, lambda r: (r.get("command_detail") or {}).get("plan_belief_age_mean"))
+            stale = mean(g, lambda r: (r.get("command_detail") or {}).get("stale_assign_frac"))
+            lat = mean(g, lambda r: (r.get("command_detail") or {}).get("reach_latency_mean"))
+            print(f"    N={N:>3} H={H:>4}: belief_age={age:>7.1f}  "
+                  f"stale_frac={stale:.3f}  reach_lat={lat:>6.1f}")
+
+    print("\n[7] KILL STATUS — command ≥ claims at N=240 / 7500 ⇒ receipts add nothing "
+          "over hierarchy inside the firm:")
+    N_kill, H_kill = 240, 7500
+    if sel("command", N_kill, H_kill) and sel("claims", N_kill, H_kill):
+        cvc = paired("command", "claims", N_kill, H_kill, lambda r: r["delivered"])
+        cmd_d = mean(sel("command", N_kill, H_kill), lambda r: r["delivered"])
+        clm_d = mean(sel("claims", N_kill, H_kill), lambda r: r["delivered"])
+        print(f"    command delivered={cmd_d:.1f}  claims delivered={clm_d:.1f}  "
+              f"Δ(command−claims)={cvc['delta']:+.1f}  p={cvc['p']:.3f}  "
+              f"wins {cvc['wins']}/{cvc['n']}")
+        if cvc["delta"] >= 0:
+            print("    → KILL FIRES: command ≥ claims at the fair horizon — central "
+                  "planning on shared belief matches/beats attested receipts inside "
+                  "the firm; the internal-notary doctrine dies in this world.")
+        else:
+            print("    → KILL DOES NOT FIRE: claims > command at the fair horizon — "
+                  "attested receipts beat hierarchy inside the firm (PXc direction).")
+    else:
+        print("    (N=240/7500 cells absent — cannot evaluate the KILL.)")
+
+
 def build_jobs(column: str, seeds: int, ticks: int):
     jobs = []
     if column in ("A", "all"):
@@ -2053,6 +2269,33 @@ def build_jobs(column: str, seeds: int, ticks: int):
             for seed in range(n8):
                 jobs.append(dict(arm_name="snhp+net", seed=seed, ticks=2500,
                                  build=True, toll_level=float(toll), **base))
+    if column == "X":                 # v25: the firm's interior (P X)
+        # One firm owns the fleet; the question is what allocation mechanism runs
+        # its interior. Four regimes on ONE information environment (P21 realism —
+        # belief maps + gossip, r_radio=6 — so COMMAND gets NO free oracle and all
+        # four share the same routing competence): the no-mechanism baseline (default
+        # solo objectives), (a) command (central planner replaces the decision rule),
+        # (b) internal prices (P23b firm_relay, the measured-inert control), (c) claim
+        # settlement (bills — the P23 objective-change inside the firm). All carry
+        # lineage (the ≥2-hop hand-off share) and deadlock_track (the routing-
+        # contamination instrument). Grid N ∈ {24,96,240} × ticks {2500,7500} — the
+        # fair-horizon pair is MANDATORY (P18/P28-H). σ=0.5, τ=0.15, v5 scaled grids;
+        # 16 seeds (8 at N=240).
+        import math as _math
+        for N in (24, 96, 240):
+            grid = int(round(32 * _math.sqrt(N / 24)))
+            n_seeds = min(seeds, 16) if N < 240 else min(seeds, 8)
+            for horizon in (2500, 7500):
+                base = dict(sigma=0.5, tau=0.15, preset="v5", n_robots=N, grid=grid,
+                            ticks=horizon, belief_mode=True, gossip=True, r_radio=6,
+                            lineage=True, deadlock_track=True)
+                regimes = [dict(),                    # baseline (no mechanism)
+                           dict(command=True),        # (a) COMMAND
+                           dict(firm_relay=True),     # (b) INTERNAL PRICES (P23b)
+                           dict(bills=True)]          # (c) CLAIM SETTLEMENT (bills)
+                for reg in regimes:
+                    for seed in range(n_seeds):
+                        jobs.append(dict(arm_name="snhp+net", seed=seed, **base, **reg))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -2063,7 +2306,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "U", "UH", "V", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "U", "UH", "V", "X", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -2085,6 +2328,7 @@ def main() -> None:
         u_report(rows)
         p29(rows)
         p24(rows)
+        px(rows)
         return
 
     jobs = build_jobs(args.column, args.seeds, args.ticks)
@@ -2122,6 +2366,7 @@ def main() -> None:
     u_report(rows)
     p29(rows)
     p24(rows)
+    px(rows)
 
 
 if __name__ == "__main__":
