@@ -2304,3 +2304,51 @@ repo's own git history + SPEC ledger, parsed to an events.json by a
 checked-in generator. Lives in arena/web/antfarm/, unlinked from the
 arena index; deployment is a founder decision (assets public only when
 the founder publishes).
+
+## v26-R (column Y, REVISED): the company — founder correction 2026-07-16
+
+The prior Y registration misread the founder's intent: a replay of the
+pipeline is a log with scenery. Column Y is THE COMPANY — a living economy
+in a building, whose rules ARE the program's measured mechanisms. The
+pipeline-replay renderer (old Y1, mid-build at this revision) is DEMOTED
+to a standalone artifact ("workshop replay" — kept for the sequel's
+reflexive beat, not column Y).
+
+**Y-A — the company world (engine re-skin, NOT a new sim).** Registered
+mapping: idea/project = asteroid (+belief machinery for uncertain value);
+stage chain research→design→build→ship = multi-hop relay; stalled idea =
+hold-up; pre-committed credit splits = bills; divestment = claim-sale;
+budget = energy/chargers; director = command regime; chargeback = internal
+prices; false status = liar machinery; desk-sitting = dwell. Regimes:
+{no-mech, command, chargeback, claims} (X's arms) + optional liar and
+moral-hazard dials. Roles visible by function: stage workers (ICs),
+carriers between stages (middlemen), planner (director).
+**FIDELITY KILL:** with the company skin on and one-stage ideas the world
+must reduce BIT-IDENTICALLY to the asteroid world (skin = flags + labels
+only). If the re-skin requires mechanism changes, STOP and register the
+deltas before building further.
+**HONESTY RULE (binds Y-A/B/C/D):** every quantitative claim the company
+demo makes is an already-banked number (P23, P23e, U/P28-H, V, X). Any
+NEW emergent claim — incl. invest/divest portfolio branching beyond
+composed claim-sales — requires its own registration + kill before being
+asserted anywhere.
+
+**Y-B — the live renderer** (GROW Cube direction 3b38fb7 stands; renders
+REAL World state, no scripted theater): floors = stages; ideas ascend and
+LAUNCH from the roof on delivery; under spot rules stuck ideas visibly
+pile on middle floors (hold-up as clutter); the REGIME TOGGLE is the demo
+— flip spot→claims and the middle floors unjam, with the banked P23/X
+numbers on screen. Multiple regimes = GROW's multiple endings: claims
+grows tall, command stunts at scale, no-mech stays a lobby.
+
+**Y-C — endogenous structure (the old Y2 contract, unchanged, in company
+skin):** promotion treatments {outcome, receipt, static, reorg-without-
+settlement}; PYa reorg-inertness law, PYb glue-worker demotion, PYc
+receipts>outcomes at fair horizon; doctrine KILL as registered. Gate: X
+verdicts (OPEN as of 7089587).
+
+**Y-D — real LLM employees (old Y3, unchanged, parameters pending Y-C).**
+
+Open founder decision (registered, undecided): does invest/divest stay
+composition (claim-sales, measured) or become a new portfolio mechanism
+(new science → its own column)?
