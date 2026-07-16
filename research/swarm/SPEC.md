@@ -1184,3 +1184,69 @@ Recording plainly; this is exactly what it is for.**
   with N. "Markets are what coordination looks like when planning stops
   scaling" is NOT supported by this benchmark — the costed hive keeps up
   given time.
+
+---
+
+## v17 pre-registration (column P): relays, hold-up, and pre-commitment — "the theory of the firm, staged by drones"
+
+*Registered 2026-07-16, BEFORE implementation. Founder's insight, verbatim:
+"maybe drones are too stupid to do trades across more than one individual
+that would benefit the company but always leave a loser drone in the
+middle … which leads to interesting experiments about how individual deal
+making in drones maybe misses entity scale deal making" and "the relay
+negotiation … requires like a pre-commitment mechanism from negotiations."
+Theory framing: the middle drone's haul is a position-specific investment;
+spot renegotiation at the second hop expropriates its quasi-rent (hold-up,
+Williamson); anticipating this under IR, the first hop is refused and the
+chain never forms. The classical cures are vertical integration (the firm
+settles internally — Coase) and binding forward contracts. The contract
+instrument registered here is a NEGOTIABLE DELIVERY CLAIM (bill of lading):
+cargo carries a notarized payment-split vector fixed at each hop; terminal
+delivery pays out per the recorded splits — pre-commitment via attestation,
+i.e. the receipt as the commitment device.*
+
+**PHASE 1 — DIAGNOSIS (build: instrumentation only). The N=240 plateau
+(~0.83–0.85 for every arm, auction LEADING) must be decomposed before any
+mechanism is credited. Candidate constraints and their signatures:**
+- **Energy-throughput bound:** charger duty cycle ≈ saturated; delivered
+  tracks total energy dispensed across arms; the plateau equals the energy
+  budget's implied ceiling. (Back-of-envelope says this is plausible —
+  registered as the EXPECTED primary constraint given the auction leads.)
+- **Charger-queue bound:** high queue_wait with unsaturated dispensing.
+- **Chain/hold-up bound:** far-ore (haul distance > single-charge loaded
+  range ≈ 62 cells) delivery fraction decays with refinery distance in ALL
+  arms; delivered units are overwhelmingly 0/1-hop; the rare multi-hop
+  units show second-hop margin compression (the hold-up signature).
+Metrics to add: per-unit hop count (provenance chain length), per-rock
+delivered-vs-mined by distance band, charger duty cycle + dispensed energy,
+hop-margin ledger. **GATE: Phase 2 is built ONLY if the chain signature is
+present (far-ore decay + hop-count collapse), regardless of whether energy
+also binds. If energy saturation alone explains the plateau, report that
+and stop — relays cost MORE energy (transfer loss), so contracts cannot
+help an energy-bound fleet.**
+
+**PHASE 2 — PRE-COMMITMENT MECHANISMS (gated). Arms, all at N=240 scaled
+grid + the N=24 baseline for regression:**
+- **snhp+bill:** hop deals may bundle cargo WITH a recorded split of the
+  terminal payout (split fixed by the Nash division at hop time; the deal
+  log is the registry). Final deliverer triggers payout per splits. IR
+  valuation of a claim share: share × rate × V_DELIVER × the same
+  feasibility discount Φ's load term uses (deterministic ⇒ evaluated ==
+  executed).
+- **snhp+firm:** vertical integration control — within-company handoffs
+  settle via the company treasury (haul cost + fixed margin on handoff,
+  recouped at delivery). No cross-company relief.
+- Controls: snhp+net spot (the hold-up baseline), auction (no-relay).
+**Predictions:**
+- **P23a:** bills lift N=240 delivered_frac ≥ +0.03 over spot, the lift
+  concentrated in far-ore (distance-decay flattens), and ≥2-hop delivered
+  share rises from ~0 to substantive.
+- **P23b:** firm ≈ bills within-company; bills > firm on cross-company
+  relays (integration cannot organize chains across the border).
+- **P23c (mechanism):** spot's rare multi-hop deals show second-hop margin
+  compression; bill-of-lading hops show NO compression (the split was
+  fixed before position risk was taken).
+- **P23d (make-or-buy, exploratory):** report where integration beats
+  contracts and vice versa — the Coase boundary, measured.
+- **KILL (phase 2):** if bills lift delivered_frac by ≤ +0.01 at N=240,
+  chains were present but not binding; the plateau is physics; say so.
