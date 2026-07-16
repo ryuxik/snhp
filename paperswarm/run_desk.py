@@ -11,28 +11,27 @@ every --report, so nothing is shown that a third party couldn't regenerate
 (SPEC honesty protocol).
 """
 
-from __future__ import os as _os
-import sys as _sys
-_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-if __package__ in (None, ""):
-    __package__ = "paperswarm"   # allow `python3 paperswarm/run_desk.py` from cron
-
-import annotations
+from __future__ import annotations
 
 import argparse
 import json
+import os as _os
 import sys
 from datetime import datetime
 
-from . import config, ledger as ledger_mod
-from .comps import Comps
-from .feed import EbayFeed, Listing
-from .fills import FillEngine, compute_pnl
-from .identity import parse_identity
-from .ledger import Ledger, verify_chain
-from .outcomes import OutcomeTracker
-from .swarm import Desk
-from .timeutil import now_utc, parse_iso
+# allow BOTH `python -m paperswarm.run_desk` and `python paperswarm/run_desk.py`
+# (cron uses the latter): put the repo root on sys.path and import absolutely.
+sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+
+from paperswarm import config, ledger as ledger_mod
+from paperswarm.comps import Comps
+from paperswarm.feed import EbayFeed, Listing
+from paperswarm.fills import FillEngine, compute_pnl
+from paperswarm.identity import parse_identity
+from paperswarm.ledger import Ledger, verify_chain
+from paperswarm.outcomes import OutcomeTracker
+from paperswarm.swarm import Desk
+from paperswarm.timeutil import now_utc, parse_iso
 
 
 def _as_of(args) -> datetime:
