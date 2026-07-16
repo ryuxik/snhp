@@ -2352,3 +2352,78 @@ verdicts (OPEN as of 7089587).
 Open founder decision (registered, undecided): does invest/divest stay
 composition (claim-sales, measured) or become a new portfolio mechanism
 (new science → its own column)?
+**P24-R RESULTS (report, not verdict) — v18-R (column Q2), landlords on
+the frontier (2026-07-16, builder).** 168 runs: {no-build, build} ×
+{snhp+net+bills, snhp+net spot, auction} × {2,500, 7,500}t under frontier
+scarcity (charger_band = BATTERY_MAX/(1+LOADED_MULT) = 62.5 Manhattan
+cells — the same single-hop loaded reach the placement/deadlock code
+prices; at N=240 it strips exactly the 10 far-band presets, 40→30, ore
+and matter fields byte-identical), + budget {0,2,4,8,16} and toll
+{1,2,4}cr sweeps on the bills build arm, + the scarcity-OFF bills flag
+control. 8 seeds, N=240 scaled v5 (grid=101), σ=0.5, τ=0.15,
+build_matter=0.5. Conservation suite green throughout (material, ledger
++build_spend, matter, toll). Tests 112→118.
+- **BILLS FLAG VERIFIED (the Q-miss guard): the scarcity-OFF control
+  reproduces the P23 bills signature EXACTLY** — delivered_frac 0.857,
+  far-band d/m 0.470, ≥2-hop 0.492 (P23 registered: 0.857/0.470/0.492;
+  spot would be 0.829/0.399/0.025). Bills ran this time; the far-chain
+  economy existed in every Q2 cell (≥2-hop 0.49–0.54 on bills cells).
+- **P24R-a NOT MET, twice over.** Building lifts the far band nowhere:
+  bills Δfar +0.013 @7,500t (p=0.445, 5/8) and −0.015 @2,500t; spot
+  −0.004/−0.037; auction −0.008/+0.004 — every cell below the +0.05
+  threshold, no p under 0.12. And the far-ore placement fallback NEVER
+  fires: fallback-band-hist [0,0,0] in every build cell — all ~15–16
+  chargers/run are trapped-return corridor placements, site-band-hist
+  [0.2, 14.5–16.1, 0.0] (all mid-band; the stepping-stone rule pins
+  sites at 0.9·62.5 ≈ 56 cells, geometrically ≤ the 62 far edge, so
+  built capital cannot even STAND in the far band — a design property
+  of the Q placement rule, on the record).
+- **The louder null underneath: the far band never needed the chargers.**
+  With ZERO far-band charging capacity, the bills no-build fleet still
+  mines the far field to completion at 7,500t (far-band mined 565.8 ≈
+  the unscarce 565.75) and delivers it at far d/m 0.867 (vs 0.470
+  unscarce — the ratio RISES because far mining defers to the horizon
+  tail, 339@2,500 → 566@7,500, and chains deliver what gets mined).
+  Scarcity costs the bills fleet −0.051 delivered_frac at 2,500t
+  (0.857→0.806) and ~nothing at 7,500t (0.961). Claim-chains substitute
+  for far infrastructure: hand-offs move far ore home without far
+  charging. Third echo of X's lesson — the constraint is the contract,
+  not the capital.
+- **P24R-b (toll): rent is REAL but MICRO.** Guest slot-fills on built
+  chargers: 17.5 free → 12.2 at any toll>0, then INELASTIC across
+  {1,2,4}cr — revenue linear in price (12.25/24.50/49.00cr), no interior
+  optimum on this grid; the owner's grid-optimum is the max toll. 49.00cr
+  is 6.2× Q's 7.88cr farce and ~37cr above the marginal-cost benchmark
+  (grid unit = 1cr), so the registered "materially above marginal cost
+  and above Q's 7.88" is MET — but against the 435cr capital that
+  generated it (14.5 chargers × 30cr) tolls recoup 11%, and against the
+  ~19,400cr delivered economy they are 0.25%. Deadweight ≈ 0 (delivered
+  1941.9→1939.8). A landlord exists on the frontier; he collects lunch
+  money.
+- **P24R-b (budget): FLAT — no under-provision.** Delivered across
+  forced budgets {0,2,4,8,16}/co: 1935.0 / 1926.6 / 1923.2 / 1932.6 /
+  1941.9 (sd ~97–118 each; range 19 ≪ noise, non-monotone). The
+  report's "UNDER-PROVISION" print is a threshold artifact (Δ=+6.9 over
+  budget-0 cleared the >5 rule); the honest read is a null: welfare does
+  not rise with charger count even where capital is the only far supply.
+- **P24R-c SPLIT, honestly noise.** Build edge under bills vs spot:
+  +6.9 vs −18.6 @2,500t (layering supported), −4.0 vs −1.0 @7,500t
+  (refuted). All four edges are within seed noise (delivered sd ~100);
+  no reliable complementarity between infrastructure and claim-chains —
+  consistent with capital being decorative under both settlements.
+- **KILL (registered: far-band lift <0.05 AND toll revenue de minimis):
+  DOES NOT FIRE — on the rent leg only, and only technically.** Far-band
+  lift fails everywhere (<0.05), but 49.00cr toll revenue is 6.2× the
+  pre-registered 7.88cr comparator, so the conjunction is broken. Scope
+  it honestly: building remains decorative for THROUGHPUT even with
+  frontier scarcity and bills (P24a's null now survives its composed
+  test — under the COMPOSITION RULE it graduates from
+  artifact-until-composed toward law for capital-as-throughput); what
+  scarcity creates is a real but economically trivial TOLL rent on
+  inelastic guest demand. Landlording at these scales pays ~49cr on a
+  435cr build — rent exists, a rentier business does not.
+- **Deadlock instrument (X caveat, descriptive):** bills cells run ~2×
+  spot's deadlock ENTRIES (283.9 vs 170.9 @2,500t; 759.5 vs 420.1
+  @7,500t) — the X rescue signature again; building adds entries under
+  bills (355.9/831.2) while fixing none of the far-band ratio, consistent
+  with entries-as-rescues, not routing failure.
