@@ -101,3 +101,15 @@ counterfactuals are non-rival; flag any same-listing overlap in reporting).
   page on arena.snhp.dev (receipt-backed), notary signing when N1 lands.
 - **Phase 3 (post-gate):** founder go/no-go on real capital; sponsorship
   vertical revisited.
+
+## Protocol amendments (post-build, approved by registrar)
+
+- **Win price capped at committed max** (2026-07-16, builder-flagged): the
+  literal "hammer + one increment" can exceed the committed max bid; the
+  implementation caps win_price = min(max_bid, hammer + increment),
+  matching real eBay proxy-bid semantics. Approved — the cap is more
+  conservative and more realistic, never less honest.
+- **Real-mode outcome observability**: the public Browse API exposes no
+  clean post-close hammer; the tracker records SOLD-at-final-price when
+  bidCount>0, UNSOLD otherwise, and UNKNOWN rather than inventing a
+  price. UNKNOWN listings never become comps or fills. Approved.

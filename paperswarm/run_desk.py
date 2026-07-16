@@ -11,7 +11,13 @@ every --report, so nothing is shown that a third party couldn't regenerate
 (SPEC honesty protocol).
 """
 
-from __future__ import annotations
+from __future__ import os as _os
+import sys as _sys
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+if __package__ in (None, ""):
+    __package__ = "paperswarm"   # allow `python3 paperswarm/run_desk.py` from cron
+
+import annotations
 
 import argparse
 import json
