@@ -2,7 +2,7 @@
 """
 test_antfarm.py — guards on the ANT FARM event generator.
 
-Runs stand-alone (`python3 arena/web/antfarm/test_antfarm.py`) or under pytest.
+Runs stand-alone (`python3 arena/web/workshop/test_antfarm.py`) or under pytest.
 No third-party deps. These assert the honesty invariants of events.json:
 idempotency, schema completeness, a real event census, and chronological order.
 """

@@ -3,7 +3,7 @@
 generate_events.py — ANT FARM event generator (Y1 artifact).
 
 Parses the git history of THIS repository (the swarm research pipeline that
-produced research/swarm/) and emits arena/web/antfarm/events.json: an ordered,
+produced research/swarm/) and emits arena/web/workshop/events.json: an ordered,
 honest replay script for the ant-farm renderer.
 
 HONESTY CONTRACT (per research/swarm/SPEC.md, "Y1 VISUAL DIRECTION"):
@@ -42,7 +42,7 @@ CLASSIFICATION (event types, first matching rule wins):
                    speedups, spatial-hash tractability): real maintenance
                    commits, mapped to the utility organ.
 
-Run:  python3 arena/web/antfarm/generate_events.py
+Run:  python3 arena/web/workshop/generate_events.py
       (writes events.json next to this file; --check verifies without writing)
 """
 from __future__ import annotations
@@ -54,7 +54,7 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-# repo root = two levels up from arena/web/antfarm
+# repo root = two levels up from arena/web/workshop
 REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 OUT_PATH = os.path.join(HERE, "events.json")
 SWARM_PATH = "research/swarm"

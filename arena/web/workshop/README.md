@@ -1,4 +1,4 @@
-# The Ant Farm — Y1 pipeline-replay renderer
+# The Workshop — pipeline-replay artifact (standalone)
 
 A GROW-Cube–style, cutaway-isometric replay of **this repository's own research
 history**: the pipeline that produced the swarm program in `research/swarm/`.
@@ -61,7 +61,7 @@ registered P-number order, and the panel shows exactly that).
 The replay regenerates from git history at any time:
 
 ```sh
-cd arena/web/antfarm
+cd arena/web/workshop
 python3 generate_events.py          # rewrites events.json from live git state
 python3 generate_events.py --check  # non-zero exit if the checked-in file is stale
 python3 test_antfarm.py             # or: python3 -m pytest test_antfarm.py
@@ -80,7 +80,7 @@ scale-program header). Test counts are the real `def test_` count in
 The renderer reads `./events.json` via `fetch`, so serve the folder over HTTP:
 
 ```sh
-cd arena/web/antfarm
+cd arena/web/workshop
 python3 -m http.server 8000
 # open http://localhost:8000/
 ```
