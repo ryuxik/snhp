@@ -1,0 +1,788 @@
+{
+  "generated_from": {
+    "repo_head": "3b38fb7",
+    "repo_head_subject": "Y1 visual direction (founder): GROW Cube style — cutaway isometric growing cube, level-ups per column, panel row = composition order; style only, original assets; honesty bindings restated",
+    "swarm_root": "279b21e",
+    "commits_in_scope": 64
+  },
+  "note": "Replay is time-compressed. Every event maps to a real commit on this repo's history; hover any element for hash + subject + timestamp. No fabricated activity.",
+  "columns": [
+    {
+      "letter": "I",
+      "first_time": "2026-07-15T10:58:59-04:00",
+      "first_hash": "72996b9",
+      "run_time": "2026-07-15T11:21:25-04:00",
+      "label": "v10",
+      "title": "company field beliefs, the priced race, mine-rate trait",
+      "registered": true,
+      "built": true,
+      "verdict": true,
+      "completed": true
+    },
+    {
+      "letter": "J",
+      "first_time": "2026-07-15T11:49:57-04:00",
+      "first_hash": "2d46298",
+      "run_time": "2026-07-15T11:49:57-04:00",
+      "label": "v11",
+      "title": "the moving field",
+      "registered": false,
+      "built": true,
+      "verdict": true,
+      "completed": true
+    },
+    {
+      "letter": "K",
+      "first_time": "2026-07-15T12:02:22-04:00",
+      "first_hash": "796eccd",
+      "run_time": "2026-07-15T12:30:11-04:00",
+      "label": "v12",
+      "title": "pricing the unknown",
+      "registered": false,
+      "built": true,
+      "verdict": true,
+      "completed": true
+    },
+    {
+      "letter": "L",
+      "first_time": "2026-07-15T13:28:49-04:00",
+      "first_hash": "8456740",
+      "run_time": "2026-07-15T14:06:31-04:00",
+      "label": "v13",
+      "title": "density-fixed N∈{24,96,240}, consensus cost, middlemen",
+      "registered": true,
+      "built": true,
+      "verdict": true,
+      "completed": true
+    },
+    {
+      "letter": "O",
+      "first_time": "2026-07-15T13:42:51-04:00",
+      "first_hash": "7cd7885",
+      "run_time": "2026-07-16T09:53:06-04:00",
+      "label": "v14",
+      "title": "gossip beliefs + P21",
+      "registered": false,
+      "built": true,
+      "verdict": true,
+      "completed": true
+    },
+    {
+      "letter": "P",
+      "first_time": "2026-07-16T09:30:13-04:00",
+      "first_hash": "ec2ccd0",
+      "run_time": "2026-07-16T11:07:49-04:00",
+      "label": "v17",
+      "title": "cargo-lineage instrumentation + plateau diagnosis",
+      "registered": true,
+      "built": true,
+      "verdict": true,
+      "completed": true
+    },
+    {
+      "letter": "U",
+      "first_time": "2026-07-16T12:41:13-04:00",
+      "first_hash": "4795129",
+      "run_time": "2026-07-16T12:41:13-04:00",
+      "label": "v22",
+      "title": "reputation vs receipts",
+      "registered": false,
+      "built": true,
+      "verdict": true,
+      "completed": true
+    },
+    {
+      "letter": "V",
+      "first_time": "2026-07-16T14:28:14-04:00",
+      "first_hash": "7c4b7df",
+      "run_time": "2026-07-16T14:28:14-04:00",
+      "label": "v23",
+      "title": "the stigmergic order book",
+      "registered": false,
+      "built": true,
+      "verdict": true,
+      "completed": true
+    },
+    {
+      "letter": "Q",
+      "first_time": "2026-07-16T09:49:10-04:00",
+      "first_hash": "3e69810",
+      "run_time": "2026-07-16T15:38:40-04:00",
+      "label": "v18",
+      "title": "endogenous infrastructure",
+      "registered": true,
+      "built": true,
+      "verdict": true,
+      "completed": true
+    },
+    {
+      "letter": "X",
+      "first_time": "2026-07-16T13:22:54-04:00",
+      "first_hash": "d363b1a",
+      "run_time": "2026-07-16T17:24:37-04:00",
+      "label": "v25",
+      "title": "the firm's interior",
+      "registered": true,
+      "built": true,
+      "verdict": true,
+      "completed": true
+    },
+    {
+      "letter": "Y",
+      "first_time": "2026-07-16T14:12:44-04:00",
+      "first_hash": "545d056",
+      "run_time": null,
+      "label": "v26",
+      "title": null,
+      "registered": true,
+      "built": false,
+      "verdict": false,
+      "completed": false
+    }
+  ],
+  "events": [
+    {
+      "hash": "279b21e",
+      "full_hash": "279b21e98054257d0f089a01d0415c2f32170c0d",
+      "iso_time": "2026-07-14T18:25:16-04:00",
+      "type": "REGISTRATION",
+      "summary": "Swarm negotiation benchmark: 5 pre-registered experiments + live drone-economy page"
+    },
+    {
+      "hash": "b291cc6",
+      "full_hash": "b291cc65482b04bbd0bce44ad953f0e96daff2d7",
+      "iso_time": "2026-07-14T18:42:11-04:00",
+      "type": "PERF",
+      "summary": "Keep the swarm article draft local — it publishes on X, not in the repo"
+    },
+    {
+      "hash": "b4ed1b2",
+      "full_hash": "b4ed1b23494e12596576c1cc08c2be3f1b154d53",
+      "iso_time": "2026-07-14T19:05:33-04:00",
+      "type": "BUILDRUN",
+      "summary": "v5: imperfect information in a rich ecology — the market holds",
+      "label": "v5",
+      "test_count": 18
+    },
+    {
+      "hash": "95bd28f",
+      "full_hash": "95bd28ff3eb9ed6ca4dd2a949973fc6376a94b45",
+      "iso_time": "2026-07-14T19:16:28-04:00",
+      "type": "BUILDRUN",
+      "summary": "v6: strategic lies vs attestation — the veto holds the floor, attestation gates the ceiling",
+      "label": "v6",
+      "test_count": 21
+    },
+    {
+      "hash": "b095949",
+      "full_hash": "b0959492be51cbc6a16f726c8671e7aaca2b6192",
+      "iso_time": "2026-07-14T19:28:47-04:00",
+      "type": "BUILDRUN",
+      "summary": "v7 (noisy self-knowledge) + v6.2 attribution: the veto is only as good as your gauge",
+      "label": "v7",
+      "test_count": 21
+    },
+    {
+      "hash": "d5debba",
+      "full_hash": "d5debbae7388abdb1cd0da4d633a281ef72b6772",
+      "iso_time": "2026-07-14T20:19:00-04:00",
+      "type": "PERF",
+      "summary": "Redo the swarm viz: legible for strangers (block-sim inspired)"
+    },
+    {
+      "hash": "5a1b18a",
+      "full_hash": "5a1b18abd2cbbc29f69cab76adc629e968a6e2b6",
+      "iso_time": "2026-07-14T20:55:25-04:00",
+      "type": "PERF",
+      "summary": "Swarm viz, pixel-art rebuild: Galaga starfield + Fatbeard rocks, legible pacing"
+    },
+    {
+      "hash": "38d2a9a",
+      "full_hash": "38d2a9a34429f7732a78960649e2900851d9e768",
+      "iso_time": "2026-07-14T22:12:42-04:00",
+      "type": "PERF",
+      "summary": "Swarm viz: fix panel aspect-ratio (CSS-square + ResizeObserver), funny company names"
+    },
+    {
+      "hash": "21a61b2",
+      "full_hash": "21a61b28c4697817d72c59a3234b455c3c5c262a",
+      "iso_time": "2026-07-14T22:54:00-04:00",
+      "type": "PERF",
+      "summary": "Repo policy: experiment data out of git — code + seeds reproduce everything"
+    },
+    {
+      "hash": "62fd49b",
+      "full_hash": "62fd49b8ef1675bc9602c68b736c9d853c9b19ce",
+      "iso_time": "2026-07-14T23:55:21-04:00",
+      "type": "PERF",
+      "summary": "Post-review fixes + D/E/F re-run: the fleet survives, the receipts don't"
+    },
+    {
+      "hash": "cfe88bd",
+      "full_hash": "cfe88bd512c8db33f89a486c74179b5c8579798a",
+      "iso_time": "2026-07-14T23:55:21-04:00",
+      "type": "PERF",
+      "summary": "Viewer: fix reviewed bugs; arena copy now generated, not hand-synced"
+    },
+    {
+      "hash": "56f0999",
+      "full_hash": "56f09993fb06caa9a7b98a2c9d6d75e4d6c9ff48",
+      "iso_time": "2026-07-15T10:50:43-04:00",
+      "type": "PERF",
+      "summary": "Physics revision v8 + founder experiments G/H: pad unloads on arrival, deals cost time; full grid re-run",
+      "label": "v8"
+    },
+    {
+      "hash": "72996b9",
+      "full_hash": "72996b9a3a621632636c92ee198e1cc019a63934",
+      "iso_time": "2026-07-15T10:58:59-04:00",
+      "type": "REGISTRATION",
+      "summary": "Viewer: adaptive Auto pacing (dead ticks skim themselves) + v10 pre-registration",
+      "column": "I",
+      "column_source": "vN-map",
+      "label": "v10"
+    },
+    {
+      "hash": "f4e0392",
+      "full_hash": "f4e0392f2bca76bbd5d6316cfc3e497d2bf01412",
+      "iso_time": "2026-07-15T11:21:25-04:00",
+      "type": "BUILDRUN",
+      "summary": "v10 (column I): company field beliefs, the priced race, mine-rate trait",
+      "column": "I",
+      "column_source": "explicit",
+      "label": "v10",
+      "test_count": 39
+    },
+    {
+      "hash": "14cb17b",
+      "full_hash": "14cb17bd6bd6ced796186ac22ccc895049473cae",
+      "iso_time": "2026-07-15T11:25:58-04:00",
+      "type": "VERDICT",
+      "summary": "v10 verdicts: the omniscience was never load-bearing (P15 KILL fired, informatively)",
+      "column": "I",
+      "column_source": "vN-map",
+      "label": "v10"
+    },
+    {
+      "hash": "2d46298",
+      "full_hash": "2d46298323bbb8f623d6a8fbd86e37c8fd4cc854",
+      "iso_time": "2026-07-15T11:49:57-04:00",
+      "type": "BUILDRUN",
+      "summary": "Swarm v11 (column J): the moving field — arrivals, departures, contested geography",
+      "column": "J",
+      "column_source": "explicit",
+      "label": "v11",
+      "test_count": 45
+    },
+    {
+      "hash": "4633fd4",
+      "full_hash": "4633fd4a2ae008f5e906061c1aed7ccede1198d4",
+      "iso_time": "2026-07-15T11:52:11-04:00",
+      "type": "CORRECTION",
+      "summary": "P15 verdict scoped to static fields (founder critique) + v11/P16 pre-registration: the moving field",
+      "column": "J",
+      "column_source": "vN-map",
+      "label": "v11"
+    },
+    {
+      "hash": "de9f98d",
+      "full_hash": "de9f98d63161c51c4b510126b57bd0b5fe17dd14",
+      "iso_time": "2026-07-15T11:52:48-04:00",
+      "type": "BUILDRUN",
+      "summary": "Merge v11 build (moving field): my pre-build P16 registration is operative; builder mechanics noted",
+      "is_merge": true,
+      "column": "J",
+      "column_source": "vN-map",
+      "label": "v11",
+      "test_count": 45,
+      "build_hash": "2d46298"
+    },
+    {
+      "hash": "6df4289",
+      "full_hash": "6df428942da2769904abca50f022939700c8e29e",
+      "iso_time": "2026-07-15T11:55:40-04:00",
+      "type": "VERDICT",
+      "summary": "v11 verdicts: the explorer's dividend — optimization buys blindness to novelty",
+      "column": "J",
+      "column_source": "vN-map",
+      "label": "v11"
+    },
+    {
+      "hash": "796eccd",
+      "full_hash": "796eccdf6ba4ae8a348f97bd5598a452cfe0f7b5",
+      "iso_time": "2026-07-15T12:02:22-04:00",
+      "type": "CORRECTION",
+      "summary": "v12/column-K pre-registration: pricing the unknown (scouting, map-selling, claims on unexplored) + J2 gate amendment",
+      "column": "K",
+      "column_source": "explicit",
+      "label": "v12"
+    },
+    {
+      "hash": "b2886a0",
+      "full_hash": "b2886a0fa40148b8810ce18a376ed70a45b053c7",
+      "iso_time": "2026-07-15T12:30:11-04:00",
+      "type": "BUILDRUN",
+      "summary": "v12 (column K): pricing the unknown — scouting, map-trading, prospecting claims",
+      "column": "K",
+      "column_source": "explicit",
+      "label": "v12",
+      "test_count": 52
+    },
+    {
+      "hash": "85da7cc",
+      "full_hash": "85da7cc607906a8f8b1795d9e84651f8d15a01ea",
+      "iso_time": "2026-07-15T12:59:16-04:00",
+      "type": "BUILDRUN",
+      "summary": "Merge v12 build (pricing the unknown): K0 scouting, K1 map-selling, K2 fixed prospecting claims",
+      "is_merge": true,
+      "column": "K",
+      "column_source": "vN-map",
+      "label": "v12",
+      "test_count": 52,
+      "build_hash": "b2886a0"
+    },
+    {
+      "hash": "11f0e01",
+      "full_hash": "11f0e017881f625c015c03919b2d75c76440e651",
+      "iso_time": "2026-07-15T13:01:27-04:00",
+      "type": "VERDICT",
+      "summary": "v12 verdicts: scouting fixes discovery, the map market fixes the books, bad news only travels bundled",
+      "column": "K",
+      "column_source": "vN-map",
+      "label": "v12"
+    },
+    {
+      "hash": "8456740",
+      "full_hash": "84567406efe72aded253179d9269536d68119791",
+      "iso_time": "2026-07-15T13:28:49-04:00",
+      "type": "REGISTRATION",
+      "summary": "Scale program pre-registered: columns L (scale) / O (gossip) / M (money) / N (production), P18-P21",
+      "column": "L",
+      "column_source": "Pn-map",
+      "label": "P18"
+    },
+    {
+      "hash": "7cd7885",
+      "full_hash": "7cd7885859fea30da9efe254d76829d6c7357da6",
+      "iso_time": "2026-07-15T13:42:51-04:00",
+      "type": "CORRECTION",
+      "summary": "Column O amendment (pre-build): R_RADIO ladder {2,6} + the scout-return problem as named secondary",
+      "column": "O",
+      "column_source": "explicit"
+    },
+    {
+      "hash": "e2e74cc",
+      "full_hash": "e2e74ccded6de2c4a8cae6394bd7863e15701347",
+      "iso_time": "2026-07-15T14:06:31-04:00",
+      "type": "BUILDRUN",
+      "summary": "v13 build (column L, scale): density-fixed N∈{24,96,240}, consensus cost, middlemen",
+      "column": "L",
+      "column_source": "explicit",
+      "label": "v13",
+      "test_count": 59
+    },
+    {
+      "hash": "dfbfec0",
+      "full_hash": "dfbfec08e471ad7793419c6d2f23390fcb96dc78",
+      "iso_time": "2026-07-15T14:08:51-04:00",
+      "type": "BUILDRUN",
+      "summary": "Merge v13 build+run (column L, scale)",
+      "is_merge": true,
+      "column": "L",
+      "column_source": "explicit",
+      "label": "v13",
+      "test_count": 59,
+      "build_hash": "e2e74cc"
+    },
+    {
+      "hash": "88eb7be",
+      "full_hash": "88eb7be2cd8a2a745658f4954a6cab26731ca629",
+      "iso_time": "2026-07-15T14:10:02-04:00",
+      "type": "VERDICT",
+      "summary": "P18 verdicts: planning stops scaling (supported); market-thickness reversed; KILL fired on truncated metric, horizon amendment declared",
+      "column": "L",
+      "column_source": "Pn-map",
+      "label": "P18"
+    },
+    {
+      "hash": "93417e4",
+      "full_hash": "93417e47785b32c1827219e4a8e7358582b54057",
+      "iso_time": "2026-07-15T23:10:21-04:00",
+      "type": "PERF",
+      "summary": "Scale tractability: O(N) spatial-hash encounters + un-thrash asteroid gen at scale"
+    },
+    {
+      "hash": "bf17760",
+      "full_hash": "bf1776079dee032f1cb2565b36c28113e09b2ec9",
+      "iso_time": "2026-07-15T23:29:01-04:00",
+      "type": "CORRECTION",
+      "summary": "P18 amendment result: the horizon check KILLED the 'planning stops scaling' headline",
+      "column": "L",
+      "column_source": "Pn-map",
+      "label": "P18"
+    },
+    {
+      "hash": "ec2ccd0",
+      "full_hash": "ec2ccd081347311476359ccccf81d3a94766c61f",
+      "iso_time": "2026-07-16T09:30:13-04:00",
+      "type": "REGISTRATION",
+      "summary": "v17/column-P pre-registration: relays, hold-up, and pre-commitment (bills of lading vs the firm) — two-phase, diagnosis-gated",
+      "column": "P",
+      "column_source": "explicit",
+      "label": "v17"
+    },
+    {
+      "hash": "3e69810",
+      "full_hash": "3e698107cff273834bf9b8ce5b93198aabd4f133",
+      "iso_time": "2026-07-16T09:49:10-04:00",
+      "type": "REGISTRATION",
+      "summary": "Capability program pre-registered: columns Q-W (P24-P30) + P23e moral-hazard extension",
+      "column": "Q",
+      "column_source": "Pn-map",
+      "label": "P24"
+    },
+    {
+      "hash": "0d20e5c",
+      "full_hash": "0d20e5c06ab77df17c9f9d0d87355a069dd8ebfb",
+      "iso_time": "2026-07-16T09:53:06-04:00",
+      "type": "BUILDRUN",
+      "summary": "v14 build+run (column O, communication locality): gossip beliefs + P21",
+      "column": "O",
+      "column_source": "explicit",
+      "label": "v14",
+      "test_count": 67
+    },
+    {
+      "hash": "59b5f3d",
+      "full_hash": "59b5f3df0dee70d49008998ad404f4a3898a36be",
+      "iso_time": "2026-07-16T09:55:05-04:00",
+      "type": "BUILDRUN",
+      "summary": "Merge v14 build+run (column O, gossip)",
+      "is_merge": true,
+      "column": "O",
+      "column_source": "explicit",
+      "label": "v14",
+      "test_count": 67,
+      "build_hash": "0d20e5c"
+    },
+    {
+      "hash": "070db3c",
+      "full_hash": "070db3c1642a7fe97dc91f51e73eca0ed476d90f",
+      "iso_time": "2026-07-16T09:56:03-04:00",
+      "type": "VERDICT",
+      "summary": "P21 verdicts: free radio wasn't load-bearing; P15b re-scoped as a broadcast artifact; books-bleed 5th replication at the stigmergy limit",
+      "column": "O",
+      "column_source": "Pn-map",
+      "label": "P21"
+    },
+    {
+      "hash": "65c97ab",
+      "full_hash": "65c97ab9962daaddab43ee5ce5ddae912f4eb5c5",
+      "iso_time": "2026-07-16T10:48:04-04:00",
+      "type": "PERF",
+      "summary": "Speed up swarm sim 3-4.6x with byte-identical trajectories (fast Φ path)"
+    },
+    {
+      "hash": "b6666a8",
+      "full_hash": "b6666a89b991bf75f15794351ee9d35fa0792296",
+      "iso_time": "2026-07-16T10:49:05-04:00",
+      "type": "PERF",
+      "summary": "Merge perf build: 3.0-4.6x bit-exact speedup (phi_ctx/fast_phi partial evaluation, vectorized feasibility, snapshot/restore)",
+      "is_merge": true
+    },
+    {
+      "hash": "a25c08d",
+      "full_hash": "a25c08d4ec3f71bee22bdf6318f1a117e3e450fc",
+      "iso_time": "2026-07-16T11:07:49-04:00",
+      "type": "BUILDRUN",
+      "summary": "v17 (column P) PHASE 1: cargo-lineage instrumentation + plateau diagnosis",
+      "column": "P",
+      "column_source": "explicit",
+      "label": "v17",
+      "test_count": 74
+    },
+    {
+      "hash": "55723ec",
+      "full_hash": "55723eca88903da2993ba39d68d29b260b526da0",
+      "iso_time": "2026-07-16T11:10:13-04:00",
+      "type": "VERDICT",
+      "summary": "P phase-1 verdict: energy-bound refuted (my miss), queue-siting present (feeds column Q), chain signature CONFIRMED with the hold-up fingerprint — phase-2 gate OPEN",
+      "column": "P",
+      "column_source": "px",
+      "label": "P"
+    },
+    {
+      "hash": "7ef26cc",
+      "full_hash": "7ef26cc3f29ba19903def8b22f929bf3d73702b4",
+      "iso_time": "2026-07-16T12:01:43-04:00",
+      "type": "BUILDRUN",
+      "summary": "P (v17) PHASE 2 build+run: pre-commitment mechanisms — bills of lading + firm relay",
+      "column": "P",
+      "column_source": "vN-map",
+      "label": "v17",
+      "test_count": 79
+    },
+    {
+      "hash": "64220da",
+      "full_hash": "64220da8947790136ed9ce68cd1f38185c5af649",
+      "iso_time": "2026-07-16T12:02:52-04:00",
+      "type": "BUILDRUN",
+      "summary": "Merge column P phase 2: bills of lading form the chains spot bargaining cannot",
+      "is_merge": true,
+      "column": "P",
+      "column_source": "explicit",
+      "test_count": 79,
+      "build_hash": "7ef26cc"
+    },
+    {
+      "hash": "e65d067",
+      "full_hash": "e65d0673cec756ac7a9d6b9fcbfe3a8323f276bb",
+      "iso_time": "2026-07-16T12:03:21-04:00",
+      "type": "VERDICT",
+      "summary": "P23 verdicts: bills of lading CONFIRMED (+0.03 delivered, far-band 0.40->0.47, 20x relay chains, no compression); firm-as-settlement inert — mechanisms must change objectives, not prices",
+      "column": "P",
+      "column_source": "Pn-map",
+      "label": "P23"
+    },
+    {
+      "hash": "4795129",
+      "full_hash": "4795129a6e7dde4290ef2ea486274ee0c2d1b8b8",
+      "iso_time": "2026-07-16T12:41:13-04:00",
+      "type": "BUILDRUN",
+      "summary": "v22 (column U) build + run: reputation vs receipts — the crossover runs BACKWARDS",
+      "column": "U",
+      "column_source": "explicit",
+      "label": "v22",
+      "test_count": 85
+    },
+    {
+      "hash": "364c669",
+      "full_hash": "364c66998f96020b8ae06adf1d4a4920aa35fdee",
+      "iso_time": "2026-07-16T12:43:34-04:00",
+      "type": "BUILDRUN",
+      "summary": "Merge v22 build+run (column U): reputation vs receipts — crossover runs backwards at 2500 ticks",
+      "is_merge": true,
+      "column": "U",
+      "column_source": "explicit",
+      "label": "v22",
+      "test_count": 85,
+      "build_hash": "4795129"
+    },
+    {
+      "hash": "878d974",
+      "full_hash": "878d974a6f9bb691f33d05328bbe76de11dceaa1",
+      "iso_time": "2026-07-16T12:44:31-04:00",
+      "type": "VERDICT",
+      "summary": "P28 verdicts: crossover backwards at 2500 ticks (P18 trap signature declared); P28b untestable — sacrifice-confound saturates blacklists; P28-H horizon amendment registered",
+      "column": "U",
+      "column_source": "Pn-map",
+      "label": "P28"
+    },
+    {
+      "hash": "1baae73",
+      "full_hash": "1baae73c61cc8582a67e2f9ae98b6609fc92aad9",
+      "iso_time": "2026-07-16T12:58:49-04:00",
+      "type": "CORRECTION",
+      "summary": "P28-H amendment result: horizon FLIPS the reversal — receipts out-scale reputation at N=240, 7,500t",
+      "column": "U",
+      "column_source": "Pn-map",
+      "label": "P28"
+    },
+    {
+      "hash": "0103ec1",
+      "full_hash": "0103ec17f0c6a8f4924f0b4d2185d2b18223618a",
+      "iso_time": "2026-07-16T12:59:55-04:00",
+      "type": "BUILDRUN",
+      "summary": "Merge P28-H run: horizon amendment flips the N=240 reversal — attestation overtakes reputation at 7500 ticks",
+      "is_merge": true,
+      "column": "U",
+      "column_source": "Pn-map",
+      "label": "P28",
+      "test_count": 85,
+      "build_hash": "1baae73"
+    },
+    {
+      "hash": "dc4c7fa",
+      "full_hash": "dc4c7fa9f68dc5d4f0ef663bac5c6e8d20d77c9a",
+      "iso_time": "2026-07-16T13:00:48-04:00",
+      "type": "VERDICT",
+      "summary": "P28-H verdict: reversal was horizon truncation — receipts beat outcome-reputation at every N at fair horizon; combining them is worse than receipts alone",
+      "column": "U",
+      "column_source": "Pn-map",
+      "label": "P28"
+    },
+    {
+      "hash": "d363b1a",
+      "full_hash": "d363b1a89368a282de0eced14368da7a1e65b226",
+      "iso_time": "2026-07-16T13:22:54-04:00",
+      "type": "REGISTRATION",
+      "summary": "Register v25 (column X): the firm's interior — command vs internal prices vs claim settlement; fair-horizon pair mandatory; doctrine KILL on the record",
+      "column": "X",
+      "column_source": "explicit",
+      "label": "v25"
+    },
+    {
+      "hash": "40d58e0",
+      "full_hash": "40d58e01a94f25ce8d296a9a8ed636b92da27a0d",
+      "iso_time": "2026-07-16T13:38:08-04:00",
+      "type": "BUILDRUN",
+      "summary": "P23e (column P phase-2e) build+run: moral hazard in the relay — KILL refuted, contingent compresses dwell but reverses P23a far-band",
+      "column": "P",
+      "column_source": "explicit",
+      "label": "P23",
+      "test_count": 92
+    },
+    {
+      "hash": "80de118",
+      "full_hash": "80de1184ce6ab27766df744968caae1473e37a1f",
+      "iso_time": "2026-07-16T13:39:32-04:00",
+      "type": "BUILDRUN",
+      "summary": "Merge P23e build+run: moral hazard is real (+116.6 dwell inflation under flat splits); naive per-leg contingent splits compress dwell but kill the far-band gain",
+      "is_merge": true,
+      "column": "P",
+      "column_source": "Pn-map",
+      "label": "P23",
+      "test_count": 92,
+      "build_hash": "40d58e0"
+    },
+    {
+      "hash": "7b42faf",
+      "full_hash": "7b42faf65d4d9f84869d28e291b2795cdca0a9ff",
+      "iso_time": "2026-07-16T13:40:26-04:00",
+      "type": "VERDICT",
+      "summary": "P23e verdicts: moral hazard real (KILL refuted); prediction splits — dwell compresses but naive per-leg pricing taxes the far hops and erases the P23a lift; contract on controllable excess",
+      "column": "P",
+      "column_source": "Pn-map",
+      "label": "P23"
+    },
+    {
+      "hash": "545d056",
+      "full_hash": "545d056bbd4f89980bf9994bcca4f6245f5693ee",
+      "iso_time": "2026-07-16T14:12:44-04:00",
+      "type": "REGISTRATION",
+      "summary": "Register v26 (column Y): the ant farm — pipeline-replay renderer (Y1), endogenous org structure with promotion-rule treatments and the reorg-inertness law (Y2, gated on X), LLM-employee flagship (Y3, pending)",
+      "column": "Y",
+      "column_source": "explicit",
+      "label": "v26"
+    },
+    {
+      "hash": "7c4b7df",
+      "full_hash": "7c4b7df0a23c621057a026116ce311dbe7069711",
+      "iso_time": "2026-07-16T14:28:14-04:00",
+      "type": "BUILDRUN",
+      "summary": "v23 build+run (column V): the stigmergic order book — KILL fires, hump survives",
+      "column": "V",
+      "column_source": "explicit",
+      "label": "v23",
+      "test_count": 98
+    },
+    {
+      "hash": "a629f34",
+      "full_hash": "a629f348f8a6bc2c714f9f6925352eb79d640ac6",
+      "iso_time": "2026-07-16T14:29:47-04:00",
+      "type": "BUILDRUN",
+      "summary": "Merge v23 build+run (column V): KILL fires — order book doesn't flatten the hump; bills-only control recovers G64; attestation's value is pre-commitment, not asynchrony",
+      "is_merge": true,
+      "column": "V",
+      "column_source": "explicit",
+      "label": "v23",
+      "test_count": 98,
+      "build_hash": "7c4b7df"
+    },
+    {
+      "hash": "3b8f2ce",
+      "full_hash": "3b8f2ce8068824e6b2c1c1c99333b83a6700b855",
+      "iso_time": "2026-07-16T14:30:55-04:00",
+      "type": "VERDICT",
+      "summary": "P29 verdicts: KILL fires — posted offers don't dissolve the room; bills-only closes the G64 trough (third P23 confirmation); attestation = pre-commitment, not asynchrony; G law re-scoped to spot bargaining",
+      "column": "V",
+      "column_source": "Pn-map",
+      "label": "P29"
+    },
+    {
+      "hash": "8d02357",
+      "full_hash": "8d02357becb01052b55f93265a9391dfc19577cc",
+      "iso_time": "2026-07-16T15:38:40-04:00",
+      "type": "BUILDRUN",
+      "summary": "v18 build+run (column Q): endogenous infrastructure — KILL fires, building is decorative at N=240",
+      "column": "Q",
+      "column_source": "explicit",
+      "label": "v18",
+      "test_count": 105
+    },
+    {
+      "hash": "d458b85",
+      "full_hash": "d458b85ccd8bf24cfb51b3076819416e32898fbc",
+      "iso_time": "2026-07-16T15:42:21-04:00",
+      "type": "BUILDRUN",
+      "summary": "Merge v18 build+run (column Q): KILL fires — building is decorative at N=240; the plateau is charge-routing, not charge-supply; landlord tolls extract ~nothing",
+      "is_merge": true,
+      "column": "Q",
+      "column_source": "explicit",
+      "label": "v18",
+      "test_count": 105,
+      "build_hash": "8d02357"
+    },
+    {
+      "hash": "13f375f",
+      "full_hash": "13f375f615cf61ebc85143ff15f4dd58eec4ad63",
+      "iso_time": "2026-07-16T15:43:45-04:00",
+      "type": "VERDICT",
+      "summary": "P24 verdicts: KILL fires — capital can't buy planning; landlord rent dies (P24b refuted); routing-deadlock diagnosis registered as X design caveat + open engine observation",
+      "column": "Q",
+      "column_source": "Pn-map",
+      "label": "P24"
+    },
+    {
+      "hash": "ad74ec0",
+      "full_hash": "ad74ec07023bdb6374edbbeb04b4d2bffce95ac0",
+      "iso_time": "2026-07-16T16:06:07-04:00",
+      "type": "CORRECTION",
+      "summary": "P24 re-scope: founder caught free-charger saturation + silent bills deviation — P24b downgraded to untested-as-registered; COMPOSITION RULE registered (rents tested minimal AND composed); v18-R (Q2, landlords on the frontier) registered",
+      "column": "Q",
+      "column_source": "vN-map",
+      "label": "v18"
+    },
+    {
+      "hash": "80020d3",
+      "full_hash": "80020d3712bf5356ffa2516997d1c5f81aa4e2e5",
+      "iso_time": "2026-07-16T17:24:37-04:00",
+      "type": "BUILDRUN",
+      "summary": "v25 build+run (column X): the firm's interior — KILL DOES NOT FIRE; receipts beat hierarchy inside the firm; chargeback is bit-identical inert; command bleeds on plan-staleness",
+      "column": "X",
+      "column_source": "explicit",
+      "label": "v25",
+      "test_count": 112
+    },
+    {
+      "hash": "3f12845",
+      "full_hash": "3f12845e5d501e43cf645bfa4aba257cace894fe",
+      "iso_time": "2026-07-16T17:26:31-04:00",
+      "type": "BUILDRUN",
+      "summary": "Merge v25 build+run (column X): KILL does not fire — claims beat command and inert prices inside the firm; claims alone lift the P24 plateau",
+      "is_merge": true,
+      "column": "X",
+      "column_source": "explicit",
+      "label": "v25",
+      "test_count": 112,
+      "build_hash": "80020d3"
+    },
+    {
+      "hash": "7089587",
+      "full_hash": "708958704487d8d2a5abf6dc89bfbb52525121a2",
+      "iso_time": "2026-07-16T17:28:06-04:00",
+      "type": "VERDICT",
+      "summary": "PX verdicts: KILL does not fire — inside the firm the receipt beats the boss; claims lift the plateau capital couldn't (routing fixed by contract, not algorithm); prices inert thrice; Y2 gate OPEN",
+      "column": "X",
+      "column_source": "px",
+      "label": "PX"
+    },
+    {
+      "hash": "3b38fb7",
+      "full_hash": "3b38fb7e6b871dbdacd0a7f3f9915ae1797c359c",
+      "iso_time": "2026-07-16T17:32:34-04:00",
+      "type": "REGISTRATION",
+      "summary": "Y1 visual direction (founder): GROW Cube style — cutaway isometric growing cube, level-ups per column, panel row = composition order; style only, original assets; honesty bindings restated"
+    }
+  ]
+}

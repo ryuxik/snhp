@@ -1,0 +1,892 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>The Ant Farm — a research pipeline you can watch</title>
+<style>
+  /* ---- self-contained; no external fonts, scripts, or images ---- */
+  :root{
+    --cream:#f5edda; --cream2:#efe4cc;
+    --ink:#3b3020; --ink-soft:#6a5c45;
+    --panel:#fffaf0; --panel-line:#e4d6ba;
+    --gold:#f2c14e; --gold-deep:#d99b2b;
+    --accent:#7bb0d6;
+    --reg:#f2cf8b; --build:#a9cfe6; --verdict:#b7ddb0; --corr:#d9c4ec; --perf:#d8ccb2;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:
+      radial-gradient(1200px 700px at 50% -10%, #fbf5e6 0%, var(--cream) 55%, var(--cream2) 100%);
+    color:var(--ink);
+    font:15px/1.45 ui-rounded, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  #app{position:fixed;inset:0;display:flex;flex-direction:column}
+
+  /* top bar */
+  header{
+    display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+    padding:10px 16px 8px;
+  }
+  header h1{font-size:18px;margin:0;letter-spacing:.2px;font-weight:800}
+  header .sub{font-size:12.5px;color:var(--ink-soft)}
+  header .compressed{
+    margin-left:auto;font-size:12px;color:var(--ink-soft);
+    background:var(--panel);border:1.5px solid var(--panel-line);
+    border-radius:999px;padding:3px 11px;white-space:nowrap;
+  }
+  header .compressed b{color:var(--gold-deep)}
+
+  /* stage */
+  #stageWrap{position:relative;flex:1;min-height:0}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+
+  /* turn HUD (top-left of stage) */
+  #hud{
+    position:absolute;left:16px;top:12px;max-width:min(46ch,60%);
+    background:var(--panel);border:1.5px solid var(--panel-line);
+    border-radius:12px;padding:9px 12px;box-shadow:0 6px 20px rgba(80,60,20,.10);
+    pointer-events:none;
+  }
+  #hud .turn{font-weight:800;font-size:14px;letter-spacing:.3px}
+  #hud .turn b{color:var(--gold-deep)}
+  #hud .ts{font-size:12px;color:var(--ink-soft);margin-top:1px}
+  #hud .ev{margin-top:6px;font-size:13px;display:flex;gap:7px;align-items:flex-start}
+  #hud .chip{
+    flex:none;font-size:10.5px;font-weight:800;letter-spacing:.4px;
+    padding:2px 7px;border-radius:6px;border:1.5px solid rgba(0,0,0,.14);
+    color:#4a3c22;
+  }
+  #hud .ev .txt{overflow-wrap:anywhere}
+  #hud .hash{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-soft);font-size:11.5px}
+
+  /* legend (top-right of stage) */
+  #legend{
+    position:absolute;right:16px;top:12px;
+    background:var(--panel);border:1.5px solid var(--panel-line);
+    border-radius:12px;padding:8px 11px;font-size:11.5px;color:var(--ink-soft);
+    pointer-events:none;max-width:210px;
+  }
+  #legend h4{margin:0 0 5px;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--ink)}
+  #legend .row{display:flex;align-items:center;gap:7px;margin:2px 0}
+  #legend .sw{width:13px;height:13px;border-radius:4px;border:1.6px solid rgba(0,0,0,.28);flex:none}
+
+  /* tooltip */
+  #tip{
+    position:absolute;z-index:20;pointer-events:none;display:none;
+    max-width:340px;background:#fffdf6;border:1.6px solid var(--panel-line);
+    border-radius:10px;padding:8px 11px;box-shadow:0 10px 26px rgba(70,50,15,.20);
+    font-size:12.5px;
+  }
+  #tip .tt-top{display:flex;gap:8px;align-items:center;margin-bottom:3px}
+  #tip .tt-hash{font-family:ui-monospace,Menlo,monospace;color:var(--gold-deep);font-weight:700;font-size:11.5px}
+  #tip .tt-time{color:var(--ink-soft);font-size:11px;margin-left:auto}
+  #tip .tt-sub{color:var(--ink)}
+  #tip .tt-kind{font-size:10px;font-weight:800;letter-spacing:.5px;color:var(--ink-soft)}
+
+  /* panel row */
+  #panels{
+    display:flex;gap:7px;align-items:stretch;overflow-x:auto;
+    padding:9px 16px 6px;
+  }
+  #panels .plabel{
+    font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-soft);
+    align-self:center;margin-right:4px;white-space:nowrap;flex:none;font-weight:700;
+  }
+  .panel{
+    flex:none;width:74px;min-height:56px;border-radius:11px;
+    border:2px solid var(--panel-line);background:var(--panel);
+    padding:6px 7px 5px;position:relative;cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease, background .2s ease, border-color .2s ease;
+    opacity:.5;
+  }
+  .panel:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(90,65,20,.16)}
+  .panel.reached{opacity:1}
+  .panel.built{border-color:#9bbdd6}
+  .panel.done{border-color:var(--gold-deep);background:linear-gradient(180deg,#fff7e2,#fdeecb)}
+  .panel .pcol{font-weight:900;font-size:19px;line-height:1}
+  .panel .pver{font-size:10.5px;color:var(--ink-soft);font-family:ui-monospace,Menlo,monospace}
+  .panel .plv{
+    position:absolute;top:-9px;right:-7px;background:var(--gold);color:#5a3d06;
+    border:2px solid #fff;border-radius:8px;font-size:10px;font-weight:900;
+    padding:1px 5px;box-shadow:0 3px 8px rgba(180,130,20,.4);
+    transform:scale(0);transition:transform .28s cubic-bezier(.34,1.56,.64,1);
+  }
+  .panel.done .plv{transform:scale(1)}
+  .panel .ptitle{font-size:9.5px;color:var(--ink-soft);margin-top:3px;line-height:1.15;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .panel.current{outline:3px solid var(--gold);outline-offset:1px}
+
+  /* controls */
+  #controls{
+    display:flex;align-items:center;gap:12px;padding:6px 16px 12px;flex-wrap:wrap;
+  }
+  button.ctl{
+    font:inherit;font-weight:700;border:2px solid var(--panel-line);background:var(--panel);
+    color:var(--ink);border-radius:10px;padding:6px 13px;cursor:pointer;
+  }
+  button.ctl:hover{border-color:var(--gold-deep)}
+  button.ctl:active{transform:translateY(1px)}
+  #speeds{display:inline-flex;border:2px solid var(--panel-line);border-radius:10px;overflow:hidden}
+  #speeds button{font:inherit;font-weight:700;border:0;background:var(--panel);color:var(--ink-soft);
+    padding:6px 11px;cursor:pointer}
+  #speeds button.active{background:var(--gold);color:#5a3d06}
+  #scrub{flex:1;min-width:160px;accent-color:var(--gold-deep);cursor:pointer}
+  #scrubwrap{display:flex;align-items:center;gap:10px;flex:1;min-width:200px}
+  #scrubwrap .count{font-size:12px;color:var(--ink-soft);white-space:nowrap;
+    font-family:ui-monospace,Menlo,monospace}
+
+  /* error banner */
+  #banner{
+    display:none;position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);
+    max-width:520px;background:#fff3f0;border:2px solid #e6b3a6;border-radius:14px;
+    padding:18px 22px;box-shadow:0 12px 40px rgba(120,40,20,.18);z-index:40;
+  }
+  #banner h3{margin:0 0 6px;color:#a53c1e}
+  #banner code{background:#f3e2db;padding:1px 6px;border-radius:5px;font-size:12.5px}
+  #banner .small{color:var(--ink-soft);font-size:12.5px;margin-top:8px}
+
+  @media (max-width:640px){
+    #legend{display:none}
+    #hud{max-width:80%}
+    .panel{width:64px}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>The Ant Farm</h1>
+    <span class="sub">a cutaway of the research pipeline that built this repo's swarm program</span>
+    <span class="compressed">replay: <b>time-compressed</b> — turns are real commits, not real minutes</span>
+  </header>
+
+  <div id="stageWrap">
+    <canvas id="c"></canvas>
+    <div id="hud">
+      <div class="turn">TURN <b id="turnNum">0</b> <span id="turnOf" style="color:var(--ink-soft);font-weight:600"></span></div>
+      <div class="ts" id="turnTime">—</div>
+      <div class="ev"><span class="chip" id="evChip">—</span><span class="txt"><span id="evText">loading history…</span> <span class="hash" id="evHash"></span></span></div>
+    </div>
+    <div id="legend">
+      <h4>rooms → organs</h4>
+      <div class="row"><span class="sw" style="background:var(--reg)"></span>Registry — contracts posted</div>
+      <div class="row"><span class="sw" style="background:var(--build)"></span>Workshops — builders (worktrees)</div>
+      <div class="row"><span class="sw" style="background:var(--gold)"></span>Test gate — merge rides up</div>
+      <div class="row"><span class="sw" style="background:var(--verdict)"></span>Ledger vault — verdicts filed</div>
+      <div class="row"><span class="sw" style="background:var(--corr)"></span>Archive — re-scopes re-filed</div>
+      <div class="row"><span class="sw" style="background:var(--perf)"></span>Utility — perf / infra</div>
+    </div>
+    <div id="tip"></div>
+    <div id="banner">
+      <h3>Couldn't load the pipeline data</h3>
+      <div id="bannerMsg">This page reads <code>./events.json</code>.</div>
+      <div class="small">Serve this folder over HTTP and reload — e.g. from
+        <code>arena/web/antfarm/</code> run <code>python3 -m http.server</code>
+        then open <code>http://localhost:8000/</code>. Regenerate the data with
+        <code>python3 generate_events.py</code>.</div>
+    </div>
+  </div>
+
+  <div id="panels"><span class="plabel">composition&nbsp;order&nbsp;→</span></div>
+
+  <div id="controls">
+    <button class="ctl" id="playBtn">▶ Play</button>
+    <button class="ctl" id="restartBtn">⟲ Restart</button>
+    <div id="speeds" role="group" aria-label="speed">
+      <button data-sp="1" class="active">1×</button>
+      <button data-sp="4">4×</button>
+      <button data-sp="16">16×</button>
+    </div>
+    <div id="scrubwrap">
+      <input id="scrub" type="range" min="0" max="0" step="1" value="0" />
+      <span class="count" id="scrubCount">0 / 0</span>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+(function(){
+/* ==================================================================
+   THE ANT FARM — honest pipeline-replay renderer (Y1 artifact).
+   Every element on screen maps to a real commit in events.json.
+   Hover anything for hash + subject + timestamp.
+   ================================================================== */
+
+var canvas = document.getElementById('c');
+var ctx = canvas.getContext('2d');
+var tip = document.getElementById('tip');
+var DOC = null, EVENTS = [], COLS = [];
+
+/* ---- defensive data load: fetch ./events.json, banner on failure ---- */
+function fail(msg){
+  var b = document.getElementById('banner');
+  document.getElementById('bannerMsg').innerHTML = msg;
+  b.style.display = 'block';
+}
+try {
+  fetch('./events.json', {cache:'no-store'})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(d){ boot(d); })
+    .catch(function(e){
+      fail('This page reads <code>./events.json</code>, but the browser blocked or failed the load ('
+           + String(e && e.message || e) + ').');
+    });
+} catch(e){
+  fail('This page reads <code>./events.json</code> and could not start ('+String(e)+').');
+}
+
+/* ---------- geometry ---------- */
+var TW = 116, TH = 58, FH = 74;      // tile width/height, floor height (logical px)
+var D = 2;                            // footprint depth in tiles (D x D)
+var DPR = 1, VW = 0, VH = 0;
+var cam = {x:0, y:0, scroll:0, scale:1};
+
+function resize(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  var r = canvas.getBoundingClientRect();
+  VW = r.width; VH = r.height;
+  canvas.width = Math.max(1, Math.round(VW*DPR));
+  canvas.height = Math.max(1, Math.round(VH*DPR));
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize', function(){ resize(); });
+
+function iso(gx, gy, gz){
+  var s = cam.scale;
+  var sx = cam.x + (gx - gy) * (TW/2) * s;
+  var sy = cam.y + (gx + gy) * (TH/2) * s - gz * FH * s + cam.scroll;
+  return [sx, sy];
+}
+
+/* ---------- drawing helpers (chunky, dark-outlined, flat two-tone) ---------- */
+function poly(pts, fill, stroke, lw){
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for(var i=1;i<pts.length;i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.closePath();
+  if(fill){ ctx.fillStyle = fill; ctx.fill(); }
+  if(stroke){ ctx.lineJoin='round'; ctx.lineWidth = (lw||2.4)*cam.scale; ctx.strokeStyle = stroke; ctx.stroke(); }
+}
+var OUT = '#3b3020';
+function shade(hex, f){ // multiply toward dark for two-tone side faces
+  var n = parseInt(hex.slice(1),16), r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  return 'rgb('+Math.round(r*f)+','+Math.round(g*f)+','+Math.round(b*f)+')';
+}
+function roundRectPath(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+
+/* one iso "box" floor: slab top + left(gx=0) & right(gy=0) interior walls.
+   Front is cut away so we see in. Returns key screen anchors. */
+function drawFloorShell(z, topFill, leftFill, rightFill, pop){
+  var e = pop==null?1:pop;                 // 0..1 squash-pop
+  var zz = z + (1-e)*0.0;                   // (kept for parity)
+  // slab corners at height z (walkable floor of this level)
+  var A=iso(0,0,z), B=iso(D,0,z), C=iso(D,D,z), E=iso(0,D,z);
+  // top edges of the two back walls (at z+ ~0.62 wall height for a room feel)
+  var wallH = 0.66;
+  var A2=iso(0,0,z+wallH), B2=iso(D,0,z+wallH), E2=iso(0,D,z+wallH);
+  // RIGHT wall (gy=0 plane): A B B2 A2  -> ledger vault face
+  poly([A,B,B2,A2], rightFill, OUT, 2.4);
+  // LEFT wall (gx=0 plane): A E E2 A2   -> archive face
+  poly([A,E,E2,A2], leftFill, OUT, 2.4);
+  // floor slab (walkable) drawn last so furniture sits on it
+  poly([A,B,C,E], topFill, OUT, 2.4);
+  return {A:A,B:B,C:C,E:E,A2:A2,B2:B2,E2:E2,z:z,wallH:wallH};
+}
+
+/* a tiny round worker with an oscillating hammer arm */
+function drawWorker(cx, cy, s, hatHex, phase){
+  s = s*cam.scale;
+  // body
+  ctx.save();
+  roundRectPath(cx-6*s, cy-9*s, 12*s, 13*s, 5*s);
+  ctx.fillStyle='#fff3df'; ctx.fill(); ctx.lineWidth=2*cam.scale; ctx.strokeStyle=OUT; ctx.stroke();
+  // hard hat
+  ctx.beginPath(); ctx.arc(cx, cy-9*s, 6.2*s, Math.PI, 0); ctx.closePath();
+  ctx.fillStyle=hatHex; ctx.fill(); ctx.strokeStyle=OUT; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-7.5*s, cy-9*s); ctx.lineTo(cx+7.5*s, cy-9*s); ctx.stroke();
+  // eyes
+  ctx.fillStyle=OUT;
+  ctx.beginPath(); ctx.arc(cx-2.3*s, cy-3.5*s, 1.1*s, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+2.3*s, cy-3.5*s, 1.1*s, 0, 7); ctx.fill();
+  // hammer arm (oscillates)
+  var sw = Math.sin(phase*Math.PI*2);
+  var ang = -0.5 - Math.max(0,sw)*1.0;
+  var hx = cx+5*s, hy = cy-2*s;
+  ctx.save(); ctx.translate(hx,hy); ctx.rotate(ang);
+  ctx.lineWidth=2.4*cam.scale; ctx.strokeStyle=OUT;
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(9*s,0); ctx.stroke();  // handle
+  roundRectPath(8*s,-3*s,6*s,6*s,1.6*s); ctx.fillStyle='#c9b79b'; ctx.fill(); ctx.stroke(); // head
+  ctx.restore();
+  ctx.restore();
+}
+
+/* small contract scroll */
+function drawScroll(cx, cy, s, tone){
+  s=s*cam.scale;
+  ctx.save();
+  roundRectPath(cx-5*s, cy-7*s, 10*s, 14*s, 2.4*s);
+  ctx.fillStyle=tone||'#fbf3df'; ctx.fill(); ctx.lineWidth=2*cam.scale; ctx.strokeStyle=OUT; ctx.stroke();
+  ctx.strokeStyle='rgba(59,48,32,.5)'; ctx.lineWidth=1.2*cam.scale;
+  for(var i=-2;i<=2;i++){ ctx.beginPath(); ctx.moveTo(cx-3*s, cy+i*2.4*s); ctx.lineTo(cx+3*s, cy+i*2.4*s); ctx.stroke(); }
+  ctx.restore();
+}
+
+/* verdict plaque with a small seal */
+function drawPlaque(cx, cy, s, sealHex){
+  s=s*cam.scale;
+  ctx.save();
+  roundRectPath(cx-9*s, cy-6*s, 18*s, 12*s, 2.6*s);
+  ctx.fillStyle='#fbf4e2'; ctx.fill(); ctx.lineWidth=2*cam.scale; ctx.strokeStyle=OUT; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx+5*s, cy, 3.1*s, 0, 7); ctx.fillStyle=sealHex||'#b7ddb0'; ctx.fill(); ctx.stroke();
+  ctx.strokeStyle='rgba(59,48,32,.55)'; ctx.lineWidth=1.1*cam.scale;
+  ctx.beginPath(); ctx.moveTo(cx-6*s, cy-1.6*s); ctx.lineTo(cx+0*s, cy-1.6*s); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-6*s, cy+1.6*s); ctx.lineTo(cx-1*s, cy+1.6*s); ctx.stroke();
+  ctx.restore();
+}
+
+/* archive folder (correction / re-scope) */
+function drawFolder(cx, cy, s){
+  s=s*cam.scale;
+  ctx.save();
+  roundRectPath(cx-8*s, cy-5*s, 16*s, 11*s, 2*s);
+  ctx.fillStyle='#d9c4ec'; ctx.fill(); ctx.lineWidth=2*cam.scale; ctx.strokeStyle=OUT; ctx.stroke();
+  roundRectPath(cx-8*s, cy-7*s, 8*s, 4*s, 1.6*s);
+  ctx.fillStyle=shade('#d9c4ec',.9); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+/* utility gear */
+function drawGear(cx, cy, s, rot){
+  s=s*cam.scale;
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(rot||0);
+  ctx.beginPath();
+  var teeth=8, ro=9*s, ri=6.4*s;
+  for(var i=0;i<teeth*2;i++){ var a=i/(teeth*2)*Math.PI*2, rr=(i%2? ri:ro);
+    ctx.lineTo(Math.cos(a)*rr, Math.sin(a)*rr); }
+  ctx.closePath(); ctx.fillStyle='#c9b98f'; ctx.fill(); ctx.lineWidth=2*cam.scale; ctx.strokeStyle=OUT; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0,0,2.6*s,0,7); ctx.fillStyle='#fbf4e2'; ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+function drawTextTag(x, y, text, sub, big){
+  ctx.save();
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font = (big? '900 ':'800 ')+(big?18:12)*cam.scale+'px ui-rounded, "Segoe UI", sans-serif';
+  ctx.lineWidth=3.4*cam.scale; ctx.strokeStyle='#fffaf0'; ctx.strokeText(text, x, y);
+  ctx.fillStyle=OUT; ctx.fillText(text, x, y);
+  if(sub){
+    ctx.font='700 '+10*cam.scale+'px ui-monospace, Menlo, monospace';
+    ctx.lineWidth=3*cam.scale; ctx.strokeText(sub, x, y+13*cam.scale);
+    ctx.fillStyle='#6a5c45'; ctx.fillText(sub, x, y+13*cam.scale);
+  }
+  ctx.restore();
+}
+
+/* ---------- easing ---------- */
+function easeOutBack(t){ var c1=1.70158,c3=c1+1; return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2); }
+function clamp01(t){ return t<0?0:t>1?1:t; }
+
+/* ---------- palette for column floors (soft pastels, cycled) ---------- */
+var FLOOR_TONES = ['#bcd6e8','#c9e2c2','#f2d69a','#e7c3d6','#c7d2ef','#f0cbb0','#bfe0dd','#e3d4a2','#d6c9ec','#bcd6e8'];
+var HAT_TONES   = ['#e8a15a','#6fae6a','#d99b2b','#c977a0','#6f83c9','#d9743f','#4fa79a','#b79a3a','#8a6fc9','#e8a15a'];
+
+/* ---------- pipeline model ---------- */
+var REACHED_COLS = {};       // letter -> panel dom
+function boot(doc){
+  DOC = doc;
+  EVENTS = doc.events || [];
+  COLS = doc.columns || [];
+  if(!EVENTS.length){ fail('events.json contained no events.'); return; }
+
+  // index each event; attach turn number (1-based)
+  EVENTS.forEach(function(e,i){ e._turn = i+1; });
+
+  // per-column: build event, verdict event (first of each), for growth + LV
+  COLS.forEach(function(col, idx){
+    col._idx = idx;
+    col._buildEv = null; col._verdictEv = null; col._regEvs = []; col._corrEvs = [];
+    EVENTS.forEach(function(e){
+      if(e.column !== col.letter) return;
+      if(e.type==='BUILDRUN' && !col._buildEv) col._buildEv = e;
+      if(e.type==='VERDICT' && !col._verdictEv) col._verdictEv = e;
+      if(e.type==='REGISTRATION') col._regEvs.push(e);
+      if(e.type==='CORRECTION') col._corrEvs.push(e);
+    });
+    col._buildTurn = col._buildEv ? col._buildEv._turn : Infinity;
+    col._verdictTurn = col._verdictEv ? col._verdictEv._turn : Infinity;
+  });
+
+  buildPanels();
+  resize();
+  playhead = 0;
+  document.getElementById('scrub').max = EVENTS.length;
+  document.getElementById('turnOf').textContent = '/ '+EVENTS.length;
+  wireControls();
+  lastT = performance.now();
+  requestAnimationFrame(loop);
+}
+
+/* ---------- panel row ---------- */
+function buildPanels(){
+  var host = document.getElementById('panels');
+  COLS.forEach(function(col){
+    var p = document.createElement('div');
+    p.className='panel';
+    p.dataset.col = col.letter;
+    p.innerHTML =
+      '<div class="pcol">'+col.letter+'</div>'+
+      '<div class="pver">'+(col.label||'')+'</div>'+
+      '<div class="plv">LV.'+(col._idx+1)+'</div>'+
+      '<div class="ptitle">'+(col.title? esc(col.title): (col.registered?'registered':''))+'</div>';
+    p.title = '';
+    p.addEventListener('mouseenter', function(ev){ showColTip(col, ev); });
+    p.addEventListener('mousemove', function(ev){ moveTip(ev); });
+    p.addEventListener('mouseleave', hideTip);
+    p.addEventListener('click', function(){
+      var t = isFinite(col._buildTurn)? col._buildTurn : col._idx+1;
+      setPlayhead(t); playing=false; syncPlayBtn();
+    });
+    col._panel = p;
+    host.appendChild(p);
+  });
+}
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]);}); }
+
+/* ---------- replay clock ---------- */
+var playhead = 0;          // float, 0..N
+var playing = false;
+var speed = 1;
+var SEC_PER_TURN = 1.05;   // base seconds per turn at 1x
+var lastT = 0;
+
+function setPlayhead(v){
+  playhead = Math.max(0, Math.min(EVENTS.length, v));
+  document.getElementById('scrub').value = Math.round(playhead);
+}
+function loop(now){
+  var dt = (now - lastT)/1000; lastT = now;
+  if(playing){
+    playhead += dt * speed / SEC_PER_TURN;
+    if(playhead >= EVENTS.length){ playhead = EVENTS.length; playing=false; syncPlayBtn(); }
+    document.getElementById('scrub').value = Math.round(playhead);
+  }
+  render();
+  requestAnimationFrame(loop);
+}
+
+/* ---------- hit regions (rebuilt each frame for honesty hovers) ---------- */
+var HITS = [];
+function pushHit(pts, ev, kind, extra){ HITS.push({pts:pts, ev:ev, kind:kind, extra:extra}); }
+function pointInPoly(px,py,pts){
+  var inside=false;
+  for(var i=0,j=pts.length-1;i<pts.length;j=i++){
+    var xi=pts[i][0],yi=pts[i][1],xj=pts[j][0],yj=pts[j][1];
+    if(((yi>py)!==(yj>py)) && (px < (xj-xi)*(py-yi)/(yj-yi)+xi)) inside=!inside;
+  }
+  return inside;
+}
+
+/* ---------- main render ---------- */
+function render(){
+  // reveal model: events with index < `turn` are fully settled; the event at
+  // index turn-1 pops in with progress `frac` only while playing between turns.
+  // Scrubbing to an integer turn N shows N events fully (frac==0 => no half-pop).
+  var k = Math.floor(playhead);
+  var frac = clamp01(playhead - k);
+  var turn = frac>0 ? k+1 : k;                      // number of events revealed
+  if(turn>EVENTS.length) turn=EVENTS.length;
+  var cur = (turn>=1) ? EVENTS[turn-1] : null;      // the current/topmost event
+  var popping = frac>0;                             // is `cur` mid-pop?
+
+  // how many column-floors exist (built) at this turn
+  var builtCols = COLS.filter(function(c){ return c._buildTurn <= turn; });
+  var topZ = 1 + builtCols.length;                 // ground occupies z 0..1
+
+  // camera: fit width; follow the growing top
+  var s = Math.min(1.15, Math.max(0.5, Math.min(VW/900, VH/620)));
+  cam.scale = s;
+  cam.x = VW*0.52;
+  cam.y = VH*0.70;
+  // rise so the current top floor stays comfortably in frame
+  var targetScroll = Math.max(0, (topZ-3.2)) * FH * s;
+  cam.scrollTarget = targetScroll;
+  cam.scroll = (cam.scroll==null?targetScroll:cam.scroll) + (targetScroll - (cam.scroll||0))*0.12;
+
+  ctx.clearRect(0,0,VW,VH);
+  HITS.length = 0;
+
+  drawSky();
+  drawGround(turn, frac, cur, popping);
+
+  // stacked column floors, bottom to top
+  builtCols.forEach(function(col){
+    var floorIndex = indexOfBuilt(builtCols, col);
+    var z = 1 + floorIndex;
+    var pop = (popping && col._buildEv === cur) ? easeOutBack(frac) : 1;  // rising now
+    drawColumnFloor(col, z, pop, turn, frac, cur, popping);
+  });
+
+  // Y (and any registered-but-unbuilt) as a blueprint ghost above the top
+  drawPendingGhost(builtCols.length, turn, frac, cur);
+
+  drawHUD(turn, cur);
+  updatePanels(turn, cur);
+}
+
+function indexOfBuilt(arr, col){ for(var i=0;i<arr.length;i++) if(arr[i]===col) return i; return arr.length; }
+
+function drawSky(){
+  // subtle ground shadow disk under the tower
+  var g = iso(D/2, D/2, 0);
+  ctx.save();
+  ctx.globalAlpha=0.10; ctx.fillStyle='#5a4622';
+  ctx.beginPath();
+  ctx.ellipse(g[0], g[1]+18*cam.scale, (TW*1.5)*cam.scale, (TH*0.95)*cam.scale, 0, 0, 7);
+  ctx.fill(); ctx.restore();
+}
+
+/* ground floor = the LOBBY: registry (scrolls), foundation crates
+   (pre-column v5/v6/v7 builds), utility gear (perf). */
+function drawGround(turn, frac, cur, popping){
+  // base plinth first (a thick chunky base below z=0), FRONT faces (gx=D, gy=D)
+  var h=0.34;
+  var gB=iso(D,0,0), gC=iso(D,D,0), gE=iso(0,D,0);
+  var gBd=iso(D,0,-h), gCd=iso(D,D,-h), gEd=iso(0,D,-h);
+  poly([gB,gC,gCd,gBd], shade('#e7d3ad',.86), OUT, 2.4);    // front-right plinth
+  poly([gE,gC,gCd,gEd], shade('#e7d3ad',.78), OUT, 2.4);    // front-left plinth
+  var sh = drawFloorShell(0, '#efe0c2', shade('#efe0c2',.80), shade('#efe0c2',.90), 1);
+
+  // registry sign + scrolls on the front-left of the lobby slab
+  var regEvs = EVENTS.filter(function(e){ return e.type==='REGISTRATION' && e._turn<=turn; });
+  var regAnchor = iso(1.62, 0.42, 0);
+  var lastReg=null;
+  for(var i=0;i<regEvs.length;i++){
+    var e=regEvs[i]; lastReg=e;
+    var jitter=(i%3), row=Math.floor(i/3);
+    var a=iso(1.75-0.14*jitter, 0.30+0.16*row, 0);
+    var pop = (popping && cur===e)? easeOutBack(frac): 1;
+    ctx.save(); ctx.translate(a[0], a[1]); ctx.scale(pop,pop); ctx.translate(-a[0],-a[1]);
+    drawScroll(a[0], a[1]-8*cam.scale, 1.0, i%2?'#f7e6bf':'#fbf3df');
+    ctx.restore();
+  }
+  var rTag = iso(1.55,0.05,0);
+  drawTextTag(rTag[0], rTag[1]-6*cam.scale, 'REGISTRY');
+  // hit region for the registry area (maps to most-recent registration)
+  pushHit([iso(1.15,0,0),iso(2,0,0),iso(2,0.9,0),iso(1.15,0.9,0)], lastReg, 'Registry', 'registrations posted here');
+
+  // foundation crates = the pre-column ecology builds (v5/v6/v7, no column)
+  var found = EVENTS.filter(function(e){ return e.type==='BUILDRUN' && !e.column && e._turn<=turn; });
+  var lastFound=null;
+  for(var f=0; f<found.length; f++){
+    var fe=found[f]; lastFound=fe;
+    var a2=iso(0.35+0.0, 0.55+0.42*f, 0);
+    var pop2=(popping && cur===fe)? easeOutBack(frac):1;
+    ctx.save(); ctx.translate(a2[0],a2[1]); ctx.scale(pop2,pop2); ctx.translate(-a2[0],-a2[1]);
+    drawCrate(a2[0], a2[1]-7*cam.scale, 1, '#d7b98d', fe.label||'');
+    ctx.restore();
+    pushHit(crateHit(a2), fe, 'Foundation', 'pre-column ecology build');
+  }
+
+  // utility gear on the front-right skirt (perf/infra)
+  var perfs = EVENTS.filter(function(e){ return e.type==='PERF' && e._turn<=turn; });
+  var gp = iso(D+0.02, D-0.5, -0.18);
+  var lastPerf = perfs.length? perfs[perfs.length-1]:null;
+  var spin = (performance.now()/1000)* (playing?1.4:0.4);
+  drawGear(gp[0], gp[1], 1.0, spin);
+  drawGear(gp[0]+14*cam.scale, gp[1]+7*cam.scale, 0.72, -spin*1.3);
+  if(popping && cur && cur.type==='PERF'){ // pulse
+    ctx.save(); ctx.globalAlpha=0.5*(1-frac); ctx.strokeStyle=OUT;
+    ctx.beginPath(); ctx.arc(gp[0],gp[1], (12+18*frac)*cam.scale, 0,7); ctx.lineWidth=2; ctx.stroke(); ctx.restore();
+  }
+  drawTextTag(gp[0]+6*cam.scale, gp[1]+22*cam.scale, 'UTILITY');
+  pushHit([[gp[0]-16*cam.scale,gp[1]-16*cam.scale],[gp[0]+26*cam.scale,gp[1]-16*cam.scale],
+           [gp[0]+26*cam.scale,gp[1]+18*cam.scale],[gp[0]-16*cam.scale,gp[1]+18*cam.scale]],
+          lastPerf, 'Utility', 'perf / infra commits ('+perfs.length+')');
+
+  // LOBBY label on the slab
+  var lc = iso(D/2, D/2, 0);
+  ctx.save(); ctx.globalAlpha=.55; drawTextTag(lc[0], lc[1], 'LOBBY'); ctx.restore();
+}
+
+function drawCrate(cx, cy, s, hex, tag){
+  s=s*cam.scale;
+  roundRectPath(cx-9*s, cy-9*s, 18*s, 16*s, 2.4*s);
+  ctx.fillStyle=hex; ctx.fill(); ctx.lineWidth=2*cam.scale; ctx.strokeStyle=OUT; ctx.stroke();
+  ctx.strokeStyle=shade(hex,.7); ctx.lineWidth=1.6*cam.scale;
+  ctx.beginPath(); ctx.moveTo(cx-9*s,cy-2*s); ctx.lineTo(cx+9*s,cy-2*s); ctx.stroke();
+  if(tag){ ctx.fillStyle=OUT; ctx.font='800 '+9*cam.scale+'px ui-monospace,Menlo,monospace';
+    ctx.textAlign='center'; ctx.fillText(tag, cx, cy+2*s); }
+}
+function crateHit(a){ var s=cam.scale; return [[a[0]-11*s,a[1]-18*s],[a[0]+11*s,a[1]-18*s],[a[0]+11*s,a[1]+4*s],[a[0]-11*s,a[1]+4*s]]; }
+
+/* a single column's floor: workshop interior, vault plaque (right wall),
+   archive folder (left wall) if re-scoped, worker while building, LV badge. */
+function drawColumnFloor(col, z, pop, turn, frac, cur, popping){
+  var tone = FLOOR_TONES[col._idx % FLOOR_TONES.length];
+  var lightNow = cur && (cur.column===col.letter) && (cur.type==='BUILDRUN');
+  var top = lightNow ? tone : tone;
+  var e = pop;
+  // pop: scale the floor about its base while rising
+  ctx.save();
+  var base = iso(D/2, D/2, z);
+  ctx.translate(base[0], base[1]); ctx.scale(1, e<1? (0.4+0.6*e):1); ctx.translate(-base[0],-base[1]);
+  var sh = drawFloorShell(z, top, shade(tone,.80), shade(tone,.90), pop);
+  ctx.restore();
+
+  // right-wall = LEDGER VAULT plaque (if verdict filed by now)
+  if(col._verdictEv && col._verdictEv._turn<=turn){
+    var vpop = (popping && cur===col._verdictEv)? easeOutBack(frac):1;
+    var pc = iso(D*0.5, 0.02, z+0.34);
+    ctx.save(); ctx.translate(pc[0],pc[1]); ctx.scale(vpop,vpop); ctx.translate(-pc[0],-pc[1]);
+    drawPlaque(pc[0], pc[1], 1.0, '#8ec98a');
+    ctx.restore();
+    pushHit([[pc[0]-11*cam.scale,pc[1]-9*cam.scale],[pc[0]+11*cam.scale,pc[1]-9*cam.scale],
+             [pc[0]+11*cam.scale,pc[1]+9*cam.scale],[pc[0]-11*cam.scale,pc[1]+9*cam.scale]],
+            col._verdictEv, 'Ledger vault — verdict', col.letter+' verdict filed');
+  }
+
+  // left-wall = ARCHIVE folder for the most recent re-scope of this column
+  var corr = col._corrEvs.filter(function(e2){ return e2._turn<=turn; });
+  if(corr.length){
+    var ce = corr[corr.length-1];
+    var fc = iso(0.02, D*0.5, z+0.34);
+    var cpop=(popping && cur===ce)? easeOutBack(frac):1;
+    ctx.save(); ctx.translate(fc[0],fc[1]); ctx.scale(cpop,cpop); ctx.translate(-fc[0],-fc[1]);
+    drawFolder(fc[0], fc[1], 1.0);
+    ctx.restore();
+    pushHit([[fc[0]-10*cam.scale,fc[1]-9*cam.scale],[fc[0]+10*cam.scale,fc[1]-9*cam.scale],
+             [fc[0]+10*cam.scale,fc[1]+9*cam.scale],[fc[0]-10*cam.scale,fc[1]+9*cam.scale]],
+            ce, 'Archive — re-scope', col.letter+' re-filed');
+  }
+
+  // workshop desk + shipped crate on the floor slab
+  var deskC = iso(D*0.62, D*0.62, z);
+  drawDesk(deskC[0], deskC[1]);
+
+  // worker hammering while THIS column is the active build
+  if(lightNow){
+    var wc = iso(D*0.42, D*0.66, z);
+    var ph = (performance.now()/1000*3)%1;
+    drawWorker(wc[0], wc[1]-2*cam.scale, 1.0, HAT_TONES[col._idx%HAT_TONES.length], ph);
+    // glow
+    ctx.save(); ctx.globalAlpha=0.20; ctx.fillStyle='#fff2c8';
+    ctx.beginPath(); ctx.ellipse(deskC[0],deskC[1], 46*cam.scale, 24*cam.scale, 0,0,7); ctx.fill(); ctx.restore();
+  } else if(col._buildTurn<=turn){
+    // idle: a shipped green crate on the desk
+    drawCrate(deskC[0]-2*cam.scale, deskC[1]-9*cam.scale, 0.7, '#bcdcb0', '');
+  }
+
+  // floor label on the front slab edge + LV badge when complete
+  var lab = iso(D*0.5, D*1.02, z);
+  drawTextTag(lab[0], lab[1]+2*cam.scale, col.letter, col.label||'', true);
+  if(col._verdictTurn<=turn && col._buildTurn<=turn){
+    // LEVEL-UP badge — sits just above this floor's back edge
+    var lv = iso(D*0.32, D*0.32, z+0.6);
+    var justDone = popping && cur===col._verdictEv;
+    var bpop = justDone? easeOutBack(frac): 1;
+    drawLV(lv[0], lv[1]-6*cam.scale, col._idx+1, bpop, justDone?frac:1);
+  }
+
+  // hit region: the whole floor slab -> the build event
+  pushHit([sh.A,sh.B,sh.C,sh.E], col._buildEv, 'Builder workshop — '+col.letter, (col.label||'')+' build+run'+(col._buildEv&&col._buildEv.test_count?(' · '+col._buildEv.test_count+' tests'):''));
+
+  // TEST GATE cart: while THIS column's merge is popping in, ride a cart up
+  if(popping && cur && cur===col._buildEv && cur.is_merge){
+    drawGateCart(z, frac, cur);
+  }
+}
+
+function drawDesk(cx, cy){
+  var s=cam.scale;
+  roundRectPath(cx-16*s, cy-10*s, 30*s, 12*s, 3*s);
+  ctx.fillStyle='#c8a879'; ctx.fill(); ctx.lineWidth=2*s; ctx.strokeStyle=OUT; ctx.stroke();
+  // a little monitor
+  roundRectPath(cx-2*s, cy-20*s, 14*s, 10*s, 2*s);
+  ctx.fillStyle='#8fb6d0'; ctx.fill(); ctx.stroke();
+}
+
+function drawLV(cx, cy, n, pop, glow){
+  var s=cam.scale;
+  ctx.save(); ctx.translate(cx,cy); ctx.scale(pop,pop);
+  if(glow<1){ ctx.globalAlpha=0.5*(1-glow); ctx.fillStyle='#ffe9a8';
+    ctx.beginPath(); ctx.arc(0,0,(20+30*glow)*s,0,7); ctx.fill(); ctx.globalAlpha=1; }
+  roundRectPath(-20*s,-11*s,40*s,22*s,7*s);
+  ctx.fillStyle='#f2c14e'; ctx.fill(); ctx.lineWidth=2.4*s; ctx.strokeStyle='#5a3d06'; ctx.stroke();
+  ctx.fillStyle='#5a3d06'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font='900 '+13*s+'px ui-rounded,"Segoe UI",sans-serif';
+  ctx.fillText('LV.'+n, 0, 1*s);
+  ctx.restore();
+}
+
+/* elevator/turnstile cart carrying the passing test count up the spine */
+function drawGateCart(z, frac, ev){
+  var s=cam.scale;
+  var fromZ=0.6, toZ=z+0.2;
+  var zz = fromZ + (toZ-fromZ)*clamp01(frac);
+  var p = iso(0.0, 0.0, zz);                     // back-corner spine
+  roundRectPath(p[0]-16*s, p[1]-13*s, 32*s, 20*s, 4*s);
+  ctx.fillStyle='#f2c14e'; ctx.fill(); ctx.lineWidth=2.4*s; ctx.strokeStyle=OUT; ctx.stroke();
+  ctx.fillStyle=OUT; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font='900 '+10*s+'px ui-rounded,sans-serif';
+  var tc = ev.test_count!=null? (ev.test_count+' ✓') : 'merge';
+  ctx.fillText(tc, p[0], p[1]-3*s);
+  // cable
+  ctx.strokeStyle=OUT; ctx.lineWidth=1.6*s;
+  ctx.beginPath(); ctx.moveTo(p[0], p[1]-13*s); ctx.lineTo(p[0], iso(0,0,toZ+0.8)[1]); ctx.stroke();
+}
+
+/* the next, unbuilt column (Y = this artifact) shown as a blueprint ghost */
+function drawPendingGhost(builtCount, turn, frac, cur){
+  var pend = COLS.filter(function(c){ return !isFinite(c._buildTurn) && c._regEvs.some(function(e){return e._turn<=turn;}); });
+  if(!pend.length) return;
+  var col = pend[0];
+  var z = 1 + builtCount;
+  ctx.save();
+  ctx.globalAlpha=0.55;
+  ctx.setLineDash([6*cam.scale,5*cam.scale]);
+  var A=iso(0,0,z),B=iso(D,0,z),C=iso(D,D,z),E=iso(0,D,z);
+  poly([A,B,C,E], 'rgba(180,214,232,.30)', '#6a5c45', 2.2);
+  var A2=iso(0,0,z+0.66),B2=iso(D,0,z+0.66),E2=iso(0,D,z+0.66);
+  poly([A,B,B2,A2], null, '#6a5c45', 2);
+  poly([A,E,E2,A2], null, '#6a5c45', 2);
+  ctx.setLineDash([]);
+  ctx.restore();
+  var lab=iso(D*0.5, D*1.02, z);
+  drawTextTag(lab[0], lab[1]+2*cam.scale, col.letter, (col.label||'')+' · in progress', true);
+  var mid=iso(D*0.5,D*0.5,z+0.2);
+  ctx.save(); ctx.globalAlpha=.6; drawTextTag(mid[0], mid[1], 'REGISTERED'); ctx.restore();
+  var regEv = col._regEvs[col._regEvs.length-1];
+  pushHit([A,B,C,E], regEv, 'Registered — pending build', col.letter+' (this artifact)');
+}
+
+/* ---------- HUD + panels ---------- */
+var TYPE_STYLE = {
+  REGISTRATION:{bg:'#f2cf8b',t:'REGISTER'}, BUILDRUN:{bg:'#a9cfe6',t:'BUILD+RUN'},
+  VERDICT:{bg:'#b7ddb0',t:'VERDICT'}, CORRECTION:{bg:'#d9c4ec',t:'RE-SCOPE'}, PERF:{bg:'#d8ccb2',t:'PERF'}
+};
+function drawHUD(turn, cur){
+  document.getElementById('turnNum').textContent = turn;
+  if(cur){
+    document.getElementById('turnTime').textContent = fmtTime(cur.iso_time);
+    var st = TYPE_STYLE[cur.type]||{bg:'#ddd',t:cur.type};
+    var chip=document.getElementById('evChip'); chip.textContent=st.t; chip.style.background=st.bg;
+    document.getElementById('evText').textContent = cur.summary;
+    document.getElementById('evHash').textContent = cur.hash;
+  } else {
+    document.getElementById('turnTime').textContent = 'press Play — the pipeline builds itself';
+    var chip2=document.getElementById('evChip'); chip2.textContent='—'; chip2.style.background='#e7dcc4';
+    document.getElementById('evText').textContent = 'Every turn is one real commit. '+EVENTS.length+' events, '+COLS.length+' columns.';
+    document.getElementById('evHash').textContent = '';
+  }
+}
+function updatePanels(turn, cur){
+  COLS.forEach(function(col){
+    var p=col._panel; if(!p) return;
+    var reached = (isFinite(col._buildTurn) && col._buildTurn<=turn) ||
+                  col._regEvs.some(function(e){return e._turn<=turn;}) ||
+                  (col._verdictTurn<=turn);
+    p.classList.toggle('reached', !!reached);
+    p.classList.toggle('built', col._buildTurn<=turn);
+    p.classList.toggle('done', col._buildTurn<=turn && col._verdictTurn<=turn);
+    p.classList.toggle('current', !!(cur && cur.column===col.letter));
+  });
+  document.getElementById('scrubCount').textContent = turn+' / '+EVENTS.length;
+}
+
+function fmtTime(iso){
+  // show the REAL commit timestamp (honesty binding), no invented precision
+  try{
+    var d=new Date(iso);
+    var opt={year:'numeric',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'};
+    return d.toLocaleString(undefined,opt)+'  ·  '+iso;
+  }catch(e){ return iso; }
+}
+
+/* ---------- tooltip (canvas hovers via hit regions) ---------- */
+function showTipFor(hit, mx, my){
+  var ev = hit.ev;
+  var html='';
+  html += '<div class="tt-kind">'+esc(hit.kind)+'</div>';
+  if(ev){
+    html += '<div class="tt-top"><span class="tt-hash">'+esc(ev.hash)+'</span>'+
+            '<span class="tt-time">'+esc(fmtTime(ev.iso_time))+'</span></div>';
+    html += '<div class="tt-sub">'+esc(ev.summary)+'</div>';
+  } else {
+    html += '<div class="tt-sub" style="color:#6a5c45">'+esc(hit.extra||'not yet reached in the replay')+'</div>';
+  }
+  tip.innerHTML = html; tip.style.display='block';
+  moveTipXY(mx,my);
+}
+function showColTip(col, ev){
+  var e = col._buildEv || col._verdictEv || (col._regEvs[0]);
+  var html='<div class="tt-kind">COLUMN '+esc(col.letter)+(col.label?(' · '+esc(col.label)):'')+
+           (col.completed?' · LV.'+(col._idx+1):(col.registered?' · registered':''))+'</div>';
+  if(e){
+    html += '<div class="tt-top"><span class="tt-hash">'+esc(e.hash)+'</span>'+
+            '<span class="tt-time">'+esc(fmtTime(e.iso_time))+'</span></div>';
+    html += '<div class="tt-sub">'+esc(e.summary)+'</div>';
+  }
+  if(col.title) html+='<div class="tt-sub" style="color:#6a5c45;margin-top:3px">“'+esc(col.title)+'”</div>';
+  tip.innerHTML=html; tip.style.display='block'; moveTip(ev);
+}
+function moveTip(ev){ moveTipXY(ev.clientX, ev.clientY); }
+function moveTipXY(mx,my){
+  var pad=14, w=tip.offsetWidth, h=tip.offsetHeight;
+  var x=mx+pad, y=my+pad;
+  if(x+w>window.innerWidth-8) x=mx-w-pad;
+  if(y+h>window.innerHeight-8) y=my-h-pad;
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+function hideTip(){ tip.style.display='none'; }
+
+canvas.addEventListener('mousemove', function(ev){
+  var r=canvas.getBoundingClientRect();
+  var mx=ev.clientX-r.left, my=ev.clientY-r.top;
+  // topmost hit wins: iterate in reverse draw order
+  for(var i=HITS.length-1;i>=0;i--){
+    if(pointInPoly(mx,my,HITS[i].pts)){ showTipFor(HITS[i], ev.clientX, ev.clientY); canvas.style.cursor='help'; return; }
+  }
+  hideTip(); canvas.style.cursor='default';
+});
+canvas.addEventListener('mouseleave', hideTip);
+
+/* ---------- controls ---------- */
+function syncPlayBtn(){ document.getElementById('playBtn').textContent = playing? '❚❚ Pause':'▶ Play'; }
+function wireControls(){
+  var playBtn=document.getElementById('playBtn');
+  playBtn.addEventListener('click', function(){
+    if(playhead>=EVENTS.length) playhead=0;
+    playing=!playing; lastT=performance.now(); syncPlayBtn();
+  });
+  document.getElementById('restartBtn').addEventListener('click', function(){
+    setPlayhead(0); playing=false; syncPlayBtn();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#speeds button'), function(b){
+    b.addEventListener('click', function(){
+      speed=parseFloat(b.dataset.sp);
+      document.querySelectorAll('#speeds button').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+    });
+  });
+  var scrub=document.getElementById('scrub');
+  scrub.addEventListener('input', function(){ playing=false; syncPlayBtn(); setPlayhead(parseInt(scrub.value,10)); });
+  window.addEventListener('keydown', function(e){
+    if(e.code==='Space'){ e.preventDefault(); document.getElementById('playBtn').click(); }
+    else if(e.code==='ArrowRight'){ playing=false; syncPlayBtn(); setPlayhead(Math.floor(playhead)+1); }
+    else if(e.code==='ArrowLeft'){ playing=false; syncPlayBtn(); setPlayhead(Math.ceil(playhead)-1); }
+  });
+}
+
+})();
+</script>
+</body>
+</html>
