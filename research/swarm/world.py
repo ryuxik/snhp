@@ -118,6 +118,19 @@ GATHERERS_MAX = 3                   # at most this many robots per company diver
                                     # SCOUTS_MAX — a whole-fleet matter stampede
                                     # would erase the ore-vs-matter trade the KILL
                                     # is measuring)
+# v25 (column X): the firm's interior — command / prices / claims.
+PLAN_PERIOD = 25                   # ticks between central-planner re-plans (the
+                                    # dispatcher's cadence). Between re-plans a drone
+                                    # executes its last order; a stale plan self-
+                                    # corrects as re-plans read fresher merged belief.
+CMD_HANDOFF_RADIUS = R_RADIO       # a directed hand-off pairs a stuck loaded drone
+                                    # with a LOCAL same-company taker only (within this
+                                    # Chebyshev radius, itself single-hop-reachable to a
+                                    # refinery and closer to it) — a local rendezvous,
+                                    # never a multi-hop stepping-stone router (P24 caveat)
+DEADLOCK_FULL = 0.95               # "at full battery" threshold (× BATTERY_MAX) for the
+                                    # routing-deadlock predicate (the P24 signature:
+                                    # loaded, charged, still beyond single-hop refinery reach)
 
 PRESETS = {
     # sources, refineries [(pos, owner)], chargers [(pos, owner)]
@@ -227,7 +240,8 @@ class World:
                  reputation: bool = False, false_accuse: float = 0.0,
                  order_book: bool = False,
                  build_matter: float = 0.0, build: bool = False,
-                 toll_level: float = 0.0, build_budget: int = 10**9):
+                 toll_level: float = 0.0, build_budget: int = 10**9,
+                 command: bool = False, deadlock_track: bool = False):
         self.rng = np.random.RandomState(seed)
         self.rng_seed = seed                 # v18: matter-field RNG keys off this
         self.hazard_phi = hazard_phi
@@ -515,6 +529,31 @@ class World:
         # no RNG) so the off path is bit-identical; consulted only under
         # order_book.
         self.known_orders = [set() for _ in range(len(self.robots))]
+        # v25 (column X): the firm's interior. `command` installs a central planner
+        # that REPLACES the drone decision rule with radio-propagated assignments —
+        # the planner plans on the company's gossip-merged belief (never field truth)
+        # and uses ONLY the shared single-hop routing/valuation primitives (no bespoke
+        # multi-hop router; the P24 caveat). `deadlock_track` is the routing-
+        # contamination instrument (a pure read-only per-tick predicate count). Both
+        # default off ⇒ every prior column is bit-identical: the command state below is
+        # allocated but never read (drive/make_arm gate on w.command), command_step and
+        # deadlock_step early-return, and no RNG/physics/Φ is touched.
+        n_r = len(self.robots)
+        self.command = command
+        self.deadlock_track = deadlock_track or command
+        self.cmd_plan_versions: dict = {}    # plan_tick → {rid: target_spec}; a spec
+                                             # is ('mine',rock)|('deliver',ref)|
+                                             # ('charge',)|('handoff',taker_rid)
+        self.cmd_auth_tick = [-1, -1]        # newest plan tick, per company
+        self.cmd_held_tick = [-1] * n_r      # newest plan a robot has RECEIVED (radio)
+        self.cmd_belief_age_traj: list = []  # (tick, mean belief-age of the mine-
+                                             # assignments) — the plan-staleness at source
+        self.cmd_reach_lat: list = []        # adoption latency samples (tick − plan_tick)
+        self.cmd_mine_exec = 0               # commanded drone-ticks executing a mine order
+        self.cmd_mine_stale = 0              #   ... where the target rock is truly empty
+        self.cmd_handoffs = 0                # directed cargo hand-offs executed
+        self.deadlock_count = 0              # rising-edge entries into the routing deadlock
+        self._in_deadlock = [False] * n_r
         # company-neutral charger tie-break (panel M2): seeded priority
         self._charge_prio = list(self.rng.permutation(len(self.robots)))
         # v6: liar assignment, company-balanced (placebo preserved); in the
@@ -1048,6 +1087,221 @@ class World:
                                 and abs(a.pos[1] - b.pos[1]) <= R
                                 and snap[b.rid]):
                             self.blacklist[a.rid] |= snap[b.rid]
+
+    # ── v25 (column X): the central planner (COMMAND regime) ─────────────
+    def _loaded_reach(self, r: Robot, ref_pos) -> bool:
+        """Can robot r carry a load to ref_pos in ONE loaded hop? The shared
+        single-hop reachability primitive every arm's routing already uses —
+        NOT a multi-hop router (the P24 caveat). Reads TRUE battery (physics)."""
+        return manhattan(r.pos, ref_pos) * r.eff * (1 + LOADED_MULT) <= r.battery
+
+    def _merged_belief(self, co: int):
+        """The company's gossip-merged belief: per rock, the FRESHEST (belief,
+        last_seen) across its same-company robots — exactly the fleet-wide union
+        a dispatcher would hold off the SAME radio (under gossip each robot's map
+        is per-rid; _bx handles the free-radio case too). NEVER field truth: it is
+        assembled only from what the fleet has actually sensed and relayed."""
+        n_src = len(self.sources)
+        bel = [0.0] * n_src
+        ls = [-1] * n_src
+        for r in self.robots:
+            if r.company != co:
+                continue
+            bx = self._bx(r)
+            row_ls = self.last_seen[bx]
+            row_bel = self.belief[bx]
+            for i in range(n_src):
+                if row_ls[i] > ls[i]:
+                    ls[i] = row_ls[i]
+                    bel[i] = row_bel[i]
+        return bel, ls
+
+    def _handoff_taker(self, giver: Robot, co: int):
+        """A LOCAL same-company drone that can carry the giver's cargo one loaded
+        hop to a refinery: within CMD_HANDOFF_RADIUS, with spare cap, itself single-
+        hop-reachable to a refinery, and strictly CLOSER to a refinery than the giver
+        (so the hand-off makes progress). Nearest-then-rid tie-break; deterministic,
+        single-hop only — no stepping-stone chain lookahead (the P24 caveat)."""
+        g_to_ref = min(manhattan(giver.pos, rf) for rf in self.refineries)
+        best = None
+        best_key = None
+        for t in self.robots:
+            if t.company != co or t.rid == giver.rid or t.stranded:
+                continue
+            if t.cap - t.load <= 0:
+                continue
+            cd = max(abs(giver.pos[0] - t.pos[0]), abs(giver.pos[1] - t.pos[1]))
+            if cd > CMD_HANDOFF_RADIUS:
+                continue
+            if not any(self._loaded_reach(t, rf) for rf in self.refineries):
+                continue
+            if min(manhattan(t.pos, rf) for rf in self.refineries) >= g_to_ref:
+                continue
+            key = (cd, t.rid)
+            if best_key is None or key < best_key:
+                best, best_key = t, key
+        return best
+
+    def _plan_company(self, co: int) -> dict:
+        """The planner's STANDING orders for a company, on the merged belief. It
+        REPLACES the allocation decision — which rock an empty drone mines
+        (deconflicted so the fleet covers the field, not dogpiles the richest rock)
+        and whether a stuck loaded drone hands off — while the MECHANICAL reflexes
+        (deliver-when-loaded, charge-when-low) stay the shared single-hop primitives
+        every arm uses (the P24 caveat: same movement/valuation code). Orders are
+        standing (a mining beat persists across load cycles), so a drone never idles
+        between re-plans. Deterministic (index/distance tie-breaks; no RNG).
+
+        A spec is ('mine', rock) or ('handoff', taker_rid); drones with no spec use
+        the shared reflex (loaded → deliver/charge, empty+low → charge)."""
+        from swarm.value import safe_return_threshold
+        bel, ls = self._merged_belief(co)
+        robots = [r for r in self.robots if r.company == co and not r.stranded]
+        plan: dict = {}
+        # (1) LOADED drones BEYOND single-hop refinery reach: a LOCAL directed hand-off
+        #     if a viable taker exists; otherwise no order (the shared deliver/charge
+        #     reflex carries them — never a stepping-stone router, the P24 caveat).
+        for r in robots:
+            if r.load <= 0:
+                continue
+            if any(self._loaded_reach(r, rf) for rf in self.refineries):
+                continue                     # can deliver directly → shared reflex
+            taker = self._handoff_taker(r, co)
+            if taker is not None:
+                plan[r.rid] = ("handoff", taker.rid)
+        # (2) EMPTY healthy drones: a deconflicted mine target. The SCORE is the
+        #     baseline's own best_claim (richest-per-distance on the merged belief),
+        #     divided by a congestion factor (1 + drones already assigned there) so
+        #     the fleet SPREADS off the single richest rock onto the next-best. The
+        #     distance term keeps every pick local/sustainable (command never routes
+        #     a drone anywhere its own prudent policy would not), so the ONLY change
+        #     vs baseline is coordinated deconfliction. Deterministic (rid order).
+        rocks = [i for i in range(len(self.sources)) if bel[i] > 1e-9]
+        assigned = {i: 0 for i in rocks}
+        belief_ages = []
+        for r in sorted((x for x in robots if x.load <= 0), key=lambda x: x.rid):
+            if r.bat() < safe_return_threshold(r, self) or not rocks:
+                continue                     # low battery / no rocks → shared reflex
+            best, best_score = None, -1.0
+            for i in rocks:
+                base = bel[i] / (manhattan(r.pos, self.sources[i]) + 4.0)
+                score = base / (1 + assigned[i])
+                if score > best_score:
+                    best, best_score = i, score
+            plan[r.rid] = ("mine", best)
+            assigned[best] += 1
+            belief_ages.append(self.tick - ls[best])
+        if belief_ages:
+            self.cmd_belief_age_traj.append(
+                (self.tick, float(sum(belief_ages) / len(belief_ages))))
+        return plan
+
+    def command_step(self) -> None:
+        """Re-plan (every PLAN_PERIOD) on the merged belief, then propagate the
+        authoritative plan outward from each company HQ (its home refinery) by the
+        SAME radio physics as gossip: one hop/tick through the same-company Chebyshev
+        r_radio contact graph. A drone the plan has not reached keeps its last order
+        (or the default solo policy if never reached). Runs in the drive/world phase
+        BEFORE drive reads targets; deterministic, consumes no RNG. Off ⇒ returns
+        immediately (bit-identical to every prior column)."""
+        if not self.command:
+            return
+        if self.tick % PLAN_PERIOD == 0:
+            version = self.cmd_plan_versions.setdefault(self.tick, {})
+            for co in range(2):
+                version.update(self._plan_company(co))
+                self.cmd_auth_tick[co] = self.tick
+        R = max(1, self.r_radio)
+        # (a) seed: robots within r_radio of their HQ hear the broadcast directly.
+        for r in self.robots:
+            if r.stranded:
+                continue
+            at = self.cmd_auth_tick[r.company]
+            if at < 0 or self.cmd_held_tick[r.rid] >= at:
+                continue
+            hq = self.refineries[self._home_ref(r.company)]
+            if max(abs(r.pos[0] - hq[0]), abs(r.pos[1] - hq[1])) <= R:
+                self.cmd_reach_lat.append(self.tick - at)
+                self.cmd_held_tick[r.rid] = at
+        # (b) flood one hop (snapshot first ⇒ one hop/tick, order-independent —
+        #     the exact _gossip_step discipline). O(N) spatial-hashed by r_radio.
+        snap = self.cmd_held_tick[:]
+        rs = self.robots
+        buckets: dict = {}
+        for idx, r in enumerate(rs):
+            buckets.setdefault((r.pos[0] // R, r.pos[1] // R), []).append(idx)
+        for a in rs:
+            if a.stranded:
+                continue
+            cx, cy = a.pos[0] // R, a.pos[1] // R
+            best = snap[a.rid]
+            for ox in (-1, 0, 1):
+                for oy in (-1, 0, 1):
+                    for j in buckets.get((cx + ox, cy + oy), ()):
+                        b = rs[j]
+                        if b.company != a.company or b.rid == a.rid:
+                            continue
+                        if (abs(a.pos[0] - b.pos[0]) <= R
+                                and abs(a.pos[1] - b.pos[1]) <= R
+                                and snap[b.rid] > best):
+                            best = snap[b.rid]
+            if best > self.cmd_held_tick[a.rid]:
+                self.cmd_reach_lat.append(self.tick - best)
+                self.cmd_held_tick[a.rid] = best
+
+    def cmd_spec(self, r: Robot):
+        """The raw target spec robot r currently holds (the plan VERSION it has
+        actually received by radio — a stale local plan is executed as-is), or
+        None if it has no order / the order lapsed."""
+        ht = self.cmd_held_tick[r.rid]
+        if ht < 0:
+            return None
+        return self.cmd_plan_versions.get(ht, {}).get(r.rid)
+
+    def cmd_resolve(self, r: Robot):
+        """Resolve r's STANDING order to a target POSITION for its CURRENT state,
+        or None → the shared default reflex handles it (loaded → deliver/charge;
+        empty+low → charge; no order → solo initiative). Tallies mine-execution
+        staleness: a commanded empty drone acting on a mine order whose target rock
+        is truly depleted is the plan-went-stale-at-execution signature. Called once
+        per drive tick from intent() under w.command."""
+        spec = self.cmd_spec(r)
+        if r.load > 0:
+            # loaded: a directed hand-off overrides; else the shared deliver reflex.
+            if spec is not None and spec[0] == "handoff":
+                taker = self.robots[spec[1]]
+                if not taker.stranded and taker.cap - taker.load > 0:
+                    return taker.pos
+            return None
+        # empty: mine the assigned beat (unless the drone now believes it depleted —
+        # then defer to solo initiative rather than idle on a known-empty rock).
+        if spec is not None and spec[0] == "mine":
+            i = spec[1]
+            self.cmd_mine_exec += 1
+            if self.stock[i] <= 0:
+                self.cmd_mine_stale += 1
+            if self.stock_belief(r, i) <= 0:
+                return None
+            return self.sources[i]
+        return None
+
+    def deadlock_step(self) -> None:
+        """Count RISING-EDGE entries into the routing deadlock: loaded, at ~full
+        battery, and beyond single-hop LOADED reach of EVERY refinery (the P24
+        signature — a charged hauler that still cannot deliver in one hop). A pure
+        read-only predicate over the SHARED routing physics, so the counts are ~equal
+        across regimes iff routing competence is shared — the settlement-vs-routing
+        contamination check. Off ⇒ never called (bit-identical)."""
+        if not self.deadlock_track:
+            return
+        full = DEADLOCK_FULL * BATTERY_MAX
+        for r in self.robots:
+            stuck = (r.load > 0 and not r.stranded and r.battery >= full
+                     and not any(self._loaded_reach(r, rf)
+                                 for rf in self.refineries))
+            if stuck and not self._in_deadlock[r.rid]:
+                self.deadlock_count += 1
+            self._in_deadlock[r.rid] = stuck
 
     # ── v12 K1: map-selling (a sync is a copy of fresher map entries) ────
     def _map_overlay_entries(self, rc: int, gc: int):

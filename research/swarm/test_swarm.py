@@ -2296,6 +2296,143 @@ def test_v18_evaluated_equals_executed_live_under_build():
     assert sum(c["built"] for c in w.company) > 0, "no charger built — vacuous"
 
 
+# ── v25 (column X): the firm's interior — command / prices / claims ─────
+def test_v25_command_default_off_bit_identical():
+    """command=False and deadlock_track=False must be bit-identical to a lineage-
+    only world — the planner state, the deadlock instrument and every column-X
+    branch may not perturb a single bit when off. Checked on a bargaining arm and
+    the auction (the same surfaces the P2 off-test guards)."""
+    for arm_name in ("snhp+net", "auction"):
+        outs = []
+        for kw in (dict(lineage=True),
+                   dict(lineage=True, command=False, deadlock_track=False)):
+            w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                      hazard_phi=(arm_name == "snhp+net"), **kw)
+            arm = make_arm(arm_name, w)
+            for _ in range(400):
+                arm.tick()
+            outs.append((w.delivered, arm.deals, len(w.event_log),
+                         round(sum(r.battery for r in w.robots), 9),
+                         [r.pos for r in w.robots]))
+        assert outs[0] == outs[1], f"column-X plumbing perturbed {arm_name}"
+
+
+def test_v25_prices_bit_identical_with_instrument():
+    """The internal-prices regime (b) is the P23b firm_relay arm, UNCHANGED: the
+    read-only deadlock instrument may not perturb it. firm_relay in the column-X
+    information env with deadlock_track on == off, bit for bit (delivered, deals,
+    positions, batteries AND the internal treasury book)."""
+    outs = []
+    for dt in (False, True):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                  firm_relay=True, belief_mode=True, gossip=True, r_radio=6,
+                  deadlock_track=dt)
+        arm = make_arm("snhp+net", w)
+        for _ in range(400):
+            arm.tick()
+        outs.append((w.delivered, arm.deals, len(w.event_log),
+                     round(sum(r.battery for r in w.robots), 9),
+                     [r.pos for r in w.robots],
+                     round(w.company[0]["treasury"], 6)))
+    assert outs[0] == outs[1], \
+        "deadlock instrument perturbed the firm_relay (prices) trajectory"
+
+
+def test_v25_command_assignments_propagate_by_contact_only():
+    """The COMMAND honesty constraint (i): assignments spread by the SAME radio
+    physics as gossip. A same-company drone within r_radio of HQ hears the plan;
+    one beyond the connected component keeps NO order (cmd_held_tick stays -1 ⇒
+    cmd_resolve None ⇒ the drone keeps its default solo policy)."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), command=True,
+              belief_mode=True, gossip=True, r_radio=6, lineage=True)
+    hq = w.refineries[w._home_ref(0)]
+    co0 = [r for r in w.robots if r.company == 0]
+    for r in co0:                      # park the fleet on HQ; isolate one far away
+        r.pos = hq
+    far = co0[0]
+    far.pos = (0, 0)                   # no same-company robot within r_radio of it
+    near = co0[1]
+    w.command_step()                   # tick 0: re-plan + seed(HQ) + one flood hop
+    assert w.cmd_held_tick[near.rid] == 0, "an HQ-adjacent drone did not hear the plan"
+    assert w.cmd_held_tick[far.rid] == -1, "the plan reached an out-of-radio drone"
+    assert w.cmd_resolve(far) is None, "an unreached drone got a command target"
+
+
+def test_v25_planner_belief_is_merged_gossip_not_field_truth():
+    """The COMMAND honesty constraint (ii): the planner plans on the company's
+    gossip-merged belief, NEVER field truth. With a stale-optimistic belief over a
+    truly-depleted rock, the merged view returns the stale belief (the union of
+    what the fleet has sensed), which differs from the (zero) true stock."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), command=True,
+              belief_mode=True, gossip=True, r_radio=6, lineage=True)
+    i = 0
+    for r in w.robots:
+        if r.company == 0:
+            w.belief[r.rid][i] = 50.0
+            w.last_seen[r.rid][i] = 5
+    w.stock[i] = 0                     # the rock is TRULY empty
+    bel, ls = w._merged_belief(0)
+    assert bel[i] == 50.0, "merged belief is not the fleet's sensed belief"
+    assert bel[i] != w.stock[i], "planner read FIELD TRUTH, not the merged belief"
+
+
+def test_v25_claims_conserve_credit_inside_the_firm():
+    """Regime (c): the bills machinery run inside the firm conserves credit through
+    internal settlement — 600 ticks in the column-X info env with credit AND
+    material conservation live, non-vacuous (relays actually settle)."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), bills=True,
+              belief_mode=True, gossip=True, r_radio=6, deadlock_track=True)
+    arm = make_arm("snhp+net", w)
+    for _ in range(600):
+        arm.tick()
+        assert w.credit_conserved(), "credit not conserved under internal claims"
+        assert w.material_ok(), "material leak under internal claims"
+    assert arm.deals > 0, "claims struck no deals — vacuous"
+    assert w.ledger_accounted()
+
+
+def test_v25_deadlock_counter_counts_a_handbuilt_deadlock_once():
+    """The routing-contamination instrument counts each ENTRY into the deadlock
+    (loaded, ~full battery, beyond single-hop loaded reach of every refinery)
+    exactly once — rising-edge, not per-tick — and re-counts a fresh entry."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), deadlock_track=True)
+    for o in w.robots:
+        o.load = 0                     # only the hand-built drone may be in deadlock
+    r = w.robots[0]
+    r.load, r.battery, r.eff, r.stranded = 1, 100.0, 5.0, False
+    r.pos = (0, 16)                    # far: manhattan*5*1.6 ≫ 100 to every refinery
+    assert not any(w._loaded_reach(r, rf) for rf in w.refineries)
+    base = w.deadlock_count
+    w.deadlock_step()
+    assert w.deadlock_count == base + 1, "entry not counted"
+    w.deadlock_step()
+    assert w.deadlock_count == base + 1, "counted a second time while still stuck"
+    r.pos = w.refineries[0]            # now single-hop reachable → leaves the state
+    w.deadlock_step()
+    assert w.deadlock_count == base + 1, "count moved on a falling edge"
+    r.pos = (0, 16)                    # re-enter → a fresh entry counts
+    w.deadlock_step()
+    assert w.deadlock_count == base + 2, "a fresh entry was not counted"
+
+
+def test_v25_command_runs_conserves_and_delivers():
+    """COMMAND end-to-end: the planner swaps in (CommandArm), the fleet delivers
+    (non-vacuous), the planner actually plans, and material + ledger conserve — the
+    directed hand-offs settle through the shared transfer/drop primitives, so no
+    'evaluated Φ == executed Φ' reconciliation is needed (no bundle evaluation runs)."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), command=True,
+              belief_mode=True, gossip=True, r_radio=6, lineage=True,
+              deadlock_track=True)
+    arm = make_arm("snhp+net", w)
+    assert arm.__class__.__name__ == "CommandArm", "command flag did not swap the arm"
+    for _ in range(800):
+        arm.tick()
+        assert w.material_ok(), "material leak under command"
+        assert w.ledger_accounted(), "ledger leak under command"
+    assert w.delivered > 0, "command delivered nothing — vacuous"
+    assert len(w.cmd_plan_versions) > 0, "the planner never planned"
+
+
 def benchmark(ticks=2500):
     """Timing harness (NOT a test): reports seconds for the three reference runs.
     Run with:  python -c 'from swarm.test_swarm import benchmark; benchmark()'"""
