@@ -2247,3 +2247,42 @@ deadlock instrumentation per the X caveat).
   scarcity and bills (far-band lift <0.05 AND toll revenue de minimis),
   infrastructure rent is genuinely absent at these scales and the null
   graduates from artifact to law. Report loudly either way.
+
+**PX VERDICTS (2026-07-16, registrar) — the doctrine result: inside the
+firm, the receipt beats the boss.**
+- **KILL DOES NOT FIRE.** At N=240/7,500: claims 2096.0 delivered vs
+  command 1954.8 (Δ=−141.2 for command, p=.001, 0/8 seeds). Attested
+  claims on outcomes beat central command AND inert chargeback inside the
+  firm. The internal-notary doctrine survives its registered kill.
+- **PXa REFUTED, mechanism confirmed.** Command loses at EVERY cell — the
+  registered small-N win never appears. The degradation mechanism is
+  measured exactly as predicted (belief-age + reach-latency grow with N;
+  at N=240 an assignment is ~90 ticks stale by execution — books-bleed-
+  first, for the planner), but it drowns command everywhere. Scope,
+  honestly: this is command on REALISTIC information (gossip-merged
+  belief, shared routing primitives, per the P24 caveat — verified: its
+  deadlock counts match baseline, so no routing edge and no routing
+  handicap). Hierarchy's cost in this world IS its information channel;
+  an oracle planner is the untested fantasy variant, and it would be a
+  different experiment, not a rescue of this one.
+- **PXb CONFIRMED MAXIMALLY — the inertness law's third confirmation, now
+  interior.** Transfer prices are bit-identical to baseline on delivered
+  at every cell; they move only the payout distribution (Gini
+  0.541→0.528). Chargeback redistributes; it does not produce.
+- **PXc CONFIRMED, and it closes the Q loop.** Claims−baseline +91.8 at
+  N=240/2,500 (p=.001, 8/8) and +115.5 at 7,500 (p<.001, 8/8), internal
+  ≥2-hop hand-off share 0.51–0.52 vs 0.02. And the cross-column headline:
+  **claims lift the P24 plateau that capital could not** (delivered_frac
+  0.825→0.863/0.873, vs Q's chargers +0.001). The deadlock instrument
+  explains how: claims' ~4× deadlock ENTRIES are rescues — a stuck loaded
+  drone hands off via a claim and cycles back to the frontier. The
+  registered equal-counts assumption is falsified INFORMATIVELY: a
+  mechanism that rescues deadlocks generates more entries. Q's diagnosis
+  said the plateau was a routing failure capital can't fix; X shows the
+  fix was never an algorithm or an asset — it was a CONTRACT that makes
+  the rational hand-off exist. Bills are the stepping-stone router,
+  implemented economically.
+- **Thesis line, on the record:** command loses to its own information
+  channel, prices redistribute without producing, and attested claims are
+  the only interior mechanism that turns scale from a liability into
+  throughput. Y2's gate (org structure on X's mechanics) is now OPEN.
