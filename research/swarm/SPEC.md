@@ -2427,3 +2427,38 @@ build_matter=0.5. Conservation suite green throughout (material, ledger
   @7,500t) — the X rescue signature again; building adds entries under
   bills (355.9/831.2) while fixing none of the far-band ratio, consistent
   with entries-as-rescues, not routing failure.
+
+**P24-R VERDICTS (2026-07-16, registrar) — the null graduates: capital is
+decorative for throughput in this world, minimal AND composed.**
+- **P24R-a NOT MET, with one clause scoped.** Far-band lift peaked at
+  +0.013 (p=.445) against the registered +0.05 bar; building never moved
+  throughput even with frontier scarcity and bills verified on (the
+  cells-match-registration guard did its job; the P23 signature reproduced
+  to three decimals). The placement clause is scoped
+  UNTESTABLE-AS-BUILT: the inherited Q siting rule pins stepping stones at
+  ~56 cells, geometrically short of the 62-cell far edge, so built capital
+  could never stand in the far band. Registered-open (not queued): a
+  fair far-band placement variant, if anyone still believes in it after
+  the next bullet.
+- **The louder null IS the finding: chains substitute for capital.** With
+  ZERO chargers in the far band, the bills fleet mined the frontier to
+  completion at 7,500t (far mined 565.8 ≈ the unscarce world's 565.75,
+  far d/m 0.867). The frontier did not need infrastructure because claim
+  chains carry gold across it without anyone standing there recharging.
+  Third independent echo of X: the contract does the job capital was
+  hired for.
+- **P24R-b: rent EXISTS; a rentier business does NOT.** Toll revenue 49cr
+  at the top of the grid, 6.2× Q's 7.88cr farce, real and above marginal
+  cost, demand inelastic above zero — and 0.25% of the ~19,400cr economy,
+  11% of the build spend, deadweight ≈ 0. The budget sweep is flat: the
+  report's "UNDER-PROVISION" print is a threshold artifact (+6.9 over a
+  +5 rule, sd ~100) and is hereby overridden: no under-provision.
+- **P24R-c: INCONCLUSIVE, honestly.** The complements claim split by
+  horizon with every effect an order of magnitude under seed noise
+  (sd ~100). Underpowered at 8 seeds; not counted for either side.
+- **KILL: fires on the throughput leg, not the rent leg.** Per the
+  COMPOSITION RULE the capital-as-throughput null is now LAW in this
+  world: tested minimal (Q) and composed (Q2, scarcity + bills), building
+  is decorative both times. What scarcity buys a landlord is lunch money
+  from inelastic guests. The founder's layering instinct was still right
+  to demand the test — the law earned its status only by surviving it.
