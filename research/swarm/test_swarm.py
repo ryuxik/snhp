@@ -1169,6 +1169,135 @@ def test_v14_map_sync_is_robot_to_robot_under_gossip():
         "a distant fleet-mate learned the entry without gossip relaying it"
 
 
+# ── v17 (column P): cargo lineage — parcels, hops, hold-up ledger ─────────
+def test_v17_lineage_is_pure_bookkeeping():
+    """lineage=True must not perturb a single bit of physics/RNG vs the flag
+    absent — parcels consume NO RNG and mutate NO physics (SPEC v17 P1). Checked
+    on a bargaining arm (transfer_cargo via apply_bundle) AND the auction arm
+    (transfer_cargo called directly), since both move cargo."""
+    for arm_name in ("snhp+net", "auction"):
+        outs = []
+        for kw in ({}, dict(lineage=True)):
+            w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                      hazard_phi=(arm_name == "snhp+net"), **kw)
+            arm = make_arm(arm_name, w)
+            for _ in range(400):
+                arm.tick()
+            outs.append((w.delivered, arm.deals, len(w.event_log),
+                         round(sum(r.battery for r in w.robots), 9),
+                         [r.pos for r in w.robots],
+                         [tuple(sorted(d.items())) for d in w.deal_log]))
+        assert outs[0] == outs[1], f"lineage perturbed the {arm_name} simulation"
+
+
+def test_v17_parcel_conservation():
+    """Parcel bookkeeping obeys conservation: len(parcels)==load==Σload_prov for
+    every robot at every tick, hops==len(chain) per parcel, and the delivered
+    ledger has exactly `delivered` entries. Non-vacuous: some units are relayed."""
+    N = 96
+    w = World(n_robots=N, sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              grid=_grid_L(N), lineage=True)
+    arm = make_arm("snhp+net", w)
+    for _ in range(500):
+        arm.tick()
+        for r in w.robots:
+            assert len(r.parcels) == r.load == sum(r.load_prov), \
+                f"parcel/load/prov mismatch on robot {r.rid}"
+            for p in r.parcels:
+                assert p["hops"] == len(p["chain"]), "hops != chain length"
+        assert w.material_ok()
+    assert len(w.delivered_parcels) == w.delivered, \
+        "delivered ledger != delivered units"
+    assert any(p["hops"] >= 1 for p in w.delivered_parcels), \
+        "no relayed unit ever delivered — vacuous"
+
+
+def test_v17_hops_increment_on_transfer():
+    """transfer_cargo moves the FIFO head q parcels giver→taker, +1 hop each,
+    recording the (tick, giver, taker) chain link — and only on log=True."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), lineage=True)
+    a, b = w.robots[0], w.robots[1]
+    a.cap = b.cap = 5
+    a.load, a.load_prov = 3, [3, 0]
+    a.parcels = [{"origin": 5, "hops": 0, "chain": []} for _ in range(3)]
+    b.load, b.load_prov, b.parcels = 0, [0, 0], []
+    w.tick = 42
+    moved = w.transfer_cargo(a, b, 2, log=True)
+    assert moved == 2
+    assert len(a.parcels) == 1 and len(b.parcels) == 2
+    assert all(p["hops"] == 1 for p in b.parcels)
+    assert all(p["chain"][-1] == (42, a.rid, b.rid) for p in b.parcels)
+    assert a.parcels[0]["hops"] == 0, "un-moved parcel gained a hop"
+    # log=False (the evaluation path) must NOT touch parcels
+    before = (len(a.parcels), len(b.parcels))
+    w.transfer_cargo(a, b, 1, log=False)
+    assert (len(a.parcels), len(b.parcels)) == before, \
+        "evaluation-pass transfer moved parcels"
+
+
+def test_v17_retire_on_delivery_and_pad_unload():
+    """drop retires every carried parcel into delivered_parcels with (origin,
+    hops, tick, deliverer) — including the stranded-ON-refinery pad-unload path."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), lineage=True)
+    r = w.robots[0]
+    r.company, r.sector = 0, 0
+    ref = w.refineries[0]
+    r.pos, r.load, r.load_prov = ref, 3, [3, 0]
+    r.parcels = [{"origin": 2, "hops": 1, "chain": [(0, 9, r.rid)]}
+                 for _ in range(3)]
+    w.drop(r)
+    assert r.load == 0 and not r.parcels
+    assert len(w.delivered_parcels) == 3
+    assert all(p["deliverer"] == r.rid and p["hops"] == 1 and p["origin"] == 2
+               for p in w.delivered_parcels)
+    # pad-unload: strand ON the refinery via drive (mirrors test_v8)
+    r2 = w.robots[1]
+    r2.company, r2.sector = 0, 0
+    r2.pos = (ref[0] - 1, ref[1])
+    r2.load, r2.load_prov = 2, [2, 0]
+    r2.parcels = [{"origin": 7, "hops": 0, "chain": []} for _ in range(2)]
+    r2.battery = r2.step_cost() + 0.5           # arrival step strands it
+    before = len(w.delivered_parcels)
+    from swarm.arms import drive
+    drive(r2, w)
+    assert r2.pos == ref and r2.stranded, "pad-unload repro setup broken"
+    assert r2.load == 0 and not r2.parcels
+    assert len(w.delivered_parcels) == before + 2, "pad-unload dropped no lineage"
+
+
+def test_v17_two_hop_relay_and_holdup_margins():
+    """A hand-built miner→X→Y→refinery relay: the delivered parcel records
+    hops=2 (a 2-link chain), and the hold-up ledger recovers X's per-leg margins
+    from the deal log — buy surplus at hop 1, (compressed) sell surplus at hop 2."""
+    from swarm.run import _holdup_margins
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), lineage=True)
+    m, x, y = w.robots[0], w.robots[1], w.robots[2]
+    for rr in (m, x, y):
+        rr.cap, rr.load, rr.load_prov, rr.parcels = 5, 0, [0, 0], []
+    m.sector, m.pos = 0, w.sources[0]
+    w.stock[0] = 2
+    assert w.pick(m) == 2 and all(p["hops"] == 0 for p in m.parcels)
+    w.tick = 10
+    w.transfer_cargo(m, x, 2, log=True)         # hop 1: m → x
+    w.tick = 20
+    w.transfer_cargo(x, y, 2, log=True)         # hop 2: x → y
+    assert all(p["hops"] == 2 and len(p["chain"]) == 2 for p in y.parcels)
+    y.company, y.sector, y.pos = 0, 0, w.refineries[0]
+    w.tick = 30
+    w.drop(y)
+    relayed = [p for p in w.delivered_parcels if p["hops"] == 2]
+    assert len(relayed) == 2 and all(p["deliverer"] == y.rid for p in relayed)
+    # hand-built deal log: X buys big at hop 1 (sb=5), is squeezed at hop 2 (sa=1)
+    deal_log = [dict(tick=10, a=m.rid, b=x.rid, sa=1.0, sb=5.0),
+                dict(tick=20, a=x.rid, b=y.rid, sa=1.0, sb=4.0)]
+    hl = _holdup_margins(w.delivered_parcels, deal_log)
+    assert hl["n"] == 2                          # one interior leg × two parcels
+    assert hl["mean_buy"] == 5.0 and hl["mean_sell"] == 1.0
+    assert hl["mean_delta"] == -4.0 and hl["frac_compressed"] == 1.0
+    # a parcel that never relayed contributes no leg
+    assert _holdup_margins([{"origin": 0, "hops": 0, "chain": []}], deal_log)["n"] == 0
+
+
 # ── differential oracle: optimized _evaluate == scalar reference ──────────
 # The fast Φ path in SnhpArm._evaluate MUST be byte-for-byte identical to the
 # scalar fallback (arms.FORCE_SCALAR_EVAL forces the reference). This test flips

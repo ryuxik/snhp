@@ -117,6 +117,14 @@ class Robot:
                                     # (delivered_units is the existing .delivered).
                                     # Pure bookkeeping — no RNG, no decision — so
                                     # the middleman metric never perturbs a bit.
+    parcels: list = field(default_factory=list)   # v17 (column P): unit-
+                                    # granularity cargo lineage — a FIFO of
+                                    # {origin rock, hop count, chain} dicts, one
+                                    # per carried unit. Populated ONLY under
+                                    # World.lineage (parcels-off leaves it an empty
+                                    # list, untouched — bit-identical, like
+                                    # load_prov). Off ⇒ no code runs; on consumes
+                                    # no RNG and mutates no physics.
 
     def bat(self) -> float:
         """BELIEVED battery — what every decision layer consumes. Physics
@@ -142,7 +150,8 @@ class World:
                  scouting: bool = False, map_trading: bool = False,
                  prospect_claims: bool = False,
                  consensus_cost: bool = False,
-                 gossip: bool = False, r_radio: int = R_RADIO):
+                 gossip: bool = False, r_radio: int = R_RADIO,
+                 lineage: bool = False):
         self.rng = np.random.RandomState(seed)
         self.hazard_phi = hazard_phi
         self.preset = preset
@@ -294,6 +303,16 @@ class World:
         self.energy_charged = 0.0
         self.deal_log: list[dict] = []
         self.event_log: list[dict] = []
+        # v17 (column P): cargo-lineage diagnosis. All three default off/zero and
+        # are PURE bookkeeping — no RNG, no physics — so every non-lineage column
+        # stays bit-identical (charge_served_slots is an aggregate like
+        # energy_charged; delivered_parcels/robot.parcels are populated only under
+        # `lineage`). charge_served_slots counts slot-fills for the charger duty
+        # cycle; delivered_parcels retires each delivered unit's (origin, hops,
+        # tick, deliverer, chain).
+        self.lineage = lineage
+        self.charge_served_slots = 0
+        self.delivered_parcels: list[dict] = []
 
         self.robots: list[Robot] = []
         if self.n_companies == 2:
@@ -820,6 +839,9 @@ class World:
             self.stock[s] -= q
             self.own_mined[r.company][s] += q  # v10b: rival-rate accounting
             self.mined_from[s] += q            # v11: per-asteroid provenance
+            if self.lineage and q:             # v17: one 0-hop parcel per unit,
+                r.parcels.extend(              # tagged with its origin rock
+                    {"origin": s, "hops": 0, "chain": []} for _ in range(q))
             return q
         return 0
 
@@ -830,6 +852,12 @@ class World:
             if r.pos != pos or r.load <= 0:
                 continue
             q, r.load = r.load, 0
+            if self.lineage:                    # v17: retire this unit's lineage
+                for p in r.parcels:             # (origin, hops it took to arrive,
+                    self.delivered_parcels.append(dict(   # tick, who delivered)
+                        origin=p["origin"], hops=p["hops"], tick=self.tick,
+                        deliverer=r.rid, chain=p["chain"]))
+                r.parcels = []
             owner = self.ref_owner[ref_idx]
             rate = self.credit_rate(r.company, ref_idx)
             earned = rate * V_DELIVER * q
@@ -871,6 +899,7 @@ class World:
                 if guest:
                     self.guest_charged += amt
                 served.add(r.rid)
+                self.charge_served_slots += 1    # v17: charger duty-cycle numer.
                 if r.stranded and r.battery >= RESCUE_FLOOR:
                     r.stranded = False
             for r in queue[CHARGE_SLOTS:]:    # commons diagnostics
@@ -918,6 +947,20 @@ class World:
         taker.received_units += q               # v13: units acquired via a deal
         giver.target_ref = None                 # re-evaluate routing
         taker.target_ref = None
+        # v17: move the FIFO head q parcels giver→taker, +1 hop each. Gated on
+        # `log` so it fires ONLY on real execution, NEVER on the log=False
+        # evaluation passes (apply_bundle on the live robots inside _evaluate) —
+        # those restore load without ever having touched parcels, so the
+        # invariant len(parcels)==load survives and no snapshot is needed. Pure
+        # bookkeeping: no RNG, no physics.
+        if self.lineage and log:
+            moving = giver.parcels[:q]
+            giver.parcels = giver.parcels[q:]
+            hop = (self.tick, giver.rid, taker.rid)
+            for p in moving:
+                p["hops"] += 1
+                p["chain"] = p["chain"] + [hop]
+            taker.parcels.extend(moving)
         if log:
             self.event_log.append(dict(t=self.tick, kind="cargo",
                                        src=giver.rid, dst=taker.rid, amt=q,

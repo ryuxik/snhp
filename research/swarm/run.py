@@ -27,13 +27,62 @@ import numpy as np
 from scipy import stats
 
 from swarm.arms import make_arm
-from swarm.world import TOTAL_STOCK, V_DELIVER, World
+from swarm.world import CHARGE_SLOTS, TOTAL_STOCK, V_DELIVER, World, manhattan
 
 FULL = ("cargo", "energy", "sector")
 LADDER = ["null", "rules", "auction", "auction-co", "team", "team-co",
           "twofirm", "snhp", "snhp+net", "snhp-hz"]
 TAUS = [0.05, 0.10, 0.15, 0.25, 0.50]        # straddles τ*≈0.16 (panel F2)
 TAU_ARMS = ["null", "snhp-hz", "team"]
+
+# v17 (column P): distance bands for the far-ore decay signature. ≤30 = home,
+# 31–62 = within a single loaded charge (loaded range ≈ BATTERY_MAX/(eff·1.6) ≈
+# 62 cells at mean eff), >62 = beyond single-charge loaded range (needs a relay
+# or a mid-haul recharge — where the chain hypothesis says delivery should decay).
+LINEAGE_BANDS = (30, 62)
+
+
+def _dist_band(d: float) -> int:
+    return 0 if d <= LINEAGE_BANDS[0] else (1 if d <= LINEAGE_BANDS[1] else 2)
+
+
+def _holdup_margins(delivered_parcels, deal_log):
+    """Hop-margin ledger for relayed (≥2-hop) parcels. For each interior holder
+    of a chain — the drone that BOUGHT the parcel at hop k and SOLD it at hop k+1
+    — recover the surplus it realized on each leg from the deal log (matched by
+    (tick, {a,b})), then compare. Williamson hold-up predicts the SELL leg's
+    margin is compressed below the BUY leg's (its position-specific haul
+    investment is expropriated at renegotiation): mean_delta = sell − buy < 0.
+    Deal surplus is bundle-level (sa/sb), so per-unit legs repeat their deal's
+    figure — a signature, not a precise per-unit decomposition. Auction/
+    trophallaxis relays leave no deal-log entry and are skipped (no surplus to
+    read). Returns n=0 when no priced ≥2-hop legs exist."""
+    idx = {}
+    for d in deal_log:
+        idx[(d["tick"], frozenset((d["a"], d["b"])))] = d
+    buys, sells, deltas = [], [], []
+    for p in delivered_parcels:
+        if p["hops"] < 2:
+            continue
+        chain = p["chain"]
+        for k in range(len(chain) - 1):
+            t_in, g_in, holder = chain[k]
+            t_out, holder2, taker_out = chain[k + 1]
+            d_in = idx.get((t_in, frozenset((g_in, holder))))
+            d_out = idx.get((t_out, frozenset((holder, taker_out))))
+            if d_in is None or d_out is None:
+                continue
+            buy = d_in["sa"] if d_in["a"] == holder else d_in["sb"]   # as buyer
+            sell = d_out["sa"] if d_out["a"] == holder else d_out["sb"]  # as seller
+            buys.append(float(buy))
+            sells.append(float(sell))
+            deltas.append(float(sell) - float(buy))
+    if not deltas:
+        return dict(n=0, mean_buy=None, mean_sell=None, mean_delta=None,
+                    frac_compressed=None)
+    return dict(n=len(deltas), mean_buy=float(np.mean(buys)),
+                mean_sell=float(np.mean(sells)), mean_delta=float(np.mean(deltas)),
+                frac_compressed=float(np.mean([d < 0 for d in deltas])))
 
 
 def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
@@ -46,7 +95,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              contested: bool = False, scouting: bool = False,
              map_trading: bool = False, prospect_claims: bool = False,
              n_robots: int = 24, consensus_cost: bool = False,
-             gossip: bool = False, r_radio: int = 6) -> dict:
+             gossip: bool = False, r_radio: int = 6,
+             lineage: bool = False) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -77,7 +127,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               mine_trait=mine_trait, dynamic_field=dynamic_field,
               contested=contested, scouting=scouting,
               map_trading=map_trading, prospect_claims=prospect_claims,
-              consensus_cost=consensus_cost, gossip=gossip, r_radio=r_radio)
+              consensus_cost=consensus_cost, gossip=gossip, r_radio=r_radio,
+              lineage=lineage)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
@@ -163,6 +214,46 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
                 if sh.std() > 1e-9:
                     nulls.append(np.corrcoef(deg, sh)[0, 1])
             freshness_deal_corr_null = (float(np.mean(nulls)) if nulls else None)
+    # v17 (column P): cargo-lineage diagnosis blob (only when lineage is on).
+    # Hop-count distribution of DELIVERED units, per-band delivered-vs-mined,
+    # charger duty cycle + dispensed energy, and the hold-up margin ledger.
+    lineage_detail = None
+    if lineage:
+        dp = w.delivered_parcels
+        nd = len(dp)
+        hc = [0, 0, 0]
+        for p in dp:
+            hc[min(2, p["hops"])] += 1
+        hop_shares = [round(c / nd, 4) for c in hc] if nd else [0.0, 0.0, 0.0]
+        # per-rock refinery distance = nearest refinery (each company mines its
+        # own mirrored half, so nearest ≈ the delivering refinery). Band the
+        # mined ore and the delivered ore identically, then compare fractions.
+        rock_band = [_dist_band(min(manhattan(w.sources[i], rf)
+                                    for rf in w.refineries))
+                     for i in range(len(w.sources))]
+        band_mined = [0, 0, 0]
+        band_delivered = [0, 0, 0]
+        for i in range(len(w.sources)):
+            band_mined[rock_band[i]] += w.mined_from[i]
+        for p in dp:
+            band_delivered[rock_band[p["origin"]]] += 1
+        n_ch = len(w.chargers)
+        cap = CHARGE_SLOTS * n_ch
+        duty = w.charge_served_slots / max(1, cap * makespan)
+        lineage_detail = dict(
+            n_delivered=nd,
+            hop_counts=hc,
+            hop_shares=hop_shares,
+            band_edges=list(LINEAGE_BANDS),
+            band_mined=band_mined,
+            band_delivered=band_delivered,
+            charger_duty=round(duty, 4),
+            charger_capacity=cap,
+            energy_dispensed=round(w.energy_charged, 1),
+            makespan=makespan,
+            queue_wait=sum(w.company[c]["queue_wait"] for c in range(2)),
+            holdup=_holdup_margins(dp, deals),
+        )
     label = arm_name if tuple(issues) == FULL else \
         f"{arm_name}[{'+'.join(issues)}]"
     return dict(
@@ -235,6 +326,9 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         gossip=gossip, r_radio=r_radio,
         freshness_deal_corr=freshness_deal_corr,
         freshness_deal_corr_null=freshness_deal_corr_null,
+        # v17 (column P): cargo-lineage diagnosis
+        lineage=lineage,
+        lineage_detail=lineage_detail,
     )
 
 
@@ -545,6 +639,106 @@ def p21(rows: list[dict]) -> None:
                   f"p_t={c['p_t']:.3f} p_w={c['p_w']:.3f} wins {c['wins']}/{c['n']}")
 
 
+def diagnosis(rows: list[dict]) -> None:
+    """v17 (column P) PHASE 1 — decompose the N=240 plateau into energy- /
+    queue- / chain-bound signatures. Printed numbers ARE the artifact. No-op
+    unless the sweep contains lineage rows."""
+    lrows = [r for r in rows if r.get("lineage") and r.get("lineage_detail")]
+    if not lrows:
+        return
+
+    def groups():
+        return sorted({(r["arm"], int(r["n_robots"])) for r in lrows},
+                      key=lambda k: (k[1], k[0]))
+
+    def sel(arm, N):
+        return [r for r in lrows
+                if r["arm"] == arm and int(r["n_robots"]) == N]
+
+    def det(g, path, default=np.nan):
+        vals = []
+        for r in g:
+            d = r["lineage_detail"]
+            for key in path:
+                d = d[key] if d is not None else None
+            if d is not None:
+                vals.append(d)
+        return vals
+
+    print("\n" + "=" * 82)
+    print("P (v17) PHASE 1 — DIAGNOSIS: decomposing the plateau (energy/queue/chain)")
+    print("=" * 82)
+
+    print("\n[1] HOP DISTRIBUTION of delivered units (share 0-hop / 1-hop / ≥2-hop):")
+    h = f"  {'arm':<12} {'N':>4} {'deliv':>7} {'dFrac':>6} {'0-hop':>7} {'1-hop':>7} {'≥2-hop':>7} {'nParcels':>9}"
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for arm, N in groups():
+        g = sel(arm, N)
+        shares = np.array([r["lineage_detail"]["hop_shares"] for r in g], float)
+        ms = shares.mean(axis=0)
+        nd = np.mean([r["lineage_detail"]["n_delivered"] for r in g])
+        dv = np.mean([r["delivered"] for r in g])
+        df = np.mean([r["delivered_frac"] for r in g])
+        print(f"  {arm:<12} {N:>4} {dv:>7.0f} {df:>6.3f} "
+              f"{ms[0]:>7.3f} {ms[1]:>7.3f} {ms[2]:>7.3f} {nd:>9.0f}")
+
+    print("\n[2] DELIVERED / MINED by refinery-distance band "
+          f"(≤{LINEAGE_BANDS[0]} · {LINEAGE_BANDS[0]+1}-{LINEAGE_BANDS[1]} · >{LINEAGE_BANDS[1]}):")
+    h = (f"  {'arm':<12} {'N':>4} {'near d/m':>13} {'mid d/m':>13} "
+         f"{'far d/m':>13}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for arm, N in groups():
+        g = sel(arm, N)
+        bm = np.array([r["lineage_detail"]["band_mined"] for r in g], float).sum(axis=0)
+        bd = np.array([r["lineage_detail"]["band_delivered"] for r in g], float).sum(axis=0)
+        cells = []
+        for j in range(3):
+            frac = bd[j] / bm[j] if bm[j] > 0 else float("nan")
+            cells.append(f"{bd[j]/len(g):>5.0f}/{bm[j]/len(g):<5.0f}={frac:>4.2f}")
+        print(f"  {arm:<12} {N:>4} " + " ".join(f"{c:>13}" for c in cells))
+
+    print("\n[3] CHARGER DUTY CYCLE + dispensed energy + queue wait:")
+    h = (f"  {'arm':<12} {'N':>4} {'duty':>6} {'cap':>5} {'energy':>9} "
+         f"{'dlv/E·100':>10} {'queueWait':>10} {'strand':>7}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for arm, N in groups():
+        g = sel(arm, N)
+        duty = np.mean([r["lineage_detail"]["charger_duty"] for r in g])
+        cap = np.mean([r["lineage_detail"]["charger_capacity"] for r in g])
+        en = np.mean([r["lineage_detail"]["energy_dispensed"] for r in g])
+        dv = np.mean([r["delivered"] for r in g])
+        qw = np.mean([r["lineage_detail"]["queue_wait"] for r in g])
+        st = np.mean([r["stranded"] for r in g])
+        dpe = 100.0 * dv / en if en > 0 else float("nan")
+        print(f"  {arm:<12} {N:>4} {duty:>6.3f} {cap:>5.0f} {en:>9.0f} "
+              f"{dpe:>10.3f} {qw:>10.0f} {st:>7.2f}")
+
+    print("\n[4] HOLD-UP MARGIN LEDGER (≥2-hop legs; buy=surplus as buyer, "
+          "sell=as seller; Δ<0 ⇒ compression):")
+    h = (f"  {'arm':<12} {'N':>4} {'nLegs':>6} {'mean_buy':>9} {'mean_sell':>10} "
+         f"{'meanΔ':>8} {'fracCompr':>10}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for arm, N in groups():
+        g = sel(arm, N)
+        legs = [r["lineage_detail"]["holdup"] for r in g]
+        nlegs = np.sum([h_["n"] for h_ in legs])
+        priced = [h_ for h_ in legs if h_["n"] > 0]
+        if priced:
+            mb = np.mean([h_["mean_buy"] for h_ in priced])
+            msl = np.mean([h_["mean_sell"] for h_ in priced])
+            md = np.mean([h_["mean_delta"] for h_ in priced])
+            fc = np.mean([h_["frac_compressed"] for h_ in priced])
+            print(f"  {arm:<12} {N:>4} {nlegs:>6.0f} {mb:>9.3f} {msl:>10.3f} "
+                  f"{md:>8.3f} {fc:>10.3f}")
+        else:
+            print(f"  {arm:<12} {N:>4} {nlegs:>6.0f} {'—':>9} {'—':>10} "
+                  f"{'—':>8} {'—':>10}")
+
+
 def build_jobs(column: str, seeds: int, ticks: int):
     jobs = []
     if column in ("A", "all"):
@@ -763,6 +957,25 @@ def build_jobs(column: str, seeds: int, ticks: int):
         for seed in range(min(seeds, 16)):
             jobs.append(dict(arm_name="snhp+net", seed=seed, gossip=True,
                              r_radio=6, map_trading=True, **base))
+    if column == "P":                 # v17: relays/hold-up DIAGNOSIS (P1 only)
+        # Decompose the N=240 plateau before any mechanism is credited. All runs
+        # carry lineage=True (pure bookkeeping). N=240 scaled grid × 8 seeds ×
+        # {auction, snhp+net, team-costed}; plus an N=24 baseline (16 seeds,
+        # snhp+net + auction) for the hop-distribution contrast.
+        import math as _math
+        g240 = int(round(32 * _math.sqrt(240 / 24)))
+        for arm_name, cc in (("auction", False), ("snhp+net", False),
+                             ("team", True)):
+            for seed in range(min(seeds, 8)):
+                jobs.append(dict(arm_name=arm_name, sigma=0.5, seed=seed,
+                                 ticks=ticks, tau=0.15, preset="v5",
+                                 n_robots=240, grid=g240, consensus_cost=cc,
+                                 lineage=True))
+        for arm_name in ("snhp+net", "auction"):
+            for seed in range(min(seeds, 16)):
+                jobs.append(dict(arm_name=arm_name, sigma=0.5, seed=seed,
+                                 ticks=ticks, tau=0.15, preset="v5",
+                                 n_robots=24, lineage=True))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -773,7 +986,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -789,6 +1002,7 @@ def main() -> None:
         summarize(rows)
         contrasts(rows)
         p21(rows)
+        diagnosis(rows)
         return
 
     jobs = build_jobs(args.column, args.seeds, args.ticks)
@@ -807,6 +1021,7 @@ def main() -> None:
     summarize(rows)
     contrasts(rows)
     p21(rows)
+    diagnosis(rows)
 
 
 if __name__ == "__main__":
