@@ -16,6 +16,7 @@ v4 additions (all panel-mandated, review/PANEL_V4.md):
 """
 from __future__ import annotations
 
+import math
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 
@@ -63,6 +64,15 @@ FIRM_MARGIN = 0.15                  # v17 (column P) PHASE 2 (snhp+firm): the
                                     # of the cargo's home-refinery value, added
                                     # to the receiver's marginal haul cost as the
                                     # internal transfer price (Coase settlement)
+DWELL_DECAY_LAMBDA = 0.05           # P23e (column P phase-2e): the TIME-CONTINGENT
+                                    # split. A carrier's recorded claim pays out
+                                    # multiplied by exp(-λ·excess), where excess is
+                                    # the carrier's leg dwell ABOVE its geodesic
+                                    # counterfactual (ticks held minus the manhattan
+                                    # ground it covered, speed 1 cell/tick). λ=0.05
+                                    # ⇒ ~14 idle ticks halves the share. The
+                                    # observable Holmström says to contract on;
+                                    # off (flat splits) ⇒ every claim decay ≡ 1.
 
 PRESETS = {
     # sources, refineries [(pos, owner)], chargers [(pos, owner)]
@@ -168,6 +178,7 @@ class World:
                  gossip: bool = False, r_radio: int = R_RADIO,
                  lineage: bool = False,
                  bills: bool = False, firm_relay: bool = False,
+                 dwell: bool = False, bills_contingent: bool = False,
                  reputation: bool = False, false_accuse: float = 0.0):
         self.rng = np.random.RandomState(seed)
         self.hazard_phi = hazard_phi
@@ -334,7 +345,25 @@ class World:
         # off leaves self.lineage == lineage exactly (no bit perturbed).
         self.bills = bills              # snhp+bill: negotiable delivery claims
         self.firm_relay = firm_relay    # snhp+firm: treasury transfer pricing
-        self.lineage = lineage or bills or firm_relay
+        # P23e (column P phase-2e): moral hazard in the relay. `dwell` is a PURE
+        # instrument — parcels carry (acq_tick, acq_pos, mined_tick, src_pos, uid),
+        # transfer_cargo/drop retire per-leg dwell records — no RNG/physics/Φ, so
+        # dwell=True is bit-identical to dwell=False in EVERY regime (spot too).
+        # `bills_contingent` is the MECHANISM: it decays each recorded claim's
+        # payout by exp(-λ·excess) of the claimant's leg dwell above its geodesic
+        # counterfactual (the observable Holmström's informativeness principle
+        # says to contract on). It requires bills, implies dwell, and — because
+        # the decay enters the giver's claim value in Φ deterministically from
+        # PRE-deal state — preserves evaluated Φ == executed Φ. contingent OFF ⇒
+        # every claim decay ≡ 1 ⇒ bit-identical to bills-flat (2-tuple claims).
+        assert not (bills_contingent and not bills), \
+            "bills_contingent requires bills (it decays the claim-stack payout)"
+        self.bills_contingent = bills_contingent
+        self.dwell = dwell or bills_contingent
+        self.lineage = lineage or bills or firm_relay or self.dwell
+        self._parcel_uid = 0
+        self.hop_dwells: list[dict] = []        # P23e: per-carrier leg records
+        self.delivered_dwells: list[dict] = []  # P23e: per-parcel total dwell
         self.charge_served_slots = 0
         self.delivered_parcels: list[dict] = []
         # v22 (column U): community reputation. `reputation` turns on per-robot
@@ -923,7 +952,37 @@ class World:
             p["claims"] = []
         if self.firm_relay:
             p["advanced"] = 0.0
+        if self.dwell:
+            # P23e: acquisition stamps. A unit is mined ON its asteroid, so the
+            # holder's acquire position == the source position; acq_* are reset at
+            # each handoff (transfer_cargo) so per-leg dwell is (tick − acq_tick)
+            # and its geodesic counterfactual manhattan(acq_pos, holder_pos).
+            src = self.sources[origin]
+            p["acq_tick"] = self.tick
+            p["acq_pos"] = src
+            p["mined_tick"] = self.tick
+            p["src_pos"] = src
+            p["uid"] = self._parcel_uid
+            self._parcel_uid += 1
         return p
+
+    def _leg_dwell(self, p, holder_pos):
+        """P23e: (dwell, cf, excess) for the current holder's open leg on parcel
+        p. dwell = ticks held since acquisition; cf = the geodesic ticks a solo
+        carrier would need for the ground actually covered (manhattan from where
+        the holder acquired it to holder_pos, speed 1 cell/tick); excess = dwell
+        above cf (≥0 always — net displacement ≤ ticks moved)."""
+        dwell = self.tick - p["acq_tick"]
+        cf = manhattan(p["acq_pos"], holder_pos)
+        return dwell, cf, max(0, dwell - cf)
+
+    def leg_decay(self, p, holder_pos) -> float:
+        """P23e contingent split: exp(-λ·excess) — the payout-share multiplier
+        that decays with dwell ABOVE the counterfactual (==1 at or below cf).
+        Computed from PRE-handoff parcel state, so it is identical in Φ
+        evaluation and at execution (evaluated Φ == executed Φ preserved)."""
+        _, _, excess = self._leg_dwell(p, holder_pos)
+        return math.exp(-DWELL_DECAY_LAMBDA * excess)
 
     def pick(self, r: Robot) -> int:
         s = r.sector
@@ -967,20 +1026,46 @@ class World:
                     self.delivered_parcels.append(dict(   # tick, who delivered)
                         origin=p["origin"], hops=p["hops"], tick=self.tick,
                         deliverer=r.rid, chain=p["chain"]))
+                    # P23e: retire the deliverer's final leg + the parcel's whole
+                    # journey. total_dwell = ticks mining→delivery; its geodesic
+                    # counterfactual = manhattan(source, delivering refinery). The
+                    # per-leg dwells (transfer_cargo records + this final one) sum
+                    # EXACTLY to total_dwell (each handoff re-stamps acq_tick, so
+                    # the legs telescope). Pure bookkeeping.
+                    if self.dwell:
+                        dwell, cf, excess = self._leg_dwell(p, r.pos)
+                        self.hop_dwells.append(dict(
+                            uid=p["uid"], dwell=dwell, cf=cf, excess=excess,
+                            hops=p["hops"], final=True, giver=r.rid,
+                            origin=p["origin"]))
+                        total = self.tick - p["mined_tick"]
+                        tcf = manhattan(p["src_pos"], pos)
+                        self.delivered_dwells.append(dict(
+                            uid=p["uid"], total_dwell=total, total_cf=tcf,
+                            inflation=total - tcf, hops=p["hops"],
+                            origin=p["origin"]))
                     # v17 PHASE 2 (snhp+bill): distribute this unit's credit per
                     # its notarized claim stack — each recorded claimant is paid
                     # share × unit; the deliverer keeps the residual (1 − Σshare).
-                    # The shares sum to ≤1, so Σdistributed == unit EXACTLY (credit
-                    # conservation), and each payout is booked to the CLAIMANT's
-                    # company — laundering-proof like the provenance matrix.
+                    # P23e (contingent): a claim is a 3-tuple (rid, share, decay)
+                    # and pays share·decay·unit — the DELIVERER absorbs the docked
+                    # (1−decay)·share, so Σdistributed == unit EXACTLY still holds
+                    # (credit conservation intact, docks reward the final hauler).
+                    # Flat claims stay 2-tuples (decay ≡ 1) — bit-identical path.
                     if self.bills:
                         csum = 0.0
-                        for rid, share in p["claims"]:
+                        for claim in p["claims"]:
+                            if len(claim) == 3:
+                                rid, share, decay = claim
+                                paid = share * decay
+                            else:
+                                rid, share = claim
+                                paid = share
                             cl = self.robots[rid]
-                            cl.credit += share * unit
-                            self.company[cl.company]["credit"] += share * unit
-                            cl.claim_value -= share * V_DELIVER
-                            csum += share
+                            cl.credit += paid * unit
+                            self.company[cl.company]["credit"] += paid * unit
+                            cl.claim_value -= paid * V_DELIVER
+                            csum += paid
                         resid = 1.0 - csum
                         r.credit += resid * unit
                         self.company[r.company]["credit"] += resid * unit
@@ -1093,6 +1178,18 @@ class World:
             for p in moving:
                 p["hops"] += 1
                 p["chain"] = p["chain"] + [hop]
+            # P23e: retire the giver's just-closed leg dwell, then re-stamp the
+            # parcel for the taker's opening leg. Pure bookkeeping (no RNG/Φ),
+            # so dwell=True is bit-identical to dwell=False in every regime.
+            if self.dwell:
+                for p in moving:
+                    dwell, cf, excess = self._leg_dwell(p, giver.pos)
+                    self.hop_dwells.append(dict(
+                        uid=p["uid"], dwell=dwell, cf=cf, excess=excess,
+                        hops=p["hops"], final=False, giver=giver.rid,
+                        origin=p["origin"]))
+                    p["acq_tick"] = self.tick
+                    p["acq_pos"] = taker.pos
             taker.parcels.extend(moving)
             # v17 PHASE 2 (snhp+firm): a WITHIN-company handoff settles internally
             # — the treasury advances the receiver a transfer price (marginal haul

@@ -1505,6 +1505,65 @@ theory CONFIRMED; the program's strongest mechanism result.**
   they make chains exist. P23e (moral hazard / contingent splits) is now
   buildable and queued.
 
+**P23e RESULTS (2026-07-16, sweep_v4_P3.json — report, not verdict; the numbers,
+loudly either way).** The P23 phase-2 grid (N∈{24 (16 seeds), 240 (8 seeds)},
+grid 32/101, σ=0.5, τ=0.15, v5, 2,500 ticks) × {spot (snhp+net, no claims), FLAT
+(snhp+bill, α* Nash split fixed at hop time — the shipped P23 mechanism),
+CONTINGENT (snhp+billC)}, all dwell-instrumented. Dwell = ticks a parcel sits in a
+carrier's hold between acquisition and handoff/delivery; the direct-haul
+counterfactual is the GEODESIC — manhattan(acquire_pos, handoff_pos) at 1 cell/tick,
+so excess = dwell − cf ≥ 0 always (net displacement ≤ ticks moved). Per-leg dwells
+telescope to the parcel's total hold time (test-enforced). CONTINGENT decays each
+recorded claim's payout by exp(−λ·excess) of that carrier's OWN leg dwell above its
+cf (Holmström's informativeness principle; λ=0.05 registered ⇒ ~14 idle ticks halve
+the share); the DELIVERER absorbs the dock, so Σ credit conservation is exact.
+- **The KILL does NOT fire — flat splits shirk, measurably and largely.** At N=240
+  a bills-FLAT parcel sits **195.0 ticks over its geodesic** vs spot's 78.5 (journey
+  dwell 231.7 vs 114.2 over the SAME ~35-tick counterfactual). Paired **flat−spot
+  Δinflation = +116.6 ticks/parcel (p<0.001, 8/8 seeds)**. Relay legs carry it: the
+  bills chains that P23a formed (≥2-hop share 0.025→0.492) dwell far above the
+  direct haul. There IS moral hazard in this relay to price. (N=24 echoes it
+  smaller: flat−spot Δinfl +8.1 all p=.001 14/16; +37.9 on ≥2-hop legs p<.001.)
+- **CONTINGENT compresses dwell exactly as predicted — strongly, every seed.**
+  N=240 contingent−flat **Δinflation = −88.4 ticks (all parcels, p<0.001, 0/8 above
+  zero = every seed compressed)**; on **≥2-hop parcels −102.3 (p<0.001, 0/8)**.
+  Relay-leg idle time nearly halves (35.6→19.8 ticks). Journey dwell 231.7→142.1.
+  The observable-contingent contract works as an incentive: pricing dwell shrinks it.
+- **BUT "at equal or better delivered" is REFUTED — the compression eats P23a's
+  far-band gain.** Contingent buys the shorter dwell by shrinking the very chains it
+  disciplines: N=240 ≥2-hop share **0.492→0.310**, delivered_frac **0.857→0.819
+  (BELOW even spot's 0.829)**, and far-band delivered/mined **0.470→0.368 — under
+  spot's 0.399, reversing the P23a signature lift (0.40→0.47) it was built on.** The
+  decayed claim lowers the far middle drone's Φ payoff for precisely the long-dwell
+  relay hops, so contingent compresses dwell partly by hauling faster and partly by
+  DECLINING the hard far relays — some far ore re-strands rather than relaying. It is
+  a real dwell price, but this Holmström-clean form (decay my own leg) overtaxes the
+  marginal far relay. Stranding stays halved vs spot (1.00 vs 2.12), as under flat.
+- **P23c HOLDS under contingent — no hold-up reintroduced.** N=240 middle-leg
+  meanΔ: spot +2.52, flat +0.07, contingent **+0.17 (≥0 ⇒ no sell-side
+  compression)**. Pricing dwell does not resurrect the quasi-rent expropriation;
+  the split still predates the position risk.
+- **λ-sensitivity (N=240 contingent): the far-band regression is intrinsic, not a
+  single-λ artifact.** λ=0.025 → (dFrac 0.827, ≥2hop 0.348, far 0.39, infl_all
+  121.5); λ=0.05 → (0.824, 0.310, 0.39, 108.2) — monotone: heavier decay compresses
+  more (infl↓) and forms fewer chains (≥2hop↓), and far d/m sits **below spot's 0.40
+  at BOTH λ**. Softening the decay recovers chains toward flat but proportionally
+  gives back the compression; no λ in this range delivers dwell-compression AND
+  P23a's far-band lift together.
+- **Read on P23e vs the KILL.** KILL refuted: flat relays inflate dwell far above
+  the direct-haul counterfactual (moral hazard is real and priceable). The P23e
+  prediction SPLITS — dwell compression SUPPORTED and clean (−88/−102 ticks, every
+  seed, no hold-up), the "equal-or-better delivered" clause REFUTED (−0.04 delivered,
+  P23a's far-band lift reversed). The honest translation: a receipt that prices the
+  carrier's dwell IS an enforceable effort contract, but taxing each middle drone on
+  its own leg time overtaxes the far relay the working-capital claim was there to
+  finance — the informativeness gain and the chain-formation gain trade against each
+  other. A dwell price that docks idle time WITHOUT penalizing the productive length
+  of a far haul (e.g., contract on excess-over-geodesic only above a slack band, or
+  on the chain's aggregate vs its direct counterfactual rather than per-leg) is the
+  open follow-up; the per-leg Holmström contract as specified compresses dwell at a
+  measured cost of ~4% delivered and the far-band reach.
+
 **P28 RESULTS (2026-07-16, sweep_v4_U.json, 16 seeds N≤96 / 8 seeds N=240,
 liar_frac=0.25 — REPORT, not verdict; the numbers, loudly).** Four regimes on
 the column-E TrustArm: (a) reput = trust-open + per-robot blacklists; (b)
