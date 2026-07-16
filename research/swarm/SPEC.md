@@ -1504,3 +1504,46 @@ theory CONFIRMED; the program's strongest mechanism result.**
   bargaining structurally cannot. Receipts don't just keep books honest;
   they make chains exist. P23e (moral hazard / contingent splits) is now
   buildable and queued.
+
+**P28 RESULTS (2026-07-16, sweep_v4_U.json, 16 seeds N≤96 / 8 seeds N=240,
+liar_frac=0.25 — REPORT, not verdict; the numbers, loudly).** Four regimes on
+the column-E TrustArm: (a) reput = trust-open + per-robot blacklists; (b)
+attest = trust-gated (v6 receipt); (c) both; (d) neither (exploitation
+baseline). Marks = own realized surplus below the reported basis; slander ε via
+a dedicated stream; blacklists spread by contact (r_radio=6).
+- **The exploitation baseline is stark and validates the setup.** Naive
+  cooperation lets liars strip the honest: liar advantage +179 / +157 / +84
+  at N=24/96/240. Both enforcement mechanisms crush it toward single digits.
+- **P28a driver CONFIRMED, the prediction MIXED.** Re-encounter falls with N
+  in the clean (low-deal) regimes: reput 106.6→37.1→31.8, both 78.0→35.6→28.6.
+  Reputation's honest payoff DOES decay (91.5→85.9→58.9). BUT **attestation is
+  NOT N-flat** — it collapses at N=240 (96.5→96.8→40.3), and **the crossover
+  runs BACKWARDS: reputation BEATS receipts at scale** (N=240 honest 58.9 vs
+  40.3; delivered 1503 vs 996). Mechanism: attestation keeps a huge cooperative
+  tier alive (12.5k deals at N=240) whose DEAL_PAUSE immobilization throttles
+  throughput, while reputation carpet-blacklists (~96% of honest robots marked)
+  and collapses the tier to ~500 deals — losing the exploitable cooperation but
+  also its deal-pause tax. "Cities need receipts" is UNSUPPORTED in this world.
+- **P28b UNTESTABLE as specified — the false-blacklist channel is already
+  SATURATED at ε=0.** Outcome-based marking cannot tell a liar-strip from a
+  benign joint-max SACRIFICE (own surplus is the only decentralised signal; the
+  two loss distributions overlap, n=292 vs 672), so ~96% of honest robots are
+  already blacklisted without any slander. Adding ε=0.05 moves honest payoff
+  −2.3/+0.3/+2.2 (noise) and false-BL 0.965→0.962 (flat). Attestation is
+  ε-immune by construction (no blacklist). The registered "slander degrades
+  reputation" cannot be seen because reputation is ALREADY maximally noisy.
+- **P28c REFUTED (reversed).** (both) does NOT converge to (attest) at large N;
+  it tracks REPUTATION — the aggressive blacklisting dominates the combined
+  regime (N=240: both honest 60.2 & deliv 1630 ≈ reput 58.9 & 1503, NOT attest
+  40.3 & 996). Receipts do not subsume reputation here; reputation subsumes the
+  combination.
+- **KILL (reputation N-flat ⇒ notary loses its scaling argument): does NOT fire
+  on the literal criterion** — reputation's payoff decays and its driver falls.
+  **But the thesis-relevant reading is worse than the registered KILL feared:**
+  in this world the receipts-scale-better-than-reputation ARGUMENT is reversed
+  — outcome-based reputation is a BLUNT instrument (carpet-blacklist) that
+  needs no re-encounter precision to suppress exploitation, so it scales at
+  least as well as attestation and out-delivers it at N=240. The honest scope:
+  this is reputation-by-REALIZED-OUTCOME on a naive-cooperation mechanism; a
+  reputation that could observe counterpart honesty directly (not just own
+  loss) would blacklist far less and the comparison could differ.

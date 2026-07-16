@@ -46,6 +46,21 @@ from nash_solver import (filter_pareto_frontier,  # noqa: E402
 ATTEMPT_COOLDOWN = 5
 DEAL_COOLDOWN = 15
 EV_REFRESH = 10                 # ticks between endogenous-EV updates
+# v22 (column U): a deal's own realized TRUE surplus this far below the robot's
+# disagreement point (its reported basis) counts as "caught a liar" — the robot
+# blacklists the counterpart. The IR-veto tiers keep both surpluses strictly
+# positive, so this fires only in the naive-cooperation (trust-open) tier where
+# an inflated-BATNA liar can push the joint pick past an honest partner's batna.
+# DECENTRALISATION CAVEAT (documented, not a bug): own realized surplus is the
+# ONLY signal a robot has — it cannot see the counterpart's books, so it cannot
+# tell a liar-strip from a benign joint-max SACRIFICE (a bundle it knowingly
+# takes a loss on for the larger joint good). Empirically those two loss
+# distributions overlap (no clean material cutoff exists), so outcome-based
+# reputation is intrinsically NOISY: it blacklists honest sacrifice-beneficiaries
+# too. "Materially" is therefore any loss beyond rounding; the re-encounter
+# GATING (a mark only bites when the pair meets again), not the mark's precision,
+# is what makes reputation scale with N — the registered mechanism.
+REPUTATION_MARK_EPS = 1e-9
 
 # Differential-oracle switch: force every SnhpArm._evaluate onto the scalar
 # fallback (the byte-identical reference path). The optimized fast path and this
@@ -268,6 +283,11 @@ class BaseArm:
         self.w = w
         self.deals = 0
         self._last_try: dict = {}
+        # v22 (column U): re-encounter counter — {(lo_rid, hi_rid): meetings}, one
+        # increment per post-cooldown interaction opportunity (the reputation
+        # theory's driver: mean meetings-per-pair falls with N at fixed density).
+        # Pure bookkeeping (no RNG, no physics) → bit-safe for every arm/column.
+        self._pair_meets: dict = {}
 
     def deal_pause(self) -> int:
         """Ticks BOTH parties hold position after an executed exchange.
@@ -307,6 +327,7 @@ class BaseArm:
             cool = DEAL_COOLDOWN if was_deal else ATTEMPT_COOLDOWN
             if w.tick - last < cool:
                 continue
+            self._pair_meets[key] = self._pair_meets.get(key, 0) + 1
             struck = self.encounter(a, b)
             self._last_try[key] = (w.tick, struck)
             if struck:
@@ -439,6 +460,10 @@ class SnhpArm(BaseArm):
         # v17 PHASE 2: bills reshapes the load term (holder residual + undiscounted
         # claims) → scalar dispatch. firm_relay leaves Φ untouched (it only re-books
         # credit) → the fast path stays, exactly as registered.
+        # v22 (column U): reputation is decided ENTIRELY outside _evaluate — a
+        # blacklist REFUSAL fires before Φ is ever priced, and marking is post-deal
+        # bookkeeping — so Φ is byte-identical and the fast path is KEPT (no
+        # scalar dispatch; the differential oracle stays green under reputation).
         return not (w.belief_mode or w.life_pricing or self.has_map or w.bills)
 
     def _feas_mask(self, a, b):
@@ -638,8 +663,40 @@ class SnhpArm(BaseArm):
         out[(u - batna) < need] = -np.inf
         return out
 
+    # ── v22 (column U): community reputation ──────────────────────────────
+    def _reputation_refuses(self, a, b) -> bool:
+        """True iff reputation is on and EITHER party has blacklisted the other —
+        the pair is skipped (return False from encounter, NO pause, so the
+        ATTEMPT_COOLDOWN governs the next attempt). A no-op short-circuit when
+        reputation is off, so the guard leaves the fast path bit-identical."""
+        w = self.w
+        return w.reputation and (b.rid in w.blacklist[a.rid]
+                                 or a.rid in w.blacklist[b.rid])
+
+    def _reputation_record(self, a, b, sa, sb) -> None:
+        """Update pairwise reputation after a struck deal. Genuine catch: a robot
+        whose realized TRUE surplus fell materially below its disagreement point
+        blacklists the counterpart (the lie machinery's observable — an inflated
+        BATNA can only push the naive-cooperation pick past an honest partner's
+        true batna). Slander: with probability ε (`false_accuse`) a per-deal draw
+        from the DEDICATED ε stream (never the main RNG) marks an HONEST
+        counterpart as if it had lied. Marks then spread by contact only
+        (World._blacklist_gossip_step). Bookkeeping only — never touches Φ."""
+        w = self.w
+        if sa < -REPUTATION_MARK_EPS:
+            w.blacklist[a.rid].add(b.rid)          # a caught b
+        if sb < -REPUTATION_MARK_EPS:
+            w.blacklist[b.rid].add(a.rid)          # b caught a
+        if w.false_accuse > 0.0 and w._eps_rng.uniform() < w.false_accuse:
+            if not b.liar:                         # slander lands on the honest
+                w.blacklist[a.rid].add(b.rid)
+            elif not a.liar:
+                w.blacklist[b.rid].add(a.rid)
+
     def encounter(self, a, b) -> bool:
         w = self.w
+        if self._reputation_refuses(a, b):  # v22: refuse a blacklisted partner
+            return False
         ua, ub = self._evaluate(a, b)       # RAW: audit + frontier reference
         # the all-zero bundle is Φ at the pristine (disagreement) state — i.e.
         # the batna itself — so read it back instead of recomputing phi twice.
@@ -745,6 +802,8 @@ class SnhpArm(BaseArm):
             sb_true=(float(truth(b, w) - tb0) if audit else sb),
             capture=achieved / joint_best if joint_best > 1e-12 else 1.0))
         self.deals += 1
+        if w.reputation:                    # v22: record the counterpart's honesty
+            self._reputation_record(a, b, sa, sb)
         return True
 
 
@@ -829,6 +888,8 @@ class TrustArm(SnhpArm):
 
     def encounter(self, a, b) -> bool:
         w = self.w
+        if self._reputation_refuses(a, b):  # v22: refuse a blacklisted partner
+            return False
         trusted = (a.attested and b.attested) if self.gated else True
         if not trusted:
             # the untrusted tier IS the veto tier — same lies, distrust tax

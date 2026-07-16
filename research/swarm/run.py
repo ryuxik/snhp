@@ -85,6 +85,33 @@ def _holdup_margins(delivered_parcels, deal_log):
                 frac_compressed=float(np.mean([d < 0 for d in deltas])))
 
 
+def _reputation_metrics(w, arm) -> dict:
+    """v22 (column U): the reputation blob. Re-encounter rate (mean post-cooldown
+    meetings per distinct pair — the theory's driver, measured for EVERY arm) is
+    always reported; blacklist size and false-blacklist rate (share of HONEST
+    robots blacklisted by anyone — slander plus mis-detection) only under
+    reputation. All read-only bookkeeping, computed at run end."""
+    meets = getattr(arm, "_pair_meets", {})
+    reencounter_rate = (sum(meets.values()) / len(meets)) if meets else 0.0
+    if not w.reputation:
+        return dict(reencounter_rate=round(reencounter_rate, 4),
+                    distinct_pairs=len(meets),
+                    blacklist_mean=None, blacklist_max=None,
+                    false_bl_frac=None, n_liars=sum(r.liar for r in w.robots))
+    sizes = [len(bl) for bl in w.blacklist]
+    honest = {r.rid for r in w.robots if not r.liar}
+    ever_bl = set().union(*w.blacklist) if w.blacklist else set()
+    false_bl = honest & ever_bl
+    return dict(
+        reencounter_rate=round(reencounter_rate, 4),
+        distinct_pairs=len(meets),
+        blacklist_mean=round(float(np.mean(sizes)), 4),
+        blacklist_max=int(max(sizes)) if sizes else 0,
+        false_bl_frac=round(len(false_bl) / max(1, len(honest)), 4),
+        n_liars=sum(r.liar for r in w.robots),
+    )
+
+
 def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              tau=0.0, preset: str = "v4", issues=FULL,
              noise: float = 0.0, liar_frac: float = 0.0,
@@ -97,7 +124,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              n_robots: int = 24, consensus_cost: bool = False,
              gossip: bool = False, r_radio: int = 6,
              lineage: bool = False, bills: bool = False,
-             firm_relay: bool = False) -> dict:
+             firm_relay: bool = False, reputation: bool = False,
+             false_accuse: float = 0.0) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -129,7 +157,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               contested=contested, scouting=scouting,
               map_trading=map_trading, prospect_claims=prospect_claims,
               consensus_cost=consensus_cost, gossip=gossip, r_radio=r_radio,
-              lineage=lineage, bills=bills, firm_relay=firm_relay)
+              lineage=lineage, bills=bills, firm_relay=firm_relay,
+              reputation=reputation, false_accuse=false_accuse)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
@@ -351,6 +380,9 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         lineage_detail=lineage_detail,
         # v17 PHASE 2 (column P): pre-commitment mechanisms
         bills=bills, firm_relay=firm_relay,
+        # v22 (column U): reputation vs receipts
+        reputation=reputation, false_accuse=false_accuse,
+        **_reputation_metrics(w, arm),
     )
 
 
@@ -375,12 +407,14 @@ def _cond(r) -> tuple:
             int(r.get("n_robots", 24)),
             bool(r.get("consensus_cost", False)),
             bool(r.get("gossip", False)),
-            int(r.get("r_radio", 6)))
+            int(r.get("r_radio", 6)),
+            bool(r.get("reputation", False)),
+            r.get("false_accuse", 0.0))
 
 
 def _cond_label(c) -> str:
     (f, dfd, s7, mg, nz, g, bm, race, mt, dyn, cnt, scout, maptr, pros,
-     nr, cc, gs, rr) = c
+     nr, cc, gs, rr, rep, fa) = c
     bits = []
     if f:
         bits.append(f"f={f:g}")
@@ -416,11 +450,15 @@ def _cond_label(c) -> str:
         bits.append("cc")
     if gs:
         bits.append(f"gossip r{rr}")     # v14: radius only meaningful w/ gossip
+    if rep:
+        bits.append("rep")               # v22: community reputation
+    if fa:
+        bits.append(f"ε={fa:g}")         # v22: false-accusation (slander) rate
     return " ".join(bits)
 
 
 _BASE = (0.0, False, 0.0, False, 0.0, 32, False, True, False, False, False,
-         False, False, False, 24, False, False, 6)
+         False, False, False, 24, False, False, 6, False, 0.0)
 
 
 def _paired(rows, arm_hi, arm_lo, sigma, field, tau=0.0, cond=_BASE):
@@ -874,6 +912,137 @@ def phase2(rows: list[dict]) -> None:
                       f"{'—':>8} {'—':>10} {rw:>7.1f} {rc:>6.1f}")
 
 
+def u_report(rows: list[dict]) -> None:
+    """v22 (column U) — reputation vs receipts: the scaling law of trust. Printed
+    numbers ARE the artifact. Report, don't verdict (P28a/b/c are read off the
+    tables). No-op unless the sweep carries a reputation regime."""
+    if not any(r.get("reputation") for r in rows):
+        return
+    urows = [r for r in rows if str(r.get("arm", "")).startswith("trust-")]
+    if not urows:
+        return
+
+    def regime(r) -> str:
+        rep, gated = bool(r.get("reputation")), "gated" in r["arm"]
+        if gated and rep:
+            return "both"        # (c)
+        if gated:
+            return "attest"      # (b) attestation-only
+        if rep:
+            return "reput"       # (a) reputation-only
+        return "neither"         # (d) exploitation baseline
+
+    ORDER = {"neither": 0, "reput": 1, "attest": 2, "both": 3}
+    Ns = sorted({int(r["n_robots"]) for r in urows})
+
+    def sel(reg, N, eps):
+        return [r for r in urows if regime(r) == reg and int(r["n_robots"]) == N
+                and abs(float(r.get("false_accuse", 0.0)) - eps) < 1e-12]
+
+    def mean(g, field):
+        vals = [r[field] for r in g if r.get(field) is not None]
+        return float(np.mean(vals)) if vals else float("nan")
+
+    def liar_adv(g):
+        vals = [r["liar_credit"] - r["honest_credit"] for r in g
+                if r.get("liar_credit") is not None
+                and r.get("honest_credit") is not None]
+        return float(np.mean(vals)) if vals else float("nan")
+
+    def cells(reg):
+        # (reput-only / both) run at ε∈{0,0.05}; (attest / neither) only ε=0
+        return (0.0, 0.05) if reg in ("reput", "both") else (0.0,)
+
+    print("\n" + "=" * 96)
+    print("P28 (column U) — REPUTATION vs RECEIPTS: the scaling law of trust "
+          "(liar_frac=0.25, snhp trust arms)")
+    print("=" * 96)
+
+    print("\n[1] HONEST-COOPERATION PAYOFF & LIAR ADVANTAGE (regime × N × ε):")
+    print("    honest = mean honest-robot credit · liar = mean liar credit · "
+          "adv = liar − honest (↑ ⇒ lying pays)")
+    h = (f"  {'regime':<9} {'N':>4} {'ε':>5} {'honest':>8} {'liar':>8} "
+         f"{'adv':>8} {'deliv':>7} {'deals':>7} {'blMean':>7} {'falseBL':>8} "
+         f"{'reEnc':>7}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for reg in sorted({regime(r) for r in urows}, key=lambda x: ORDER[x]):
+        for N in Ns:
+            for eps in cells(reg):
+                g = sel(reg, N, eps)
+                if not g:
+                    continue
+                bl = mean(g, "blacklist_mean")
+                fb = mean(g, "false_bl_frac")
+                print(f"  {reg:<9} {N:>4} {eps:>5.2f} "
+                      f"{mean(g,'honest_credit'):>8.1f} {mean(g,'liar_credit'):>8.1f} "
+                      f"{liar_adv(g):>+8.1f} {mean(g,'delivered'):>7.1f} "
+                      f"{mean(g,'deals'):>7.1f} "
+                      f"{'—' if bl != bl else f'{bl:>7.2f}'} "
+                      f"{'—' if fb != fb else f'{fb:>8.3f}'} "
+                      f"{mean(g,'reencounter_rate'):>7.2f}")
+
+    print("\n[2] RE-ENCOUNTER RATE by N × regime (mean post-cooldown meetings "
+          "per distinct pair — the mechanism's driver).")
+    print("    CAVEAT: high-deal regimes (neither/attest) are CONFOUNDED by "
+          "deal-pause immobilization (a struck deal freezes both parties + a")
+    print("    longer cooldown); the LOW-deal reputation regimes (reput/both, "
+          "which refuse most encounters) show the clean geometric fall with N.")
+    h = (f"  {'N':>4} {'reput':>8} {'both':>8} {'attest':>8} {'neither':>8} "
+         f"{'grid':>6}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    import math as _m
+    for N in Ns:
+        def rr(reg):
+            return mean(sel(reg, N, 0.0), "reencounter_rate")
+        print(f"  {N:>4} {rr('reput'):>8.1f} {rr('both'):>8.1f} "
+              f"{rr('attest'):>8.1f} {rr('neither'):>8.1f} "
+              f"{int(round(32 * _m.sqrt(N / 24))):>6}")
+
+    print("\n[3] P28a [REGISTERED PREDICTION, read the numbers] — reputation's "
+          "honest payoff decays with N (re-encounter falls) while attestation is "
+          "N-flat; a crossover N exists (honest_credit at ε=0):")
+    h = f"  {'N':>4} {'reput':>9} {'attest':>9} {'both':>9} {'neither':>9}"
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for N in Ns:
+        vals = {reg: mean(sel(reg, N, 0.0), "honest_credit")
+                for reg in ("reput", "attest", "both", "neither")}
+        print(f"  {N:>4} {vals['reput']:>9.1f} {vals['attest']:>9.1f} "
+              f"{vals['both']:>9.1f} {vals['neither']:>9.1f}")
+
+    print("\n[4] P28b [REGISTERED PREDICTION, read the numbers] — slander (ε) "
+          "degrades reputation (honest blacklisted, payoff drops) while "
+          "attestation is ε-immune (no blacklist channel):")
+    h = (f"  {'regime':<9} {'N':>4} {'honest@ε0':>10} {'honest@ε.05':>12} "
+         f"{'Δhonest':>9} {'falseBL@ε0':>11} {'falseBL@ε.05':>13}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for reg in ("reput", "both"):
+        for N in Ns:
+            g0, ge = sel(reg, N, 0.0), sel(reg, N, 0.05)
+            if not g0 or not ge:
+                continue
+            h0, he = mean(g0, "honest_credit"), mean(ge, "honest_credit")
+            print(f"  {reg:<9} {N:>4} {h0:>10.1f} {he:>12.1f} {he - h0:>+9.1f} "
+                  f"{mean(g0,'false_bl_frac'):>11.3f} "
+                  f"{mean(ge,'false_bl_frac'):>13.3f}")
+
+    print("\n[5] P28c [REGISTERED PREDICTION, read the numbers] — receipts "
+          "subsume reputation: (both) ≈ (attest) at large N (honest_credit & "
+          "delivered, ε=0):")
+    h = (f"  {'N':>4} {'both_honest':>12} {'attest_honest':>14} "
+         f"{'both_deliv':>11} {'attest_deliv':>13}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for N in Ns:
+        gb, ga = sel("both", N, 0.0), sel("attest", N, 0.0)
+        print(f"  {N:>4} {mean(gb,'honest_credit'):>12.1f} "
+              f"{mean(ga,'honest_credit'):>14.1f} "
+              f"{mean(gb,'delivered'):>11.1f} {mean(ga,'delivered'):>13.1f}")
+
+
 def build_jobs(column: str, seeds: int, ticks: int):
     jobs = []
     if column in ("A", "all"):
@@ -1132,6 +1301,30 @@ def build_jobs(column: str, seeds: int, ticks: int):
             for seed in range(min(seeds, 16)):
                 jobs.append(dict(seed=seed, sigma=0.5, ticks=ticks, tau=0.15,
                                  preset="v5", n_robots=24, lineage=True, **v))
+    if column == "U":                 # v22: reputation vs receipts (P28)
+        # Liars (v6) vs three enforcement regimes, following the column-E arm
+        # pattern (TrustArm): trust-gated where attestation applies, trust-open
+        # for reputation-only and the exploitation baseline. σ=0.5, τ=0.15, v5
+        # scaled grids. reputation regimes run at ε∈{0,0.05}; the reputation-off
+        # regimes (attestation-only, neither) run once — ε has no channel there.
+        import math as _math
+        # (arm, defended, reputation) — the four registered regimes
+        specs = [("trust-open-hz",  False, True),    # (a) reputation-only
+                 ("trust-gated-hz", True,  False),   # (b) attestation-only
+                 ("trust-gated-hz", True,  True),    # (c) both
+                 ("trust-open-hz",  False, False)]   # (d) neither (baseline)
+        for N in (24, 96, 240):
+            grid = int(round(32 * _math.sqrt(N / 24)))
+            n_seeds = min(seeds, 16) if N < 240 else min(seeds, 8)
+            for arm_name, defended, reputation in specs:
+                eps_vals = (0.0, 0.05) if reputation else (0.0,)
+                for eps in eps_vals:
+                    for seed in range(n_seeds):
+                        jobs.append(dict(arm_name=arm_name, sigma=0.5, seed=seed,
+                                         ticks=ticks, tau=0.15, preset="v5",
+                                         n_robots=N, grid=grid, liar_frac=0.25,
+                                         defended=defended, reputation=reputation,
+                                         false_accuse=eps))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -1142,7 +1335,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "U", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -1160,6 +1353,7 @@ def main() -> None:
         p21(rows)
         diagnosis(rows)
         phase2(rows)
+        u_report(rows)
         return
 
     jobs = build_jobs(args.column, args.seeds, args.ticks)
@@ -1180,6 +1374,7 @@ def main() -> None:
     p21(rows)
     diagnosis(rows)
     phase2(rows)
+    u_report(rows)
 
 
 if __name__ == "__main__":
