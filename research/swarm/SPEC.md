@@ -1409,3 +1409,28 @@ load-bearing — and one of our own earlier findings gets honestly downgraded.**
 - Builder correctness catch adopted: the rival-rate baseline
   (_own_mined_seen) must travel with gossiped last_seen or depletion
   deltas are mis-scored — documented in code.
+
+**P-PHASE-1 DIAGNOSIS VERDICT + GATE DECISION (2026-07-16, registrar):**
+- **Energy-bound: REFUTED — the registrar's own registered expectation was
+  wrong.** Charger duty ~0.14–0.21 (nowhere near saturated); delivered
+  does not track dispensed energy across arms. Recorded as my miss.
+- **Queue-bound: PRESENT as localized contention** — 170k–291k robot-ticks
+  of queue_wait alongside ~80% idle slot-time = siting maldistribution,
+  not supply ceiling. This is direct motivating evidence for column Q
+  (endogenous infrastructure): the fleet needs to BUILD/place chargers,
+  not ration them.
+- **Chain-bound: PRESENT — both registered signatures, plus the mechanism
+  fingerprint.** Far-ore delivered/mined decays in ALL arms (≈1.00 near →
+  0.35–0.45 far); delivered units are overwhelmingly ≤1-hop (97.6% for
+  the IR market). And the hold-up theory's exact prediction realized in
+  the IR-vs-team contrast: under IR there is NO second-hop margin
+  compression because the veto refuses loss-making middle hops — so
+  chains never form and far ore strands; under team (no per-side IR)
+  ≥2-hop relays are ~12× more frequent and the middle drone is
+  expropriated (buy-leg +14.7, sell-leg −10.5, 99% of legs compressed) —
+  the founder's "loser drone in the middle," measured. Refuse the chain
+  or eat the loss: pre-commitment is precisely the missing instrument.
+- **GATE: OPEN.** Per the registered rule (chain signature present ⇒ build
+  Phase 2 regardless of other constraints), the bills-of-lading and
+  firm-settlement arms proceed to build. P23a's lift prediction now has a
+  measured target: the far-band 0.40 → toward the 0.93 mid-band.
