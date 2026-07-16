@@ -1823,3 +1823,58 @@ chapter of the follow-up article.
   refuse hard routes — we just watched it happen. The builder's follow-up
   (slack-band / chain-aggregate contract) stays REGISTERED-OPEN; queue
   priority remains V → Q → X.
+
+## v26 (column Y): the ant farm — a company you can watch
+
+Founder-directed (2026-07-16). Column X's mechanics in an office-building
+cross-section: floors = hierarchy, offices = roles, hallway traffic =
+hand-offs, mailroom = task queue, wall ledger = claim stacks, promotion =
+a literal floor move. The building is a RENDER LAYER ONLY — treatments,
+predictions, and kills live underneath, and the costume must never drive
+the science. Three gated phases; fair-horizon pair mandatory wherever a
+coordination mechanism is scored (P18/P28-H rule).
+
+**Y1 — the renderer (artifact, no verdict).** Building-cross-section
+replay over THIS research pipeline's own event logs: contracts registered,
+builders spawned into worktrees, tests gated, merges, verdicts. Honesty
+constraints, registered: render only real logged events (no fabricated
+activity, no decorative agents); time compression declared on screen; the
+work products rendered are the public repo's actual commits. Ships as the
+"the method is the demo" artifact; assets local until founder publishes.
+
+**Y2 — endogenous structure (the science; sim employees, engine agents).**
+Column X's interior regimes + a MUTABLE org chart. A promotion/demotion
+rule runs every K ticks over a verifiable task queue (tasks = ore with
+hidden acceptance checks; false completion claims = the v6 liar machinery
+transplanted). Treatments:
+- (a) OUTCOME promotion — rank on realized output score alone (the U
+  confound, made organizational);
+- (b) RECEIPT promotion — rank on attested contribution claims (verified
+  deliveries credited via claim stacks, incl. middle-hop credits);
+- (c) STATIC control — no structure change;
+- (d) REORG-WITHOUT-SETTLEMENT — structure mutates per (a)'s rule but
+  payout/settlement rules never change (reporting lines only).
+Predictions:
+- **PYa (the reorg law):** (d) is statistically indistinguishable from (c)
+  on every outcome metric — reorgs that do not change settlement are inert;
+  the P23b of org charts.
+- **PYb:** (a) demotes middle/glue positions at disproportionate rates
+  (the sacrifice confound organizational: relay-credited and audit-lane
+  roles read as low-output) and delivered declines vs (b) at fair horizon.
+- **PYc:** (b) > (a) on verified-delivered at fair horizon, with middle-
+  role survival intact.
+- **KILL (doctrine):** if (a) ≥ (b) on verified-delivered AND middle-role
+  survival at fair horizon, promotion-by-receipts adds nothing over
+  promotion-by-outcomes in this world and the provenance-org doctrine dies
+  with it. Report loudly.
+**GATE: Y2 builds only after X verdicts** (its interior regimes are X's
+mechanics; running Y2 first would un-register X's comparisons).
+
+**Y3 — real employees (flagship; parameters PENDING X and Y2).** The Y2
+winner and loser re-run with in-sim LLM agents (Sonnet/Haiku per standing
+model policy; Opus never in-sim) on a real micro-repo with a hidden-test
+task queue; N small, episodes short, token budget registered BEFORE the
+run. Same treatments, same KILL, plus an honesty constraint: the repo,
+tasks, and test results are publishable so any viewer can check the work
+was real. Y3's exact N/episode/budget numbers are declared in an amendment
+after X and Y2 land — registered as pending, not guessed now.
