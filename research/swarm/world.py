@@ -88,6 +88,37 @@ R_PICKUP = R_COMM                   # Chebyshev radius to ACCEPT a pinned order
                                     # the world's two existing radii (sense wide,
                                     # interact near).
 
+# v18 (column Q): endogenous infrastructure — "the sim grows landlords". All the
+# machinery below is gated on build_matter>0 / build=True; the matter field, the
+# per-charger toll array and the build ledger are allocated but NEVER read/written
+# when off, so every prior column stays bit-identical (suite-verified). Matter
+# lives in a SEPARATE structure (matter_sources/matter_stock), disjoint from the
+# ore field — so ore routing, Φ valuation, belief maps and ore conservation are
+# untouched by construction (no fast-path change, no oracle perturbation).
+MATTER_COST = 6.0                   # matter units a company spends per built charger
+BUILD_CREDIT_COST = 30.0            # credits a company spends per built charger
+MATTER_HAUL = 4                     # matter units mined into the company pool per
+                                    # visit to a matter rock (mine-to-pool, no haul)
+MATTER_PER_ORE_PAIR = 1.0           # matter rocks seeded per ore mirror-pair at
+                                    # build_matter==1.0 (count = round(bm·pairs));
+                                    # a fraction bm<1 seeds proportionally fewer
+# The toll dial: guest CHARGE PRICE in credits per guest slot-fill on a BUILT
+# charger, the owner's choice from this small registered grid — 0 (free),
+# marginal ×{1,2,4}. Preset (exogenous) chargers stay toll-free (toll 0), so the
+# toll-booth recurses ONLY onto endogenous capital.
+TOLL_UNIT = 1.0
+TOLL_GRID = (0.0, TOLL_UNIT, 2.0 * TOLL_UNIT, 4.0 * TOLL_UNIT)
+TOLL_ROUTE_PENALTY = 3.0            # cells of extra guest-avoidance per credit of
+                                    # toll (the toll enters guest ROUTING, so a
+                                    # high toll deters guests — the deadweight
+                                    # channel that gives the toll an interior
+                                    # revenue optimum; 0 for toll-free chargers)
+GATHERERS_MAX = 3                   # at most this many robots per company divert
+                                    # to gather matter at once (rid tie-break, like
+                                    # SCOUTS_MAX — a whole-fleet matter stampede
+                                    # would erase the ore-vs-matter trade the KILL
+                                    # is measuring)
+
 PRESETS = {
     # sources, refineries [(pos, owner)], chargers [(pos, owner)]
     "v5": dict(sources=None,        # mirrored asteroid field, seeded in init
@@ -194,8 +225,11 @@ class World:
                  bills: bool = False, firm_relay: bool = False,
                  dwell: bool = False, bills_contingent: bool = False,
                  reputation: bool = False, false_accuse: float = 0.0,
-                 order_book: bool = False):
+                 order_book: bool = False,
+                 build_matter: float = 0.0, build: bool = False,
+                 toll_level: float = 0.0, build_budget: int = 10**9):
         self.rng = np.random.RandomState(seed)
+        self.rng_seed = seed                 # v18: matter-field RNG keys off this
         self.hazard_phi = hazard_phi
         self.preset = preset
         # v13 (column L): density-fixed scale. n_robots drives the scaled
@@ -258,6 +292,13 @@ class World:
         self.ref_owner = [o for _, o in cfg["refineries"]]
         self.chargers, self.charger_owner = self._scaled_chargers(
             cfg["chargers"], _P)
+        # v18 (column Q): per-charger toll (credits/guest slot-fill). Preset
+        # chargers are toll-free (0.0), so nearest_charger's guest-routing term is
+        # identically 0 and bit-identical for every prior column; BUILT chargers
+        # are appended later (build_step) with toll == toll_level. `built` is the
+        # parallel flag marking endogenous capital (the toll-booth surface).
+        self.charger_toll = [0.0 for _ in self.chargers]
+        self.charger_built = [False for _ in self.chargers]
         self.n_companies = cfg["companies"]
         # v5 fleets launch lean (mean 40): with 4 chargers and a scattered
         # field, abundance made coordination irrelevant at mean 60 (smoke:
@@ -341,7 +382,13 @@ class World:
                                     # company's refinery (robot-co channel;
                                     # laundering = matrix off-diag beyond this)
         self.company = [dict(credit=0.0, tariffs_earned=0.0, tariffs_paid=0.0,
-                             queue_wait=0, treasury=0.0) for _ in range(2)]
+                             queue_wait=0, treasury=0.0,
+                             # v18 (column Q): matter pool, build ledger, toll
+                             # book. All default zero and touched ONLY under
+                             # build/build_matter ⇒ prior columns bit-identical.
+                             matter=0.0, matter_mined=0.0, build_spend=0.0,
+                             built=0, toll_earned=0.0, toll_paid=0.0)
+                        for _ in range(2)]
         self.tick = 0
         self.energy_charged = 0.0
         self.deal_log: list[dict] = []
@@ -430,6 +477,27 @@ class World:
         self.reputation = reputation
         self.false_accuse = false_accuse
         self._eps_rng = np.random.RandomState(seed + 424242)
+        # v18 (column Q): endogenous infrastructure. build_matter seeds a SEPARATE
+        # matter field (disjoint from ore); build lets fleets place chargers; the
+        # toll_level is the guest price stamped on every built charger; build_budget
+        # caps built chargers PER COMPANY (unlimited by default — the budget sweep
+        # sets it for the under-provision test). All default off/zero ⇒ prior
+        # columns bit-identical (matter arrays empty; build_step/pick_matter gated).
+        self.build = build
+        self.toll_level = float(toll_level)
+        self.build_budget = build_budget
+        self.build_matter = float(build_matter)
+        self.matter_sources: list[tuple] = []
+        self.matter_stock: list[int] = []
+        self.matter_initial = 0
+        self.matter_mined = 0                # global (== Σ pools + Σ spent)
+        self.built_log: list[dict] = []      # each built charger's (tick, co, pos,
+                                             # rock, forgone) — the placement map
+        self.built_guest_slots = 0           # slot-fills served to guests AT built
+                                             # chargers (the toll-booth throughput)
+        self._gather_target: dict = {}       # rid → matter-rock pos (per-tick)
+        if self.build_matter > 0:
+            self._gen_matter()
 
         self.robots: list[Robot] = []
         if self.n_companies == 2:
@@ -587,6 +655,210 @@ class World:
         stocks[0] += half_total - sum(stocks)            # pin the total
         sources = pos + [(x, self.grid - y) for x, y in pos]  # mirrors idx+n
         return sources, stocks + list(stocks)
+
+    # ── v18 (column Q): the matter field + the build machinery ────────────
+    def _gen_matter(self) -> None:
+        """Seed the SEPARATE matter field: a build_matter-fraction of mirror-pairs
+        of matter-bearing rocks, disjoint from the ore field and mirror-symmetric
+        about y=grid/2 (so the two companies face identical matter geography — the
+        twin-fleet placebo survives). Drawn from a DEDICATED RandomState
+        (seed+90001), so the main stream is never perturbed and every ore column
+        stays bit-identical. Matter is mined-to-pool at the rock (no haul), so it
+        never enters ore load/parcels/conservation."""
+        sc = self.grid / GRID
+        n_ore_pairs = len(self.sources) // 2
+        n_pairs = int(round(self.build_matter * MATTER_PER_ORE_PAIR * n_ore_pairs))
+        if n_pairs <= 0:
+            return
+        # DEDICATED stream keyed off field size + seed (never self.rng), so the
+        # matter layout is reproducible and the main draw sequence is untouched.
+        mrng = np.random.RandomState(90001 + 7 * len(self.sources)
+                                     + 131 * self.rng_seed)
+        taken = set(self.refineries) | set(self.chargers) | set(self.sources)
+        pos, misses = [], 0
+        while len(pos) < n_pairs:
+            x = int(mrng.uniform(3 * sc, 29 * sc))
+            y = int(mrng.uniform(3 * sc, 13 * sc))       # top half; mirror below
+            p_ = (x, y)
+            if p_ in taken or any(manhattan(p_, q) < 4 for q in pos):
+                misses += 1
+                if misses > 64 * max(1, n_pairs):
+                    break
+                continue
+            pos.append(p_)
+            misses = 0
+        stocks = [int(mrng.uniform(8, 20)) for _ in range(len(pos))]
+        self.matter_sources = pos + [(x, self.grid - y) for x, y in pos]
+        self.matter_stock = stocks + list(stocks)
+        self.matter_initial = sum(self.matter_stock)
+
+    def pick_matter(self, r: Robot) -> int:
+        """Mine matter at whichever matter rock the robot stands on: MATTER_HAUL
+        units (or the remainder) flow straight into the robot's COMPANY pool — no
+        cargo, no haul (the resource cost is the trip battery + the ore trip
+        forgone). Returns units mined. Pure v18 path (gated by the caller)."""
+        for i, pos in enumerate(self.matter_sources):
+            if r.pos != pos or self.matter_stock[i] <= 0:
+                continue
+            q = min(MATTER_HAUL, self.matter_stock[i])
+            self.matter_stock[i] -= q
+            self.company[r.company]["matter"] += q
+            self.company[r.company]["matter_mined"] += q
+            self.matter_mined += q
+            return q
+        return 0
+
+    def nearest_matter(self, co: int, from_pos):
+        """(pos, dist) of the nearest STOCKED matter rock to `from_pos` — the
+        gatherer target. Company-neutral (matter is un-owned in the field until
+        mined). None if the matter field is exhausted."""
+        best, best_d = None, float("inf")
+        for pos, s in zip(self.matter_sources, self.matter_stock):
+            if s <= 0:
+                continue
+            d = manhattan(from_pos, pos)
+            if d < best_d:
+                best, best_d = pos, d
+        return (best, best_d) if best is not None else (None, 0)
+
+    def _build_site(self, co: int):
+        """Placement policy — derived from the EXISTING loaded-haul valuation (the
+        same BATTERY_MAX/(eff·(1+LOADED_MULT)) loaded reach Φ prices), NOT a new
+        planner. It sites the charger WHERE THE COMPANY'S OWN STRANDING CONCENTRATES,
+        as a within-loaded-reach STEPPING STONE toward the home refinery:
+
+          (a) TRAPPED-RETURN mode (the binding N=240 stranding): among the company's
+              loaded drones that cannot reach the home refinery loaded even from a
+              FULL charge (dist > loaded_reach — the exact plateau signature), take
+              the LOAD-weighted centroid and place the charger on the corridor from
+              the refinery toward that centroid, at 0.9·loaded_reach from the
+              refinery (so its charger→refinery loaded leg is feasible and it
+              intercepts the trapped corridor a hop short of the dead end).
+          (b) FAR-ORE fallback (early game, before any cargo is trapped): the
+              highest forgone-far-ore rock (stock×charge-distance on this company's
+              side), stepping-stone-placed the same way on that rock's corridor.
+
+        Deterministic given world state; returns (None, ·, ·) if no novel,
+        un-crowded site exists (a site within 3 cells of an existing charger, or on
+        a facility, is rejected — no stacking)."""
+        ref = self.refineries[self._home_ref(co)]
+        reach = BATTERY_MAX / (1.0 + LOADED_MULT)      # nominal loaded reach (eff~1)
+
+        def stepping_stone(cx, cy):
+            """A point 0.9·reach from the refinery toward (cx, cy)."""
+            d = abs(cx - ref[0]) + abs(cy - ref[1])
+            frac = min(1.0, 0.9 * reach / max(d, 1.0))
+            return (int(round(ref[0] + frac * (cx - ref[0]))),
+                    int(round(ref[1] + frac * (cy - ref[1]))))
+
+        trapped = [r for r in self.robots
+                   if r.company == co and r.load > 0 and not r.stranded
+                   and manhattan(r.pos, ref) > reach]
+        if trapped:
+            wsum = float(sum(r.load for r in trapped))
+            cx = sum(r.pos[0] * r.load for r in trapped) / wsum
+            cy = sum(r.pos[1] * r.load for r in trapped) / wsum
+            site, rock, forgone = stepping_stone(cx, cy), -1, round(wsum, 1)
+        else:
+            own_ch = [c for c, o in zip(self.chargers, self.charger_owner)
+                      if o is None or o == co]
+            best_i, best_score = -1, 0.0
+            for i, src in enumerate(self.sources):
+                s = self.stock[i]
+                if s <= 0:
+                    continue
+                if manhattan(src, ref) > min(manhattan(src, self.refineries[j])
+                                             for j in range(len(self.refineries))) + 1:
+                    continue                       # rival's side — not our stranding
+                d_ch = min((manhattan(src, c) for c in own_ch),
+                           default=manhattan(src, ref))
+                score = s * d_ch
+                if score > best_score:
+                    best_i, best_score = i, score
+            if best_i < 0:
+                return None, -1, 0.0
+            src = self.sources[best_i]
+            site, rock, forgone = stepping_stone(src[0], src[1]), best_i, best_score
+        block = set(self.chargers) | set(self.refineries)
+        if site in block or any(manhattan(site, c) < 3 for c in self.chargers):
+            return None, rock, forgone
+        return site, rock, forgone
+
+    def build_step(self) -> None:
+        """Once per tick (called at TICK START from BaseArm.tick, BEFORE EV/drives/
+        encounters, so a new charger is present for THIS tick's routing and never
+        appears mid-encounter — evaluated Φ == executed Φ preserved). Each company
+        that can AFFORD a charger (matter ≥ MATTER_COST and credit ≥
+        BUILD_CREDIT_COST) and is under its build_budget places ONE at its
+        forgone-far-ore site. Matter leaves the pool; credit leaves the company
+        (booked to build_spend, so ledger_accounted stays exact). No-op when build
+        is off ⇒ bit-identical."""
+        if not self.build:
+            return
+        for co in range(2):
+            c = self.company[co]
+            if c["built"] >= self.build_budget:
+                continue
+            if c["matter"] < MATTER_COST or c["credit"] < BUILD_CREDIT_COST:
+                continue
+            site, rock, forgone = self._build_site(co)
+            if site is None:
+                continue
+            c["matter"] -= MATTER_COST
+            c["credit"] -= BUILD_CREDIT_COST
+            c["build_spend"] += BUILD_CREDIT_COST
+            c["built"] += 1
+            self.chargers.append(site)
+            self.charger_owner.append(co)
+            self.charger_toll.append(self.toll_level)
+            self.charger_built.append(True)
+            self.built_log.append(dict(tick=self.tick, co=co, pos=site,
+                                       rock=rock, forgone=round(forgone, 1)))
+
+    def assign_gatherers(self) -> None:
+        """v18: designate this tick's matter gatherers, ONCE per tick (not per
+        robot — O(N·matter)). A company that is under budget and short of matter
+        for its next charger (pool < MATTER_COST) sends its GATHERERS_MAX nearest
+        battery-able empty drones to the matter field; the rest keep mining ore.
+        The rid-sorted cap prevents a whole-fleet matter stampede (the ore-vs-matter
+        trade the KILL measures). intent() reads _gather_target; empty when off."""
+        self._gather_target = {}
+        if not self.build:
+            return
+        if not any(s > 0 for s in self.matter_stock):
+            return
+        for co in range(2):
+            c = self.company[co]
+            if c["built"] >= self.build_budget or c["matter"] >= MATTER_COST:
+                continue
+            cand = []
+            for x in self.robots:
+                if x.company != co or x.stranded or x.load > 0:
+                    continue
+                p, dd = self.nearest_matter(co, x.pos)
+                if p is None:
+                    continue
+                if x.bat() > 3.0 * dd * x.eff + RESCUE_FLOOR:   # round-trip+safety
+                    cand.append((x.rid, p))
+            cand.sort()
+            for rid, p in cand[:GATHERERS_MAX]:
+                self._gather_target[rid] = p
+
+    def matter_conserved(self) -> bool:
+        """v18: every mined matter unit is either sitting in a company pool or was
+        spent building (MATTER_COST per built charger). Field remaining + pools +
+        spent == initial. Trivially True when the matter field is empty."""
+        remaining = sum(self.matter_stock)
+        pooled = sum(self.company[c]["matter"] for c in range(2))
+        spent = sum(self.company[c]["built"] for c in range(2)) * MATTER_COST
+        return abs(remaining + pooled + spent - self.matter_initial) < 1e-9 \
+            and abs(pooled + spent - self.matter_mined) < 1e-9
+
+    def toll_conserved(self) -> bool:
+        """v18: tolls are a pure guest→owner CREDIT transfer — total earned equals
+        total paid (net-zero in Σ company credit, so ledger_accounted is intact)."""
+        return abs(sum(self.company[c]["toll_earned"] for c in range(2))
+                   - sum(self.company[c]["toll_paid"] for c in range(2))) < 1e-9
 
     def best_claim(self, r) -> int:
         """Policy claim choice: richest-per-distance stocked asteroid.
@@ -983,12 +1255,20 @@ class World:
 
     def nearest_charger(self, r: Robot):
         """(pos, dist) of the routing-preferred charger: nearest by distance
-        plus a guest penalty at rival infrastructure (guests charge slower)."""
+        plus a guest penalty at rival infrastructure (guests charge slower).
+        v18 (column Q): a guest ALSO pays a routing penalty proportional to the
+        charger's toll (TOLL_ROUTE_PENALTY·toll) — the toll deters guests, so a
+        priced charger is avoided when a cheaper option is comparably near (the
+        deadweight channel behind the interior toll optimum). The toll term is
+        identically 0 at every toll-free (all preset) charger, so this is
+        bit-identical for every prior column."""
         best, best_eff, best_d = None, float("inf"), 0
-        for pos, owner in zip(self.chargers, self.charger_owner):
+        toll = self.charger_toll
+        for k, (pos, owner) in enumerate(zip(self.chargers, self.charger_owner)):
             d = manhattan(r.pos, pos)
-            eff_d = d + (0 if owner is None or owner == r.company
-                         else GUEST_PENALTY)
+            guest = not (owner is None or owner == r.company)
+            eff_d = d + (GUEST_PENALTY + TOLL_ROUTE_PENALTY * toll[k]
+                         if guest else 0)
             if eff_d < best_eff:
                 best, best_eff, best_d = pos, eff_d, d
         return best, best_d
@@ -1157,7 +1437,7 @@ class World:
 
     def charge_step(self) -> None:
         served = set()
-        for pos, owner in zip(self.chargers, self.charger_owner):
+        for k, (pos, owner) in enumerate(zip(self.chargers, self.charger_owner)):
             queue = [r for r in self.robots
                      if r.rid not in served
                      and r.charge_queued_at >= 0
@@ -1165,6 +1445,8 @@ class World:
                      and r.battery < BATTERY_MAX - 1e-9]
             queue.sort(key=lambda r: (r.charge_queued_at,
                                       self._charge_prio[r.rid]))
+            toll = self.charger_toll[k]
+            built = self.charger_built[k]
             for r in queue[:CHARGE_SLOTS]:
                 guest = owner is not None and owner != r.company
                 amt = min(GUEST_RATE if guest else CHARGE_RATE,
@@ -1173,6 +1455,17 @@ class World:
                 self.energy_charged += amt
                 if guest:
                     self.guest_charged += amt
+                    # v18 (column Q): the toll — a guest slot-fill at a BUILT
+                    # charger with toll>0 pays `toll` credits owner←guest (a pure
+                    # company↔company transfer, net-zero in Σ credit ⇒
+                    # ledger_accounted intact; toll_conserved asserts earned==paid).
+                    if built:
+                        self.built_guest_slots += 1
+                        if toll > 0:
+                            self.company[owner]["credit"] += toll
+                            self.company[owner]["toll_earned"] += toll
+                            self.company[r.company]["credit"] -= toll
+                            self.company[r.company]["toll_paid"] += toll
                 served.add(r.rid)
                 self.charge_served_slots += 1    # v17: charger duty-cycle numer.
                 if r.stranded and r.battery >= RESCUE_FLOOR:
@@ -1331,13 +1624,18 @@ class World:
         return self.material_accounted() + self.stock_lost == self.total_stock
 
     def ledger_accounted(self) -> bool:
-        """Σ company credit + Σ tariffs earned == V · delivered (unless the
-        merged-firm flag pays full rate, where tariff flows are notional)."""
+        """Σ company credit + Σ tariffs earned (+ v18 Σ build_spend) == V·delivered
+        (unless the merged-firm flag pays full rate, where tariff flows are
+        notional). v18: credit spent placing a charger leaves circulation into
+        build_spend, so it is added back here to keep the identity exact; tolls are
+        net-zero in Σ credit so they need no term. build_spend is 0 in every prior
+        column ⇒ bit-identical."""
         if self.internalize_tariffs:
             return True
         credit = sum(c["credit"] for c in self.company)
         tariffs = sum(c["tariffs_earned"] for c in self.company)
-        return abs(credit + tariffs - V_DELIVER * self.delivered) < 1e-6
+        build = sum(c["build_spend"] for c in self.company)
+        return abs(credit + tariffs + build - V_DELIVER * self.delivered) < 1e-6
 
     def credit_conserved(self) -> bool:
         """v17 PHASE 2: per-company, Σ(robot credit) + treasury == the company's
