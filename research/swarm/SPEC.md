@@ -1693,3 +1693,43 @@ truncation; "cities need receipts" REINSTATED.**
   partner's benign sacrifice (the confound that saturates blacklists), and
   the receipt is precisely the instrument that makes counterpart honesty
   observable instead of inferred.
+
+## v25 (column X): the firm's interior — command, prices, or claims
+
+The branch P23b explicitly left open (integration-as-COMMAND untested) plus
+the intra-company translation of the ladder: one company owns the whole
+fleet; the question is what allocation mechanism runs its interior. Three
+regimes, off-by-default flags, all prior columns bit-identical:
+- **(a) COMMAND** — a central planner assigns tasks/hand-offs directly and
+  the drone's decision rule is REPLACED by the assignment (this is what
+  "changing the objective" looks like from above). Honesty constraint,
+  registered now so command gets no free oracle: the planner plans on the
+  company's gossip-merged belief under local radio (P21 realism), not on
+  field truth, and assignments propagate by the same radio physics.
+- **(b) INTERNAL PRICES** — the P23b transfer-pricing arm, unchanged: the
+  measured-inert control.
+- **(c) CLAIM SETTLEMENT** — the bills machinery run INSIDE the firm: units
+  keep their own ledgers and are paid on attested claim stacks against final
+  delivery (the P23 objective-change, without a planner).
+Grid: N ∈ {24, 96, 240} × ticks ∈ {2,500, 7,500} — the fair-horizon pair is
+MANDATORY per the truncation-trap rule (P18, P28-H); σ=0.5, τ=0.15, v5
+scaled grids, 16 seeds (8 at N=240).
+- **PXa:** command wins at small N (the planner's belief covers the field;
+  zero bargaining overhead) and degrades with N as the gossip-merged plan
+  goes stale faster than assignments execute — books-bleed-first, but for
+  the planner.
+- **PXb:** internal prices remain statistically indistinguishable from the
+  no-mechanism baseline at every N and horizon (P23b replicates in the
+  intra-firm frame).
+- **PXc:** claim settlement wins at N=240 at 7,500 ticks, with internal
+  ≥2-hop hand-off share exceeding both alternatives (the P23 chain result,
+  transplanted inside the boundary).
+- **KILL (the doctrine kill):** if command ≥ claim settlement at N=240 /
+  7,500 ticks, then receipts add nothing over hierarchy inside the firm in
+  this world — central planning on shared belief is enough, and the
+  agent-fleet "internal notary" doctrine dies. Report loudly either way.
+Business translation on the record: this is the allocation question every
+operator of an internal AI-agent fleet is currently answering by vibes —
+command (orchestrator assigns), chargeback (measured inert), or attested
+claims on outcomes. Whichever way it falls, the result is the doctrine
+chapter of the follow-up article.
