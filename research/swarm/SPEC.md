@@ -2099,3 +2099,58 @@ matter_conserved (field+pools+spent == mined == initial) and toll_conserved
   instrument the routing-deadlock count (loaded-at-full-battery,
   refinery-unreachable-in-one-hop) per regime so settlement effects
   decompose from routing effects in the report.
+
+**P24 RE-SCOPE (2026-07-16, registrar — founder caught both holes).**
+Two design facts make the P24 verdicts narrower than written:
+1. **Free preset chargers saturate the world.** The toll test ran against
+   ubiquitous free public substitutes (guests simply routed to them —
+   ~52,650 free guest-energy/run vs 7.9 tolled slot-fills). "Landlord rent
+   dies" is therefore near-tautological AS RUN: what died is "landlording
+   against free public infrastructure," which no landlord anywhere
+   attempts. P24b is DOWNGRADED from refuted to UNTESTED-AS-REGISTERED.
+2. **Bills were instructed as standard kit and silently not run** — the Q
+   cells carry no bills flag; snhp+net delivered .829 = the SPOT baseline.
+   The registrar merged without catching the deviation; both misses are
+   the registrar's. Consequence: the far-chain economy (bills' far-band
+   0.40→0.47) never existed in Q's world, so far infrastructure had no
+   demand to serve — the far-ore placement fallback never fired and every
+   site landed centrally. Q tested infrastructure in an economy whose
+   frontier was structurally dormant.
+**P24a stands AS-SCOPED** (building is decorative in the spot world with
+free substitutes — still a real null for that world), and the routing-
+deadlock diagnosis stands (it is arm-independent physics). The landlord
+question is re-registered below.
+
+**THE COMPOSITION RULE (standing, registered).** Rent-bearing mechanisms
+(landlords, firms, middlemen, tolls) must be tested BOTH minimal AND
+composed with the confirmed-good kit (bills at minimum; whatever else has
+survived its column). A null from a minimal-only run is scoped
+"artifact-until-composed," not "law." Rationale, the founder's: rents live
+in the interactions — intermediaries die by construction in worlds
+stripped of the complements that feed them. (P23b's transfer-pricing
+inertness is NOT re-opened: it was bit-identical because objectives never
+changed — composition cannot rescue a mechanism that alters no decision.)
+
+## v18-R (column Q2): landlords on the frontier — P24-R amendment
+
+The landlord re-test in a scarce, composed world. Changes from Q, exactly
+two: (i) **frontier scarcity** — preset free chargers exist ONLY within a
+home band around each refinery (band radius = single-hop loaded reach);
+the far band has NO free chargers, so built capital is the only far
+supply; (ii) **bills ON** for the bargaining fleet (verified in the cell
+definitions at review, not assumed). Everything else identical to Q
+(matter field, build costs, toll grid, budget sweep, both horizons,
+deadlock instrumentation per the X caveat).
+- **P24R-a:** with frontier scarcity + bills, building lifts far-band
+  delivered/mined by ≥0.05 over the bills no-build control at 7,500t, and
+  placement moves to the far band / relay corridors (the fallback fires).
+- **P24R-b:** tolls on far chargers extract real rent — owner revenue
+  materially above marginal cost and above Q's 7.88cr farce; budget sweep
+  re-tests under-provision where capital is actually scarce.
+- **P24R-c (the founder's layering claim, falsifiable):** the build edge
+  under bills exceeds the build edge under spot — infrastructure and
+  claim-chains are complements.
+- **KILL:** if building and tolls stay decorative even with frontier
+  scarcity and bills (far-band lift <0.05 AND toll revenue de minimis),
+  infrastructure rent is genuinely absent at these scales and the null
+  graduates from artifact to law. Report loudly either way.
