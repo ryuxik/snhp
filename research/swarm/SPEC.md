@@ -1434,3 +1434,43 @@ load-bearing — and one of our own earlier findings gets honestly downgraded.**
   Phase 2 regardless of other constraints), the bills-of-lading and
   firm-settlement arms proceed to build. P23a's lift prediction now has a
   measured target: the far-band 0.40 → toward the 0.93 mid-band.
+
+**P-PHASE-2 BUILD NOTE (2026-07-16, committed BEFORE the P2 run — the
+operative interpretation of the two mechanisms, so the numbers that follow
+were pre-registered against these exact rules):**
+- **snhp+bill (World.bills).** Each parcel carries a `claims` stack of
+  (rid, share); the current HOLDER owns the residual 1−Σshare. Φ (scalar
+  dispatch — `_fast_ok` excludes bills) values carried cargo at the holder's
+  RESIDUAL units (the load term's feasibility discount, unchanged) and ADDS
+  the robot's outstanding own-claims UNDISCOUNTED (`Robot.claim_value`): a
+  claim pays at delivery regardless of the claimant's position, which is the
+  pre-commitment — it lifts the feasibility discount off the value a far
+  middle drone locks in when it sells, so the sell-leg clears IR where spot's
+  hold-up refused (unit-verified: the exact A→B→C hop returns sol=None under
+  spot, a strictly-positive symmetric split under bills).
+- **The split rule, made evaluated==executed-safe.** "The Nash division of
+  the CARGO-VALUE component determines the shares" is implemented as a 1-D
+  Nash bargain over splitting the moved residual between the giver's
+  UNDISCOUNTED claim and the receiver's DISCOUNTED carried residual, whose
+  maximiser is α* = (1 + giver_feasibility_disc)/2 — the giver's claim
+  fraction. Because α* depends ONLY on the giver's PRE-deal discount it is
+  split-INDEPENDENT (identical in evaluation and at execution), which is what
+  lets the claim be attached deterministically before the in-arm evaluated Φ
+  == executed Φ assert (the assert runs live through the 600-tick test and
+  the full grid). Claim valuation uses rate 1.0·V_DELIVER; the actual payout
+  at delivery uses the delivering refinery's tariff-adjusted rate (Φ is a
+  heuristic; conservation is enforced on the realized credit).
+- **Credit conservation.** At delivery each unit's `earned = rate·V·q` is
+  split across its claim stack (each claimant paid share·earned, booked to the
+  CLAIMANT's company) with the deliverer keeping the residual — Σ == earned
+  exactly. Extended as `World.credit_conserved()` (Σ robot credit + treasury
+  == company booked credit, per company); holds for every prior arm too.
+- **snhp+firm (World.firm_relay).** A within-company handoff settles through
+  `company[c]["treasury"]`: it advances the receiver a transfer price
+  (marginal shadow-priced haul + FIRM_MARGIN=0.15 of home value), tagged onto
+  the moved parcels and recouped from whoever delivers them (net-zero within
+  the company). This re-books credit only — it NEVER touches Φ/physics/RNG —
+  so the fast path stays and firm's trajectory is BIT-IDENTICAL to spot (the
+  Coase-boundary control: integration via transfer PRICING alone cannot
+  re-route Φ-driven haulers, so it forms no new chains; measured, not
+  asserted). Cross-company handoffs are untouched spot.

@@ -29,8 +29,9 @@ import sys
 import numpy as np
 
 from swarm import world as W
-from swarm.value import (delivery_target, fast_phi, phi, phi_ctx, phi_true,
-                         phi_true_field, safe_return_threshold,
+from swarm.value import (bills_correction, delivery_target, fast_phi,
+                         load_factors, owned_and_claim, phi, phi_bills, phi_ctx,
+                         phi_true, phi_true_field, safe_return_threshold,
                          stranding_hazard, stranding_hazard_true, update_ev)
 
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -435,7 +436,10 @@ class SnhpArm(BaseArm):
         if FORCE_SCALAR_EVAL:            # differential-oracle switch (tests)
             return False
         w = self.w
-        return not (w.belief_mode or w.life_pricing or self.has_map)
+        # v17 PHASE 2: bills reshapes the load term (holder residual + undiscounted
+        # claims) → scalar dispatch. firm_relay leaves Φ untouched (it only re-books
+        # credit) → the fast path stays, exactly as registered.
+        return not (w.belief_mode or w.life_pricing or self.has_map or w.bills)
 
     def _feas_mask(self, a, b):
         """_feasible over the whole bundle space in ONE numpy pass, reusing the
@@ -451,6 +455,69 @@ class SnhpArm(BaseArm):
         ok &= ~(self._f_enz & (((donor_bat - 1.0) < self._f_abse)
                                | ((W.BATTERY_MAX - recv_bat) < self._f_abse_loss)))
         return ok
+
+    # ── v17 PHASE 2 (snhp+bill): claim-aware bundle valuation ─────────────
+    def _bills_ctx(self, a, b):
+        """Per-encounter constants for the claim correction: pristine holder
+        residual + own-claim value for each robot, the FIFO cumulative-residual
+        prefix (the moved head's residual R_move = cum[|q|]), and the giver's
+        split fraction α* = (1+giver_disc)/2 — a Nash division of the cargo-value
+        component that is a function of PRE-deal state only, hence reproduced
+        identically at execution (the evaluated==executed guarantee)."""
+        w = self.w
+        own_a, claim_a = owned_and_claim(a)
+        own_b, claim_b = owned_and_claim(b)
+
+        def cum(r):
+            c = [0.0]
+            for p in r.parcels:
+                c.append(c[-1] + 1.0 - sum(sh for _, sh in p["claims"]))
+            return c
+
+        _, disc_a = load_factors(a, w)
+        _, disc_b = load_factors(b, w)
+        return dict(own_a=own_a, claim_a=claim_a, own_b=own_b, claim_b=claim_b,
+                    cumA=cum(a), cumB=cum(b),
+                    alpha_a=0.5 * (1.0 + disc_a), alpha_b=0.5 * (1.0 + disc_b))
+
+    def _bills_post(self, q, c):
+        """Analytic post-(owned, claim) for both robots after moving |q| FIFO-head
+        parcels — parcels are NOT moved on the log=False eval pass, so the split
+        is derived from the prefix sums instead. The giver keeps α*·R_move as an
+        undiscounted claim; the receiver carries the (1−α*)·R_move residual."""
+        V = W.V_DELIVER
+        if q > 0:
+            R = c["cumA"][q]
+            s = R * c["alpha_a"]
+            return (c["own_a"] - R, c["claim_a"] + s * V,
+                    c["own_b"] + (R - s), c["claim_b"])
+        if q < 0:
+            R = c["cumB"][-q]
+            s = R * c["alpha_b"]
+            return (c["own_a"] + (R - s), c["claim_a"],
+                    c["own_b"] - R, c["claim_b"] + s * V)
+        return c["own_a"], c["claim_a"], c["own_b"], c["claim_b"]
+
+    def _bills_add(self, ua, ub, k, q, a, b, c):
+        """Add the claim correction to bundle k's utilities. a and b are already
+        in the post-state (load/battery/sector) for q≠0, pristine for q==0, so
+        bills_correction reads the right load/discount and we feed the analytic
+        owned/claim above."""
+        oa, cla, ob, clb = self._bills_post(q, c)
+        ua[k] += bills_correction(a, self.w, oa, cla)
+        ub[k] += bills_correction(b, self.w, ob, clb)
+
+    def _bills_attach(self, giver, receiver, n, alpha):
+        """Execution: record the giver's claim (giver.rid, α·residual) on each of
+        the n just-moved parcels (now the receiver's FIFO tail) and bank α·R_move
+        into the giver's undiscounted claim value. Matches _bills_post exactly."""
+        s_units = 0.0
+        for p in receiver.parcels[-n:]:
+            res = 1.0 - sum(sh for _, sh in p["claims"])
+            add = alpha * res
+            p["claims"].append((giver.rid, add))
+            s_units += add
+        giver.claim_value += s_units * W.V_DELIVER
 
     def _evaluate(self, a, b):
         w = self.w
@@ -494,9 +561,12 @@ class SnhpArm(BaseArm):
         # ── scalar fallback (byte-identical to the original evaluate) ──────
         same_co = a.company == b.company
         has_map = self.has_map
+        bctx = self._bills_ctx(a, b) if w.bills else None
         for k in feas.nonzero()[0].tolist():
             if k == allzero:
                 ua[k], ub[k] = phi(a, w), phi(b, w)
+                if bctx is not None:                 # batna carries the pristine
+                    self._bills_add(ua, ub, k, 0, a, b, bctx)   # claim state
                 continue
             q, e, s = rows[k]
             m = int(space[k][3]) if has_map else 0
@@ -507,6 +577,8 @@ class SnhpArm(BaseArm):
             apply(w, a, b, q, e, s, log=False)
             if m == 0:
                 ua[k], ub[k] = phi(a, w), phi(b, w)
+                if bctx is not None:
+                    self._bills_add(ua, ub, k, q, a, b, bctx)
             elif m == 1:
                 # a sells its fresher map to b: a's Φ is untouched, b's Φ is
                 # scored under a temporary overlay that restores exactly.
@@ -615,6 +687,14 @@ class SnhpArm(BaseArm):
         utilities: a defense-masked frontier inflates capture."""
         w = self.w
         q, e, s, m = self._row(sol)
+        # v17 PHASE 2 (bills): capture the giver's split fraction from the PRISTINE
+        # state (before apply_bundle mutates load/battery) — identical to the α*
+        # priced in _bills_ctx, so the claim recorded below reproduces the utility
+        # this bundle was evaluated at.
+        if w.bills and q != 0:
+            giver, receiver = (a, b) if q > 0 else (b, a)
+            _, disc_g = load_factors(giver, w)
+            bill_alpha = 0.5 * (1.0 + disc_g)
         distress = (a.stranded or b.stranded
                     or stranding_hazard_true(a, w) > 0.5
                     or stranding_hazard_true(b, w) > 0.5)
@@ -636,7 +716,16 @@ class SnhpArm(BaseArm):
             w.apply_map_sync(b, a)               # a → b
         elif m == -1:
             w.apply_map_sync(a, b)               # b → a
-        assert abs(phi(a, w) - ua[sol]) < 1e-9 and abs(phi(b, w) - ub[sol]) < 1e-9, \
+        # v17 PHASE 2 (bills): attach the notarized split to the just-moved parcels
+        # BEFORE the invariant check, so the claim state Φ now sees is exactly what
+        # the evaluator priced (_bills_post) — evaluated Φ == executed Φ.
+        if w.bills and q != 0:
+            self._bills_attach(giver, receiver, abs(q), bill_alpha)
+        if w.bills:
+            pa, pb = phi_bills(a, w), phi_bills(b, w)
+        else:
+            pa, pb = phi(a, w), phi(b, w)
+        assert abs(pa - ua[sol]) < 1e-9 and abs(pb - ub[sol]) < 1e-9, \
             "executed state diverged from evaluated bundle"
 
         sa, sb = float(ua[sol] - batna_a), float(ub[sol] - batna_b)

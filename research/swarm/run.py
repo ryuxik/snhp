@@ -96,7 +96,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              map_trading: bool = False, prospect_claims: bool = False,
              n_robots: int = 24, consensus_cost: bool = False,
              gossip: bool = False, r_radio: int = 6,
-             lineage: bool = False) -> dict:
+             lineage: bool = False, bills: bool = False,
+             firm_relay: bool = False) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -128,7 +129,7 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               contested=contested, scouting=scouting,
               map_trading=map_trading, prospect_claims=prospect_claims,
               consensus_cost=consensus_cost, gossip=gossip, r_radio=r_radio,
-              lineage=lineage)
+              lineage=lineage, bills=bills, firm_relay=firm_relay)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
@@ -240,6 +241,20 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         n_ch = len(w.chargers)
         cap = CHARGE_SLOTS * n_ch
         duty = w.charge_served_slots / max(1, cap * makespan)
+        # v17 PHASE 2 (P23b): count relay HOPS of delivered ≥2-hop parcels by
+        # whether the (giver, taker) share a company. Vertical integration can
+        # only organize WITHIN-company chains; bills price both — so the
+        # cross-company relay count separates the two instruments' reach.
+        co_of = {r.rid: r.company for r in w.robots}
+        relay_within = relay_cross = 0
+        for p in dp:
+            if p["hops"] < 2:
+                continue
+            for (_, g_, t_) in p["chain"]:
+                if co_of.get(g_) == co_of.get(t_):
+                    relay_within += 1
+                else:
+                    relay_cross += 1
         lineage_detail = dict(
             n_delivered=nd,
             hop_counts=hc,
@@ -253,9 +268,14 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
             makespan=makespan,
             queue_wait=sum(w.company[c]["queue_wait"] for c in range(2)),
             holdup=_holdup_margins(dp, deals),
+            relay_within=relay_within,          # P23b: within-company relay hops
+            relay_cross=relay_cross,            # P23b: cross-company relay hops
         )
-    label = arm_name if tuple(issues) == FULL else \
-        f"{arm_name}[{'+'.join(issues)}]"
+    # v17 PHASE 2: the mechanism rides the same snhp+net base (SnhpArm) — the
+    # world flag IS the treatment, so relabel for the tables/pairings.
+    base_label = "snhp+bill" if bills else ("snhp+firm" if firm_relay else arm_name)
+    label = base_label if tuple(issues) == FULL else \
+        f"{base_label}[{'+'.join(issues)}]"
     return dict(
         arm=label, sigma=sigma, seed=seed, tau=tau_pair[0], tau1=tau_pair[1],
         preset=preset, delivered=w.delivered, delivered_mid=delivered_mid,
@@ -329,6 +349,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         # v17 (column P): cargo-lineage diagnosis
         lineage=lineage,
         lineage_detail=lineage_detail,
+        # v17 PHASE 2 (column P): pre-commitment mechanisms
+        bills=bills, firm_relay=firm_relay,
     )
 
 
@@ -739,6 +761,119 @@ def diagnosis(rows: list[dict]) -> None:
                   f"{'—':>8} {'—':>10}")
 
 
+def phase2(rows: list[dict]) -> None:
+    """v17 (column P) PHASE 2 — the pre-commitment tables. Printed numbers ARE
+    the artifact. No-op unless the sweep carries a bills OR firm_relay arm."""
+    lrows = [r for r in rows if r.get("lineage") and r.get("lineage_detail")]
+    if not any(r.get("bills") or r.get("firm_relay") for r in lrows):
+        return
+    # order arms spot → bill → firm → auction for the eye
+    order = {"snhp+net": 0, "snhp+bill": 1, "snhp+firm": 2, "auction": 3}
+    arms = sorted({r["arm"] for r in lrows}, key=lambda a: order.get(a, 9))
+    Ns = sorted({int(r["n_robots"]) for r in lrows})
+
+    def sel(arm, N):
+        return [r for r in lrows
+                if r["arm"] == arm and int(r["n_robots"]) == N]
+
+    def det(g, path):
+        vals = []
+        for r in g:
+            d = r["lineage_detail"]
+            for k in path:
+                d = d[k]
+            vals.append(d)
+        return vals
+
+    def paired(arm_hi, arm_lo, N, field):
+        hi = {r["seed"]: r[field] for r in sel(arm_hi, N)}
+        lo = {r["seed"]: r[field] for r in sel(arm_lo, N)}
+        common = sorted(set(hi) & set(lo))
+        if len(common) < 3:
+            return None
+        d = np.array([hi[s] - lo[s] for s in common], float)
+        _, pt = stats.ttest_rel([hi[s] for s in common], [lo[s] for s in common])
+        try:
+            _, pw = stats.wilcoxon(d) if np.any(d != 0) else (None, 1.0)
+        except ValueError:
+            pw = float("nan")
+        return dict(delta=float(d.mean()), p_t=float(pt), p_w=float(pw),
+                    wins=int((d > 0).sum()), n=len(common))
+
+    print("\n" + "=" * 84)
+    print("P (v17) PHASE 2 — PRE-COMMITMENT: bills of lading + firm relay vs the "
+          "hold-up baseline")
+    print("=" * 84)
+
+    print("\n[1] DELIVERED_FRAC (arm × N) + ≥2-hop share of delivered units:")
+    h = f"  {'arm':<12} {'N':>4} {'deliv':>7} {'dFrac':>7} {'0-hop':>7} {'1-hop':>7} {'≥2-hop':>7}"
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for arm in arms:
+            g = sel(arm, N)
+            if not g:
+                continue
+            dv = np.mean([r["delivered"] for r in g])
+            df = np.mean([r["delivered_frac"] for r in g])
+            sh = np.array([r["lineage_detail"]["hop_shares"] for r in g], float).mean(axis=0)
+            print(f"  {arm:<12} {N:>4} {dv:>7.0f} {df:>7.3f} "
+                  f"{sh[0]:>7.3f} {sh[1]:>7.3f} {sh[2]:>7.3f}")
+
+    print("\n[1b] P23a — bills − spot delivered_frac (paired; target ≥ +0.03):")
+    for N in Ns:
+        for arm in ("snhp+bill", "snhp+firm"):
+            c = paired(arm, "snhp+net", N, "delivered_frac")
+            if c:
+                print(f"    N={N}: {arm:>9} − snhp+net  Δframe={c['delta']:+.4f}  "
+                      f"p_t={c['p_t']:.3f} p_w={c['p_w']:.3f} wins {c['wins']}/{c['n']}")
+
+    print("\n[2] FAR-BAND delivered/mined "
+          f"(≤{LINEAGE_BANDS[0]} · {LINEAGE_BANDS[0]+1}-{LINEAGE_BANDS[1]} · >{LINEAGE_BANDS[1]}):")
+    h = f"  {'arm':<12} {'N':>4} {'near d/m':>13} {'mid d/m':>13} {'far d/m':>13}"
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for arm in arms:
+            g = sel(arm, N)
+            if not g:
+                continue
+            bm = np.array([r["lineage_detail"]["band_mined"] for r in g], float).sum(axis=0)
+            bd = np.array([r["lineage_detail"]["band_delivered"] for r in g], float).sum(axis=0)
+            cells = []
+            for j in range(3):
+                frac = bd[j] / bm[j] if bm[j] > 0 else float("nan")
+                cells.append(f"{bd[j]/len(g):>5.0f}/{bm[j]/len(g):<5.0f}={frac:>4.2f}")
+            print(f"  {arm:<12} {N:>4} " + " ".join(f"{c:>13}" for c in cells))
+
+    print("\n[3] MARGIN COMPRESSION (≥2-hop legs; Δ<0 ⇒ hold-up compression) + "
+          "RELAY reach (within/cross company hops):")
+    h = (f"  {'arm':<12} {'N':>4} {'nLegs':>6} {'mean_buy':>9} {'mean_sell':>10} "
+         f"{'meanΔ':>8} {'fracCompr':>10} {'within':>7} {'cross':>6}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for arm in arms:
+            g = sel(arm, N)
+            if not g:
+                continue
+            legs = [r["lineage_detail"]["holdup"] for r in g]
+            nlegs = np.sum([h_["n"] for h_ in legs])
+            priced = [h_ for h_ in legs if h_["n"] > 0]
+            rw = np.mean([r["lineage_detail"]["relay_within"] for r in g])
+            rc = np.mean([r["lineage_detail"]["relay_cross"] for r in g])
+            if priced:
+                mb = np.mean([h_["mean_buy"] for h_ in priced])
+                msl = np.mean([h_["mean_sell"] for h_ in priced])
+                md = np.mean([h_["mean_delta"] for h_ in priced])
+                fc = np.mean([h_["frac_compressed"] for h_ in priced])
+                print(f"  {arm:<12} {N:>4} {nlegs:>6.0f} {mb:>9.3f} {msl:>10.3f} "
+                      f"{md:>8.3f} {fc:>10.3f} {rw:>7.1f} {rc:>6.1f}")
+            else:
+                print(f"  {arm:<12} {N:>4} {nlegs:>6.0f} {'—':>9} {'—':>10} "
+                      f"{'—':>8} {'—':>10} {rw:>7.1f} {rc:>6.1f}")
+
+
 def build_jobs(column: str, seeds: int, ticks: int):
     jobs = []
     if column in ("A", "all"):
@@ -976,6 +1111,27 @@ def build_jobs(column: str, seeds: int, ticks: int):
                 jobs.append(dict(arm_name=arm_name, sigma=0.5, seed=seed,
                                  ticks=ticks, tau=0.15, preset="v5",
                                  n_robots=24, lineage=True))
+    if column == "P2":                # v17 PHASE 2: pre-commitment mechanisms
+        # The GATE is OPEN (chain signature present). N=240 scaled grid × 8 seeds
+        # × {auction (no-relay), snhp+net spot (hold-up baseline), snhp+bill
+        # (negotiable claims), snhp+firm (vertical integration)}; plus an N=24
+        # baseline (16 seeds, snhp+net + snhp+bill) for the hop-distribution
+        # regression. All carry lineage (bills/firm imply it). snhp+bill/+firm ride
+        # the snhp+net base with the world flag as the treatment.
+        import math as _math
+        g240 = int(round(32 * _math.sqrt(240 / 24)))
+        base240 = dict(sigma=0.5, ticks=ticks, tau=0.15, preset="v5",
+                       n_robots=240, grid=g240, lineage=True)
+        variants = [dict(arm_name="auction"), dict(arm_name="snhp+net"),
+                    dict(arm_name="snhp+net", bills=True),
+                    dict(arm_name="snhp+net", firm_relay=True)]
+        for v in variants:
+            for seed in range(min(seeds, 8)):
+                jobs.append(dict(seed=seed, **base240, **v))
+        for v in (dict(arm_name="snhp+net"), dict(arm_name="snhp+net", bills=True)):
+            for seed in range(min(seeds, 16)):
+                jobs.append(dict(seed=seed, sigma=0.5, ticks=ticks, tau=0.15,
+                                 preset="v5", n_robots=24, lineage=True, **v))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -986,7 +1142,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -1003,6 +1159,7 @@ def main() -> None:
         contrasts(rows)
         p21(rows)
         diagnosis(rows)
+        phase2(rows)
         return
 
     jobs = build_jobs(args.column, args.seeds, args.ticks)
@@ -1022,6 +1179,7 @@ def main() -> None:
     contrasts(rows)
     p21(rows)
     diagnosis(rows)
+    phase2(rows)
 
 
 if __name__ == "__main__":
