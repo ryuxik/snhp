@@ -1658,3 +1658,38 @@ signature** — coordination costs paid up front, recouped late — resolving
 exactly as P18's own market-vs-hive amendment did. The "cities need receipts"
 claim, buried by the 2,500-tick run, is **REINSTATED at N=240 for any horizon
 long enough to amortize the pause tax.**
+
+**P28-H VERDICT (2026-07-16, registrar) — the reversal was horizon
+truncation; "cities need receipts" REINSTATED.**
+- **Amendment prediction CONFIRMED (it flips, not narrows).** At 7,500 ticks,
+  N=240: attest honest 90.4 vs reput 59.1 (+31.3), delivered 1975 vs 1508
+  (+468). The amendment KILL does not fire. The discriminating fact:
+  reputation's cooperative tier is DEAD (delivery flat 1503→1508 across 3×
+  the horizon — carpet-blacklisting cannot convert time into output) while
+  attestation's is LIVE (12.5k→34.5k deals, delivery ~doubles). At 2,500
+  ticks we caught attestation mid-amortization: pause tax fully paid,
+  deliveries not yet accrued. Second time the fair-horizon amendment has
+  reversed a coordination-cost headline (P18, P28) — the truncation trap is
+  now a named reviewer check for every coordination mechanism in this world.
+- **P28a CLOSED post-amendment: no crossover exists in receipts' disfavor.**
+  At fair horizon receipts beat outcome-based reputation at every N tested
+  (N≤96: 96.5/96.8 vs 91.5/85.9; N=240: 90.4 vs 59.1). The registered folk
+  theorem inverted fully: villages run on receipts too. Attestation is also
+  the ONLY regime where lying is net-negative (liar adv −37.3 vs reput +5.5,
+  both +21.3, neither +189.9).
+- **P28c reversal HOLDS at horizon — a design warning, not a footnote:**
+  bolting outcome-based reputation ONTO receipts makes the system worse
+  (both: 60.4/1640 — tracks reputation, +21.3 liar adv). The blunt blacklist
+  pre-empts the trust gate and burns the tier the receipts were protecting.
+  Do not combine notarized attestation with naive outcome scoring.
+- **Distribution vs throughput:** neither delivers 1827 (> reput) but honest
+  payoff 27.4 with liar adv +189.9 — naive cooperation produces plenty and
+  the honest keep none of it. Receipts are not (only) a throughput
+  technology; they are who-keeps-what technology that HAPPENS to also win
+  throughput at fair horizon.
+- **Thesis translation, both halves now measured:** receipts make chains
+  exist (P23) and receipts out-scale reputation at fair horizon (P28/P28-H)
+  — because own-outcome signals cannot distinguish a liar's strip from a
+  partner's benign sacrifice (the confound that saturates blacklists), and
+  the receipt is precisely the instrument that makes counterpart honesty
+  observable instead of inferred.
