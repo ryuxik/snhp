@@ -488,39 +488,55 @@ class SnhpArm(BaseArm):
         prefix (the moved head's residual R_move = cum[|q|]), and the giver's
         split fraction α* = (1+giver_disc)/2 — a Nash division of the cargo-value
         component that is a function of PRE-deal state only, hence reproduced
-        identically at execution (the evaluated==executed guarantee)."""
+        identically at execution (the evaluated==executed guarantee).
+        P23e: under bills_contingent it also carries the DECAYED-residual prefix
+        (Σ res_i·decay_i, decay from each parcel's OPEN leg vs its geodesic cf) —
+        the giver's banked claim VALUE (not its physical share) decays by it."""
         w = self.w
+        cont = w.bills_contingent
         own_a, claim_a = owned_and_claim(a)
         own_b, claim_b = owned_and_claim(b)
 
-        def cum(r):
+        def cum(r, holder_pos):
             c = [0.0]
+            cd = [0.0]
             for p in r.parcels:
-                c.append(c[-1] + 1.0 - sum(sh for _, sh in p["claims"]))
-            return c
+                res = 1.0 - sum(sh for _rid, sh, *_ in p["claims"])
+                c.append(c[-1] + res)
+                if cont:
+                    cd.append(cd[-1] + res * w.leg_decay(p, holder_pos))
+            return c, cd
 
+        cumA, cumA_dec = cum(a, a.pos)
+        cumB, cumB_dec = cum(b, b.pos)
         _, disc_a = load_factors(a, w)
         _, disc_b = load_factors(b, w)
         return dict(own_a=own_a, claim_a=claim_a, own_b=own_b, claim_b=claim_b,
-                    cumA=cum(a), cumB=cum(b),
+                    cumA=cumA, cumB=cumB, cumA_dec=cumA_dec, cumB_dec=cumB_dec,
                     alpha_a=0.5 * (1.0 + disc_a), alpha_b=0.5 * (1.0 + disc_b))
 
     def _bills_post(self, q, c):
         """Analytic post-(owned, claim) for both robots after moving |q| FIFO-head
         parcels — parcels are NOT moved on the log=False eval pass, so the split
         is derived from the prefix sums instead. The giver keeps α*·R_move as an
-        undiscounted claim; the receiver carries the (1−α*)·R_move residual."""
+        undiscounted claim; the receiver carries the (1−α*)·R_move residual.
+        P23e: the PHYSICAL residual moved (own bookkeeping) is always α*·R, but the
+        giver's claim VALUE uses the decayed prefix α*·Σ res_i·decay_i (==α*·R when
+        flat), so contingent OFF is bit-identical."""
         V = W.V_DELIVER
+        cont = self.w.bills_contingent
         if q > 0:
             R = c["cumA"][q]
-            s = R * c["alpha_a"]
-            return (c["own_a"] - R, c["claim_a"] + s * V,
-                    c["own_b"] + (R - s), c["claim_b"])
+            s_phys = R * c["alpha_a"]
+            s_val = (c["cumA_dec"][q] if cont else R) * c["alpha_a"]
+            return (c["own_a"] - R, c["claim_a"] + s_val * V,
+                    c["own_b"] + (R - s_phys), c["claim_b"])
         if q < 0:
             R = c["cumB"][-q]
-            s = R * c["alpha_b"]
-            return (c["own_a"] + (R - s), c["claim_a"],
-                    c["own_b"] - R, c["claim_b"] + s * V)
+            s_phys = R * c["alpha_b"]
+            s_val = (c["cumB_dec"][-q] if cont else R) * c["alpha_b"]
+            return (c["own_a"] + (R - s_phys), c["claim_a"],
+                    c["own_b"] - R, c["claim_b"] + s_val * V)
         return c["own_a"], c["claim_a"], c["own_b"], c["claim_b"]
 
     def _bills_add(self, ua, ub, k, q, a, b, c):
@@ -532,17 +548,23 @@ class SnhpArm(BaseArm):
         ua[k] += bills_correction(a, self.w, oa, cla)
         ub[k] += bills_correction(b, self.w, ob, clb)
 
-    def _bills_attach(self, giver, receiver, n, alpha):
-        """Execution: record the giver's claim (giver.rid, α·residual) on each of
-        the n just-moved parcels (now the receiver's FIFO tail) and bank α·R_move
-        into the giver's undiscounted claim value. Matches _bills_post exactly."""
-        s_units = 0.0
-        for p in receiver.parcels[-n:]:
-            res = 1.0 - sum(sh for _, sh in p["claims"])
-            add = alpha * res
-            p["claims"].append((giver.rid, add))
-            s_units += add
-        giver.claim_value += s_units * W.V_DELIVER
+    def _bills_attach(self, giver, receiver, n, alpha, decays=None):
+        """Execution: record the giver's claim (giver.rid, α·residual[, decay]) on
+        each of the n just-moved parcels (now the receiver's FIFO tail) and bank the
+        claim VALUE into giver.claim_value. Matches _bills_post exactly. Flat
+        (decays None) appends 2-tuples and banks α·R_move; P23e contingent appends
+        3-tuples and banks α·Σ res_i·decay_i (decays aligned to the FIFO head)."""
+        s_val = 0.0
+        for i, p in enumerate(receiver.parcels[-n:]):
+            res = 1.0 - sum(sh for _rid, sh, *_ in p["claims"])
+            share = alpha * res
+            if decays is None:
+                p["claims"].append((giver.rid, share))
+                s_val += share
+            else:
+                p["claims"].append((giver.rid, share, decays[i]))
+                s_val += share * decays[i]
+        giver.claim_value += s_val * W.V_DELIVER
 
     def _evaluate(self, a, b):
         w = self.w
@@ -752,6 +774,12 @@ class SnhpArm(BaseArm):
             giver, receiver = (a, b) if q > 0 else (b, a)
             _, disc_g = load_factors(giver, w)
             bill_alpha = 0.5 * (1.0 + disc_g)
+            # P23e: capture each moved parcel's OPEN-leg decay from the PRISTINE
+            # pre-apply state (identical to what _bills_ctx priced via cumX_dec),
+            # aligned to the FIFO head that apply_bundle is about to move.
+            bill_decays = ([w.leg_decay(p, giver.pos)
+                            for p in giver.parcels[:abs(q)]]
+                           if w.bills_contingent else None)
         distress = (a.stranded or b.stranded
                     or stranding_hazard_true(a, w) > 0.5
                     or stranding_hazard_true(b, w) > 0.5)
@@ -777,7 +805,7 @@ class SnhpArm(BaseArm):
         # BEFORE the invariant check, so the claim state Φ now sees is exactly what
         # the evaluator priced (_bills_post) — evaluated Φ == executed Φ.
         if w.bills and q != 0:
-            self._bills_attach(giver, receiver, abs(q), bill_alpha)
+            self._bills_attach(giver, receiver, abs(q), bill_alpha, bill_decays)
         if w.bills:
             pa, pb = phi_bills(a, w), phi_bills(b, w)
         else:

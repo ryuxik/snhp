@@ -1458,6 +1458,212 @@ def test_v17p2_firm_transfer_price_conserves_and_matches_spot():
         or wf.delivered > 0
 
 
+# ── P23e (column P phase-2e): moral hazard in the relay ───────────────────
+def _dwell_snap(w, arm):
+    return (w.delivered, arm.deals, len(w.event_log),
+            round(sum(r.battery for r in w.robots), 9),
+            [r.pos for r in w.robots],
+            [tuple(sorted(d.items())) for d in w.deal_log])
+
+
+def test_p23e_dwell_instrument_is_pure_bookkeeping():
+    """dwell=True must not perturb a single bit vs the instrument absent, in EVERY
+    regime — the acq stamps, uid counter and hop_dwells/delivered_dwells lists are
+    pure bookkeeping (no RNG, no physics, no Φ). Checked on the no-bills spot
+    baseline AND on bills-flat (where dwell rides alongside the claim stack)."""
+    for kw in (dict(), dict(bills=True)):
+        outs = []
+        for extra in (dict(), dict(dwell=True)):
+            w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                      hazard_phi=("bills" not in kw), **kw, **extra)
+            arm = make_arm("snhp+net", w)
+            for _ in range(400):
+                arm.tick()
+            outs.append(_dwell_snap(w, arm))
+        assert outs[0] == outs[1], f"dwell instrument perturbed regime {kw}"
+
+
+def test_p23e_contingent_off_bit_identical_to_flat():
+    """bills_contingent=False (the default) is bit-identical to bills-flat, and
+    the flat claim stack stays 2-tuples — the entire contingent code path (3-tuple
+    claims, decayed prefixes) must be inert when off. Runs bills-flat with the
+    dwell instrument on to prove the plumbing that contingent SHARES is inert."""
+    outs = []
+    for kw in (dict(bills=True),
+               dict(bills=True, dwell=True, bills_contingent=False)):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), **kw)
+        arm = make_arm("snhp+net", w)
+        for _ in range(400):
+            arm.tick()
+        outs.append(_dwell_snap(w, arm))
+    assert outs[0] == outs[1], "contingent-off plumbing perturbed bills-flat"
+    # flat claims are 2-tuples (no decay field)
+    w = World(sigma=0.5, seed=1, preset="v5", tau=(0.15, 0.15), bills=True)
+    arm = make_arm("snhp+net", w)
+    for _ in range(300):
+        arm.tick()
+    assert all(len(c) == 2 for r in w.robots for p in r.parcels for c in p["claims"]), \
+        "flat split recorded a 3-tuple (decay) claim"
+
+
+def test_p23e_dwell_accounting_conserved():
+    """Per parcel, Σ(per-leg dwell over every carrier that held it, incl. the final
+    delivery leg) == its total hold time (delivery_tick − mined_tick). Each handoff
+    re-stamps acq_tick, so the legs telescope exactly."""
+    from collections import defaultdict
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              bills=True, bills_contingent=True)
+    arm = make_arm("snhp+net", w)
+    for _ in range(500):
+        arm.tick()
+    legsum = defaultdict(int)
+    for h in w.hop_dwells:
+        legsum[h["uid"]] += h["dwell"]
+    assert w.delivered_dwells, "no delivered parcels — vacuous"
+    for d in w.delivered_dwells:
+        assert legsum[d["uid"]] == d["total_dwell"], \
+            f"leg dwells {legsum[d['uid']]} != hold time {d['total_dwell']}"
+    # and the total dwell equals its counterfactual plus the (non-negative) inflation
+    for d in w.delivered_dwells:
+        assert d["inflation"] == d["total_dwell"] - d["total_cf"]
+
+
+def test_p23e_decay_applies_only_above_counterfactual():
+    """leg_decay == 1 exactly when the carrier's dwell is at or below its geodesic
+    counterfactual (an efficient beeline is never docked), and strictly < 1 only
+    for dwell ABOVE it — and it is monotone decreasing in the excess."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0),
+              bills=True, bills_contingent=True)
+    p = w._new_parcel(0)
+    src = w.sources[0]
+    # efficient: held exactly the geodesic distance to a point 5 cells away
+    p["acq_tick"] = 0
+    p["acq_pos"] = src
+    holder = (src[0] + 5, src[1])
+    w.tick = 5                                   # dwell 5 == cf 5 ⇒ decay 1
+    assert abs(w.leg_decay(p, holder) - 1.0) < 1e-12
+    w.tick = 4                                   # dwell below cf ⇒ still 1 (floored)
+    assert abs(w.leg_decay(p, holder) - 1.0) < 1e-12
+    w.tick = 15                                  # 10 idle ticks above cf ⇒ docked
+    d15 = w.leg_decay(p, holder)
+    assert d15 < 1.0
+    w.tick = 25                                  # more idle ⇒ more dock (monotone)
+    assert w.leg_decay(p, holder) < d15
+    assert abs(d15 - np.exp(-W.DWELL_DECAY_LAMBDA * 10)) < 1e-12
+
+
+def test_p23e_ir_respected_at_hop_time():
+    """The contingent contract must still clear IR at hop time: a FRESH receiver's
+    carried residual is undecayed (its open leg has dwell 0), so the exact hold-up
+    hop that spot vetoes and flat clears ALSO clears under contingent — chains do
+    not re-collapse from the receiver side."""
+    from swarm.arms import make_arm as _mk
+
+    def hop_solution(contingent):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), bills=True,
+                  bills_contingent=contingent)
+        w._live_sense = False
+        arm = _mk("snhp", w, issues=("cargo",))
+        B, C = w.robots[0], w.robots[1]
+        for r in (B, C):
+            r.company, r.sector, r.load, r.load_prov, r.parcels = 0, 0, 0, [0, 0], []
+        B.pos, B.cap, B.battery = (6, 6), 5, 18.0
+        B.load, B.load_prov = 2, [2, 0]
+        B.parcels = [w._new_parcel(0) for _ in range(2)]
+        C.pos, C.cap, C.battery, C.sector = (7, 6), 5, 95.0, 1
+        ua, ub = arm._evaluate(B, C)
+        ba, bb = float(ua[arm._allzero]), float(ub[arm._allzero])
+        sol = arm._pick(ua, ub, ba, bb, B, C)
+        return arm, sol, ua, ub, ba, bb
+
+    arm, sol, ua, ub, ba, bb = hop_solution(True)
+    assert sol is not None, "contingent failed to clear the hop flat/IR clears"
+    assert arm._row(sol)[0] > 0, "contingent cleared a non-cargo bundle"
+    assert ua[sol] - ba > 0 and ub[sol] - bb > 0, "IR not satisfied under contingent"
+
+
+def test_p23e_evaluated_equals_executed_under_contingent():
+    """The hard invariant with DECAYED claim stacks: 600 ticks of snhp+net with
+    bills_contingent on and the in-arm evaluated Φ == executed Φ assert live. The
+    decayed claim value each Φ evaluation prices (via cumX_dec) must be exactly what
+    execution banks (via the pre-apply decay capture); any divergence fires the
+    assert. Material + credit conservation intact, and claimed relays landing."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+              bills=True, bills_contingent=True)
+    arm = make_arm("snhp+net", w)
+    for _ in range(600):
+        arm.tick()
+        assert w.material_ok(), "material leak under contingent bills"
+        assert w.credit_conserved(), "credit not conserved under contingent bills"
+    assert arm.deals > 0, "contingent snhp+net struck no deals — vacuous"
+    assert w.ledger_accounted(), "ledger leak under contingent bills"
+    assert any(p["hops"] >= 2 for p in w.delivered_parcels), \
+        "no claimed relay ever delivered under contingent — vacuous"
+    # claim_value scalar still tracks the OUTSTANDING (payout-value) claim stacks:
+    # under contingent an outstanding claim is worth share·decay·V.
+    outstanding = {r.rid: 0.0 for r in w.robots}
+    for r in w.robots:
+        for p in r.parcels:
+            for rid, share, decay in p["claims"]:
+                outstanding[rid] += share * decay * V_DELIVER
+    for r in w.robots:
+        assert abs(r.claim_value - outstanding[r.rid]) < 1e-6, \
+            f"claim_value diverged from decayed claim stacks (robot {r.rid})"
+
+
+def test_p23e_lazy_carrier_docked_vs_flat():
+    """Hand-built A→B→C→refinery where the MIDDLE carrier B shirks — it holds the
+    cargo far longer than the ground it covers (large dwell, tiny displacement).
+    Flat pays B its full α-share; contingent docks B by exp(-λ·excess) and hands
+    the docked credit to the DELIVERER C (credit conserved either way)."""
+    from swarm.arms import make_arm as _mk
+
+    def build(contingent):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0),
+                  bills=True, bills_contingent=contingent)
+        arm = _mk("snhp", w)
+        A, B, C = w.robots[0], w.robots[1], w.robots[2]
+        for r in (A, B, C):
+            r.company, r.sector, r.cap, r.load, r.load_prov, r.parcels = \
+                0, 0, 5, 0, [0, 0], []
+        A.pos, A.sector, w.stock[0] = w.sources[0], 0, 2
+        assert w.pick(A) == 2
+        # A → B at tick 10, A barely moved (efficient A leg)
+        A.pos = w.sources[0]
+        w.tick = 10
+        w.transfer_cargo(A, B, 2, log=True)
+        da = [w.leg_decay(p, A.pos) for p in B.parcels[-2:]] if contingent else None
+        arm._bills_attach(A, B, 2, 0.4, da)
+        # B SHIRKS: holds 60 ticks but ends up 2 cells from where it took the cargo
+        B.pos = (w.sources[0][0] + 2, w.sources[0][1])
+        w.tick = 70
+        # decay captured from B's parcels BEFORE the B→C move restamps their acq
+        db = [w.leg_decay(p, B.pos) for p in B.parcels[:2]] if contingent else None
+        w.transfer_cargo(B, C, 2, log=True)
+        arm._bills_attach(B, C, 2, 0.5, db)
+        C.pos = w.refineries[0]
+        w.tick = 75
+        credit0 = (A.credit, B.credit, C.credit)
+        w.drop(C)
+        return w, (A, B, C), credit0
+
+    unit = V_DELIVER
+    wf, (Af, Bf, Cf), c0f = build(False)
+    wc, (Ac, Bc, Cc), c0c = build(True)
+    b_flat = Bf.credit - c0f[1]
+    b_cont = Bc.credit - c0c[1]
+    c_flat = Cf.credit - c0f[2]
+    c_cont = Cc.credit - c0c[2]
+    # B's flat payout is its full 0.3 share ×2 units; contingent docks it.
+    assert abs(b_flat - 0.3 * unit * 2) < 1e-9, "flat did not pay B its full share"
+    assert b_cont < b_flat - 1e-6, "contingent did not dock the shirking carrier"
+    # the dock is transferred to the deliverer C (conservation: total unchanged)
+    assert c_cont > c_flat + 1e-6, "deliverer did not absorb the dock"
+    assert abs((b_flat + c_flat) - (b_cont + c_cont)) < 1e-9, \
+        "docking leaked credit (deliverer must absorb exactly)"
+    assert wc.credit_conserved() and wf.credit_conserved()
+
+
 # ── differential oracle: optimized _evaluate == scalar reference ──────────
 # The fast Φ path in SnhpArm._evaluate MUST be byte-for-byte identical to the
 # scalar fallback (arms.FORCE_SCALAR_EVAL forces the reference). This test flips

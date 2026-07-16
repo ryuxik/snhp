@@ -203,7 +203,9 @@ def owned_and_claim(r):
     Read from r's ACTUAL parcels — used at execution and by phi_bills."""
     owned = 0.0
     for p in r.parcels:
-        owned += 1.0 - sum(sh for _, sh in p["claims"])
+        # P23e: claims are (rid, share[, decay]); the holder's residual is the
+        # PHYSICAL share (2nd field) — decay scales the payout, not ownership.
+        owned += 1.0 - sum(sh for _rid, sh, *_ in p["claims"])
     return owned, r.claim_value
 
 

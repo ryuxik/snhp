@@ -27,7 +27,8 @@ import numpy as np
 from scipy import stats
 
 from swarm.arms import make_arm
-from swarm.world import CHARGE_SLOTS, TOTAL_STOCK, V_DELIVER, World, manhattan
+from swarm.world import (CHARGE_SLOTS, DWELL_DECAY_LAMBDA, TOTAL_STOCK,
+                         V_DELIVER, World, manhattan)
 
 FULL = ("cargo", "energy", "sector")
 LADDER = ["null", "rules", "auction", "auction-co", "team", "team-co",
@@ -124,7 +125,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              n_robots: int = 24, consensus_cost: bool = False,
              gossip: bool = False, r_radio: int = 6,
              lineage: bool = False, bills: bool = False,
-             firm_relay: bool = False, reputation: bool = False,
+             firm_relay: bool = False, dwell: bool = False,
+             bills_contingent: bool = False, reputation: bool = False,
              false_accuse: float = 0.0) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
@@ -158,6 +160,7 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               map_trading=map_trading, prospect_claims=prospect_claims,
               consensus_cost=consensus_cost, gossip=gossip, r_radio=r_radio,
               lineage=lineage, bills=bills, firm_relay=firm_relay,
+              dwell=dwell, bills_contingent=bills_contingent,
               reputation=reputation, false_accuse=false_accuse)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
@@ -300,9 +303,43 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
             relay_within=relay_within,          # P23b: within-company relay hops
             relay_cross=relay_cross,            # P23b: cross-company relay hops
         )
+    # P23e (column P phase-2e): dwell instrumentation blob (only when dwell is on).
+    # Per-carrier leg excess (dwell above the geodesic counterfactual) split into
+    # relay (handoff) legs vs the final delivery leg, and per-delivered-parcel
+    # journey inflation split by relay depth (0 / 1 / ≥2 hops). The KILL metric is
+    # ≥2-hop inflation under bills-flat: no inflation ⇒ no moral hazard to price.
+    dwell_detail = None
+    if getattr(w, "dwell", False):
+        def _qstats(vals):
+            if not vals:
+                return dict(n=0, mean=0.0, median=0.0, p90=0.0, total=0.0)
+            arr = np.array(vals, float)
+            return dict(n=len(arr), mean=float(arr.mean()),
+                        median=float(np.median(arr)),
+                        p90=float(np.percentile(arr, 90)),
+                        total=float(arr.sum()))
+        hop = w.hop_dwells
+        dd = w.delivered_dwells
+        relay = [h for h in hop if not h["final"]]
+        dwell_detail = dict(
+            n_legs=len(hop), n_relay_legs=len(relay),
+            leg_excess=_qstats([h["excess"] for h in hop]),
+            relay_leg_excess=_qstats([h["excess"] for h in relay]),
+            final_leg_excess=_qstats([h["excess"] for h in hop if h["final"]]),
+            deliv_inflation=_qstats([d["inflation"] for d in dd]),
+            deliv_total_dwell=_qstats([d["total_dwell"] for d in dd]),
+            deliv_total_cf=_qstats([d["total_cf"] for d in dd]),
+            inflation_by_hops=[
+                _qstats([d["inflation"] for d in dd if min(2, d["hops"]) == hh])
+                for hh in (0, 1, 2)],
+            decay_lambda=DWELL_DECAY_LAMBDA,
+        )
     # v17 PHASE 2: the mechanism rides the same snhp+net base (SnhpArm) — the
     # world flag IS the treatment, so relabel for the tables/pairings.
-    base_label = "snhp+bill" if bills else ("snhp+firm" if firm_relay else arm_name)
+    # P23e: contingent splits get a distinct label so spot/flat/contingent pair.
+    base_label = ("snhp+billC" if (bills and bills_contingent)
+                  else "snhp+bill" if bills
+                  else "snhp+firm" if firm_relay else arm_name)
     label = base_label if tuple(issues) == FULL else \
         f"{base_label}[{'+'.join(issues)}]"
     return dict(
@@ -380,6 +417,9 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         lineage_detail=lineage_detail,
         # v17 PHASE 2 (column P): pre-commitment mechanisms
         bills=bills, firm_relay=firm_relay,
+        # P23e (column P phase-2e): moral hazard in the relay
+        dwell=dwell, bills_contingent=bills_contingent,
+        dwell_detail=dwell_detail,
         # v22 (column U): reputation vs receipts
         reputation=reputation, false_accuse=false_accuse,
         **_reputation_metrics(w, arm),
@@ -912,6 +952,144 @@ def phase2(rows: list[dict]) -> None:
                       f"{'—':>8} {'—':>10} {rw:>7.1f} {rc:>6.1f}")
 
 
+def phase2e(rows: list[dict]) -> None:
+    """P23e (column P phase-2e) — moral hazard in the relay. Contrasts FLAT splits
+    (snhp+bill) vs TIME-CONTINGENT splits (snhp+billC) against the no-bills spot
+    baseline (snhp+net), all dwell-instrumented. Printed numbers ARE the artifact
+    (report, not verdict). No-op unless the sweep carries a dwell-instrumented run.
+    The KILL fires if bills-flat shows NO dwell inflation vs the counterfactual —
+    then there is no moral hazard to price and contingent has nothing to compress."""
+    drows = [r for r in rows if r.get("dwell") and r.get("dwell_detail")]
+    if not drows:
+        return
+    order = {"snhp+net": 0, "snhp+bill": 1, "snhp+billC": 2}
+    arms = sorted({r["arm"] for r in drows}, key=lambda a: order.get(a, 9))
+    Ns = sorted({int(r["n_robots"]) for r in drows})
+
+    def sel(arm, N):
+        return [r for r in drows
+                if r["arm"] == arm and int(r["n_robots"]) == N]
+
+    def paired(arm_hi, arm_lo, N, getter):
+        hi = {r["seed"]: getter(r) for r in sel(arm_hi, N)}
+        lo = {r["seed"]: getter(r) for r in sel(arm_lo, N)}
+        common = sorted(set(hi) & set(lo))
+        if len(common) < 3:
+            return None
+        d = np.array([hi[s] - lo[s] for s in common], float)
+        _, pt = stats.ttest_rel([hi[s] for s in common], [lo[s] for s in common])
+        return dict(delta=float(d.mean()), p_t=float(pt),
+                    wins=int((d > 0).sum()), n=len(common))
+
+    print("\n" + "=" * 92)
+    print("P23e (column P phase-2e) — MORAL HAZARD IN THE RELAY: flat vs "
+          "time-contingent splits")
+    lam = drows[0]["dwell_detail"]["decay_lambda"]
+    print(f"dwell = ticks a parcel sits in a carrier's hold; counterfactual = "
+          f"geodesic (manhattan/speed). decay = exp(-{lam}·excess).")
+    print("=" * 92)
+
+    # [1] DWELL INFLATION — the heart. Per-parcel journey inflation (total_dwell −
+    # geodesic cf), split by relay depth, plus per-leg excess (relay vs final).
+    print("\n[1] DWELL INFLATION vs geodesic counterfactual (ticks; parcel journey "
+          "= total_dwell − total_cf):")
+    h = (f"  {'arm':<11} {'N':>4} {'nParc':>6} {'totDwell':>9} {'totCF':>7} "
+         f"{'inflat':>7} {'infl_0h':>8} {'infl_1h':>8} {'infl≥2h':>8} "
+         f"{'relLegXs':>9} {'finLegXs':>9}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for arm in arms:
+            g = sel(arm, N)
+            if not g:
+                continue
+            dd = [r["dwell_detail"] for r in g]
+            npar = np.mean([d["deliv_inflation"]["n"] for d in dd])
+            td = np.mean([d["deliv_total_dwell"]["mean"] for d in dd])
+            tcf = np.mean([d["deliv_total_cf"]["mean"] for d in dd])
+            infl = np.mean([d["deliv_inflation"]["mean"] for d in dd])
+
+            def by(hh):
+                vals = [d["inflation_by_hops"][hh]["mean"] for d in dd
+                        if d["inflation_by_hops"][hh]["n"] > 0]
+                return np.mean(vals) if vals else float("nan")
+            rlx = np.mean([d["relay_leg_excess"]["mean"] for d in dd])
+            flx = np.mean([d["final_leg_excess"]["mean"] for d in dd])
+            print(f"  {arm:<11} {N:>4} {npar:>6.0f} {td:>9.1f} {tcf:>7.1f} "
+                  f"{infl:>7.1f} {by(0):>8.1f} {by(1):>8.1f} {by(2):>8.1f} "
+                  f"{rlx:>9.2f} {flx:>9.2f}")
+
+    print("\n[1b] Paired inflation deltas (contingent − flat; <0 ⇒ dwell "
+          "compressed, the P23e prediction):")
+    for N in Ns:
+        for hh, lab in ((None, "all parcels"), (2, "≥2-hop only")):
+            def getter(r, hh=hh):
+                d = r["dwell_detail"]
+                return (d["deliv_inflation"]["mean"] if hh is None
+                        else d["inflation_by_hops"][hh]["mean"])
+            cf = paired("snhp+billC", "snhp+bill", N, getter)
+            ck = paired("snhp+bill", "snhp+net", N, getter)  # flat vs spot (KILL)
+            if cf:
+                print(f"    N={N:>3} {lab:<12} contingent−flat Δinfl="
+                      f"{cf['delta']:+6.2f} (p_t={cf['p_t']:.3f}, "
+                      f"{cf['wins']}/{cf['n']})", end="")
+                if ck:
+                    print(f"   |  flat−spot Δinfl={ck['delta']:+6.2f} "
+                          f"(p_t={ck['p_t']:.3f}, {ck['wins']}/{ck['n']})")
+                else:
+                    print()
+
+    # [2] CHAIN-FORMATION REGRESSION CHECK — contingent must not collapse chains.
+    print("\n[2] CHAIN FORMATION (regression check — contingent must hold): "
+          "≥2-hop share, far-band d/m, delivered_frac, stranded:")
+    h = (f"  {'arm':<11} {'N':>4} {'dFrac':>6} {'≥2-hop':>7} {'far d/m':>13} "
+         f"{'stranded':>9}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for arm in arms:
+            g = sel(arm, N)
+            if not g:
+                continue
+            df = np.mean([r["delivered_frac"] for r in g])
+            sh2 = np.mean([r["lineage_detail"]["hop_shares"][2] for r in g])
+            bm = np.array([r["lineage_detail"]["band_mined"] for r in g],
+                          float).sum(axis=0)
+            bd = np.array([r["lineage_detail"]["band_delivered"] for r in g],
+                          float).sum(axis=0)
+            far = bd[2] / bm[2] if bm[2] > 0 else float("nan")
+            st = np.mean([r["stranded"] for r in g])
+            print(f"  {arm:<11} {N:>4} {df:>6.3f} {sh2:>7.3f} "
+                  f"{bd[2]/len(g):>5.0f}/{bm[2]/len(g):<5.0f}={far:>4.2f} "
+                  f"{st:>9.2f}")
+
+    # [3] MIDDLE-LEG MARGIN (P23c no-compression must hold under contingent too).
+    print("\n[3] MIDDLE-LEG MARGIN (P23c — Δ<0 ⇒ hold-up compression; must stay "
+          "≈0 under contingent):")
+    h = (f"  {'arm':<11} {'N':>4} {'nLegs':>6} {'mean_buy':>9} "
+         f"{'mean_sell':>10} {'meanΔ':>8} {'fracCompr':>10}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for arm in arms:
+            g = sel(arm, N)
+            if not g:
+                continue
+            legs = [r["lineage_detail"]["holdup"] for r in g]
+            nlegs = np.sum([h_["n"] for h_ in legs])
+            priced = [h_ for h_ in legs if h_["n"] > 0]
+            if priced:
+                mb = np.mean([h_["mean_buy"] for h_ in priced])
+                msl = np.mean([h_["mean_sell"] for h_ in priced])
+                md = np.mean([h_["mean_delta"] for h_ in priced])
+                fc = np.mean([h_["frac_compressed"] for h_ in priced])
+                print(f"  {arm:<11} {N:>4} {nlegs:>6.0f} {mb:>9.3f} "
+                      f"{msl:>10.3f} {md:>8.3f} {fc:>10.3f}")
+            else:
+                print(f"  {arm:<11} {N:>4} {nlegs:>6.0f} {'—':>9} {'—':>10} "
+                      f"{'—':>8} {'—':>10}")
+
+
 def u_report(rows: list[dict]) -> None:
     """v22 (column U) — reputation vs receipts: the scaling law of trust. Printed
     numbers ARE the artifact. Report, don't verdict (P28a/b/c are read off the
@@ -1301,6 +1479,29 @@ def build_jobs(column: str, seeds: int, ticks: int):
             for seed in range(min(seeds, 16)):
                 jobs.append(dict(seed=seed, sigma=0.5, ticks=ticks, tau=0.15,
                                  preset="v5", n_robots=24, lineage=True, **v))
+    if column == "P3":                # P23e: moral hazard in the relay
+        # The P23 phase-2 grid (identical N, scaled grid, σ, τ, ticks, seeds) ×
+        # {spot, bills-flat, bills-contingent}, all dwell-instrumented. spot has
+        # no claims (no-bills baseline); flat is the shipped P23 mechanism (α*
+        # Nash split fixed at hop time); contingent decays each claim's payout by
+        # its carrier's leg dwell above the geodesic counterfactual. dwell=True is
+        # a pure instrument (bit-identical), so all three regimes measure dwell.
+        import math as _math
+        g240 = int(round(32 * _math.sqrt(240 / 24)))
+        variants = [dict(arm_name="snhp+net"),                           # spot
+                    dict(arm_name="snhp+net", bills=True),               # flat
+                    dict(arm_name="snhp+net", bills=True,
+                         bills_contingent=True)]                         # contingent
+        base240 = dict(sigma=0.5, ticks=ticks, tau=0.15, preset="v5",
+                       n_robots=240, grid=g240, lineage=True, dwell=True)
+        for v in variants:
+            for seed in range(min(seeds, 8)):
+                jobs.append(dict(seed=seed, **base240, **v))
+        base24 = dict(sigma=0.5, ticks=ticks, tau=0.15, preset="v5",
+                      n_robots=24, lineage=True, dwell=True)
+        for v in variants:
+            for seed in range(min(seeds, 16)):
+                jobs.append(dict(seed=seed, **base24, **v))
     if column == "U":                 # v22: reputation vs receipts (P28)
         # Liars (v6) vs three enforcement regimes, following the column-E arm
         # pattern (TrustArm): trust-gated where attestation applies, trust-open
@@ -1357,7 +1558,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "U", "UH", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "U", "UH", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -1375,6 +1576,7 @@ def main() -> None:
         p21(rows)
         diagnosis(rows)
         phase2(rows)
+        phase2e(rows)
         u_report(rows)
         return
 
@@ -1409,6 +1611,7 @@ def main() -> None:
     p21(rows)
     diagnosis(rows)
     phase2(rows)
+    phase2e(rows)
     u_report(rows)
 
 
