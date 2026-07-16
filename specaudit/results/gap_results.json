@@ -1,0 +1,1670 @@
+{
+  "meta": {
+    "seeds": [
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108
+    ],
+    "n_opps_per_cell": 600,
+    "regimes": {
+      "LOW": {
+        "need_by_lo": 6,
+        "need_by_hi": 16,
+        "urgency_lo": 0.5,
+        "urgency_hi": 3.0,
+        "cap_lo": 3,
+        "cap_hi": 9
+      },
+      "MID": {
+        "need_by_lo": 2,
+        "need_by_hi": 9,
+        "urgency_lo": 1.0,
+        "urgency_hi": 6.0,
+        "cap_lo": 3,
+        "cap_hi": 9
+      },
+      "HIGH": {
+        "need_by_lo": 1,
+        "need_by_hi": 4,
+        "urgency_lo": 3.0,
+        "urgency_hi": 9.0,
+        "cap_lo": 2,
+        "cap_hi": 5
+      }
+    },
+    "markups": {
+      "floor": 0.05,
+      "mid": 0.18,
+      "open": 0.32
+    },
+    "menus": [
+      "standard",
+      "express",
+      "full"
+    ],
+    "deceptive_fractions": [
+      0.05,
+      0.1,
+      0.25
+    ],
+    "bad_prob": 0.5,
+    "short_frac": 0.5,
+    "utility_family": "meridian.agents primitives; A2/BASE/A1 parameter ranges reproduced as LOW/MID/HIGH regimes"
+  },
+  "S5a_deal_formation_gap": {
+    "cells": [
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.0,
+        "misconfigured_trades": 16.375,
+        "oracle_surplus": 790533.9631408458,
+        "checkout_surplus": 789855.0118509975,
+        "nash_surplus": 790271.4949500497,
+        "gap_dollars": 678.9512898482644,
+        "gap_pct": 0.08592365502377075,
+        "foregone_pct_of_beneficial": 0.0,
+        "nash_recovered_pct_of_gap": 55.235021965414106,
+        "nash_recovered_pct_of_oracle": 99.96645719876966,
+        "regime": "LOW",
+        "markup": "floor",
+        "menu": "standard"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.0,
+        "misconfigured_trades": 16.375,
+        "oracle_surplus": 790533.9631408458,
+        "checkout_surplus": 789855.3948783042,
+        "nash_surplus": 790271.4949500497,
+        "gap_dollars": 678.5682625415357,
+        "gap_pct": 0.08587401686118284,
+        "foregone_pct_of_beneficial": 0.0,
+        "nash_recovered_pct_of_gap": 55.21861848997352,
+        "nash_recovered_pct_of_oracle": 99.96645719876966,
+        "regime": "LOW",
+        "markup": "floor",
+        "menu": "express"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.0,
+        "misconfigured_trades": 2.125,
+        "oracle_surplus": 790533.9631408458,
+        "checkout_surplus": 790523.9074799429,
+        "nash_surplus": 790271.4949500497,
+        "gap_dollars": 10.055660902915406,
+        "gap_pct": 0.0012876722460353172,
+        "foregone_pct_of_beneficial": 0.0,
+        "nash_recovered_pct_of_gap": -3461.6542170801363,
+        "nash_recovered_pct_of_oracle": 99.96645719876966,
+        "regime": "LOW",
+        "markup": "floor",
+        "menu": "full"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.125,
+        "misconfigured_trades": 16.25,
+        "oracle_surplus": 790533.9631408458,
+        "checkout_surplus": 789836.4690446461,
+        "nash_surplus": 790271.4949500497,
+        "gap_dollars": 697.4940961996617,
+        "gap_pct": 0.08832669736654124,
+        "foregone_pct_of_beneficial": 0.020833333333333332,
+        "nash_recovered_pct_of_gap": 55.92274903062998,
+        "nash_recovered_pct_of_oracle": 99.96645719876966,
+        "regime": "LOW",
+        "markup": "mid",
+        "menu": "standard"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.0,
+        "misconfigured_trades": 16.375,
+        "oracle_surplus": 790533.9631408458,
+        "checkout_surplus": 789835.6143712748,
+        "nash_surplus": 790271.4949500497,
+        "gap_dollars": 698.3487695709191,
+        "gap_pct": 0.08843745817919542,
+        "foregone_pct_of_beneficial": 0.0,
+        "nash_recovered_pct_of_gap": 55.950121461355636,
+        "nash_recovered_pct_of_oracle": 99.96645719876966,
+        "regime": "LOW",
+        "markup": "mid",
+        "menu": "express"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.0,
+        "misconfigured_trades": 6.125,
+        "oracle_surplus": 790533.9631408458,
+        "checkout_surplus": 790411.1982749213,
+        "nash_surplus": 790271.4949500497,
+        "gap_dollars": 122.76486592445872,
+        "gap_pct": 0.015506652691745294,
+        "foregone_pct_of_beneficial": 0.0,
+        "nash_recovered_pct_of_gap": -359.12625648978855,
+        "nash_recovered_pct_of_oracle": 99.96645719876966,
+        "regime": "LOW",
+        "markup": "mid",
+        "menu": "full"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.625,
+        "misconfigured_trades": 20.75,
+        "oracle_surplus": 790533.9631408458,
+        "checkout_surplus": 788676.0426308991,
+        "nash_surplus": 790271.4949500497,
+        "gap_dollars": 1857.920509946649,
+        "gap_pct": 0.235573031297316,
+        "foregone_pct_of_beneficial": 0.10416666666666666,
+        "nash_recovered_pct_of_gap": 88.1970755707261,
+        "nash_recovered_pct_of_oracle": 99.96645719876966,
+        "regime": "LOW",
+        "markup": "open",
+        "menu": "standard"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.375,
+        "misconfigured_trades": 21.0,
+        "oracle_surplus": 790533.9631408458,
+        "checkout_surplus": 788718.1479926234,
+        "nash_surplus": 790271.4949500497,
+        "gap_dollars": 1815.815148222362,
+        "gap_pct": 0.23012343534524277,
+        "foregone_pct_of_beneficial": 0.0625,
+        "nash_recovered_pct_of_gap": 87.89235110350761,
+        "nash_recovered_pct_of_oracle": 99.96645719876966,
+        "regime": "LOW",
+        "markup": "open",
+        "menu": "express"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.375,
+        "misconfigured_trades": 15.125,
+        "oracle_surplus": 790533.9631408458,
+        "checkout_surplus": 789084.909121555,
+        "nash_surplus": 790271.4949500497,
+        "gap_dollars": 1449.0540192907793,
+        "gap_pct": 0.18347208142963323,
+        "foregone_pct_of_beneficial": 0.0625,
+        "nash_recovered_pct_of_gap": 84.40793832449354,
+        "nash_recovered_pct_of_oracle": 99.96645719876966,
+        "regime": "LOW",
+        "markup": "open",
+        "menu": "full"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 2.375,
+        "misconfigured_trades": 176.75,
+        "oracle_surplus": 751603.1955756581,
+        "checkout_surplus": 724696.2796618311,
+        "nash_surplus": 750673.1806968629,
+        "gap_dollars": 26906.91591382702,
+        "gap_pct": 3.5784587266867622,
+        "foregone_pct_of_beneficial": 0.3958333333333333,
+        "nash_recovered_pct_of_gap": 96.59982445943693,
+        "nash_recovered_pct_of_oracle": 99.8763521518819,
+        "regime": "MID",
+        "markup": "floor",
+        "menu": "standard"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.0,
+        "misconfigured_trades": 179.0,
+        "oracle_surplus": 751603.1955756581,
+        "checkout_surplus": 735038.6735195669,
+        "nash_surplus": 750673.1806968629,
+        "gap_dollars": 16564.5220560912,
+        "gap_pct": 2.203935290109053,
+        "foregone_pct_of_beneficial": 0.0,
+        "nash_recovered_pct_of_gap": 94.51644836248667,
+        "nash_recovered_pct_of_oracle": 99.8763521518819,
+        "regime": "MID",
+        "markup": "floor",
+        "menu": "express"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.0,
+        "misconfigured_trades": 15.5,
+        "oracle_surplus": 751603.1955756581,
+        "checkout_surplus": 751473.6066384544,
+        "nash_surplus": 750673.1806968629,
+        "gap_dollars": 129.5889372038073,
+        "gap_pct": 0.017271721360783244,
+        "foregone_pct_of_beneficial": 0.0,
+        "nash_recovered_pct_of_gap": -615.1817373557918,
+        "nash_recovered_pct_of_oracle": 99.8763521518819,
+        "regime": "MID",
+        "markup": "floor",
+        "menu": "full"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 5.75,
+        "misconfigured_trades": 173.375,
+        "oracle_surplus": 751603.1955756581,
+        "checkout_surplus": 723914.1300557321,
+        "nash_surplus": 750673.1806968629,
+        "gap_dollars": 27689.065519926007,
+        "gap_pct": 3.6823720404742377,
+        "foregone_pct_of_beneficial": 0.9583333333333334,
+        "nash_recovered_pct_of_gap": 96.69904243331439,
+        "nash_recovered_pct_of_oracle": 99.8763521518819,
+        "regime": "MID",
+        "markup": "mid",
+        "menu": "standard"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.0,
+        "misconfigured_trades": 179.0,
+        "oracle_surplus": 751603.1955756581,
+        "checkout_surplus": 733667.9978507224,
+        "nash_surplus": 750673.1806968629,
+        "gap_dollars": 17935.19772493576,
+        "gap_pct": 2.3863679693198963,
+        "foregone_pct_of_beneficial": 0.0,
+        "nash_recovered_pct_of_gap": 94.92980687559157,
+        "nash_recovered_pct_of_oracle": 99.8763521518819,
+        "regime": "MID",
+        "markup": "mid",
+        "menu": "express"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.0,
+        "misconfigured_trades": 47.375,
+        "oracle_surplus": 751603.1955756581,
+        "checkout_surplus": 750062.0863764827,
+        "nash_surplus": 750673.1806968629,
+        "gap_dollars": 1541.1091991753929,
+        "gap_pct": 0.2048817650526319,
+        "foregone_pct_of_beneficial": 0.0,
+        "nash_recovered_pct_of_gap": 40.75293230118124,
+        "nash_recovered_pct_of_oracle": 99.8763521518819,
+        "regime": "MID",
+        "markup": "mid",
+        "menu": "full"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 13.875,
+        "misconfigured_trades": 169.75,
+        "oracle_surplus": 751603.1955756581,
+        "checkout_surplus": 719617.6063247739,
+        "nash_surplus": 750673.1806968629,
+        "gap_dollars": 31985.58925088431,
+        "gap_pct": 4.254442993536185,
+        "foregone_pct_of_beneficial": 2.3125,
+        "nash_recovered_pct_of_gap": 97.13818034647292,
+        "nash_recovered_pct_of_oracle": 99.8763521518819,
+        "regime": "MID",
+        "markup": "open",
+        "menu": "standard"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.375,
+        "misconfigured_trades": 183.25,
+        "oracle_surplus": 751603.1955756581,
+        "checkout_surplus": 728540.5715397301,
+        "nash_surplus": 750673.1806968629,
+        "gap_dollars": 23062.62403592808,
+        "gap_pct": 3.068336934249324,
+        "foregone_pct_of_beneficial": 0.0625,
+        "nash_recovered_pct_of_gap": 96.05054959264697,
+        "nash_recovered_pct_of_oracle": 99.8763521518819,
+        "regime": "MID",
+        "markup": "open",
+        "menu": "express"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.375,
+        "misconfigured_trades": 81.125,
+        "oracle_surplus": 751603.1955756581,
+        "checkout_surplus": 745189.7288840985,
+        "nash_surplus": 750673.1806968629,
+        "gap_dollars": 6413.46669155969,
+        "gap_pct": 0.8535913253511324,
+        "foregone_pct_of_beneficial": 0.0625,
+        "nash_recovered_pct_of_gap": 85.75006523967151,
+        "nash_recovered_pct_of_oracle": 99.8763521518819,
+        "regime": "MID",
+        "markup": "open",
+        "menu": "full"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 129.25,
+        "misconfigured_trades": 412.0,
+        "oracle_surplus": 569789.9148270743,
+        "checkout_surplus": 341922.9606760741,
+        "nash_surplus": 559718.0067782723,
+        "gap_dollars": 227866.9541510002,
+        "gap_pct": 39.99227188602394,
+        "foregone_pct_of_beneficial": 21.541666666666668,
+        "nash_recovered_pct_of_gap": 95.57391795113435,
+        "nash_recovered_pct_of_oracle": 98.23013171284443,
+        "regime": "HIGH",
+        "markup": "floor",
+        "menu": "standard"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.0,
+        "misconfigured_trades": 405.75,
+        "oracle_surplus": 569789.9148270743,
+        "checkout_surplus": 529686.887326553,
+        "nash_surplus": 559718.0067782723,
+        "gap_dollars": 40103.02750052128,
+        "gap_pct": 7.040161349672324,
+        "foregone_pct_of_beneficial": 0.0,
+        "nash_recovered_pct_of_gap": 74.89153025269968,
+        "nash_recovered_pct_of_oracle": 98.23013171284443,
+        "regime": "HIGH",
+        "markup": "floor",
+        "menu": "express"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.0,
+        "misconfigured_trades": 79.375,
+        "oracle_surplus": 569789.9148270743,
+        "checkout_surplus": 569062.3392313933,
+        "nash_surplus": 559718.0067782723,
+        "gap_dollars": 727.5755956810026,
+        "gap_pct": 0.12769805719093258,
+        "foregone_pct_of_beneficial": 0.0,
+        "nash_recovered_pct_of_gap": -1295.0365334629362,
+        "nash_recovered_pct_of_oracle": 98.23013171284443,
+        "regime": "HIGH",
+        "markup": "floor",
+        "menu": "full"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 163.0,
+        "misconfigured_trades": 378.25,
+        "oracle_surplus": 569789.9148270743,
+        "checkout_surplus": 337424.23616177257,
+        "nash_surplus": 559718.0067782723,
+        "gap_dollars": 232365.6786653017,
+        "gap_pct": 40.78184246961793,
+        "foregone_pct_of_beneficial": 27.166666666666668,
+        "nash_recovered_pct_of_gap": 95.65900802406895,
+        "nash_recovered_pct_of_oracle": 98.23013171284443,
+        "regime": "HIGH",
+        "markup": "mid",
+        "menu": "standard"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.0,
+        "misconfigured_trades": 450.0,
+        "oracle_surplus": 569789.9148270743,
+        "checkout_surplus": 520141.9466753101,
+        "nash_surplus": 559718.0067782723,
+        "gap_dollars": 49647.968151764166,
+        "gap_pct": 8.71620284271899,
+        "foregone_pct_of_beneficial": 0.0,
+        "nash_recovered_pct_of_gap": 79.72832313869527,
+        "nash_recovered_pct_of_oracle": 98.23013171284443,
+        "regime": "HIGH",
+        "markup": "mid",
+        "menu": "express"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.0,
+        "misconfigured_trades": 212.375,
+        "oracle_surplus": 569789.9148270743,
+        "checkout_surplus": 560847.7972847694,
+        "nash_surplus": 559718.0067782723,
+        "gap_dollars": 8942.117542304914,
+        "gap_pct": 1.5697215797823707,
+        "foregone_pct_of_beneficial": 0.0,
+        "nash_recovered_pct_of_gap": -12.322984058100989,
+        "nash_recovered_pct_of_oracle": 98.23013171284443,
+        "regime": "HIGH",
+        "markup": "mid",
+        "menu": "full"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 196.75,
+        "misconfigured_trades": 344.875,
+        "oracle_surplus": 569789.9148270743,
+        "checkout_surplus": 325750.4281107139,
+        "nash_surplus": 559718.0067782723,
+        "gap_dollars": 244039.48671636038,
+        "gap_pct": 42.830480317799704,
+        "foregone_pct_of_beneficial": 32.791666666666664,
+        "nash_recovered_pct_of_gap": 95.8686953915212,
+        "nash_recovered_pct_of_oracle": 98.23013171284443,
+        "regime": "HIGH",
+        "markup": "open",
+        "menu": "standard"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.375,
+        "misconfigured_trades": 473.5,
+        "oracle_surplus": 569789.9148270743,
+        "checkout_surplus": 498214.6093020439,
+        "nash_surplus": 559718.0067782723,
+        "gap_dollars": 71575.30552503039,
+        "gap_pct": 12.565852433106091,
+        "foregone_pct_of_beneficial": 0.0625,
+        "nash_recovered_pct_of_gap": 85.93298374606816,
+        "nash_recovered_pct_of_oracle": 98.23013171284443,
+        "regime": "HIGH",
+        "markup": "open",
+        "menu": "express"
+      },
+      {
+        "opps": 600.0,
+        "beneficial": 600.0,
+        "foregone_trades": 0.375,
+        "misconfigured_trades": 298.625,
+        "oracle_surplus": 569789.9148270743,
+        "checkout_surplus": 540634.5953992314,
+        "nash_surplus": 559718.0067782723,
+        "gap_dollars": 29155.319427842798,
+        "gap_pct": 5.117816422915821,
+        "foregone_pct_of_beneficial": 0.0625,
+        "nash_recovered_pct_of_gap": 65.52856871805731,
+        "nash_recovered_pct_of_oracle": 98.23013171284443,
+        "regime": "HIGH",
+        "markup": "open",
+        "menu": "full"
+      }
+    ],
+    "by_cell": {
+      "LOW/floor/standard": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.0,
+          "misconfigured_trades": 16.375,
+          "oracle_surplus": 790533.9631408458,
+          "checkout_surplus": 789855.0118509975,
+          "nash_surplus": 790271.4949500497,
+          "gap_dollars": 678.9512898482644,
+          "gap_pct": 0.08592365502377075,
+          "foregone_pct_of_beneficial": 0.0,
+          "nash_recovered_pct_of_gap": 55.235021965414106,
+          "nash_recovered_pct_of_oracle": 99.96645719876966,
+          "regime": "LOW",
+          "markup": "floor",
+          "menu": "standard"
+        },
+        "per_seed_gap_pct": [
+          0.10167567631555427,
+          0.12724058412261674,
+          0.06904846603157332,
+          0.06982200440097694,
+          0.051345287382593224,
+          0.06835049726973752,
+          0.13542734986006785,
+          0.06447937480704609
+        ],
+        "gap_pct": {
+          "mean": 0.08592365502377075,
+          "sd": 0.03142838184978661,
+          "n": 8
+        }
+      },
+      "LOW/floor/express": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.0,
+          "misconfigured_trades": 16.375,
+          "oracle_surplus": 790533.9631408458,
+          "checkout_surplus": 789855.3948783042,
+          "nash_surplus": 790271.4949500497,
+          "gap_dollars": 678.5682625415357,
+          "gap_pct": 0.08587401686118284,
+          "foregone_pct_of_beneficial": 0.0,
+          "nash_recovered_pct_of_gap": 55.21861848997352,
+          "nash_recovered_pct_of_oracle": 99.96645719876966,
+          "regime": "LOW",
+          "markup": "floor",
+          "menu": "express"
+        },
+        "per_seed_gap_pct": [
+          0.10167567631555427,
+          0.12684347882191355,
+          0.06904846603157332,
+          0.06982200440097694,
+          0.051345287382593224,
+          0.06835049726973752,
+          0.13542734986006785,
+          0.06447937480704609
+        ],
+        "gap_pct": {
+          "mean": 0.08587401686118284,
+          "sd": 0.03135402899106197,
+          "n": 8
+        }
+      },
+      "LOW/floor/full": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.0,
+          "misconfigured_trades": 2.125,
+          "oracle_surplus": 790533.9631408458,
+          "checkout_surplus": 790523.9074799429,
+          "nash_surplus": 790271.4949500497,
+          "gap_dollars": 10.055660902915406,
+          "gap_pct": 0.0012876722460353172,
+          "foregone_pct_of_beneficial": 0.0,
+          "nash_recovered_pct_of_gap": -3461.6542170801363,
+          "nash_recovered_pct_of_oracle": 99.96645719876966,
+          "regime": "LOW",
+          "markup": "floor",
+          "menu": "full"
+        },
+        "per_seed_gap_pct": [
+          0.00014893061835112014,
+          0.002434113069047864,
+          0.0014572366781539455,
+          0.0010681795030171488,
+          0.001991494175778703,
+          0.0,
+          0.0,
+          0.0032014239239337564
+        ],
+        "gap_pct": {
+          "mean": 0.0012876722460353172,
+          "sd": 0.0012048709851523504,
+          "n": 8
+        }
+      },
+      "LOW/mid/standard": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.125,
+          "misconfigured_trades": 16.25,
+          "oracle_surplus": 790533.9631408458,
+          "checkout_surplus": 789836.4690446461,
+          "nash_surplus": 790271.4949500497,
+          "gap_dollars": 697.4940961996617,
+          "gap_pct": 0.08832669736654124,
+          "foregone_pct_of_beneficial": 0.020833333333333332,
+          "nash_recovered_pct_of_gap": 55.92274903062998,
+          "nash_recovered_pct_of_oracle": 99.96645719876966,
+          "regime": "LOW",
+          "markup": "mid",
+          "menu": "standard"
+        },
+        "per_seed_gap_pct": [
+          0.10167567631555427,
+          0.14646492286478072,
+          0.06904846603157332,
+          0.06982200440097694,
+          0.051345287382593224,
+          0.06835049726973752,
+          0.13542734986006785,
+          0.06447937480704609
+        ],
+        "gap_pct": {
+          "mean": 0.08832669736654124,
+          "sd": 0.03550887591554828,
+          "n": 8
+        }
+      },
+      "LOW/mid/express": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.0,
+          "misconfigured_trades": 16.375,
+          "oracle_surplus": 790533.9631408458,
+          "checkout_surplus": 789835.6143712748,
+          "nash_surplus": 790271.4949500497,
+          "gap_dollars": 698.3487695709191,
+          "gap_pct": 0.08843745817919542,
+          "foregone_pct_of_beneficial": 0.0,
+          "nash_recovered_pct_of_gap": 55.950121461355636,
+          "nash_recovered_pct_of_oracle": 99.96645719876966,
+          "regime": "LOW",
+          "markup": "mid",
+          "menu": "express"
+        },
+        "per_seed_gap_pct": [
+          0.10167567631555427,
+          0.14735100936601417,
+          0.06904846603157332,
+          0.06982200440097694,
+          0.051345287382593224,
+          0.06835049726973752,
+          0.13542734986006785,
+          0.06447937480704609
+        ],
+        "gap_pct": {
+          "mean": 0.08843745817919542,
+          "sd": 0.03571690252280855,
+          "n": 8
+        }
+      },
+      "LOW/mid/full": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.0,
+          "misconfigured_trades": 6.125,
+          "oracle_surplus": 790533.9631408458,
+          "checkout_surplus": 790411.1982749213,
+          "nash_surplus": 790271.4949500497,
+          "gap_dollars": 122.76486592445872,
+          "gap_pct": 0.015506652691745294,
+          "foregone_pct_of_beneficial": 0.0,
+          "nash_recovered_pct_of_gap": -359.12625648978855,
+          "nash_recovered_pct_of_oracle": 99.96645719876966,
+          "regime": "LOW",
+          "markup": "mid",
+          "menu": "full"
+        },
+        "per_seed_gap_pct": [
+          0.002124879657351479,
+          0.015700974593354216,
+          0.018165423049753753,
+          0.031589889735749964,
+          0.009907963717137012,
+          0.008439796332575742,
+          0.02996749737476234,
+          0.008156797073277844
+        ],
+        "gap_pct": {
+          "mean": 0.015506652691745294,
+          "sd": 0.010618524028251882,
+          "n": 8
+        }
+      },
+      "LOW/open/standard": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.625,
+          "misconfigured_trades": 20.75,
+          "oracle_surplus": 790533.9631408458,
+          "checkout_surplus": 788676.0426308991,
+          "nash_surplus": 790271.4949500497,
+          "gap_dollars": 1857.920509946649,
+          "gap_pct": 0.235573031297316,
+          "foregone_pct_of_beneficial": 0.10416666666666666,
+          "nash_recovered_pct_of_gap": 88.1970755707261,
+          "nash_recovered_pct_of_oracle": 99.96645719876966,
+          "regime": "LOW",
+          "markup": "open",
+          "menu": "standard"
+        },
+        "per_seed_gap_pct": [
+          0.22373012383218088,
+          0.3277684458720717,
+          0.12728901171411364,
+          0.29233927370660395,
+          0.23591606368890417,
+          0.14632291635957387,
+          0.21687249859155394,
+          0.3143459166135258
+        ],
+        "gap_pct": {
+          "mean": 0.235573031297316,
+          "sd": 0.07378410801825447,
+          "n": 8
+        }
+      },
+      "LOW/open/express": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.375,
+          "misconfigured_trades": 21.0,
+          "oracle_surplus": 790533.9631408458,
+          "checkout_surplus": 788718.1479926234,
+          "nash_surplus": 790271.4949500497,
+          "gap_dollars": 1815.815148222362,
+          "gap_pct": 0.23012343534524277,
+          "foregone_pct_of_beneficial": 0.0625,
+          "nash_recovered_pct_of_gap": 87.89235110350761,
+          "nash_recovered_pct_of_oracle": 99.96645719876966,
+          "regime": "LOW",
+          "markup": "open",
+          "menu": "express"
+        },
+        "per_seed_gap_pct": [
+          0.22373012383218088,
+          0.28569444953091067,
+          0.12728901171411364,
+          0.29081650243117924,
+          0.23591606368890417,
+          0.14632291635957387,
+          0.21687249859155394,
+          0.3143459166135258
+        ],
+        "gap_pct": {
+          "mean": 0.23012343534524277,
+          "sd": 0.06730811278505847,
+          "n": 8
+        }
+      },
+      "LOW/open/full": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.375,
+          "misconfigured_trades": 15.125,
+          "oracle_surplus": 790533.9631408458,
+          "checkout_surplus": 789084.909121555,
+          "nash_surplus": 790271.4949500497,
+          "gap_dollars": 1449.0540192907793,
+          "gap_pct": 0.18347208142963323,
+          "foregone_pct_of_beneficial": 0.0625,
+          "nash_recovered_pct_of_gap": 84.40793832449354,
+          "nash_recovered_pct_of_oracle": 99.96645719876966,
+          "regime": "LOW",
+          "markup": "open",
+          "menu": "full"
+        },
+        "per_seed_gap_pct": [
+          0.1810194525780574,
+          0.1749329145656206,
+          0.08907375550062312,
+          0.22446390833992177,
+          0.2297085645226759,
+          0.13001845918160956,
+          0.1796088159333589,
+          0.25895078081519846
+        ],
+        "gap_pct": {
+          "mean": 0.18347208142963323,
+          "sd": 0.05526219006070267,
+          "n": 8
+        }
+      },
+      "MID/floor/standard": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 2.375,
+          "misconfigured_trades": 176.75,
+          "oracle_surplus": 751603.1955756581,
+          "checkout_surplus": 724696.2796618311,
+          "nash_surplus": 750673.1806968629,
+          "gap_dollars": 26906.91591382702,
+          "gap_pct": 3.5784587266867622,
+          "foregone_pct_of_beneficial": 0.3958333333333333,
+          "nash_recovered_pct_of_gap": 96.59982445943693,
+          "nash_recovered_pct_of_oracle": 99.8763521518819,
+          "regime": "MID",
+          "markup": "floor",
+          "menu": "standard"
+        },
+        "per_seed_gap_pct": [
+          4.063045788746224,
+          3.5791035828380626,
+          2.9974571460092516,
+          3.6723070774424715,
+          3.4571055019311574,
+          3.480910806376732,
+          4.210070531890806,
+          3.1676693782593928
+        ],
+        "gap_pct": {
+          "mean": 3.5784587266867622,
+          "sd": 0.40937564820696315,
+          "n": 8
+        }
+      },
+      "MID/floor/express": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.0,
+          "misconfigured_trades": 179.0,
+          "oracle_surplus": 751603.1955756581,
+          "checkout_surplus": 735038.6735195669,
+          "nash_surplus": 750673.1806968629,
+          "gap_dollars": 16564.5220560912,
+          "gap_pct": 2.203935290109053,
+          "foregone_pct_of_beneficial": 0.0,
+          "nash_recovered_pct_of_gap": 94.51644836248667,
+          "nash_recovered_pct_of_oracle": 99.8763521518819,
+          "regime": "MID",
+          "markup": "floor",
+          "menu": "express"
+        },
+        "per_seed_gap_pct": [
+          2.4220303218779273,
+          2.225278816367208,
+          1.8580432869005021,
+          2.2959539900523516,
+          2.267272180010562,
+          2.079081438722634,
+          2.3307674741539723,
+          2.153054812787269
+        ],
+        "gap_pct": {
+          "mean": 2.203935290109053,
+          "sd": 0.17501223619621267,
+          "n": 8
+        }
+      },
+      "MID/floor/full": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.0,
+          "misconfigured_trades": 15.5,
+          "oracle_surplus": 751603.1955756581,
+          "checkout_surplus": 751473.6066384544,
+          "nash_surplus": 750673.1806968629,
+          "gap_dollars": 129.5889372038073,
+          "gap_pct": 0.017271721360783244,
+          "foregone_pct_of_beneficial": 0.0,
+          "nash_recovered_pct_of_gap": -615.1817373557918,
+          "nash_recovered_pct_of_oracle": 99.8763521518819,
+          "regime": "MID",
+          "markup": "floor",
+          "menu": "full"
+        },
+        "per_seed_gap_pct": [
+          0.0180114106051693,
+          0.02269152311906614,
+          0.016039539418799167,
+          0.023685782587910514,
+          0.013040182201806147,
+          0.011179909032063281,
+          0.017008674492431007,
+          0.016516749429020403
+        ],
+        "gap_pct": {
+          "mean": 0.017271721360783244,
+          "sd": 0.004280105512982404,
+          "n": 8
+        }
+      },
+      "MID/mid/standard": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 5.75,
+          "misconfigured_trades": 173.375,
+          "oracle_surplus": 751603.1955756581,
+          "checkout_surplus": 723914.1300557321,
+          "nash_surplus": 750673.1806968629,
+          "gap_dollars": 27689.065519926007,
+          "gap_pct": 3.6823720404742377,
+          "foregone_pct_of_beneficial": 0.9583333333333334,
+          "nash_recovered_pct_of_gap": 96.69904243331439,
+          "nash_recovered_pct_of_oracle": 99.8763521518819,
+          "regime": "MID",
+          "markup": "mid",
+          "menu": "standard"
+        },
+        "per_seed_gap_pct": [
+          4.236634661234612,
+          3.7057688821651067,
+          3.0044490621912874,
+          3.7769148829729065,
+          3.5466860159545908,
+          3.619900055627795,
+          4.295327257595794,
+          3.273295506051809
+        ],
+        "gap_pct": {
+          "mean": 3.6823720404742377,
+          "sd": 0.4377937436538579,
+          "n": 8
+        }
+      },
+      "MID/mid/express": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.0,
+          "misconfigured_trades": 179.0,
+          "oracle_surplus": 751603.1955756581,
+          "checkout_surplus": 733667.9978507224,
+          "nash_surplus": 750673.1806968629,
+          "gap_dollars": 17935.19772493576,
+          "gap_pct": 2.3863679693198963,
+          "foregone_pct_of_beneficial": 0.0,
+          "nash_recovered_pct_of_gap": 94.92980687559157,
+          "nash_recovered_pct_of_oracle": 99.8763521518819,
+          "regime": "MID",
+          "markup": "mid",
+          "menu": "express"
+        },
+        "per_seed_gap_pct": [
+          2.5818518037176226,
+          2.4247743873408676,
+          2.008851351379298,
+          2.453452697570725,
+          2.432191049327763,
+          2.270976927902413,
+          2.540678460797556,
+          2.3781670765229266
+        ],
+        "gap_pct": {
+          "mean": 2.3863679693198963,
+          "sd": 0.1796830421943029,
+          "n": 8
+        }
+      },
+      "MID/mid/full": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.0,
+          "misconfigured_trades": 47.375,
+          "oracle_surplus": 751603.1955756581,
+          "checkout_surplus": 750062.0863764827,
+          "nash_surplus": 750673.1806968629,
+          "gap_dollars": 1541.1091991753929,
+          "gap_pct": 0.2048817650526319,
+          "foregone_pct_of_beneficial": 0.0,
+          "nash_recovered_pct_of_gap": 40.75293230118124,
+          "nash_recovered_pct_of_oracle": 99.8763521518819,
+          "regime": "MID",
+          "markup": "mid",
+          "menu": "full"
+        },
+        "per_seed_gap_pct": [
+          0.2455537354026091,
+          0.2115444816963528,
+          0.15745892915780102,
+          0.22584837881203132,
+          0.17700861481104313,
+          0.2130128020498059,
+          0.22980444147630394,
+          0.1788227370151079
+        ],
+        "gap_pct": {
+          "mean": 0.2048817650526319,
+          "sd": 0.03054356193908476,
+          "n": 8
+        }
+      },
+      "MID/open/standard": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 13.875,
+          "misconfigured_trades": 169.75,
+          "oracle_surplus": 751603.1955756581,
+          "checkout_surplus": 719617.6063247739,
+          "nash_surplus": 750673.1806968629,
+          "gap_dollars": 31985.58925088431,
+          "gap_pct": 4.254442993536185,
+          "foregone_pct_of_beneficial": 2.3125,
+          "nash_recovered_pct_of_gap": 97.13818034647292,
+          "nash_recovered_pct_of_oracle": 99.8763521518819,
+          "regime": "MID",
+          "markup": "open",
+          "menu": "standard"
+        },
+        "per_seed_gap_pct": [
+          4.820113823690429,
+          4.441905929152079,
+          3.416140226748153,
+          4.280627236754123,
+          4.14055094173328,
+          4.229658718388342,
+          4.848794266739414,
+          3.8577528050836616
+        ],
+        "gap_pct": {
+          "mean": 4.254442993536185,
+          "sd": 0.47550952897854193,
+          "n": 8
+        }
+      },
+      "MID/open/express": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.375,
+          "misconfigured_trades": 183.25,
+          "oracle_surplus": 751603.1955756581,
+          "checkout_surplus": 728540.5715397301,
+          "nash_surplus": 750673.1806968629,
+          "gap_dollars": 23062.62403592808,
+          "gap_pct": 3.068336934249324,
+          "foregone_pct_of_beneficial": 0.0625,
+          "nash_recovered_pct_of_gap": 96.05054959264697,
+          "nash_recovered_pct_of_oracle": 99.8763521518819,
+          "regime": "MID",
+          "markup": "open",
+          "menu": "express"
+        },
+        "per_seed_gap_pct": [
+          3.4096829888607085,
+          3.0974361843646796,
+          2.571057947623546,
+          3.1532277912795483,
+          3.0456425951363495,
+          2.98926765367081,
+          3.1471926989228494,
+          3.1331876141361
+        ],
+        "gap_pct": {
+          "mean": 3.068336934249324,
+          "sd": 0.23575034311925433,
+          "n": 8
+        }
+      },
+      "MID/open/full": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.375,
+          "misconfigured_trades": 81.125,
+          "oracle_surplus": 751603.1955756581,
+          "checkout_surplus": 745189.7288840985,
+          "nash_surplus": 750673.1806968629,
+          "gap_dollars": 6413.46669155969,
+          "gap_pct": 0.8535913253511324,
+          "foregone_pct_of_beneficial": 0.0625,
+          "nash_recovered_pct_of_gap": 85.75006523967151,
+          "nash_recovered_pct_of_oracle": 99.8763521518819,
+          "regime": "MID",
+          "markup": "open",
+          "menu": "full"
+        },
+        "per_seed_gap_pct": [
+          0.9700186475886832,
+          1.0112068331714612,
+          0.6792669443326079,
+          0.9737892059722181,
+          0.7520524699647025,
+          0.8211486931289115,
+          0.7959662391516273,
+          0.8252815694988471
+        ],
+        "gap_pct": {
+          "mean": 0.8535913253511324,
+          "sd": 0.1187549977094306,
+          "n": 8
+        }
+      },
+      "HIGH/floor/standard": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 129.25,
+          "misconfigured_trades": 412.0,
+          "oracle_surplus": 569789.9148270743,
+          "checkout_surplus": 341922.9606760741,
+          "nash_surplus": 559718.0067782723,
+          "gap_dollars": 227866.9541510002,
+          "gap_pct": 39.99227188602394,
+          "foregone_pct_of_beneficial": 21.541666666666668,
+          "nash_recovered_pct_of_gap": 95.57391795113435,
+          "nash_recovered_pct_of_oracle": 98.23013171284443,
+          "regime": "HIGH",
+          "markup": "floor",
+          "menu": "standard"
+        },
+        "per_seed_gap_pct": [
+          39.50243990589565,
+          39.208868720905066,
+          39.5584637153188,
+          40.29281554896164,
+          42.10263691784115,
+          39.9488864691791,
+          40.6906285459112,
+          38.6334352641789
+        ],
+        "gap_pct": {
+          "mean": 39.99227188602394,
+          "sd": 1.0638094459713452,
+          "n": 8
+        }
+      },
+      "HIGH/floor/express": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.0,
+          "misconfigured_trades": 405.75,
+          "oracle_surplus": 569789.9148270743,
+          "checkout_surplus": 529686.887326553,
+          "nash_surplus": 559718.0067782723,
+          "gap_dollars": 40103.02750052128,
+          "gap_pct": 7.040161349672324,
+          "foregone_pct_of_beneficial": 0.0,
+          "nash_recovered_pct_of_gap": 74.89153025269968,
+          "nash_recovered_pct_of_oracle": 98.23013171284443,
+          "regime": "HIGH",
+          "markup": "floor",
+          "menu": "express"
+        },
+        "per_seed_gap_pct": [
+          6.893355462579628,
+          6.874129779044727,
+          6.95889780399402,
+          7.531554659624624,
+          7.3844096096923,
+          6.823237627370853,
+          6.618925368335563,
+          7.2367804867368815
+        ],
+        "gap_pct": {
+          "mean": 7.040161349672324,
+          "sd": 0.3114141025132405,
+          "n": 8
+        }
+      },
+      "HIGH/floor/full": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.0,
+          "misconfigured_trades": 79.375,
+          "oracle_surplus": 569789.9148270743,
+          "checkout_surplus": 569062.3392313933,
+          "nash_surplus": 559718.0067782723,
+          "gap_dollars": 727.5755956810026,
+          "gap_pct": 0.12769805719093258,
+          "foregone_pct_of_beneficial": 0.0,
+          "nash_recovered_pct_of_gap": -1295.0365334629362,
+          "nash_recovered_pct_of_oracle": 98.23013171284443,
+          "regime": "HIGH",
+          "markup": "floor",
+          "menu": "full"
+        },
+        "per_seed_gap_pct": [
+          0.1525032128358138,
+          0.13042736906814933,
+          0.14162051802938186,
+          0.1409451411681914,
+          0.11687165503972405,
+          0.12649822169698638,
+          0.1289555899798228,
+          0.0837627497093909
+        ],
+        "gap_pct": {
+          "mean": 0.12769805719093258,
+          "sd": 0.020848460924879433,
+          "n": 8
+        }
+      },
+      "HIGH/mid/standard": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 163.0,
+          "misconfigured_trades": 378.25,
+          "oracle_surplus": 569789.9148270743,
+          "checkout_surplus": 337424.23616177257,
+          "nash_surplus": 559718.0067782723,
+          "gap_dollars": 232365.6786653017,
+          "gap_pct": 40.78184246961793,
+          "foregone_pct_of_beneficial": 27.166666666666668,
+          "nash_recovered_pct_of_gap": 95.65900802406895,
+          "nash_recovered_pct_of_oracle": 98.23013171284443,
+          "regime": "HIGH",
+          "markup": "mid",
+          "menu": "standard"
+        },
+        "per_seed_gap_pct": [
+          40.1935151710124,
+          39.860100351512386,
+          40.54314796431128,
+          41.141124874268634,
+          43.04612118818281,
+          40.707182796323195,
+          41.44370176800277,
+          39.31984564332998
+        ],
+        "gap_pct": {
+          "mean": 40.78184246961793,
+          "sd": 1.1395375684163767,
+          "n": 8
+        }
+      },
+      "HIGH/mid/express": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.0,
+          "misconfigured_trades": 450.0,
+          "oracle_surplus": 569789.9148270743,
+          "checkout_surplus": 520141.9466753101,
+          "nash_surplus": 559718.0067782723,
+          "gap_dollars": 49647.968151764166,
+          "gap_pct": 8.71620284271899,
+          "foregone_pct_of_beneficial": 0.0,
+          "nash_recovered_pct_of_gap": 79.72832313869527,
+          "nash_recovered_pct_of_oracle": 98.23013171284443,
+          "regime": "HIGH",
+          "markup": "mid",
+          "menu": "express"
+        },
+        "per_seed_gap_pct": [
+          8.490470859226395,
+          8.618953182090412,
+          8.597832595085206,
+          9.295339770071307,
+          9.154382983866528,
+          8.37530195622175,
+          8.32839853571188,
+          8.86894285947845
+        ],
+        "gap_pct": {
+          "mean": 8.71620284271899,
+          "sd": 0.3569234541337692,
+          "n": 8
+        }
+      },
+      "HIGH/mid/full": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.0,
+          "misconfigured_trades": 212.375,
+          "oracle_surplus": 569789.9148270743,
+          "checkout_surplus": 560847.7972847694,
+          "nash_surplus": 559718.0067782723,
+          "gap_dollars": 8942.117542304914,
+          "gap_pct": 1.5697215797823707,
+          "foregone_pct_of_beneficial": 0.0,
+          "nash_recovered_pct_of_gap": -12.322984058100989,
+          "nash_recovered_pct_of_oracle": 98.23013171284443,
+          "regime": "HIGH",
+          "markup": "mid",
+          "menu": "full"
+        },
+        "per_seed_gap_pct": [
+          1.4756365064568469,
+          1.6665368501202094,
+          1.5507798479487953,
+          1.6620489302951453,
+          1.5995877019240836,
+          1.5907513315094728,
+          1.6021192184182473,
+          1.4103122515861646
+        ],
+        "gap_pct": {
+          "mean": 1.5697215797823707,
+          "sd": 0.08856273245998783,
+          "n": 8
+        }
+      },
+      "HIGH/open/standard": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 196.75,
+          "misconfigured_trades": 344.875,
+          "oracle_surplus": 569789.9148270743,
+          "checkout_surplus": 325750.4281107139,
+          "nash_surplus": 559718.0067782723,
+          "gap_dollars": 244039.48671636038,
+          "gap_pct": 42.830480317799704,
+          "foregone_pct_of_beneficial": 32.791666666666664,
+          "nash_recovered_pct_of_gap": 95.8686953915212,
+          "nash_recovered_pct_of_oracle": 98.23013171284443,
+          "regime": "HIGH",
+          "markup": "open",
+          "menu": "standard"
+        },
+        "per_seed_gap_pct": [
+          41.90593834494664,
+          42.23799931748419,
+          42.74519131792162,
+          43.379342025668564,
+          44.88130828097968,
+          43.18142102840148,
+          43.04566193085122,
+          41.26698029614426
+        ],
+        "gap_pct": {
+          "mean": 42.830480317799704,
+          "sd": 1.0911478323567256,
+          "n": 8
+        }
+      },
+      "HIGH/open/express": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.375,
+          "misconfigured_trades": 473.5,
+          "oracle_surplus": 569789.9148270743,
+          "checkout_surplus": 498214.6093020439,
+          "nash_surplus": 559718.0067782723,
+          "gap_dollars": 71575.30552503039,
+          "gap_pct": 12.565852433106091,
+          "foregone_pct_of_beneficial": 0.0625,
+          "nash_recovered_pct_of_gap": 85.93298374606816,
+          "nash_recovered_pct_of_oracle": 98.23013171284443,
+          "regime": "HIGH",
+          "markup": "open",
+          "menu": "express"
+        },
+        "per_seed_gap_pct": [
+          12.07778129888286,
+          12.297694614629332,
+          12.394343905829247,
+          13.598189346387212,
+          13.34027431787438,
+          12.138477185588023,
+          11.840865176722831,
+          12.839193618934843
+        ],
+        "gap_pct": {
+          "mean": 12.565852433106091,
+          "sd": 0.631094005756356,
+          "n": 8
+        }
+      },
+      "HIGH/open/full": {
+        "mean": {
+          "opps": 600.0,
+          "beneficial": 600.0,
+          "foregone_trades": 0.375,
+          "misconfigured_trades": 298.625,
+          "oracle_surplus": 569789.9148270743,
+          "checkout_surplus": 540634.5953992314,
+          "nash_surplus": 559718.0067782723,
+          "gap_dollars": 29155.319427842798,
+          "gap_pct": 5.117816422915821,
+          "foregone_pct_of_beneficial": 0.0625,
+          "nash_recovered_pct_of_gap": 65.52856871805731,
+          "nash_recovered_pct_of_oracle": 98.23013171284443,
+          "regime": "HIGH",
+          "markup": "open",
+          "menu": "full"
+        },
+        "per_seed_gap_pct": [
+          5.03464431547773,
+          4.91427361153621,
+          5.047251660838058,
+          5.646751042964488,
+          5.263079417076745,
+          5.014943037608416,
+          4.910455363783036,
+          5.111132934041888
+        ],
+        "gap_pct": {
+          "mean": 5.117816422915821,
+          "sd": 0.24137287165549162,
+          "n": 8
+        }
+      }
+    },
+    "bands": {
+      "gap_pct": {
+        "band_lo": 0.0012876722460353172,
+        "band_hi": 42.830480317799704,
+        "pooled_mean": 6.666897437978103,
+        "sd_across_cells": 12.821845028923846,
+        "n_cells": 27
+      },
+      "gap_dollars_per_opp": {
+        "band_lo": 0.016759434838192342,
+        "band_hi": 406.7324778606006,
+        "pooled_mean": 65.7197830387522,
+        "sd_across_cells": 121.1208180151193,
+        "n_cells": 27
+      },
+      "foregone_pct_of_beneficial": {
+        "band_lo": 0.0,
+        "band_hi": 32.791666666666664,
+        "pooled_mean": 3.17283950617284,
+        "sd_across_cells": 8.796886390275935,
+        "n_cells": 27
+      },
+      "nash_recovered_pct_of_oracle": {
+        "band_lo": 98.23013171284443,
+        "band_hi": 99.96645719876966,
+        "pooled_mean": 99.35764702116532,
+        "sd_across_cells": 0.8133255696724568,
+        "n_cells": 27
+      },
+      "gap_pct_full_menu": {
+        "band_lo": 0.0012876722460353172,
+        "band_hi": 5.117816422915821,
+        "pooled_mean": 0.8990274753356763,
+        "sd_across_cells": 1.6659427165122573,
+        "n_cells": 9
+      },
+      "gap_pct_standard_menu": {
+        "band_lo": 0.08592365502377075,
+        "band_hi": 42.830480317799704,
+        "pooled_mean": 15.058854646425154,
+        "sd_across_cells": 19.686939819769247,
+        "n_cells": 9
+      }
+    }
+  },
+  "S5b_settlement_exposure": {
+    "cells": [
+      {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 663851.2358038393,
+        "buyer_surplus_receipt_gated": 673186.1640281996,
+        "exposure_dollars": 9334.92822436025,
+        "exposure_pct_of_gated": 1.3860878424241672,
+        "regime": "LOW",
+        "deceptive_fraction": 0.05
+      },
+      {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 637035.2022097352,
+        "buyer_surplus_receipt_gated": 655612.5331347613,
+        "exposure_dollars": 18577.330925026108,
+        "exposure_pct_of_gated": 2.834473831678896,
+        "regime": "LOW",
+        "deceptive_fraction": 0.1
+      },
+      {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 587727.2232207237,
+        "buyer_surplus_receipt_gated": 634377.830436044,
+        "exposure_dollars": 46650.60721532036,
+        "exposure_pct_of_gated": 7.366243258877991,
+        "regime": "LOW",
+        "deceptive_fraction": 0.25
+      },
+      {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 625901.8608832461,
+        "buyer_surplus_receipt_gated": 635374.0343547842,
+        "exposure_dollars": 9472.173471538146,
+        "exposure_pct_of_gated": 1.4904247196668123,
+        "regime": "MID",
+        "deceptive_fraction": 0.05
+      },
+      {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 599906.9921751476,
+        "buyer_surplus_receipt_gated": 618654.0931462396,
+        "exposure_dollars": 18747.10097109199,
+        "exposure_pct_of_gated": 3.0313595137016915,
+        "regime": "MID",
+        "deceptive_fraction": 0.1
+      },
+      {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 545672.4795137404,
+        "buyer_surplus_receipt_gated": 593003.1144364744,
+        "exposure_dollars": 47330.63492273407,
+        "exposure_pct_of_gated": 7.995458751575044,
+        "regime": "MID",
+        "deceptive_fraction": 0.25
+      },
+      {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 439046.3053681587,
+        "buyer_surplus_receipt_gated": 448371.4112900604,
+        "exposure_dollars": 9325.10592190166,
+        "exposure_pct_of_gated": 2.082194183020746,
+        "regime": "HIGH",
+        "deceptive_fraction": 0.05
+      },
+      {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 417860.4740058375,
+        "buyer_surplus_receipt_gated": 436515.51733888086,
+        "exposure_dollars": 18655.04333304333,
+        "exposure_pct_of_gated": 4.273081878565188,
+        "regime": "HIGH",
+        "deceptive_fraction": 0.1
+      },
+      {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 365491.2100898928,
+        "buyer_surplus_receipt_gated": 412778.83973959734,
+        "exposure_dollars": 47287.62964970457,
+        "exposure_pct_of_gated": 11.474428790288865,
+        "regime": "HIGH",
+        "deceptive_fraction": 0.25
+      }
+    ],
+    "by_cell": {
+      "LOW/f=0.05": {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 663851.2358038393,
+        "buyer_surplus_receipt_gated": 673186.1640281996,
+        "exposure_dollars": 9334.92822436025,
+        "exposure_pct_of_gated": 1.3860878424241672,
+        "regime": "LOW",
+        "deceptive_fraction": 0.05
+      },
+      "LOW/f=0.1": {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 637035.2022097352,
+        "buyer_surplus_receipt_gated": 655612.5331347613,
+        "exposure_dollars": 18577.330925026108,
+        "exposure_pct_of_gated": 2.834473831678896,
+        "regime": "LOW",
+        "deceptive_fraction": 0.1
+      },
+      "LOW/f=0.25": {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 587727.2232207237,
+        "buyer_surplus_receipt_gated": 634377.830436044,
+        "exposure_dollars": 46650.60721532036,
+        "exposure_pct_of_gated": 7.366243258877991,
+        "regime": "LOW",
+        "deceptive_fraction": 0.25
+      },
+      "MID/f=0.05": {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 625901.8608832461,
+        "buyer_surplus_receipt_gated": 635374.0343547842,
+        "exposure_dollars": 9472.173471538146,
+        "exposure_pct_of_gated": 1.4904247196668123,
+        "regime": "MID",
+        "deceptive_fraction": 0.05
+      },
+      "MID/f=0.1": {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 599906.9921751476,
+        "buyer_surplus_receipt_gated": 618654.0931462396,
+        "exposure_dollars": 18747.10097109199,
+        "exposure_pct_of_gated": 3.0313595137016915,
+        "regime": "MID",
+        "deceptive_fraction": 0.1
+      },
+      "MID/f=0.25": {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 545672.4795137404,
+        "buyer_surplus_receipt_gated": 593003.1144364744,
+        "exposure_dollars": 47330.63492273407,
+        "exposure_pct_of_gated": 7.995458751575044,
+        "regime": "MID",
+        "deceptive_fraction": 0.25
+      },
+      "HIGH/f=0.05": {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 439046.3053681587,
+        "buyer_surplus_receipt_gated": 448371.4112900604,
+        "exposure_dollars": 9325.10592190166,
+        "exposure_pct_of_gated": 2.082194183020746,
+        "regime": "HIGH",
+        "deceptive_fraction": 0.05
+      },
+      "HIGH/f=0.1": {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 417860.4740058375,
+        "buyer_surplus_receipt_gated": 436515.51733888086,
+        "exposure_dollars": 18655.04333304333,
+        "exposure_pct_of_gated": 4.273081878565188,
+        "regime": "HIGH",
+        "deceptive_fraction": 0.1
+      },
+      "HIGH/f=0.25": {
+        "n_trades": 600.0,
+        "buyer_surplus_pay_on_auth": 365491.2100898928,
+        "buyer_surplus_receipt_gated": 412778.83973959734,
+        "exposure_dollars": 47287.62964970457,
+        "exposure_pct_of_gated": 11.474428790288865,
+        "regime": "HIGH",
+        "deceptive_fraction": 0.25
+      }
+    },
+    "bands": {
+      "exposure_pct_of_gated": {
+        "band_lo": 1.3860878424241672,
+        "band_hi": 11.474428790288865,
+        "pooled_mean": 4.659305863311044,
+        "sd_across_cells": 3.507669907181459,
+        "n_cells": 9
+      },
+      "exposure_dollars_per_trade": {
+        "band_lo": 15.541843203169435,
+        "band_hi": 78.88439153789011,
+        "pooled_mean": 41.73713974717046,
+        "sd_across_cells": 28.363626374136924,
+        "n_cells": 9
+      }
+    }
+  }
+}
