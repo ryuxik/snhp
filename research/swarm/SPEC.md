@@ -1547,3 +1547,43 @@ a dedicated stream; blacklists spread by contact (r_radio=6).
   this is reputation-by-REALIZED-OUTCOME on a naive-cooperation mechanism; a
   reputation that could observe counterpart honesty directly (not just own
   loss) would blacklist far less and the comparison could differ.
+
+**P28 VERDICTS (2026-07-16, registrar).**
+- **P28a: driver CONFIRMED, headline REFUTED-AS-REGISTERED — with a declared
+  horizon confound.** Re-encounter probability falls with N and outcome-based
+  reputation's honest payoff decays with it, exactly as registered. But
+  attestation is NOT N-flat, and the crossover runs BACKWARDS at N=240
+  (reput 58.9 honest / 1503 delivered vs attest 40.3 / 996). The mechanism is
+  identified, not mysterious: attestation preserves a large cooperative tier
+  (12.5k deals) that pays the DEAL_PAUSE consensus tax on every deal, while
+  carpet-blacklisting reputation burns cooperation down to ~500 deals and
+  dodges the tax. **This is the P18 trap signature**: coordination costs are
+  paid up front and recouped late, and this ran at 2,500 ticks — the horizon
+  at which P18's market also beat the costed hive before the 7,500-tick
+  amendment reversed it. No headline until the amendment below runs.
+- **P28b: UNTESTABLE-AS-REGISTERED — and the reason is itself a finding.**
+  The false-blacklist channel saturates at ε=0 (~96% of honest robots marked)
+  because own-realized-surplus, the only decentralised observable, cannot
+  distinguish a liar's strip from a benign joint-max sacrifice. Slander
+  immunity is moot when honest inference is already maximally noisy: the
+  bundling-or-silence law recursing into enforcement — outcome signals
+  without attested books convict the innocent at the base rate of sacrifice.
+- **P28c: REFUTED (reversed).** (both) tracks reputation, not attestation:
+  aggressive blacklisting pre-empts the trust gate. Receipts do not subsume
+  outcome-based reputation; the blunt instrument dominates the combination.
+- **KILL: does not fire on the literal criterion** (reputation is not N-flat).
+  The thesis-relevant reading is held pending the horizon amendment, and is
+  scoped either way: what was tested is reputation-by-REALIZED-OUTCOME under
+  naive cooperation; where coordination is cheap (N≤96) receipts BEAT
+  reputation on both selectivity and payoff (96.5/96.8 vs 91.5/85.9) — the
+  registered folk theorem "villages run on reputation" is itself inverted.
+
+**P28-H AMENDMENT (registered 2026-07-16, BEFORE the run).** Re-run N=240,
+ε=0, all four regimes, 8 seeds, at ticks=7,500 (the P18 fair-horizon
+standard). Prediction (mine, on the record): attestation's cooperative tier
+recoups the pause tax and the N=240 reversal narrows or flips — if it does
+NOT, the "receipts out-scale reputation" argument is dead in this world at
+any horizon we can afford, and the notary's scaling story must rest on
+selectivity (who keeps honest cooperation) rather than throughput. KILL for
+the amendment: attest still < reput on honest payoff AND delivered at 7,500
+ticks ⇒ record the reversal as robust and say so loudly.
