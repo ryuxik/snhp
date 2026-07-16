@@ -1155,3 +1155,32 @@ below):**
   {auction, snhp+net, team-costed} at 7,500 ticks; the un-truncated
   verdict is delivered_frac + makespan there. The registered-metric KILL
   stands on the record either way.**
+
+**P18 AMENDMENT RESULT (2026-07-16, sweep_L_amend.json — N=240, 7,500
+ticks, the un-truncated verdict). The horizon check KILLED the headline.
+Recording plainly; this is exactly what it is for.**
+- **P18b DOWNGRADED — "planning stops scaling" was largely a horizon
+  artifact.** Δ(team-costed − snhp+net) collapses from −0.053 (p=.008) at
+  2,500t to **−0.004 (n.s.) at 7,500t**. Given a fair horizon the
+  consensus-costed hive catches the market; the exciting 2,500t crossing
+  was a within-window throughput effect, not a durable scaling law. The
+  strong claim does NOT survive its own pre-registered horizon check.
+- **P18c CONFIRMED REAL, not truncation.** The market still under-delivers
+  the auction at N=240 at 7,500t (−0.020, p=.0156 — IDENTICAL to 2,500t).
+  3× the time did not let the market catch the auction. The registered
+  KILL fired for real: the IR market does not out-scale even a single-issue
+  auction on delivered at N=240.
+- **N=240 is un-clearable in 7,500t for every arm** (0% finish; all plateau
+  ~0.83–0.85 delivered). The field grew 10× and the fleet grew 10×, but the
+  logistics don't close the gap — so makespan is censored (all tied at cap),
+  and the "market wins on speed" reading is scoped to N≤96 where fields
+  actually clear (makespan 1,066 vs 2,232 at N=24).
+- **What SURVIVES the horizon check:** P18a (market is O(1)/encounter,
+  mechanically scale-free); the SPEED edge at clearable scales (N≤96);
+  P18d (middlemen are a centralization phenomenon — a structural count,
+  horizon-independent). **What DIES:** the claim that the market's
+  advantage GROWS with scale. Honest headline: the market's edge is
+  scale-limited and speed-shaped, not throughput dominance that widens
+  with N. "Markets are what coordination looks like when planning stops
+  scaling" is NOT supported by this benchmark — the costed hive keeps up
+  given time.
