@@ -1167,3 +1167,115 @@ def test_v14_map_sync_is_robot_to_robot_under_gossip():
     assert w.rival_rate[recv.rid][i] == 0.4, "rival_rate not carried in the robot-to-robot sync"
     assert w.belief[distant.rid][i] == 20 and w.last_seen[distant.rid][i] == 50, \
         "a distant fleet-mate learned the entry without gossip relaying it"
+
+
+# ── differential oracle: optimized _evaluate == scalar reference ──────────
+# The fast Φ path in SnhpArm._evaluate MUST be byte-for-byte identical to the
+# scalar fallback (arms.FORCE_SCALAR_EVAL forces the reference). This test flips
+# that switch and compares full-run fingerprints — delivered, deals, per-robot
+# battery (12 dp) and the entire deal_log. A CI-sane subset runs here; the FULL
+# matrix (6 arms × {v3,v4,v5} × 3 seeds × 300t + gauge/liar/defense/dynamic/
+# mine/scale/single-issue coverage) is exercised offline and reported.
+import swarm.arms as _ARMS                                       # noqa: E402
+
+
+def _fingerprint(arm_name, preset="v5", seed=0, ticks=200, tau=0.15,
+                 n_robots=24, issues=("cargo", "energy", "sector"),
+                 noise=0.0, **flags):
+    life = arm_name.endswith(("-lv", "-lvc"))
+    cap = 20.0 if arm_name.endswith("-lvc") else 0.0
+    hazard = arm_name.endswith("-hz") or life
+    base = arm_name
+    for suf in ("-hz", "-lv", "-lvc"):
+        if base.endswith(suf):
+            base = base[:-len(suf)]
+            break
+    w = World(n_robots=n_robots, sigma=0.5, seed=seed, hazard_phi=hazard,
+              preset=preset, tau=(tau, tau),
+              internalize_tariffs=(base == "team"),
+              life_pricing=life, strand_cap=cap, **flags)
+    arm = make_arm(base, w, issues=issues, noise=noise)
+    for _ in range(ticks):
+        arm.tick()
+        if w.delivered >= w.total_stock:
+            break
+    bats = [round(r.battery, 12) for r in w.robots]
+    deal_log = [tuple(sorted(d.items())) for d in w.deal_log]
+    return (w.delivered, arm.deals, len(w.event_log), bats, deal_log)
+
+
+_ORACLE_SUBSET = (
+    # core arms × presets (seed 0), plus the -hz variant
+    [dict(arm_name=a, preset=p, seed=0) for a in
+     ("snhp", "snhp+net", "snhp-hz", "team", "twofirm", "trust-gated")
+     for p in ("v3", "v4", "v5")]
+    # a second seed on v5 for each arm
+    + [dict(arm_name=a, preset="v5", seed=2) for a in
+       ("snhp", "snhp+net", "team", "twofirm")]
+    # gauge / liar / defense / noise / single-issue / dynamic / mine / scale
+    + [dict(arm_name="snhp", preset="v5", seed=0, self_noise=0.5),
+       dict(arm_name="snhp", preset="v5", seed=0, liar_frac=0.25, defended=True),
+       dict(arm_name="trust-gated", preset="v5", seed=0, liar_frac=0.25, defended=True),
+       dict(arm_name="snhp", preset="v5", seed=2, noise=2.0),
+       dict(arm_name="snhp", preset="v5", seed=0, issues=("cargo", "energy")),
+       dict(arm_name="snhp+net", preset="v5", seed=0, dynamic_field=True),
+       dict(arm_name="snhp", preset="v5", seed=0, mine_trait=True),
+       dict(arm_name="snhp+net", preset="v5", seed=0, ticks=120, n_robots=96)]
+)
+
+
+def test_differential_oracle_fast_equals_scalar():
+    """Every supported config: the optimized fast path is byte-identical to the
+    scalar reference (fingerprint == delivered/deals/xfers/battery@12dp/deal_log)."""
+    try:
+        for cfg in _ORACLE_SUBSET:
+            _ARMS.FORCE_SCALAR_EVAL = False
+            fast = _fingerprint(**cfg)
+            _ARMS.FORCE_SCALAR_EVAL = True
+            scalar = _fingerprint(**cfg)
+            assert fast == scalar, f"fast != scalar for {cfg}"
+    finally:
+        _ARMS.FORCE_SCALAR_EVAL = False
+
+
+def test_differential_oracle_fallback_configs_are_scalar():
+    """belief_mode / life_pricing / map_trading dispatch to scalar (still
+    byte-identical under the switch, and _fast_ok reports the fallback)."""
+    for cfg, kw in (
+        (dict(arm_name="snhp+net"), dict(belief_mode=True)),
+        (dict(arm_name="snhp"), dict(belief_mode=True, map_trading=True)),
+        (dict(arm_name="snhp-lv"), {}),
+    ):
+        try:
+            _ARMS.FORCE_SCALAR_EVAL = False
+            fast = _fingerprint(preset="v5", seed=0, **cfg, **kw)
+            _ARMS.FORCE_SCALAR_EVAL = True
+            scalar = _fingerprint(preset="v5", seed=0, **cfg, **kw)
+            assert fast == scalar, f"{cfg} {kw}"
+        finally:
+            _ARMS.FORCE_SCALAR_EVAL = False
+
+
+def benchmark(ticks=2500):
+    """Timing harness (NOT a test): reports seconds for the three reference runs.
+    Run with:  python -c 'from swarm.test_swarm import benchmark; benchmark()'"""
+    import time
+
+    def one(arm_name, n_robots):
+        base = arm_name
+        t0 = time.perf_counter()
+        w = World(n_robots=n_robots, sigma=0.5, seed=0, preset="v5",
+                  tau=(0.15, 0.15), internalize_tariffs=(base == "team"))
+        arm = make_arm(base, w, issues=("cargo", "energy", "sector"))
+        for _ in range(ticks):
+            arm.tick()
+            if w.delivered >= w.total_stock:
+                break
+        return time.perf_counter() - t0, w.delivered, arm.deals
+
+    for label, arm_name, n in (("snhp+net v5 N=24", "snhp+net", 24),
+                               ("snhp+net v5 N=96", "snhp+net", 96),
+                               ("team v5 N=96", "team", 96)):
+        one(arm_name, n)                       # warm
+        dt, deliv, deals = one(arm_name, n)
+        print(f"{label:20s}  {dt:7.3f}s  delivered={deliv} deals={deals}")

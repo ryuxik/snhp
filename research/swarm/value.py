@@ -209,3 +209,144 @@ def stranding_hazard_true(r, w) -> float:
         return stranding_hazard(r, w)
     finally:
         r.gauge_bias = saved
+
+
+# ── FAST Φ: partial evaluation for the bundle-space hot loop ──────────────
+# Within one _evaluate the robot's POSITION is fixed and the world is frozen,
+# so every position/world-dependent scan phi does (delivery_target's refinery
+# manhattans, nearest_charger, best_claim, credit_rate) is CONSTANT across all
+# ~196 bundle post-states. phi_ctx() computes those once; fast_phi() then
+# evaluates Φ from ONLY the mutated (load, battery, sector, stranded) fields.
+#
+# BYTE-EXACT CONTRACT: fast_phi reproduces scalar phi() to the last bit — the
+# SAME arithmetic in the SAME associativity, the SAME first-max argmax, the SAME
+# min/max/exp builtins. It is valid ONLY for the CORE config (no belief_mode, no
+# life_pricing, no map_trading); gauge_bias is handled inline via bat(). Any
+# other config MUST dispatch to scalar phi. The differential oracle is the gate.
+class _PhiCtx:
+    __slots__ = ("eff", "ev", "cap", "gb", "nref", "rate", "A", "haulcost",
+                 "d", "fut", "lm2", "sc_loaded", "sc_empty")
+
+
+def phi_ctx(r, other_sector, w) -> _PhiCtx:
+    """Precompute the position/world-fixed inputs to fast_phi(r) for this
+    encounter. `other_sector` is the partner's sector (r's post-swap sector is
+    one of {r.sector, other_sector}), so future-trip constants are prepared for
+    both. CORE CONFIG ONLY (caller gates)."""
+    c = _PhiCtx()
+    co = r.company
+    eff = c.eff = r.eff
+    c.ev = r.ev
+    c.cap = r.cap
+    c.gb = r.gauge_bias
+    refs = w.refineries
+    nref = c.nref = len(refs)
+    lm1 = 1 + W.LOADED_MULT
+    c.lm2 = 1 + W.LOADED_MULT / 2
+    # step_cost() for the loaded/empty cases (r.step_cost() op-for-op)
+    c.sc_loaded = eff * (1.0 + W.LOADED_MULT)
+    c.sc_empty = eff * (1.0 + 0.0)
+    # manhattan(p, q) is abs(p0-q0)+abs(p1-q1); inlined in these O(N) scans so
+    # the per-encounter position work drops the millions of manhattan() calls
+    # that dominate at scale — same integer ops, bit-identical.
+    px, py = r.pos
+    c.rate = [w.credit_rate(co, i) for i in range(nref)]
+    c.A = [c.rate[i] * W.V_DELIVER for i in range(nref)]
+    c.haulcost = [(abs(px - refs[i][0]) + abs(py - refs[i][1])) * eff * lm1
+                  for i in range(nref)]
+    _, c.d = w.nearest_charger(r)
+    # best_claim's positive-stock argmax (sector-independent; first-max wins).
+    # When it exists it equals best_claim(); when no rock has stock the scalar
+    # best_claim returns r.sector, but that path yields future=0 anyway.
+    stock = w.stock
+    srcs = w.sources
+    bc, bc_score = -1, -1.0
+    for i in range(len(srcs)):
+        s = stock[i]
+        if s <= 0:
+            continue
+        sx, sy = srcs[i]
+        sc = s / ((abs(px - sx) + abs(py - sy)) + 4.0)
+        if sc > bc_score:
+            bc_score, bc = sc, i
+    denom_claim = max(1.0, len(w.robots) / 2)
+    fut = {}
+    for sigma in {r.sector, other_sector}:
+        if stock[sigma] > 0:
+            cand = sigma
+        elif bc >= 0:
+            cand = bc
+        else:
+            cand = sigma
+        if stock[cand] <= 0:
+            fut[sigma] = None
+            continue
+        sx, sy = srcs[cand]
+        mh_src_ref = [abs(sx - refs[i][0]) + abs(sy - refs[i][1])
+                      for i in range(nref)]
+        haulsrc = [mh_src_ref[i] * eff * lm1 for i in range(nref)]
+        approach = (abs(px - sx) + abs(py - sy)) * eff
+        claim = stock[cand] / denom_claim
+        fut[sigma] = (mh_src_ref, haulsrc, approach, claim)
+    c.fut = fut
+    return c
+
+
+def fast_phi(load, battery, sector, stranded, c: _PhiCtx, hazard: bool,
+             # physics constants bound once at def time (they never mutate) —
+             # same values as the live W.* reads scalar phi uses, so bit-exact,
+             # but no per-call module-attribute lookup in this hot function.
+             _BMAX=W.BATTERY_MAX, _PSTRAND=W.P_STRAND, _VDEL=W.V_DELIVER,
+             _FD=W.FUTURE_DISCOUNT, _HS=W.HAZARD_SCALE,
+             _SPARE_OFF=0.15 * W.BATTERY_MAX, _exp=math.exp) -> float:
+    """Byte-exact Φ from a precomputed context and the EXPLICIT post-state
+    (load, battery, sector, stranded) — mirrors phi() op-for-op for the core
+    config. Taking the post-state as arguments lets the caller derive it once
+    per energy option (battery/stranded depend only on the energy leg) instead
+    of mutating the robot per bundle."""
+    if stranded:
+        return -_PSTRAND
+    bat = min(_BMAX, max(0.0, battery * (1.0 + c.gb)))
+    ev = c.ev
+    nref = c.nref
+    A = c.A
+    rate = c.rate
+    maxload = max(load, 1)
+    v = 0.0
+    if load > 0:
+        hc = c.haulcost
+        best = 0
+        bs = A[0] * maxload - hc[0] * ev
+        for i in range(1, nref):
+            sc = A[i] * maxload - hc[i] * ev
+            if sc > bs:
+                bs = sc
+                best = i
+        cost_to_ref = hc[best]
+        full = load * rate[best] * _VDEL
+        if bat > cost_to_ref:
+            v += full
+        else:
+            v += 0.5 * full * bat / (cost_to_ref + 1e-9)
+    fc = c.fut.get(sector)
+    if fc is not None:
+        mh_src_ref, haulsrc, approach, claim = fc
+        best = 0
+        bs = A[0] * maxload - haulsrc[0] * ev
+        for i in range(1, nref):
+            sc = A[i] * maxload - haulsrc[i] * ev
+            if sc > bs:
+                bs = sc
+                best = i
+        leg = mh_src_ref[best]
+        cycle_cost = 2 * leg * c.eff * c.lm2
+        spare = max(0.0, bat - approach - _SPARE_OFF)
+        trips = spare / max(cycle_cost, 1e-9)
+        v += _FD * min(trips * c.cap, claim) * rate[best] * _VDEL
+    step_cost = c.sc_loaded if load > 0 else c.sc_empty
+    if hazard:
+        margin = bat - c.d * step_cost
+        v -= _PSTRAND * (1.0 / (1.0 + _exp(margin / _HS)))
+    elif bat < c.d * step_cost:
+        v -= _PSTRAND
+    return v

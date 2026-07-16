@@ -22,7 +22,6 @@ SINK-hardcoded baseline would be silently sandbagged in v4).
 """
 from __future__ import annotations
 
-import copy
 import math
 import os
 import sys
@@ -30,9 +29,9 @@ import sys
 import numpy as np
 
 from swarm import world as W
-from swarm.value import (delivery_target, phi, phi_true, phi_true_field,
-                         safe_return_threshold, stranding_hazard,
-                         stranding_hazard_true, update_ev)
+from swarm.value import (delivery_target, fast_phi, phi, phi_ctx, phi_true,
+                         phi_true_field, safe_return_threshold,
+                         stranding_hazard, stranding_hazard_true, update_ev)
 
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 _SNHP = os.path.join(_ROOT, "snhp")
@@ -46,6 +45,12 @@ from nash_solver import (filter_pareto_frontier,  # noqa: E402
 ATTEMPT_COOLDOWN = 5
 DEAL_COOLDOWN = 15
 EV_REFRESH = 10                 # ticks between endogenous-EV updates
+
+# Differential-oracle switch: force every SnhpArm._evaluate onto the scalar
+# fallback (the byte-identical reference path). The optimized fast path and this
+# scalar path MUST produce identical trajectories; the oracle test flips this and
+# byte-compares. Never set in production.
+FORCE_SCALAR_EVAL = False
 
 CARGO_OPTS = [-4, -2, -1, 0, 1, 2, 4]
 ENERGY_OPTS = [-8.0, -4.0, -2.0, 0.0, 2.0, 4.0, 8.0]
@@ -192,6 +197,47 @@ def _feasible(a, b, q: int, e: float) -> bool:
         if W.BATTERY_MAX - recv.battery < abs(e) * (1 - W.TRANSFER_LOSS):
             return False
     return True
+
+
+# The exact set of fields apply_bundle mutates on a robot (verified against
+# transfer_cargo / transfer_energy / swap_sectors / debit_energy / _maybe_strand):
+# battery, load, load_prov (contents), sector, target_ref, stranded,
+# received_units. Snapshot/restore of precisely these replaces copy.copy(a) —
+# same arithmetic, same order, and the robot is left byte-identical to pristine.
+def _snap(r):
+    lp = r.load_prov
+    return (r.battery, r.load, lp[0], lp[1], r.sector,
+            r.target_ref, r.stranded, r.received_units)
+
+
+def _restore(r, s):
+    r.battery = s[0]
+    r.load = s[1]
+    r.load_prov[0] = s[2]
+    r.load_prov[1] = s[3]
+    r.sector = s[4]
+    r.target_ref = s[5]
+    r.stranded = s[6]
+    r.received_units = s[7]
+
+
+def _energy_post(w, a, b, e, a_snap, b_snap):
+    """Post-(battery, stranded) for both robots after the energy leg of a
+    bundle with transfer `e`, using the REAL physics functions (bit-exact by
+    reuse). Battery/stranded depend ONLY on `e` — cargo and sector never touch
+    them — so this is computed once per distinct energy option and reused across
+    every (q, ·, s) bundle. Mirrors apply_bundle's energy+TXN sequence exactly
+    (transfer_energy, then debit both by TXN_COST), then restores a and b."""
+    if e > 0:
+        w.transfer_energy(a, b, e, log=False)
+    elif e < 0:
+        w.transfer_energy(b, a, -e, log=False)
+    w.debit_energy(a, W.TXN_COST)
+    w.debit_energy(b, W.TXN_COST)
+    out = (a.battery, a.stranded, b.battery, b.stranded)
+    _restore(a, a_snap)
+    _restore(b, b_snap)
+    return out
 
 
 def apply_bundle(w, a, b, q: int, e: float, s: int, log: bool) -> None:
@@ -351,6 +397,30 @@ class SnhpArm(BaseArm):
         if self.has_map:
             opts.append(MAP_OPTS)
         self.space = generate_contract_space(opts)
+        # precompute the (q, e, s) triples once — the space never changes, so
+        # the hot loop reads native ints/floats instead of re-unpacking numpy
+        # rows every encounter. The all-zero row (the batna reference) gets a
+        # fixed index so it is priced at the pristine state, never applied.
+        self._rows = [(int(r[0]), float(r[1]), int(r[2])) for r in self.space]
+        # the batna reference is the fully-zero bundle; under map_trading the
+        # (0,0,0) cargo/energy/sector triple also appears with m=-1/+1 (real map
+        # syncs), so pin m==0 too — those map rows must still be applied+priced.
+        self._allzero = next(k for k, r in enumerate(self.space)
+                             if r[0] == 0 and r[1] == 0 and r[2] == 0
+                             and (not self.has_map or r[3] == 0))
+        # bundle-space columns and their bundle-only derivatives are FIXED, so
+        # precompute them once; _feas_mask then does only the robot-dependent
+        # comparisons each encounter (numpy, one pass — byte-identical booleans).
+        q = self.space[:, 0]
+        e = self.space[:, 1]
+        self._fq = q
+        self._f_posq = q > 0
+        self._f_negq = q < 0
+        self._f_negamt = -q                     # the |q| used in the q<0 branch
+        self._f_enz = e != 0
+        self._f_epos = e > 0
+        self._f_abse = np.abs(e)
+        self._f_abse_loss = self._f_abse * (1 - W.TRANSFER_LOSS)
 
     def _row(self, k):
         """(q, e, s, m) for contract-space row k; m=0 unless the map issue is on."""
@@ -358,39 +428,97 @@ class SnhpArm(BaseArm):
         m = int(row[3]) if self.has_map else 0
         return int(row[0]), float(row[1]), int(row[2]), m
 
+    # Fast Φ covers the CORE config; belief/life/map fundamentally reshape Φ
+    # (stock_belief side-channels, v_life instead of P_STRAND, synced map
+    # overlays) and dispatch to the byte-identical scalar path below.
+    def _fast_ok(self) -> bool:
+        if FORCE_SCALAR_EVAL:            # differential-oracle switch (tests)
+            return False
+        w = self.w
+        return not (w.belief_mode or w.life_pricing or self.has_map)
+
+    def _feas_mask(self, a, b):
+        """_feasible over the whole bundle space in ONE numpy pass, reusing the
+        precomputed bundle-only columns — byte-identical booleans to the scalar
+        _feasible(a,b,q,e) per row. (Tier 1.2)"""
+        q = self._fq
+        ok = ~(self._f_posq & ((a.load < q) | ((b.cap - b.load) < q)))
+        negamt = self._f_negamt
+        ok &= ~(self._f_negq & ((b.load < negamt) | ((a.cap - a.load) < negamt)))
+        epos = self._f_epos
+        donor_bat = np.where(epos, a.battery, b.battery)
+        recv_bat = np.where(epos, b.battery, a.battery)
+        ok &= ~(self._f_enz & (((donor_bat - 1.0) < self._f_abse)
+                               | ((W.BATTERY_MAX - recv_bat) < self._f_abse_loss)))
+        return ok
+
     def _evaluate(self, a, b):
         w = self.w
-        n = len(self.space)
+        space = self.space
+        n = len(space)
         ua = np.full(n, -np.inf)
         ub = np.full(n, -np.inf)
+        feas = self._feas_mask(a, b)             # one vectorized pass (Tier 1.2)
+        a_snap, b_snap = _snap(a), _snap(b)       # snapshot/restore vs copy.copy
+        rows = self._rows
+        allzero = self._allzero
+        apply = apply_bundle
+        if self._fast_ok():
+            # ── fast path: partial-evaluated Φ, position scans cached once,
+            # iterate ONLY feasible bundles (the mask already dropped ~175/196),
+            # and derive (battery, stranded) once per energy option (separable
+            # from cargo/sector) — no per-bundle mutation, no restore.
+            hz = w.hazard_phi
+            ca = phi_ctx(a, b.sector, w)
+            cb = phi_ctx(b, a.sector, w)
+            a_load, a_sec, a_bat, a_str = a.load, a.sector, a.battery, a.stranded
+            b_load, b_sec, b_bat, b_str = b.load, b.sector, b.battery, b.stranded
+            epost = {}
+            for k in feas.nonzero()[0].tolist():
+                if k == allzero:
+                    ua[k] = fast_phi(a_load, a_bat, a_sec, a_str, ca, hz)
+                    ub[k] = fast_phi(b_load, b_bat, b_sec, b_str, cb, hz)
+                    continue
+                q, e, s = rows[k]
+                ep = epost.get(e)
+                if ep is None:
+                    ep = epost[e] = _energy_post(w, a, b, e, a_snap, b_snap)
+                batA, strA, batB, strB = ep
+                if s:
+                    secA, secB = b_sec, a_sec
+                else:
+                    secA, secB = a_sec, b_sec
+                ua[k] = fast_phi(a_load - q, batA, secA, strA, ca, hz)
+                ub[k] = fast_phi(b_load + q, batB, secB, strB, cb, hz)
+            return ua, ub
+        # ── scalar fallback (byte-identical to the original evaluate) ──────
         same_co = a.company == b.company
-        for k in range(n):
-            q, e, s, m = self._row(k)
-            if q == 0 and e == 0 and s == 0 and m == 0:
+        has_map = self.has_map
+        for k in feas.nonzero()[0].tolist():
+            if k == allzero:
                 ua[k], ub[k] = phi(a, w), phi(b, w)
                 continue
+            q, e, s = rows[k]
+            m = int(space[k][3]) if has_map else 0
             # v12 K1: a map sync is meaningless within a company (identical
             # map) — mask (leave -inf). Cross-company syncs price below.
             if m != 0 and same_co:
                 continue
-            if not _feasible(a, b, q, e):
-                continue
-            ra, rb = copy.copy(a), copy.copy(b)
-            ra.load_prov = list(a.load_prov)     # copies must not share buckets
-            rb.load_prov = list(b.load_prov)
-            apply_bundle(w, ra, rb, q, e, s, log=False)
+            apply(w, a, b, q, e, s, log=False)
             if m == 0:
-                ua[k], ub[k] = phi(ra, w), phi(rb, w)
+                ua[k], ub[k] = phi(a, w), phi(b, w)
             elif m == 1:
                 # a sells its fresher map to b: a's Φ is untouched, b's Φ is
                 # scored under a temporary overlay that restores exactly.
-                ua[k] = phi(ra, w)
-                with w.synced_phi_view(rb, ra):
-                    ub[k] = phi(rb, w)
+                ua[k] = phi(a, w)
+                with w.synced_phi_view(b, a):
+                    ub[k] = phi(b, w)
             else:                                # m == -1: b sells to a
-                ub[k] = phi(rb, w)
-                with w.synced_phi_view(ra, rb):
-                    ua[k] = phi(ra, w)
+                ub[k] = phi(b, w)
+                with w.synced_phi_view(a, b):
+                    ua[k] = phi(a, w)
+            _restore(a, a_snap)
+            _restore(b, b_snap)
         return ua, ub
 
     def _pick(self, ua, ub, batna_a, batna_b, a, b):
@@ -440,8 +568,10 @@ class SnhpArm(BaseArm):
 
     def encounter(self, a, b) -> bool:
         w = self.w
-        batna_a, batna_b = phi(a, w), phi(b, w)
         ua, ub = self._evaluate(a, b)       # RAW: audit + frontier reference
+        # the all-zero bundle is Φ at the pristine (disagreement) state — i.e.
+        # the batna itself — so read it back instead of recomputing phi twice.
+        batna_a, batna_b = float(ua[self._allzero]), float(ub[self._allzero])
         ua_p, ub_p = ua, ub                 # pick-arrays (defense masks)
         if w.self_margin:
             ua_p = self._margin_mask(ua_p, batna_a)
@@ -617,8 +747,8 @@ class TrustArm(SnhpArm):
             # tier used to run lie-free on true books, so the gated result
             # measured pure access denial rather than relegation.)
             return SnhpArm.encounter(self, a, b)
-        batna_a, batna_b = phi(a, w), phi(b, w)
         ua, ub = self._evaluate(a, b)
+        batna_a, batna_b = float(ua[self._allzero]), float(ub[self._allzero])
         ra = self._report_joint(a, batna_a, ua)
         rb = self._report_joint(b, batna_b, ub)
         sol = TeamArm._pick(self, ra, rb, batna_a, batna_b, a, b)
