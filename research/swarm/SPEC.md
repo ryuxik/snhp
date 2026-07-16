@@ -2462,3 +2462,16 @@ decorative for throughput in this world, minimal AND composed.**
   is decorative both times. What scarcity buys a landlord is lunch money
   from inelastic guests. The founder's layering instinct was still right
   to demand the test — the law earned its status only by surviving it.
+
+**Y-A/Y-B STATUS (2026-07-16, registrar): BUILT, fidelity kill enforced by
+test.** The company logger is a pure observer (bit-identical with logging
+on/off, differential oracle included — the registered kill is now a
+permanent regression test) and the world is a configuration of existing
+flags only. The renderer's three-way regime toggle shows the banked
+signatures live in real replay data: chains 2.6% (spot) → 56.5% (claims)
+→ 0.0% (director); delivered 1864 / 2019 / 1503 (P23a, PXc, PXa
+respectively, seed-0 N=240). Every rendered element maps to a logged
+datum; every number on screen is a log counter or a cited SPEC verdict.
+arena/web/company/, unlinked from the arena index; publication is a
+founder decision. Y-C (endogenous structure) remains the next science
+phase, gate OPEN.
