@@ -393,14 +393,26 @@ class World:
         n_pairs = 5 * self.n_robots // 24                # 5 at N=24
         half_total = TOTAL_STOCK * self.n_robots // 24   # TOTAL_STOCK at N=24
         min_sep = 5 * sc if self.n_robots == 24 else 5.0
-        pos = []
+        # At large n_pairs the band packs near-saturated, where naive
+        # rejection sampling degrades catastrophically (the last placements
+        # almost never find a valid gap — N=240 world construction hung for
+        # minutes here). Cap the failed attempts and relax the separation on
+        # saturation. This branch is UNREACHABLE at N=24 (5 points in a roomy
+        # band never exhaust the cap), so the legacy draw sequence — and every
+        # pre-L column's bit-exactness — is preserved.
+        pos, sep, misses = [], min_sep, 0
         while len(pos) < n_pairs:
             x = int(self.rng.uniform(3 * sc, 29 * sc))   # bounds scale; at
             y = int(self.rng.uniform(3 * sc, 13 * sc))   # sc=1 draws unchanged
             p_ = (x, y)
-            if p_ in taken or any(manhattan(p_, q) < min_sep for q in pos):
+            if p_ in taken or any(manhattan(p_, q) < sep for q in pos):
+                misses += 1
+                if misses > 64 * n_pairs:                # saturated → ease off
+                    sep = max(2.0, sep * 0.85)
+                    misses = 0
                 continue
             pos.append(p_)
+            misses = 0
         raw = [int(self.rng.uniform(6, 19)) for _ in range(n_pairs)]
         scale = half_total / sum(raw)
         stocks = [max(4, round(r * scale)) for r in raw]
@@ -817,14 +829,34 @@ class World:
 
     # ── queries ─────────────────────────────────────────────────────────
     def encounters(self):
+        # Spatial-hash all-pairs: robots within Chebyshev R_COMM interact.
+        # The old nested loop was O(N²) PER TICK — the wall-clock killer at
+        # N≥96 (v13 scale). Bucketing by R_COMM-sized cells makes it ~O(N):
+        # a pair within Chebyshev R_COMM sits within ±1 cell each axis (the
+        # minimum gap for a 2-cell jump is R_COMM+1 > R_COMM), so a 3×3 cell
+        # neighborhood is a provably sufficient candidate set. Pairs are
+        # emitted in canonical list-index (i<j) order — identical to the old
+        # loop — so self.rng.shuffle consumes the SAME randomness and the
+        # output is BIT-EXACT (differential-tested at N=24/96/240).
         rs = self.robots
-        pairs = []
-        for i in range(len(rs)):
-            for j in range(i + 1, len(rs)):
-                a, b = rs[i], rs[j]
-                if max(abs(a.pos[0] - b.pos[0]),
-                       abs(a.pos[1] - b.pos[1])) <= R_COMM:
-                    pairs.append((a, b))
+        R = R_COMM
+        buckets: dict = {}
+        for idx, r in enumerate(rs):
+            buckets.setdefault((r.pos[0] // R, r.pos[1] // R), []).append(idx)
+        pairs_idx = []
+        for i, a in enumerate(rs):
+            cx, cy = a.pos[0] // R, a.pos[1] // R
+            for ox in (-1, 0, 1):
+                for oy in (-1, 0, 1):
+                    for j in buckets.get((cx + ox, cy + oy), ()):
+                        if j <= i:                 # dedupe → each pair once as i<j
+                            continue
+                        b = rs[j]
+                        if (abs(a.pos[0] - b.pos[0]) <= R
+                                and abs(a.pos[1] - b.pos[1]) <= R):
+                            pairs_idx.append((i, j))
+        pairs_idx.sort()                           # == nested-loop order
+        pairs = [(rs[i], rs[j]) for i, j in pairs_idx]
         self.rng.shuffle(pairs)
         return pairs
 

@@ -995,3 +995,38 @@ def test_v13_evaluated_equals_executed_at_scale():
         arm.tick()
         assert w.material_ok(), "conservation broke at scale"
     assert arm.deals > 0, "no deals at N=96 — vacuous"
+
+
+def test_encounters_bit_exact_vs_brute_force():
+    """The spatial-hash encounters() must return byte-identical output to the
+    O(N²) brute force — same pairs, same order, same shuffle — at every scale
+    and under scrambled positions (differential oracle)."""
+    def brute(rs, rng, R):
+        pairs = []
+        for i in range(len(rs)):
+            for j in range(i + 1, len(rs)):
+                a, b = rs[i], rs[j]
+                if max(abs(a.pos[0] - b.pos[0]),
+                       abs(a.pos[1] - b.pos[1])) <= R:
+                    pairs.append((a, b))
+        rng.shuffle(pairs)
+        return pairs
+    for N in (24, 96, 240):
+        w = World(n_robots=N, sigma=0.5, seed=N, preset="v5")
+        for _ in range(5):                          # scramble to stress buckets
+            for r in w.robots:
+                r.pos = (int(w.rng.uniform(1, w.grid)),
+                         int(w.rng.uniform(1, w.grid)))
+            st = w.rng.get_state()
+            got = [(id(a), id(b)) for a, b in w.encounters()]
+            w.rng.set_state(st)                      # replay the SAME shuffle
+            exp = [(id(a), id(b)) for a, b in brute(w.robots, w.rng, W.R_COMM)]
+            assert got == exp, f"encounters diverged from brute force at N={N}"
+        # clustered edge case: everyone on one cell → all pairs must appear
+        for r in w.robots:
+            r.pos = (5, 5)
+        st = w.rng.get_state()
+        got = [(id(a), id(b)) for a, b in w.encounters()]
+        w.rng.set_state(st)
+        exp = [(id(a), id(b)) for a, b in brute(w.robots, w.rng, W.R_COMM)]
+        assert got == exp, f"encounters diverged when fully clustered at N={N}"
