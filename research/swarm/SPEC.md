@@ -1878,6 +1878,7 @@ run. Same treatments, same KILL, plus an honesty constraint: the repo,
 tasks, and test results are publishable so any viewer can check the work
 was real. Y3's exact N/episode/budget numbers are declared in an amendment
 after X and Y2 land — registered as pending, not guessed now.
+
 **P29 RESULTS (2026-07-16, sweep_v4_V.json — report, not verdict; the numbers,
 loudly either way). The column-G geometry ladder (grid ∈ {24,32,48,64}, σ=0.5,
 τ=0.15, v5, 2,500 ticks, 16 seeds — the G config REPLICATED EXACTLY, and the v8
@@ -1942,3 +1943,35 @@ pinned/escrow retire to 0).
   them. Registrar's KILL clause satisfied: the hump survived order books intact,
   the constraint was diagnosed (travel/battery, not meetings), and the mechanism
   that DOES move G64 (synchronous bills) is named.
+
+**P29 VERDICTS (2026-07-16, registrar).**
+- **P29a: KILL FIRES — the order book does not flatten the hump.** G64
+  recovery is exactly +0.00 (edge −2.69 with and without the book), and the
+  book PULLS DOWN the dense-field peak (G48 +7.31→+4.06): async posting +
+  taker-routing is pure overhead where direct hand-offs work. "Posted
+  offers dissolve the room" is REFUTED — the room was never the constraint.
+  The pre-accounted advantage (no DEAL_PAUSE on acceptance) proved
+  negligible in the event (~17–31 ticks/run of 2,500) — accounted, and it
+  did not matter.
+- **P29b: REVERSED.** Async share is HIGHEST where encounters are densest
+  (corr(enc_rate, async_share)=+0.967 vs the registered negative): a pinned
+  offer is found where traffic passes. In sparse fields takers find far
+  relays IR-unattractive and posters strand before pickup — the bulletin
+  board needs foot traffic more than the bargaining room does.
+- **The registered diagnosis found the real constraint, and a law with it.**
+  What binds at G64 is CLOCK + BATTERY (makespan horizon-censored 2500/2500
+  under the book; stranding triples 6.2→17.9), not meetings. The decisive
+  control: **bills-ONLY recovers G64 outright (edge −2.69→+4.50, delivered
+  228.4→235.6)** — the sparse-field trough is a hold-up/chain-formation
+  problem the SYNCHRONOUS receipt (P23) already solves, and the async book
+  CANNIBALIZES it (bills+book 228.4 < bills-only 235.6: drones post to a
+  pin instead of handing to a present claimant).
+- **The law, on the record: attestation's value is PRE-COMMITMENT, not
+  ASYNCHRONY.** The binding claim that forms a chain is the scarce
+  primitive; saving the rendezvous is not. Third independent confirmation
+  of the P23 mechanism (chains, fair-horizon scale, now geometry), and a
+  RE-SCOPING of the column-G law: "the market needs meetings" holds for
+  SPOT bargaining; with claim stacks the meeting-density trough closes.
+  Product translation, on the record: agent commerce is not short of
+  posting infrastructure (every marketplace posts); it is short of the
+  binding claim. Do not build the bulletin board; build the receipt.
