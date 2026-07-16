@@ -1250,3 +1250,131 @@ grid + the N=24 baseline for regression:**
   contracts and vice versa — the Coase boundary, measured.
 - **KILL (phase 2):** if bills lift delivered_frac by ≤ +0.01 at N=240,
   chains were present but not binding; the plateau is physics; say so.
+
+---
+
+# THE CAPABILITY PROGRAM — seven pre-registrations (columns Q–W) + a P extension
+
+*All registered 2026-07-16, BEFORE implementation. Founder: "I want to test
+them all." Founder ideas: material→infrastructure, incentivized scouting,
+granular claims + dumber drones, Dyson-swarm economics. Fable additions:
+reputation-vs-receipts scaling, stigmergic order book, relay moral hazard,
+matching-vs-market. Builds sequential (shared files), Opus builds, Fable
+verdicts. Designs below are contracts; pre-build amendments allowed if
+committed before any run.*
+
+## v18 (column Q): endogenous infrastructure — "the sim grows landlords"
+
+Material-bearing asteroids (a seeded fraction of rocks yield BUILD-MATTER
+instead of ore). A company may spend matter + credits to PLACE a charger
+(or, expensive tier, a refinery) at a chosen location. Guest rate on owned
+chargers is the owner's choice from a small grid (the toll dial). Runs at
+N=240 scaled grid where charging is the binding constraint (per P18).
+- **P24a:** fleets that build chargers lift the N=240 plateau (delivered_frac
+  +≥0.05 vs no-build control); placement clusters where far-ore decay was.
+- **P24b (public goods):** under-provision emerges — total welfare-optimal
+  charger count exceeds what either company builds alone; cross-company
+  guest pricing sits above marginal cost (the toll-booth result recursing
+  onto endogenous capital).
+- **P24c:** a build-capable AUCTION fleet gains less than a build-capable
+  bargaining fleet (infrastructure siting benefits from claim/deal
+  coordination) — falsifiable; report either way.
+- **KILL:** if building never beats saving the resources for direct
+  operations, infrastructure is decorative at these scales.
+
+## v19 (column R): emergent scouting — incentives instead of policy
+
+Remove hardcoded K0 scouting. Arms: (a) discovery BOUNTY (company treasury
+pays finder per new-rock unit discovered), swept over bounty levels;
+(b) first-finder prospecting claim (existing K2 machinery, window as the
+incentive); (c) gossip + intra-company map-DELTA sales (scouts can sell
+fresh entries to fleet-mates — requires column O machinery); (d) K0
+hardcoded (the policy ceiling); (e) no-scout control. Moving+contested
+field.
+- **P25a:** some incentive arm reaches ≥70% of hardcoded K0's
+  arrival-capture; report the price of emergence (bounty level required).
+- **P25b:** bounty overshoot exists — too-high bounties pull haulers off
+  ore and delivered falls (an interior optimum, measured).
+- **KILL:** if no incentive schedule produces patrol behavior, exploration
+  is a planning good markets cannot buy in this world — report as such.
+
+## v20 (column S): institutions as a substitute for cognition
+
+2×2: navigation {smart (current Φ-routing), dumb (greedy nearest-known +
+noise)} × property rights {coarse (current sectors), granular (per-rock
+tradeable claims with K2-style windows)}. Same fields, same fleets.
+- **P26a (the thesis cell):** granular rights recover ≥50% of the delivered
+  gap that dumbing navigation opens (institutions buy back IQ).
+- **P26b:** rights granularity helps dumb fleets MORE than smart ones
+  (substitutes, not complements) — the interaction term is the result.
+- **KILL:** if granular rights help nobody or only smart fleets,
+  institutions complement rather than substitute cognition here.
+
+## v21 (column T): the shading externality — a Coase boundary, measured
+
+Solar-harvest preset: cells carry irradiance; parked drones harvest energy;
+a drone harvesting within SHADE_R of another reduces its neighbor's intake
+(continuous pairwise externality). Energy harvested replaces charger supply.
+Arms: no-bargaining (externality unpriced), bilateral deals may bundle
+"move/spacing" commitments (Coasean bargaining), tradeable SLOT claims
+(property-rights allocation). Sweep DEAL_PAUSE as the transaction-cost dial.
+- **P27a:** at low transaction cost, bilateral bargaining internalizes most
+  shading loss (harvest approaches the spacing optimum) — Coase holds.
+- **P27b:** raising DEAL_PAUSE degrades bargained internalization faster
+  than slot-claims allocation — a measured Coase boundary where property
+  rights beat renegotiation.
+- **KILL:** if unpriced shading loss is <5% of harvest, the externality is
+  too weak to test — re-tune SHADE_R by pre-committed rule, once.
+
+## v22 (column U): reputation vs receipts — the scaling law of trust
+
+Liars (v6 machinery) vs three enforcement regimes: (a) REPUTATION — pairwise
+memory + gossip-borne blacklisting (community enforcement; no attestation);
+(b) ATTESTATION (v6 gate, the receipt); (c) both. Across N ∈ {24, 96, 240}
+and gossip noise (false-accusation rate ε ∈ {0, 0.05}).
+- **P28a (the law):** reputation's honest-cooperation payoff decays with N
+  (re-encounter probability falls); attestation's is N-flat. A crossover N
+  exists: villages run on reputation, cities need receipts.
+- **P28b:** under ε>0 slander, community enforcement degrades (honest
+  drones get blacklisted); attestation is ε-immune.
+- **P28c:** (c) ≈ (b) at large N — receipts subsume reputation.
+- **KILL:** if reputation is N-flat too, the notary premise loses its
+  scaling argument in this world — the single most thesis-relevant kill in
+  the program; report loudly either way.
+
+## v23 (column V): the stigmergic order book — posted offers dissolve the room
+
+A drone may PIN a signed, binding limit order to a location (e.g., "pay X
+energy on pickup of this cargo here", "sell claim on rock i for Y",
+expiry T): commitment via attestation, asynchronous execution by whoever
+arrives and accepts. Same primitive as P's bills, different surface.
+Re-run the column-G geometry ladder with order books on.
+- **P29a:** the meeting-density hump flattens — bargaining's edge at G=64
+  recovers toward its G=48 level (posted offers let sparse fields trade).
+- **P29b:** order books shift deal mix toward asynchronous trades most
+  where encounter rates are lowest (mechanism check).
+- **KILL:** if the hump survives order books intact, the constraint was
+  never meetings — it was something else; diagnose before claiming.
+
+## v24 (column W): matching vs market — when design beats exchange
+
+Rock/task allocation via deferred-acceptance matching (drones rank rocks by
+net value; rocks "rank" drones by expected extraction) recomputed on
+arrival/depletion events, vs the existing claims market, vs greedy
+best_claim. Static known field (isolate allocation).
+- **P30a:** DA matching ≥ claims market on delivered at zero deal overhead
+  (stability without prices) at N=24; the gap, if any, closes at N=96+
+  (recompute latency scales worse than decentralized claims).
+- **KILL:** if greedy ≈ both, allocation was never the constraint at these
+  densities.
+
+## P23e (column P phase-2 extension): moral hazard in the relay
+
+Once bills exist: middle-hop effort is unobservable (lazy routing, risky
+margins, cargo dwell). Contrast FLAT splits vs TIME-CONTINGENT splits
+(payout share decays with hop dwell-time — the observable that Holmström's
+informativeness principle says to contract on).
+- **P23e:** flat-split relays show measurable shirking (dwell inflation vs
+  the direct-haul counterfactual); contingent splits compress dwell toward
+  efficient levels at equal or better delivered. KILL: no dwell inflation
+  under flat splits ⇒ no moral hazard to price in this world.
