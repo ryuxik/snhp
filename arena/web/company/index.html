@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>THE COMPANY — a diorama of the swarm engine</title>
+<style>
+/* ── GROW-Cube direction: chunky isometric cutaway, soft pastels on warm cream,
+      clean dark outlines, flat two-tone shading, rounded oversized miniatures.
+      STYLE ONLY — every drawn thing maps to a logged event (see README). ── */
+:root{
+  --cream:#f3e7cf; --cream2:#efe0c2; --panel:#fbf4e2; --ink:#3b2d25;
+  --ink-soft:#6b5545; --line:#3b2d25; --amber:#eeae4b; --amber-d:#d8942f;
+  --coral:#e0655a; --leaf:#8fbf7f; --sky:#8fb8de; --grape:#b79ad8;
+  --shadow:rgba(59,45,37,.16);
+  --f0:#f2c7bd; --f0d:#e2a99d;   /* shipping  (ground) */
+  --f1:#f6d6a2; --f1d:#e6bb79;   /* build     */
+  --f2:#cbe6ce; --f2d:#a7cfad;   /* design    */
+  --f3:#bcd6ef; --f3d:#95b7dc;   /* research  */
+  --f4:#d9c2ef; --f4d:#b89ad9;   /* frontier  (top) */
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:radial-gradient(120% 100% at 50% 0%, #f7eed8 0%, var(--cream) 60%, var(--cream2) 100%);
+  color:var(--ink); font:15px/1.5 "Trebuchet MS","Segoe UI",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 18px 40px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 14px;margin:2px 0 12px}
+h1{font-size:26px;margin:0;letter-spacing:.3px;font-weight:800}
+h1 .sub{font-size:14px;font-weight:600;color:var(--ink-soft)}
+.turn{margin-left:auto;font-weight:800;font-variant-numeric:tabular-nums;
+  background:var(--panel);border:2px solid var(--line);border-radius:11px;
+  padding:5px 12px;box-shadow:2px 2px 0 var(--shadow)}
+#banner{display:none;background:#f7d7cf;border:2px solid var(--coral);
+  color:#7a241c;border-radius:11px;padding:10px 14px;margin:0 0 12px;font-weight:600}
+.stage{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
+@media(max-width:860px){.stage{grid-template-columns:1fr}}
+.canvas-card{background:linear-gradient(180deg,#fbf4e3,#f3e7cf);
+  border:3px solid var(--line);border-radius:18px;box-shadow:5px 6px 0 var(--shadow);
+  padding:8px;position:relative;overflow:hidden}
+canvas{width:100%;height:auto;display:block;border-radius:12px}
+.legend{position:absolute;left:14px;bottom:12px;display:flex;gap:12px;flex-wrap:wrap;
+  background:rgba(251,244,226,.86);border:2px solid var(--line);border-radius:10px;
+  padding:5px 9px;font-size:11.5px;font-weight:700}
+.legend b{display:inline-flex;align-items:center;gap:5px;font-weight:700}
+.dot{width:11px;height:11px;border-radius:50%;border:1.6px solid var(--line);display:inline-block}
+.panel{background:var(--panel);border:3px solid var(--line);border-radius:16px;
+  box-shadow:4px 5px 0 var(--shadow);padding:14px}
+.panel h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-soft);margin:0 0 10px}
+.regime{display:flex;gap:7px;margin-bottom:12px}
+.regime button{flex:1;font:inherit;font-weight:800;cursor:pointer;padding:9px 4px;
+  border:2.5px solid var(--line);border-radius:11px;background:#fff;color:var(--ink);
+  box-shadow:2px 2px 0 var(--shadow);transition:transform .05s}
+.regime button:active{transform:translate(1px,1px)}
+.regime button.on[data-r="spot"]{background:var(--f0)}
+.regime button.on[data-r="claims"]{background:var(--f2)}
+.regime button.on[data-r="director"]{background:var(--f4)}
+.counters{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+.stat{background:#fff;border:2px solid var(--line);border-radius:11px;padding:8px 10px;
+  box-shadow:2px 2px 0 var(--shadow)}
+.stat .k{font-size:10.5px;letter-spacing:.05em;color:var(--ink-soft);text-transform:uppercase;font-weight:700}
+.stat .v{font-size:23px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.15}
+.stat .v small{font-size:12px;font-weight:700;color:var(--ink-soft)}
+.stat.wide{grid-column:1 / -1}
+.bar{height:9px;border-radius:6px;background:#e7d9bd;border:1.6px solid var(--line);
+  margin-top:6px;overflow:hidden}
+.bar > i{display:block;height:100%;background:var(--leaf)}
+.controls{display:flex;align-items:center;gap:8px;margin:2px 0 12px}
+.controls button{font:inherit;font-weight:800;cursor:pointer;border:2.5px solid var(--line);
+  border-radius:10px;background:#fff;box-shadow:2px 2px 0 var(--shadow);padding:6px 12px}
+.controls .sp{margin-left:auto;font-weight:700;color:var(--ink-soft)}
+select{font:inherit;font-weight:700;border:2.5px solid var(--line);border-radius:9px;
+  background:#fff;padding:5px 6px;box-shadow:2px 2px 0 var(--shadow)}
+input[type=range]{width:100%;accent-color:var(--amber-d)}
+.cite{background:#fff;border:2px solid var(--line);border-left:7px solid var(--amber-d);
+  border-radius:11px;padding:10px 12px;font-size:12.5px;position:relative}
+.cite .spec{font-weight:800;color:var(--amber-d);cursor:help;border-bottom:2px dotted var(--amber-d)}
+.cite .foot{display:none;position:absolute;left:8px;right:8px;bottom:calc(100% + 6px);
+  background:var(--ink);color:#fbf4e2;border-radius:9px;padding:9px 11px;font-size:11.5px;
+  line-height:1.45;z-index:5;box-shadow:3px 4px 0 var(--shadow)}
+.cite .spec:hover + .foot{display:block}
+.honesty{font-size:11px;color:var(--ink-soft);margin-top:12px;line-height:1.5;
+  border-top:2px dashed #d8c4a0;padding-top:9px}
+.honesty code{background:#eaddc0;border-radius:4px;padding:0 4px;font-size:10.5px}
+.badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.04em;
+  border:1.8px solid var(--line);border-radius:20px;padding:1px 8px;background:#fff;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>THE COMPANY <span class="sub">— a diorama of the swarm engine, re-skinned as a firm</span></h1>
+  <div class="turn" id="turn">TURN 0 / 0</div>
+</header>
+<div id="banner"></div>
+<div class="stage">
+  <div class="canvas-card">
+    <canvas id="c" width="1120" height="760"></canvas>
+    <div class="legend">
+      <b><i class="dot" style="background:#f6efe0"></i>worker</b>
+      <b><i class="dot" style="background:var(--amber)"></i>idea folder</b>
+      <b><i class="dot" style="background:var(--coral)"></i>stalled (hold-up)</b>
+      <b><i class="dot" style="background:#c9b7a6"></i>out of budget</b>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Regime — the money shot</h2>
+    <div class="regime" id="regime">
+      <button data-r="spot">Spot</button>
+      <button data-r="claims">Claims</button>
+      <button data-r="director">Director</button>
+    </div>
+    <div class="controls">
+      <button id="play">▶ Play</button>
+      <select id="speed">
+        <option value="0.5">0.5×</option>
+        <option value="1" selected>1×</option>
+        <option value="2">2×</option>
+        <option value="4">4×</option>
+      </select>
+      <span class="sp" id="clock">t 0</span>
+    </div>
+    <input type="range" id="scrub" min="0" max="1" value="0" step="1">
+    <div class="counters" style="margin-top:12px">
+      <div class="stat"><div class="k">Shipped</div><div class="v" id="s-deliv">0<small id="s-deliv-frac"></small></div></div>
+      <div class="stat"><div class="k">≥2-hop share</div><div class="v" id="s-hops">0%</div></div>
+      <div class="stat"><div class="k">Stalled now</div><div class="v" id="s-stuck">0</div></div>
+      <div class="stat"><div class="k">Hand-offs</div><div class="v" id="s-ho">0</div></div>
+      <div class="stat wide"><div class="k" id="k-budget">Fleet budget (mean battery)</div>
+        <div class="bar"><i id="s-bat" style="width:0%"></i></div></div>
+    </div>
+    <div class="cite">
+      <span class="spec" id="cite-spec">banked result</span>
+      <span class="badge" id="cite-badge">SPEC</span>
+      <div id="cite-text" style="margin-top:6px"></div>
+      <div class="foot" id="cite-foot"></div>
+    </div>
+    <div class="honesty" id="honesty"></div>
+  </div>
+</div>
+</div>
+
+<script>
+"use strict";
+/* ════════════════════════════════════════════════════════════════════════
+   THE COMPANY — Y-B renderer (v26-R). Self-contained, no CDNs. Replays REAL
+   seeded engine runs logged by research/swarm/company_log.py (pure observer).
+   Every drawn element binds to a logged datum; every number shown is either a
+   live log counter or a banked SPEC verdict (labelled). See README.md.
+   ════════════════════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const cv = $("c"), ctx = cv.getContext("2d");
+const REGIMES = ["spot", "claims", "director"];
+const FLOOR_COL = [["--f0","--f0d"],["--f1","--f1d"],["--f2","--f2d"],
+                   ["--f3","--f3d"],["--f4","--f4d"]];
+const CSS = k => getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+const logs = {};                       // regime -> parsed log
+let L = null;                          // current log
+let regime = "spot";
+let fi = 0;                            // frame index
+let playing = false, speed = 1, lastT = 0, acc = 0;
+let fx = [];                           // transient effects (launches, stamps, slips)
+let bandOf = [];                       // per-robot band cache for current frame
+
+/* ── error banner ── */
+function fail(msg){ const b=$("banner"); b.style.display="block"; b.textContent="⚠ "+msg; }
+
+/* ── load the three replay logs ── */
+async function boot(){
+  try{
+    await Promise.all(REGIMES.map(async r=>{
+      const res = await fetch(`logs/${r}.json`, {cache:"no-cache"});
+      if(!res.ok) throw new Error(`logs/${r}.json → HTTP ${res.status}`);
+      logs[r] = await res.json();
+    }));
+  }catch(e){
+    fail(`Could not load replay logs (${e.message}). Serve this folder over HTTP `+
+         `and (re)generate logs with:  python3 research/swarm/company_log.py`);
+    return;
+  }
+  wireUI();
+  setRegime("spot");
+  requestAnimationFrame(loop);
+}
+
+/* ── geometry: distance band → floor, exactly as the logger defined it ── */
+function computeBands(){
+  const R = L.refineries, edges = L.floor_edges;
+  const f = L.frames[fi];
+  bandOf = f.r.map(([x,y])=>{
+    let d = Infinity;
+    for(const [rx,ry] of R) d = Math.min(d, Math.abs(x-rx)+Math.abs(y-ry));
+    let b = edges.length;                         // top floor by default
+    for(let i=0;i<edges.length;i++){ if(d < edges[i]){ b=i; break; } }
+    return b;
+  });
+}
+
+/* ── isometric building draw ─────────────────────────────────────────────
+   Floors stack bottom (band 0 = shipping) to top (band F-1 = frontier). Each
+   floor is a chunky iso slab, front wall cut away (GROW cutaway) so we see the
+   workers inside. Worker's FLOOR is the logged datum; its slot on the floor is
+   a stable layout (packed by id) — documented in README, not a coordinate. */
+const NF = 5;
+function drawScene(){
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+  computeBands();
+  const f = L.frames[fi];
+
+  // building footprint (iso). One flat, chunky slab per floor, separated so
+  // every open shelf's workers are visible (the cutaway dollhouse).
+  const TW = 168, TH = 50, THICK = 17;   // slab half-width, half-depth, edge
+  const FLOOR_H = 126;                    // vertical gap between floors
+  const cx = W*0.47, baseY = H - 172;     // ground-floor plate centre
+
+  const slab = lvl => {                    // 4 iso corners of floor lvl's plate
+    const oy = baseY - lvl*FLOOR_H;
+    return {
+      back:  [cx,        oy - TH],
+      right: [cx + TW,   oy],
+      front: [cx,        oy + TH],
+      left:  [cx - TW,   oy],
+      oy, thick: THICK
+    };
+  };
+
+  // group robots by band (floor)
+  const byFloor = Array.from({length:NF}, ()=>[]);
+  bandOf.forEach((b,i)=> byFloor[b].push(i));
+
+  // ground shadow puddle
+  ctx.beginPath();
+  ctx.ellipse(cx, baseY + 96, TW*0.92, 30, 0, 0, 7);
+  ctx.fillStyle = CSS("--shadow"); ctx.fill();
+
+  // draw TOP floor first, ground last → nearer (lower) floors paint in front
+  for(let lvl=NF-1; lvl>=0; lvl--){
+    drawFloor(lvl, slab(lvl), byFloor[lvl], f);
+  }
+
+  drawDock(slab(0));
+  if(regime==="director") drawOffice(slab(NF-1));
+  drawEffects();
+  drawRoofLabel(cx, slab(NF-1).oy - TH - 20);
+}
+
+// bilinear on the iso parallelogram: u across width (left→right), v across
+// depth (back→front). Center-symmetric so (0.5,0.5) is the slab centre.
+function pt(s,u,v){
+  // center of slab
+  const mx=(s.left[0]+s.right[0])/2, my=(s.back[1]+s.front[1])/2;
+  const ux=(s.right[0]-s.left[0])/2, uy=(s.right[1]-s.left[1])/2;
+  const vx=(s.front[0]-s.back[0])/2, vy=(s.front[1]-s.back[1])/2;
+  const cu=(u-0.5)*2, cv2=(v-0.5)*2;
+  return [mx+ux*cu+vx*cv2, my+uy*cu+vy*cv2];
+}
+
+function poly(points, fill, stroke, lw){
+  ctx.beginPath();
+  points.forEach((p,i)=> i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+  ctx.closePath();
+  if(fill){ ctx.fillStyle=fill; ctx.fill(); }
+  if(stroke){ ctx.lineWidth=lw||2.4; ctx.strokeStyle=stroke; ctx.lineJoin="round"; ctx.stroke(); }
+}
+
+function drawFloor(lvl, s, ids, f){
+  const line = CSS("--line");
+  const top = CSS(FLOOR_COL[lvl][0]), side = CSS(FLOOR_COL[lvl][1]);
+  const th = s.thick;
+  const down = p => [p[0], p[1]+th];
+  // the two visible slab-thickness faces (front-left + front-right)
+  poly([s.left, s.front, down(s.front), down(s.left)], shade(side, 4), line, 2.4);
+  poly([s.front, s.right, down(s.right), down(s.front)], shade(side, -14), line, 2.4);
+  // top plate (open shelf — the cutaway)
+  poly([s.back, s.right, s.front, s.left], top, line, 2.8);
+
+  // workers packed onto the plate (state is the datum; slot is a stable layout)
+  const n = ids.length;
+  const cols = n ? Math.max(2, Math.min(17, Math.ceil(Math.sqrt(n*1.7)))) : 0;
+  const rows = n ? Math.ceil(n/cols) : 0;
+  const rad = n ? Math.max(3.1, Math.min(7.4, 34/Math.max(cols, rows*1.35))) : 0;
+  ids.forEach((id,k)=>{
+    const c = k%cols, rr = Math.floor(k/cols);
+    const u = cols>1 ? c/(cols-1) : 0.5, v = rows>1 ? rr/(rows-1) : 0.5;
+    const [px,py] = pt(s, 0.16+0.68*u, 0.18+0.64*v);
+    drawWorker(px, py-2, f.r[id][2], rad);
+  });
+
+  // floor label + real band range, right-aligned to the left of the slab
+  ctx.save();
+  ctx.textAlign="right";
+  ctx.fillStyle=CSS("--ink");
+  ctx.font="800 14px 'Trebuchet MS',sans-serif";
+  ctx.fillText(L.floor_labels[lvl].toUpperCase(), s.left[0]-12, s.left[1]-2);
+  ctx.font="600 10.5px 'Trebuchet MS',sans-serif";
+  ctx.fillStyle=CSS("--ink-soft");
+  const lo = lvl===0 ? 0 : L.floor_edges[lvl-1];
+  const hi = lvl<L.floor_edges.length ? Math.round(L.floor_edges[lvl])+" cells" : "far edge";
+  ctx.fillText(`${Math.round(lo)}–${hi} · ${n} here`, s.left[0]-12, s.left[1]+13);
+  ctx.restore();
+}
+
+function shade(hex, d){                 // nudge a hex toward dark/light
+  const m = hex.replace('#','');
+  const n = m.length===3 ? m.split('').map(c=>c+c).join('') : m;
+  let [r,g,b] = [0,2,4].map(i=>parseInt(n.slice(i,i+2),16));
+  r=Math.max(0,Math.min(255,r+d)); g=Math.max(0,Math.min(255,g+d)); b=Math.max(0,Math.min(255,b+d));
+  return `rgb(${r},${g},${b})`;
+}
+
+function drawWorker(x,y,state,rad){
+  const line=CSS("--line");
+  // state: 0 empty, 1 loaded(folder), 2 stalled(hold-up), 3 out-of-budget
+  const body = state===3 ? "#c9b7a6" : "#f6efe0";
+  // shadow
+  ctx.beginPath(); ctx.ellipse(x, y+rad*0.9, rad*0.9, rad*0.4, 0, 0, 7);
+  ctx.fillStyle=CSS("--shadow"); ctx.fill();
+  // round body (flat two-tone: lit top, shaded lower arc)
+  ctx.beginPath(); ctx.arc(x,y,rad,0,7);
+  ctx.fillStyle=body; ctx.fill();
+  ctx.beginPath(); ctx.arc(x,y,rad,Math.PI*0.12,Math.PI*0.96);
+  ctx.fillStyle=shade(body,-16); ctx.fill();
+  ctx.lineWidth=Math.max(1.4,rad*0.24); ctx.strokeStyle=line;
+  ctx.beginPath(); ctx.arc(x,y,rad,0,7); ctx.stroke();
+  // eyes
+  if(rad>=4.4){
+    ctx.fillStyle=line;
+    ctx.beginPath(); ctx.arc(x-rad*0.32,y-rad*0.12,Math.max(0.9,rad*0.14),0,7); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+rad*0.32,y-rad*0.12,Math.max(0.9,rad*0.14),0,7); ctx.fill();
+  }
+  // idea folder carried (loaded / stalled)
+  if(state===1 || state===2){
+    const fw=rad*1.15, fh=rad*0.9, fxp=x+rad*0.7, fyp=y-rad*0.2;
+    ctx.fillStyle=state===2?CSS("--coral"):CSS("--amber");
+    ctx.strokeStyle=line; ctx.lineWidth=Math.max(1,rad*0.2);
+    roundRect(fxp-fw/2, fyp-fh/2, fw, fh, rad*0.2);
+    ctx.fill(); ctx.stroke();
+    // little tab
+    ctx.beginPath(); ctx.moveTo(fxp-fw/2, fyp-fh/2);
+    ctx.lineTo(fxp-fw/2+fw*0.4, fyp-fh/2); ctx.lineTo(fxp-fw/2+fw*0.3, fyp-fh/2-fh*0.28);
+    ctx.lineTo(fxp-fw/2-fw*0.02, fyp-fh/2-fh*0.28); ctx.closePath();
+    ctx.fillStyle=state===2?shade(CSS('--coral'),-18):CSS("--amber-d"); ctx.fill(); ctx.stroke();
+  }
+  if(state===2 && rad>=4){          // hold-up spark
+    ctx.fillStyle=CSS("--coral"); ctx.font=`800 ${rad*1.5}px sans-serif`;
+    ctx.textAlign="center"; ctx.fillText("!", x, y-rad*1.4);
+  }
+}
+
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+
+function drawDock(s){
+  const line=CSS("--line");
+  // loading dock in front of the ground floor — launches fire from here
+  const px=s.front[0], py=s.front[1]+s.thick+30;
+  poly([[px-96,py-14],[px+96,py-14],[px+70,py+16],[px-70,py+16]], "#e7d4b2", line, 2.6);
+  ctx.fillStyle=CSS("--ink"); ctx.font="800 12px 'Trebuchet MS',sans-serif";
+  ctx.textAlign="center"; ctx.fillText("LOADING DOCK · SHIPPED ▲", px, py+7);
+}
+
+function drawOffice(s){
+  // director's corner office: a small booth at the top floor's right corner
+  const line=CSS("--line");
+  const [ox,oy]=pt(s, 0.98, 0.30);
+  poly([[ox,oy-56],[ox+46,oy-42],[ox+46,oy+4],[ox,oy-10]], "#efe0c2", line, 2.4);
+  poly([[ox,oy-56],[ox+46,oy-42],[ox+46,oy-34],[ox,oy-48]], CSS("--f4d"), line, 2.4);
+  ctx.fillStyle=CSS("--ink"); ctx.font="800 9.5px 'Trebuchet MS',sans-serif";
+  ctx.textAlign="left"; ctx.fillText("DIRECTOR", ox+6, oy-24);
+}
+
+function drawRoofLabel(cx, y){
+  ctx.fillStyle=CSS("--ink-soft"); ctx.font="700 12px 'Trebuchet MS',sans-serif";
+  ctx.textAlign="center"; ctx.fillText("▲ frontier — ideas are mined here", cx, y);
+}
+
+/* ── transient effects: launches (deliveries), stamps (hand-offs), slips.
+   Counts are capped and the pool is hard-limited so high speeds stay crisp. ── */
+const FX_MAX = 46;
+function spawnEffects(prev, cur){
+  const dDeliv = cur.d - (prev?prev.d:0);
+  const dHO = cur.ho - (prev?prev.ho:0);
+  // launches — one folder-rocket per delivery, capped for legibility
+  const nL = Math.min(8, dDeliv);
+  for(let i=0;i<nL;i++) fx.push({k:"launch", age:0, life:44,
+    x: cv.width*0.47 + (Math.random()-0.5)*110, jitter:(Math.random()-0.5)*40});
+  if(dDeliv>nL) fx.push({k:"burst", age:0, life:30, n:dDeliv, x:cv.width*0.47});
+  // stamps — hand-off pulses (claims regime lights up the middle floors)
+  const nS = Math.min(4, Math.ceil(dHO/3));
+  for(let i=0;i<nS;i++) fx.push({k:"stamp", age:0, life:20,
+    x: cv.width*0.47 + (Math.random()-0.5)*190, y: cv.height*0.46 + (Math.random()-0.5)*120});
+  // director order slips (drift down-late from the office)
+  if(regime==="director" && cur.cmd){
+    for(let i=0;i<Math.min(3, Math.round(cur.cmd[0]/80));i++)
+      fx.push({k:"slip", age:0, life:56, x: cv.width*0.47+150, y: cv.height*0.20,
+               vy:1.3, vx:-2.0 - Math.random()});
+  }
+  if(fx.length > FX_MAX) fx.splice(0, fx.length - FX_MAX);   // drop oldest
+}
+function drawEffects(){
+  fx = fx.filter(e=> e.age < e.life);
+  const line=CSS("--line");
+  for(const e of fx){
+    const t=e.age/e.life;
+    if(e.k==="launch"){
+      const y = cv.height*0.62 - t*cv.height*0.6;
+      const x = e.x + e.jitter*t;
+      ctx.globalAlpha = 1-Math.max(0,t-0.7)/0.3;
+      ctx.fillStyle=CSS("--amber"); ctx.strokeStyle=line; ctx.lineWidth=2;
+      roundRect(x-7,y-9,14,12,3); ctx.fill(); ctx.stroke();
+      ctx.fillStyle=CSS("--coral");
+      ctx.beginPath(); ctx.moveTo(x-4,y+3); ctx.lineTo(x,y+11+6*Math.sin(e.age)); ctx.lineTo(x+4,y+3);
+      ctx.closePath(); ctx.fill();
+      ctx.globalAlpha=1;
+    } else if(e.k==="burst"){
+      ctx.globalAlpha=1-t; ctx.fillStyle=CSS("--amber-d");
+      ctx.font="800 15px 'Trebuchet MS',sans-serif"; ctx.textAlign="center";
+      ctx.fillText(`+${e.n} shipped`, e.x, cv.height*0.5 - t*40); ctx.globalAlpha=1;
+    } else if(e.k==="stamp"){
+      ctx.globalAlpha=1-t; ctx.strokeStyle=CSS("--leaf"); ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(e.x,e.y,6+t*14,0,7); ctx.stroke();
+      ctx.fillStyle=CSS("--leaf"); ctx.font="800 11px sans-serif"; ctx.textAlign="center";
+      ctx.fillText("✓", e.x, e.y+4); ctx.globalAlpha=1;
+    } else if(e.k==="slip"){
+      e.x+=e.vx; e.y+=e.vy;
+      ctx.globalAlpha=Math.max(0,1-t); ctx.fillStyle="#fff"; ctx.strokeStyle=line; ctx.lineWidth=1.8;
+      roundRect(e.x-8,e.y-6,16,12,2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle=CSS("--ink-soft");
+      ctx.fillRect(e.x-5,e.y-2,10,1.4); ctx.fillRect(e.x-5,e.y+1,7,1.4);
+      ctx.globalAlpha=1;
+    }
+    e.age += speed;
+  }
+}
+
+/* ── HUD / counters ── */
+function updateHUD(){
+  const f = L.frames[fi], sm = L.summary, tot = L.total_stock;
+  $("turn").textContent = `TURN ${f.t} / ${L.config.ticks}`;
+  $("clock").textContent = `t ${f.t}`;
+  $("s-deliv").firstChild.nodeValue = f.d.toLocaleString();
+  $("s-deliv-frac").textContent = ` / ${tot}`;
+  $("s-hops").textContent = (f.d ? (100*f.h2/f.d).toFixed(1) : "0.0") + "%";
+  const stuck = f.r.reduce((a,[,,s])=> a+(s===2?1:0), 0);
+  $("s-stuck").textContent = stuck;
+  $("s-ho").textContent = f.ho.toLocaleString();
+  $("s-bat").style.width = Math.max(0,Math.min(100, f.bat)) + "%";
+  $("k-budget").textContent = regime==="director" && f.cmd
+    ? `Fleet budget · order age ~${f.cmd[1]}t (${f.cmd[0]} on order)`
+    : "Fleet budget (mean battery)";
+  $("scrub").value = fi;
+}
+
+/* ── regime switch ── */
+function setRegime(r){
+  regime = r; L = logs[r]; fi = 0; fx = [];
+  document.querySelectorAll("#regime button").forEach(b=> b.classList.toggle("on", b.dataset.r===r));
+  $("scrub").max = L.frames.length-1;
+  // cite (verbatim banked SPEC verdict)
+  $("cite-spec").textContent = "Illustrates " + L.cite.spec;
+  $("cite-badge").textContent = "SPEC verdict";
+  $("cite-text").textContent = L.cite.text;
+  $("cite-foot").innerHTML = "Banked numbers (not from this run): " +
+    Object.entries(L.cite.numbers).map(([k,v])=> `<b>${k}</b>=${v}`).join(" · ");
+  // honesty note with the real config
+  const c = L.config;
+  $("honesty").innerHTML =
+    `Replay of a <b>real seeded run</b>, time-compressed (${L.frames.length} sampled `+
+    `frames, 1 every ${L.sample_every} ticks). Config: <code>arm=${c.arm}</code> `+
+    `<code>N=${c.n_robots}</code> <code>seed=${c.seed}</code> <code>ticks=${c.ticks}</code> `+
+    `<code>grid=${c.grid}</code> <code>bills=${c.bills}</code> <code>command=${c.command}</code>. `+
+    `Live counters above are THIS run's log; the caption cites the banked verdict. `+
+    `Floors = distance bands to the refinery (reach ${L.reach} cells). No decorative agents.`;
+  updateHUD();
+  drawScene();
+}
+
+/* ── frame stepping. Effects (launches/stamps/slips) represent PER-FRAME
+   deltas during playback; on a scrub jump we move silently (fxOn=false). ── */
+function goto(i, fxOn){
+  const prev = L.frames[fi];
+  fi = Math.max(0, Math.min(L.frames.length-1, i));
+  if(fxOn) spawnEffects(prev, L.frames[fi]); else fx = [];
+  updateHUD();
+}
+
+function loop(ts){
+  const dt = ts - lastT; lastT = ts;
+  if(playing && L){
+    acc += dt * speed;
+    const STEP = 300;                  // ms per frame at 1×
+    while(acc >= STEP){
+      acc -= STEP;
+      if(fi >= L.frames.length-1){ playing=false; $("play").textContent="↻ Replay"; break; }
+      goto(fi+1, true);
+    }
+  }
+  if(L) drawScene();
+  requestAnimationFrame(loop);
+}
+
+function wireUI(){
+  $("regime").addEventListener("click", e=>{
+    const b=e.target.closest("button"); if(b) setRegime(b.dataset.r);
+  });
+  $("play").addEventListener("click", ()=>{
+    if(fi >= L.frames.length-1){ goto(0, false); }
+    playing=!playing; $("play").textContent = playing?"❚❚ Pause":"▶ Play";
+  });
+  $("speed").addEventListener("change", e=> speed=parseFloat(e.target.value));
+  $("scrub").addEventListener("input", e=>{ playing=false; $("play").textContent="▶ Play"; goto(+e.target.value, false); });
+}
+
+boot();
+</script>
+</body>
+</html>

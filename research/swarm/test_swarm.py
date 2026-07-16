@@ -2650,6 +2650,163 @@ def test_q2_far_band_built_charger_is_sole_return_path_for_a_bills_chain():
         "delivery was not a bills chain (no hand-off recorded on the parcels)"
 
 
+# ── v26-R (column Y): THE COMPANY diorama — pure-observer event logger ────────
+# company_log.py CONSTRUCTS a column-X World (arm snhp+net, belief+gossip, the
+# lineage + deadlock instrument) and OBSERVES it read-only, one tick at a time.
+# The FIDELITY KILL is non-negotiable: attaching the observer must not perturb a
+# single bit (incl. under the fast/scalar differential-oracle switch), the log
+# must carry every honesty field, and its counters must equal an independent
+# plain run of the same seed. No engine mechanism is added; the observer only
+# reads already-existing logs (event_log/deal_log/delivered_parcels) + state.
+import swarm.company_log as _CLOG                                  # noqa: E402
+
+
+def _clog_end_state(w):
+    return (w.delivered, len(w.deal_log), len(w.event_log),
+            [round(r.battery, 12) for r in w.robots],
+            [tuple(sorted(d.items())) for d in w.deal_log],
+            [tuple(r.pos) for r in w.robots], len(w.delivered_parcels))
+
+
+def _clog_plain_fp(regime, n, seed, ticks):
+    w, arm = _CLOG.make_world(regime, n, seed, ticks)
+    for _ in range(ticks):
+        arm.tick()
+        if w.delivered >= w.total_stock:
+            break
+    return _clog_end_state(w)
+
+
+def _clog_observed_fp(regime, n, seed, ticks):
+    holder = []
+    _CLOG.run_logged(regime, n_robots=n, seed=seed, ticks=ticks,
+                     sample_every=5, observe=holder.append)
+    return _clog_end_state(holder[-1])
+
+
+def test_company_observer_bit_identical():
+    """The company logger is a PURE OBSERVER: running a regime WITH the observer
+    attached reaches a byte-identical end-state (delivered, deals, xfers,
+    battery@12dp, the whole deal_log, positions, parcels) to running it plain.
+    Checked on all three demo regimes — the FIDELITY KILL guard."""
+    for regime in ("spot", "claims", "director"):
+        plain = _clog_plain_fp(regime, 24, 0, 300)
+        observed = _clog_observed_fp(regime, 24, 0, 300)
+        assert observed == plain, f"observer perturbed regime {regime!r}"
+
+
+def _clog_observe_reads(w, arm, ticks):
+    """Replay company_log.run_logged's EXACT read-only per-tick observation on a
+    prebuilt (w, arm), returning a fast/scalar fingerprint. Pure reads."""
+    for _ in range(ticks):
+        arm.tick()
+        _ = [_CLOG._robot_state(w, r) for r in w.robots]      # noqa: F841
+        _ = sum(1 for p in w.delivered_parcels if p["hops"] >= 2)
+        _ = sum(1 for e in w.event_log if e["kind"] == "cargo")
+        _ = sum(r.battery for r in w.robots)
+        if w.delivered >= w.total_stock:
+            break
+    return (w.delivered, len(w.deal_log), len(w.event_log),
+            [round(r.battery, 12) for r in w.robots],
+            [tuple(sorted(d.items())) for d in w.deal_log])
+
+
+def test_company_observer_differential_oracle():
+    """Logging on/off is bit-identical ON THE DIFFERENTIAL ORACLE. (a) The demo
+    configs use belief_mode -> the scalar path; flipping FORCE_SCALAR_EVAL leaves
+    the observed run unchanged and equal to plain. (b) On a FAST-path config
+    (snhp+net + lineage + deadlock instrument, no belief/bills) the observer's
+    reads preserve the fast==scalar identity exactly."""
+    for regime in ("spot", "claims", "director"):
+        base = _clog_plain_fp(regime, 24, 0, 200)
+        for force in (False, True):
+            try:
+                _ARMS.FORCE_SCALAR_EVAL = force
+                assert _clog_observed_fp(regime, 24, 0, 200) == base, \
+                    f"observer perturbed {regime!r} at FORCE_SCALAR={force}"
+            finally:
+                _ARMS.FORCE_SCALAR_EVAL = False
+
+    def fast_world():
+        w = World(n_robots=24, sigma=0.5, seed=0, hazard_phi=True, preset="v5",
+                  tau=(0.15, 0.15), lineage=True, deadlock_track=True)
+        return w, make_arm("snhp+net", w)
+
+    try:
+        _ARMS.FORCE_SCALAR_EVAL = False
+        w1, a1 = fast_world()
+        fast = _clog_observe_reads(w1, a1, 200)
+        _ARMS.FORCE_SCALAR_EVAL = True
+        w2, a2 = fast_world()
+        scalar = _clog_observe_reads(w2, a2, 200)
+        assert fast == scalar, "observer reads broke fast==scalar (oracle)"
+    finally:
+        _ARMS.FORCE_SCALAR_EVAL = False
+
+
+def test_company_log_schema_fields_present():
+    """The log carries every honesty field the renderer binds to: config, the
+    floor/band mapping, the verbatim SPEC cite, one robot record per robot, and
+    well-formed frames (state in {0..3}, one r-row per robot)."""
+    log = _CLOG.run_logged("claims", n_robots=24, seed=0, ticks=200,
+                           sample_every=10)
+    for field in ("schema", "regime", "config", "grid", "refineries",
+                  "sources", "num_floors", "floor_edges", "floor_labels",
+                  "reach", "sample_every", "total_stock", "robots", "cite",
+                  "frames", "summary"):
+        assert field in log, f"log missing top-level field {field!r}"
+    assert log["schema"] == _CLOG.SCHEMA and log["regime"] == "claims"
+    assert log["config"]["bills"] is True and log["config"]["command"] is False
+    assert len(log["floor_edges"]) + 1 == log["num_floors"] == \
+        len(log["floor_labels"])
+    for key in ("spec", "text", "numbers"):
+        assert log["cite"][key], f"cite missing {key!r}"
+    assert len(log["robots"]) == 24
+    for f in log["frames"]:
+        assert set(f) >= {"t", "r", "d", "h2", "ho", "dl", "bat"}
+        assert len(f["r"]) == 24, "a frame is missing robots"
+        for x, y, st in f["r"]:
+            assert st in (0, 1, 2, 3), f"illegal robot state {st}"
+            assert 0 <= x < log["grid"] and 0 <= y < log["grid"]
+    # director carries the command-staleness channel; spot/claims do not
+    d = _CLOG.run_logged("director", n_robots=24, seed=0, ticks=120,
+                         sample_every=10)
+    assert all("cmd" in f for f in d["frames"]), "director frames lack cmd"
+    assert "cmd" not in log["frames"][0], "non-director frame carries cmd"
+
+
+def test_company_log_counts_match_run():
+    """The log summary is the REAL run: delivered / deals / xfers / delivered
+    parcels in the log EQUAL an independent plain run of the same seed, and the
+    per-frame cumulative counters are consistent (monotone, final == summary,
+    twohop_share == h2/d)."""
+    for regime in ("spot", "claims", "director"):
+        w, arm = _CLOG.make_world(regime, 24, 0, 300)
+        for _ in range(300):
+            arm.tick()
+            if w.delivered >= w.total_stock:
+                break
+        twohop = sum(1 for p in w.delivered_parcels if p["hops"] >= 2)
+        handoffs = sum(1 for e in w.event_log if e["kind"] == "cargo")
+
+        log = _CLOG.run_logged(regime, n_robots=24, seed=0, ticks=300,
+                               sample_every=5)
+        s = log["summary"]
+        assert s["delivered"] == w.delivered, f"{regime}: delivered mismatch"
+        assert s["deals"] == len(w.deal_log), f"{regime}: deals mismatch"
+        assert s["handoffs"] == handoffs, f"{regime}: handoffs mismatch"
+        assert s["twohop"] == twohop, f"{regime}: twohop mismatch"
+        assert s["twohop_share"] == round(twohop / max(1, w.delivered), 4)
+
+        last = log["frames"][-1]
+        assert last["d"] == s["delivered"] and last["h2"] == s["twohop"]
+        assert last["ho"] == s["handoffs"] and last["dl"] == s["deals"]
+        ds = [f["d"] for f in log["frames"]]
+        assert ds == sorted(ds), f"{regime}: delivered not monotone"
+    # command forms no chains; claims forms many — the banked signature, live
+    assert _CLOG.run_logged("director", 24, 0, 300)["summary"]["twohop"] == 0
+
+
 def benchmark(ticks=2500):
     """Timing harness (NOT a test): reports seconds for the three reference runs.
     Run with:  python -c 'from swarm.test_swarm import benchmark; benchmark()'"""
