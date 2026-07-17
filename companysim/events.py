@@ -51,6 +51,13 @@ HIRE = "hire"                        # v33-I: cheapest passing candidate hired
 RECONCILIATION = "reconciliation"    # v33-F: B1 buyer's cost-attribution test
 FIRST = "first"                      # v33-E: a chronicle first (mirrors firsts.jsonl)
 EPISODE_END = "episode_end"
+# v35 (column CO2-A) — the fraud / trust-boundary experiment. Two orgs across a
+# trust boundary; the ONLY thing that differs between conditions is when money
+# moves (see fraud.py). These events make the settlement decision auditable.
+BUYER_ORDER = "buyer_order"          # buyer escrows a bounty vs pre-committed hidden tests
+DELIVERY = "delivery"                # a supplier submitted code + a self-report ("tests pass")
+HIDDEN_TEST = "hidden_test"          # the RUNNER (neutral) ran the buyer's hidden test
+SETTLEMENT = "settlement"            # the pay/refund decision under the regime (the receipt)
 
 
 class EventLog(Chain):
