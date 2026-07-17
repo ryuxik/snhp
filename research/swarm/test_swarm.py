@@ -2807,6 +2807,148 @@ def test_company_log_counts_match_run():
     assert _CLOG.run_logged("director", 24, 0, 300)["summary"]["twohop"] == 0
 
 
+# ── v20 (column S): institutions as a substitute for cognition ──────────────
+def _sworld(nav_dumb, granular, seed=0, N=24, grid=32):
+    """A column-S world: the v11/v12 moving field (belief+dynamic+contested+K0
+    scouting) with the two S treatments — nav_dumb (routing) and prospect_claims
+    (granular rights)."""
+    return World(n_robots=N, sigma=0.5, seed=seed, preset="v5", tau=(0.15, 0.15),
+                 belief_mode=True, dynamic_field=True, contested=True,
+                 scouting=True, prospect_claims=granular, nav_dumb=nav_dumb,
+                 grid=grid)
+
+
+def test_v20_nav_dumb_default_off_is_flag_absent():
+    """nav_dumb defaults off ⇒ a moving-field world is BIT-IDENTICAL to one that
+    never heard of column S. The dedicated nav stream is CREATED unconditionally
+    but never DRAWN from unless nav_dumb is on, and it never touches self.rng —
+    so best_claim's routing, and every downstream bit, is unperturbed."""
+    outs = []
+    for kw in ({}, dict(nav_dumb=False)):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                  hazard_phi=True, belief_mode=True, dynamic_field=True,
+                  contested=True, scouting=True, prospect_claims=True, **kw)
+        arm = make_arm("snhp+net", w)
+        for _ in range(400):
+            arm.tick()
+        outs.append((w.delivered, arm.deals,
+                     round(sum(r.battery for r in w.robots), 9),
+                     [r.pos for r in w.robots],
+                     [tuple(sorted(d.items())) for d in w.deal_log]))
+    assert outs[0] == outs[1], "column-S nav_dumb plumbing leaked into the default path"
+
+
+def test_v20_dumb_claim_uses_dedicated_stream_only():
+    """The DUMB routing brain draws its noise ONLY from the dedicated
+    RandomState(seed+262626): a dumb_claim call ADVANCES _nav_rng and leaves the
+    main stream (self.rng) byte-for-byte untouched. This is what keeps nav_dumb
+    OFF bit-identical and every prior column unperturbed."""
+    w = _sworld(nav_dumb=True, granular=True, seed=0)
+    r = w.robots[0]
+    for i in range(len(w.sources)):          # give dumb_claim real candidates
+        w.belief[r.company][i] = 5
+    w._live_sense = False                    # freeze sensing (no side draws)
+    main_before = w.rng.get_state()[1].copy()
+    nav_before = w._nav_rng.get_state()[1].copy()
+    _ = w.dumb_claim(r)
+    assert np.array_equal(main_before, w.rng.get_state()[1]), \
+        "dumb_claim perturbed the MAIN stream"
+    assert not np.array_equal(nav_before, w._nav_rng.get_state()[1]), \
+        "dumb_claim did not draw from the dedicated nav stream"
+
+
+def test_v20_dumb_claim_is_greedy_nearest_not_richest():
+    """Mechanism: best_claim scores richest-per-distance (it will cross the field
+    for a rich rock); dumb_claim drops the richness term and just heads for the
+    nearest KNOWN-stocked rock (+ noise). With a near-poor vs far-rich pair the two
+    brains split — best_claim → far-rich, dumb_claim → near-poor — every time."""
+    w = _sworld(nav_dumb=True, granular=False, seed=0)
+    near, far = (2, 2), (2, 28)              # far is 26 cells away
+    w.sources = [near, far]
+    w.stock = [3, 200]
+    w.belief = [[3, 200], [3, 200]]
+    w.last_seen = [[0, 0], [0, 0]]
+    w.rival_rate = [[0.0, 0.0], [0.0, 0.0]]
+    w._own_mined_seen = [[0, 0], [0, 0]]
+    w.own_mined = [[0, 0], [0, 0]]
+    r = w.robots[0]
+    r.pos, r.sector = (1, 2), 0              # 1 cell from near, 26 from far
+    w._live_sense = False
+    assert w.best_claim(r) == 1, "smart routing did not chase the far-rich rock"
+    for _ in range(50):                      # noise never flips a 25-cell gap
+        assert w.dumb_claim(r) == 0, "dumb routing chased the far-rich rock"
+
+
+def test_v20_dumb_granular_exercises_claim_trades():
+    """The dumb+granular cell is non-vacuous: the deal economy still strikes
+    claim (sector-issue, s==1) trades — the tradeable-rights channel the thesis
+    leans on — even though the ROUTING brain is dumb. Conservation holds."""
+    w = _sworld(nav_dumb=True, granular=True, seed=0)
+    arm = make_arm("snhp+net", w)
+    for _ in range(500):
+        arm.tick()
+        assert w.material_ok(), "conservation broke in the dumb+granular cell"
+    assert arm.deals > 0, "dumb+granular struck no deals — vacuous"
+    assert sum(1 for d in w.deal_log if d["s"] == 1) > 0, \
+        "dumb+granular never traded a claim (sector swap)"
+
+
+def test_v20_evaluated_equals_executed_all_four_cells():
+    """The hard invariant across the WHOLE 2×2: dumbing ROUTING must not perturb
+    the bargaining brain. Each cell runs 300 ticks with the in-arm evaluated Φ ==
+    executed Φ assert live — completing clean IS the test — plus conservation."""
+    for nav_dumb in (False, True):
+        for granular in (False, True):
+            w = _sworld(nav_dumb=nav_dumb, granular=granular, seed=1)
+            arm = make_arm("snhp+net", w)
+            for _ in range(300):
+                arm.tick()
+                assert w.material_ok(), \
+                    f"conservation broke (dumb={nav_dumb}, gran={granular})"
+            assert arm.deals > 0, \
+                f"vacuous cell (dumb={nav_dumb}, gran={granular})"
+
+
+def test_v20_dumb_fleet_with_claims_outdelivers_without():
+    """The thesis, hand-built: on a scarce 2-rock field a DUMB fleet with granular
+    CLAIMS out-delivers a dumb fleet without, at a fixed short horizon. A rich
+    arrival A sits in a company-0 claim quadrant; a rock B sits by company-1's
+    refinery; every dumb robot starts nearest A, so greedy routing piles the whole
+    fleet onto A and neglects B. GRANULAR gates company-1 off A (window) → its dumb
+    robots redirect to B → the fleet spreads immediately → more delivered early.
+    The institution buys the coordination the dumb routing brain cannot plan."""
+    def deliv(granular, seed=0, H=60):
+        w = _sworld(nav_dumb=True, granular=granular, seed=seed)
+        w._field_events = []                 # freeze the random field
+        w._field_next = 0
+        A, B = (12, 16), (26, 24)
+        assert w.claim_owner[w.quadrant(A)] == 0    # company-0 holds A's quadrant
+        w.sources = [A, B]
+        w.stock = [80, 80]
+        w.total_stock = 160
+        w.stock_lost = 0
+        w.mined_from = [0, 0]
+        w.arrival_indices = [0]              # A is a claimable ARRIVAL
+        w.arrival_t = {0: 0}
+        w.belief = [[80, 80], [80, 80]]      # both companies KNOW both rocks
+        w.last_seen = [[0, 0], [0, 0]]
+        w.rival_rate = [[0.0, 0.0], [0.0, 0.0]]
+        w._own_mined_seen = [[0, 0], [0, 0]]
+        w.own_mined = [[0, 0], [0, 0]]
+        for r in w.robots:                   # both fleets clustered NEAR A
+            r.pos = (14, 15) if r.company == 1 else (10, 15)
+            r.load, r.load_prov = 0, [0, 0]
+            r.battery, r.sector, r.stranded = W.BATTERY_MAX, 0, False
+        arm = make_arm("snhp+net", w)
+        for _ in range(H):
+            arm.tick()
+        return w.delivered
+    coarse = deliv(granular=False)
+    granular = deliv(granular=True)
+    assert granular > coarse + 20, \
+        f"granular claims did not help the dumb fleet: gran={granular} coarse={coarse}"
+
+
 def benchmark(ticks=2500):
     """Timing harness (NOT a test): reports seconds for the three reference runs.
     Run with:  python -c 'from swarm.test_swarm import benchmark; benchmark()'"""

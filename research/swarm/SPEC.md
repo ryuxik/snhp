@@ -1310,6 +1310,72 @@ tradeable claims with K2-style windows)}. Same fields, same fleets.
 - **KILL:** if granular rights help nobody or only smart fleets,
   institutions complement rather than substitute cognition here.
 
+**P26 RESULTS (report, not verdict) — v20 (column S), institutions as a
+substitute for cognition (2026-07-16, builder).** 204 runs: the 2×2
+{smart, dumb routing} × {coarse, granular rights} × {snhp+net, auction} at
+N=24 (16 seeds) and N=96 (8 seeds), 2,500 ticks, σ=0.5, τ=0.15, v5, on the
+v11/v12 moving field (belief + dynamic + contested + K0 scouting); + a
+7,500-tick × 4-seed horizon spot-check (smart+coarse, dumb+coarse, dumb+gran;
+snhp+net). Conservation suite green throughout. Tests 122→128.
+SCOPING (registrar's, on the record): **nav_dumb dumbs ONLY the routing /
+planning brain** — best_claim's richest-per-distance Φ target selection is
+replaced by greedy nearest-KNOWN-rock + noise (NAV_DUMB_NOISE=6.0, dedicated
+RandomState(seed+262626), never the main stream); deals, physics and deal-Φ
+evaluation are byte-for-byte untouched (evaluated Φ == executed Φ verified in
+all four cells; nav_dumb OFF is bit-identical). This measures whether
+institutions substitute for PLANNING, not for the deal-evaluation faculty
+itself. GRANULAR = K2 prospect-claims (arrival WINDOWS + the sector issue the
+deal economy trades claim assignments through); COARSE = default sectors.
+- **The registered directional KILL does NOT fire at the thesis cell (N=24,
+  snhp+net) — but the confirmation is weak and does not scale.** 2×2 delivered
+  means: smart+coarse 284.1, smart+gran 282.1, dumb+coarse 278.4, **dumb+gran
+  291.3**. On the point estimates this is textbook substitution: **P26a
+  gap-recovery = +225%** (recovery +12.9 ≥ the +5.8 dumbing gap; ≥50% MET);
+  **P26b interaction = +15.0** (help_dumb +12.9, help_smart −2.1 — granular
+  helps the DUMB fleet and slightly HURTS the smart one). The dumb+granular
+  cell (291.3) is the single best snhp cell — a dumb fleet WITH tradeable
+  claims out-delivers even the SMART fleet without them (284.1).
+- **…but it is NOT statistically robust.** Recovery p=0.105, 5/16 seeds (a few
+  large wins, most seeds ~0); the underlying dumbing gap is itself n.s. (+5.8,
+  p=0.214). The rich, scouting-equipped field leaves dumb ROUTING little room
+  to hurt (~2% of delivered), so there is little "IQ" to buy back and the
+  recovery-% is a high-variance ratio of two small, noisy quantities.
+- **P26b INVERTS at N=96 — substitution flips to complement.** N=96 snhp+net:
+  smart+coarse 329.9, smart+gran 336.6, dumb+coarse 323.5, dumb+gran 322.9.
+  Recovery −0.6 (0/8 seeds, −10%); interaction −7.4 (help_dumb −0.6, help_smart
+  +6.8). Granularity now helps the SMART fleet more — the opposite sign. The
+  N=24 signal does not survive a 4× density scale-up.
+- **The auction control localizes (and undercuts) the mechanism.** Window
+  EXCLUSION without claim TRADING (auction: 0 deals, 0 sector swaps) points the
+  OTHER way at both N: interaction −5.6 at N=24 (help_smart +2.8 > help_dumb
+  −2.8) and −4.8 at N=96 (help_smart +8.6 > help_dumb +3.9). The only
+  substitution signal anywhere lives in the snhp deal economy's tradeable
+  sector-claims — exactly the registered mechanism — but only at N=24 and only
+  as a noisy point estimate.
+- **Claim-trade (sector-swap) volumes per cell (N=24, mean/run):** snhp
+  smart+coarse 74.8, smart+gran 72.8, dumb+coarse 70.0, dumb+gran 72.8 (deals
+  118–125); auction cells 0. Granularity barely moves trade volume (~+3 swaps
+  for the dumb fleet) — the recovery, where it exists, is a small reallocation,
+  not a trading surge.
+- **Horizon spot-check (7,500t, N=24): the recovery DECAYS, it does not
+  amortize.** smart+coarse 284.1→301.2, dumb+coarse 278.4→297.5, dumb+gran
+  291.3→299.2. The dumb+gran advantage over dumb+coarse shrinks +12.9→+1.7 as
+  the game lengthens, and smart+coarse reclaims the top (301.2 > 299.2).
+  Claims-coordination is a FRONT-loaded effect (the window forces early spatial
+  spread the dumb fleet cannot plan) that the long game erodes — the same
+  early-spread advantage the hand-built test isolates (real at short horizon,
+  gone once coarse catches up). NOT the late-amortizing coordination the
+  P18/P28-H rule watches for.
+- **Honest headline.** At N=24 the deal economy's tradeable claims DO buy back
+  the (small) planning deficit and help dumb fleets more than smart — the
+  directional thesis survives its KILL there — but the effect is not
+  statistically robust, does not replicate at N=96 (it inverts to complement),
+  and decays rather than amortizes with horizon. Institutions substitute for
+  cognition here only faintly, locally, and early: a fragile, scale-dependent
+  point estimate, not a bankable substitution law. (Registered caveat honored:
+  we dumbed only planning; the bargaining brain — which the deal economy needs
+  to reallocate claims at all — was never in scope to dumb.)
+
 ## v21 (column T): the shading externality — a Coase boundary, measured
 
 Solar-harvest preset: cells carry irradiance; parked drones harvest energy;
