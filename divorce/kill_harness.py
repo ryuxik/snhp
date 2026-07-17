@@ -87,7 +87,7 @@ def run_population(n_pairs: int, seed: int) -> dict:
                                  budget=elicit.Q_BUDGET, outcomes=outcomes)
         res_b_bluff = elicit.run_arm_b(pa, pb, prior, (seed, i), bluff_a=True,
                                        budget=elicit.Q_BUDGET, outcomes=outcomes)
-        tax = (arms.pettiness_tax(pa, pb, res_o["joint_surplus"], outcomes)
+        tax = (arms.pettiness_tax(pa, pb, outcomes, actual_o=res_o)
                if res_o["settled"] else {"a": 0.0, "b": 0.0})
         pairs.append({
             "i": i, "arch_a": arch_a, "arch_b": arch_b,

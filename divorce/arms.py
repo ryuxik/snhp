@@ -166,6 +166,7 @@ def run_arm_i(pa: Persona, pb: Persona, rng: np.random.Generator,
     settled: dict[str, bool] = {"wallet": True}
     per_item_exchanges: dict[str, int] = {"wallet": WALLET_SPLIT_EXCHANGES}
     net_recv = {"A": 0.0, "B": 0.0}               # net cash received via deals
+    exchange_log: list[dict] = []                 # the demo's Act I montage feed
 
     # Easiest items first — the STRONGEST reasonable item-by-item protocol
     # (biggest-first would let the dog starve the espresso machine of airtime
@@ -203,6 +204,9 @@ def run_arm_i(pa: Persona, pb: Persona, rng: np.random.Generator,
                 threshold = -credit[other] + rng.normal(0.0, ACCEPT_NOISE_SD)
                 accepted = (delta_q >= threshold if respond is None else
                             respond(q, name, q_share, q_cashflow, delta_q, threshold))
+                exchange_log.append({"asset": name, "proposer": turn,
+                                     "share_a": s_a, "transfer": t,
+                                     "accepted": bool(accepted)})
                 if accepted:
                     shares_a[name] = s_a
                     settled[name] = True
@@ -239,22 +243,44 @@ def run_arm_i(pa: Persona, pb: Persona, rng: np.random.Generator,
         "per_item_exchanges": per_item_exchanges,
         "unsettled": [a["name"] for a in ASSETS if not settled.get(a["name"], False)],
         "net_recv": dict(net_recv),
+        "exchange_log": exchange_log,
+        "shares_a": shares_a,
     }
 
 
-# ─── Pettiness-tax preview (SPEC.md §7): a real counterfactual ──────────────
+# ─── Pettiness tax (SPEC.md §7): a real counterfactual ──────────────────────
 
-def pettiness_tax(pa: Persona, pb: Persona, actual_joint_surplus: float,
-                  outcomes: list[dict[str, float]] | None = None) -> dict[str, float]:
-    """Joint surplus forgone to each side's hill spike: re-run ARM-O with that
-    side's hill valued at base (spike removed) and diff the joint surplus."""
+def pettiness_tax(pa: Persona, pb: Persona,
+                  outcomes: list[dict[str, float]] | None = None,
+                  actual_o: dict | None = None) -> dict[str, float]:
+    """Joint value each side's hill spike destroys, isolated from everything
+    else: compare the ORACLE settlement under actual (spiked) preferences with
+    the ORACLE settlement under that side's despiked preferences, both
+    allocations valued by the despiked utilities (one measuring stick).
+
+    Two prior definitions were bugs worth remembering: diffing surpluses-over-
+    walkaway double-counts the spike (despiking lowers the court expectation
+    too); and diffing against the ELICITED settlement conflates hill cost with
+    the elicitation gap (hill-free personas showed thousands in "tax" that was
+    really K3's ~10%). Oracle-vs-oracle isolates the spite: this tax is a
+    property of the preference profile, not of mediation noise."""
+    outcomes = outcomes if outcomes is not None else enumerate_outcomes()
+    actual_o = actual_o if actual_o is not None else run_arm_o(pa, pb, outcomes)
     out = {}
     for label in ("a", "b"):
         p = pa if label == "a" else pb
         clone = copy.deepcopy(p)
         clone.values[clone.hill] /= clone.hill_mult
         clone.__post_init__()                      # recompute court/BATNA
-        res = run_arm_o(clone if label == "a" else pa,
-                        clone if label == "b" else pb, outcomes)
-        out[label] = max(0.0, res["joint_surplus"] - actual_joint_surplus)
+        da, db = (clone, pb) if label == "a" else (pa, clone)
+        cf = run_arm_o(da, db, outcomes)
+
+        def joint_despiked(shares_a):
+            return da.utility(shares_a) + db.utility(_flip(shares_a))
+
+        if not (cf["settled"] and actual_o["settled"]):
+            out[label] = 0.0
+            continue
+        out[label] = max(0.0, joint_despiked(cf["shares_a"])
+                         - joint_despiked(actual_o["shares_a"]))
     return out

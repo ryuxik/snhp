@@ -103,6 +103,10 @@ class Persona:
     hill: str
     hill_mult: float
     values: dict[str, float]       # dollar value of FULL ownership, incl. wallet
+    # The raw sampled market draw per asset, BEFORE taste/pettiness/front/hill
+    # multipliers — the objective "retail" number the demo's hill-autopsy card
+    # quotes ("the espresso machine, retail $340").
+    market_values: dict[str, float] = field(default_factory=dict)
     fight_cost: float = field(init=False)
     court_utility: float = field(init=False)
     walk_away: float = field(init=False)   # the litigation BATNA, in utility dollars
@@ -132,17 +136,28 @@ def _sample_slider(rng: np.random.Generator, preset: float) -> float:
 
 
 def compile_persona(rng: np.random.Generator, side: str, archetype: str,
-                    hill: str, front_mults: dict[str, float]) -> Persona:
+                    hill: str, front_mults: dict[str, float],
+                    sliders: dict | None = None) -> Persona:
     """One persona: sample base values, apply archetype shape, pettiness,
-    shared-front boosts, then spike the hill. Deterministic given rng state."""
+    shared-front boosts, then spike the hill. Deterministic given rng state.
+    `sliders` (the demo's Build-Your-Ex dials) overrides the sampled
+    pettiness/spite/patience with explicit values in [0,1] ([0,0.6] for
+    spite); the harness population never passes it."""
     spec = ARCHETYPES[archetype]
     pettiness = _sample_slider(rng, spec["pettiness"])
     lam = float(np.clip(spec["spite"] + rng.normal(0.0, 0.05), 0.0, 0.6))
     patience = _sample_slider(rng, spec["patience"])
+    if sliders:
+        pettiness = float(np.clip(sliders.get("pettiness", pettiness), 0, 1))
+        lam = float(np.clip(sliders.get("spite", lam), 0.0, 0.6))
+        patience = float(np.clip(sliders.get("patience", patience), 0, 1))
 
     values: dict[str, float] = {"wallet": WALLET_VALUE}
+    market: dict[str, float] = {"wallet": WALLET_VALUE}
     for name, (lo, hi) in BASE_VALUE_RANGES.items():
-        v = float(rng.uniform(lo, hi)) * spec["shape"].get(name, 1.0)
+        raw = float(rng.uniform(lo, hi))
+        market[name] = raw
+        v = raw * spec["shape"].get(name, 1.0)
         if name in SYMBOLIC:
             v *= 1.0 + PETTINESS_SYMBOLIC_GAIN * pettiness
         v *= front_mults.get(name, 1.0)
@@ -151,7 +166,8 @@ def compile_persona(rng: np.random.Generator, side: str, archetype: str,
     hill_mult = float(rng.uniform(*HILL_MULT_RANGE))
     values[hill] *= hill_mult
     return Persona(side=side, archetype=archetype, pettiness=pettiness, lam=lam,
-                   patience=patience, hill=hill, hill_mult=hill_mult, values=values)
+                   patience=patience, hill=hill, hill_mult=hill_mult,
+                   values=values, market_values=market)
 
 
 # ─── Opposition: measured, not asserted (SPEC.md §8) ─────────────────────────

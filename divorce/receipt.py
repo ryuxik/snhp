@@ -27,19 +27,29 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from core.notary import (NotaryKey, _b64d, _load_pub, _sig_payload, _sign,
-                         canon_hash, engine_version, load_notary_key)
+from core.notary import (NotaryKey, _b64d, _canon_bytes, _load_pub,
+                         _sig_payload, _sign, canon_hash, engine_version,
+                         load_notary_key)
 from divorce.personas import ASSET_NAMES, Persona
 
 PROTOCOL = "snhp-notary/settlement-1"
+
+
+def seal_payload(p: Persona) -> str:
+    """The exact canonical-JSON string the seal hashes — published at the
+    flip so ANYONE (including the demo page, via WebCrypto sha256) can verify
+    the t0 commitment against the revealed numbers."""
+    return _canon_bytes({"values": {a: round(p.values[a], 2) for a in ASSET_NAMES},
+                         "walk": round(p.walk_away, 2),
+                         "lam": round(p.lam, 4)}).decode()
 
 
 def seal_persona(p: Persona) -> str:
     """The t0 commitment: one-way hash of a side's TRUE valuation table +
     walk-away. Computed harness/demo-side before elicitation begins; the flip
     at settlement re-derives it from the revealed numbers."""
-    return canon_hash({"values": {a: round(p.values[a], 2) for a in ASSET_NAMES},
-                       "walk": round(p.walk_away, 2), "lam": round(p.lam, 4)})
+    import hashlib
+    return "sha256:" + hashlib.sha256(seal_payload(p).encode()).hexdigest()
 
 
 def input_digest(trace: list[dict], stated: dict, ratifications: list[bool]) -> str:

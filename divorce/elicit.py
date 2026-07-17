@@ -142,10 +142,21 @@ def _best_query_divorce(learner: PosteriorLearner):
     return best
 
 
+def bands(learner: PosteriorLearner) -> dict[str, list[float]]:
+    """The heat-map's data: [p10, p25, p50, p75, p90] per asset, from the
+    CURRENT posterior. Every narrowing the demo shows is one of these
+    snapshots taken after a displayed question's answer (SPEC.md §4.i)."""
+    return {a: [round(learner.quantile(a, q), 2)
+                for q in (0.10, 0.25, 0.50, 0.75, 0.90)]
+            for a in ELICITABLE}
+
+
 def elicit(learner: PosteriorLearner, answerer: TrueBuyer, budget: int) -> list[dict]:
     """Run the info-gain interview: ask, record, update. Returns the Q&A trace
-    (the demo's Act II is a cinematic playback of exactly this list). Stops
-    early when no remaining question is expected to move the posterior."""
+    (the demo's Act II is a cinematic playback of exactly this list — each
+    record carries the post-answer posterior bands, so every narrowing on
+    screen is caused by the recorded question). Stops early when no remaining
+    question is expected to move the posterior."""
     trace = []
     for step in range(budget):
         best = _best_query_divorce(learner)
@@ -156,7 +167,8 @@ def elicit(learner: PosteriorLearner, answerer: TrueBuyer, budget: int) -> list[
             yes = answerer.answer_probe(asset, price)
             learner.update_probe(asset, price, yes)
             trace.append({"step": step, "kind": "probe", "asset": asset,
-                          "price": round(price, 2), "answer": bool(yes)})
+                          "price": round(price, 2), "answer": bool(yes),
+                          "bands": bands(learner)})
         else:
             _, a1, a2 = best
             A, B = (a1, 1, 0.0), (a2, 1, 0.0)
@@ -164,7 +176,7 @@ def elicit(learner: PosteriorLearner, answerer: TrueBuyer, budget: int) -> list[
             choice = answerer.answer_pairwise(A, B)
             learner.update_pairwise(A, B, choice, learner.mean(), tau=tau)
             trace.append({"step": step, "kind": "pair", "A": a1, "B": a2,
-                          "answer": choice})
+                          "answer": choice, "bands": bands(learner)})
     return trace
 
 
