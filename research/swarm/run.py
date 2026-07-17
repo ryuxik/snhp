@@ -26,7 +26,7 @@ for _p in (_RESEARCH, _ROOT):
 import numpy as np
 from scipy import stats
 
-from swarm.arms import make_arm
+from swarm.arms import CLAIM_OPTS, make_arm
 from swarm.world import (BUILD_CREDIT_COST, CCP_FEE, CHARGE_SLOTS,
                          DWELL_DECAY_LAMBDA, FLATLINE_TICKS, MATTER_COST,
                          SHOCK_FAR_PCTL, SHOCK_VALUE_FLOOR, TOLL_GRID,
@@ -128,6 +128,33 @@ def _reputation_metrics(w, arm) -> dict:
     )
 
 
+def mx_counts(deals, keys=("cargo", "energy", "claims")):
+    """v30 (column M2): the medium-of-exchange index counts over a deal list.
+    Each deal has signed legs q (cargo), e (energy), t (claim endorsement); a
+    commodity x "is the medium" in a bundle when it moves OPPOSITE to some OTHER
+    commodity moving the other way (x sits on the far side from a good being
+    acquired — the v15/P19c definition). Returns (moves, opposite, face) dicts;
+    M(x) = opposite[x] / moves[x]. face is the total value moved as each medium
+    (cargo |q|·V, claims |t|, energy |e|), the flow-share numerator/denominator."""
+    mv = {k: 0 for k in keys}
+    op = {k: 0 for k in keys}
+    face = {k: 0.0 for k in keys}
+    for d in deals:
+        dq = (d["q"] > 0) - (d["q"] < 0)
+        de = (d["e"] > 0) - (d["e"] < 0)
+        dt = (d.get("t", 0.0) > 0) - (d.get("t", 0.0) < 0)
+        sgn = {"cargo": dq, "energy": de, "claims": dt}
+        pres = [k for k in keys if sgn[k] != 0]
+        for x in pres:
+            mv[x] += 1
+            if any(sgn[y] == -sgn[x] for y in pres if y != x):
+                op[x] += 1
+        face["cargo"] += abs(d["q"]) * V_DELIVER
+        face["claims"] += abs(d.get("t", 0.0))
+        face["energy"] += abs(d["e"])
+    return mv, op, face
+
+
 def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              tau=0.0, preset: str = "v4", issues=FULL,
              noise: float = 0.0, liar_frac: float = 0.0,
@@ -141,7 +168,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              gossip: bool = False, r_radio: int = 6,
              lineage: bool = False, bills: bool = False,
              firm_relay: bool = False, dwell: bool = False,
-             bills_contingent: bool = False, reputation: bool = False,
+             bills_contingent: bool = False,
+             claims_transferable: bool = False, reputation: bool = False,
              false_accuse: float = 0.0, order_book: bool = False,
              build_matter: float = 0.0, build: bool = False,
              toll_level: float = 0.0, build_budget: int = 10**9,
@@ -186,6 +214,7 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               consensus_cost=consensus_cost, gossip=gossip, r_radio=r_radio,
               lineage=lineage, bills=bills, firm_relay=firm_relay,
               dwell=dwell, bills_contingent=bills_contingent,
+              claims_transferable=claims_transferable,
               reputation=reputation, false_accuse=false_accuse,
               order_book=order_book,
               build_matter=build_matter, build=build,
@@ -204,6 +233,12 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
     _pab = shock or clearinghouse
     _WIN = 250
     _pool_traj = []
+    # v30 (column M2): window-snapshot the OUTSTANDING-claim population's maturity
+    # (mean distance-to-refinery = risk proxy) so the endorsed-claim maturity can be
+    # read against the pool it was drawn from (the good-collateral question). No-op
+    # unless claims_transferable ⇒ every prior column bit-identical.
+    _CWIN = 500
+    _claim_pop = []
     delivered_mid = 0
     stale = []          # v10 P15b: mean (tick − last_seen) over all
     stale_own, stale_other = [], []   # v12 K2 P17d: patrol differentiation
@@ -211,6 +246,21 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         arm.tick()
         if _pab and (t + 1) % _WIN == 0:       # v29: window the CCP pool trajectory
             _pool_traj.append(round(w.ccp_pool, 3))
+        if claims_transferable and (t + 1) % _CWIN == 0:
+            ds, hs, n = [], [], 0
+            for rr in w.robots:
+                for pp in rr.parcels:
+                    cl = pp.get("claims")
+                    if not cl:
+                        continue
+                    dref = min(manhattan(rr.pos, rf) for rf in w.refineries)
+                    for _e in cl:
+                        ds.append(dref)
+                        hs.append(pp["hops"])
+                        n += 1
+            _claim_pop.append((t + 1, n,
+                               round(float(np.mean(ds)), 2) if ds else 0.0,
+                               round(float(np.mean(hs)), 3) if hs else 0.0))
         if belief_mode and (t + 1) % 50 == 0:
             if gossip:
                 # v14: fleet-average per-robot staleness (each robot carries its
@@ -565,6 +615,86 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
             ccp_haircut=round(w.ccp_haircut, 2),
             ccp_pool_final=round(w.ccp_pool, 2), ccp_pool_traj=_pool_traj,
         )
+    # v30 (column M2): the medium-of-exchange index M(x) and flow shares, computed
+    # from the deal log (q, e, s, t). M(x) = P(x on the OPPOSITE side of a bundle from
+    # a good moving the other way) among deals where x moves — the v15/P19c index,
+    # symmetric across {cargo, energy, claims}. Flow face = Σ value moved as each
+    # medium (cargo |q|·V, claims |t|, energy |e|). Windowed for the trajectory.
+    # Computed for EVERY bills/spot row (t≡0 off the transferable arm ⇒ M(claims)=0),
+    # so the static/spot comparators carry M(energy)/M(cargo) too. Pure post-hoc read.
+    mx_detail = None
+    if bills or claims_transferable:
+        MWIN = 500
+        keys = ("cargo", "energy", "claims")
+        mv, op, face = mx_counts(deals)
+        wins = []
+        for ws in range(0, ticks, MWIN):
+            sub = [d for d in deals if ws <= d["tick"] < ws + MWIN]
+            if not sub:
+                continue
+            wmv, wop, wface = mx_counts(sub)
+            wins.append(dict(t0=ws,
+                             mv={k: wmv[k] for k in keys},
+                             op={k: wop[k] for k in keys},
+                             face={k: round(wface[k], 1) for k in keys}))
+        mx_detail = dict(mv={k: mv[k] for k in keys}, op={k: op[k] for k in keys},
+                         face={k: round(face[k], 1) for k in keys}, windows=wins)
+    # v30 (column M2): the CIRCULATION blob (velocity, maturity, endorsement flow) —
+    # only under claims_transferable ⇒ every prior column bit-identical.
+    circulation_detail = None
+    if claims_transferable:
+        # velocity = endorsements-before-settlement per claim. SETTLED claims from the
+        # settle log; OUTSTANDING claims swept from live parcels at the horizon — the
+        # union is every claim that ever existed (each has a velocity, 0 = held to
+        # settlement / never circulated). The KILL condition reads velocity≈0.
+        settled = w.claim_settle_log            # (settle_tick, born_tick, xfers, face)
+        vel_settled = [x[2] for x in settled]
+        out_x = []                              # outstanding-claim velocities
+        for rr in w.robots:
+            for pp in rr.parcels:
+                cl = pp.get("claims")
+                if not cl:
+                    continue
+                for j in range(len(cl)):
+                    out_x.append(pp["cx"][j])
+        vel_all = vel_settled + out_x
+        def _velhist(xs):
+            h = [0, 0, 0, 0, 0]                 # 0, 1, 2, 3, 4+
+            for v in xs:
+                h[min(4, v)] += 1
+            return h
+        half = makespan / 2.0
+        early = [x[2] for x in settled if x[0] < half]
+        late = [x[2] for x in settled if x[0] >= half]
+        # endorsed-claim maturity (risk proxy) vs the population it was drawn from
+        xl = w.claim_xfer_log                   # (tick, face, ref_d, hops, xfers)
+        endorsed_d = [x[2] for x in xl]
+        endorsed_h = [x[3] for x in xl]
+        circulation_detail = dict(
+            n_endorse_deals=w.claim_xfers,      # deals carrying an endorsement leg
+            n_endorsements=len(xl),             # individual claim-entry endorsements
+            n_claims_settled=len(vel_settled),
+            n_claims_outstanding=len(out_x),
+            # VELOCITY
+            velocity_mean=round(float(np.mean(vel_all)), 4) if vel_all else 0.0,
+            velocity_mean_settled=round(float(np.mean(vel_settled)), 4)
+            if vel_settled else 0.0,
+            velocity_max=int(max(vel_all)) if vel_all else 0,
+            velocity_hist=_velhist(vel_all),    # counts by 0/1/2/3/4+ endorsements
+            velocity_early=round(float(np.mean(early)), 4) if early else 0.0,
+            velocity_late=round(float(np.mean(late)), 4) if late else 0.0,
+            n_early=len(early), n_late=len(late),
+            # MATURITY / good-collateral: endorsed claims vs the outstanding pool
+            endorsed_ref_d_mean=round(float(np.mean(endorsed_d)), 3)
+            if endorsed_d else 0.0,
+            endorsed_hops_mean=round(float(np.mean(endorsed_h)), 3)
+            if endorsed_h else 0.0,
+            pop_snapshots=_claim_pop,           # (t, n, mean_ref_d, mean_hops)
+            pop_ref_d_mean=round(float(np.mean([s[2] for s in _claim_pop])), 3)
+            if _claim_pop else 0.0,
+            pop_hops_mean=round(float(np.mean([s[3] for s in _claim_pop])), 3)
+            if _claim_pop else 0.0,
+        )
     # v17 PHASE 2: the mechanism rides the same snhp+net base (SnhpArm) — the
     # world flag IS the treatment, so relabel for the tables/pairings.
     # P23e: contingent splits get a distinct label so spot/flat/contingent pair.
@@ -596,6 +726,11 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         base_label = base_label + "+ccp"
     if shock:
         base_label = base_label + "+shk"
+    # v30 (column M2): an endorsable-claim row carries "+xfer" so bills-static
+    # ("snhp+bill") and bills-transferable ("snhp+bill+xfer") pair cleanly. Off ⇒
+    # unchanged (a static bills row is exactly the P23 "snhp+bill").
+    if claims_transferable:
+        base_label = base_label + "+xfer"
     label = base_label if tuple(issues) == FULL else \
         f"{base_label}[{'+'.join(issues)}]"
     return dict(
@@ -680,6 +815,11 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         # P23e (column P phase-2e): moral hazard in the relay
         dwell=dwell, bills_contingent=bills_contingent,
         dwell_detail=dwell_detail,
+        # v30 (column M2): the bill becomes money — transferable claims
+        claims_transferable=claims_transferable,
+        claim_xfers=(w.claim_xfers if claims_transferable else None),
+        mx_detail=mx_detail,
+        circulation_detail=circulation_detail,
         # v22 (column U): reputation vs receipts
         reputation=reputation, false_accuse=false_accuse,
         **_reputation_metrics(w, arm),
@@ -3090,6 +3230,203 @@ def pab_report(rows: list[dict]) -> None:
           "leverage / systemic risk.")
 
 
+def pm2_report(rows: list[dict]) -> None:
+    """v30 (column M2) — the bill becomes money: transferable claims. Printed numbers
+    ARE the artifact (report, not verdict). No-op unless the sweep carries a
+    claims_transferable run. Three arms pair off the P23 config:
+      snhp+net           SPOT (paperless)         — no claim stack at all
+      snhp+bill          BILLS-STATIC             — claims exist, never endorsed (PM2b control)
+      snhp+bill+xfer     BILLS-TRANSFERABLE       — claim positions ENDORSABLE as payment
+    Reads circulation_detail (velocity/maturity) and mx_detail (M(x)/flow) off the
+    transferable rows; lineage_detail for the outcome comparison."""
+    xf = [r for r in rows if r.get("claims_transferable")]
+    if not xf:
+        return
+    SPOT, STAT, XFER = "snhp+net", "snhp+bill", "snhp+bill+xfer"
+    Ns = sorted({int(r["n_robots"]) for r in xf})
+
+    def sel(arm, N, horizon=2500):
+        return [r for r in rows if r["arm"] == arm and int(r["n_robots"]) == N
+                and int(r.get("ticks_horizon", 2500)) == horizon]
+
+    def _far_dm(g):
+        bm = np.array([r["lineage_detail"]["band_mined"] for r in g], float).sum(axis=0)
+        bd = np.array([r["lineage_detail"]["band_delivered"] for r in g], float).sum(axis=0)
+        return bd[2] / bm[2] if bm[2] > 0 else 0.0
+
+    def _hop2(g):
+        return float(np.mean([r["lineage_detail"]["hop_shares"][2] for r in g])) if g else 0.0
+
+    def M(r, x):
+        d = r.get("mx_detail") or {}
+        mv = (d.get("mv") or {}).get(x, 0)
+        return (d["op"][x] / mv) if mv else None
+
+    print("\n" + "=" * 94)
+    print("PM2 (v30 · column M2) — THE BILL BECOMES MONEY: TRANSFERABLE CLAIMS "
+          "(report, not verdict)")
+    print("Endorsement leg CLAIM_OPTS = " + str(CLAIM_OPTS) + " (face credit; a→b>0, b→a<0). "
+          "Claims priced UNDISCOUNTED")
+    print("(par) — weightless & LOSSLESS vs energy's TRANSFER_LOSS: the physics that lets "
+          "paper out-circulate the battery.")
+    print("=" * 94)
+
+    # [1] OUTCOMES — spot / static / transferable (PM2b: does spendability lift trade?)
+    print("\n[1] OUTCOMES (2,500t) — delivered_frac, far-band delivered/mined, ≥2-hop share, "
+          "stranded, deals, multi-issue:")
+    h = (f"  {'arm':<16} {'N':>4} {'dFrac':>6} {'far d/m':>8} {'≥2hop':>6} "
+         f"{'strand':>6} {'deals':>6} {'multi':>6}")
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for arm in (SPOT, STAT, XFER):
+            g = sel(arm, N)
+            if not g:
+                continue
+            df = np.mean([r["delivered_frac"] for r in g])
+            fdm = _far_dm(g) if g[0].get("lineage_detail") else 0.0
+            h2 = _hop2(g) if g[0].get("lineage_detail") else 0.0
+            st = np.mean([r["stranded"] for r in g])
+            dl = np.mean([r["deals"] for r in g])
+            mi = np.mean([r["multi_issue_frac"] or 0 for r in g])
+            print(f"  {arm:<16} {N:>4} {df:>6.3f} {fdm:>8.3f} {h2:>6.3f} "
+                  f"{st:>6.1f} {dl:>6.0f} {mi:>6.3f}")
+
+    # [2] PM2a — VELOCITY: endorsements-before-settlement per claim (KILL reads ≈0)
+    print("\n[2] PM2a VELOCITY — endorsements before settlement per claim (transferable arm; "
+          "hist over ALL claims, 0=never circulated):")
+    h = (f"  {'N':>4} {'horizon':>7} {'vel_mean':>8} {'vel_max':>7} "
+         f"{'hist 0/1/2/3/4+':>22} {'early':>6} {'late':>6} {'#endorse':>8}")
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for hz in (2500, 7500):
+        for N in Ns:
+            g = sel(XFER, N, hz)
+            if not g:
+                continue
+            cds = [r["circulation_detail"] for r in g]
+            vm = np.mean([c["velocity_mean"] for c in cds])
+            vx = max(c["velocity_max"] for c in cds)
+            hist = np.sum([c["velocity_hist"] for c in cds], axis=0)
+            hp = "/".join(str(int(x)) for x in hist)
+            ve = np.mean([c["velocity_early"] for c in cds])
+            vl = np.mean([c["velocity_late"] for c in cds])
+            ne = np.mean([c["n_endorse_deals"] for c in cds])
+            print(f"  {N:>4} {hz:>7} {vm:>8.3f} {vx:>7d} {hp:>22} "
+                  f"{ve:>6.3f} {vl:>6.3f} {ne:>8.0f}")
+
+    # [3] PM2a — CIRCULATION BY MATURITY (good-collateral): endorsed vs the pool
+    print("\n[3] PM2a GOOD-COLLATERAL — mean distance-to-refinery (RISK proxy: near=low-risk) "
+          "and hops, ENDORSED claims vs the outstanding POOL:")
+    h = (f"  {'N':>4} {'horizon':>7} {'endorsed ref_d':>14} {'pool ref_d':>11} "
+         f"{'endorsed hops':>13} {'pool hops':>10}")
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for hz in (2500, 7500):
+        for N in Ns:
+            g = sel(XFER, N, hz)
+            if not g:
+                continue
+            cds = [r["circulation_detail"] for r in g]
+            ed = np.mean([c["endorsed_ref_d_mean"] for c in cds])
+            pd = np.mean([c["pop_ref_d_mean"] for c in cds])
+            eh = np.mean([c["endorsed_hops_mean"] for c in cds])
+            ph = np.mean([c["pop_hops_mean"] for c in cds])
+            print(f"  {N:>4} {hz:>7} {ed:>14.2f} {pd:>11.2f} {eh:>13.2f} {ph:>10.2f}")
+    print("    (endorsed ref_d < pool ref_d ⇒ near-mature/low-risk circulate "
+          "preferentially; ≈ ⇒ maturity-blind, as par-valuation predicts)")
+
+    # [4] PM2c — M(x): the money test. M(claims) vs M(energy) paired across seeds.
+    print("\n[4] PM2c THE MONEY TEST — medium-of-exchange index M(x)=P(x on the opposite side "
+          "of a bundle), transferable arm:")
+    h = f"  {'N':>4} {'horizon':>7} {'M(cargo)':>9} {'M(energy)':>10} {'M(claims)':>10} {'PM2c: M(claims)>M(energy)':>26}"
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for hz in (2500, 7500):
+        for N in Ns:
+            g = sel(XFER, N, hz)
+            if not g:
+                continue
+            mc = [M(r, "cargo") for r in g if M(r, "cargo") is not None]
+            me = [M(r, "energy") for r in g if M(r, "energy") is not None]
+            mk = [M(r, "claims") for r in g if M(r, "claims") is not None]
+            # paired M(claims)-M(energy) over seeds where both exist
+            pair = [(M(r, "claims"), M(r, "energy")) for r in g
+                    if M(r, "claims") is not None and M(r, "energy") is not None]
+            sig = "n/a"
+            if len(pair) >= 3:
+                ck = [p[0] for p in pair]; ce = [p[1] for p in pair]
+                d = np.array(ck) - np.array(ce)
+                if np.any(d != 0):
+                    try:
+                        _, pw = stats.wilcoxon(d)
+                    except Exception:
+                        pw = float("nan")
+                    wins = int(np.sum(d > 0))
+                    sig = f"Δ={np.mean(d):+.3f} p={pw:.3f} {wins}/{len(pair)}"
+                else:
+                    sig = "Δ=0"
+            print(f"  {N:>4} {hz:>7} {np.mean(mc):>9.3f} {np.mean(me):>10.3f} "
+                  f"{np.mean(mk):>10.3f} {sig:>26}")
+    # reference: M(energy) on the paperless/static arms (no claims to compete)
+    for N in Ns:
+        for arm, tag in ((SPOT, "spot"), (STAT, "static")):
+            g = sel(arm, N)
+            me = [M(r, "energy") for r in g if M(r, "energy") is not None]
+            if me:
+                print(f"    ref M(energy) {tag:<7} N={N}: {np.mean(me):.3f} "
+                      f"(no claim rival)")
+
+    # [5] M(x) TRAJECTORY — pooled window M(x) over the run (Menger convergence)
+    print("\n[5] M(x) TRAJECTORY — pooled per-500t-window M(x), transferable arm "
+          "(does M(claims) rise/hold as paper accumulates?):")
+    for N in Ns:
+        for hz in (2500, 7500):
+            g = sel(XFER, N, hz)
+            if not g:
+                continue
+            # pool window counts across seeds
+            acc = {}
+            for r in g:
+                for w_ in (r.get("mx_detail") or {}).get("windows", []):
+                    a = acc.setdefault(w_["t0"], {"mv": {}, "op": {}})
+                    for x in ("cargo", "energy", "claims"):
+                        a["mv"][x] = a["mv"].get(x, 0) + w_["mv"][x]
+                        a["op"][x] = a["op"].get(x, 0) + w_["op"][x]
+            if not acc:
+                continue
+            print(f"  N={N} horizon={hz}:  " + "  ".join(
+                f"t{t0}:[c{(a['op']['cargo']/a['mv']['cargo'] if a['mv']['cargo'] else 0):.2f} "
+                f"e{(a['op']['energy']/a['mv']['energy'] if a['mv']['energy'] else 0):.2f} "
+                f"k{(a['op']['claims']/a['mv']['claims'] if a['mv']['claims'] else 0):.2f}]"
+                for t0, a in sorted(acc.items())))
+    print("    (each window: c=M(cargo) e=M(energy) k=M(claims))")
+
+    # [6] FLOW SHARES — paper value vs goods value moved per run
+    print("\n[6] FLOW SHARES — total face moved as each medium, and paper's share of "
+          "(paper+goods) flow, transferable arm:")
+    h = f"  {'N':>4} {'horizon':>7} {'cargo face $':>12} {'claim face $':>12} {'energy face':>11} {'paper share':>11}"
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for hz in (2500, 7500):
+        for N in Ns:
+            g = sel(XFER, N, hz)
+            if not g:
+                continue
+            cf = np.mean([(r["mx_detail"] or {})["face"]["cargo"] for r in g])
+            kf = np.mean([(r["mx_detail"] or {})["face"]["claims"] for r in g])
+            ef = np.mean([(r["mx_detail"] or {})["face"]["energy"] for r in g])
+            share = kf / (kf + cf) if (kf + cf) > 0 else 0.0
+            print(f"  {N:>4} {hz:>7} {cf:>12.0f} {kf:>12.0f} {ef:>11.0f} {share:>11.3f}")
+
+    # [7] KILL status
+    print("\n[7] KILL — money does NOT emerge iff claims never re-transfer (velocity≈0, "
+          "hold-to-settlement dominates).")
+    g240 = sel(XFER, 240) or sel(XFER, Ns[-1])
+    if g240:
+        vm = np.mean([r["circulation_detail"]["velocity_mean"] for r in g240])
+        vx = max(r["circulation_detail"]["velocity_max"] for r in g240)
+        ne = np.mean([r["circulation_detail"]["n_endorse_deals"] for r in g240])
+        fired = vm < 1e-3 and ne < 1
+        print(f"    N={Ns[-1]}: velocity_mean={vm:.3f}, max={vx}, endorse_deals/run={ne:.0f} "
+              f"⇒ KILL {'FIRES — receipts do NOT circulate' if fired else 'does NOT fire — claims DO circulate as money'}.")
+
+
 def build_jobs(column: str, seeds: int, ticks: int):
     jobs = []
     if column in ("A", "all"):
@@ -3755,6 +4092,41 @@ def build_jobs(column: str, seeds: int, ticks: int):
         for cell in _cells(200):                        # N=24 reference, T_shock=200
             for seed in range(min(seeds, 16)):
                 jobs.append(dict(arm_name="snhp+net", seed=seed, **base24, **cell))
+    if column == "M2":                # v30: the bill becomes money — transferable claims
+        # The P23 phase-2 grid (identical N, scaled grid, σ, τ, ticks, seeds) ×
+        # {spot (no claims), bills-static, bills-transferable}. spot is the paperless
+        # baseline; static is the shipped P23 mechanism (claims exist, never endorsed —
+        # the PM2b control); transferable makes each claim position ENDORSABLE as
+        # payment. Plus a fair-horizon spot-check at 7,500t / 4 seeds on the
+        # transferable arm (circulation is coordination — the P18/P28-H long-horizon
+        # rule), so any velocity/M(x) growth is not a truncation artifact.
+        import math as _math
+        g240 = int(round(32 * _math.sqrt(240 / 24)))
+        variants = [dict(arm_name="snhp+net"),                        # spot (paperless)
+                    dict(arm_name="snhp+net", bills=True),            # bills-static
+                    dict(arm_name="snhp+net", bills=True,
+                         claims_transferable=True)]                   # bills-transferable
+        base240 = dict(sigma=0.5, ticks=ticks, tau=0.15, preset="v5",
+                       n_robots=240, grid=g240, lineage=True)
+        for v in variants:
+            for seed in range(min(seeds, 8)):
+                jobs.append(dict(seed=seed, **base240, **v))
+        base24 = dict(sigma=0.5, ticks=ticks, tau=0.15, preset="v5",
+                      n_robots=24, lineage=True)
+        for v in variants:
+            for seed in range(min(seeds, 16)):
+                jobs.append(dict(seed=seed, **base24, **v))
+        # fair-horizon spot-check: transferable arm at 7,500t (N=240 primary + N=24),
+        # 4 seeds — the M(x)/velocity trajectory at the long horizon.
+        for seed in range(min(seeds, 4)):
+            jobs.append(dict(seed=seed, arm_name="snhp+net", bills=True,
+                             claims_transferable=True, ticks=7500,
+                             sigma=0.5, tau=0.15, preset="v5",
+                             n_robots=240, grid=g240, lineage=True))
+            jobs.append(dict(seed=seed, arm_name="snhp+net", bills=True,
+                             claims_transferable=True, ticks=7500,
+                             sigma=0.5, tau=0.15, preset="v5",
+                             n_robots=24, lineage=True))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -3765,7 +4137,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "S", "U", "UH", "V", "X", "Z", "AA", "AB", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "S", "U", "UH", "V", "X", "Z", "AA", "AB", "M2", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -3793,6 +4165,7 @@ def main() -> None:
         pz_report(rows)
         paa_report(rows)
         pab_report(rows)
+        pm2_report(rows)
         return
 
     jobs = build_jobs(args.column, args.seeds, args.ticks)
@@ -3836,6 +4209,7 @@ def main() -> None:
     pz_report(rows)
     paa_report(rows)
     pab_report(rows)
+    pm2_report(rows)
 
 
 if __name__ == "__main__":

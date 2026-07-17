@@ -2975,3 +2975,91 @@ on the ledger: nobody dies of paper.**
   of trade. Product translation: claims infrastructure should ship with
   netting/mutualization sized to the economy it clears, and should never
   promise that settlement insurance restores demand.
+
+**PM2 RESULTS (2026-07-17 · column M2 — report, NOT a verdict; numbers loud
+either way).** The bill becomes money: claim-stack positions are ENDORSABLE —
+a holder may transfer face value of its outstanding claims to a counterparty
+inside any bundle as payment (`claims_transferable`, off by default; all prior
+columns bit-identical, differential oracle green). Mechanism: a 5th signed
+bundle axis CLAIM_OPTS={±3, ±10, 0} credits of face; the transfer is priced
+analytically in the standard Φ accounting (claim_a−t, claim_b+t, at PAR — the
+undiscounted bills valuation; the survival-discount machinery composes when a
+death regime is on but the registered grid runs none) and executed by
+`World.transfer_claims` (deterministic rid/parcel/stack-order reassignment with
+an exact-face split of the last entry; a transferred claim settles to its
+CURRENT holder). Endorsement rides the normal deal row through the
+evaluated==executed assert; bills already dispatch scalar, and a grouped eval
+(apply/phi once per physical bundle — byte-identical to per-row, regression-
+gated by FORCE_PERROW_CLAIMS) keeps N=240 tractable. Grid: {spot, bills-static,
+bills-transferable} × N=240 (grid 101, 8 seeds) + N=24 (grid 32, 16 seeds),
+σ=0.5, τ=0.15, v5, 2,500t; fair-horizon 7,500t × 4 seeds on the transferable
+arm. Credit/material/ledger conservation held live through every endorsement
+in all 80 runs.
+- **PM2a SPLIT — claims circulate, but hold-to-settlement dominates the count.**
+  Velocity (endorsements before settlement per claim): mean **0.17 (N=240) /
+  0.31 (N=24)** — an order of magnitude above zero and an order below the
+  registered "velocity > 1": **12.2% of N=240 claims (23.1% at N=24) endorse at
+  least once**, with chains up to **10 transfers** deep. Early→late: N=24 falls
+  0.32→0.22, N=240 rises 0.18→0.23; the 7,500t fair horizon does NOT amortize
+  it upward (0.172→0.178 — the economy settles by ~t2,500 and late windows go
+  quiet, checked per the standing rule). Endorsement legs ride 6.8% of N=240
+  deals (28.6% at N=24). The maturity structure explains the ceiling: a claim
+  lives ~70–90t mine-to-settlement (N=24 reference seed: median 65t
+  unendorsed, 91t endorsed) —
+  this is short-dated commercial paper in a fast-settling field, not a durable
+  note; there are only a handful of encounters in a claim's life to spend it in.
+- **PM2a GOOD-COLLATERAL — confirmed at scale, INVERTED at the village.** At
+  N=240 the paper that circulates sits measurably nearer settlement than the
+  outstanding pool: endorsed-claim holder distance-to-refinery **45.0 vs pool
+  61.2** (7,500t: 46.3 vs 69.8), chain depth 18.5 vs 25.7 — near-mature,
+  low-risk claims are what pass as payment, with NO risk pricing in the
+  mechanism (par valuation): the premium emerges from POSITION, not price.
+  At N=24 it inverts (endorsed 10.3 vs pool 5.1): in the dense village the
+  far/deep paper is what moves — reported honestly, not explained away.
+- **PM2b NULL — spendability does not lift trade above static bills.** The P23
+  boon replicates exactly (static−spot at N=240: delivered_frac **+0.027,
+  p=.008, 8/8**; far-band d/m +0.071; ≥2-hop +0.467, p<1e-4) but transferable−
+  static is noise on every registered metric: delivered_frac **Δ=+0.0043
+  (p=.41, 4/8)**, far d/m +0.0005 (p=.98), ≥2-hop +0.006 (p=.52); N=24 the
+  same (Δ dFrac +0.005, p=.12). The claims layer creates the chains; making
+  the claim spendable moves ~nothing more. **Unregistered observation, loudly:
+  stranding COLLAPSES at N=24 under transferability — 1.9 vs static's 3.9
+  (Δ=−2.06, p=.011) vs spot's 6.0 (Δ=−4.13, p=.001)** — and the mechanism is
+  visible in the pairing decomposition: **78% of endorsements move OPPOSITE
+  energy** (paper buys battery, 18% buy cargo). The bill's marginal value is
+  as a RESCUE instrument — a claim-rich, battery-poor drone pays for charge
+  with paper where spot barter had nothing the donor wanted. N=240 stranding
+  is already ~1 in all bills regimes (nothing to save).
+- **PM2c CONFIRMED — the receipt, not the battery, becomes the medium of
+  exchange.** M(x) = P(x moves opposite the thing acquired), the v15/P19c
+  index, over {cargo, energy, claims} on the transferable arm: **M(claims) =
+  0.64 (N=240) / 0.80 (N=24) vs M(energy) = 0.26 / 0.47 and M(cargo) = 0.18 /
+  0.41** — M(claims) beats M(energy) in **24/24 seeds** (N=24 Δ=+0.33,
+  Wilcoxon p=.0004; N=240 Δ=+0.38, p=.008; fair-horizon 4/4 at both scales,
+  p=.125 = the 4-seed floor). The trajectory holds ≥0.57 in every active
+  window at N=240 and RISES to 0.88–0.91 late at N=24 — Menger's convergence,
+  from paper, within a lifetime of the first bill. Reference: M(energy) on the
+  claimless arms is 0.21–0.28, so the claim didn't just beat energy, it beat
+  energy's own best.
+- **FLOW SHARES — the money is a medium, not the mass.** Face moved as claims
+  is $3,700/run vs $177,365 as cargo at N=240 (**2.0% paper share**; 10.7% at
+  N=24): paper out-scores goods per-appearance (M(claims) ≫ M(cargo)) but does
+  NOT out-circulate them in value — endorsement is the economy's small change,
+  clearing the margins (mostly energy) around the cargo trunk.
+- **The physics note, as registered: the claim is the only WEIGHTLESS,
+  LOSSLESS asset in the world.** Energy transfers burn TRANSFER_LOSS=10% and
+  cargo hauls burn LOADED_MULT battery per cell, but an endorsement moves face
+  1:1 at zero mass and zero energy — Φ prices this automatically (no
+  money-demand heuristic anywhere), and it is exactly why the receipt
+  out-mediums the battery: the real-world reason paper beat gold, re-derived
+  by the accounting.
+- **KILL does NOT fire — but the honest scope is narrow.** Claims re-transfer
+  (velocity 0.17–0.34 ≫ 0, chains to 10, 12–23% of paper circulating), so
+  money DOES emerge from receipts in this world — as a genuinely preferred
+  medium of exchange (PM2c, 24/24) with a real rescue function (the N=24
+  stranding collapse), NOT as a throughput lever (PM2b null) and NOT as the
+  dominant store of value (velocity < 1: most paper is held to its ~80-tick
+  settlement because settlement is never far away). The friction is maturity,
+  not cost or risk: to see banknote-grade velocity this field would need
+  longer-dated paper (slower settlement, farther fields) — registered here as
+  the natural follow-on, not run, not claimed.
