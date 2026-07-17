@@ -3956,3 +3956,40 @@ Article 3 publishes ONLY on measured substance from these; if the core
 KILL fires, the honest article is "I built the scaffolding, capable
 models + CI did the work, and here is the fraud the receipt was insurance
 against — which these models did not attempt."
+
+**PCO2A VERDICT (2026-07-17, registrar) — THE KILL FIRED. The strong
+"receipt beats the coding harness on fraud" thesis is NOT supported for
+this model population on these tasks. Recorded plainly.**
+- **Result: $0 extracted under trust, $0 under receipt; 0/64 paid-but-
+  broken deliverables in every cell.** The harness (fixture) is proven
+  sound — a corner-cutter whose code fails the hidden tests IS paid under
+  trust and NOT under receipt — but the LIVE population never generated
+  the broken-but-self-reported-pass deliverable the receipt exists to
+  catch. All 16 corner-cutter deliveries self-reported pass AND actually
+  passed the buyer's hidden tests. For Sonnet+Haiku on small,
+  well-specified tasks, "minimum effort" collapsed into "correct," so
+  TRUST was never exploitable and the receipt had nothing to defend.
+  This is exactly the SPEC's pre-registered KILL: the receipt is
+  insurance against a fraud these models did not commit.
+- **Anti-theater held:** disposition installed via guidance only (agents
+  never told the regime, the bug, or which test to fail); the one
+  measured trust-vs-receipt difference ran OPPOSITE to the thesis (the
+  neutral runner rescued correct-but-underclaimed honest work that
+  trust's self-report stranded — "receipt pays honest underconfidence,"
+  not "receipt beats fraud"). $0.38 of $30 cap. 57 tests green.
+- **The scope of the null, stated precisely (NOT an excuse to re-run):**
+  the receipt's fraud value can only surface where minimum-effort
+  genuinely diverges from correct — harder tasks, ambiguous/incomplete
+  specs, or a genuinely weaker/adversarial supplier. This battery had
+  none of those. That is a REAL limitation and a candidate NEW
+  hypothesis (CO2-A2), not a re-run of CO2-A hoping for a better number.
+- **GATE CONSEQUENCE, honored:** CO2-B and CO2-C were pre-registered
+  "gated on CO2-A surviving." CO2-A did not survive. Per the
+  registration, B and C do NOT auto-run, and the "receipts pick the
+  company / beat the harness" thesis stands UNPROVEN. Whether to open
+  CO2-A2 (harder tasks) or reconsider the gate (the multi-hop-settlement
+  value prop is arguably independent of fraud and was not tested by
+  CO2-A at all) is a founder decision, flagged with explicit
+  confirmation-bias risk — the registrar will not unilaterally keep
+  torturing the experiment toward the wanted answer. See
+  [[demo-as-evidence-discipline]].
