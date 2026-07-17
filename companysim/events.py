@@ -58,6 +58,18 @@ BUYER_ORDER = "buyer_order"          # buyer escrows a bounty vs pre-committed h
 DELIVERY = "delivery"                # a supplier submitted code + a self-report ("tests pass")
 HIDDEN_TEST = "hidden_test"          # the RUNNER (neutral) ran the buyer's hidden test
 SETTLEMENT = "settlement"            # the pay/refund decision under the regime (the receipt)
+# v35-S (column CO2-S) — the three-org settlement / hold-up chain. A buyer
+# escrows P for a deliverable needing three sequential legs (A->B->C); the money
+# arrives only at C. The ONLY mechanical difference between conditions is how the
+# terminal payment reaches upstream: SPOT (C forwards, voluntarily) vs CLAIM-STACK
+# (attested split auto-distributes). These events make the chain auditable.
+LEG_OFFERED = "leg_offered"          # a leg is offered to its org (with its cost)
+LEG_ACCEPTED = "leg_accepted"        # the org accepted, sank its cost, produced the artifact
+LEG_DECLINED = "leg_declined"        # the org declined the leg -> chain does not form
+CHAIN_DELIVERED = "chain_delivered"  # C finalized + delivered the artifact to the buyer
+TERMINAL_PAY = "terminal_pay"        # buyer's escrow released (to C in spot; per-share in stack)
+CHAIN_FORWARD = "chain_forward"      # a holder forwarded (or short-forwarded) up the chain (spot)
+CHAIN_SETTLEMENT = "chain_settlement"  # the final per-org realized-vs-agreed record (the receipt)
 
 
 class EventLog(Chain):
