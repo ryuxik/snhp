@@ -2741,3 +2741,34 @@ bankable law; the honest scope is the result.**
 - **Open engine observation (not a claim):** dumb navigation HELPS the
   auction at N=24 (286.6→296.8) — noise-dispersion may relieve Φ-routing
   congestion; logged for a future diagnosis, not asserted.
+
+**PZ VERDICTS (2026-07-16, registrar) — the program's load-bearing
+assumption survives its own attack, re-scoped from axiom to economics.**
+- **KILL DOES NOT FIRE: the threshold exists.** 25/28 cells hold near the
+  healthy tier; the collapse corner is real (free forgery × dear
+  verification → the full v6 feeding frenzy, −179). And the c_f=0
+  diagnostic confirmed the registered target: forgery pays even when free
+  ONLY against the tier — the walk-away right immunizes spot bargaining;
+  trust tiers, which waive the veto, are what forgery eats.
+- **PZa CONFIRMED, with the shape sharpened:** the cliff is a corner, not
+  a line — forgery cost ALONE defends the tier at c_f=8 (+94.5 with zero
+  verification: the attack bankrupts itself), and verification alone
+  defends it where forging is cheap. Collapse requires losing BOTH.
+- **PZb CONFIRMED — the public-good gap, made mechanical.** Endogenous
+  verifiers free-ride on the tier's average honesty: catch rate falls
+  0.40→0.18 as c_v rises, under-providing exactly the good that would
+  save them (gap vs mandated +46 where forgery is cheap). AND the flip is
+  a design law: where forgery self-limits, mandates are pure overhead
+  (gap −91). Mandate verification only where forging is cheap; elsewhere
+  the mandate is a tax on every honest handshake.
+- **PZc CONFIRMED, one carve-out:** receipts-under-attack beat the U
+  reputation baseline in 27/28 cells (Δ up to +75); the lone loss is the
+  free-forgery/dearest-verification endogenous corner (−48 vs
+  reputation's +1.4).
+- **The law, on the record: THE RECEIPT IS A COST CLAIM, NOT AN AXIOM.**
+  The tier is defended by economics, not cryptography — safe wherever
+  forging or getting caught carries real cost, dangerous exactly where
+  both are free. Product translation: a notary must make forgery
+  expensive (key custody, staking, liability) or verification cheap and
+  structural at the gate — never left to per-agent choice, because agents
+  will free-ride their own trust tier onto the cliff.
