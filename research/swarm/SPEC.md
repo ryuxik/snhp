@@ -3181,3 +3181,55 @@ vacuous.
   the walk-away right + the safety floor absorb debt service), and the
   article's #20 confession gets rewritten to "I gave them debt and they
   still did not die." Report loudly either way.
+
+## v33 (column CO): THE COMPANY, for real — agentic employees, real work, from scratch
+
+Founder direction (2026-07-17, second correction accepted): the diorama
+rendered the measured economy in company nouns and is hereby retitled
+"the regime toggle" on the site; column CO is the actual vision — a
+DYNAMIC company sim with REAL TASKS. Founder decisions: the org GROWS A
+SERVICE FROM SCRATCH (empty repo + founding brief: "build a small
+self-hostable infrastructure tool"; the org picks its own product in a
+founding episode — see-where-it-goes is the point), run as RECORDED
+EPISODES under a pre-registered token budget, replayed on the site from
+real artifacts. Lives in companysim/ (new top-level program, engine
+untouched).
+
+**Substrate:** 4-8 employee agents (Sonnet/Haiku per the standing in-sim
+exception; Opus never in-sim), each with a wallet on a hash-chained
+ledger (paperswarm pattern). Work protocol, and this is the thesis made
+process: a SPEC author writes a task brief + acceptance tests; an
+IMPLEMENTER claims it; a REVIEWER (never the implementer) runs the tests
+and merges. Payment settles on merge-with-passing-tests. Multi-stage
+tasks (spec → implement → review) carry claim splits fixed at hand-off
+(the bills). False completion is possible and catchable: the tests are
+the receipt, authored by the counterparty. Middle roles (spec, review)
+are the glue workers — PAA/U's freeze-out and sacrifice-confound
+machinery now has a real-work referent.
+
+**Regimes (across episodes):** (a) COMMAND — a manager agent assigns all
+work; (b) CLAIMS — an open bounty board, no manager, splits at claim
+time; (c) chargeback control only if trivially cheap. Across-episode
+dynamics: budget and task-size allocation to agents by OUTCOME score vs
+RECEIPT score (the Y-C promotion treatments, transplanted to real work).
+
+**Phases:** D1a HARNESS (no LLM spend): episode runner, model-agnostic
+agent adapter (fixtured for tests), wallets/ledger, task+claim protocol,
+per-episode nested git workspace, artifact logger (every event → JSONL
+with commit hashes/test runs), regime configs, token meter with a HARD
+pre-registered per-episode budget. Fully tested offline. D1b FIRST
+EPISODES: registered budget per episode committed before any run;
+initial cap $20/episode, founder may revise; 1 founding episode + 2
+episodes per regime; ALL episodes published, failures included, no
+cherry-picking. D1c REPLAY PAGE: org chart, task board, money flows
+rendered ONLY from logged artifacts (every on-screen object maps to a
+commit/test/transcript; render style decided after D1b against real
+data). D2 SCIENCE (gated on D1b): the Y-C predictions (reorg-inertness
+PYa, glue-worker demotion PYb, receipts>outcomes PYc) as registered,
+now on real work; report-not-verdict until then.
+
+**Honesty rules (bind all phases):** artifacts public and complete;
+token budget + models registered pre-run; demo phase asserts
+observations only; any science claim needs its registered prediction;
+the sim's numbers never blend with the swarm engine's banked results in
+any public artifact without labeling which world they came from.
