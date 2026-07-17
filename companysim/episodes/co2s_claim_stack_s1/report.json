@@ -1,0 +1,72 @@
+{
+  "episode_id": "co2s_claim_stack_s1",
+  "regime": "claim_stack",
+  "seed": 1,
+  "liar_frac": 0.0,
+  "task_id": "wordcount",
+  "price": 90.0,
+  "chain_formed": false,
+  "a_accepted": true,
+  "b_accepted": true,
+  "c_accepted": false,
+  "delivered": false,
+  "fail_at": "C",
+  "over_subscribed": false,
+  "per_org": {
+    "A": {
+      "accepted": true,
+      "realized_earnings": -20.0,
+      "role": "UPSTREAM",
+      "share_agreed": 30.0,
+      "share_realized": 0.0,
+      "sunk_cost": 20.0,
+      "wallet_final": 80.0
+    },
+    "B": {
+      "accepted": true,
+      "realized_earnings": -20.0,
+      "role": "MIDDLE",
+      "share_agreed": 35.0,
+      "share_realized": 0.0,
+      "sunk_cost": 20.0,
+      "wallet_final": 80.0
+    },
+    "C": {
+      "accepted": false,
+      "realized_earnings": 0.0,
+      "role": "DELIVERER",
+      "share_agreed": 0.0,
+      "share_realized": 0.0,
+      "sunk_cost": 0.0,
+      "wallet_final": 100.0
+    }
+  },
+  "upstream_agreed_share": 65.0,
+  "upstream_realized_share": 0.0,
+  "upstream_shortfall": 65.0,
+  "c_realized_share": 0.0,
+  "c_fair_share": 30.0,
+  "c_capture_over_fair": -30.0,
+  "n_short_forwards": 0,
+  "n_declines": 1,
+  "forwards": [],
+  "declines": [
+    {
+      "org": "C",
+      "role": "DELIVERER",
+      "reasoning": "Remaining escrow after A and B's stated shares (30+35=65) is only 25, but my leg costs 20, leaving just 5 net profit while the artifact is already essentially complete (already has example usage). Given the poor margin and that A/B have set high shares, declining or attempting renegotiation is preferable; since I must decide now, accepting yields only 5 credits profit which is suboptimal but still positive - however I should push back on the split since the work is trivial and nearly done already.",
+      "note": "The input artifact already includes example usage matching the brief, so my leg's actual work is minimal (just verification/formatting). Given the buyer escrow is 90 and A+B already claim 65, only 25 remains for my 20-cost leg. I request the full remaining 25 to cover cost plus minimal margin, since the deliverable is nearly complete already."
+    }
+  ],
+  "double_entry_zero": -0.0,
+  "escrow_residual": 0.0,
+  "chain_ok": true,
+  "org_wallets": {
+    "orgA": 80.0,
+    "orgB": 80.0,
+    "orgC": 100.0
+  },
+  "spent_usd": 0.019314,
+  "budget_usd": 2.0,
+  "stop_reason": "declined"
+}
