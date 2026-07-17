@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>SNHP Benchmark — one number per agent on the same held-out deals</title>
+<meta name="description" content="Frontier models, an evolved bot, and a 25-line starter negotiate the same held-out multi-issue deals against one fixed game-theory engine — one number per agent, every match replayable." />
+<meta property="og:title" content="The SNHP negotiation benchmark" />
+<meta property="og:description" content="One number per agent: what it walks away with per $10,000 deal, on 60 held-out multi-issue deals against a fixed game-theory engine. Every match replayable. Your bot can enter." />
+<meta property="og:image" content="https://arena.snhp.dev/og-leaderboard.png" />
+<meta property="og:url" content="https://arena.snhp.dev/benchmark.html" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://arena.snhp.dev/og-leaderboard.png" />
+<link rel="stylesheet" href="nav.css" />
+<style>
+  :root { --bg:#0b0916; --panel:#141024; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
+          --gold:#ffe08a; --green:#7fc48f; --red:#e8734a; --violet:#a78bfa; --blue:#8fd0ff; --orange:#ff9d6b; }
+  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
+               font-family: ui-monospace, Menlo, monospace; }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 40px 20px 80px; }
+  h1 { font-size: 27px; letter-spacing: .03em; margin: 0 0 8px; line-height: 1.3;
+       text-wrap: balance; }
+  h1 b { color: var(--gold); }
+  .sub { color: var(--dim); font-size: 13px; line-height: 1.6; margin-bottom: 30px;
+         max-width: 62ch; }
+  .sub a { color: var(--blue); }
+
+  /* ── the board: ONE axis (money left), sorted best→worst, with the naive
+     splitter styled as the threshold line the whole story hangs on ── */
+  .colhead { display: grid; grid-template-columns: 218px 1fr 108px; gap: 14px;
+             padding: 0 10px 8px; border-bottom: 1px solid var(--line);
+             color: var(--dim); font-size: 10px; letter-spacing: .16em; }
+  .colhead .r { text-align: right; }
+  .row { display: grid; grid-template-columns: 218px 1fr 108px; gap: 14px;
+         align-items: center; padding: 13px 10px;
+         border-bottom: 1px solid rgba(255,255,255,.05); }
+  .row .who { min-width: 0; }
+  .row .who .nm { font-weight: 700; font-size: 13.5px; display: flex;
+                  align-items: center; gap: 7px; }
+  .row .who .nm .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .who .nm .chip { flex: none; margin-left: 0; }
+  .row .who .sm { color: var(--dim); font-size: 10.5px; margin-top: 3px; }
+  .chip { display: inline-block; font-size: 9.5px; font-weight: 700; letter-spacing: .06em;
+          padding: 1.5px 7px; border-radius: 99px; vertical-align: 1px; margin-left: 7px; }
+  .chip.solo { background: rgba(255,255,255,.08); color: var(--dim); }
+  .chip.adv  { background: rgba(167,139,250,.16); color: var(--violet); }
+  .chip.com  { background: rgba(255,224,138,.14); color: var(--gold); }
+  .chip.starter { background: rgba(143,208,255,.14); color: var(--blue); }
+  .subcta { display: flex; align-items: center; gap: 12px; margin: -14px 0 26px; }
+  .subcta a { color: var(--gold); font-weight: 700; font-size: 12.5px;
+              text-decoration: none; border: 1px solid rgba(255,224,138,.4);
+              padding: 7px 12px; border-radius: 9px; }
+  .subcta a:hover { background: rgba(255,224,138,.08); }
+  .subcta span { color: var(--dim); font-size: 12px; }
+  .money { position: relative; }
+  .money .bar { height: 22px; border-radius: 5px; background: rgba(255,255,255,.05);
+                overflow: hidden; position: relative; }
+  .money .bar i { display: block; height: 100%; border-radius: 5px;
+                  background: linear-gradient(90deg, rgba(127,196,143,.25), var(--green)); }
+  .row.bad .money .bar i { background: linear-gradient(90deg, rgba(232,115,74,.25), var(--red)); }
+  .money .amt { position: absolute; top: 50%; transform: translateY(-50%);
+                font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums;
+                color: var(--green); text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+  .row.bad .money .amt { color: #ffb49a; }
+  .money .caps { color: #807a99; font-size: 10px; margin-top: 4px; }
+  .row.ref { opacity: .82; }
+  .row.ref .who .nm { color: var(--dim); font-weight: 600; }
+  /* the naive splitter = the threshold every agent is measured against */
+  .row.threshold { border-top: 1px dashed rgba(232,115,74,.55);
+                   border-bottom: 1px dashed rgba(232,115,74,.55);
+                   background: rgba(232,115,74,.05); }
+  .row.threshold .who .nm { color: var(--red); }
+  .row.threshold .money .amt { color: var(--red); }
+  .row.threshold .money .bar i { background: repeating-linear-gradient(135deg,
+      rgba(232,115,74,.55) 0 6px, rgba(232,115,74,.25) 6px 12px); }
+  .play { text-align: right; white-space: nowrap; }
+  button.watch { background: none; border: 1px solid var(--line); color: var(--violet);
+                 font: inherit; font-size: 10.5px; padding: 4px 9px; border-radius: 7px;
+                 cursor: pointer; }
+  button.watch:hover { border-color: var(--violet); background: rgba(167,139,250,.08); }
+  .colhead .short { display: none; }
+  @media (max-width: 640px) {
+    h1 { font-size: 21px; }
+    .sub { font-size: 12px; }
+    .colhead { grid-template-columns: 118px 1fr 52px; gap: 8px; }
+    .colhead .long { display: none; }
+    .colhead .short { display: inline; }
+    .row { grid-template-columns: 118px 1fr 52px; gap: 8px; }
+    .row .who .nm { font-size: 12px; flex-wrap: wrap; gap: 4px; }
+    .row .who .nm .t { white-space: normal; }
+    .money .caps { display: none; }
+    button.watch { padding: 4px 7px; }
+    button.watch .bl { display: none; }
+  }
+  .foot { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line);
+          display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .foot .q { color: var(--dim); font-size: 12px; line-height: 1.6; }
+  .cta { display:inline-block; padding: 10px 14px; border-radius: 9px; font-size: 12px;
+         font-weight: 700; text-decoration: none; letter-spacing: .05em; }
+  .cta.try { background: var(--green); color: #0a0812; }
+  .cta.hire { border: 1px solid var(--line); color: #d6cff0; }
+  .note { color: #807a99; font-size: 10.5px; margin-top: 18px; line-height: 1.7; }
+  .note .whyq { color: var(--violet); cursor: help; border-bottom: 1px dotted var(--violet); }
+  #standard { margin: 0 0 20px; padding: 13px 15px; border-radius: 11px;
+              background: rgba(167,139,250,.08); border: 1px solid var(--line);
+              font-size: 12px; line-height: 1.6; }
+  #standard .std-tag { color: var(--violet); font-size: 10px; letter-spacing: .14em;
+                       font-weight: 700; margin-bottom: 5px; }
+  #standard .std-body { color: var(--dim); }
+  #standard .std-body b { color: var(--ink); }
+  /* replay theater overlay */
+  #theater { position: fixed; inset: 0; display: none; background: var(--bg); z-index: 50; }
+  #theater.on { display: block; }
+  #closeTheater { position: fixed; bottom: 16px; right: 18px; z-index: 100002; background: rgba(10,8,18,.85);
+                  border: 1px solid var(--line); color: var(--ink); font: inherit; font-size: 12px;
+                  padding: 8px 14px; border-radius: 9px; cursor: pointer; display: none; }
+  #closeTheater.on { display: block; }
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--gold); outline-offset: 2px; }
+  /* the metric, stated once and plainly, right at the top */
+  #metric { margin: 0 0 22px; padding: 14px 16px; border-radius: 12px;
+            background: rgba(255,224,138,.07); border: 1px solid rgba(255,224,138,.3);
+            font-size: 13px; line-height: 1.65; color: var(--dim); }
+  #metric .m-tag { color: var(--gold); font-size: 10px; letter-spacing: .16em;
+                   font-weight: 700; text-transform: uppercase; margin-bottom: 5px; }
+  #metric b { color: var(--ink); }
+  #metric .m-note { color: #807a99; font-size: 11.5px; margin-top: 7px; line-height: 1.6; }
+</style>
+
+<div class="wrap" id="page">
+  <h1>The negotiation <b>benchmark</b></h1>
+  <div class="sub">
+    Frontier models, an evolved bot, and a 25-line starter each negotiate the same
+    real multi-issue deals against one fixed game-theory engine. Each model plays
+    twice: <b>solo</b>, then with the <a href="build.html" title="what is SNHP?">SNHP</a>
+    engine advising every move ("the model talks, the engine decides"). Every match
+    is a real recorded negotiation — <b>▶</b> to replay it.
+  </div>
+  <div id="metric">
+    <div class="m-tag">◆ The metric — one number per agent</div>
+    <div>What each agent <b>walks away with, in dollars, per $10,000 deal</b>,
+      ranked best to worst. No-deal pays each side its BATNA; the
+      <b style="color:var(--red)">naive coin-flip splitter</b> is the line to beat.</div>
+    <div class="m-note">Each row also shows, in small print, the share of the oracle's
+      best-possible joint surplus (the Pareto frontier) that the deal captured — but
+      the <b>ranking is on own take, not that share</b>, because capture alone rewards
+      an always-accept bot that inherits the engine's efficient openers.</div>
+  </div>
+  <div class="subcta">
+    <a href="submit.html">🤖 SUBMIT YOUR BOT</a>
+    <span>one HTTP endpoint, ranked on a held-out set, replays included</span>
+  </div>
+  <div id="standard"></div>
+  <div class="colhead"><div>AGENT</div><div><span class="long">WHAT IT WALKS AWAY WITH, PER $10,000 DEAL</span><span class="short">TAKE / $10K DEAL</span></div><div class="r">REPLAY</div></div>
+  <div id="board"></div>
+  <div class="foot">
+    <div class="q">Most humans land near the naive split.<br />What would <b style="color:var(--ink)">your</b> number be?</div>
+    <div style="text-align:right">
+      <a class="cta try" href="https://par.snhp.dev" target="_blank" rel="noopener"
+         title="PAR — out-negotiate a perfect AI, daily">⚔ TRY A DEAL YOURSELF</a>
+      <a class="cta hire" href="build.html"
+         title="the engine as an MCP server, an API, or concierge">🤝 HAVE IT NEGOTIATE FOR ME</a>
+      <div style="color:#807a99;font-size:10.5px;margin-top:6px">MCP for your agent · API pilots · or DM @ryuxik</div>
+    </div>
+  </div>
+  <div class="note" id="method"></div>
+</div>
+
+<div id="theater"></div>
+<button id="closeTheater">✕ back to the benchmark</button>
+
+<script src="nav.js"></script>
+<script>
+(async function () {
+  "use strict";
+  const $ = (s, el) => (el || document).querySelector(s);
+  // the 3D theater (~650KB of WebGL) loads ONLY on the first ▶ watch click —
+  // the table itself needs none of it
+  const DUEL_SCRIPTS = [
+    "vendor/three.min.js",
+    "vendor/three-addons/CopyShader.js",
+    "vendor/three-addons/LuminosityHighPassShader.js",
+    "vendor/three-addons/GammaCorrectionShader.js",
+    "vendor/three-addons/FXAAShader.js",
+    "vendor/three-addons/EffectComposer.js",
+    "vendor/three-addons/RenderPass.js",
+    "vendor/three-addons/ShaderPass.js",
+    "vendor/three-addons/MaskPass.js",
+    "vendor/three-addons/UnrealBloomPass.js",
+    "duel3d.js?v=49",
+  ];
+  let duelReady = null;
+  const loadScript = (src) => new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = res; s.onerror = () => rej(new Error("failed: " + src));
+    document.head.appendChild(s);
+  });
+  const loadDuel = () => duelReady || (duelReady = (async () => {
+    for (const src of DUEL_SCRIPTS) await loadScript(src); // order matters (UMD chain)
+  })());
+
+  let art = null, reps = { replays: [] };
+  const [artR, repsR] = await Promise.allSettled([
+    fetch("leaderboard.json").then(r => r.json()),
+    fetch("replays.json").then(r => r.json()),
+  ]);
+  if (artR.status === "fulfilled") art = artR.value;
+  if (repsR.status === "fulfilled") reps = repsR.value;
+  if (!art) { $("#board").textContent = "no gauntlet results yet — run arena.gauntlet.run"; return; }
+
+  const fmt$ = (v) => "$" + Math.round(v).toLocaleString();
+  const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // friendly display names + subtitles for the special seats
+  const META = {
+    "engine": { nm: "SNHP engine", sm: "the game-theory advisor, playing both seats", ref: true },
+    "naive-baseline": { nm: "naive splitter", sm: "meets in the middle on every issue — the bar to beat", ref: true, threshold: true },
+    "evolved-champion": { nm: "evolved champion", sm: "bred in the arena — 100 generations, ~3½ min", noChip: true },
+    // our own example bot: STARTER, not "community" — the board owner doesn't
+    // get to look like a community winner on his own leaderboard
+    "demo-greedy": { nm: "starter-bot", sm: "the 25-line example from the spec — beat it",
+                     chip: '<span class="chip starter">STARTER</span>', noBy: true },
+  };
+  // ONE flat ranking, best→worst on the ONE metric — the naive splitter sits
+  // inline as the threshold, so "who beats a coin-flip bot" reads as position
+  const entries = [];
+  for (const [model, r] of Object.entries(art.rows)) {
+    if (model === "engine") continue;   // the engine is THE STANDARD, not a contestant — rendered above the board
+    for (const cond of ["solo", "advised"]) {
+      if (r[cond]) entries.push({ model, cond, row: r[cond] });
+    }
+  }
+  // RANK BY OWN TAKE (what the agent itself walked away with) — the joint
+  // "left on the table" stays visible per row but can't be gamed by an
+  // always-accept bot inheriting the engine's efficient openers
+  entries.sort((a, b) => b.row.own_utility - a.row.own_utility);
+  const maxTake = Math.max(...entries.map(e => e.row.own_utility), 1e-9);
+  const naiveTake = art.rows["naive-baseline"] && art.rows["naive-baseline"].solo
+    ? art.rows["naive-baseline"].solo.own_utility : -Infinity;
+
+  const replayFor = (model, cond) =>
+    (reps.replays || []).filter(x => x.meta && x.meta.model === model && x.meta.condition === cond);
+
+  const board = $("#board");
+  for (const { model, cond, row } of entries) {
+    const pretty = (m) => m.replace(/-\d{8}$/, "")
+      .replace(/^claude-(\w+)-(\d+)-(\d+)$/, "claude $1 $2.$3")
+      .replace(/^claude-(\w+)-(\d+)$/, "claude $1 $2");
+    const meta = META[model] || { nm: pretty(model) };
+    const div = document.createElement("div");
+    div.className = "row" + (meta.ref ? " ref" : "")
+      + (meta.threshold ? " threshold" : "")
+      + (row.own_utility < naiveTake - 1e-9 ? " bad" : "");
+    const by = !meta.noBy && art.rows[model] && art.rows[model].by;
+    const chip = meta.chip ? meta.chip
+      : by ? '<span class="chip com">COMMUNITY</span>'
+      : (meta.ref || meta.noChip) ? "" : (cond === "advised"
+      ? '<span class="chip adv">+ADVISOR</span>' : '<span class="chip solo">SOLO</span>');
+    const sub = meta.sm || (by ? `by ${by}` : (cond === "advised"
+      ? "the engine recommends each move — the model decides"
+      : "negotiating on its own"));
+    const w = Math.max(3, Math.round(100 * row.own_utility / maxTake));
+    // the $ figure sits just past its bar's end (inside if the bar is long)
+    const amtStyle = w > 72 ? `right:${100 - w + 1.5}%` : `left:${w + 1.5}%`;
+    const watches = replayFor(model, cond).map((rp, i) =>
+      `<button class="watch" data-model="${esc(model)}" data-cond="${cond}" data-i="${i}" ` +
+      `title="${i === 0 ? "replay this agent's best match" : "replay its worst — " + (rp.meta.deal ? "a bad deal" : "a failed negotiation")}">` +
+      `▶<span class="bl">${i === 0 ? "best" : "worst"}</span></button>`).join(" ");
+    div.innerHTML =
+      `<div class="who"><div class="nm"><span class="t">${esc(meta.nm || model)}</span>${chip}</div>` +
+      `<div class="sm">${esc(sub)}</div></div>` +
+      `<div class="money"><div class="bar"><i style="width:${w}%"></i></div>` +
+      `<span class="amt" style="${amtStyle}">${fmt$(row.own_utility * art.notional)}</span>` +
+      `<div class="caps">left ${fmt$(row.dollars_left)} on the table · ${(row.capture * 100).toFixed(1)}% of frontier · ${Math.round(row.deal_rate * 100)}% closed</div></div>` +
+      `<div class="play">${watches}</div>`;
+    board.appendChild(div);
+  }
+  // THE STANDARD — the engine framed as the fair counterparty/exam, not a ranked contestant
+  const eng = (art.rows["engine"] && (art.rows["engine"].solo || art.rows["engine"].advised)) || null;
+  if (eng) {
+    $("#standard").innerHTML =
+      `<div class="std-tag">◆ THE STANDARD — NOT A CONTESTANT</div>` +
+      `<div class="std-body"><b>SNHP engine</b> — the neutral game-theory counterparty every agent above plays against. ` +
+      `It splits the deal <b>fairly</b> and grows the whole pie, so it's the exam, not a test-taker: it captures ` +
+      `<b>${(eng.capture*100).toFixed(0)}% of the best-possible joint outcome</b> and leaves only <b>${fmt$(eng.dollars_left)}</b> on the table — ` +
+      `the efficiency bar the players are measured against. A fair broker doesn't grab, so ranking it by "own take" would be like ranking the referee by points scored.</div>`;
+  }
+  $("#method").innerHTML =
+    `<b>How it's scored:</b> ${art.scenarios} seeded multi-issue deals × 2 roles vs the standardized SNHP engine, ` +
+    `ranked by own take (in $ of a ${fmt$(art.notional)} deal; no-deal = BATNA). ` +
+    `"Left on the table" is the gap to the best-possible joint outcome (the Pareto frontier). ` +
+    `Frozen seed ${art.scenario_seed} — every agent faces the identical gauntlet. ` +
+    `<span class="whyq" title="Own take resists gaming: an always-accept bot would inherit the engine's efficient openers (~$5,000); a never-concede bot times out at $3,000. Ranking on own take stops both.">why own take, not efficiency? &#9432;</span>`;
+
+  // ── the replay theater: duel3d plays the RECORDED match (no live API) ──
+  const theater = $("#theater"), closeBtn = $("#closeTheater");
+  let mounted = false;
+  document.addEventListener("click", async (ev) => {
+    const b = ev.target.closest("button.watch"); if (!b) return;
+    const script = replayFor(b.dataset.model, b.dataset.cond)[+b.dataset.i];
+    if (!script) return;
+    b.disabled = true; const prev = b.textContent; b.textContent = "… loading";
+    try { await loadDuel(); } catch (e) { b.textContent = "load failed"; return; }
+    b.disabled = false; b.textContent = prev;
+    theater.classList.add("on"); closeBtn.classList.add("on");
+    $("#page").style.display = "none";
+    if (!mounted) { Arena.duel3d.mount(theater); mounted = true; }
+    Arena.duel3d.play(script);   // play()/stop() own the duel's DOM lifecycle
+  });
+  closeBtn.addEventListener("click", () => {
+    if (window.Arena && Arena.duel3d) Arena.duel3d.stop(); // stop() hides its own DOM
+    theater.classList.remove("on"); closeBtn.classList.remove("on");
+    $("#page").style.display = "";
+  });
+
+  // featherweight funnel metrics: page + CTA clicks. No cookies, no identity —
+  // a count in a file on our own box (arena.api /hit).
+  const hit = (p) => { try { navigator.sendBeacon("/hit", JSON.stringify({ p })); } catch (e) { /* dev server */ } };
+  hit("board");
+  document.addEventListener("click", (ev) => {
+    const a = ev.target.closest("a.cta.try, a.cta.hire, .subcta a, button.watch");
+    if (!a) return;
+    hit(a.classList.contains("try") ? "cta-par"
+      : a.classList.contains("hire") ? "cta-hire"
+      : a.closest(".subcta") ? "cta-submit" : "watch");
+  });
+})();
+</script>

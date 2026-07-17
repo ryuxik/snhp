@@ -12,7 +12,7 @@ import os
 from typing import Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, Request
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from arena.config import CONFIG
@@ -319,6 +319,125 @@ async def hit(request: Request) -> dict:
     return {"ok": True}
 
 
+# ── page analytics (server-side, privacy-preserving) ───────────────────────
+# One JSONL line per PAGE view in the SAME $ARENA_DATA_DIR/hits.jsonl: ts, path,
+# referer HOST only, user-agent FAMILY only. No IPs, no query strings, no PII.
+# Every path here is fail-open — analytics must never break a page.
+import json as _ajson
+import time as _atime
+from urllib.parse import urlsplit as _urlsplit
+
+_HITS_MAX = 50_000_000  # ~years of real traffic; stop writing past this
+
+
+def _ua_family(ua: str) -> str:
+    """A coarse browser family — never the raw UA (that's fingerprintable)."""
+    u = (ua or "").lower()
+    if not u:
+        return "unknown"
+    if any(b in u for b in ("bot", "spider", "crawl", "slurp", "curl", "wget",
+                            "python-requests", "httpx", "headless", "monitor")):
+        return "bot"
+    if "edg/" in u or "edgios" in u or "edga" in u:
+        return "edge"
+    if "firefox" in u or "fxios" in u:
+        return "firefox"
+    if "chrome" in u or "crios" in u or "chromium" in u:
+        return "chrome"
+    if "safari" in u:
+        return "safari"
+    return "other"
+
+
+def _ref_host(referer: str) -> str:
+    """Referer HOST only — never the full URL (it can carry a path/query)."""
+    try:
+        return (_urlsplit(referer or "").hostname or "")[:120]
+    except Exception:
+        return ""
+
+
+def _is_page(path: str) -> bool:
+    """Count top-level navigations only: '/', '/world', directory indexes, .html.
+    Static assets, the JSON/WS API, and health checks are not pageviews."""
+    if path in ("/", "/world"):
+        return True
+    if path.startswith(("/api", "/arena", "/health", "/hit", "/core",
+                        "/block/live", "/vendor")):
+        return False
+    return path.endswith(".html") or path.endswith("/")
+
+
+def _append_hit(rec: dict) -> None:
+    try:
+        if os.path.exists(_HITS) and os.path.getsize(_HITS) > _HITS_MAX:
+            return  # volume guard
+        with open(_HITS, "a") as f:
+            f.write(_ajson.dumps(rec, separators=(",", ":")) + "\n")
+    except Exception:
+        pass  # analytics must never break a page
+
+
+@app.middleware("http")
+async def _count_pageviews(request: Request, call_next):
+    # Count the pageview but never let counting affect the response: the whole
+    # body is guarded, and the request is served no matter what.
+    try:
+        path = request.url.path  # path only — FastAPI strips the query string
+        if request.method == "GET" and _is_page(path):
+            _append_hit({"ts": int(_atime.time()), "path": path[:200],
+                         "ref": _ref_host(request.headers.get("referer", "")),
+                         "ua": _ua_family(request.headers.get("user-agent", ""))})
+    except Exception:
+        pass
+    return await call_next(request)
+
+
+@app.post("/api/hit")
+async def api_hit(request: Request) -> dict:
+    """Fire-and-forget pageview beacon for statically-served pages (nav.js sends
+    {page}). Same privacy rules as the middleware; same append-only file."""
+    try:
+        body = await request.body()
+        page = str(_ajson.loads(body or b"{}").get("page", ""))[:200]
+        if page:
+            _append_hit({"ts": int(_atime.time()), "path": page, "src": "beacon",
+                         "ref": _ref_host(request.headers.get("referer", "")),
+                         "ua": _ua_family(request.headers.get("user-agent", ""))})
+    except Exception:
+        pass
+    return {"ok": True}
+
+
+@app.get("/api/stats")
+def api_stats() -> dict:
+    """Daily counts per page from the JSONL. Tolerant of legacy {t,p} lines and
+    capped (last 30 days × top 100 paths) so a long history can't blow up."""
+    days: "defaultdict[str, defaultdict[str, int]]" = defaultdict(lambda: defaultdict(int))
+    total = 0
+    try:
+        if os.path.exists(_HITS):
+            with open(_HITS) as f:
+                for line in f:
+                    try:
+                        o = _ajson.loads(line)
+                    except Exception:
+                        continue
+                    ts = o.get("ts", o.get("t"))
+                    path = o.get("path", o.get("p"))
+                    if ts is None or not path:
+                        continue
+                    day = _atime.strftime("%Y-%m-%d", _atime.gmtime(int(ts)))
+                    days[day][str(path)[:200]] += 1
+                    total += 1
+    except Exception:
+        pass
+    recent = sorted(days.keys())[-30:]
+    out = {d: dict(sorted(days[d].items(), key=lambda kv: kv[1], reverse=True)[:100])
+           for d in recent}
+    return {"total": total, "days": out}
+
+
 # ── the LIVE twin-street block experiment (Phase 5) — feature-flagged.
 # BLOCK_LIVE=1 mounts /block/live (WS) + /block/live.json (snapshot) and paces
 # block/live.py's driver one sim-day per BLOCK_LIVE_SECS_PER_DAY. Default OFF:
@@ -378,17 +497,17 @@ if os.environ.get("BLOCK_LIVE") == "1":
             BLOCK_BCAST.unregister(q)
 
 
-# ── the FUNNEL entry: the root serves the consumer hook (feel it), with the
-# live block (watch it) and your-menu (run yours) one tab away; the leaderboard
-# and the evolution sim live in the science room. Old URLs all still work.
+# ── site entry: the root serves the thesis home (index.html); the classic
+# evolution arena — the old index — is kept at /world and arena-classic.html.
+# Old URLs all still work (leaderboard.html redirects, hook/boba/etc. are archived).
 @app.get("/")
-def root() -> RedirectResponse:
-    return RedirectResponse("/hook.html", status_code=302)
+def root() -> FileResponse:
+    return FileResponse(os.path.join(os.path.dirname(__file__), "web", "index.html"))
 
 
 @app.get("/world")
 def world() -> FileResponse:
-    return FileResponse(os.path.join(os.path.dirname(__file__), "web", "index.html"))
+    return FileResponse(os.path.join(os.path.dirname(__file__), "web", "arena-classic.html"))
 
 
 # The funnel pages (hook.html, yourmenu.html) import the general JS engine via

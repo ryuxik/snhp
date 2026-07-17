@@ -24,7 +24,9 @@
     -webkit-font-smoothing:antialiased;
     overflow:hidden;
   }
-  #app{position:fixed;inset:0;display:flex;flex-direction:column}
+  /* inset the fixed stage so the injected SNHP overlay nav gets its own top strip */
+  #app{position:fixed;inset:46px 0 0 0;display:flex;flex-direction:column}
+  @media (max-width:640px){ #app{inset:78px 0 0 0} }
 
   /* top bar */
   header{
@@ -156,7 +158,7 @@
   }
 </style>
 </head>
-<body>
+<body data-snhp-nav="overlay">
 <div id="app">
   <header>
     <h1>The Workshop</h1>
@@ -888,5 +890,6 @@ function wireControls(){
 
 })();
 </script>
+<script src="../nav.js"></script>
 </body>
 </html>

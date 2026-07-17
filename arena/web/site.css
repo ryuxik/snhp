@@ -1,0 +1,106 @@
+/* SNHP arena — the shared page system for the thesis home and the three doors
+   (index / watch / read / build). Dark, calm, article-adjacent. Same palette as
+   science.html / submit.html so the whole site reads as one surface. No external
+   fonts or CDNs; nothing scrolls the body horizontally. */
+:root {
+  --bg: #0b0916; --panel: #141024; --panel2: #17132a;
+  --ink: #f0eff5; --dim: #9a95b0; --mut: #6f6a86;
+  --line: rgba(167, 139, 250, 0.22);
+  --gold: #ffe08a; --green: #7fc48f; --red: #e8734a;
+  --violet: #a78bfa; --violet-bright: #c4b1ff; --blue: #8fd0ff;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+html { overflow-x: hidden; }
+body {
+  min-height: 100%; background: var(--bg); color: var(--ink);
+  font-family: var(--mono); -webkit-font-smoothing: antialiased;
+  overflow-x: hidden; line-height: 1.6;
+}
+
+/* content column */
+.wrap { max-width: 780px; margin: 0 auto; padding: 30px 20px 40px; }
+.wrap.narrow { max-width: 680px; }
+
+/* type */
+h1 { font-size: 30px; line-height: 1.24; letter-spacing: 0.01em; margin: 0 0 14px;
+     text-wrap: balance; }
+h1 b, h1 .hl { color: var(--violet-bright); font-weight: 700; }
+h2 { font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase;
+     color: var(--violet); margin: 44px 0 14px; }
+p { color: var(--dim); font-size: 14px; line-height: 1.75; margin: 0 0 14px; }
+p b { color: var(--ink); font-weight: 600; }
+a { color: var(--blue); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.lede { font-size: 15.5px; line-height: 1.7; color: var(--ink); max-width: 62ch; margin: 0 0 20px; }
+.lede b { color: var(--gold); }
+.kicker { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+          color: var(--mut); margin: 0 0 16px; display: flex; align-items: center; gap: 8px; }
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+            box-shadow: 0 0 8px var(--green); flex: 0 0 auto;
+            animation: livepulse 1.9s ease-in-out infinite; }
+@keyframes livepulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+
+/* the hero live embed (index) */
+.embed { margin: 6px 0 8px; border: 1px solid var(--line); border-radius: 14px;
+         overflow: hidden; background: var(--panel); box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+.embed__frame { position: relative; width: 100%; aspect-ratio: 16 / 10; background: #040308; }
+.embed__frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+.embed__ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+             color: var(--mut); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+.embed__cap { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;
+              padding: 11px 14px; border-top: 1px solid var(--line);
+              font-size: 12px; color: var(--dim); }
+.embed__cap b { color: var(--ink); }
+.embed__cap a { margin-left: auto; color: var(--gold); text-decoration: none; font-weight: 700; white-space: nowrap; }
+.embed__cap a:hover { text-decoration: underline; }
+
+/* the doors — a responsive card grid used on index, watch, build */
+.doors { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+         gap: 14px; margin: 8px 0 6px; }
+a.door { display: flex; flex-direction: column; background: var(--panel);
+         border: 1px solid var(--line); border-radius: 13px; padding: 17px 17px 15px;
+         text-decoration: none; color: var(--ink);
+         transition: border-color .14s ease, transform .14s ease, background .14s ease; }
+a.door:hover { border-color: rgba(167,139,250,.55); transform: translateY(-2px); background: var(--panel2); }
+.door .verb { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--violet); }
+.door h3 { font-size: 16px; margin: 7px 0 6px; letter-spacing: 0.01em; }
+.door h3 span { color: var(--gold); }
+.door p { font-size: 12.5px; color: var(--dim); line-height: 1.6; margin: 0; }
+.door .go { margin-top: 11px; font-size: 11.5px; color: var(--gold); font-weight: 700; }
+
+/* exhibit cards (watch): a caption tied to a real result under each */
+.exhibit { display: block; background: var(--panel); border: 1px solid var(--line);
+           border-radius: 13px; padding: 18px; margin: 0 0 14px; text-decoration: none; color: var(--ink);
+           transition: border-color .14s ease, transform .14s ease; }
+.exhibit:hover { border-color: rgba(167,139,250,.55); transform: translateY(-1px); }
+.exhibit .x-k { font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--violet); }
+.exhibit h3 { font-size: 17px; margin: 6px 0 8px; }
+.exhibit h3 span { color: var(--gold); }
+.exhibit .what { font-size: 13px; color: var(--dim); line-height: 1.65; margin: 0 0 6px; }
+.exhibit .tied { font-size: 12px; color: var(--mut); line-height: 1.6; margin: 0; }
+.exhibit .tied b { color: var(--green); }
+.exhibit .go { display: inline-block; margin-top: 11px; font-size: 11.5px; color: var(--gold); font-weight: 700; }
+
+/* a bordered method/aside block */
+.note { border: 1px solid var(--line); border-radius: 12px; background: rgba(20,16,36,.55);
+        padding: 15px 17px; margin: 18px 0; }
+.note .k { font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); }
+.note p { font-size: 12.5px; line-height: 1.7; margin: 8px 0 0; }
+.note code { color: var(--blue); font-size: 12px; }
+code { background: #131022; border: 1px solid var(--line); border-radius: 5px;
+       padding: 1px 6px; color: #d6d2e6; font-size: 12.5px; }
+pre { background: #10131a; border: 1px solid var(--line); border-radius: 10px;
+      padding: 14px 16px; font-size: 13px; line-height: 1.6; overflow-x: auto; color: #d6d2e6; margin: 0 0 14px; }
+pre b { color: var(--gold); }
+
+.backhome { font-size: 12px; }
+.backhome a { color: var(--dim); text-decoration: none; }
+.backhome a:hover { color: var(--ink); }
+
+@media (max-width: 560px) {
+  h1 { font-size: 24px; }
+  .wrap { padding: 22px 16px 30px; }
+}

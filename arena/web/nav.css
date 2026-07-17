@@ -62,3 +62,34 @@
   .snhp-nav { gap: 7px; }
   .snhp-nav a { padding: 5px 7px; font-size: 11px; letter-spacing: 0.02em; }
 }
+
+/* the wordmark is a link in the shared nav — kill the underline, keep the glow */
+a.snhp-nav__logo { text-decoration: none; }
+a.snhp-nav__logo:hover { color: #c4b1ff; }
+a.snhp-nav__logo:focus-visible { outline: 2px solid #c4b1ff; outline-offset: 2px; border-radius: 4px; }
+
+/* overlay variant: for fullscreen canvas pages (workshop) whose fixed stage
+   would paint over a sticky bar — float above it instead of taking flow space */
+.snhp-nav--overlay {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 2147483000;   /* above any in-page app chrome, below nothing of ours */
+}
+
+/* ── shared footer: injected by nav.js on every non-archive page ──
+   Archive lives here only, muted; the rest are the load-bearing exits. */
+.snhp-foot {
+  box-sizing: border-box; width: 100%;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 10px 18px; margin-top: 48px; padding: 18px 20px 28px;
+  border-top: 1px solid rgba(167, 139, 250, 0.18);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 12px; letter-spacing: 0.02em;
+}
+.snhp-foot * { box-sizing: border-box; }
+.snhp-foot a { text-decoration: none; }
+.snhp-foot__arch { color: #6f6a86; }
+.snhp-foot__arch:hover { color: #a29dbb; }
+.snhp-foot__links { display: flex; flex-wrap: wrap; gap: 16px; }
+.snhp-foot__links a { color: #8fd0ff; }
+.snhp-foot__links a:hover { color: #c4e6ff; }
+.snhp-foot a:focus-visible { outline: 2px solid #c4b1ff; outline-offset: 2px; border-radius: 4px; }
