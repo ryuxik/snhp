@@ -3128,3 +3128,56 @@ exactly the money its maturity permits.**
   (travel), not meetings, binding at G64. The board removed the cheap
   part of the transaction and left every expensive part in place. The
   article now says this explicitly.
+
+## v31 (column V2): the depot — the founder's re-run of the bulletin board
+
+The founder's mechanism question made falsifiable: V's board failed while
+still requiring somebody to complete the journey; the depot removes the
+JOURNEY STRUCTURE instead of the rendezvous. Depots are co-located with
+existing chargers (no new geography, drones already pass there). A loaded
+drone may DEPOSIT cargo at a depot with a posted claim-split ticket (V
+order machinery for the posted terms, P23 bills machinery for
+settlement); any later passer may take the next leg, and may RE-DEPOSIT
+at another depot — chains form fully asynchronously, with no co-presence
+at any hop and no drone obligated to finish the whole route. Re-run the
+column-G geometry ladder with {spot, bills-only, depot(+bills)}.
+- **PV2a:** the depot lifts the G64 edge above bills-only (+4.50) and
+  far-band delivered/mined above bills' 0.47 — async chains carry loads
+  synchronous chains still refused.
+- **PV2b:** ≥2-hop share at G64 approaches its G48 level — chain
+  formation decouples from encounter rate.
+- **PV2c:** far miners mine more (mined per drone-tick rises:
+  deposit-and-return beats haul-or-wait).
+- **KILL:** depot ≤ bills-only at G64 ⇒ co-presence was never the binding
+  constraint for chains either; travel/battery dominates even warehoused
+  async relay, the board stays dead at any level of convenience, and we
+  say so loudly.
+
+## v32 (column AB2): the crash with teeth — debt
+
+The registered-open follow-up, now a contract (founder: "otherwise #20
+makes no sense"). Claim-collateralized credit: a drone may borrow energy
+from the company treasury up to LTV × face value of its held claims.
+Settlement proceeds repay debt FIRST. If write-downs push debt above
+claim value, the drone enters GARNISHMENT: all future settlement income
+services the debt until cleared, and no new borrowing while garnished.
+LTV grid {0 (control = AB as run), 0.5, 0.8}; same shock protocol as AB
+(T_shock at the active-relay midpoint, far band dark, both regimes ×
+shock/control). Pre-flight constraint: borrowing take-up must be rational
+(borrowed energy funds far work); if take-up ≈ 0 at the pre-flight check,
+diagnose before running the grid — a debt column nobody borrows in is
+vacuous.
+- **PAB2-pre:** borrowing raises pre-shock far-band delivered (the bait
+  is real; leverage helps until it doesn't).
+- **PAB2a:** the same shock now crosses into physics: post-shock
+  stranding/deaths RISE vs the unlevered crash (where they fell) — crabs
+  work back paper losses, and some cannot.
+- **PAB2b:** physical casualties concentrate among garnished drones at
+  ≥1 hop from direct exposure — the contagion gains a body count.
+- **PAB2c:** an LTV cap (and/or the CCP) bounds post-shock deaths — the
+  institution now buys lives, not just credits.
+- **KILL (the extended happy null):** if deaths do not rise at ANY LTV,
+  the no-bankruptcy result extends to levered paper in this world (IR +
+  the walk-away right + the safety floor absorb debt service), and the
+  article's #20 confession gets rewritten to "I gave them debt and they
+  still did not die." Report loudly either way.
