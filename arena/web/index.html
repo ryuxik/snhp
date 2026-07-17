@@ -2,248 +2,88 @@
 <html lang="en">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>SNHP Evolution Arena — the AI that taught itself to out-negotiate us</title>
-<meta name="description" content="A live, always-on world where pixel-art AI knights negotiate real deals to survive and breed. It evolved a strategy that beats the recommender we shipped by +27% — every move computed by one library." />
-<meta name="theme-color" content="#0B0A12" />
-<meta property="og:title" content="The AI taught itself to out-negotiate the people who built it" />
-<meta property="og:description" content="A live world where AI knights negotiate to survive, breed, and pass on the winning moves. It evolved a strategy that beats the recommender we shipped by +27%. Nothing here knows how to haggle except the library." />
+<title>SNHP — the negotiation & receipts layer for AI agents</title>
+<meta name="description" content="AI agents are about to spend your money. They need the freedom to make a bundled deal and a receipt nobody can fake. SNHP is that negotiation + receipts layer, proven in an open simulation program." />
+<meta name="theme-color" content="#0b0916" />
+<meta property="og:title" content="AI agents are about to spend your money." />
+<meta property="og:description" content="They need two things: the freedom to make a bundled deal, and a receipt nobody can fake. SNHP is the negotiation + receipts layer, proven in an open simulation program." />
 <meta property="og:type" content="website" />
 <meta property="og:image" content="https://arena.snhp.dev/og.png" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="The AI taught itself to out-negotiate the people who built it" />
-<meta name="twitter:description" content="A live world where AI knights negotiate to survive and breed. It evolved a strategy that beats our shipped recommender by +27%." />
 <meta name="twitter:image" content="https://arena.snhp.dev/og.png" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230B0A12'/%3E%3Crect x='6' y='3' width='4' height='10' fill='%23A78BFA'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="styles.css?v=5" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0916'/%3E%3Crect x='6' y='3' width='4' height='10' fill='%23a78bfa'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="site.css" />
 <link rel="stylesheet" href="nav.css" />
-<style>
-  /* The world (#stage) is position:fixed — an isolating stacking context — so
-     the nav lives INSIDE it as an absolute top bar (z 28, from nav.css): above the
-     canvas and HUD (<=26), below the full-screen overlays (z 30) so onboarding/honest/etc
-     cover it cleanly. Then nudge the top-docked HUD below the bar. */
-  #stage > .snhp-nav { position: absolute; top: 0; left: 0; right: 0; }  /* z-index inherits nav.css's 28 for parity */
-  #era-banner, #conn-chip { top: calc(var(--gutter) + 48px); }
-  #leaderboard { top: calc(var(--gutter) + 48px); max-height: 38vh; }
-  @media (max-width: 720px) {
-    #era-banner { top: calc(var(--gutter) + 58px); }
-    #conn-chip  { top: calc(var(--gutter) + 100px); }
-  }
 
-  /* ── First-screen reveal (#onboard): eyebrow + one-line proof strip. The
-     card can grow with copy, so cap its height and let it scroll on short
-     viewports (shared with #legend, which uses .onboard-card too). ── */
-  .onboard-card { max-height: 92vh; overflow-y: auto; }
-  .onboard-card .onboard-eyebrow {
-    font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase;
-    color: var(--ink-dim); display: flex; align-items: center; gap: 7px; margin-bottom: 12px;
-  }
-  .onboard-card .live-dot {
-    width: 7px; height: 7px; border-radius: 50%; background: #6fe0a0; flex: 0 0 auto;
-    box-shadow: 0 0 8px #6fe0a0; animation: livepulse 1.8s ease-in-out infinite;
-  }
-  @keyframes livepulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
-  @media (prefers-reduced-motion: reduce) { .onboard-card .live-dot { animation: none; } }
-  /* the ONE proof, boxed so the eye lands on it after the reveal */
-  .onboard-card .onboard-proof {
-    display: flex; align-items: center; gap: 13px; margin: 2px 0 18px;
-    background: rgba(167,139,250,0.09); border: 1px solid var(--line);
-    border-radius: 10px; padding: 12px 14px;
-  }
-  .onboard-card .onboard-proof .op-num {
-    font-size: 30px; font-weight: 700; color: var(--gold); line-height: 1;
-    font-variant-numeric: tabular-nums; flex: 0 0 auto;
-  }
-  .onboard-card .onboard-proof .op-txt { font-size: 11.5px; line-height: 1.5; color: var(--ink-dim); }
-  .onboard-card .onboard-proof .op-txt b { color: var(--ink); }
+<div class="wrap">
+  <p class="kicker"><span class="live-dot"></span>an open simulation program</p>
+  <h1>AI agents are about to spend your money.<br />
+    They need two things: the <span class="hl">freedom to make a bundled deal</span>,
+    and a <span class="hl">receipt nobody can fake</span>.</h1>
+  <p class="lede">SNHP is the negotiation + receipts layer. It computes the deal —
+    what to offer, accept, or walk from, across many issues at once — and issues a
+    verifiable record of what was agreed. We prove it out in public: seeded
+    simulations, pre-registered predictions, a verdict ledger that keeps our own
+    claims honest.</p>
 
-  /* ── Legend: the panel decoder ("what the numbers mean") ── */
-  .legend-panels { margin: 2px 0 16px; border-top: 1px solid var(--line); padding-top: 14px; }
-  .legend-panels .lp-title { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 8px; }
-  .legend-panels ul { margin: 0; list-style: none; }
-  .legend-panels li { font-size: 12px; color: var(--ink-dim); line-height: 1.55; margin: 6px 0; }
-  .legend-panels li b { color: var(--violet-bright); font-weight: 600; }
-  .legend-panels li .where { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.6; margin-left: 4px; }
-</style>
-
-<div id="stage">
-  <nav class="snhp-nav" aria-label="SNHP arena sections">
-    <span class="snhp-nav__logo" aria-hidden="true">SNHP</span>
-    <ul class="snhp-nav__list">
-    <li><a href="hook.html">Try it</a></li>
-    <li><a href="/block/">Live block</a></li>
-    <li><a href="yourmenu.html">Your menu</a></li>
-    <li><a href="science.html">Science</a></li>
-  </ul>
-  </nav>
-  <canvas id="view"></canvas>
-  <canvas id="scanlines"></canvas>
-  <div id="vignette"></div>
-
-  <div id="hud">
-    <div id="era-banner" class="hud-panel" title="the market regime — it flips over time, reshaping which strategy wins">
-      <span id="era-glyph"></span>
-      <span id="era-name" title="the current market regime">—</span>
-      <span id="era-poll" title="the season's pollinator"></span>
-      <span id="gen-counter" title="generation — the world keeps breeding new ones">gen 0</span>
+  <!-- HERO: a live embed of the drone economy (lazy-mounted so the page paints fast) -->
+  <div class="embed">
+    <div class="embed__frame">
+      <div class="embed__ph" id="embed-ph">loading the live world…</div>
+      <iframe id="hero-embed" title="The drone economy — the same robots under two economies, live"
+              loading="lazy" data-src="swarm.html" referrerpolicy="no-referrer"></iframe>
     </div>
-    <div id="conn-chip"></div>
-
-    <!-- the four data panels: absolute corner docks on desktop, a single
-         toggle-able bottom drawer on mobile (#panels becomes the sheet) -->
-    <div id="panels">
-      <div id="myhouse" class="hud-panel hidden"></div>
-      <div id="leaderboard" class="hud-panel"></div>
-      <div id="census" class="hud-panel"></div>
-      <div id="science" class="hud-panel"></div>
-    </div>
-
-    <div id="ticker"><div id="ticker-inner"></div></div>
-
-    <div id="hud-controls">
-      <a id="board-btn" class="hud-btn" href="leaderboard.html"
-         aria-label="the negotiation leaderboard — how much money AI agents leave on the table"
-         title="the leaderboard — $ AI agents leave on the table"
-         style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center">🏆</a>
-      <button id="stats-btn" class="hud-btn" aria-label="show stats" title="stats" aria-expanded="false">▤</button>
-      <button id="honest-btn" class="hud-btn" aria-label="what's real — and what's not, even our own hype" title="what's real — and what's not">✓?</button>
-      <button id="help-btn" class="hud-btn" aria-label="what am I looking at?" title="what am I looking at?">?</button>
-      <button id="sound-btn" class="hud-btn" aria-label="toggle sound" title="sound">♪</button>
+    <div class="embed__cap">
+      <span><b>The drone economy</b> — the same robots under different economics.
+        Watch what a bundled-deal economy does that a one-price economy can't.</span>
+      <a href="swarm.html">open it full-screen ›</a>
     </div>
   </div>
 
-  <div id="bloom-overlay" class="hidden">
-    <canvas id="bloom-canvas"></canvas>
-    <div id="bloom-caption">
-      <div id="bloom-title">BLOOM OF THE GENERATION</div>
-      <div id="bloom-house">—</div>
-      <div id="bloom-meta">—</div>
-    </div>
-  </div>
-
-  <!-- FIRST-SCREEN REVEAL (shown once, to zero-context visitors). Three beats:
-       (1) REVEAL — what am I watching  ·  (2) PROOF — the one thing it shows
-       ·  (3) CTA — send a fighter in / just watch.  Returning + "just watch"
-       visitors get the same beats from ? (legend, now with a panel decoder)
-       and the HUD tooltips.  POLISH: check the card doesn't overflow on very
-       short mobile viewports; consider a persistent one-line world caption for
-       return visits (deferred — top bar is crowded, see #era-banner). -->
-  <div id="onboard" class="overlay hidden">
-    <div class="onboard-card">
-      <div class="onboard-eyebrow"><span class="live-dot"></span>Live · SNHP Evolution Arena</div>
-      <h1>Watch negotiation strategies evolve.</h1>
-      <p class="onboard-stake">Every knight is an AI dealmaker. Win a deal and it eats and breeds; lose and it starves. <b>Nobody coded them to haggle</b> — every move is computed by SNHP, the engine this world shows off.</p>
-      <div class="onboard-proof">
-        <span class="op-num">+27%</span>
-        <span class="op-txt">Left to evolve, they found a pricing strategy that <b>out-earns SNHP's own shipped advice.</b> The students beat the textbook.</span>
-      </div>
-      <div class="pick-title">Your move — drop a fighter into the live world. Pick a house, each a real SNHP strategy:</div>
-      <div id="house-grid"></div>
-      <div id="forge-dials">
-        <label>boldness <input type="range" id="dial-bold" min="0" max="100" value="60" />
-          <span class="dial-hint">how high it aims (the SNHP pareto knob + anchor)</span></label>
-        <label>bluff <input type="range" id="dial-bluff" min="0" max="100" value="30" />
-          <span class="dial-hint">how hard it overstates its walk-away</span></label>
-        <label>patience <input type="range" id="dial-pat" min="0" max="100" value="50" />
-          <span class="dial-hint">how long it holds before conceding</span></label>
-      </div>
-      <div class="forge-row">
-        <button id="forge-send" disabled>pick a house first</button>
-        <button id="onboard-dismiss" class="ghost">just watch →</button>
-      </div>
-      <p class="fine"><a href="#" id="onboard-legend-link">▸ how to read the hall</a> &nbsp;·&nbsp; <a href="#" id="onboard-honest-link">what's real, and what's not</a></p>
-    </div>
-  </div>
-
-  <div id="legend" class="overlay hidden">
-    <div class="onboard-card">
-      <button id="legend-close" class="ghost hx" title="close">✕</button>
-      <h1>How to read the hall</h1>
-      <ol>
-        <li><b>Every knight negotiates with SNHP at its ear</b> — its tactic is how boldly it follows the advice, and its look <i>is</i> its strategy.</li>
-        <li>When two meet, the <b>shrinking bar</b> is the deal closing. <b>Gold flash</b> = agreement; earnings are life.</li>
-        <li>The rich <b>bloom</b> — a flower only winners can afford — <b>court</b>, and haggle over which traits their <b>children</b> inherit.</li>
-        <li>When the <b>stained glass turns</b>, the market turns, and a new pollinator decides what is beautiful. Strategies rise and fall with the season.</li>
-      </ol>
-      <div class="legend-panels">
-        <div class="lp-title">reading the corners</div>
-        <ul>
-          <li><b>Dynasties</b><span class="where">top right</span> — the houses, ranked by their agents' combined wealth.</li>
-          <li><b>Census</b><span class="where">bottom left</span> — the living population, how often deals close, and how many stake their word.</li>
-          <li><b>Strategies</b><span class="where">bottom right</span> — which tactic is earning most this generation, and whether boldness is paying.</li>
-          <li><b>Ticker</b><span class="where">bottom</span> — births, deaths, record deals, and market turns, as they happen.</li>
-        </ul>
-      </div>
-      <p class="fine">Every deal is computed by the shipped <b>SNHP</b> engine — nothing here knows how to negotiate except the library being shown off. <a href="#" id="legend-honest-link">▸ what's real, and what's not (even our own hype)</a></p>
-      <div class="forge-row"><button id="legend-forge">⚒ send a fighter in</button></div>
-    </div>
-  </div>
-
-  <div id="honest" class="overlay hidden">
-    <div class="honest-card">
-      <button id="honest-close" class="ghost hx" title="close">✕</button>
-      <div class="honest-eyebrow">THE HONEST PAGE</div>
-      <h1>We published the results that make us look bad.</h1>
-      <p class="honest-sub">Exactly how this world works — and what's real, what's not, even when the “not” is our own hype.</p>
-
-      <div class="honest-live" id="honest-live"></div>
-
-      <section class="honest-sec">
-        <h2>How they live or die</h2>
-        <p>Nobody scores their negotiating. It's a <b>town, not an exam.</b></p>
-        <ul>
-          <li>A knight <b>earns energy</b> from the surplus it wins in a deal.</li>
-          <li>Every round it <b>pays rent</b> — more if its strategy is crowded. Broke, it dies.</li>
-          <li><b>Bank enough and it breeds</b> — the two parents haggle over which genes the child gets.</li>
-        </ul>
-        <p class="honest-punch">Good dealmakers eat and multiply. Bad ones starve. Fitness is money, not a score we hand out.</p>
-      </section>
-
-      <div class="honest-cols">
-        <section class="honest-col real">
-          <h3>What's real</h3>
-          <ul>
-            <li><b>Students beat the textbook.</b> Evolution found a price strategy that out-earns SNHP's own default advice by <b>+27%</b>.</li>
-            <li><b>Trust grows the pie.</b> Two verified partners who cooperate both do better (+2% together). A lone cooperator gains nothing — that's why you stake.</li>
-            <li><b>Every move is SNHP.</b> There is zero negotiation code in the arena itself.</li>
-          </ul>
-        </section>
-        <section class="honest-col hype">
-          <h3>What's hype — even ours</h3>
-          <ul>
-            <li><b>“+119% on multi-issue”</b> is an artifact — agents evolved to <i>want less</i>, so every deal looks like a win. On the fair metric, our recommender is already at the ceiling.</li>
-            <li><b>“Fitness always rises”</b> is false. The average runs to stay in place (a Red Queen race). The winners are rare.</li>
-            <li><b>“Emergent species, clever gene-bargaining”</b> — no. Those tie a coin flip. We say so.</li>
-          </ul>
-        </section>
-      </div>
-      <p class="honest-repro">Every number reproducible → <code>python -m arena.science --all</code></p>
-    </div>
-  </div>
-
-  <div id="saga" class="overlay hidden">
-    <div class="saga-card">
-      <canvas id="saga-canvas" width="1200" height="630"></canvas>
-      <div class="saga-actions">
-        <button id="saga-dl">⤓ save the card</button>
-        <button id="saga-copy" class="ghost">copy the challenge</button>
-        <button id="saga-close" class="ghost">close</button>
-      </div>
-      <div class="saga-hint">save the card, post it, dare someone to outlast your bloodline.</div>
-    </div>
+  <!-- THREE DOORS -->
+  <h2>Three ways in</h2>
+  <div class="doors">
+    <a class="door" href="watch.html">
+      <span class="verb">Watch</span>
+      <h3>See it <span>run</span></h3>
+      <p>Three live exhibits — the drone economy, the regime toggle, and the
+        research pipeline replaying its own history. The mechanism, moving.</p>
+      <span class="go">watch ›</span>
+    </a>
+    <a class="door" href="read.html">
+      <span class="verb">Read</span>
+      <h3>See the <span>method</span></h3>
+      <p>The science room and the public ledger — pre-registered predictions,
+        kill conditions, and the verdicts, wins and nulls alike. Plus the repo.</p>
+      <span class="go">read ›</span>
+    </a>
+    <a class="door" href="build.html">
+      <span class="verb">Build</span>
+      <h3>Use the <span>engine</span></h3>
+      <p>One line adds the negotiator to your agent. Then the benchmark — one
+        number per agent on the same held-out deals — and how to enter yours.</p>
+      <span class="go">build ›</span>
+    </a>
   </div>
 </div>
 
-<script src="sprites.js?v=5"></script>
-<script src="flora.js?v=5"></script>
-<script src="stage.js?v=5"></script>
-<script src="fx.js?v=5"></script>
-<script src="world.js?v=5"></script>
-<script src="choreo.js?v=5"></script>
-<script src="bloom.js?v=5"></script>
-<!-- POLISH/DEPLOY: bumped to v=6 so the new HUD-panel tooltips (hud.js) bust the
-     browser cache. If your deploy normalizes all ?v in lockstep, fold this in. -->
-<script src="hud.js?v=6"></script>
-<script src="sound.js?v=5"></script>
-<script src="net.js?v=5"></script>
-<script src="demo.js?v=5"></script>
-<script src="main.js?v=5"></script>
+<script src="nav.js"></script>
+<script>
+  // Lazy-mount the hero embed: only fetch swarm.html once it's near the viewport,
+  // so first paint stays instant. Falls back to an immediate load without IO.
+  (function () {
+    var f = document.getElementById("hero-embed"), ph = document.getElementById("embed-ph");
+    if (!f) return;
+    var mount = function () {
+      if (f.src) return;
+      f.src = f.dataset.src;
+      f.addEventListener("load", function () { if (ph) ph.style.display = "none"; }, { once: true });
+    };
+    if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { mount(); io.disconnect(); } });
+      }, { rootMargin: "200px" });
+      io.observe(f);
+    } else { mount(); }
+  })();
+</script>
