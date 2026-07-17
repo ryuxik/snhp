@@ -3587,3 +3587,105 @@ Mechanism on top of AB2's claim-collateralized loans (LTV 0.5):
   make paper lethal — the strongest possible form of the law, and the
   article's #20 close gets its final sentence either way. Report
   loudly.
+
+**PAB3 RESULTS (2026-07-17 · column AB3 — report, NOT a verdict; numbers
+loud either way).** The crash with real teeth: maturities + ENERGY recourse
+on the AB2 debt economy (bills + claims-die, LTV 0.5, 7,500t; far band dark
+at the registered per-grid T_shock — 1,000 at N=240, 200 at N=24; v5 rescue
+net ON in every cell). Mechanism (`debt_maturity` + `recourse`, off by
+default; debt_maturity=0 ⇒ bit-identical to AB2, suite-verified): every loan
+carries due_tick = T_loan + M; at maturity the treasury SEIZES BATTERY to
+cover the unpaid balance at the loan's own disbursement price (the loan
+moved energy at DEBT_ENERGY_PRICE=0.3 credit/unit, so a balance of B credits
+is exactly B/0.3 battery units — the exact inverse of the disbursement, no
+new scalar). Recourse regimes: FULL (seizure may cross the survival
+threshold — the debtor's-prison world) vs EXEMPT (seizure stops at
+RECOURSE_FLOOR = RESCUE_FLOOR = 5.0, pre-committed ONCE from the
+survival-threshold physics — _maybe_strand strands iff battery <
+RESCUE_FLOOR — before any run; no tuning after). Partial seizure retires
+balance at the same rate; the remainder rolls to AB2 garnishment. Seizure
+resolves at TICK START in the world tick (after death_step, before drives),
+never inside a deal — evaluated Φ == executed Φ held live throughout
+(suite + live asserts). The inherited AB2 borrow rule is RECOURSE-BLIND by
+construction (maturity/recourse are invisible to phi_bills — the rule does
+NOT price expected recourse; whether it should was left to the data).
+Treasury waterfall extends: loaned == repaid + written_off + SEIZED +
+outstanding, closed <1e-6 live in all 416 runs. Grid: LTV 0.5 × maturity
+{600 short, 2,400 long} × recourse {full, exempt} × {shock, control}; gross
+at N=240 (grid 101, 8 seeds, primary), gross+CCP at N=24 (16 seeds,
+reference); anchors LTV0 (≡AB) and LTV0.5-no-maturity (≡AB2) in-grid.
+- **ANCHORS REPRODUCE, bit-exact.** LTV0 deaths 10.25 shk / 14.00 ctl at
+  N=240 (= AB/AB2's 10.2/14.0 exactly); LTV0.5-no-maturity 5.50/7.62 (=
+  PAB2's 5.5/7.6); loaned 4,237 in the no-shock anchor (= PAB2's 4,237).
+  debt_maturity=0 verified bit-identical to AB2 through a full
+  bills+mortality+shock run (both recourse values), and m2400's post-active
+  seizures leave per-seed deaths LITERALLY frozen at the anchor's (9=9, 4=4,
+  … all 8 seeds) — the off-switch and the anchors are exact.
+- **THE TEETH BITE THE LEDGER — 58 seizures/run, and the balance is real.**
+  At N=240 gross+shk, m600: 58.0 seizures/run (74% post-shock), 476 battery
+  units seized, $143 of balance retired by recourse vs $105 in the control
+  (+36%); m2400: 45.4 seizures (100% post-shock), $121 vs $75 (+61%) — the
+  crash genuinely forces obligations to land unpaid, and short maturity
+  lands MORE of them inside the trough (PAB3c's coupling, on the ledger).
+  Garnishment from uncovered remainders: 2.2–2.9 episodes/run.
+- **PAB3a REFUTED — the teeth close on nothing.** Post-shock deaths do NOT
+  rise in any cell: m600 full-recourse Δdeaths vs the AB2 shock baseline =
+  +0.00 (paired, 2/8 wins, p=1.0 — per-seed divergence that cancels
+  exactly); m2400 Δ = +0.00 with per-seed identity. Below-survival-floor
+  seizures: **0.0/run at m600, 0.125/run at m2400-full (ONE event in 8
+  seeds), 0 under exempt (floor binds by construction)**. Seizure→strand
+  within 3t: 0 everywhere. Seizure→flatline within FLATLINE+50t: 0
+  everywhere. deaths_seized = **0.00 in every cell at both scales** — no
+  drone that was ever seized died, of anything, all horizon. The mechanism
+  that was supposed to kill (seizure-induced stranding) never fires because
+  the borrow rule's OWN lifecycle immunizes it: Φ self-targets loans at the
+  energy trough mid-mission, settlement-first repayment extinguishes ~96%
+  of principal before maturity (3,602 of 3,748 shock / 4,115 of 4,223 ctl),
+  and the residual balance (~2.5 credits ≈ 8 battery units per seizure)
+  lands 600+ ticks later on a recovered, charger-adjacent body. A maturity
+  is a DATE, not a margin call — by the time the date arrives, the trough
+  the loan was born in is gone.
+- **The rescue-net interplay, instrumented:** the net had almost nothing to
+  absorb — of the single below-floor full-recourse seizure in 32 N=240
+  treatment runs, the drone was rescued (survived the flatline window);
+  rescues-of-seized = 100% of the (one) case. The net is the second wall;
+  the loan lifecycle is the first, and the first wall held alone.
+- **PAB3b REFUTED / MOOT — the exemption buys nothing and costs nothing.**
+  There are no recourse deaths for the floor to eliminate, and credit does
+  NOT tighten: take-up is IDENTICAL under full vs exempt (986 borrows,
+  12,492 energy at m600, both regimes — the recourse-blind rule cannot
+  self-ration and nothing else rations it; full-vs-exempt trajectories
+  diverge only at the ~0.1/run floor-binding events, Eseiz 476.4 vs 476.0).
+  The registered self-rationing question answers NO — the Φ-derived rule
+  does not price recourse risk — and the un-priced, un-rationed
+  debtor's-prison book STILL produced zero casualties.
+- **PAB3c REFUTED on lives, CONFIRMED on the ledger.** Short maturity does
+  couple the debt cycle to the crash — more seizures, +36% seized balance
+  vs control, obligations due inside the trough while collateral is crushed
+  — and long maturity does let collateral recover ($121 seized on 45
+  events, all post-shock, smaller residuals). But the coupling is purely
+  ledger-side: deaths are identical at both terms, and the shock still
+  SAVES lives in every treatment cell (Δshk−ctl = −1.88 at m600, −2.12 at
+  m2400, echoing AB/AB2). CCP reference (N=24): seizures 3.6 → 0.9,
+  garnishment 2.7 → 1.1, deaths 4.81 → 4.19 — making claimants whole
+  preserves settlement income, so loans repay before maturity; the CCP now
+  buys solvency AND pre-empts recourse.
+- **KILL FIRES — the strongest form, and it is the article's ending.**
+  Full energy recourse at short maturity raises deaths NOWHERE (N=240:
+  Δ=+0.00 exact; N=24: +0.00 exact; CCP cells: −0.62). I gave the debt a
+  due date and the right to seize the battery — the survival resource —
+  with no protected floor, landing inside the crash's trough, with the
+  borrow rule too blind to price the danger, and the teeth closed on
+  ledger entries: 58 seizures a run, one below the survival line all
+  sweep, zero stranded, zero dead. **Nothing in this world can make paper
+  lethal.** The reason is now fully mechanistic, and it is the program's
+  law stated backwards: credit here is rescue (PAB2), and an obligation
+  born as a rescue at the trough is repaid out of the recovery it financed
+  — recourse arrives after the danger it was supposed to embody. A debt
+  death in this world would need an obligation that lands DURING the
+  trough it was borrowed in (a margin call mid-flight, a demand loan, a
+  seizure triggered by collateral write-down rather than by date) — the
+  one lever v34 deliberately did not pull, registered-open if #20 ever
+  needs a sequel. The confession's final sentence: "I gave them debt, then
+  teeth, then took away the bankruptcy floor — and they died half as often
+  and never once of paper."
