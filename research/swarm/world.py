@@ -249,7 +249,9 @@ class World:
                  build_matter: float = 0.0, build: bool = False,
                  toll_level: float = 0.0, build_budget: int = 10**9,
                  command: bool = False, deadlock_track: bool = False,
-                 charger_band: float = 0.0, nav_dumb: bool = False):
+                 charger_band: float = 0.0, nav_dumb: bool = False,
+                 forgery: bool = False, forge_cost: float = 0.0,
+                 verify_cost: float = 0.0, verify_regime: str = "none"):
         self.rng = np.random.RandomState(seed)
         self.rng_seed = seed                 # v18: matter-field RNG keys off this
         self.hazard_phi = hazard_phi
@@ -508,6 +510,35 @@ class World:
         self.reputation = reputation
         self.false_accuse = false_accuse
         self._eps_rng = np.random.RandomState(seed + 424242)
+        # v27 (column Z): forgery — the receipt under attack. The entire program
+        # since v6 has ASSUMED the attested receipt is unforgeable; this attacks
+        # that in the trust-GATED tier ONLY (bills stay off — one assumption at a
+        # time). A liar (unattested) may burn `forge_cost` energy to present a
+        # FORGED receipt that appears attested; a counterparty may burn
+        # `verify_cost` energy to check it (a forgery is caught with certainty,
+        # p_v=1; an unchecked receipt is honored at face value). `verify_regime`
+        # ∈ {"none","mandated","endogenous"} selects who checks. All default
+        # off/zero ⇒ every prior column is bit-identical: the flags are read ONLY
+        # by TrustArm.encounter (and only when gated), the ledger accumulators
+        # start at zero, the dedicated forgery RandomState is allocated only when
+        # forgery is on (so the main stream is never perturbed), and forgery is a
+        # DETERMINISTIC cost (every liar always forges) — the RandomState is
+        # reserved by the registration but unused, documented here.
+        self.forgery = forgery
+        self.forge_cost = float(forge_cost)
+        self.verify_cost = float(verify_cost)
+        self.verify_regime = verify_regime
+        self.liar_frac = float(liar_frac)         # the tier's forger prevalence
+        self.forge_spend = 0.0                     # Σ energy burned forging (ledger)
+        self.verify_spend = 0.0                    # Σ energy burned verifying (ledger)
+        self.forge_events = 0                      # count of forge debits
+        self.verify_events = 0                     # count of verify debits
+        if forgery:
+            assert defended, ("forgery attacks the ATTESTED gate — it requires "
+                              "the defended (signed-books) tier to forge past")
+            # dedicated stochastic stream (registered seed+272727); UNUSED under
+            # the deterministic always-forge choice, allocated for reproducibility
+            self._forge_rng = np.random.RandomState(seed + 272727)
         # v18 (column Q): endogenous infrastructure. build_matter seeds a SEPARATE
         # matter field (disjoint from ore); build lets fleets place chargers; the
         # toll_level is the guest price stamped on every built charger; build_budget
@@ -1892,6 +1923,22 @@ class World:
     def debit_energy(self, r: Robot, amount: float) -> None:
         r.battery = max(0.0, r.battery - amount)
         self._maybe_strand(r)
+
+    def _forge_debit(self, r: Robot, amount: float, kind: str) -> None:
+        """v27 (column Z): burn `amount` battery for a forgery act (`kind`=="forge")
+        or a verification act (`kind`=="verify") and book the posted price to the
+        column-Z spend ledger. The battery is CONSUMED exactly like a move (it can
+        floor at 0 = stranding), while the ledger records the price of every act —
+        so the conservation identity the Z test checks is `spend == events × cost`
+        (every act charged once at the registered price). Called by the arm AFTER
+        the deal settles, so it never perturbs the evaluated Φ == executed Φ assert."""
+        self.debit_energy(r, amount)
+        if kind == "forge":
+            self.forge_spend += amount
+            self.forge_events += 1
+        else:
+            self.verify_spend += amount
+            self.verify_events += 1
 
     # ── queries ─────────────────────────────────────────────────────────
     def encounters(self):
