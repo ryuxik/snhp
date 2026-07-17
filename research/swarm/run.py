@@ -28,7 +28,8 @@ from scipy import stats
 
 from swarm.arms import CLAIM_OPTS, make_arm
 from swarm.world import (BUILD_CREDIT_COST, CCP_FEE, CHARGE_SLOTS,
-                         DWELL_DECAY_LAMBDA, FLATLINE_TICKS, MATTER_COST,
+                         DEBT_ENERGY_PRICE, DWELL_DECAY_LAMBDA, FLATLINE_TICKS,
+                         MATTER_COST,
                          SHOCK_FAR_PCTL, SHOCK_VALUE_FLOOR, TOLL_GRID,
                          TOTAL_STOCK, V_DELIVER, WEAROUT_AGE, WEAROUT_P, World,
                          manhattan)
@@ -180,7 +181,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              mortality: bool = False, death_regime: str = "none",
              wearout: bool = False,
              shock: bool = False, shock_tick: int | None = None,
-             clearinghouse: bool = False, depots: bool = False) -> dict:
+             clearinghouse: bool = False, depots: bool = False,
+             debt_ltv: float = 0.0) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -225,7 +227,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               verify_cost=verify_cost, verify_regime=verify_regime,
               mortality=mortality, death_regime=death_regime, wearout=wearout,
               shock=shock, shock_tick=shock_tick, clearinghouse=clearinghouse,
-              depots=depots)
+              depots=depots,
+              debt_ltv=debt_ltv)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     # v29 (column AB): sample the CCP fee-pool trajectory (and the far-band exposure)
@@ -294,6 +297,7 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
     assert w.material_ok(), "material leak"
     assert w.ledger_accounted(), "ledger leak"
     assert w.credit_conserved(), "credit leak"        # v29 (column AB): CCP + shock
+    assert w.debt_conserved(), "debt leak"            # v32 (column AB2): treasury waterfall
     assert w.matter_conserved(), "matter leak"        # v18 (column Q)
     assert w.toll_conserved(), "toll leak"            # v18 (column Q)
 
@@ -616,6 +620,65 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
             ccp_haircut=round(w.ccp_haircut, 2),
             ccp_pool_final=round(w.ccp_pool, 2), ccp_pool_traj=_pool_traj,
         )
+    # v32 (column AB2): the debt blob (only when debt_ltv>0). Borrowing take-up (the
+    # pre-flight gate: does the loan fund far work?), the treasury waterfall (loaned /
+    # repaid / written-off / outstanding — must balance), and garnishment (episodes,
+    # duration, hop-distance of the underwater drones from the shock, and whether the
+    # garnished DIE — PAB2b's body count). No-op unless debt_ltv>0 ⇒ every prior
+    # column bit-identical.
+    debt_detail = None
+    if debt_ltv > 0.0:
+        # far band = the SHOCK_FAR_PCTL of nearest-refinery distance (identical geometry
+        # to the shock's dark region), so "borrow funds far work" reads on the SAME band.
+        _fd = [min(manhattan(s, rf) for rf in w.refineries) for s in w.sources]
+        _fthr = float(np.percentile(_fd, SHOCK_FAR_PCTL)) if _fd else 0.0
+        blog = w._borrow_log                         # (tick, rid, energy, principal, dref, taint)
+        borrowers = sorted({b[1] for b in blog})
+        drefs = [b[4] for b in blog]
+        far_borrows = sum(1 for b in blog if b[4] > _fthr)
+        tshock = w.shock_tick if w.shock_tick is not None else -1
+        borrows_pre = sum(1 for b in blog if tshock < 0 or b[0] < tshock)
+        borrows_post = sum(1 for b in blog if tshock >= 0 and b[0] >= tshock)
+        # garnishment episodes: duration (end−start; end=-1 ⇒ still open at horizon/death),
+        # hop-distance from the shock at entry (None ⇒ untainted), and whether the drone died.
+        dead_rids = {d["rid"] for d in w.death_log}
+        gl = w.garnish_log
+        durs, hops, g_far, g_dead = [], [], 0, 0
+        for g in gl:
+            end = g["end"] if g["end"] >= 0 else w.tick
+            durs.append(end - g["start"])
+            h = g["hop"]
+            hops.append(h if h is not None else -1)   # -1 = untainted (no shock reach)
+            if h is not None and h >= 1:
+                g_far += 1
+            if g["rid"] in dead_rids:
+                g_dead += 1
+        garnished_rids = {g["rid"] for g in gl}
+        # deaths among EVER-garnished drones vs the rest (PAB2b: casualties concentrate
+        # among the garnished, ≥1 hop from direct exposure).
+        deaths_garnished = sum(1 for d in w.death_log if d["rid"] in garnished_rids)
+        deaths_post = (sum(1 for d in w.death_log if d["tick"] >= tshock)
+                       if tshock >= 0 else 0)
+        outstanding = round(sum(r.debt for r in w.robots), 4)
+        debt_detail = dict(
+            debt_ltv=debt_ltv, energy_price=DEBT_ENERGY_PRICE, far_thr=round(_fthr, 1),
+            # take-up (the pre-flight)
+            n_borrow_events=len(blog), n_borrowers=len(borrowers),
+            energy_borrowed=round(w.energy_borrowed, 2),
+            energy_drawn=round(w.energy_drawn(), 2),
+            mean_borrow_dref=round(float(np.mean(drefs)), 2) if drefs else 0.0,
+            far_borrow_share=round(far_borrows / len(blog), 3) if blog else 0.0,
+            borrows_pre=borrows_pre, borrows_post=borrows_post,
+            # treasury waterfall (must balance: loaned == repaid + written_off + outstanding)
+            debt_loaned=round(w.debt_loaned, 2), debt_repaid=round(w.debt_repaid, 2),
+            debt_written_off=round(w.debt_written_off, 2), debt_outstanding=outstanding,
+            # garnishment (PAB2b/c)
+            n_garnish=len(gl), n_garnish_far=g_far, n_garnish_dead=g_dead,
+            garnish_mean_dur=round(float(np.mean(durs)), 1) if durs else 0.0,
+            garnish_hops=hops,
+            deaths=w.deaths, deaths_post=deaths_post,
+            deaths_garnished=deaths_garnished,
+        )
     # v30 (column M2): the medium-of-exchange index M(x) and flow shares, computed
     # from the deal log (q, e, s, t). M(x) = P(x on the OPPOSITE side of a bundle from
     # a good moving the other way) among deals where x moves — the v15/P19c index,
@@ -728,6 +791,10 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         base_label = base_label + "+ccp"
     if shock:
         base_label = base_label + "+shk"
+    # v32 (column AB2): a debt row carries "+ltv<LTV>" so the LTV grid pairs cleanly
+    # (LTV 0 is the AB anchor — no suffix). Off ⇒ unchanged.
+    if debt_ltv > 0.0:
+        base_label = base_label + f"+ltv{debt_ltv:g}"
     # v30 (column M2): an endorsable-claim row carries "+xfer" so bills-static
     # ("snhp+bill") and bills-transferable ("snhp+bill+xfer") pair cleanly. Off ⇒
     # unchanged (a static bills row is exactly the P23 "snhp+bill").
@@ -888,6 +955,9 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         shock=shock, clearinghouse=clearinghouse,
         shock_tick=(w.shock_tick if (shock or clearinghouse) else None),
         shock_detail=shock_detail,
+        # v32 (column AB2): claim-collateralized debt
+        debt_ltv=debt_ltv,
+        debt_detail=debt_detail,
     )
 
 
@@ -3431,6 +3501,214 @@ def pab_report(rows: list[dict]) -> None:
           "leverage / systemic risk.")
 
 
+def pab2_report(rows: list[dict]) -> None:
+    """v32 (column AB2) — the crash with teeth: claim-collateralized debt. Printed
+    numbers ARE the artifact (report, not verdict). No-op unless the sweep carries a
+    debt run. The AB crash economy (bills+claims-die mortality, far band dark at
+    T_shock) PLUS borrowing against claims. Grid: LTV {0,0.5,0.8} × {gross,
+    clearinghouse} × {shock, no-shock control}. LTV 0 ≡ AB as run (the baseline where
+    post-shock deaths FELL). Reads debt_detail (take-up / treasury / garnishment),
+    shock_detail (deaths/strands post-shock) and lineage_detail (far-band d/m)."""
+    if not any(r.get("debt_detail") is not None for r in rows):
+        return
+    LTVS = (0.0, 0.5, 0.8)
+    Ns = sorted({int(r["n_robots"]) for r in rows if r.get("debt_ltv", 0.0) > 0.0}
+                | {int(r["n_robots"]) for r in rows
+                   if r.get("debt_detail") is not None})
+
+    def lbl(ltv, ccp, shock):
+        s = "snhp+bill+die"
+        if ccp:
+            s += "+ccp"
+        if shock:
+            s += "+shk"
+        if ltv > 0:
+            s += f"+ltv{ltv:g}"
+        return s
+
+    def sel(ltv, ccp, shock, N):
+        arm = lbl(ltv, ccp, shock)
+        return [r for r in rows if r["arm"] == arm and int(r["n_robots"]) == N]
+
+    def byseed(g, f):
+        return {r["seed"]: f(r) for r in g}
+
+    def paired(gh, gl, f):
+        hi, lo = byseed(gh, f), byseed(gl, f)
+        common = sorted(set(hi) & set(lo))
+        if len(common) < 2:
+            return (float("nan"), float("nan"), 0, len(common))
+        a = [hi[s] for s in common]
+        b = [lo[s] for s in common]
+        d = float(np.mean([x - y for x, y in zip(a, b)]))
+        try:
+            _, p = stats.ttest_rel(a, b)
+        except Exception:
+            p = float("nan")
+        wins = sum(1 for x, y in zip(a, b) if x > y)
+        return (d, float(p), wins, len(common))
+
+    def dd(r):
+        return r.get("debt_detail") or {}
+
+    def sd(r):
+        return r.get("shock_detail") or {}
+
+    def far_dm(g):
+        gg = [r for r in g if r.get("lineage_detail")]
+        if not gg:
+            return 0.0
+        bm = np.array([r["lineage_detail"]["band_mined"] for r in gg], float).sum(axis=0)
+        bd = np.array([r["lineage_detail"]["band_delivered"] for r in gg], float).sum(axis=0)
+        return bd[2] / bm[2] if bm[2] > 0 else 0.0
+
+    print("\n" + "=" * 96)
+    print("PAB2 (v32 · column AB2) — THE CRASH WITH TEETH: CLAIM-COLLATERALIZED DEBT "
+          "(report, not verdict)")
+    ex = next(r for r in rows if r.get("debt_detail") is not None)
+    d0 = dd(ex)
+    print(f"Borrow against claims up to LTV × face value; loan energy priced at "
+          f"{d0['energy_price']:g}/unit (the neutral shadow price); settlement repays "
+          f"debt FIRST;")
+    print(f"underwater (debt>collateral) ⇒ GARNISHMENT (no new borrowing, all income "
+          f"services debt). Grid LTV {{0,0.5,0.8}} × {{gross,ccp}} × {{shock,ctl}}; "
+          f"LTV 0 ≡ AB as run.")
+    print("=" * 96)
+
+    # [1] PRE-FLIGHT / TAKE-UP — does the loan get taken, and does it fund FAR work?
+    print("\n[1] TAKE-UP (the pre-flight) — borrowers/run, energy borrowed & its share of "
+          "energy drawn, far-borrow share, on the NO-SHOCK controls:")
+    h = (f"  {'cell':<16} {'N':>4} {'borrows':>7} {'ers/run':>7} {'Ebor':>7} "
+         f"{'Ebor%draw':>9} {'far%':>6} {'meanDref':>8} {'farThr':>6}")
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for ltv in (0.5, 0.8):
+            for ccp in (False, True):
+                g = sel(ltv, ccp, False, N)
+                if not g:
+                    continue
+                s = [dd(r) for r in g]
+                nb = np.mean([x["n_borrow_events"] for x in s])
+                ers = np.mean([x["n_borrowers"] for x in s])
+                eb = np.mean([x["energy_borrowed"] for x in s])
+                ed = np.mean([x["energy_drawn"] for x in s])
+                fs = np.mean([x["far_borrow_share"] for x in s])
+                dr = np.mean([x["mean_borrow_dref"] for x in s])
+                ft = s[0]["far_thr"]
+                tag = "gross" if not ccp else "ccp"
+                print(f"  ltv{ltv:g}+{tag:<10} {N:>4} {nb:>7.0f} {ers:>7.1f} {eb:>7.0f} "
+                      f"{eb / ed if ed else 0:>8.1%} {fs:>6.1%} {dr:>8.1f} {ft:>6.1f}")
+    print("    (far% = borrows struck beyond the far-band threshold; a debt column nobody "
+          "borrows in — or that funds only near work — is vacuous.)")
+
+    # [2] PAB2-pre — does borrowing raise far-band delivered? (no-shock controls, gross)
+    print("\n[2] PAB2-pre — far-band delivered/mined & delivered_frac WITH vs WITHOUT debt "
+          "(no-shock, gross bilateral): is the bait real?")
+    h = f"  {'N':>4} {'LTV':>5} {'far d/m':>8} {'dFrac':>7} {'deaths':>7} {'strand':>7}"
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for ltv in LTVS:
+            g = sel(ltv, False, False, N)
+            if not g:
+                continue
+            fdm = far_dm(g)
+            df = np.mean([r["delivered_frac"] for r in g])
+            dth = np.mean([r["deaths"] or 0 for r in g])
+            st = np.mean([r["stranded"] for r in g])
+            print(f"  {N:>4} {ltv:>5g} {fdm:>8.3f} {df:>7.3f} {dth:>7.1f} {st:>7.1f}")
+
+    # [3] DEATHS / STRANDING — the crux: does the crash now cross into physics?
+    print("\n[3] DEATHS/STRANDING — LTV × regime × shock/control. PAB2a: do post-shock "
+          "deaths RISE with LTV (vs the AB LTV-0 baseline where they FELL)?")
+    h = (f"  {'cell':<20} {'N':>4} {'deaths':>7} {'dPost':>6} {'strPost':>7} "
+         f"{'dFrac':>7} {'Δdeath(shk−ctl)':>16}")
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for ccp in (False, True):
+            for ltv in LTVS:
+                gs = sel(ltv, ccp, True, N)
+                gc = sel(ltv, ccp, False, N)
+                if not gs:
+                    continue
+                dth = np.mean([r["deaths"] or 0 for r in gs])
+                dp = np.mean([sd(r).get("deaths_post", 0) for r in gs])
+                sp = np.mean([sd(r).get("strands_post", 0) for r in gs])
+                df = np.mean([r["delivered_frac"] for r in gs])
+                dd_, dp_, dw, dn = paired(gs, gc, lambda r: (r["deaths"] or 0))
+                tag = "gross" if not ccp else "ccp"
+                print(f"  ltv{ltv:g}+{tag:<15} {N:>4} {dth:>7.1f} {dp:>6.1f} {sp:>7.1f} "
+                      f"{df:>7.3f} {dd_:>+9.2f} p={dp_:>4.2f} {dw}/{dn}")
+
+    # [4] KILL — do post-shock deaths rise at ANY LTV vs the LTV-0 (AB) baseline?
+    print("\n[4] KILL CHECK (PAB2a/KILL) — post-shock deaths at LTV>0 vs the LTV-0 AB "
+          "baseline (paired, shock cells). KILL FIRES if deaths do NOT rise at any LTV.")
+    h = f"  {'contrast':<28} {'N':>4} {'Δdeaths':>9} {'p':>6} {'wins':>7}"
+    print(h + "\n  " + "-" * (len(h) - 2))
+    any_rise = False
+    for N in Ns:
+        for ccp in (False, True):
+            g0 = sel(0.0, ccp, True, N)
+            for ltv in (0.5, 0.8):
+                gl = sel(ltv, ccp, True, N)
+                if not gl or not g0:
+                    continue
+                d, p, w, n = paired(gl, g0, lambda r: (r["deaths"] or 0))
+                tag = "gross" if not ccp else "ccp"
+                rise = (d > 0 and p < 0.10)
+                any_rise = any_rise or rise
+                flag = "  <-- RISE" if rise else ""
+                print(f"  ltv{ltv:g}−ltv0 ({tag}){'':<10} {N:>4} {d:>+9.2f} {p:>6.2f} "
+                      f"{w}/{n}{flag}")
+    print(f"    KILL STATUS: {'DOES NOT FIRE — deaths RISE at some LTV (debt has teeth)' if any_rise else 'FIRES — deaths do NOT rise at any LTV (no bankruptcy even with debt)'}")
+
+    # [5] GARNISHMENT — the distress state and its body count (PAB2b/c)
+    print("\n[5] GARNISHMENT — episodes, mean duration (ticks), share ≥1 hop from the "
+          "shock, deaths among the ever-garnished (PAB2b: contagion gains a body count):")
+    h = (f"  {'cell':<20} {'N':>4} {'garn':>5} {'far≥1':>6} {'meanDur':>8} "
+         f"{'gDead':>6} {'deaths':>7}")
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for ccp in (False, True):
+            for ltv in (0.5, 0.8):
+                for shk in (True, False):
+                    g = sel(ltv, ccp, shk, N)
+                    if not g:
+                        continue
+                    s = [dd(r) for r in g]
+                    ng = np.mean([x["n_garnish"] for x in s])
+                    ngf = np.mean([x["n_garnish_far"] for x in s])
+                    md_ = np.mean([x["garnish_mean_dur"] for x in s])
+                    gdd = np.mean([x["deaths_garnished"] for x in s])
+                    dth = np.mean([r["deaths"] or 0 for r in g])
+                    tag = ("ccp" if ccp else "gross") + ("+shk" if shk else "+ctl")
+                    print(f"  ltv{ltv:g}+{tag:<14} {N:>4} {ng:>5.1f} {ngf:>6.1f} "
+                          f"{md_:>8.0f} {gdd:>6.1f} {dth:>7.1f}")
+
+    # [6] TREASURY WATERFALL — loaned / repaid / written-off / outstanding (must balance)
+    print("\n[6] TREASURY WATERFALL — loaned = repaid + written_off + outstanding "
+          "(the ledger closes). PAB2c: does the CCP / LTV cap bound the write-off?")
+    h = (f"  {'cell':<20} {'N':>4} {'loaned':>8} {'repaid':>8} {'wroff':>7} "
+         f"{'outstd':>7} {'balance':>8}")
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for ccp in (False, True):
+            for ltv in (0.5, 0.8):
+                for shk in (True, False):
+                    g = sel(ltv, ccp, shk, N)
+                    if not g:
+                        continue
+                    s = [dd(r) for r in g]
+                    ln = np.mean([x["debt_loaned"] for x in s])
+                    rp = np.mean([x["debt_repaid"] for x in s])
+                    wo = np.mean([x["debt_written_off"] for x in s])
+                    ou = np.mean([x["debt_outstanding"] for x in s])
+                    bal = ln - rp - wo - ou
+                    tag = ("ccp" if ccp else "gross") + ("+shk" if shk else "+ctl")
+                    print(f"  ltv{ltv:g}+{tag:<14} {N:>4} {ln:>8.0f} {rp:>8.0f} "
+                          f"{wo:>7.0f} {ou:>7.0f} {bal:>+8.0e}")
+    print("=" * 96)
+
+
 def pm2_report(rows: list[dict]) -> None:
     """v30 (column M2) — the bill becomes money: transferable claims. Printed numbers
     ARE the artifact (report, not verdict). No-op unless the sweep carries a
@@ -4314,6 +4592,40 @@ def build_jobs(column: str, seeds: int, ticks: int):
         for cell in _cells(200):                        # N=24 reference, T_shock=200
             for seed in range(min(seeds, 16)):
                 jobs.append(dict(arm_name="snhp+net", seed=seed, **base24, **cell))
+    if column == "AB2":               # v32: the crash with teeth — debt (PAB2)
+        # The AB crash economy (bills+claims-die mortality, LONG horizon, far band dark
+        # at T_shock) PLUS claim-collateralized borrowing. The registered grid is
+        # LTV {0, 0.5, 0.8} × {gross, clearinghouse} × {shock, no-shock control},
+        # reusing the AB shock protocol EXACTLY (per-grid T_shock at the active-relay
+        # midpoint: 1,000 at N=240, 200 at N=24). LTV 0 ≡ AB as run (bit-identical to
+        # the AB bills cells) — the baseline where post-shock deaths FELL. The paperless
+        # spot cells are omitted (debt requires bills — no claims, no collateral).
+        import math as _math
+        g240 = int(round(32 * _math.sqrt(240 / 24)))
+        HORIZON = 7500
+        DIE = dict(bills=True, mortality=True, death_regime="claims_die")
+        LTVS = (0.0, 0.5, 0.8)
+
+        def _debt_cells(T):
+            cells = []
+            for ltv in LTVS:
+                for ccp in (False, True):               # gross bilateral, clearinghouse
+                    for sh in (True, False):            # shock, no-shock control
+                        c = dict(**DIE, debt_ltv=ltv, clearinghouse=ccp)
+                        if sh:
+                            c.update(shock=True, shock_tick=T)
+                        cells.append(c)
+            return cells
+        base240 = dict(sigma=0.5, ticks=HORIZON, tau=0.15, preset="v5",
+                       n_robots=240, grid=g240, lineage=True)
+        base24 = dict(sigma=0.5, ticks=HORIZON, tau=0.15, preset="v5",
+                      n_robots=24, lineage=True)
+        for cell in _debt_cells(1000):                  # N=240 primary, T_shock=1,000
+            for seed in range(min(seeds, 8)):
+                jobs.append(dict(arm_name="snhp+net", seed=seed, **base240, **cell))
+        for cell in _debt_cells(200):                   # N=24 reference, T_shock=200
+            for seed in range(min(seeds, 16)):
+                jobs.append(dict(arm_name="snhp+net", seed=seed, **base24, **cell))
     if column == "M2":                # v30: the bill becomes money — transferable claims
         # The P23 phase-2 grid (identical N, scaled grid, σ, τ, ticks, seeds) ×
         # {spot (no claims), bills-static, bills-transferable}. spot is the paperless
@@ -4359,7 +4671,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "S", "U", "UH", "V", "V2", "X", "Z", "AA", "AB", "M2", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "S", "U", "UH", "V", "V2", "X", "Z", "AA", "AB", "AB2", "M2", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -4388,6 +4700,7 @@ def main() -> None:
         pz_report(rows)
         paa_report(rows)
         pab_report(rows)
+        pab2_report(rows)
         pm2_report(rows)
         return
 
@@ -4433,6 +4746,7 @@ def main() -> None:
     pz_report(rows)
     paa_report(rows)
     pab_report(rows)
+    pab2_report(rows)
     pm2_report(rows)
 
 

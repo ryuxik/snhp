@@ -17,7 +17,8 @@ import numpy as np                               # noqa: E402
 from swarm import world as W                     # noqa: E402
 from swarm.arms import CLAIM_OPTS, SnhpArm, intent, make_arm  # noqa: E402
 from swarm.value import delivery_target, phi     # noqa: E402
-from swarm.world import TOTAL_STOCK, V_DELIVER, World  # noqa: E402
+from swarm.world import (DEBT_ENERGY_PRICE, TOTAL_STOCK, V_DELIVER,  # noqa: E402
+                         World, manhattan)
 
 LADDER = ("null", "rules", "auction", "auction-co", "team", "team-co",
           "twofirm", "snhp", "snhp+net", "snhp-hz")
@@ -3667,6 +3668,188 @@ def test_v29_evaluated_equals_executed_under_shock_both_regimes():
             arm.tick()
         assert w.shocked, f"shock never fired (ccp={ccp})"
         assert w.writedown_log, f"no write-downs — vacuous run (ccp={ccp})"
+        assert arm.deals > 0
+
+
+# ── v32 (column AB2): the crash with teeth — claim-collateralized debt ─────────
+def _debt_world(seed=0, ltv=0.5, ccp=False, shock=False, shock_tick=250,
+                n_robots=24, grid=32):
+    w = World(n_robots=n_robots, grid=grid, sigma=0.5, seed=seed, preset="v5",
+              tau=(0.15, 0.15), bills=True, mortality=True,
+              death_regime="claims_die", lineage=True, hazard_phi=True,
+              shock=shock, shock_tick=shock_tick, clearinghouse=ccp, debt_ltv=ltv)
+    return w, make_arm("snhp+net", w)
+
+
+def test_v32_debt_off_bit_identical():
+    """debt_ltv=0.0 must be bit-identical to a world that never heard of column AB2 —
+    the debt fields, the treasury waterfall, garnishment and every AB2 branch may not
+    perturb a single bit when off (even through a full bills+mortality+shock run, the
+    settlement/death paths AB2 touches), and every AB2 accumulator stays inert."""
+    outs = []
+    for kw in (dict(), dict(debt_ltv=0.0)):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), bills=True,
+                  mortality=True, death_regime="claims_die", lineage=True,
+                  hazard_phi=True, shock=True, shock_tick=250, **kw)
+        arm = make_arm("snhp+net", w)
+        for _ in range(600):
+            arm.tick()
+        outs.append((w.delivered, arm.deals, w.deaths,
+                     round(sum(r.battery for r in w.robots), 9),
+                     round(sum(c["credit"] for c in w.company), 9),
+                     [tuple(sorted(d.items())) for d in w.deal_log]))
+        assert w.debt_loaned == 0.0 and w.debt_repaid == 0.0
+        assert w.debt_written_off == 0.0 and w.energy_borrowed == 0.0
+        assert not w._borrow_log and not w.garnish_log
+        assert all(r.debt == 0.0 and not r.garnished for r in w.robots)
+        assert w.debt_conserved()
+    assert outs[0] == outs[1], "column-AB2 plumbing perturbed the world"
+
+
+def test_v32_borrow_settle_repay_conserves_ledgers():
+    """A hand-built borrow → settle → repay cycle. A holds a claim (collateral); with a
+    low battery it borrows energy against it (battery rises, debt & treasury-loan
+    accounting move); when the parcel it claims is delivered, the settlement proceeds
+    repay the debt FIRST (robot→treasury) before A pockets anything. Every ledger
+    closes: credit_conserved (repayment is within-company), debt_conserved (loaned ==
+    repaid + written_off + outstanding), and material/ledger."""
+    w, arm = _debt_world(ltv=0.5)
+    A, B = w.robots[0], w.robots[1]
+    src = A.sector
+    for r in (A, B):
+        r.company, r.sector, r.cap, r.load, r.load_prov, r.parcels = \
+            0, src, 5, 0, [0, 0], []
+    A.pos, w.stock[src] = w.sources[src], 2
+    assert w.pick(A) == 2
+    w.tick = 1
+    w.transfer_cargo(A, B, 2, log=True)
+    arm._bills_attach(A, B, 2, 0.5)                 # A → B, A banks a 0.5 claim
+    claim0 = A.claim_value
+    assert claim0 > 0, "no collateral banked"
+    A.battery = 15.0                               # energy-hungry ⇒ borrows against claim
+    e0, drawn0 = A.battery, w.energy_drawn()
+    w.borrow_step()
+    assert A.debt > 0, "A did not borrow against its claim"
+    assert A.battery > e0, "borrowed energy not injected into the battery"
+    assert abs(A.debt - DEBT_ENERGY_PRICE * (A.battery - e0)) < 1e-9, "principal ≠ price·energy"
+    assert A.debt <= 0.5 * claim0 + 1e-9, "borrow exceeded the LTV cap"
+    assert abs(w.debt_loaned - A.debt) < 1e-9
+    assert abs(w.energy_drawn() - drawn0 - (A.battery - e0)) < 1e-9, "energy ledger off"
+    assert w.debt_conserved() and w.credit_conserved()
+    debt_at_borrow = A.debt
+    tre0, cr0 = w.company[0]["treasury"], A.credit
+    B.pos = w.refineries[0]                         # B delivers → A's claim settles
+    w.tick = 2
+    w.drop(B)
+    assert A.debt < debt_at_borrow, "settlement did not service the debt"
+    repaid = debt_at_borrow - A.debt
+    assert abs(w.debt_repaid - repaid) < 1e-9
+    assert abs(w.company[0]["treasury"] - tre0 - repaid) < 1e-6, "repayment not booked to treasury"
+    assert A.credit >= cr0, "deliverer/claimant pocketed negative residual"
+    assert w.debt_conserved() and w.credit_conserved()
+    assert w.ledger_accounted()   # material_ok is broken by the hand-set stock (v29 pattern)
+
+
+def test_v32_underwater_drone_garnished_and_services_debt():
+    """A hand-built underwater drone. A holds claims on 3 FAR parcels + 1 NEAR parcel
+    (collateral 20, LTV-0.5 debt 10). When the far band goes dark the 3 far parcels
+    settle at the floor (15 of collateral retired for ~nothing, debt UNSERVICED) → the
+    remaining collateral (5, the near claim) drops below the debt and A enters
+    GARNISHMENT at settlement resolution. The near parcel then settles at face and ALL
+    of it services the debt (A had no residual to pocket; still garnished, debt>0)."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), bills=True,
+              mortality=True, death_regime="claims_die", lineage=True,
+              shock=True, shock_tick=1, debt_ltv=0.5)
+    arm = make_arm("snhp+net", w)
+    far_i = min(w.shock_far)
+    near_i = min(range(len(w.sources)),
+                 key=lambda i: min(manhattan(w.sources[i], rf) for rf in w.refineries))
+    assert near_i not in w.shock_far
+    A, B = w.robots[0], w.robots[1]
+    for r in (A, B):
+        r.company, r.cap, r.load, r.load_prov, r.parcels = 0, 5, 0, [0, 0], []
+    # A mines 3 FAR then 1 NEAR unit, hands all 4 to B (FIFO: far parcels settle first),
+    # banks a 0.5 claim on each ⇒ far collateral 15, near collateral 5, total 20.
+    A.pos, A.sector, w.stock[far_i] = w.sources[far_i], far_i, 3
+    assert w.pick(A) == 3
+    A.pos, A.sector, w.stock[near_i] = w.sources[near_i], near_i, 1
+    assert w.pick(A) == 1
+    w.tick = 1
+    w.transfer_cargo(A, B, 4, log=True)
+    arm._bills_attach(A, B, 4, 0.5)
+    face = A.claim_value
+    assert abs(face - 20.0) < 1e-9, f"collateral setup off: {face}"
+    A.debt = 0.5 * face                            # debt 10 = the LTV-0.5 cap (a real loan)
+    w.debt_loaned = 0.5 * face
+    assert not A.garnished
+    w.shock_step()                                  # far band dark; A's 3 far claims worthless
+    B.pos = w.refineries[0]
+    w.tick = 2
+    w.drop(B)                                        # far (floor) then near (face) settle
+    assert A.garnished, "write-down did not push A into garnishment"
+    assert w.garnish_log and w.garnish_log[-1]["rid"] == A.rid
+    assert A.debt < 0.5 * face - 1e-9, "garnished drone's settlement did not service the debt"
+    assert A.debt > 0, "near income wrongly cleared the debt (should stay garnished)"
+    assert w.debt_conserved() and w.credit_conserved() and w.ledger_accounted()
+
+
+def test_v32_no_borrowing_while_garnished():
+    """A garnished drone does not take on new debt — borrow_step skips it even with
+    ample collateral and battery headroom (all income services the existing debt)."""
+    w, arm = _debt_world(ltv=0.8)
+    A = w.robots[0]
+    A.claim_value = 100.0                           # ample collateral
+    A.battery = 10.0                                # ample headroom + energy-hungry
+    A.debt = 50.0
+    w.debt_loaned = 50.0
+    A.garnished = True
+    A.garnish_start = 0
+    w.garnish_log.append(dict(rid=A.rid, co=0, start=0, end=-1, hop=None))
+    d0 = A.debt
+    w.borrow_step()
+    assert A.debt == d0, "a garnished drone borrowed"
+    assert not any(b[1] == A.rid for b in w._borrow_log), "garnished drone logged a borrow"
+    # a SOLVENT twin with the same state DOES borrow (the block is garnishment, not state)
+    C = w.robots[2]
+    C.claim_value, C.battery, C.debt, C.garnished = 100.0, 10.0, 0.0, False
+    w.borrow_step()
+    assert C.debt > 0, "control (ungarnished) drone failed to borrow — test vacuous"
+
+
+def test_v32_death_writes_off_debt_exactly_once():
+    """A death writes off the dead drone's outstanding debt to debt_written_off EXACTLY
+    once and clears r.debt — the treasury waterfall closes (loaned == repaid +
+    written_off + outstanding) and the drone can never write off again (it is inert)."""
+    w, arm = _debt_world(ltv=0.5)
+    A = w.robots[0]
+    A.debt = 30.0
+    w.debt_loaned = 30.0
+    A.garnished = True
+    A.garnish_start = 0
+    w.garnish_log.append(dict(rid=A.rid, co=A.company, start=0, end=-1, hop=None))
+    assert w.debt_written_off == 0.0
+    w.death_resolve(A, "flatline")
+    assert w.debt_written_off == 30.0, "debt not written off at death"
+    assert A.debt == 0.0 and A.dead and not A.garnished
+    assert w.garnish_log[-1]["end"] >= 0, "garnishment episode not closed at death"
+    assert w.debt_conserved()
+    # the write-off fired once: totals are stable (A is dead; no second resolve happens)
+    assert abs(w.debt_loaned - w.debt_repaid - w.debt_written_off
+               - sum(r.debt for r in w.robots)) < 1e-9
+
+
+def test_v32_evaluated_equals_executed_under_debt():
+    """The sacred invariant under leverage: debt is NOT a term in the per-deal Φ and
+    garnishment resolves only at settlement/death, so the in-arm evaluated Φ == executed
+    Φ assert holds through 1,500 ticks of borrowing + the crash. Completing clean IS the
+    test; borrowing must actually occur, the shock fire and write-downs land."""
+    for ccp in (False, True):
+        w, arm = _debt_world(ltv=0.8, ccp=ccp, shock=True, shock_tick=250)
+        for _ in range(1500):
+            arm.tick()
+            assert w.debt_conserved() and w.credit_conserved() and w.ledger_accounted()
+        assert w.debt_loaned > 0, f"no borrowing — vacuous run (ccp={ccp})"
+        assert w.shocked and w.writedown_log, f"shock never landed (ccp={ccp})"
         assert arm.deals > 0
 
 
