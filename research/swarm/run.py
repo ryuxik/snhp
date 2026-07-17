@@ -144,7 +144,7 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              build_matter: float = 0.0, build: bool = False,
              toll_level: float = 0.0, build_budget: int = 10**9,
              command: bool = False, deadlock_track: bool = False,
-             charger_band: float = 0.0) -> dict:
+             charger_band: float = 0.0, nav_dumb: bool = False) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -183,7 +183,7 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               build_matter=build_matter, build=build,
               toll_level=toll_level, build_budget=build_budget,
               command=command, deadlock_track=deadlock_track,
-              charger_band=charger_band)
+              charger_band=charger_band, nav_dumb=nav_dumb)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
@@ -567,6 +567,10 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
             reach_latency_mean=(float(np.mean(w.cmd_reach_lat))
                                 if w.cmd_reach_lat else None),
         ) if command else None),
+        # v20 (column S): institutions as a substitute for cognition. nav_dumb =
+        # the DUMB routing brain (greedy nearest-known + noise) vs smart Φ-routing;
+        # the rights axis rides prospect_claims (granular) vs off (coarse sectors).
+        nav_dumb=nav_dumb,
     )
 
 
@@ -598,12 +602,13 @@ def _cond(r) -> tuple:
             bool(r.get("build", False)),
             r.get("toll_level", 0.0),
             (r.get("build_budget") if r.get("build_budget") is not None else -1),
-            r.get("charger_band", 0.0))          # v18-R (column Q2)
+            r.get("charger_band", 0.0),          # v18-R (column Q2)
+            bool(r.get("nav_dumb", False)))      # v20 (column S)
 
 
 def _cond_label(c) -> str:
     (f, dfd, s7, mg, nz, g, bm, race, mt, dyn, cnt, scout, maptr, pros,
-     nr, cc, gs, rr, rep, fa, bmat, bld, toll, bbud, cband) = c
+     nr, cc, gs, rr, rep, fa, bmat, bld, toll, bbud, cband, navd) = c
     bits = []
     if f:
         bits.append(f"f={f:g}")
@@ -653,12 +658,14 @@ def _cond_label(c) -> str:
         bits.append(f"bud={bbud}")       # v18: forced per-company build budget
     if cband:
         bits.append(f"cband={cband:g}")  # v18-R (Q2): frontier-scarcity band radius
+    if navd:
+        bits.append("navdumb")           # v20 (column S): dumb routing brain
     return " ".join(bits)
 
 
 _BASE = (0.0, False, 0.0, False, 0.0, 32, False, True, False, False, False,
          False, False, False, 24, False, False, 6, False, 0.0,
-         0.0, False, 0.0, -1, 0.0)
+         0.0, False, 0.0, -1, 0.0, False)         # trailing False = nav_dumb (v20)
 
 
 def _paired(rows, arm_hi, arm_lo, sigma, field, tau=0.0, cond=_BASE):
@@ -2139,6 +2146,180 @@ def px(rows: list[dict]) -> None:
         print("    (N=240/7500 cells absent — cannot evaluate the KILL.)")
 
 
+def p26(rows: list[dict]) -> None:
+    """v20 (column S) — INSTITUTIONS AS A SUBSTITUTE FOR COGNITION. The 2×2:
+    navigation {smart, dumb} × property rights {coarse, granular}. Report, not
+    verdict.
+
+    SCOPING (the honest version of 'dumb agents'): nav_dumb dumbs only the ROUTING
+    brain — best_claim's richest-per-distance Φ target selection is swapped for a
+    greedy nearest-KNOWN-rock pick + registered noise (world.NAV_DUMB_NOISE, drawn
+    from the dedicated seed+262626 stream). Deals, physics and the deal-Φ
+    evaluation are untouched: institutions here can substitute for PLANNING, not
+    for the deal-evaluation faculty itself. GRANULAR rights = the v12/K2
+    prospect-claims machinery (per-rock arrival WINDOWS + the sector issue the deal
+    economy trades claim assignments through); COARSE = default sectors.
+
+    - P26a: granular rights recover ≥50% of the delivered gap dumbing opens
+      (recovery = dumb+granular − dumb+coarse; gap = smart+coarse − dumb+coarse).
+    - P26b: the interaction term — granularity helps DUMB fleets more than SMART
+      (substitutes): (dumb_gran−dumb_coarse) − (smart_gran−smart_coarse) > 0.
+    - KILL: granular helps nobody, or only smart fleets ⇒ institutions COMPLEMENT
+      rather than substitute cognition here."""
+    sr = [r for r in rows if r.get("nav_dumb") is not None
+          and r.get("dynamic_field") and r.get("contested")
+          and r.get("scouting")]
+    # keep only the column-S habitat (moving field + scouting); other columns that
+    # happen to carry nav_dumb=False are excluded by requiring the S arms below.
+    sr = [r for r in sr if r["arm"] in ("snhp+net", "auction")]
+    if not sr:
+        return
+
+    Ns = sorted({r["n_robots"] for r in sr})
+    Hs = sorted({r["ticks_horizon"] for r in sr})
+    ARMS = [a for a in ("snhp+net", "auction") if any(r["arm"] == a for r in sr)]
+
+    def cell(arm, dumb, gran, N, H):
+        return [r for r in sr if r["arm"] == arm
+                and bool(r["nav_dumb"]) == dumb
+                and bool(r.get("prospect_claims")) == gran
+                and r["n_robots"] == N and r["ticks_horizon"] == H]
+
+    def mean(g, key):
+        vals = [r[key] for r in g if r.get(key) is not None]
+        return float(np.mean(vals)) if vals else float("nan")
+
+    def paired(hi, lo, key):
+        A = {r["seed"]: r[key] for r in hi if r.get(key) is not None}
+        B = {r["seed"]: r[key] for r in lo if r.get(key) is not None}
+        common = sorted(set(A) & set(B))
+        if len(common) < 3:
+            return None
+        d = np.array([A[s] - B[s] for s in common], float)
+        _, pt = stats.ttest_rel([A[s] for s in common], [B[s] for s in common])
+        return dict(delta=float(d.mean()), p=float(pt),
+                    wins=int((d > 0).sum()), n=len(common))
+
+    print("\n" + "=" * 100)
+    print("P26 (column S) — INSTITUTIONS AS A SUBSTITUTE FOR COGNITION: the "
+          "navigation × property-rights 2×2")
+    print("  (σ=0.5, τ=0.15, v5, moving field: belief+dynamic+contested+K0 "
+          "scouting; DUMB = greedy nearest-known + noise vs smart Φ-routing;")
+    print("   GRANULAR = K2 prospect-claims windows + tradeable sector claims vs "
+          "coarse sectors. nav_dumb dumbs ROUTING only — deal-Φ untouched.)")
+    print("=" * 100)
+
+    for N in Ns:
+        for H in Hs:
+            # only the full 2×2 lives at (N=24,H=2500) and (N=96,H=2500); the
+            # 7500 horizon carries just the 3 spot-check cells (snhp+net).
+            present = [(a, d, g) for a in ARMS for d in (False, True)
+                       for g in (False, True) if cell(a, d, g, N, H)]
+            if not present:
+                continue
+            print(f"\n--- N={N} · horizon={H} ---")
+            hdr = (f"  {'arm':>9} {'nav':>6} {'rights':>8} {'deliv':>8} "
+                   f"{'frac':>6} {'strand':>7} {'deals':>7} {'claimtr':>8} "
+                   f"{'arr_mined':>9} {'seeds':>6}")
+            print(hdr)
+            print("  " + "-" * (len(hdr) - 2))
+            for a in ARMS:
+                for d in (False, True):
+                    for g in (False, True):
+                        cg = cell(a, d, g, N, H)
+                        if not cg:
+                            continue
+                        print(f"  {a:>9} {('dumb' if d else 'smart'):>6} "
+                              f"{('gran' if g else 'coarse'):>8} "
+                              f"{mean(cg, 'delivered'):>8.1f} "
+                              f"{mean(cg, 'delivered_frac'):>6.3f} "
+                              f"{mean(cg, 'stranded'):>7.1f} "
+                              f"{mean(cg, 'deals'):>7.0f} "
+                              f"{mean(cg, 'claim_swaps'):>8.1f} "
+                              f"{mean(cg, 'arrivals_mined'):>9.1f} "
+                              f"{len(cg):>6}")
+
+            # P26a / P26b on delivered, per arm, at this (N,H).
+            for a in ARMS:
+                sc = cell(a, False, False, N, H)   # smart coarse
+                sg = cell(a, False, True, N, H)     # smart granular
+                dc = cell(a, True, False, N, H)     # dumb  coarse
+                dg = cell(a, True, True, N, H)       # dumb  granular
+                if not (sc and sg and dc and dg):
+                    continue
+                m = {k: mean(v, 'delivered') for k, v in
+                     (('sc', sc), ('sg', sg), ('dc', dc), ('dg', dg))}
+                gap = m['sc'] - m['dc']                 # gap dumbing opens (coarse)
+                rec = m['dg'] - m['dc']                 # granular's buy-back (dumb)
+                help_dumb = m['dg'] - m['dc']
+                help_smart = m['sg'] - m['sc']
+                interaction = help_dumb - help_smart
+                pct = (100.0 * rec / gap) if abs(gap) > 1e-9 else float("nan")
+                pg = paired(sc, dc, 'delivered')        # is the gap real?
+                pr = paired(dg, dc, 'delivered')        # does granular help dumb?
+                ps = paired(sg, sc, 'delivered')        # does granular help smart?
+                print(f"\n  [{a}] delivered means: "
+                      f"smart+coarse={m['sc']:.1f}  smart+gran={m['sg']:.1f}  "
+                      f"dumb+coarse={m['dc']:.1f}  dumb+gran={m['dg']:.1f}")
+                print(f"    P26a  gap dumbing opens (smart−dumb | coarse) = "
+                      f"{gap:+.1f}"
+                      + (f"  [paired Δ={pg['delta']:+.1f}, p={pg['p']:.3f}, "
+                         f"{pg['wins']}/{pg['n']}]" if pg else "  [n<3]"))
+                print(f"          granular recovery (dumb: gran−coarse)   = "
+                      f"{rec:+.1f}"
+                      + (f"  [paired Δ={pr['delta']:+.1f}, p={pr['p']:.3f}, "
+                         f"{pr['wins']}/{pr['n']}]" if pr else "  [n<3]"))
+                print(f"          → gap-recovery = {pct:+.0f}%  "
+                      f"(P26a threshold ≥50%: "
+                      f"{'MET' if pct >= 50 else 'NOT met'})")
+                print(f"    P26b  help_dumb={help_dumb:+.1f}  "
+                      f"help_smart={help_smart:+.1f}  "
+                      f"INTERACTION (help_dumb−help_smart) = {interaction:+.1f}"
+                      + (f"  [smart Δ={ps['delta']:+.1f}, p={ps['p']:.3f}]"
+                         if ps else ""))
+                print(f"          → granularity helps {'DUMB more' if interaction > 0 else 'SMART more/equal'} "
+                      f"(substitutes if >0)")
+                # KILL evaluation (only meaningful on the full-2×2 primary cell).
+                # The registered KILL is DIRECTIONAL — "help nobody, or only smart
+                # fleets." Judge on the point-estimate direction; report the paired
+                # significance / win-rate SEPARATELY as a robustness annotation, so a
+                # noisy but right-signed result is not mislabeled a KILL (and vice
+                # versa). Report, not verdict — read both lines together.
+                if a == "snhp+net" and N == 24 and H == 2500:
+                    if help_dumb <= 0 and help_smart <= 0:
+                        verdict = ("KILL FIRES (direction) — granular rights help "
+                                   "NOBODY; institutions do not substitute here.")
+                    elif interaction <= 0:
+                        verdict = ("KILL FIRES (direction) — granularity helps SMART "
+                                   "≥ dumb; institutions COMPLEMENT, not substitute.")
+                    else:
+                        verdict = ("KILL DOES NOT FIRE (direction) — granular rights "
+                                   f"recover {pct:+.0f}% of the dumbing gap and help "
+                                   "DUMB fleets more than smart (substitute).")
+                    robust = "ROBUST" if (pr and pr['p'] < 0.05
+                                          and pr['wins'] > pr['n'] // 2) else \
+                        "NOT robust (noisy point estimate)"
+                    print(f"    KILL[{a},N=24,H=2500]: {verdict}")
+                    print(f"      robustness: recovery {robust} — "
+                          + (f"paired p={pr['p']:.3f}, {pr['wins']}/{pr['n']} seeds; "
+                             if pr else "")
+                          + (f"underlying dumbing gap itself p={pg['p']:.3f}"
+                             if pg else ""))
+
+    print("\n[horizon spot-check] delivered trajectory at 7,500 ticks (N=24, "
+          "snhp+net) vs the 2,500-tick primary — does claims-coordination amortize late?")
+    for a in ("snhp+net",):
+        for d, g, lab in ((False, False, "smart+coarse"),
+                          (True, False, "dumb+coarse"),
+                          (True, True, "dumb+gran")):
+            c25 = cell(a, d, g, 24, 2500)
+            c75 = cell(a, d, g, 24, 7500)
+            if c25 or c75:
+                print(f"    {lab:>13}: 2500t deliv={mean(c25, 'delivered'):>7.1f} "
+                      f"(n={len(c25)})   7500t deliv={mean(c75, 'delivered'):>7.1f} "
+                      f"(n={len(c75)})")
+
+
 def build_jobs(column: str, seeds: int, ticks: int):
     jobs = []
     if column in ("A", "all"):
@@ -2615,6 +2796,47 @@ def build_jobs(column: str, seeds: int, ticks: int):
                 for reg in regimes:
                     for seed in range(n_seeds):
                         jobs.append(dict(arm_name="snhp+net", seed=seed, **base, **reg))
+    if column == "S":                 # v20: institutions as a substitute for cognition (P26)
+        # 2×2: navigation {smart, dumb} × property rights {coarse, granular}. All
+        # cells ride the v11/v12 moving field (belief maps + dynamic + contested)
+        # with K0 scouting ON — the native habitat of the K2 prospect-claims
+        # machinery. GRANULAR = prospect_claims (per-rock claim WINDOWS on arrivals
+        # + the sector issue the deal economy uses to TRADE claim assignments);
+        # COARSE = the default sector regime, no windows. DUMB = nav_dumb (greedy
+        # nearest-KNOWN-rock + noise REPLACES best_claim's richest-per-distance Φ
+        # routing; deals / physics / deal-Φ untouched — we dumb ROUTING, not the
+        # bargaining brain). snhp+net (the deal economy) is the thesis arm; the
+        # auction runs the SAME 2×2 as a no-bargaining control — it gets the window
+        # EXCLUSION but NOT the tradeable REALLOCATION (no deals ⇒ no sector swaps),
+        # so auction-vs-snhp separates institutional exclusion from claims trading.
+        import math as _math
+        moving = dict(belief_mode=True, dynamic_field=True, contested=True,
+                      scouting=True)
+
+        def _cellsS(N, grid, n_seeds, horizon):
+            for arm in ("snhp+net", "auction"):
+                for nav_dumb in (False, True):
+                    for granular in (False, True):
+                        for seed in range(n_seeds):
+                            jobs.append(dict(
+                                arm_name=arm, sigma=0.5, seed=seed,
+                                ticks=horizon, tau=0.15, preset="v5",
+                                n_robots=N, grid=grid, nav_dumb=nav_dumb,
+                                prospect_claims=granular, **moving))
+        # N=24 × 16 seeds (the K column's density) — the primary 2×2 + controls.
+        _cellsS(24, 32, min(seeds, 16), ticks)
+        # N=96 × 8 seeds (density-fixed grid) if the compute budget allows —
+        # report both or note the cut in the P26 block.
+        _cellsS(96, int(round(32 * _math.sqrt(96 / 24))), min(seeds, 8), ticks)
+        # fair-horizon spot-check (P18/P28-H): claims trading is coordination that
+        # can amortize late — re-run the gap column (smart+coarse, dumb+coarse) and
+        # the thesis cell (dumb+granular) at 7,500 ticks × 4 seeds, N=24, snhp+net.
+        for nav_dumb, granular in ((False, False), (True, False), (True, True)):
+            for seed in range(min(seeds, 4)):
+                jobs.append(dict(arm_name="snhp+net", sigma=0.5, seed=seed,
+                                 ticks=7500, tau=0.15, preset="v5",
+                                 n_robots=24, grid=32, nav_dumb=nav_dumb,
+                                 prospect_claims=granular, **moving))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -2625,7 +2847,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "U", "UH", "V", "X", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "S", "U", "UH", "V", "X", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -2649,6 +2871,7 @@ def main() -> None:
         p24(rows)
         p24r(rows)
         px(rows)
+        p26(rows)
         return
 
     jobs = build_jobs(args.column, args.seeds, args.ticks)
@@ -2688,6 +2911,7 @@ def main() -> None:
     p24(rows)
     p24r(rows)
     px(rows)
+    p26(rows)
 
 
 if __name__ == "__main__":

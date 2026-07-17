@@ -55,6 +55,13 @@ RIVAL_ALPHA = 0.2                   # v10b: exp-smoothing of the observed
                                     # rival depletion rate (units/tick)
 CLAIM_WINDOW = 150                  # v12 K2: ticks an ARRIVAL rock is minable
                                     # only by its quadrant's claim-holder
+NAV_DUMB_NOISE = 6.0                # v20 (column S): std of the additive
+                                    # Manhattan-distance noise the DUMB routing
+                                    # brain perturbs its greedy nearest-rock pick
+                                    # with (~min inter-rock separation, so the
+                                    # noise can flip adjacent-rock preferences).
+                                    # Drawn from the DEDICATED nav_dumb stream
+                                    # (seed+262626), never the main stream.
 R_RADIO = 6                         # v14 (column O): Chebyshev radius within
                                     # which same-company fleet-mates gossip
                                     # fresher belief entries (short radio); the
@@ -242,7 +249,7 @@ class World:
                  build_matter: float = 0.0, build: bool = False,
                  toll_level: float = 0.0, build_budget: int = 10**9,
                  command: bool = False, deadlock_track: bool = False,
-                 charger_band: float = 0.0):
+                 charger_band: float = 0.0, nav_dumb: bool = False):
         self.rng = np.random.RandomState(seed)
         self.rng_seed = seed                 # v18: matter-field RNG keys off this
         self.hazard_phi = hazard_phi
@@ -289,6 +296,15 @@ class World:
         self.scouting = scouting
         self.map_trading = map_trading
         self.prospect_claims = prospect_claims
+        # v20 (column S): the DUMB routing brain. Default off ⇒ every prior
+        # column stays bit-identical (the dedicated stream below is CREATED
+        # unconditionally but DRAWN from only when nav_dumb is on, and it never
+        # touches self.rng). When on, dumb_claim() replaces best_claim()'s
+        # richest-per-distance Φ scoring in intent() with greedy nearest-known-
+        # rock + noise — we dumb the ROUTING (planning) brain, not the bargaining
+        # brain (deal Φ evaluation is untouched; evaluated Φ == executed Φ holds).
+        self.nav_dumb = nav_dumb
+        self._nav_rng = np.random.RandomState(seed + 262626)
         self.scout_ticks = 0              # K0: robot-ticks spent scouting
         self._oracle_override = False     # phi_true_field: audit vs TRUE field
         self._live_sense = True           # drive/world phase: sensing is live;
@@ -939,6 +955,28 @@ class World:
                 continue
             score = s / (manhattan(r.pos, src) + 4.0)
             if score > best_score:
+                best, best_score = i, score
+        return best
+
+    def dumb_claim(self, r) -> int:
+        """v20 (column S): the DUMB routing brain. Greedy nearest-KNOWN-stocked
+        asteroid — it drops best_claim's richest-per-distance Φ tradeoff and just
+        heads for the closest rock it BELIEVES is stocked, plus a registered noise
+        term (dumb planners misjudge distance). The candidate set is IDENTICAL to
+        best_claim (same stock_belief>0 filter, same live-sense side effects); ONLY
+        the scoring is dumbed — this isolates 'dumb ROUTING' from the bargaining
+        brain (deal Φ is untouched). Noise is drawn from the DEDICATED nav_dumb
+        stream (seed+262626), so nav_dumb OFF never perturbs the main stream and
+        every prior column stays bit-identical. Ties/empties fall back to r.sector,
+        exactly like best_claim."""
+        best, best_score = r.sector, float("inf")
+        for i, src in enumerate(self.sources):
+            s = self.stock_belief(r, i)
+            if s <= 0:
+                continue
+            # greedy: minimize distance (NO richness term) + Gaussian noise
+            score = manhattan(r.pos, src) + self._nav_rng.normal(0.0, NAV_DUMB_NOISE)
+            if score < best_score:
                 best, best_score = i, score
         return best
 

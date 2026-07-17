@@ -213,7 +213,9 @@ def intent(r, w):
             w.scout_ticks += 1
             return st
     if w.stock_belief(r, r.sector) <= 0:        # claim BELIEVED depleted →
-        r.sector = w.best_claim(r)              # re-claim (v10a: a robot ON
+        # v20 (column S): the DUMB routing brain swaps richest-per-distance Φ
+        # selection for greedy nearest-known + noise; OFF ⇒ best_claim, bit-exact.
+        r.sector = w.dumb_claim(r) if w.nav_dumb else w.best_claim(r)  # re-claim
     if w.stock_belief(r, r.sector) > 0:         # an empty rock senses truth
         return w.sources[r.sector]              # this tick — no livelock)
     return charger
