@@ -1,0 +1,2 @@
+{"agents": {"Dae": {"implement_volume": 20.0, "receipts": 12.0}, "M": {"implement_volume": 0.0, "receipts": 9.0}, "Ravi": {"implement_volume": 5.0, "receipts": 7.0}, "Sol": {"implement_volume": 10.0, "receipts": 7.0}, "Wren": {"implement_volume": 0.0, "receipts": 0.0}}, "exploration_floor": 0.1, "ideas": {"idea_F": {"merged": 7, "net": 34.751713, "settled": 35.0, "spend": 0.248287}}, "phase": "before", "policy": "manager"}
+{"benched": ["Wren"], "cut": [], "grown": ["idea_F"], "idea_budgets": {"idea_F": 2.5}, "phase": "after"}

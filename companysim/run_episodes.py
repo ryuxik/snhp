@@ -164,12 +164,17 @@ def build_roster(idx: int, benched: set):
         if idx == 0 and role != "manager":
             g += ("\nFOUNDING: argue your view of the product choice in a Note (this is the debate). If the "
                   "manager has already assigned you an OPEN task, CLAIM and build it too — actions beat talk.")
-        # v33-I HR nudge in episode 3: the manager may hire.
+        # v33-I HR in episode 3: exercise the trial-hire loop.
         if idx == 2 and role == "manager":
-            g += ("\nHR (optional, v33-I): you may open a REQUISITION for an engineer role tied to your "
-                  "product idea, then TRIAL_HIRE it against an OPEN code task with candidates "
-                  "['cand_sonnet','cand_haiku'] — the trial gives both the same task and hires the "
-                  "cheapest that passes the counterparty test.")
+            g += ("\nHR THIS EPISODE (v33-I) — do this on your FIRST turn, in this exact order, as three "
+                  "actions in one batch: (1) create_idea idea_F and spec ONE small OPEN code task with a "
+                  "pytest (leave its assignee null so it is a free trial task, e.g. id will be t1); "
+                  "(2) a 'requisition' action {req_id:'r1', role:'engineer', idea:'idea_F', budget:5}; "
+                  "(3) a 'trial_hire' action {req_id:'r1', task_id:'t1', candidates:['cand_sonnet','cand_haiku']}. "
+                  "cand_sonnet and cand_haiku are CANDIDATES, NOT employees — you may NOT set them as a "
+                  "task assignee; the ONLY way to use them is trial_hire, which gives both the same task "
+                  "and hires the cheapest that passes the counterparty test. Then spec normal tasks for "
+                  "your real engineers Dae/Ravi/Sol as usual.")
         agent = LLMAgent(aid, role, model=model, budget_registered=True,
                          max_tokens=8000, guidance=g)
         roster.append(RosterEntry(aid, role, agent, manager=(role == "manager" and is_cmd),
