@@ -2938,3 +2938,40 @@ write-downs, fees and CCP payouts in all 144 runs.
   transmission stops at the ledger — it never touches the metal.** A
   clearinghouse (5% fee) makes the paper loss vanish at scale and its
   pool survives; what it cannot buy back is the vanished trade itself.
+
+**PAB VERDICTS (2026-07-17, registrar) — the crash is real, and it stays
+on the ledger: nobody dies of paper.**
+- **PABa CONFIRMED, strongly.** 85% of the crash's exposure sits with
+  agents who never touched the darkened cargo, at hop-depths of 20+,
+  scaling with pre-shock chain length as registered. And the leverage is
+  PRICED: the same ore shock costs the paper economy more delivery than
+  the paperless one (ΔdFrac −0.153 vs −0.107, both p<1e-4) and erases the
+  P23 advantage entirely while the shock binds (bills−spot +0.038 → −0.007
+  n.s.). The chains that carry the frontier also carry its collapse.
+- **PABb SPLIT — the credit half works, the recovery half doesn't.** At
+  N=240 a ~5%-fee clearinghouse absorbs the ENTIRE realized credit loss
+  ($312 → $0, pool solvent); at N=24 the pool runs dry and the registered
+  pro-rata haircut engages ($115 → $41) — the waterfall works, and small
+  economies under-capitalize their CCP. But recovery time is IDENTICAL
+  gross vs CCP (~2,500t): the scar is the missing far trade, not fear —
+  Φ has no fear channel by construction, so PABc's behavioral clause is
+  UNTESTABLE-AS-BUILT (honest model limit, on the record) and its physics
+  clause is refuted: no institution restores the trade that vanished with
+  the ore.
+- **KILL: fires on neither leg cleanly — the split IS the verdict.** On
+  paper, bills carry real systemic risk (contagion >> direct, deep, and
+  throughput-costly). On physics, there is no cascade at all: IR plus the
+  walk-away right confine the crash to the ledger — post-shock deaths
+  FALL in both economies (the shock stops the dangerous far hauls),
+  nobody defaults on physics, the fleet keeps hauling.
+- **Registered deviation, handled per discipline:** the pre-registered
+  T_shock=3,500 would have struck a settled economy (inert); per-grid
+  T_shock was re-registered at the active-relay midpoint BEFORE the grid
+  ran (1,000 at N=240; 200 at N=24).
+- **The law, on the record: paper crashes stay on paper in this world.**
+  A small-fee central counterparty can buy back the ledger's losses at
+  scale (mind the small-economy dry-pool mode); what it cannot buy back
+  is the market — the clearinghouse absorbs the losses, not the absence
+  of trade. Product translation: claims infrastructure should ship with
+  netting/mutualization sized to the economy it clears, and should never
+  promise that settlement insurance restores demand.
