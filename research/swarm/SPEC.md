@@ -3153,6 +3153,83 @@ column-G geometry ladder with {spot, bills-only, depot(+bills)}.
   async relay, the board stays dead at any level of convenience, and we
   say so loudly.
 
+**PV2 RESULTS (2026-07-17, sweep_v4_V2.json — report, not verdict; the numbers,
+loudly either way). The column-G geometry ladder REPLICATED EXACTLY as V ran it
+(grid ∈ {24,32,48,64}, σ=0.5, τ=0.15, v5, 2,500 ticks, 16 seeds) × {auction
+(unperturbed comparator), snhp+net (spot, the hump), snhp+bill (bills-only
+control), snhp+depot (the depot = deposit-and-return async relays, bills-settled)}.**
+Design: a loaded drone docked at a charger DEPOSITS its whole load — pinned at the
+co-located depot with the α*=(1+disc)/2 claim banked (V's posted-terms machinery) —
+when it is UPSTREAM (the refinery is farther from the depot than its ore) and
+burdened (can't cleanly haul home), and a plausible taker clears the NEXT LEG
+alone (not the whole route — the depot's premise). A later passer PICKS UP with NO
+DEAL_PAUSE and may stage the cargo forward and RE-DEPOSIT at the next depot; chains
+form fully asynchronously, no co-presence at any hop, no drone obligated to finish.
+Dead/uncollected deposits write off on expiry (V's convention). Conservation exact
+across all 256 runs (material_ok, credit_conserved, escrow_conserved, ledger_
+accounted all green; escrowOK=all, pinned/escrow retire to 0 at every grid).
+
+- **The G config is faithfully reproduced — spot REPLICATES V's P29 hump to the
+  decimal:** edge(snhp+net − auction) = **+4.12@G24, +4.50@G32, +7.31@G48 (peak),
+  −2.69@G64** — identical to the registered P29/v8 numbers. Bills-only likewise
+  reproduces the V decomposition: it RECOVERS G64 on its own, **edge +4.50@G64**
+  (delivered 235.6), exactly P29's control. The comparison to V is clean.
+- **PV2a: FALSIFIED — the depot does NOT lift the G64 edge; it SINKS it.** depot
+  edge = **+1.88@G24, +2.12@G32, +4.44@G48, −6.50@G64.** The depot is BELOW
+  bills-only at EVERY grid (depot−bills = −2.50/−1.06/−4.38/**−11.00**), and at G64
+  it delivers **224.6 — LESS than even spot (228.4)** and far under bills (235.6).
+  Far-band (outer 30-62c band) delivered/mined @G64: depot **0.925 < bills 0.995**
+  (and < spot 0.970) — the depot HURTS far delivery. (The >62c band is empty at
+  every ladder grid, so the N=240-scale P23a 0.47 is not directly commensurable;
+  the ladder's own outer-band signature is the readout.)
+- **PV2b: nominally MET, but NOT by the depot.** ≥2-hop share @G64 = 0.364 ≈ @G48
+  0.341 — but this share is the SYNCHRONOUS bills relays the depot arm inherits
+  (bills alone: 0.378@G64 vs 0.326@G48, the same pattern), NOT the async deposits.
+  The depot's OWN channel is thin: async_share = 0.061/0.053/0.058/**0.035** — and
+  it is HIGHEST where meetings are densest, LOWEST where sparsest (V's P29b
+  reversal, replicated: a pinned offer is found where traffic passes).
+- **PV2c: NULL (a tie, not a lift).** far mined/drone-tick @G64 = depot 0.00181 vs
+  bills 0.00180 vs spot 0.00174 — deposit-and-return does NOT get far miners
+  meaningfully more ore; the marginal 0.00001 over bills is within noise. Total
+  mined/drone-tick is flat across arms (0.0040).
+- **The mechanism WORKS and still loses.** Deposits post and get accepted (posted
+  9.5→20.6→16.2, accepted 6.6→15.1→11.9), fully-async 3-leg chains clear and pay
+  every banked split to face (unit-test verified), pause-ticks saved 20–45/run
+  (negligible vs 2,500). The killer is the async surface's OWN cost: **cargo
+  write-off rises 2.19→2.38→4.50→9.31 units with G** (V's exact signature, 3.4→6.9),
+  as deposited parcels strand at pins no taker fetches — order_target NEVER routes
+  an empty drone to a pin (11,775 calls, 0 hits): after the α split the residual is
+  too small to cover the fetch haul, so pickup stays purely opportunistic. The lost
+  tonnage plus the diverted-from-direct-delivery fragmentation more than eat any
+  deposit-and-return saving. Stranding: depot 14.06 @G64 (spot 17.88, bills 12.19) —
+  the depot's bills backbone trims strand a little, but the write-offs overwhelm it.
+- **THE COMPARISON TABLE vs V's P29 (mandatory), delivered edge (arm − auction):**
+
+  | G  | spot (=V) | bills (=V) | order-book (V) | **depot (V2)** |
+  |----|-----------|------------|----------------|----------------|
+  | 24 | +4.12     | +4.38      | +0.88          | **+1.88**      |
+  | 32 | +4.50     | +3.19      | +0.69          | **+2.12**      |
+  | 48 | +7.31     | +8.81      | +4.06          | **+4.44**      |
+  | 64 | **−2.69** | **+4.50**  | −2.69          | **−6.50**      |
+
+  The order book (V) was inert at G64 (+0.00 recovery); the depot is WORSE than
+  inert (−3.81 below spot, −11.00 below bills). Removing the JOURNEY structure
+  fails harder than removing the RENDEZVOUS did.
+- **Read — the KILL fires, third confirmation of the P23 law.** Co-presence was
+  never the binding constraint for chains, and neither was the journey. What binds
+  at G64 is CLOCK + BATTERY (spot stranding triples 6.2→17.9; bills, the SYNCHRONOUS
+  receipt, closes the trough −2.69→+4.50 by forming chains at the meeting, no
+  warehouse needed). Warehousing cargo at a depot the drone already visits does not
+  help — the depositor was never actually stuck (it reached a charger), pickup is
+  unreliable (stigmergic discovery + a residual too thin to fetch → write-offs), and
+  the async pins CANNIBALIZE the synchronous bill chains that do the real work
+  (depot 224.6 < bills 235.6). On the record, a third independent time (order book →
+  depot): **attestation's value is PRE-COMMITMENT (the binding claim that forms a
+  chain at a meeting), not ASYNCHRONY (a posted offer, or now a warehoused parcel,
+  that saves the rendezvous OR the journey).** The founder's async re-run of the
+  bulletin board dies for the same reason the board did, one level deeper: do not
+  build the depot; build the receipt.
+
 ## v32 (column AB2): the crash with teeth — debt
 
 The registered-open follow-up, now a contract (founder: "otherwise #20

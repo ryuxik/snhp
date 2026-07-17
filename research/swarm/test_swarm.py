@@ -2264,6 +2264,236 @@ def test_v23_sparse_field_relay_without_colocation():
     assert w.credit_conserved() and w.material_ok()
 
 
+# ── v31 (column V2): the depot — the founder's async re-run of the board ─────
+def test_v31_depots_off_bit_identical():
+    """depots=False must be bit-identical to a world that never heard of column V2
+    — the depot flag, relay_from field, the deposit phase and the forward-staging /
+    progress-gate branches may not perturb a single bit when off. Checked on the
+    bargaining arm (depots would touch Φ via bills) and the auction comparator. Also
+    confirms the depot plumbing leaves the column-V order book bit-reproducible."""
+    def fp(w, arm):
+        return (w.delivered, arm.deals, len(w.event_log),
+                round(sum(r.battery for r in w.robots), 9),
+                [r.pos for r in w.robots],
+                [tuple(sorted(d.items())) for d in w.deal_log])
+
+    for arm_name in ("snhp+net", "auction"):
+        outs = []
+        for kw in (dict(), dict(depots=False)):
+            w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), grid=48,
+                      hazard_phi=(arm_name == "snhp+net"), **kw)
+            arm = make_arm(arm_name, w)
+            for _ in range(500):
+                arm.tick()
+            outs.append(fp(w, arm))
+        assert outs[0] == outs[1], f"depot plumbing perturbed {arm_name} when off"
+
+    # the auction never deposits even with depots ON (bargaining-family primitive)
+    wa = World(sigma=0.5, seed=1, preset="v5", tau=(0.15, 0.15), grid=48, depots=True)
+    aa = make_arm("auction", wa)
+    for _ in range(400):
+        aa.tick()
+    assert wa.orders_posted == 0 and wa.orders_accepted == 0, \
+        "the auction deposited/accepted — comparator perturbed"
+
+
+def test_v31_deposit_pickup_deliver_settles_all_splits():
+    """The core depot leg: a loaded drone DEPOSITS at a depot (pinned at the charger,
+    α claim banked), a later passer PICKS UP with no deal pause, and delivery settles
+    the depositor's banked split AND the hauler's residual to face value. Conservation
+    holds at every step; the pin sits at the CHARGER (co-located, not the poster's
+    transient position)."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), grid=48, depots=True)
+    w._live_sense = False
+    A, B = w.robots[0], w.robots[1]
+    for r in (A, B):
+        r.company, r.sector, r.load, r.load_prov, r.parcels = 0, 0, 0, [0, 0], []
+    depot = w.chargers[0]
+    A.pos, A.load, A.load_prov = depot, 3, [3, 0]
+    A.parcels = [w._new_parcel(0) for _ in range(3)]
+    w.stock[0] -= 3                                       # conserve material
+    o = w.post_order(A, 3, alpha=0.4, loc=depot)
+    assert o is not None and o["loc"] == depot, "pin not co-located with the charger"
+    assert w.pinned_cargo == 3 and A.load == 0 and not A.parcels
+    assert abs(A.claim_value - 0.4 * 3 * V_DELIVER) < 1e-9, "deposit claim not banked"
+    assert A.relay_from is None, "deposit should clear the relay-from token"
+    assert w.material_ok() and w.escrow_conserved() and w.credit_conserved()
+    A.pos = (2, 2)                                        # A leaves; never meets B
+    B.pos, B.cap, B.battery = depot, 5, 95.0
+    q = w.accept_order(B, o)
+    assert q == 3 and B.load == 3 and w.pinned_cargo == 0
+    assert B.busy_until < w.tick, "acceptance paid a deal pause (should be free)"
+    assert w.pause_ticks_saved == W.DEAL_PAUSE, "pause-ticks-saved not booked"
+    assert B.relay_from == depot, "taker did not record the depot it took from"
+    # deliver: A's 0.4 share + B's 0.6 residual = full face, exactly
+    B.pos = w.refineries[0]
+    w.drop(B)
+    assert w.delivered == 3
+    assert abs(A.credit - 0.4 * 3 * V_DELIVER) < 1e-9, "depositor split unsettled"
+    assert abs(B.credit - 0.6 * 3 * V_DELIVER) < 1e-9, "hauler residual unsettled"
+    assert abs((A.credit + B.credit) - 3 * V_DELIVER) < 1e-9, "splits do not sum to face"
+    assert B.relay_from is None, "delivery should clear the relay-from token"
+    assert w.material_ok() and w.escrow_conserved() and w.credit_conserved()
+
+
+def test_v31_three_leg_async_chain_pays_everyone():
+    """The registered crucial delta vs V: a FULLY ASYNCHRONOUS three-leg chain. A
+    deposits at D1; B picks up at D1, relays to D2 and RE-DEPOSITS; C picks up at D2
+    and delivers. A, B and C are NEVER within interaction range of one another — no
+    co-presence at any hop, no drone obligated to finish the route — yet the parcel
+    clears and all three claims settle to face value, with the stack conserved."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), grid=64, depots=True)
+    w._live_sense = False
+    A, B, C = w.robots[0], w.robots[1], w.robots[2]
+    for r in w.robots:                                   # neutralize the rest
+        r.company, r.sector, r.cap, r.load, r.load_prov, r.parcels = \
+            0, 0, 5, 0, [0, 0], []
+    for r in w.robots[3:]:
+        r.pos, r.stranded, r.battery = (1, 1), True, 0.0
+    ref = w.refineries[0]
+    chs = sorted(w.chargers, key=lambda c: -W.manhattan(c, ref))
+    D1, D2 = chs[0], chs[1]                               # D1 farther from home
+    C.pos = (1, 60)                                       # C waits far off until leg 3
+    positions = []                                       # record A/B/C at each hop
+    # leg 1 — A deposits at D1
+    A.pos, A.battery, A.load, A.load_prov = D1, 60.0, 3, [3, 0]
+    A.parcels = [w._new_parcel(0) for _ in range(3)]
+    w.stock[0] -= 3
+    oA = w.post_order(A, 3, alpha=0.3, loc=D1)
+    A.pos = (1, 1)                                        # A parks far away
+    # leg 2 — B picks up at D1, relays to D2, re-deposits
+    B.pos, B.battery = D1, 100.0
+    w.accept_order(B, oA)
+    assert B.relay_from == D1
+    positions.append((A.pos, B.pos, C.pos))
+    oB = w.post_order(B, B.load, alpha=0.4, loc=D2)
+    assert oB is not None and w.pinned_cargo == 3
+    assert all(len(p["claims"]) == 2 for p in oB["parcels"]), "re-deposit lost the stack"
+    B.pos = (60, 1)                                       # B parks far away
+    # leg 3 — C picks up at D2, delivers
+    C.pos, C.battery = D2, 100.0
+    w.accept_order(C, oB)
+    assert all(len(p["claims"]) == 2 for p in C.parcels), "hauler stack not carried"
+    positions.append((A.pos, B.pos, C.pos))
+    C.pos = ref
+    w.drop(C)
+    # never co-located: pairwise Chebyshev separations exceed the interaction radius
+    for pa, pb, pc in positions:
+        for u, v in ((pa, pb), (pa, pc), (pb, pc)):
+            assert max(abs(u[0] - v[0]), abs(u[1] - v[1])) > W.R_COMM, \
+                "two chain participants were co-located"
+    assert w.delivered == 3, "the fully-async chain never delivered"
+    # A: 0.3 · B: 0.4·(1−0.3)=0.28 · C: residual 0.42 — all of face, split three ways
+    assert abs(A.credit - 0.30 * 3 * V_DELIVER) < 1e-9, "A (first depositor) unpaid"
+    assert abs(B.credit - 0.28 * 3 * V_DELIVER) < 1e-9, "B (relay) unpaid"
+    assert abs(C.credit - 0.42 * 3 * V_DELIVER) < 1e-9, "C (deliverer) residual wrong"
+    assert abs((A.credit + B.credit + C.credit) - 3 * V_DELIVER) < 1e-9, \
+        "three banked splits + hauler residual do not conserve to face"
+    assert w.material_ok() and w.escrow_conserved() and w.credit_conserved()
+
+
+def test_v31_redeposit_conserves_the_stack():
+    """A parcel deposited THREE times carries THREE banked splits plus the final
+    hauler's residual, and the shares sum to exactly one (conservation of the claim
+    stack across deposit → pickup → re-deposit → pickup → re-deposit)."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), grid=64, depots=True)
+    w._live_sense = False
+    P = w.robots
+    for r in P:
+        r.company, r.sector, r.cap, r.load, r.load_prov, r.parcels = \
+            0, 0, 5, 0, [0, 0], []
+    depots = w.chargers
+    A, B, C = P[0], P[1], P[2]
+    A.pos, A.battery, A.load, A.load_prov = depots[0], 80.0, 2, [2, 0]
+    A.parcels = [w._new_parcel(0) for _ in range(2)]
+    w.stock[0] -= 2
+    o1 = w.post_order(A, 2, alpha=0.2, loc=depots[0])           # deposit 1
+    B.pos, B.battery = depots[0], 100.0
+    w.accept_order(B, o1)
+    o2 = w.post_order(B, 2, alpha=0.3, loc=depots[1])           # deposit 2 (re-deposit)
+    C.pos, C.battery = depots[1], 100.0
+    w.accept_order(C, o2)
+    o3 = w.post_order(C, 2, alpha=0.25, loc=depots[2])          # deposit 3 (re-deposit)
+    D = P[3]
+    D.pos, D.battery = depots[2], 100.0
+    w.accept_order(D, o3)
+    for p in D.parcels:
+        shares = [sh for _rid, sh, *_ in p["claims"]]
+        assert len(shares) == 3, f"expected three banked splits, got {len(shares)}"
+        resid = 1.0 - sum(shares)
+        assert resid > 0 and abs(sum(shares) + resid - 1.0) < 1e-12, \
+            "three splits + residual do not conserve to one"
+    # deliver and check every claimant is paid, face conserved
+    D.pos = w.refineries[0]
+    w.drop(D)
+    assert w.delivered == 2
+    paid = A.credit + B.credit + C.credit + D.credit
+    assert abs(paid - 2 * V_DELIVER) < 1e-9, "multi-deposit payout does not conserve"
+    assert w.material_ok() and w.escrow_conserved() and w.credit_conserved()
+
+
+def test_v31_dead_depositor_writeoff():
+    """Dead-depositor convention (the same write-off V used): when a deposited pin
+    expires and its poster cannot reclaim (stranded/dead), the cargo is written off
+    to stock_lost (material_ok still holds — abandoned, not leaked) and any energy
+    bounty is written off. No phantom credit; every ledger stays conserved."""
+    w = World(sigma=0.5, seed=1, preset="v5", tau=(0.0, 0.0), grid=48, depots=True)
+    w._live_sense = False
+    D = w.robots[0]
+    D.company, D.sector, D.load, D.load_prov, D.parcels = 0, 0, 0, [0, 0], []
+    depot = w.chargers[0]
+    D.pos, D.load, D.load_prov = depot, 2, [2, 0]
+    D.parcels = [w._new_parcel(0) for _ in range(2)]
+    w.stock[0] -= 2
+    o = w.post_order(D, 2, alpha=0.5, energy=4.0, loc=depot)
+    assert w.pinned_cargo == 2 and w.escrowed_energy == o["energy"] > 0
+    D.stranded = True                                    # poster dies before pickup
+    w.tick = o["expiry"]
+    w.expire_orders()
+    assert w.cargo_writeoff == 2 and w.stock_lost >= 2, "dead-depositor cargo not written off"
+    assert w.escrow_energy_writeoff == o["energy"], "dead-depositor bounty not written off"
+    assert w.pinned_cargo == 0 and not w.orders
+    assert w.material_ok() and w.escrow_conserved()
+
+
+def test_v31_evaluated_equals_executed_and_conserves_live():
+    """evaluated Φ == executed Φ is sacred under depots (pickup evaluates Φ_bills on
+    the tentative pickup, asserted against the executed state). Checked (a) hand-built
+    to the bit and (b) live over a full depot run — conservation (material / credit /
+    escrow / ledger) holds every tick, non-vacuously (a deposit posted, an acceptance
+    taken, and a relayed unit delivered async)."""
+    from swarm.value import phi_bills
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), grid=48, depots=True)
+    w._live_sense = False
+    arm = make_arm("snhp", w, issues=("cargo",))
+    A, B = w.robots[0], w.robots[1]
+    for r in (A, B):
+        r.company, r.sector, r.load, r.load_prov, r.parcels = 0, 0, 0, [0, 0], []
+    depot = w.chargers[0]
+    A.pos, A.load, A.load_prov = depot, 2, [2, 0]
+    A.parcels = [w._new_parcel(0) for _ in range(2)]
+    o = w.post_order(A, 2, 0.4, loc=depot)
+    B.pos, B.cap, B.battery = depot, 5, 95.0
+    w.known_orders[B.rid].add(o["oid"])
+    phi_eval = arm._accept_phi(B, o)
+    w.accept_order(B, o)
+    assert abs(phi_bills(B, w) - phi_eval) < 1e-9, "depot acceptance diverged from evaluation"
+
+    w2 = World(sigma=0.5, seed=3, preset="v5", tau=(0.15, 0.15), grid=64,
+               depots=True, lineage=True)
+    arm2 = make_arm("snhp+net", w2)
+    for _ in range(2500):
+        arm2.tick()
+        assert w2.material_ok(), "material leak under depots"
+        assert w2.credit_conserved(), "credit not conserved under depots"
+        assert w2.escrow_conserved(), "escrow ledger diverged under depots"
+    assert w2.ledger_accounted(), "ledger leak under depots"
+    assert w2.orders_posted > 0, "no deposit ever posted — vacuous"
+    assert w2.orders_accepted > 0, "no deposit ever accepted — vacuous"
+    assert any(p["hops"] >= 1 for p in w2.delivered_parcels), \
+        "no relayed unit ever delivered — vacuous"
+
+
 # ── v18 (column Q): endogenous infrastructure — the sim grows landlords ──────
 def test_v18_build_off_bit_identical():
     """build_matter=0 / build=False (and a SEEDED-but-untouched matter field with

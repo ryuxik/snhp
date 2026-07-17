@@ -211,7 +211,13 @@ def intent(r, w):
         ref = delivery_target(r, w)             # sticky (hysteresis)
         dest = w.refineries[ref]
         cost = W.manhattan(r.pos, dest) * r.eff * (1 + W.LOADED_MULT)
-        return dest if r.bat() > cost else charger
+        if r.bat() > cost:
+            return dest                         # can deliver directly
+        if w.depots:                            # v31 (column V2): cannot reach the
+            stage = w._forward_depot(r, dest)   # refinery loaded — stage the cargo
+            if stage is not None:               # FORWARD one leg to the nearest
+                return stage                    # closer depot (re-deposit there),
+        return charger                          # else charge (deposit-and-return)
     r.target_ref = None
     if r.bat() < safe_return_threshold(r, w):   # v12: charge precedence stays
         return charger
@@ -1124,6 +1130,9 @@ class SnhpArm(BaseArm):
         function of the poster's PRE-post discount only, so it is split-independent
         and reproduced identically at acceptance."""
         w = self.w
+        if w.depots:                                    # v31 (column V2): the depot
+            self._deposit_orders()
+            return
         posted = {o["poster"] for o in w.orders}
         for r in w.robots:
             if r.rid in posted or w.tick < r.busy_until or r.load <= 0:
@@ -1137,6 +1146,50 @@ class SnhpArm(BaseArm):
             if not self._plausible_taker_clears(r, alpha):
                 continue
             w.post_order(r, r.load, alpha)              # relay the whole burden
+
+    def _deposit_orders(self) -> None:
+        """v31 (column V2): DEPOSIT at a depot. A loaded drone docked at a charger
+        deposits its whole load (pinned at the depot with the α* claim-split ticket)
+        when it is UPSTREAM of that depot — the depot is strictly CLOSER to the
+        drone's mining source than to its home refinery, so hauling home is the long
+        backhaul and returning to the ore is the short loop (deposit-and-return
+        beats haul-or-wait) — AND a plausible taker clears the NEXT LEG
+        (depot_next_leg_clears). No re-deposit at the very depot just picked up from
+        while a forward hop remains (relay_from anti-churn — the cargo must advance a
+        leg first). The depositor sheds the burden at a waypoint it already visits
+        and goes back to mining; the async chain carries the cargo home leg by leg,
+        no drone obligated to finish the route. One active order per poster;
+        α*=(1+disc)/2 is the P23 Nash split, reproduced identically at acceptance."""
+        w = self.w
+        posted = {o["poster"] for o in w.orders}
+        for r in w.robots:
+            if r.rid in posted or w.tick < r.busy_until or r.load <= 0:
+                continue
+            depot = w._depot_here(r)
+            if depot is None:                           # must be AT a depot
+                continue
+            dest = w.refineries[w._home_ref(r.company)]
+            src = w.sources[r.sector]                    # the ore it works
+            # UPSTREAM: the refinery is farther from here than the ore is — offload
+            # here and go back to mining rather than haul the long way home.
+            if W.manhattan(depot, dest) <= W.manhattan(depot, src):
+                continue
+            if depot == r.relay_from and w._forward_depot(r, dest) is not None:
+                continue                                # advance a leg before re-depositing
+            _rate, disc = load_factors(r, w)
+            # BURDENED: only offload when hauling home is genuinely costly/risky from
+            # here (the load can't be cleanly delivered — disc<1 — or shedding it
+            # RAISES spot Φ, the strand hazard the load adds exceeds its discounted
+            # value). A healthy drone that can safely deliver just delivers — the
+            # depot does not fragment a haul that already works (the P29 lesson: the
+            # async surface is overhead where direct delivery succeeds).
+            if not (r.stranded or disc < 1.0 - 1e-9
+                    or self._phi_without_load(r) > phi(r, w) + 1e-9):
+                continue
+            alpha = 0.5 * (1.0 + disc)
+            if not w.depot_next_leg_clears(r, depot, alpha):
+                continue
+            w.post_order(r, r.load, alpha, loc=depot)   # deposit the whole burden
 
     def _accept_orders(self) -> None:
         """Every non-busy, un-stranded drone within pickup range of a KNOWN order
@@ -1168,6 +1221,13 @@ class SnhpArm(BaseArm):
                     continue
                 if r.load + o["q"] > r.cap:
                     continue
+                if w.depots:                            # v31: only pick up if the
+                    dest = w.refineries[w._home_ref(r.company)]   # taker can make
+                    cost_ref = (W.manhattan(r.pos, dest)          # progress toward
+                                * r.eff * (1 + W.LOADED_MULT))     # home this leg —
+                    if (r.bat() <= cost_ref                       # reach the refinery
+                            and w._forward_depot(r, dest) is None):  # or a closer
+                        continue                        # depot — else it'd only sit
                 phi_eval = self._accept_phi(r, o)
                 gain = phi_eval - phi_before
                 declined_here.append(oid)

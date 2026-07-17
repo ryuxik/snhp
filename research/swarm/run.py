@@ -180,7 +180,7 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              mortality: bool = False, death_regime: str = "none",
              wearout: bool = False,
              shock: bool = False, shock_tick: int | None = None,
-             clearinghouse: bool = False) -> dict:
+             clearinghouse: bool = False, depots: bool = False) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -224,7 +224,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               forgery=forgery, forge_cost=forge_cost,
               verify_cost=verify_cost, verify_regime=verify_regime,
               mortality=mortality, death_regime=death_regime, wearout=wearout,
-              shock=shock, shock_tick=shock_tick, clearinghouse=clearinghouse)
+              shock=shock, shock_tick=shock_tick, clearinghouse=clearinghouse,
+              depots=depots)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     # v29 (column AB): sample the CCP fee-pool trajectory (and the far-band exposure)
@@ -708,6 +709,7 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
                    else "+firm" if firm_relay else "")
     base_label = (f"{arm_name}+B{_build_mech}" if build   # v18: endogenous infrastructure
                   else "snhp+cmd" if command          # v25 (column X): COMMAND regime
+                  else "snhp+depot" if depots         # v31 (column V2): async depots
                   else "snhp+ob" if order_book        # v23: order-book relays (bills-settled)
                   else "snhp+billC" if (bills and bills_contingent)
                   else "snhp+bill" if bills
@@ -826,6 +828,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         # v23 (column V): the stigmergic order book
         order_book=order_book,
         order_book_detail=order_book_detail,
+        # v31 (column V2): the depot (async deposit-and-return relays)
+        depots=depots,
         # v18 (column Q): endogenous infrastructure
         build_matter=build_matter, build=build, toll_level=toll_level,
         build_budget=(build_budget if build_budget < 10**9 else None),
@@ -2076,6 +2080,203 @@ def p29(rows: list[dict]) -> None:
                   f"+order-book = {e64_on:+.2f} (the async book cannibalizes it)")
         print(f"    peak edge_ON(G48) = {e48_on:+.2f} vs edge_off(G48) = "
               f"{hump[48][0]['delta']:+.2f} — the book lowers the DENSE-field peak.")
+
+
+# ── v31 (column V2): the depot — the founder's async re-run of the board ──────
+# The registered numbers to BEAT, from the P29 RESULTS / P23a blocks (SPEC.md).
+_V_SPOT_DELIV = {24: 238.9, 32: 239.5, 48: 237.9, 64: 228.4}
+_V_OB_DELIV   = {24: 235.7, 32: 235.7, 48: 234.7, 64: 228.4}
+_V_BILL_DELIV = {64: 235.6}
+_V_SPOT_EDGE  = {24: +4.12, 32: +4.50, 48: +7.31, 64: -2.69}
+_V_OB_EDGE    = {24: +0.88, 32: +0.69, 48: +4.06, 64: -2.69}
+_V_BILL_EDGE  = {64: +4.50}
+_V_BILL_FARDM = 0.47                       # P23a bills far-band delivered/mined
+
+
+def p29v2(rows: list[dict]) -> None:
+    """v31 (column V2) — the DEPOT on the column-G geometry ladder. Report, not
+    verdict. The mandatory comparison is against V's P29 numbers (spot / bills /
+    order-book), reproduced here from the same G config plus the new depot arm.
+    PV2a (does the depot lift the G64 edge above bills-only +4.50 and far-band d/m
+    above bills' 0.47?), PV2b (≥2-hop share at G64 → its G48 level?), PV2c (mined
+    per drone-tick rises?), and the KILL (depot ≤ bills-only at G64 ⇒ co-presence
+    was never the binding constraint either). No-op unless a depot arm is present."""
+    if not any(r.get("depots") for r in rows):
+        return
+    GS = [24, 32, 48, 64]
+    ARMS = [("snhp+net", "spot"), ("snhp+bill", "bills"), ("snhp+depot", "depot")]
+
+    def cond_g(g):
+        c = list(_BASE)
+        c[5] = g
+        return tuple(c)
+
+    def dmean(arm, g):
+        vals = [r["delivered"] for r in rows
+                if r["arm"] == arm and r.get("grid") == g and _cond(r) == cond_g(g)]
+        return float(np.mean(vals)) if vals else float("nan")
+
+    def edge(arm, g):
+        return _paired(rows, arm, "auction", 0.5, "delivered", tau=0.15,
+                       cond=cond_g(g))
+
+    def lrows(arm, g):
+        return [r for r in rows if r["arm"] == arm and r.get("grid") == g
+                and r.get("lineage_detail")]
+
+    # The FAR band on the G ladder is band 1 (30-62 cells) — the OUTER band that
+    # holds rocks at grid ≤64 (4 of 10 rocks at G48/G64; NONE at G24/G32). The >62
+    # band (index 2) is EMPTY at every ladder grid, so the P23a far-band d/m 0.47
+    # (measured at N=240 scale where the >62 band is populated) is NOT directly
+    # commensurable — the ladder's own outer-band signature is what these report.
+    FAR = 1
+
+    def far_dm(arm, g):                 # pooled outer-band delivered/mined (band 1)
+        rs = lrows(arm, g)
+        if not rs:
+            return float("nan")
+        bd = sum(r["lineage_detail"]["band_delivered"][FAR] for r in rs)
+        bm = sum(r["lineage_detail"]["band_mined"][FAR] for r in rs)
+        return bd / bm if bm else float("nan")
+
+    def twohop(arm, g):                 # pooled ≥2-hop share of delivered units
+        rs = lrows(arm, g)
+        if not rs:
+            return float("nan")
+        h2 = sum(r["lineage_detail"]["hop_counts"][2] for r in rs)
+        nd = sum(r["lineage_detail"]["n_delivered"] for r in rs)
+        return h2 / nd if nd else float("nan")
+
+    def mined_pdt(arm, g, band=None):   # mined units per drone × fixed horizon-tick
+        # Fixed horizon denominator (NOT makespan) so the rate is not confounded by
+        # an arm finishing early — it measures total extraction per drone over the
+        # 2,500-tick window. band="far" ⇒ the outer band (index FAR).
+        rs = lrows(arm, g)
+        vals = []
+        for r in rs:
+            bm = r["lineage_detail"]["band_mined"]
+            n = r.get("n_robots", 24)
+            hz = r.get("ticks_horizon", 2500)
+            tot = bm[FAR] if band == "far" else sum(bm)
+            vals.append(tot / (n * hz))
+        return float(np.mean(vals)) if vals else float("nan")
+
+    def obdet(g, field):                # depot async accounting (order_book_detail)
+        vals = [r["order_book_detail"][field] for r in rows
+                if r["arm"] == "snhp+depot" and r.get("grid") == g
+                and r.get("order_book_detail")]
+        return float(np.mean(vals)) if vals else float("nan")
+
+    print("\n" + "=" * 100)
+    print("PV2 (column V2) — THE DEPOT (async deposit-and-return) on the G "
+          "geometry ladder (σ=0.5, τ=0.15, v5, 2500t, 16 seeds)")
+    print("=" * 100)
+
+    print("\n[1] DELIVERED by grid × arm  (auction=comparator · spot=snhp+net · "
+          "bills=snhp+bill · depot=snhp+depot) — V's P29 numbers in [brackets]:")
+    h = (f"  {'G':>4} {'auction':>9} {'spot':>9} {'[V spot]':>10} {'bills':>9} "
+         f"{'depot':>9} {'[V ob]':>9}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for g in GS:
+        print(f"  {g:>4} {dmean('auction',g):>9.1f} {dmean('snhp+net',g):>9.1f} "
+              f"{('['+format(_V_SPOT_DELIV[g],'.1f')+']'):>10} "
+              f"{dmean('snhp+bill',g):>9.1f} {dmean('snhp+depot',g):>9.1f} "
+              f"{('['+format(_V_OB_DELIV[g],'.1f')+']'):>9}")
+
+    print("\n[2] PV2a [THE EDGE] — arm−auction delivered edge by G (paired on seed) "
+          "vs V's P29 baselines:")
+    print("    beats bills-only (+4.50@G64) and recovers the G64 trough (spot −2.69)?")
+    h = (f"  {'G':>4} {'spot':>8} {'[V]':>7} {'bills':>8} {'[V]':>7} "
+         f"{'depot':>8} {'depot−bills':>12}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    edges = {}
+    for g in GS:
+        es, eb, ed = edge("snhp+net", g), edge("snhp+bill", g), edge("snhp+depot", g)
+        edges[g] = (es, eb, ed)
+        vs = f"[{_V_SPOT_EDGE[g]:+.2f}]"
+        vb = f"[{_V_BILL_EDGE[g]:+.2f}]" if g in _V_BILL_EDGE else f"[{'—'}]"
+        dmb = (ed["delta"] - eb["delta"]) if (ed and eb) else float("nan")
+        print(f"  {g:>4} {(es['delta'] if es else float('nan')):>+8.2f} {vs:>7} "
+              f"{(eb['delta'] if eb else float('nan')):>+8.2f} {vb:>7} "
+              f"{(ed['delta'] if ed else float('nan')):>+8.2f} {dmb:>+12.2f}")
+
+    print(f"\n[3] PV2a [FAR-BAND delivered/mined] by G × arm (outer band "
+          f"{LINEAGE_BANDS[0]}-{LINEAGE_BANDS[1]}c — the >{LINEAGE_BANDS[1]}c band is "
+          f"EMPTY on the ladder; N=240-scale P23a bills far d/m was {_V_BILL_FARDM}, "
+          f"not directly commensurable):")
+    h = f"  {'G':>4} {'spot':>9} {'bills':>9} {'depot':>9} {'depot−bills':>12}"
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for g in GS:
+        fs, fb, fd = far_dm("snhp+net",g), far_dm("snhp+bill",g), far_dm("snhp+depot",g)
+        print(f"  {g:>4} {fs:>9.3f} {fb:>9.3f} {fd:>9.3f} {(fd-fb):>+12.3f}")
+
+    print("\n[4] PV2b [≥2-HOP SHARE] of delivered units by G × arm "
+          "(does depot's G64 share approach its G48 level — chains decouple from "
+          "encounter rate?):")
+    h = f"  {'G':>4} {'spot':>9} {'bills':>9} {'depot':>9}"
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    depot_2hop = {}
+    for g in GS:
+        ts, tb, td = twohop("snhp+net",g), twohop("snhp+bill",g), twohop("snhp+depot",g)
+        depot_2hop[g] = td
+        print(f"  {g:>4} {ts:>9.3f} {tb:>9.3f} {td:>9.3f}")
+
+    print("\n[5] PV2c [MINED per drone-tick] by G × arm (does deposit-and-return "
+          "lift mining? total · far-band):")
+    h = (f"  {'G':>4} {'spot':>9} {'bills':>9} {'depot':>9}   "
+         f"{'spotFar':>8} {'billFar':>8} {'depotFar':>8}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for g in GS:
+        print(f"  {g:>4} {mined_pdt('snhp+net',g):>9.4f} "
+              f"{mined_pdt('snhp+bill',g):>9.4f} {mined_pdt('snhp+depot',g):>9.4f}   "
+              f"{mined_pdt('snhp+net',g,'far'):>8.4f} "
+              f"{mined_pdt('snhp+bill',g,'far'):>8.4f} "
+              f"{mined_pdt('snhp+depot',g,'far'):>8.4f}")
+
+    print("\n[6] DEPOT ASYNC ACCOUNTING (snhp+depot; conservation must hold):")
+    h = (f"  {'G':>4} {'posted':>8} {'accepted':>9} {'expired':>8} {'async_sh':>9} "
+         f"{'pauseSaved':>11} {'cargoWO':>8} {'pinnedEnd':>10} {'escrowOK':>9}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for g in GS:
+        oks = [r["order_book_detail"]["escrow_ok"] for r in rows
+               if r["arm"] == "snhp+depot" and r.get("grid") == g
+               and r.get("order_book_detail")]
+        print(f"  {g:>4} {obdet(g,'posted'):>8.1f} {obdet(g,'accepted'):>9.1f} "
+              f"{obdet(g,'expired'):>8.1f} {obdet(g,'async_share'):>9.3f} "
+              f"{obdet(g,'pause_ticks_saved'):>11.0f} "
+              f"{obdet(g,'cargo_writeoff'):>8.2f} {obdet(g,'pinned_final'):>10.2f} "
+              f"{('all' if oks and all(oks) else 'FAIL!'):>9}")
+
+    print("\n[7] READ (PV2a / PV2b / PV2c / KILL):")
+    ed64 = edges[64][2]; eb64 = edges[64][1]
+    if ed64 and eb64:
+        depot64, bills64 = ed64["delta"], eb64["delta"]
+        kill = depot64 <= bills64 + 1e-9
+        print(f"    edge(G64): depot = {depot64:+.2f}  vs  bills-only = {bills64:+.2f} "
+              f"(V bills +4.50)  ⇒  {'KILL FIRES (depot ≤ bills-only)' if kill else 'PV2a MET (depot > bills-only)'}")
+        fd64 = far_dm("snhp+depot", 64); fb64 = far_dm("snhp+bill", 64)
+        print(f"    far-band d/m @G64: depot = {fd64:.3f}  vs  bills = {fb64:.3f} "
+              f"(V bills {_V_BILL_FARDM})  ⇒  PV2a far-band {'MET' if fd64 > fb64 else 'NOT met'}")
+        as64 = obdet(64, "async_share")
+        print(f"    ≥2-hop @G64 = {depot_2hop[64]:.3f} vs @G48 = {depot_2hop[48]:.3f} "
+              f"BUT depot async_share @G64 = {as64:.3f} — the ≥2-hop is the SYNCHRONOUS "
+              f"bills backbone, not the async deposits (PV2b not attributable to the depot)")
+        md = mined_pdt("snhp+depot", 64, "far"); mb = mined_pdt("snhp+bill", 64, "far")
+        pv2c = "MET" if md > mb + 5e-5 else ("TIE/NULL" if abs(md - mb) <= 5e-5 else "NOT met")
+        print(f"    far mined/drone-tick @G64: depot = {md:.5f}  vs  bills = {mb:.5f}"
+              f"  ⇒  PV2c {pv2c} (deposit-and-return no meaningful far-mining lift)")
+        print(f"    >>> KILL {'FIRES' if kill else 'does NOT fire'}: "
+              + ("co-presence was never the binding constraint for chains either — "
+                 "travel/battery dominates even warehoused async relay."
+                 if kill else
+                 "the depot lifts the G64 edge above bills-only — warehoused async "
+                 "relay carries loads synchronous chains refused."))
 
 
 def p24(rows: list[dict]) -> None:
@@ -3773,6 +3974,27 @@ def build_jobs(column: str, seeds: int, ticks: int):
                 jobs.append(dict(arm_name="snhp+net", seed=seed, **base))
                 jobs.append(dict(arm_name="snhp+net", seed=seed, bills=True, **base))
                 jobs.append(dict(arm_name="snhp+net", seed=seed, order_book=True, **base))
+    if column == "V2":                # v31: the depot (PV2)
+        # The column-G geometry ladder EXACTLY as V ran it (grid∈{24,32,48,64},
+        # σ=0.5, τ=0.15, v5, 2500t, 16 seeds) × {spot, bills-only, depot(+bills)}
+        # on the snhp arm + the auction comparator as G ran it. The depot REPLACES
+        # V's snhp+ob: deposits are pinned at co-located chargers and takers stage
+        # cargo FORWARD one leg (re-depositing at the next depot) — the async chain
+        # that owes only the NEXT hop, never the whole route. lineage=True on the
+        # snhp arms (pure bookkeeping ⇒ delivered reproduces V's P29 numbers to the
+        # decimal) so the far-band d/m and ≥2-hop table is uniform; the auction is
+        # the unperturbed comparator (no depot code path in AuctionArm, run exactly
+        # as G/V ran it). depots is an SNHP-native (attestation) primitive.
+        for g in (24, 32, 48, 64):
+            base = dict(sigma=0.5, ticks=ticks, tau=0.15, preset="v5", grid=g)
+            for seed in range(min(seeds, 16)):
+                jobs.append(dict(arm_name="auction", seed=seed, **base))
+                jobs.append(dict(arm_name="snhp+net", seed=seed,
+                                 lineage=True, **base))
+                jobs.append(dict(arm_name="snhp+net", seed=seed,
+                                 bills=True, lineage=True, **base))
+                jobs.append(dict(arm_name="snhp+net", seed=seed,
+                                 depots=True, lineage=True, **base))
     if column == "Q":                 # v18: endogenous infrastructure (P24)
         # N=240 scaled v5 grid (the P18 charge-bound config), σ=0.5, τ=0.15,
         # build_matter=0.5 (a separate matter field seeded in both arms — the
@@ -4137,7 +4359,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "S", "U", "UH", "V", "X", "Z", "AA", "AB", "M2", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "S", "U", "UH", "V", "V2", "X", "Z", "AA", "AB", "M2", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -4158,6 +4380,7 @@ def main() -> None:
         phase2e(rows)
         u_report(rows)
         p29(rows)
+        p29v2(rows)
         p24(rows)
         p24r(rows)
         px(rows)
@@ -4202,6 +4425,7 @@ def main() -> None:
     phase2e(rows)
     u_report(rows)
     p29(rows)
+    p29v2(rows)
     p24(rows)
     p24r(rows)
     px(rows)
