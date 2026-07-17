@@ -75,6 +75,26 @@ class EpisodeConfig:
     # v33-A: per-idea turn/token budgets carried in from a prior allocation
     # round (empty in the founding episode).
     idea_budgets: dict = field(default_factory=dict)
+    # ---- v33 extensions (all default to the D1a behaviour) ----
+    # v33-B/G: external buyer wallets funded at episode start
+    # (each {"buyer_id": str, "amount": float}). Arms-length: no wallet flows
+    # org->buyer (the runner never credits a buyer from an idea).
+    buyer_wallets: list = field(default_factory=list)
+    # v33-G: founder-sanitized inbox records (each {"inbox_id","text",
+    # "buyer"?,"amount"?}). Client text is DATA; triage converts it to a contract.
+    inbox_seed: list = field(default_factory=list)
+    # v33-I: hirable candidates {candidate_id: Agent adapter}. A trial runs each
+    # against the same task; the cheapest that passes is hired.
+    candidate_pool: dict = field(default_factory=dict)
+    # v33-D: registered exploration floor (fraction of the round reserved for
+    # zero-history ideas). Pick 10% (documented).
+    exploration_floor: float = 0.10
+    # v33-F: founding brief + seed shortlist + the B1 buyer order, surfaced in
+    # the founding view (the org debates and chooses). Named founding_seed to
+    # avoid colliding with the RNG `seed: int` field above.
+    founding_seed: dict = field(default_factory=dict)
+    # v33-E: retain full per-turn transcripts (prompt+response) to the episode dir.
+    capture_transcripts: bool = False
 
     def manager_id(self) -> str | None:
         for e in self.roster:
@@ -106,3 +126,15 @@ class EpisodeConfig:
             raise ValueError(f"unknown allocation_policy {self.allocation_policy!r}")
         if self.allocation_policy == "manager" and self.regime is not Regime.COMMAND:
             raise ValueError("manager allocation policy requires COMMAND regime")
+        if not 0.0 <= self.exploration_floor < 1.0:
+            raise ValueError("exploration_floor must be in [0, 1)")
+        # Constitutional: Opus is NEVER an in-sim employee (v33 + standing policy).
+        for e in self.roster:
+            model = getattr(e.agent, "model", None)
+            if model and "opus" in str(model).lower():
+                raise ValueError(
+                    f"Opus is never in-sim ({e.agent_id} registered {model!r})")
+        for cid, cand in self.candidate_pool.items():
+            model = getattr(cand, "model", None)
+            if model and "opus" in str(model).lower():
+                raise ValueError(f"Opus candidate {cid} not allowed in-sim")

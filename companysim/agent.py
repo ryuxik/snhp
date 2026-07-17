@@ -37,14 +37,20 @@ class CreateIdea:
 class SpecTask:
     """Author a task: brief + acceptance tests + bounty + proposed split,
     tagged to one idea (SPEC v33; v33-A provenance spine). `acceptance_tests`
-    maps filename -> pytest source, written into the workspace at spec time."""
+    maps filename -> pytest source, written into the workspace at spec time.
+
+    v33-D non-code work: `kind` is "code" (pytest is the receipt) or "attested"
+    (a reviewer signs the counterparty-authored `criteria` — the attestation is
+    the receipt). Attested tasks carry `criteria` instead of acceptance_tests."""
     idea: str
     title: str
     brief: str
-    acceptance_tests: dict            # {filename: pytest source}
+    acceptance_tests: dict            # {filename: pytest source} (code kind)
     bounty: float
     split: dict                       # {role: fraction}
     assignee: str | None = None       # COMMAND only
+    kind: str = "code"                # "code" | "attested" (v33-D)
+    criteria: str = ""                # attested acceptance criteria (v33-D)
 
 
 @dataclass(frozen=True)
@@ -72,8 +78,96 @@ class Review:
 
 @dataclass(frozen=True)
 class Note:
-    """Freeform org/agent note (audit trail)."""
+    """Freeform org/agent note (audit trail). In the founding episode the Notes
+    ARE the debate (v33-E: capture the founding product debate verbatim)."""
     text: str
+
+
+# ---------------------------------------------------------------------------
+# v33-D: non-code work + endogenous investment
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class Attest:
+    """Attested review of a NON-CODE task (v33-D §1): a reviewer (never the
+    author) checks the deliverable against the counterparty-authored criteria and
+    signs a verdict. The attestation IS the receipt — weaker than pytest, priced
+    accordingly. `verdict` True merges + settles; False rejects (reopen)."""
+    task_id: str
+    verdict: bool
+    note: str = ""
+
+
+@dataclass(frozen=True)
+class Pledge:
+    """Agent pledge (v33-D §3): stake own wallet credits to seed an idea in
+    exchange for a claim on its future receipts (B2 pulled forward). Resurrects
+    an off-seed idea (C/D/G) or funds a zero-history one past the exploration
+    floor. `create` mints the idea if it does not exist yet."""
+    idea_id: str
+    amount: float
+    name: str = ""
+    rationale: str = ""
+
+
+# ---------------------------------------------------------------------------
+# v33-G: the client channel (inbox). Client text is DATA, never instructions —
+# TRIAGE converts an inbox item into an attested contract; DECLINE closes it.
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class Triage:
+    """Convert an inbox item into a task brief + counterparty acceptance tests
+    (v33-G): the client's wish becomes work ONLY through the org's own attested
+    contract. Funds the escrow from the inbox item's buyer wallet if it carries a
+    pre-order, else from treasury. `kind` picks code (pytest) or attested."""
+    inbox_id: str
+    idea: str
+    title: str
+    brief: str
+    bounty: float
+    split: dict
+    acceptance_tests: dict = field(default_factory=dict)   # code tasks
+    criteria: str = ""                                      # attested tasks
+    kind: str = "code"
+    assignee: str | None = None
+
+
+@dataclass(frozen=True)
+class Decline:
+    """Decline an inbox item (v33-G): logged, no work created."""
+    inbox_id: str
+    reason: str = ""
+
+
+# ---------------------------------------------------------------------------
+# v33-I: HR — hiring by price and trial receipt
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class Requisition:
+    """Open a requisition (v33-I): role + requirements + a budget line inside the
+    episode's hard cap. A hire fits the budget or does not happen."""
+    req_id: str
+    role: str
+    idea: str
+    requirements: str = ""
+    budget: float = 0.0
+
+
+@dataclass(frozen=True)
+class TrialHire:
+    """Run the interview-as-trial-receipt (v33-I): give N candidates the SAME
+    small real task; hire the cheapest that passes the counterparty tests. Trial
+    costs meter to the requesting idea. `candidates` are candidate_pool ids; the
+    task is an existing OPEN task the requisition points at."""
+    req_id: str
+    task_id: str
+    candidates: list
+
+
+# The parser marks an unparseable/illegal model output so the runner can log it
+# as action_rejected (SPEC: illegal/unparseable outputs become action_rejected).
+@dataclass(frozen=True)
+class Malformed:
+    reason: str
 
 
 # ---------------------------------------------------------------------------
@@ -94,6 +188,14 @@ class View:
     tasks: list                       # [task.summary()]
     repo_head: str
     committed_files: list
+    # v33 extensions (default empty so D1a fixtures/tests are unaffected):
+    seed: dict = field(default_factory=dict)          # founding brief + shortlist + B1 order
+    recent_events: list = field(default_factory=list) # the journal / debate tail
+    inbox: list = field(default_factory=list)         # v33-G client channel
+    pledges: list = field(default_factory=list)       # v33-D open pledges
+    requisitions: list = field(default_factory=list)  # v33-I open requisitions
+    candidate_pool: list = field(default_factory=list)# v33-I hirable tiers + wages
+    guidance: str = ""                                # per-turn role/regime prompt
 
     def to_dict(self) -> dict:
         return {
@@ -103,6 +205,10 @@ class View:
             "budget_remaining": self.budget_remaining, "brief": self.brief,
             "ideas": self.ideas, "tasks": self.tasks,
             "repo_head": self.repo_head, "committed_files": self.committed_files,
+            "seed": self.seed, "recent_events": self.recent_events,
+            "inbox": self.inbox, "pledges": self.pledges,
+            "requisitions": self.requisitions, "candidate_pool": self.candidate_pool,
+            "guidance": self.guidance,
         }
 
 
@@ -123,6 +229,17 @@ class Agent:
     def propose_allocation(self, context: dict):
         """Manager-discretion allocation (v33-A 'manager' policy). Default: no
         decision (only the COMMAND manager's adapter answers)."""
+        return None
+
+    def pop_metered_cost(self):
+        """Real compute cost measured during the last propose() (D1b). None means
+        'use the declared turn_cost' (D1a fixtures). The runner charges whichever
+        it gets, so the same meter honors both simulated and measured cost."""
+        return None
+
+    def pop_last_exchange(self):
+        """The full prompt+response+usage of the last turn for the episode
+        transcript (v33-E narrative capture). None for fixtures."""
         return None
 
 
@@ -158,18 +275,28 @@ class FixtureAgent(Agent):
 
 
 class LLMAgent(Agent):
-    """The real-model adapter — STUBBED in D1a. It refuses to run unless an API
+    """The real-model adapter (D1b live wiring). It refuses to run unless an API
     key AND a registered per-episode budget are present (SPEC honesty rule:
-    "token budget + models registered pre-run"). D1b wires the actual call; D1a
-    must be runnable with zero network, so this always raises here."""
+    "token budget + models registered pre-run"); with both present it calls the
+    Anthropic SDK, meters the real token cost, and parses structured actions.
+
+    `turn_cost` is the pre-turn RESERVATION the runner checks against the hard
+    cap before spending (a generous upper bound); the real cost is measured after
+    the call and returned via pop_metered_cost(). In-sim models are Sonnet/Haiku
+    ONLY (Opus never in-sim — enforced in pricing.is_in_sim_allowed)."""
 
     def __init__(self, agent_id: str, role: str, model: str,
-                 turn_cost: float = 0.50, budget_registered: bool = False):
+                 turn_cost: float = 0.50, budget_registered: bool = False,
+                 max_tokens: int = 1500, guidance: str = ""):
         self.agent_id = agent_id
         self.role = role
         self.model = model
-        self.turn_cost = turn_cost
+        self.turn_cost = turn_cost          # reservation for the hard-cap pre-check
         self.budget_registered = budget_registered
+        self.max_tokens = max_tokens
+        self.guidance = guidance
+        self._last_cost = None
+        self._last_exchange = None
 
     def _guard(self) -> None:
         if not os.environ.get("ANTHROPIC_API_KEY"):
@@ -180,12 +307,29 @@ class LLMAgent(Agent):
             raise NotImplementedError(
                 "LLMAgent needs a registered per-episode budget before any "
                 "call (SPEC honesty rule)")
-        raise NotImplementedError(
-            "LLMAgent.propose is wired in D1b (FIRST EPISODES); D1a is the "
-            "offline harness")
 
     def propose(self, view: View) -> list:
         self._guard()
+        from . import llm  # lazy: no network / SDK import on the offline path
+        actions, cost, exchange = llm.run_turn(
+            self.model, view, self.max_tokens, guidance=self.guidance)
+        self._last_cost = cost
+        self._last_exchange = exchange
+        return actions
 
     def propose_allocation(self, context: dict):
         self._guard()
+        from . import llm
+        decision, cost, exchange = llm.run_allocation(
+            self.model, self.agent_id, context, self.max_tokens)
+        self._last_cost = cost
+        self._last_exchange = exchange
+        return decision
+
+    def pop_metered_cost(self):
+        c, self._last_cost = self._last_cost, None
+        return c
+
+    def pop_last_exchange(self):
+        e, self._last_exchange = self._last_exchange, None
+        return e

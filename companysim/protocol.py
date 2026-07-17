@@ -88,15 +88,21 @@ class Task:
     submit_commit: str | None = None
     reviewer: str | None = None
     rejections: int = 0
+    kind: str = "code"              # v33-D: "code" (pytest) | "attested" (sign-off)
+    criteria: str = ""              # v33-D: attested acceptance criteria
+    source_inbox: str | None = None # v33-G: inbox item this task was triaged from
+    buyer: str | None = None        # v33-B/G: buyer wallet funding this task's escrow
 
     def summary(self) -> dict:
         """Compact view for the rendered agent View / replay page."""
         return {
             "task_id": self.task_id, "idea": self.idea, "title": self.title,
-            "state": self.state.value, "bounty": self.bounty,
+            "state": self.state.value, "bounty": self.bounty, "kind": self.kind,
             "author": self.author, "assignee": self.assignee,
             "claimant": self.claimant, "reviewer": self.reviewer,
             "rejections": self.rejections,
+            "criteria": self.criteria if self.kind == "attested" else "",
+            "acceptance_tests": list(self.acceptance_tests),
         }
 
 
@@ -104,18 +110,30 @@ class TaskBoard:
     """A fold of the event log: ideas + tasks + their live states. Never mutated
     except through `apply_event`; `check_*` only reads."""
 
-    def __init__(self, regime: Regime, manager_id: str | None):
+    def __init__(self, regime: Regime, manager_id: str | None,
+                 inbox_seed: list | None = None):
         self.regime = regime
         self.manager_id = manager_id
         self.ideas: dict[str, Idea] = {}
         self.tasks: dict[str, Task] = {}
         self._task_seq = 0
+        # v33-G client channel: {inbox_id: {text, buyer, amount, state}}. Seeded
+        # from config (founder-sanitized records) so resume rebuilds it identically.
+        self.inbox: dict[str, dict] = {}
+        for item in (inbox_seed or []):
+            iid = item["inbox_id"]
+            self.inbox[iid] = {"inbox_id": iid, "text": item.get("text", ""),
+                               "buyer": item.get("buyer"),
+                               "amount": float(item.get("amount", 0.0) or 0.0),
+                               "state": "open"}
+        # v33-I HR: {req_id: {role, idea, requirements, budget, filled_by}}.
+        self.requisitions: dict[str, dict] = {}
 
     # -- projection: rebuild from the log (resume / replay) ---------------
     @classmethod
     def from_log(cls, event_log: ev.EventLog, regime: Regime,
-                 manager_id: str | None) -> "TaskBoard":
-        board = cls(regime, manager_id)
+                 manager_id: str | None, inbox_seed: list | None = None) -> "TaskBoard":
+        board = cls(regime, manager_id, inbox_seed=inbox_seed)
         for rec in event_log.records():
             board.apply_event(rec)
         return board
@@ -131,7 +149,9 @@ class TaskBoard:
                 title=d["title"], brief=d["brief"],
                 acceptance_tests=list(d["acceptance_tests"]),
                 bounty=d["bounty"], proposed_split=dict(d["split"]),
-                assignee=d.get("assignee"))
+                assignee=d.get("assignee"),
+                kind=d.get("kind", "code"), criteria=d.get("criteria", ""),
+                source_inbox=d.get("source_inbox"), buyer=d.get("buyer"))
             self._task_seq = max(self._task_seq, _task_num(d["task_id"]))
         elif t == ev.TASK_CLAIMED:
             task = self.tasks[d["task_id"]]
@@ -155,6 +175,42 @@ class TaskBoard:
             task.submit_commit = None
             task.reviewer = None
             task.rejections += 1
+        elif t == ev.ATTESTED:
+            task = self.tasks[d["task_id"]]
+            if d["verdict"]:
+                task.state = TaskState.MERGED           # attested pass = merge
+                task.reviewer = d["actor"]
+            else:                                        # attested fail = reopen
+                task.state = TaskState.OPEN
+                task.claimant = None
+                task.split_locked = None
+                task.submit_commit = None
+                task.reviewer = None
+                task.rejections += 1
+        elif t == ev.PLEDGE:
+            # A pledge may mint (resurrect) an idea (v33-D exploration).
+            iid = d["idea_id"]
+            if iid not in self.ideas:
+                self.ideas[iid] = Idea(iid, d.get("name", iid),
+                                       d.get("rationale", ""), d["actor"])
+        elif t == ev.INBOX_TRIAGED:
+            item = self.inbox.get(d["inbox_id"])
+            if item:
+                item["state"] = "triaged"
+                item["task_id"] = d.get("task_id")
+        elif t == ev.INBOX_DECLINED:
+            item = self.inbox.get(d["inbox_id"])
+            if item:
+                item["state"] = "declined"
+        elif t == ev.REQUISITION_OPENED:
+            self.requisitions[d["req_id"]] = {
+                "req_id": d["req_id"], "role": d.get("role", ""),
+                "idea": d.get("idea"), "requirements": d.get("requirements", ""),
+                "budget": d.get("budget", 0.0), "filled_by": None}
+        elif t == ev.HIRE:
+            req = self.requisitions.get(d.get("req_id"))
+            if req:
+                req["filled_by"] = d.get("candidate")
         elif t == ev.ALLOC_CUT:
             idea = self.ideas.get(d["idea_id"])
             if idea:
@@ -211,11 +267,90 @@ class TaskBoard:
         task = self._require(task_id)
         if task.state is not TaskState.SUBMITTED:
             raise ProtocolError(f"task {task_id} not SUBMITTED")
+        if task.kind != "code":
+            raise ProtocolError(
+                f"task {task_id} is {task.kind}; use attest, not review")
         # The one rule the whole honesty story turns on (SPEC v33): the
         # reviewer can NEVER be the implementer.
         if actor == task.claimant:
             raise ProtocolError(
                 f"reviewer {actor} cannot be the implementer of {task_id}")
+
+    def check_attest(self, actor: str, task_id: str) -> None:
+        """v33-D attested review: same reviewer!=author firewall, non-code only."""
+        task = self._require(task_id)
+        if task.state is not TaskState.SUBMITTED:
+            raise ProtocolError(f"task {task_id} not SUBMITTED")
+        if task.kind != "attested":
+            raise ProtocolError(
+                f"task {task_id} is code; use review (pytest), not attest")
+        # Attestation firewall: the attester can never be the implementer, and
+        # (v33-D) the reviewer must differ from the AUTHOR of the criteria.
+        if actor == task.claimant:
+            raise ProtocolError(
+                f"attester {actor} cannot be the implementer of {task_id}")
+        if actor == task.author:
+            raise ProtocolError(
+                f"attester {actor} cannot be the author of {task_id}")
+
+    def check_pledge(self, actor: str, idea_id: str, amount: float,
+                     wallet_balance: float) -> None:
+        """v33-D: an agent may stake ONLY its own credits (conviction is paid for)."""
+        if amount <= 0:
+            raise ProtocolError("pledge amount must be > 0")
+        if wallet_balance + 1e-9 < amount:
+            raise ProtocolError(
+                f"pledge {amount} exceeds wallet balance {wallet_balance}")
+        # A pledge to an existing CUT idea is fine (resurrect-by-pledge); to an
+        # active idea it is additional exploration capital.
+
+    def check_triage(self, actor: str, inbox_id: str, idea_id: str,
+                     bounty: float, split: dict) -> None:
+        """v33-G: only through the org's own attested contract. COMMAND: manager
+        only (it is task creation)."""
+        if self.regime is Regime.COMMAND and actor != self.manager_id:
+            raise ProtocolError(
+                f"COMMAND: only manager {self.manager_id} may triage")
+        item = self.inbox.get(inbox_id)
+        if item is None:
+            raise ProtocolError(f"no such inbox item {inbox_id}")
+        if item["state"] != "open":
+            raise ProtocolError(f"inbox item {inbox_id} already {item['state']}")
+        if idea_id not in self.ideas:
+            raise ProtocolError(f"unknown idea {idea_id!r}")
+        if bounty <= 0:
+            raise ProtocolError("bounty must be > 0")
+        validate_split(split)
+
+    def check_decline(self, actor: str, inbox_id: str) -> None:
+        item = self.inbox.get(inbox_id)
+        if item is None:
+            raise ProtocolError(f"no such inbox item {inbox_id}")
+        if item["state"] != "open":
+            raise ProtocolError(f"inbox item {inbox_id} already {item['state']}")
+
+    def check_requisition(self, actor: str, req_id: str, idea_id: str) -> None:
+        """v33-I: an allocation that grows an idea may open a requisition. In
+        COMMAND, the manager owns headcount; in CLAIMS, any agent may open one."""
+        if self.regime is Regime.COMMAND and actor != self.manager_id:
+            raise ProtocolError(
+                f"COMMAND: only manager {self.manager_id} may requisition")
+        if req_id in self.requisitions:
+            raise ProtocolError(f"requisition {req_id} already exists")
+        if idea_id not in self.ideas:
+            raise ProtocolError(f"unknown idea {idea_id!r}")
+
+    def check_trial(self, actor: str, req_id: str, task_id: str) -> None:
+        """v33-I: run the trial against an OPEN task the requisition points at."""
+        if req_id not in self.requisitions:
+            raise ProtocolError(f"no such requisition {req_id}")
+        if self.requisitions[req_id]["filled_by"] is not None:
+            raise ProtocolError(f"requisition {req_id} already filled")
+        task = self._require(task_id)
+        if task.state is not TaskState.OPEN:
+            raise ProtocolError(f"trial task {task_id} not OPEN")
+        if task.kind != "code":
+            raise ProtocolError("trial task must be code (pytest is the receipt)")
 
     def _require(self, task_id: str) -> Task:
         if task_id not in self.tasks:

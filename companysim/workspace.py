@@ -103,7 +103,11 @@ class Workspace:
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_text(content, encoding="utf-8")
         self._git("add", "-A")
-        self._git("commit", "-q", "-m", message)
+        # --allow-empty: two identical submissions (e.g. distinct trial candidates
+        # writing the same code, or a resubmit of unchanged files) produce no diff;
+        # a plain commit would exit non-zero. An empty commit is still deterministic
+        # (tree+parent+logical date), so replay stays byte-identical.
+        self._git("commit", "-q", "--allow-empty", "-m", message)
         return self.head()
 
     def committed_files(self) -> list[str]:
@@ -120,12 +124,22 @@ class Workspace:
         targets = list(test_files) if test_files else ["."]
         cmd = [sys.executable, "-m", "pytest", "-q",
                "-p", "no:cacheprovider", "--no-header", *targets]
+        # Determinism / correctness: never read or write stale bytecode. CPython
+        # invalidates a .pyc by (mtime-seconds, size); two submissions of equal
+        # length within the same 1s tick collide, so a rejected impl could import
+        # a cached passing .pyc. Purge __pycache__ and forbid writing new bytecode.
+        import shutil
+        for pc in task_dir.rglob("__pycache__"):
+            shutil.rmtree(pc, ignore_errors=True)
+        import os as _os
+        env = dict(_os.environ)
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
         import time
         t0 = time.monotonic()
         timed_out = False
         try:
             proc = subprocess.run(cmd, cwd=str(task_dir), capture_output=True,
-                                  text=True, timeout=timeout)
+                                  text=True, timeout=timeout, env=env)
             rc = proc.returncode
             out = (proc.stdout or "") + (proc.stderr or "")
         except subprocess.TimeoutExpired as exc:

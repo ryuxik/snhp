@@ -41,6 +41,13 @@ EV_ESCROW = "escrow"   # treasury -> escrow:<task> (a bounty is posted/funded)
 EV_SETTLE = "settle"   # escrow:<task> -> agent:<id> (a role's split, on merge)
 EV_REFUND = "refund"   # escrow:<task> -> treasury (unpaid remainder on close)
 EV_SPEND = "spend"     # compute_budget -> external:compute (metered token cost)
+# v33-B/G: a bounty may be funded from an external BUYER wallet instead of the
+# internal treasury (the demand-side bill of lading — an escrowed pre-order).
+EV_BUYER_FUND = "buyer_fund"      # external:capital -> buyer:<id> (pre-order deposit)
+EV_BUYER_ESCROW = "buyer_escrow"  # buyer:<id> -> escrow:<task> (order escrowed to work)
+EV_BUYER_REFUND = "buyer_refund"  # escrow:<task> -> buyer:<id> (unaccepted order returns)
+# v33-D: an agent pledge stakes its own wallet on an idea's exploration fund.
+EV_PLEDGE = "pledge_credit"       # agent:<id> -> idea_fund:<idea>
 
 # Account name helpers (string keys the Wallets fold sums over).
 ACCT_TREASURY = "treasury"
@@ -55,6 +62,14 @@ def acct_agent(agent_id: str) -> str:
 
 def acct_escrow(task_id: str) -> str:
     return f"escrow:{task_id}"
+
+
+def acct_buyer(buyer_id: str) -> str:
+    return f"buyer:{buyer_id}"
+
+
+def acct_idea_fund(idea_id: str) -> str:
+    return f"idea_fund:{idea_id}"
 
 
 def _canonical(obj: dict) -> str:
@@ -200,6 +215,15 @@ class Ledger(Chain):
             "amount": amount, "task": task_id, "idea": idea,
         }, ts=ts)
 
+    def escrow_from_fund(self, task_id: str, amount: float, *, idea: str,
+                         ts: str) -> Record:
+        """Fund a bounty from an idea's PLEDGE fund (v33-D): self-investment pays
+        for its own exploration work rather than drawing the shared treasury."""
+        return self.append(EV_ESCROW, {
+            "debit": acct_idea_fund(idea), "credit": acct_escrow(task_id),
+            "amount": amount, "task": task_id, "idea": idea, "source": "idea_fund",
+        }, ts=ts)
+
     def settle(self, task_id: str, agent_id: str, amount: float, *,
                role: str, idea: str, commit: str, test_digest: str,
                ts: str) -> Record:
@@ -225,6 +249,42 @@ class Ledger(Chain):
             "debit": ACCT_COMPUTE, "credit": ACCT_EXT_COMPUTE,
             "amount": amount, "agent": agent_id, "idea": idea,
             "turn": turn, "reason": reason,
+        }, ts=ts)
+
+    # -- v33-B/G: external buyer wallet (arms-length demand) ----------------
+    def buyer_fund(self, buyer_id: str, amount: float, *, ts: str) -> Record:
+        """External capital deposits into a buyer wallet (the buyer is outside the
+        org, outside allocation — no wallet flows org->buyer; enforced by the
+        runner never crediting a buyer from an idea)."""
+        return self.append(EV_BUYER_FUND, {
+            "debit": ACCT_EXT_CAPITAL, "credit": acct_buyer(buyer_id),
+            "amount": amount, "buyer": buyer_id,
+        }, ts=ts)
+
+    def buyer_escrow(self, task_id: str, buyer_id: str, amount: float, *,
+                     idea: str, ts: str) -> Record:
+        """A buyer's pre-order escrows against a spec+tests BEFORE work (v33-B1)."""
+        return self.append(EV_BUYER_ESCROW, {
+            "debit": acct_buyer(buyer_id), "credit": acct_escrow(task_id),
+            "amount": amount, "task": task_id, "idea": idea, "buyer": buyer_id,
+        }, ts=ts)
+
+    def buyer_refund(self, task_id: str, buyer_id: str, amount: float, *,
+                     idea: str, ts: str) -> Record:
+        """Return an unaccepted / cut buyer order to the buyer wallet."""
+        return self.append(EV_BUYER_REFUND, {
+            "debit": acct_escrow(task_id), "credit": acct_buyer(buyer_id),
+            "amount": amount, "task": task_id, "idea": idea, "buyer": buyer_id,
+        }, ts=ts)
+
+    # -- v33-D: agent pledge (self-investment) -----------------------------
+    def pledge(self, agent_id: str, idea_id: str, amount: float, *,
+               ts: str) -> Record:
+        """An agent stakes its own wallet credits on an idea's exploration fund in
+        exchange for a claim on future receipts (v33-D §3 / B2 pulled forward)."""
+        return self.append(EV_PLEDGE, {
+            "debit": acct_agent(agent_id), "credit": acct_idea_fund(idea_id),
+            "amount": amount, "agent": agent_id, "idea": idea_id,
         }, ts=ts)
 
 

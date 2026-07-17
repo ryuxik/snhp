@@ -40,6 +40,16 @@ ALLOC_GROW = "alloc_grow"            # idea gets more turns/tokens/agents
 ALLOC_CUT = "alloc_cut"              # idea wound down, tasks cancelled
 ALLOC_BENCH = "alloc_bench"          # agent benched (no turns next episode)
 ALLOC_REASSIGN = "alloc_reassign"    # agent moved to a different idea
+# v33-D/G/I extension events (attested review, client channel, pledges, HR):
+ATTESTED = "attested"                # v33-D: reviewer signed a non-code task
+PLEDGE = "pledge"                    # v33-D: agent staked credits on an idea
+INBOX_TRIAGED = "inbox_triaged"      # v33-G: inbox item -> attested contract
+INBOX_DECLINED = "inbox_declined"    # v33-G: inbox item declined
+REQUISITION_OPENED = "requisition_opened"  # v33-I: role + budget line
+TRIAL_RUN = "trial_run"             # v33-I: a candidate ran the trial task
+HIRE = "hire"                        # v33-I: cheapest passing candidate hired
+RECONCILIATION = "reconciliation"    # v33-F: B1 buyer's cost-attribution test
+FIRST = "first"                      # v33-E: a chronicle first (mirrors firsts.jsonl)
 EPISODE_END = "episode_end"
 
 
