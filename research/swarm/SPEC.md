@@ -2866,3 +2866,75 @@ is the fix, and the paper saves lives without moving tonnage.**
   heir — never void them (the void teaches the market to shun the
   fragile) and never price the hazard into the spread (the premium does
   the shunning arithmetically).
+
+**PAB RESULTS (2026-07-17 · column AB — report, NOT a verdict; numbers loud
+either way).** The crash: bills on, claims-die mortality, LONG horizon
+(7,500t); at T_shock the far band (rocks beyond the p60 nearest-refinery
+distance, ~40% of the field) goes dark via the v11 machinery — stock zeros
+out, in-transit far cargo settles at floor 0. Grid: {gross bilateral,
+clearinghouse} × {shock, no-shock control} + spot × {shock, control};
+N=240 (grid 101, 8 seeds) primary, N=24 (16 seeds) reference; σ=0.5,
+τ=0.15, v5. **Registered T_shock deviation:** the contract's illustrative
+3,500 lands on a SETTLED economy (the v5 field delivers/relays its far
+band over an N-dependent active phase then plateaus — nothing in flight,
+the shock is inert), so T_shock was registered per grid at the midpoint of
+the active far-band relay phase BEFORE the grid ran: **N=240 → 1,000,
+N=24 → 200** (identical across regimes and seeds within a grid; measured
+15/16 N=24 seeds have far cargo in flight at 200). Φ never sees the shock
+(no fear channel — write-downs land only at settlement/death, evaluated Φ
+== executed Φ preserved); credit conservation held live through shock,
+write-downs, fees and CCP payouts in all 144 runs.
+- **PABa CONFIRMED at scale — the counterparty web is real and deep.** At
+  the crash, the in-flight far-band claim stacks at N=240 carry **$2,207/run
+  of exposure, 85.0% of it (per-seed 79–92%) held by hop ≥1 paper-claimants**
+  — agents who had already handed the cargo off — with **$1,701 at ≥2 hops**
+  and per-seed max depth **20–29 hops**. Realized write-downs at settlement/
+  death: contagion $292 vs direct $20 (15×) — nearly all materialized loss
+  lands on upstream claimants, because on a deep-chained parcel the
+  deliverer's residual is thin (the chain ate it). Depth scales with chain
+  length exactly as registered: the N=24 reference web is short and
+  transient (contagion 56% mean with per-seed spread 10–100%, max hop ≤5).
+  Spot control: **0% beyond hop 0 by construction** — same ore loss
+  (~$2,300 exposure), all concentrated on the physical holders.
+- **PABb SPLIT — the clearinghouse caps the LOSS, not the SCAR.** At N=240
+  the CCP (registered fee: 5% of face per settlement; waterfall: pro-rata
+  haircut) covers the crash in full: claimant realized loss **$312 → $0**
+  (fees $805, payouts $314, haircut $0, pool ends $491 and stabilizes —
+  trajectory flat from t≈3,000). At N=24 the pool runs DRY and the
+  registered waterfall engages: fees $98, payouts $77, **haircut $41** —
+  realized $115 → $41 (64% capped). But recovery is NOT shortened: chain
+  rate regains the control's level at ≈2,500t under BOTH regimes (N=240) —
+  gross and CCP are bit-identical on every physical column (delivered 1697
+  both, deaths 10.2 both; the CCP is credit-side only, verified in the
+  artifact).
+- **PABc RE-SCOPED — the scar is real, physical, and regime-independent.**
+  Post-shock chain-deal rate at N=240 drops to 0.600/tick vs the control's
+  2.929 (**−80%**), recovering only as the control's own rate declines
+  (≈2,500t); N=24 −28%, no recovery within horizon. The CCP does not speed
+  it up (identical curve), and CANNOT in this world: Φ has no
+  counterparty-fear channel by construction (the shock is invisible to
+  valuation), so "the market remembers" has no mechanism here — the scar
+  is the missing far-band trade itself, not trust. The registered PABc
+  contrast (CCP ⇒ prompt resumption) is therefore untestable-as-built for
+  the fear channel and REFUTED for the physical one.
+- **The leverage question (spot+shock): paper spreads the loss AND pays
+  for it.** The same shock costs the bills economy MORE tonnage than the
+  paperless one: delivered_frac Δ(shock−ctl) = **−0.153 (gross) vs −0.107
+  (spot)** at N=240 (both p<1e-4, 0/8 wins) — and the P23 boon is ERASED:
+  bills−spot delivered_frac **+0.038 (p=.0002) pre-shock → −0.007 (n.s.,
+  2/8) under the shock.** The bills economy commits drones to far chains
+  that the crash strands mid-relay (post-shock strand onsets 1,582 vs
+  spot's 346). Meanwhile the shock SAVES LIVES in every regime (N=240
+  deaths 10.2 vs 14.0 control, p=.0025; spot 14.4 vs 21.6, p=.0097): the
+  far band is where drones die, and when it goes dark they stop going.
+- **KILL does NOT fire — but the cascade is paper, not physical.**
+  Contagion exceeds direct losses on both exposure (85% vs 15%) and
+  realized credit ($292 vs $20), reaching 20+ hops — bills DO carry
+  systemic risk in this world. The registered happy-null clause (IR
+  truncates cascades) fails on paper but HOLDS on physics: there is no
+  default cascade — post-shock deaths ≈1.5/run, mortality FALLS, and the
+  fleet keeps hauling. The honest law: **a claim web transmits losses as
+  far as its chains are long, but in a full-recourse-free economy the
+  transmission stops at the ledger — it never touches the metal.** A
+  clearinghouse (5% fee) makes the paper loss vanish at scale and its
+  pool survives; what it cannot buy back is the vanished trade itself.
