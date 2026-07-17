@@ -2772,3 +2772,62 @@ assumption survives its own attack, re-scoped from axiom to economics.**
   expensive (key custody, staking, liability) or verification cheap and
   structural at the gate — never left to per-agent choice, because agents
   will free-ride their own trust tier onto the cliff.
+
+**PAA RESULTS (2026-07-16 · column AA — report, NOT a verdict; numbers loud
+either way).** The freeze-out is REAL at the microstructure and estates
+measurably KEEPS THE DYING TRADING and SAVES LIVES — but it does not move
+aggregate throughput, so the KILL fires on delivery and misses on mechanism.
+- **Base-rate check FIRST (registered before the grid).** FLATLINE mortality
+  (a chassis STRANDED FLATLINE_TICKS=100 ticks unrescued dies) alone gives
+  **6.5 deaths/run at N=24 and 13.6 at N=240** — both clear the ~3/run
+  detectability bar, so the registered wear-out hazard (WEAROUT_AGE=900,
+  WEAROUT_P=0.00035/tick, dedicated `RandomState(seed+282828)`) was NOT engaged
+  in the main grid (it ships off-by-default; at N=240 it would add ~100
+  deaths/run and swamp the economy — an N=24 wear-out sensitivity point ran as
+  the curve's right end). Credit conservation held through every death in all
+  regimes (voided-claim + estate accounting audited live over 176 runs).
+- **PAAa CONFIRMED (the freeze-out is real).** Under claims-die the dying are
+  frozen out of the claims economy: estates' chain-deal rate exceeds claims-die's
+  in EVERY partner-hazard quartile, and the gap is real in the DYING quartiles —
+  **N=24 Q3+Q4 estates 0.128 vs claims-die 0.097, Δ=+0.031, p=0.049** (9/16
+  wins); N=240 dying (Q3) estates 0.200 vs claims-die 0.182. At N=24 claims-die
+  even pushes the dying-most quartile (0.073) BELOW the no-bills spot baseline
+  (0.089) — the claims market excludes the dying harder than having no claims at
+  all. The discrimination flows entirely through Φ (the own-claim value priced at
+  its survival probability 1−hazard), never a bolted-on rule.
+- **PAAa′ (the freeze-out has a body count).** Deaths/run at N=240: **spot 21.6 >
+  claims-die 13.6 > estates 10.1** — bills cut mortality vs spot (the dying
+  offload), and estates cuts it a further ~26% vs claims-die (they keep
+  offloading right up to death). Risk-premium (16.1) dies MORE than claims-die.
+- **PAAb NULL on aggregate throughput (the over-served field masks it).** Estates
+  does NOT recover a delivered / far-band / ≥2-hop loss — because claims-die
+  barely LOST any: N=240 delivered_frac estates 0.854 ≈ claims-die 0.854
+  (Δ=+0.0003, p=0.96); far-band d/m 0.45 vs 0.46; ≥2-hop share 0.495 vs 0.500
+  (both ≈ the 0-death anchor 0.49, all ≫ spot's 0.02/0.37/0.023). Bills DO lift
+  delivery over spot under mortality (N=240 claims-die − spot Δframe=+0.033,
+  p=0.001, 8/8) — the P23 boon survives death — but the freeze-out is a
+  microstructure loss the healthy fleet absorbs, invisible in total delivery.
+- **PAAc CONFIRMED (institution, not actuary).** The risk-premium hop-split
+  gross-up FAILS to restore the dying's chaining and makes it WORSE than plain
+  claims-die: dying chain-rate N=240 risk-prem 0.122 < claims-die 0.191 < estates
+  0.205 (rp−est Δ=−0.083); N=24 rp 0.090 < claims-die 0.097 < estates 0.128. The
+  premium shifts the void risk onto the receiver's residual, so the receiver
+  vetoes the dying MORE — the actuarial fix backfires. Echo of the v8/H
+  career-pricing null: the fix is institutional (an heir), not a price.
+- **KILL — the split verdict.** On AGGREGATE THROUGHPUT the KILL FIRES:
+  claims-die ≈ estates on delivered_frac at every death rate (0-death anchor →
+  6/run flatline → 10/run wear-out; Δframe ≤ +0.003, n.s.; 7,500t fair-horizon
+  Δ=+0.004, p=0.35 — no late amortization). On MECHANISM the KILL does NOT fire:
+  estates keeps the dying trading (p=0.049) and alive (−26% deaths). Honest read:
+  in an over-served field the freeze-out is a distributional/mortality effect, not
+  a throughput effect — the estate's value is to the DYING drone (and its
+  company's fleet-preservation), not to the day's tonnage.
+- **The law, on the record: PAPER OUTLIVING THE HOLDER IS A LIFELINE FOR THE
+  DYING, NOT A THROUGHPUT LEVER.** Whether a dead agent's claims void or inherit
+  changes WHO gets to keep trading while failing — the estate lets a low-battery
+  agent offload-for-a-claim its company still collects, so it keeps chaining and
+  strands less. Product translation: a bill/claim registry should settle the
+  claims of a dead or vanished counterparty to a registered heir (the firm),
+  never void them — voiding doesn't dent throughput but it quietly freezes out and
+  kills off exactly the agents already in trouble, and pricing the hazard into the
+  spread (an insurance premium) makes it worse, not better.

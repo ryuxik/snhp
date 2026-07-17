@@ -212,16 +212,50 @@ def owned_and_claim(r):
 def bills_correction(r, w, owned=None, claim=None):
     """The additive term that turns scalar phi(r) into the bills Φ: replace the
     integer-load contribution (load·rate·V·disc) with the holder-residual value
-    (owned·rate·V·disc) and add the UNDISCOUNTED own-claims. owned/claim default
-    to the robot's ACTUAL parcels (execution / the eval==exec assert); the
-    evaluator passes ANALYTIC post-state values because the log=False bundle pass
-    moves load but not parcels."""
+    (owned·rate·V·disc) and add the own-claims. owned/claim default to the robot's
+    ACTUAL parcels (execution / the eval==exec assert); the evaluator passes
+    ANALYTIC post-state values because the log=False bundle pass moves load but not
+    parcels.
+
+    v28 (column AA): under the CLAIMS-DIE / risk-premium regime a robot's own
+    outstanding claims VOID if it dies before settlement, so Φ prices them at their
+    SURVIVAL-probability-weighted value claim·(1−stranding_hazard(r)) — a rational
+    response to expected claim voiding. This is the whole freeze-out channel: a
+    dying (high-hazard) claimant's paper is worth little, so the joint valuation of
+    letting it offload-and-hold-a-claim collapses and the deal stops clearing. The
+    ESTATES regime leaves claims UNDISCOUNTED (they survive to the company treasury,
+    so the company-joint value is retained). w.claim_discount is false in every
+    prior column ⇒ bit-identical. The discount reads the robot's POST-state battery
+    (via stranding_hazard), identical in Φ evaluation and at execution, so the
+    evaluated Φ == executed Φ invariant is preserved."""
     if owned is None:
         owned, claim = owned_and_claim(r)
+    if getattr(w, "claim_discount", False) and claim:
+        claim = claim * (1.0 - stranding_hazard(r, w))
     if r.load <= 0:                       # no load term in phi ⇒ just the claims
         return claim
     rate, disc = load_factors(r, w)
     return rate * W.V_DELIVER * disc * (owned - r.load) + claim
+
+
+def hop_split(r, w) -> float:
+    """The Nash hop-split α* — the giver's claim share of the moved residual.
+    α* = (1+giver_disc)/2 is the P23 division, a function of the giver's PRE-deal
+    feasibility discount ONLY, so it is reproduced identically in evaluation
+    (_bills_ctx) and at execution (_finish_deal) — the split-independence that keeps
+    evaluated Φ == executed Φ. v28 (column AA) RISK-PREMIUM: gross the share up by
+    the giver's survival probability, α*/(1−haz) capped at 1 — the actuarial premium
+    that prices the giver's own claim-void hazard into the split (derived from the
+    existing stranding_hazard machinery, NOT a bolted-on heuristic; it exactly
+    offsets the claims-die Φ discount so the giver's EXPECTED claim returns to par,
+    shifting the voiding cost onto the RECEIVER's residual). premium_split false ⇒
+    α* unchanged ⇒ bit-identical to plain bills."""
+    _, disc = load_factors(r, w)
+    alpha = 0.5 * (1.0 + disc)
+    if getattr(w, "premium_split", False):
+        surv = 1.0 - stranding_hazard(r, w)
+        alpha = min(1.0, alpha / max(surv, 1e-6))
+    return alpha
 
 
 def phi_bills(r, w) -> float:

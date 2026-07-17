@@ -139,6 +139,32 @@ DEADLOCK_FULL = 0.95               # "at full battery" threshold (× BATTERY_MAX
                                     # routing-deadlock predicate (the P24 signature:
                                     # loaded, charged, still beyond single-hop refinery reach)
 
+# v28 (column AA): mortality and the persistence of paper — estates. All the
+# machinery below is gated on `mortality`/`death_regime`; every array is
+# allocated but NEVER read/written when off, so every prior column stays
+# bit-identical (suite-verified). Death is PERMANENT (distinct from the
+# rescuable `stranded`): a dead robot is inert (excluded from encounters/drive/
+# rescue) and its carried cargo is written off to stock_lost (destroyed, like
+# stranded cargo). Two claim-inheritance regimes plus a risk-premium variant
+# select what happens to the PAPER a death leaves behind.
+FLATLINE_TICKS = 100               # a robot STRANDED this many consecutive ticks with
+                                    # no rescue flatlines and dies (the endogenous,
+                                    # trajectory-dependent mortality source; measured
+                                    # as the P23 base rate before any wear-out).
+WEAROUT_AGE = 900                  # ticks: a chassis older than this faces the wear-out
+                                    # hazard (registered; identical in every regime).
+WEAROUT_P = 0.00035                # per-tick death probability above WEAROUT_AGE, drawn
+                                    # ONCE per robot as a geometric death-tick from a
+                                    # DEDICATED RandomState(seed+282828) — never the main
+                                    # stream, so the schedule is regime-INDEPENDENT (the
+                                    # same chassis die at the same ticks in all regimes).
+# Claim-stack sentinel claimants (negative rids never collide with real 0..N-1):
+CLAIM_VOID = -1                    # a claim VOIDED at the holder's death (claims-die /
+                                    # risk-premium): its terminal payout is DESTROYED and
+                                    # booked to claims_voided (accounted in the ledger).
+# an ESTATE claim re-points to its dead holder's company treasury via the sentinel
+# rid == -(2 + company): -2 → company 0, -3 → company 1 (decoded at settlement).
+
 PRESETS = {
     # sources, refineries [(pos, owner)], chargers [(pos, owner)]
     "v5": dict(sources=None,        # mirrored asteroid field, seeded in init
@@ -181,6 +207,11 @@ class Robot:
     load: int = 0
     load_prov: list = field(default_factory=lambda: [0, 0])  # by mining company
     stranded: bool = False
+    dead: bool = False              # v28 (column AA): PERMANENT death (distinct from
+                                    # the rescuable `stranded`). A dead chassis is inert
+                                    # — excluded from encounters/drive/rescue — and its
+                                    # paper resolves per the death regime. Default False
+                                    # and set only under `mortality`, so bit-identical off.
     delivered: int = 0
     credit: float = 0.0             # delivery credit actually earned
     charge_queued_at: int = -1
@@ -251,7 +282,9 @@ class World:
                  command: bool = False, deadlock_track: bool = False,
                  charger_band: float = 0.0, nav_dumb: bool = False,
                  forgery: bool = False, forge_cost: float = 0.0,
-                 verify_cost: float = 0.0, verify_regime: str = "none"):
+                 verify_cost: float = 0.0, verify_regime: str = "none",
+                 mortality: bool = False, death_regime: str = "none",
+                 wearout: bool = False):
         self.rng = np.random.RandomState(seed)
         self.rng_seed = seed                 # v18: matter-field RNG keys off this
         self.hazard_phi = hazard_phi
@@ -614,6 +647,55 @@ class World:
         self.cmd_handoffs = 0                # directed cargo hand-offs executed
         self.deadlock_count = 0              # rising-edge entries into the routing deadlock
         self._in_deadlock = [False] * n_r
+        # v28 (column AA): mortality and the persistence of paper. `mortality`
+        # enables death_step (physical flatline + optional wear-out); `death_regime`
+        # ∈ {"none","claims_die","estates","risk_premium"} selects what the dead
+        # robot's PAPER does. All default off ⇒ every prior column is bit-identical:
+        # death_step early-returns, the arrays below are allocated but never touched,
+        # the wear-out RandomState is created ONLY under wearout (so the main stream
+        # is never perturbed), and bills Φ / settlement branch on the regime flags
+        # which are false. Derived booleans:
+        #   claim_discount — Φ prices a robot's OWN outstanding claims by its survival
+        #                    probability (they void if it dies): claims-die + risk-prem.
+        #   claim_void     — at death, the dead robot's held claims are DESTROYED
+        #                    (payout booked to claims_voided): claims-die + risk-prem.
+        #   claim_estate   — at death, they re-point to the company treasury (heir):
+        #                    estates only.
+        #   premium_split  — the Nash hop-split grosses the giver's share up by its
+        #                    survival probability (the actuarial fix): risk-prem only.
+        assert death_regime in ("none", "claims_die", "estates", "risk_premium"), \
+            f"unknown death_regime {death_regime!r}"
+        self.mortality = mortality
+        self.death_regime = death_regime
+        self.claim_discount = death_regime in ("claims_die", "risk_premium")
+        self.claim_void = death_regime in ("claims_die", "risk_premium")
+        self.claim_estate = death_regime == "estates"
+        self.premium_split = death_regime == "risk_premium"
+        self.wearout = wearout
+        self.deaths = 0                      # chassis lost this run (flatline + wear-out)
+        self.death_flatline = 0              # ... by unrescued stranding
+        self.death_wearout = 0               # ... by the age hazard
+        self.claims_voided = 0.0             # Σ credit DESTROYED by voided claims (ledger)
+        self.estate_settled = 0.0            # Σ credit settled to a treasury as an estate
+        self.death_log: list[dict] = []      # per-death record (tick, rid, cause, cargo,
+                                             # own-claim value at death, freeze context)
+        self._strand_ticks = [0] * n_r       # consecutive ticks each robot has been
+                                             # stranded (reset on rescue); FLATLINE_TICKS
+                                             # of it kills the chassis.
+        # freeze-out instrument: one record per chain-FEASIBLE encounter under mortality
+        # — the potential giver's hazard/battery + whether a cargo (chain) deal landed.
+        # Pure bookkeeping (no RNG, no physics), populated ONLY when mortality is on.
+        self.freeze_log: list[dict] = []
+        # wear-out schedule: pre-draw each chassis's natural death tick ONCE from the
+        # DEDICATED stream so it is IDENTICAL across regimes (age is tick, regime-free).
+        # A death tick past the horizon simply never fires. Drawn only under wearout.
+        self._wear_death_tick = [10**12] * n_r
+        if wearout:
+            wr = np.random.RandomState(seed + 282828)
+            for rid in range(n_r):
+                # geometric: first Bernoulli(WEAROUT_P) success after the age threshold
+                gap = int(wr.geometric(WEAROUT_P)) if WEAROUT_P > 0 else 10**12
+                self._wear_death_tick[rid] = WEAROUT_AGE + gap
         # company-neutral charger tie-break (panel M2): seeded priority
         self._charge_prio = list(self.rng.permutation(len(self.robots)))
         # v6: liar assignment, company-balanced (placebo preserved); in the
@@ -1402,6 +1484,104 @@ class World:
                 self.deadlock_count += 1
             self._in_deadlock[r.rid] = stuck
 
+    # ── v28 (column AA): mortality and the persistence of paper ───────────
+    def death_step(self) -> None:
+        """Resolve deaths at TICK START (from BaseArm.tick, alongside field_step/
+        build_step) — BEFORE drives and every bundle evaluation, so a death never
+        lands mid-encounter and the claim stack Φ prices is stable through the whole
+        encounter phase (evaluated Φ == executed Φ preserved). Two death sources,
+        both feeding the SAME regime-driven resolution:
+          (1) FLATLINE — a robot STRANDED for FLATLINE_TICKS consecutive ticks with
+              no rescue (the endogenous, trajectory-dependent base mortality).
+          (2) WEAR-OUT — a chassis reaching its pre-drawn natural death tick (age
+              hazard, from the DEDICATED stream, IDENTICAL across regimes).
+        No-op when mortality is off ⇒ every prior column is bit-identical."""
+        if not self.mortality:
+            return
+        for r in self.robots:
+            if r.dead:
+                continue
+            # (1) flatline bookkeeping: count consecutive stranded ticks, reset on rescue
+            if r.stranded:
+                self._strand_ticks[r.rid] += 1
+            else:
+                self._strand_ticks[r.rid] = 0
+            cause = None
+            if self.wearout and self.tick >= self._wear_death_tick[r.rid]:
+                cause = "wearout"
+            elif self._strand_ticks[r.rid] >= FLATLINE_TICKS:
+                cause = "flatline"
+            if cause is not None:
+                self.death_resolve(r, cause)
+
+    def death_resolve(self, r: Robot, cause: str) -> None:
+        """Kill chassis r and settle the paper it leaves behind. Two effects,
+        ONE regime-invariant, ONE regime-dependent:
+
+        (A) The dead robot's CARRIED cargo is written off to stock_lost (material
+            DESTROYED, like stranded cargo — a corpse cannot deliver). Every claim
+            riding that cargo is an upstream COUNTERPARTY's claim that now cannot
+            settle, so each such claimant's expected settlement (claim_value) is
+            written down. Identical in every regime (physical loss).
+
+        (B) The dead robot's OWN outstanding claims — the (r.rid, share) entries it
+            banked on parcels OTHER (living) robots still carry — resolve by regime:
+              claims-die / risk-premium: VOIDED (rewritten to CLAIM_VOID; the payout
+                is destroyed at delivery, booked to claims_voided — the ledger balances).
+              estates: re-pointed to r's company TREASURY (rewritten to the heir
+                sentinel; the payout settles to the treasury at delivery).
+            No credit exists yet (nothing delivered), so (B) touches only the paper;
+            the credit consequence lands at settlement (drop)."""
+        # snapshot the freeze-out context / audit fields BEFORE clearing
+        own_claim = r.claim_value
+        cargo = r.load
+        # (A) write off carried cargo; write down every counterparty claim on it
+        for p in r.parcels:
+            for claim in p.get("claims", ()):
+                cid = claim[0]
+                if cid >= 0 and cid != r.rid:
+                    # 2- or 3-tuple: field 1 is the PHYSICAL share
+                    self.robots[cid].claim_value -= claim[1] * V_DELIVER
+        if cargo:
+            self.stock_lost += cargo
+        r.load = 0
+        r.load_prov = [0, 0]
+        r.parcels = []
+        r.claim_value = 0.0
+        # (B) resolve the dead robot's OWN held claims on LIVING robots' parcels
+        heir = -(2 + r.company)                 # estate sentinel for r's company
+        inherited = 0.0
+        if self.bills and (self.claim_void or self.claim_estate):
+            target = CLAIM_VOID if self.claim_void else heir
+            for other in self.robots:
+                if other.rid == r.rid or other.dead:
+                    continue
+                for p in other.parcels:
+                    cl = p.get("claims")
+                    if not cl:
+                        continue
+                    for k in range(len(cl)):
+                        if cl[k][0] == r.rid:
+                            inherited += cl[k][1] * V_DELIVER
+                            cl[k] = (target,) + tuple(cl[k][1:])
+        # finalize the death
+        r.dead = True
+        r.stranded = True                       # a corpse stays out of every rescue path
+        r.charge_queued_at = -1
+        r.busy_until = -1
+        self._strand_ticks[r.rid] = 0
+        self.deaths += 1
+        if cause == "wearout":
+            self.death_wearout += 1
+        else:
+            self.death_flatline += 1
+        self.death_log.append(dict(
+            tick=self.tick, rid=r.rid, co=r.company, cause=cause,
+            cargo=cargo, own_claim=round(own_claim, 4),
+            inherited=round(inherited, 4),
+            regime=self.death_regime,
+            bat_pct=round(r.battery / BATTERY_MAX, 4)))
+
     # ── v12 K1: map-selling (a sync is a copy of fresher map entries) ────
     def _map_overlay_entries(self, rc: int, gc: int):
         """The entries a giver company `gc` can freshen for a receiver `rc`:
@@ -1627,6 +1807,8 @@ class World:
         return best, best_d
 
     def _maybe_strand(self, r: Robot) -> None:
+        if r.dead:                              # v28: a corpse is already stranded and
+            return                              # never un-strands (guard is a no-op off)
         r.battery = max(0.0, r.battery)
         if r.battery < RESCUE_FLOOR and \
                 all(manhattan(r.pos, c) > 1 for c in self.chargers):
@@ -1751,10 +1933,28 @@ class World:
                             else:
                                 rid, share = claim
                                 paid = share
-                            cl = self.robots[rid]
-                            cl.credit += paid * unit
-                            self.company[cl.company]["credit"] += paid * unit
-                            cl.claim_value -= paid * V_DELIVER
+                            # v28 (column AA): a claimant left dead resolves by
+                            # SENTINEL rid. VOID (claims-die / risk-premium): the
+                            # share's payout is DESTROYED and booked to claims_voided
+                            # (still counted in csum, so the deliverer does NOT absorb
+                            # it — value leaves the economy, ledger balances via the
+                            # claims_voided term). ESTATE (estates): the share settles
+                            # to the dead holder's company TREASURY (heir) exactly as a
+                            # live robot would be paid, so company credit is unchanged
+                            # in aggregate. Real (rid>=0) claimants are paid as before
+                            # ⇒ bit-identical when no death regime is active.
+                            if rid == CLAIM_VOID:
+                                self.claims_voided += paid * unit
+                            elif rid < 0:                    # estate → treasury heir
+                                hco = -rid - 2
+                                self.company[hco]["treasury"] += paid * unit
+                                self.company[hco]["credit"] += paid * unit
+                                self.estate_settled += paid * unit
+                            else:
+                                cl = self.robots[rid]
+                                cl.credit += paid * unit
+                                self.company[cl.company]["credit"] += paid * unit
+                                cl.claim_value -= paid * V_DELIVER
                             csum += paid
                         resid = 1.0 - csum
                         r.credit += resid * unit
@@ -1821,8 +2021,8 @@ class World:
                             self.company[r.company]["toll_paid"] += toll
                 served.add(r.rid)
                 self.charge_served_slots += 1    # v17: charger duty-cycle numer.
-                if r.stranded and r.battery >= RESCUE_FLOOR:
-                    r.stranded = False
+                if r.stranded and not r.dead and r.battery >= RESCUE_FLOOR:
+                    r.stranded = False           # v28: a corpse never revives
             for r in queue[CHARGE_SLOTS:]:    # commons diagnostics
                 self.company[r.company]["queue_wait"] += 1
         # the charger's meter is ground truth: at true-full it cuts the
@@ -1843,8 +2043,8 @@ class World:
             return 0.0
         donor.battery -= got / (1 - TRANSFER_LOSS)
         recv.battery += got
-        if recv.stranded and recv.battery >= RESCUE_FLOOR:
-            recv.stranded = False
+        if recv.stranded and not recv.dead and recv.battery >= RESCUE_FLOOR:
+            recv.stranded = False               # v28: a corpse never revives
         self._maybe_strand(donor)
         if log:
             self.event_log.append(dict(t=self.tick, kind="energy",
@@ -1955,9 +2155,13 @@ class World:
         R = R_COMM
         buckets: dict = {}
         for idx, r in enumerate(rs):
+            if r.dead:                             # v28: a corpse interacts with
+                continue                           # no one (bit-identical off — no
             buckets.setdefault((r.pos[0] // R, r.pos[1] // R), []).append(idx)
         pairs_idx = []
         for i, a in enumerate(rs):
+            if a.dead:                             # robot is ever dead when mortality
+                continue                           # is off, so no pair is dropped)
             cx, cy = a.pos[0] // R, a.pos[1] // R
             for ox in (-1, 0, 1):
                 for oy in (-1, 0, 1):
@@ -2004,7 +2208,13 @@ class World:
         credit = sum(c["credit"] for c in self.company)
         tariffs = sum(c["tariffs_earned"] for c in self.company)
         build = sum(c["build_spend"] for c in self.company)
-        return abs(credit + tariffs + build - V_DELIVER * self.delivered) < 1e-6
+        # v28 (column AA): credit DESTROYED by a voided claim (claims-die / risk-
+        # premium) leaves circulation into claims_voided — added back here so the
+        # identity stays exact (the value is gone, like stranded cargo, but the
+        # ledger balances). 0 in every prior column ⇒ bit-identical.
+        voided = self.claims_voided
+        return abs(credit + tariffs + build + voided
+                   - V_DELIVER * self.delivered) < 1e-6
 
     def credit_conserved(self) -> bool:
         """v17 PHASE 2: per-company, Σ(robot credit) + treasury == the company's

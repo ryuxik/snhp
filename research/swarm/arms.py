@@ -29,7 +29,7 @@ import sys
 import numpy as np
 
 from swarm import world as W
-from swarm.value import (bills_correction, delivery_target, fast_phi,
+from swarm.value import (bills_correction, delivery_target, fast_phi, hop_split,
                          load_factors, owned_and_claim, phi, phi_bills, phi_ctx,
                          phi_true, phi_true_field, safe_return_threshold,
                          stranding_hazard, stranding_hazard_true, update_ev)
@@ -375,12 +375,20 @@ class BaseArm:
         w.command_step()               # v25 (column X): re-plan + radio-propagate
                                        # the central plan BEFORE drive reads targets
                                        # (the COMMAND regime). No-op when off.
+        w.death_step()                 # v28 (column AA): resolve deaths (flatline +
+                                       # wear-out) at TICK START, BEFORE drives and
+                                       # every bundle evaluation — a death never lands
+                                       # mid-encounter, so the claim stack Φ prices is
+                                       # stable through the encounter phase (evaluated
+                                       # Φ == executed Φ). No-op when mortality is off.
         if w.tick % EV_REFRESH == 0:
             for r in w.robots:
                 update_ev(r, w)
         order = list(w.robots)
         w.rng.shuffle(order)
         for r in order:
+            if r.dead:                     # v28: a corpse does not drive (no-op off —
+                continue                   # no robot is ever dead when mortality off)
             if w.tick < r.busy_until:      # docked mid-transfer — cannot move
                 continue
             drive(r, w)
@@ -405,7 +413,20 @@ class BaseArm:
             if w.tick - last < cool:
                 continue
             self._pair_meets[key] = self._pair_meets.get(key, 0) + 1
+            # v28 (column AA): freeze-out instrument. On a chain-FEASIBLE encounter
+            # (some party holds cargo the other has room for), record the potential
+            # GIVER's mortality hazard/battery PRE-deal and whether a cargo (chain)
+            # deal lands. The claimant (giver) is the robot whose paper is at risk
+            # under claims-die, so binning chain-deal rate by this hazard exposes the
+            # freeze-out. Pure bookkeeping (no RNG/physics); only under mortality+bills.
+            fz = None
+            if w.mortality:                    # spot baseline (bills off) logs too —
+                fz = self._freeze_pre(a, b)    # its chain-deal rate is the reference
+                la0, lb0 = a.load, b.load
             struck = self.encounter(a, b)
+            if fz is not None:
+                fz["cargo"] = int(a.load != la0 or b.load != lb0)
+                w.freeze_log.append(fz)
             self._last_try[key] = (w.tick, struck)
             if struck:
                 # transfers take time: both parties hold position while the
@@ -425,6 +446,26 @@ class BaseArm:
         non-order arms (auction/rules), so the order book is a bargaining-family
         primitive — the auction stays the unperturbed comparator."""
         return
+
+    def _freeze_pre(self, a, b):
+        """v28 (column AA): pre-deal freeze-out context for a chain-feasible encounter,
+        or None if no cargo could move either way. The 'mortal partner' is the
+        potential cargo GIVER with the HIGHER stranding hazard (the claimant whose
+        paper is most at risk of voiding). Returns its hazard + battery percentile so
+        the reporter can bin chain-deal rate by partner-hazard quartile per regime."""
+        w = self.w
+        givers = []
+        if a.load > 0 and b.cap - b.load > 0:
+            givers.append(a)
+        if b.load > 0 and a.cap - a.load > 0:
+            givers.append(b)
+        if not givers:
+            return None
+        g = max(givers, key=lambda r: stranding_hazard(r, w))
+        return dict(tick=w.tick, giver=g.rid,
+                    haz=float(stranding_hazard(g, w)),
+                    bat=float(g.battery / W.BATTERY_MAX),
+                    border=int(a.company != b.company))
 
     def encounter(self, a, b) -> bool:
         return False
@@ -593,11 +634,11 @@ class SnhpArm(BaseArm):
 
         cumA, cumA_dec = cum(a, a.pos)
         cumB, cumB_dec = cum(b, b.pos)
-        _, disc_a = load_factors(a, w)
-        _, disc_b = load_factors(b, w)
+        # v28 (column AA): hop_split reduces to 0.5·(1+disc) unless the risk-premium
+        # regime grosses it up for the giver's survival probability (off ⇒ identical).
         return dict(own_a=own_a, claim_a=claim_a, own_b=own_b, claim_b=claim_b,
                     cumA=cumA, cumB=cumB, cumA_dec=cumA_dec, cumB_dec=cumB_dec,
-                    alpha_a=0.5 * (1.0 + disc_a), alpha_b=0.5 * (1.0 + disc_b))
+                    alpha_a=hop_split(a, w), alpha_b=hop_split(b, w))
 
     def _bills_post(self, q, c):
         """Analytic post-(owned, claim) for both robots after moving |q| FIFO-head
@@ -856,8 +897,8 @@ class SnhpArm(BaseArm):
         # this bundle was evaluated at.
         if w.bills and q != 0:
             giver, receiver = (a, b) if q > 0 else (b, a)
-            _, disc_g = load_factors(giver, w)
-            bill_alpha = 0.5 * (1.0 + disc_g)
+            bill_alpha = hop_split(giver, w)     # v28: risk-premium grosses this up
+                                                 # (off ⇒ 0.5·(1+giver_disc), P23)
             # P23e: capture each moved parcel's OPEN-leg decay from the PRISTINE
             # pre-apply state (identical to what _bills_ctx priced via cumX_dec),
             # aligned to the FIFO head that apply_bundle is about to move.

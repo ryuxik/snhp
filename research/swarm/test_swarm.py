@@ -3089,6 +3089,192 @@ def test_v20_dumb_fleet_with_claims_outdelivers_without():
         f"granular claims did not help the dumb fleet: gran={granular} coarse={coarse}"
 
 
+def test_v28_mortality_off_bit_identical():
+    """mortality=False / death_regime='none' / wearout=False must be bit-identical to
+    a world that never heard of column AA — the dead flag, the death arrays, the
+    freeze log, the claim-void sentinels and every AA branch may not perturb a single
+    bit when off. Checked on a bargaining arm WITH bills (the Φ path AA touches) and
+    the auction (the credit/settlement path)."""
+    for arm_name in ("snhp+net", "auction"):
+        outs = []
+        for kw in (dict(bills=True),
+                   dict(bills=True, mortality=False, death_regime="none",
+                        wearout=False)):
+            w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                      hazard_phi=(arm_name == "snhp+net"), **kw)
+            arm = make_arm(arm_name, w)
+            for _ in range(400):
+                arm.tick()
+            outs.append((w.delivered, arm.deals, len(w.event_log),
+                         round(sum(r.battery for r in w.robots), 9),
+                         [r.pos for r in w.robots],
+                         [tuple(sorted(d.items())) for d in w.deal_log]))
+        assert outs[0] == outs[1], f"column-AA plumbing perturbed {arm_name}"
+
+
+def test_v28_wearout_uses_only_dedicated_stream():
+    """The wear-out death schedule is pre-drawn from RandomState(seed+282828) ONLY —
+    turning wear-out on must NEVER perturb the main stream, so two worlds identical
+    except for `wearout` produce the SAME positions/deals UP TO the first wear-out
+    death (before then no chassis has died, so trajectories are bit-identical). Also
+    verifies the schedule is seed-deterministic and regime-independent."""
+    # (a) main stream untouched: run both to just before the earliest wear-out tick.
+    w_on = World(sigma=0.5, seed=3, preset="v5", tau=(0.15, 0.15), bills=True,
+                 mortality=True, death_regime="claims_die", wearout=True)
+    first = min(w_on._wear_death_tick)
+    assert first >= W.WEAROUT_AGE + 1
+    horizon = min(first, W.FLATLINE_TICKS + 1) - 1     # before ANY death can fire
+    outs = []
+    for wearout in (False, True):
+        w = World(sigma=0.5, seed=3, preset="v5", tau=(0.15, 0.15), bills=True,
+                  mortality=True, death_regime="claims_die", wearout=wearout)
+        arm = make_arm("snhp+net", w)
+        for _ in range(horizon):
+            arm.tick()
+        assert w.deaths == 0, "a death fired inside the no-death window"
+        outs.append(([r.pos for r in w.robots], arm.deals,
+                     round(sum(r.battery for r in w.robots), 9)))
+    assert outs[0] == outs[1], "wearout draw perturbed the MAIN stream"
+    # (b) the schedule is identical across regimes (dedicated, regime-free stream)
+    scheds = []
+    for reg in ("claims_die", "estates", "risk_premium"):
+        w = World(sigma=0.5, seed=3, preset="v5", tau=(0.15, 0.15), bills=True,
+                  mortality=True, death_regime=reg, wearout=True)
+        scheds.append(list(w._wear_death_tick))
+    assert scheds[0] == scheds[1] == scheds[2], \
+        "wear-out schedule differs across regimes — not regime-independent"
+
+
+def _mortal_world(regime, seed=0):
+    w = World(sigma=0.5, seed=seed, preset="v5", tau=(0.0, 0.0), bills=True,
+              mortality=True, death_regime=regime)
+    return w, make_arm("snhp", w)
+
+
+def test_v28_claims_die_voids_exact_stack_entries():
+    """A hand-built A→B relay: A hands cargo to B and banks a claim on B's parcels.
+    When A dies under CLAIMS-DIE, A's (rid) entry on B's live parcels is rewritten to
+    the VOID sentinel (its value destroyed, not handed to the deliverer); when B (the
+    carrier) then delivers, that share is booked to claims_voided and the ledger
+    balances. Under ESTATES the same entry re-points to A's company treasury and
+    settles there. B's OWN residual is unchanged in both."""
+    for regime, expect_void in (("claims_die", True), ("risk_premium", True),
+                                ("estates", False)):
+        w, arm = _mortal_world(regime)
+        A, B = w.robots[0], w.robots[1]
+        for r in (A, B):
+            r.company, r.sector, r.cap, r.load, r.load_prov, r.parcels = \
+                0, 0, 5, 0, [0, 0], []
+        A.pos, w.stock[0] = w.sources[0], 3
+        assert w.pick(A) == 3
+        w.tick = 5
+        w.transfer_cargo(A, B, 3, log=True)             # A → B
+        arm._bills_attach(A, B, 3, 0.5)                 # A claims 0.5 of residual
+        # A holds a claim worth 0.5·3·V; B carries 3 units at residual 0.5 each
+        assert abs(A.claim_value - 0.5 * 3 * V_DELIVER) < 1e-9
+        b_resid = sum(1.0 - sum(sh for _r, sh, *_ in p["claims"]) for p in B.parcels)
+        assert abs(b_resid - 1.5) < 1e-9
+        # kill A
+        w.tick = 10
+        w.death_resolve(A, "wearout")
+        assert A.dead and A.stranded
+        # every A-entry on B's parcels is rewritten to the regime target
+        target = W.CLAIM_VOID if expect_void else -(2 + 0)   # co 0 heir == -2
+        for p in B.parcels:
+            rids = [c[0] for c in p["claims"]]
+            assert A.rid not in rids, "A's live claim survived unrewritten"
+            assert target in rids, f"expected sentinel {target} not on parcel"
+        # B's residual is untouched by A's death (only WHO gets A's share changed)
+        b_resid2 = sum(1.0 - sum(sh for _r, sh, *_ in p["claims"]) for p in B.parcels)
+        assert abs(b_resid2 - 1.5) < 1e-9, "B's residual moved on A's death"
+        # deliver: void ⇒ claims_voided; estate ⇒ treasury
+        B.pos = w.refineries[0]
+        w.tick = 20
+        tre0 = w.company[0]["treasury"]
+        w.drop(B)
+        if expect_void:
+            assert abs(w.claims_voided - 0.5 * 3 * V_DELIVER) < 1e-9, \
+                "voided claim not destroyed-and-accounted"
+            assert abs(w.company[0]["treasury"] - tre0) < 1e-9
+        else:
+            assert abs(w.estate_settled - 0.5 * 3 * V_DELIVER) < 1e-9, \
+                "estate not settled to treasury"
+            assert abs(w.claims_voided) < 1e-9
+        assert w.ledger_accounted() and w.credit_conserved()
+
+
+def test_v28_ledger_balances_through_death_all_regimes():
+    """2,000 ticks of snhp+net with bills + mortality + wear-out, in EVERY regime,
+    with the material / ledger / credit invariants live. Deaths fire (the run is
+    vacuous otherwise) and the destroyed-claim + estate accounting keeps all three
+    conservation laws exact through every death."""
+    for regime in ("claims_die", "estates", "risk_premium", "none"):
+        bills = regime != "none"
+        w = World(sigma=0.5, seed=1, preset="v5", tau=(0.15, 0.15), bills=bills,
+                  mortality=True, death_regime=regime, wearout=True)
+        arm = make_arm("snhp+net", w)
+        for _ in range(2000):
+            arm.tick()
+            assert w.material_ok(), f"material leak through death ({regime})"
+            assert w.ledger_accounted(), f"ledger leak through death ({regime})"
+            assert w.credit_conserved(), f"credit leak through death ({regime})"
+        assert w.deaths >= 3, f"too few deaths to test ({regime}: {w.deaths})"
+
+
+def test_v28_evaluated_equals_executed_under_mortality():
+    """The sacred invariant under the death economy: 1,500 ticks of snhp+net with
+    bills + claims-die + wear-out and the in-arm evaluated Φ == executed Φ assert
+    live (the mortality claim-discount enters Φ deterministically from post-state
+    battery, identical in evaluation and at execution). Completing clean IS the test;
+    deaths must actually occur and claimed relays must land."""
+    for regime in ("claims_die", "estates", "risk_premium"):
+        w = World(sigma=0.5, seed=2, preset="v5", tau=(0.15, 0.15), bills=True,
+                  mortality=True, death_regime=regime, wearout=True)
+        arm = make_arm("snhp+net", w)
+        for _ in range(1500):
+            arm.tick()
+        assert arm.deals > 0 and w.deaths > 0, f"vacuous run ({regime})"
+        assert any(p["hops"] >= 1 for p in w.delivered_parcels), \
+            f"no claimed relay delivered ({regime})"
+
+
+def test_v28_premium_split_responds_to_hazard():
+    """The risk-premium grosses the giver's hop-split up by its survival probability,
+    α*/(1−haz) capped at 1 — so a HIGH-hazard (low-battery, far-from-charger) giver
+    records a strictly LARGER claim share than a LOW-hazard one, while plain bills
+    (premium off) gives BOTH the identical α*=(1+disc)/2. Derived from the existing
+    stranding_hazard machinery, not a free heuristic."""
+    from swarm.value import hop_split, stranding_hazard, load_factors
+
+    def giver(w, battery):
+        r = w.robots[0]
+        # (2,16) sits 34 cells from BOTH refineries (x=26), so a mid battery does NOT
+        # clear the loaded haul (cost≈54 > 50 ⇒ disc<1, α*<1, room for the gross-up).
+        # eff pinned so cost is deterministic across seeds.
+        r.pos, r.load, r.load_prov, r.eff = (2, 16), 3, [3, 0], 1.0
+        r.battery, r.sector, r.cap, r.stranded = battery, 0, 5, False
+        return r
+
+    # low vs high hazard via battery; identical position/load, both with disc<1
+    w_lo = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), bills=True,
+                 mortality=True, death_regime="risk_premium")
+    w_hi = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), bills=True,
+                 mortality=True, death_regime="risk_premium")
+    r_lo, r_hi = giver(w_lo, 50.0), giver(w_hi, 12.0)
+    _, disc_lo = load_factors(r_lo, w_lo)
+    assert disc_lo < 1.0 - 1e-6, "low-hazard giver already clears the haul (α* capped)"
+    assert stranding_hazard(r_hi, w_hi) > stranding_hazard(r_lo, w_lo) + 0.05
+    a_lo, a_hi = hop_split(r_lo, w_lo), hop_split(r_hi, w_hi)
+    assert a_hi > a_lo + 1e-6, \
+        f"premium did not rise with hazard: lo={a_lo:.4f} hi={a_hi:.4f}"
+    # premium OFF (plain bills): the split is hazard-blind — both == (1+disc)/2
+    w_off = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), bills=True)
+    r0 = giver(w_off, 12.0)
+    _, disc = load_factors(r0, w_off)
+    assert abs(hop_split(r0, w_off) - 0.5 * (1.0 + disc)) < 1e-12, \
+        "plain bills split is not the P23 α*"
+
+
 def benchmark(ticks=2500):
     """Timing harness (NOT a test): reports seconds for the three reference runs.
     Run with:  python -c 'from swarm.test_swarm import benchmark; benchmark()'"""

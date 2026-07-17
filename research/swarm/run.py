@@ -28,8 +28,8 @@ from scipy import stats
 
 from swarm.arms import make_arm
 from swarm.world import (BUILD_CREDIT_COST, CHARGE_SLOTS, DWELL_DECAY_LAMBDA,
-                         MATTER_COST, TOLL_GRID, TOTAL_STOCK, V_DELIVER, World,
-                         manhattan)
+                         FLATLINE_TICKS, MATTER_COST, TOLL_GRID, TOTAL_STOCK,
+                         V_DELIVER, WEAROUT_AGE, WEAROUT_P, World, manhattan)
 
 FULL = ("cargo", "energy", "sector")
 LADDER = ["null", "rules", "auction", "auction-co", "team", "team-co",
@@ -146,7 +146,9 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              command: bool = False, deadlock_track: bool = False,
              charger_band: float = 0.0, nav_dumb: bool = False,
              forgery: bool = False, forge_cost: float = 0.0,
-             verify_cost: float = 0.0, verify_regime: str = "none") -> dict:
+             verify_cost: float = 0.0, verify_regime: str = "none",
+             mortality: bool = False, death_regime: str = "none",
+             wearout: bool = False) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -187,7 +189,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               command=command, deadlock_track=deadlock_track,
               charger_band=charger_band, nav_dumb=nav_dumb,
               forgery=forgery, forge_cost=forge_cost,
-              verify_cost=verify_cost, verify_regime=verify_regime)
+              verify_cost=verify_cost, verify_regime=verify_regime,
+              mortality=mortality, death_regime=death_regime, wearout=wearout)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
@@ -433,6 +436,37 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
             matter_conserved=bool(w.matter_conserved()),
             toll_conserved=bool(w.toll_conserved()),
         )
+    # v28 (column AA): mortality + freeze-out blob (only when mortality is on).
+    # Death counts by cause, the destroyed/inherited claim credit, and the
+    # freeze-out instrument: chain-FEASIBLE encounters vs realized chain (cargo)
+    # deals, bucketed by the potential giver's mortality HAZARD (4 fixed bins over
+    # [0,1]) and by its absolute BATTERY fraction (4 bins). chain-deal rate per bin
+    # = cargo/feasible, poolable across seeds; under claims-die the high-hazard bins
+    # should fall below estates (the dying frozen out of the claims economy).
+    mortality_detail = None
+    if getattr(w, "mortality", False):
+        def _bin4(x):
+            return min(3, max(0, int(x * 4)))
+        haz_feas = [0, 0, 0, 0]; haz_cargo = [0, 0, 0, 0]
+        bat_feas = [0, 0, 0, 0]; bat_cargo = [0, 0, 0, 0]
+        for f in w.freeze_log:
+            hb = _bin4(f["haz"]); bb = _bin4(f["bat"])
+            haz_feas[hb] += 1; haz_cargo[hb] += f["cargo"]
+            bat_feas[bb] += 1; bat_cargo[bb] += f["cargo"]
+        mortality_detail = dict(
+            regime=death_regime,
+            deaths=w.deaths, death_flatline=w.death_flatline,
+            death_wearout=w.death_wearout,
+            claims_voided=round(w.claims_voided, 4),
+            estate_settled=round(w.estate_settled, 4),
+            wearout=wearout, wearout_age=WEAROUT_AGE, wearout_p=WEAROUT_P,
+            flatline_ticks=FLATLINE_TICKS,
+            n_freeze=len(w.freeze_log),
+            freeze_haz_feasible=haz_feas, freeze_haz_cargo=haz_cargo,
+            freeze_bat_feasible=bat_feas, freeze_bat_cargo=bat_cargo,
+            deaths_bat_pct=[d["bat_pct"] for d in w.death_log],
+            deaths_own_claim=[d["own_claim"] for d in w.death_log],
+        )
     # v17 PHASE 2: the mechanism rides the same snhp+net base (SnhpArm) — the
     # world flag IS the treatment, so relabel for the tables/pairings.
     # P23e: contingent splits get a distinct label so spot/flat/contingent pair.
@@ -450,6 +484,13 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
                   else "snhp+billC" if (bills and bills_contingent)
                   else "snhp+bill" if bills
                   else "snhp+firm" if firm_relay else arm_name)
+    # v28 (column AA): a mortality row carries its death-inheritance regime in the
+    # label so the claims-die / estates / risk-premium / spot-baseline rows pair
+    # cleanly. Off ⇒ unchanged, so every prior column keeps its label.
+    if mortality:
+        _mort = {"claims_die": "+die", "estates": "+est",
+                 "risk_premium": "+rp", "none": "+mort"}[death_regime]
+        base_label = base_label + _mort
     label = base_label if tuple(issues) == FULL else \
         f"{base_label}[{'+'.join(issues)}]"
     return dict(
@@ -590,6 +631,10 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         # the DUMB routing brain (greedy nearest-known + noise) vs smart Φ-routing;
         # the rights axis rides prospect_claims (granular) vs off (coarse sectors).
         nav_dumb=nav_dumb,
+        # v28 (column AA): mortality and the persistence of paper — estates
+        mortality=mortality, death_regime=death_regime, wearout=wearout,
+        deaths=(w.deaths if mortality else None),
+        mortality_detail=mortality_detail,
     )
 
 
@@ -1274,6 +1319,226 @@ def phase2e(rows: list[dict]) -> None:
             else:
                 print(f"  {arm:<11} {N:>4} {nlegs:>6.0f} {'—':>9} {'—':>10} "
                       f"{'—':>8} {'—':>10}")
+
+
+def paa_report(rows: list[dict]) -> None:
+    """v28 (column AA) — mortality and the persistence of paper: estates. Printed
+    numbers ARE the artifact (report, not verdict). No-op unless the sweep carries a
+    mortality run. Four grid cells pair off the same P23 phase-2 config:
+      snhp+bill+die  claims-die  (paper voids at death; Φ prices own-claim survival)
+      snhp+bill+est  estates     (paper settles to the company treasury heir)
+      snhp+bill+rp   risk-premium (claims-die + the actuarial hop-split gross-up)
+      snhp+net+mort  spot        (no bills — the chain-deal-rate reference)
+    Anchors: snhp+bill (mortality OFF, the 0-death endpoint) and the 7,500t contrast."""
+    mrows = [r for r in rows if r.get("mortality") and r.get("mortality_detail")]
+    if not mrows:
+        return
+    # labels: bills-on death rows read "snhp+bill+die/est/rp"; the no-bills spot
+    # baseline reads "snhp+net+mort"; the mortality-OFF anchor is plain "snhp+bill".
+    DIE, EST, RP, SPOT, ANCH = ("snhp+bill+die", "snhp+bill+est", "snhp+bill+rp",
+                                "snhp+net+mort", "snhp+bill")
+    order = {DIE: 0, EST: 1, RP: 2, SPOT: 3, ANCH: 4}
+    lab = {DIE: "claims-die", EST: "estates", RP: "risk-prem", SPOT: "spot",
+           ANCH: "bills(no-death)"}
+    Ns = sorted({int(r["n_robots"]) for r in mrows})
+    H2500 = 2500
+
+    def sel(arm, N, horizon=H2500, wearout=False):
+        # the main grid is FLATLINE-only (wearout=False); the ref-B sensitivity rows
+        # (wearout=True) share the label/N/horizon and are pulled explicitly.
+        return [r for r in rows if r["arm"] == arm and int(r["n_robots"]) == N
+                and int(r.get("ticks_horizon", H2500)) == horizon
+                and bool(r.get("wearout", False)) == wearout]
+
+    def paired(arm_hi, arm_lo, N, getter, horizon=H2500, wearout=False):
+        hi = {r["seed"]: getter(r) for r in sel(arm_hi, N, horizon, wearout)}
+        lo = {r["seed"]: getter(r) for r in sel(arm_lo, N, horizon, wearout)}
+        common = sorted(k for k in set(hi) & set(lo)
+                        if hi[k] is not None and lo[k] is not None)
+        if len(common) < 3:
+            return None
+        d = np.array([hi[s] - lo[s] for s in common], float)
+        _, pt = stats.ttest_rel([hi[s] for s in common], [lo[s] for s in common])
+        try:
+            _, pw = stats.wilcoxon(d) if np.any(d != 0) else (None, 1.0)
+        except ValueError:
+            pw = float("nan")
+        return dict(delta=float(d.mean()), p_t=float(pt), p_w=float(pw),
+                    wins=int((d > 0).sum()), n=len(common),
+                    hi=float(np.mean([hi[s] for s in common])),
+                    lo=float(np.mean([lo[s] for s in common])))
+
+    d0 = mrows[0]["mortality_detail"]
+    print("\n" + "=" * 94)
+    print("PAA (v28 · column AA) — MORTALITY AND THE PERSISTENCE OF PAPER: estates "
+          "(report, not verdict)")
+    print(f"death sources: FLATLINE (stranded {d0['flatline_ticks']} ticks unrescued) "
+          f"+ WEAR-OUT (age>{d0['wearout_age']}, p={d0['wearout_p']:g}/tick, dedicated "
+          f"seed+282828, IDENTICAL across regimes).")
+    print("=" * 94)
+
+    grid_arms = [DIE, EST, RP, SPOT]
+
+    # [1] DEATH RATE + delivered/frac + destroyed/inherited credit, per regime × N
+    print("\n[1] DEATHS/run (flatline+wear-out), delivered, and paper resolved at "
+          "death (per regime × N):")
+    h = (f"  {'regime':<10} {'N':>4} {'deaths':>7} {'flat':>5} {'wear':>5} "
+         f"{'deliv':>6} {'dFrac':>6} {'voided$':>8} {'estate$':>8}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for arm in grid_arms:
+            g = sel(arm, N)
+            if not g:
+                continue
+            md = [r["mortality_detail"] for r in g]
+            dth = np.mean([m["deaths"] for m in md])
+            fl = np.mean([m["death_flatline"] for m in md])
+            wo = np.mean([m["death_wearout"] for m in md])
+            dv = np.mean([r["delivered"] for r in g])
+            df = np.mean([r["delivered_frac"] for r in g])
+            vo = np.mean([m["claims_voided"] for m in md])
+            es = np.mean([m["estate_settled"] for m in md])
+            print(f"  {lab[arm]:<10} {N:>4} {dth:>7.1f} {fl:>5.1f} {wo:>5.1f} "
+                  f"{dv:>6.0f} {df:>6.3f} {vo:>8.1f} {es:>8.1f}")
+
+    # [2] THE FREEZE-OUT — chain-deal rate by partner-hazard quartile × regime.
+    # Pool feasible/cargo counts across seeds per (arm, N), rate = cargo/feasible.
+    print("\n[2] PAAa THE FREEZE-OUT — chain-deal rate (cargo deals / chain-feasible "
+          "encounters) by potential-giver HAZARD quartile:")
+    print("     bins over stranding-hazard [0-.25) [.25-.5) [.5-.75) [.75-1]; the "
+          "high-hazard bins are the DYING. claims-die < estates ⇒ freeze-out.")
+    h = (f"  {'regime':<10} {'N':>4} {'Q1_lohaz':>13} {'Q2':>13} {'Q3':>13} "
+         f"{'Q4_hihaz':>13}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for arm in grid_arms:
+            g = sel(arm, N)
+            if not g:
+                continue
+            feas = np.sum([r["mortality_detail"]["freeze_haz_feasible"] for r in g],
+                          axis=0)
+            cargo = np.sum([r["mortality_detail"]["freeze_haz_cargo"] for r in g],
+                           axis=0)
+            cells = []
+            for j in range(4):
+                rate = cargo[j] / feas[j] if feas[j] > 0 else float("nan")
+                cells.append(f"{rate:>5.3f}[{int(feas[j]):>5d}]")
+            print(f"  {lab[arm]:<10} {N:>4} " + " ".join(f"{c:>13}" for c in cells))
+
+    print("\n[2b] freeze-out GAP in the high-hazard quartiles (estates − claims-die "
+          "chain-deal rate; >0 ⇒ estates keeps the dying trading):")
+    for N in Ns:
+        for qlab, qs in (("Q3+Q4 (dying)", (2, 3)), ("Q4 (dying-most)", (3,))):
+            def rate_hi(r, qs=qs):
+                m = r["mortality_detail"]
+                f_ = sum(m["freeze_haz_feasible"][j] for j in qs)
+                c_ = sum(m["freeze_haz_cargo"][j] for j in qs)
+                return (c_ / f_) if f_ > 0 else None
+            c = paired(EST, DIE, N, rate_hi)
+            if c:
+                print(f"    N={N:>3} {qlab:<16} est={c['lo']+c['delta']:.3f} "
+                      f"die={c['lo']:.3f}  Δ={c['delta']:+.4f}  "
+                      f"p_t={c['p_t']:.3f} wins {c['wins']}/{c['n']}")
+
+    # [3] PAAb — estates recovers the claims-die delivered / far-band / ≥2-hop loss
+    print("\n[3] PAAb ESTATES RECOVERY — delivered_frac, far-band d/m, ≥2-hop share "
+          "(vs the spot baseline; estates should recover claims-die's loss):")
+    h = (f"  {'regime':<10} {'N':>4} {'dFrac':>7} {'far d/m':>10} {'≥2-hop':>7}")
+    print(h)
+    print("  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for arm in grid_arms + [ANCH]:
+            g = sel(arm, N)
+            if not g:
+                continue
+            df = np.mean([r["delivered_frac"] for r in g])
+            ld = [r["lineage_detail"] for r in g if r.get("lineage_detail")]
+            if ld:
+                bm = np.array([d["band_mined"] for d in ld], float).sum(axis=0)
+                bd = np.array([d["band_delivered"] for d in ld], float).sum(axis=0)
+                far = (bd[2] / bm[2]) if bm[2] > 0 else float("nan")
+                h2 = np.mean([d["hop_shares"][2] for d in ld])
+                cell = f"{bd[2]/len(ld):>4.0f}/{bm[2]/len(ld):<4.0f}={far:>4.2f}"
+                print(f"  {lab[arm]:<10} {N:>4} {df:>7.3f} {cell:>10} {h2:>7.3f}")
+            else:
+                print(f"  {lab[arm]:<10} {N:>4} {df:>7.3f} {'—(spot)':>10} {'—':>7}")
+
+    print("\n[3b] paired deltas vs claims-die (>0 ⇒ recovery); spot is the floor "
+          "reference:")
+    for N in Ns:
+        cE = paired(EST, DIE, N,
+                    lambda r: r["delivered_frac"])
+        cD = paired(DIE, SPOT, N,
+                    lambda r: r["delivered_frac"])
+        if cD:
+            print(f"    N={N:>3} claims-die − spot     Δframe={cD['delta']:+.4f} "
+                  f"p_t={cD['p_t']:.3f} wins {cD['wins']}/{cD['n']}")
+        if cE:
+            print(f"    N={N:>3} estates − claims-die  Δframe={cE['delta']:+.4f} "
+                  f"p_t={cE['p_t']:.3f} wins {cE['wins']}/{cE['n']}")
+
+    # [4] PAAc — the risk-premium variant fails to restore chaining with the dying
+    print("\n[4] PAAc RISK-PREMIUM vs ESTATES — does the actuarial hop-split gross-up "
+          "restore the dying's chaining? (echo of the career-pricing null: no):")
+    for N in Ns:
+        def rate_q4(r):
+            m = r["mortality_detail"]
+            f_ = m["freeze_haz_feasible"][3] + m["freeze_haz_feasible"][2]
+            c_ = m["freeze_haz_cargo"][3] + m["freeze_haz_cargo"][2]
+            return (c_ / f_) if f_ > 0 else None
+        cRP = paired(RP, DIE, N, rate_q4)
+        cRE = paired(RP, EST, N, rate_q4)
+        cDF = paired(RP, EST, N,
+                     lambda r: r["delivered_frac"])
+        if cRP:
+            print(f"    N={N:>3} dying chain-rate: risk-prem − claims-die "
+                  f"Δ={cRP['delta']:+.4f} (rp={cRP['hi']:.3f} die={cRP['lo']:.3f})")
+        if cRE:
+            print(f"    N={N:>3} dying chain-rate: risk-prem − estates    "
+                  f"Δ={cRE['delta']:+.4f} (rp={cRE['hi']:.3f} est={cRE['lo']:.3f})")
+        if cDF:
+            print(f"    N={N:>3} delivered_frac:   risk-prem − estates    "
+                  f"Δframe={cDF['delta']:+.4f} p_t={cDF['p_t']:.3f}")
+
+    # [5] death-rate sensitivity + KILL — 0-death anchor → flatline → +wear-out
+    print("\n[5] DEATH-RATE SENSITIVITY / KILL — throughput vs the death rate "
+          "(0-death anchor → flatline grid → +wear-out sensitivity):")
+    for N in Ns:
+        anchor = sel(ANCH, N)
+        if anchor:
+            af = np.mean([r["delivered_frac"] for r in anchor])
+            print(f"    N={N:>3} deaths=0  bills(no-death) dFrac={af:.3f}  "
+                  f"(the regimes MUST coincide here)")
+        gd, ge = sel(DIE, N), sel(EST, N)
+        if gd and ge:
+            dr = np.mean([r["mortality_detail"]["deaths"] for r in gd + ge])
+            cK = paired(EST, DIE, N, lambda r: r["delivered_frac"])
+            if cK:
+                print(f"    N={N:>3} deaths≈{dr:.0f} (flatline)   estates−claims-die "
+                      f"dFrame={cK['delta']:+.4f} p_t={cK['p_t']:.3f}")
+        gdw, gew = sel(DIE, N, wearout=True), sel(EST, N, wearout=True)
+        if gdw and gew:
+            drw = np.mean([r["mortality_detail"]["deaths"] for r in gdw + gew])
+            cKw = paired(EST, DIE, N, lambda r: r["delivered_frac"], wearout=True)
+            if cKw:
+                print(f"    N={N:>3} deaths≈{drw:.0f} (+wear-out) estates−claims-die "
+                      f"dFrame={cKw['delta']:+.4f} p_t={cKw['p_t']:.3f}")
+    print("    KILL read — the freeze-out is a MICROSTRUCTURE effect (dying chain-deal "
+          "rate [2b], ≥2-hop share [3]); aggregate throughput is over-served.")
+
+    # [6] fair-horizon (7,500t) thesis contrast, if present
+    hz = sel(DIE, 24, 7500)
+    if hz:
+        print("\n[6] FAIR-HORIZON (7,500t, N=24) claims-die vs estates — does the "
+              "freeze-out loss amortize late?")
+        cH = paired(EST, DIE, 24,
+                    lambda r: r["delivered_frac"], horizon=7500)
+        if cH:
+            print(f"    estates−claims-die delivered Δframe={cH['delta']:+.4f} "
+                  f"p_t={cH['p_t']:.3f} wins {cH['wins']}/{cH['n']} "
+                  f"(2500t Δ was the [3b] row)")
 
 
 def u_report(rows: list[dict]) -> None:
@@ -3073,6 +3338,56 @@ def build_jobs(column: str, seeds: int, ticks: int):
                                      n_robots=N, grid=grid96, defended=True,
                                      forgery=True, forge_cost=cf, verify_cost=cv,
                                      verify_regime=regime, **base))
+    if column == "AA":                # v28: mortality and the persistence of paper (PAA)
+        # The P23 phase-2 grid (identical N, scaled grid, σ, τ, ticks, seeds) ×
+        # {claims-die, estates, risk-premium} + the no-bills spot baseline. Mortality
+        # is the ENDOGENOUS FLATLINE hazard only (a chassis stranded FLATLINE_TICKS
+        # unrescued dies). The registered base-rate check (measured BEFORE this grid,
+        # flatline alone) cleared the ~3-deaths/run detectability bar at BOTH scales —
+        # 7.0/run at N=24, 12.7/run at N=240 — so the registered wear-out hazard is
+        # NOT engaged (it ships off-by-default; at N=240 it would add ~100 deaths/run
+        # and swamp the economy). Anchors around the four cells:
+        #   (ref-A) the mortality-OFF bills world (the pure P23 anchor) — the death-
+        #     rate sensitivity's LEFT endpoint (0 deaths ⇒ the regimes must coincide).
+        #   (ref-B) a HIGHER-mortality sensitivity point at N=24: the same claims-die /
+        #     estates cells WITH wear-out on (≈15 deaths/run) — the sensitivity curve's
+        #     right endpoint (does the estates−claims-die gap widen with the death rate).
+        #   (ref-C) the fair-horizon (7,500t) claims-die vs estates thesis contrast at
+        #     4 seeds, in case the freeze-out loss amortizes late (standing rule).
+        import math as _math
+        g240 = int(round(32 * _math.sqrt(240 / 24)))
+        # (arm kwargs, label-driving flags) for the four grid cells — FLATLINE only
+        cells = [dict(bills=True, mortality=True, death_regime="claims_die"),
+                 dict(bills=True, mortality=True, death_regime="estates"),
+                 dict(bills=True, mortality=True, death_regime="risk_premium"),
+                 dict(bills=False, mortality=True, death_regime="none")]  # spot baseline
+        base240 = dict(sigma=0.5, ticks=ticks, tau=0.15, preset="v5",
+                       n_robots=240, grid=g240, lineage=True)
+        base24 = dict(sigma=0.5, ticks=ticks, tau=0.15, preset="v5",
+                      n_robots=24, lineage=True)
+        for cell in cells:
+            for seed in range(min(seeds, 8)):
+                jobs.append(dict(arm_name="snhp+net", seed=seed, **base240, **cell))
+            for seed in range(min(seeds, 16)):
+                jobs.append(dict(arm_name="snhp+net", seed=seed, **base24, **cell))
+        # (ref-A) mortality-OFF bills anchor, both scales — the 0-death endpoint
+        for seed in range(min(seeds, 8)):
+            jobs.append(dict(arm_name="snhp+net", seed=seed, bills=True, **base240))
+        for seed in range(min(seeds, 16)):
+            jobs.append(dict(arm_name="snhp+net", seed=seed, bills=True, **base24))
+        # (ref-B) higher-mortality sensitivity (N=24, wear-out ON ≈15 deaths/run)
+        for reg in ("claims_die", "estates", "risk_premium"):
+            for seed in range(min(seeds, 16)):
+                jobs.append(dict(arm_name="snhp+net", seed=seed, bills=True,
+                                 mortality=True, death_regime=reg, wearout=True,
+                                 **base24))
+        # (ref-C) fair-horizon thesis contrast (claims-die vs estates), 7,500t × 4 seeds
+        for reg in ("claims_die", "estates"):
+            for seed in range(min(seeds, 4)):
+                jobs.append(dict(arm_name="snhp+net", seed=seed, bills=True,
+                                 mortality=True, death_regime=reg,
+                                 sigma=0.5, ticks=7500, tau=0.15, preset="v5",
+                                 n_robots=24, lineage=True))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -3083,7 +3398,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "S", "U", "UH", "V", "X", "Z", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "S", "U", "UH", "V", "X", "Z", "AA", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -3109,6 +3424,7 @@ def main() -> None:
         px(rows)
         p26(rows)
         pz_report(rows)
+        paa_report(rows)
         return
 
     jobs = build_jobs(args.column, args.seeds, args.ticks)
@@ -3150,6 +3466,7 @@ def main() -> None:
     px(rows)
     p26(rows)
     pz_report(rows)
+    paa_report(rows)
 
 
 if __name__ == "__main__":
