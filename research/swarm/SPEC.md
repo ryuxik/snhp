@@ -3372,3 +3372,34 @@ utility — realistic, and what gets Goodharted is itself data); collusion
 (arms-length enforced in protocol, never prompts); the oracle fiction
 (in-sim "market value" IS the registered demand schedule — every public
 artifact labels it so; real-market claims wait for B3).
+
+**PV2 VERDICTS (2026-07-17, registrar) — the founder's depot got its fair
+trial, and the kill fired loudly.**
+- **KILL FIRES: depot ≤ bills-only at G64, and worse — it delivers less
+  than even the paperless economy** (edge −6.50 vs bills +4.50 vs spot
+  −2.69; delivered 224.6 < spot's 228.4). PV2a falsified; PV2b's ≥2-hop
+  share at G64 is the SYNCHRONOUS bills backbone, not the async channel
+  (async share 0.035, still highest where densest — P29b's reversal
+  replicates); PV2c a tie. The comparison is clean: spot reproduces the
+  P29 hump to the decimal and bills-only reproduces its +4.50 recovery.
+- **The mechanism of the failure is the finding: a deposited parcel
+  belongs to nobody's plan.** Cargo on a carrier's back is part of a
+  live route; cargo pinned at a depot is orphaned — the residual after
+  the banked split is too thin to motivate a deliberate fetch, pickup
+  stays opportunistic, and pins strand (write-offs rise 2.19→9.31 with
+  sparsity). Severing custody severs intention. The synchronous hand-off
+  never has this problem because the claim changes hands INTO a plan.
+- **The law, third confirmation, now with its strongest statement:
+  attestation's value is pre-commitment, not asynchrony — and removing
+  the journey fails HARDER than removing the rendezvous.** Both async
+  conveniences (the bulletin board, the warehouse) tried to buy with
+  convenience what the claim buys with commitment; both lost to a piece
+  of paper exchanged at a meeting. Travel and battery dominate, and the
+  claim's job is to make a present carrier accept a route, not to make
+  presence unnecessary.
+- Scope, honestly: the depot-as-built deposits whole loads on an
+  upstream-burdened trigger with V's posted terms; a fetch-rewarding
+  variant (fatter fetch residuals) is conceivable but would be paying
+  agents to overcome a problem the synchronous claim solves for free —
+  registered-open only if someone can say why it wouldn't just be a
+  worse bill of lading.
