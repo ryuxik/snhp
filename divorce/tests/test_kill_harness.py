@@ -84,3 +84,39 @@ def test_arm_b_deterministic(pair):
     r1 = elicit.run_arm_b(pair["a"], pair["b"], prior, (42, 3))
     r2 = elicit.run_arm_b(pair["a"], pair["b"], prior, (42, 3))
     assert json.dumps(_py(r1), sort_keys=True) == json.dumps(_py(r2), sort_keys=True)
+
+
+# ── settlement-1 receipt ────────────────────────────────────────────────────
+
+def test_settlement_receipt_roundtrip_and_tamper(pair):
+    from divorce import elicit, receipt
+    prior = elicit.build_asset_prior(n_cal=60)
+    pa, pb = pair["a"], pair["b"]
+
+    def flip_o(o):
+        return {k: 1.0 - v for k, v in o.items()}
+
+    med = elicit.mediate(
+        prior,
+        elicit.make_answerer(pa, uid=1), elicit.make_answerer(pb, uid=2),
+        {"lam": pa.lam, "fight_cost": pa.fight_cost},
+        {"lam": pb.lam, "fight_cost": pb.fight_cost},
+        ratify_a=lambda o: pa.utility(o) >= pa.walk_away,
+        ratify_b=lambda o: pb.utility(flip_o(o)) >= pb.walk_away)
+    if med["proposal"] is None:
+        pytest.skip("this pair abstained — NO DECREE gets no receipt")
+    stated_a = {"lam": pa.lam, "fight_cost": pa.fight_cost}
+    stated_b = {"lam": pb.lam, "fight_cost": pb.fight_cost}
+    r = receipt.build_settlement_receipt(
+        med, stated_a, stated_b,
+        receipt.seal_persona(pa), receipt.seal_persona(pb),
+        context={"cal_seed": 60, "q_budget": elicit.Q_BUDGET})
+    v = receipt.verify_settlement_receipt(r)
+    assert v["ok"], v["problems"]
+    # tamper: nudge the settlement — the signature must fail
+    r2 = json.loads(json.dumps(r))
+    first = next(iter(r2["settlement"]["shares_a"]))
+    r2["settlement"]["shares_a"][first] = 0.1234
+    assert not receipt.verify_settlement_receipt(r2)["ok"]
+    # seal is a stable commitment
+    assert receipt.seal_persona(pa) == receipt.seal_persona(pa)
