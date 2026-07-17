@@ -279,6 +279,14 @@ class Robot:
                                     # values (paid at delivery regardless of this
                                     # robot's position). 0 unless World.bills; pure
                                     # bookkeeping otherwise (never read by Φ off).
+    relay_from: tuple | None = None  # v31 (column V2): the depot a robot last
+                                    # PICKED UP a relayed parcel at — set on
+                                    # accept_order and cleared on deposit / deliver /
+                                    # fresh mine. Read ONLY under World.depots (the
+                                    # anti-churn guard: a robot does not re-deposit at
+                                    # the very depot it just took from — it stages the
+                                    # cargo forward a leg first). None in every prior
+                                    # column ⇒ never read ⇒ bit-identical.
 
     def bat(self) -> float:
         """BELIEVED battery — what every decision layer consumes. Physics
@@ -320,7 +328,7 @@ class World:
                  mortality: bool = False, death_regime: str = "none",
                  wearout: bool = False,
                  shock: bool = False, shock_tick: int | None = None,
-                 clearinghouse: bool = False):
+                 clearinghouse: bool = False, depots: bool = False):
         self.rng = np.random.RandomState(seed)
         self.rng_seed = seed                 # v18: matter-field RNG keys off this
         self.hazard_phi = hazard_phi
@@ -521,10 +529,22 @@ class World:
         # at delivery), never in energy, by necessity: energy cannot teleport to
         # a poster who has moved on — the async-settlement directionality
         # constraint (documented in the report).
-        self.order_book = order_book
-        assert not (order_book and bills_contingent), \
+        # v31 (column V2): the DEPOT — the founder's async re-run of the board.
+        # The depot removes the JOURNEY STRUCTURE (V removed only the rendezvous):
+        # deposits happen ONLY at existing charger locations (co-located, no new
+        # geography — drones already stop there to charge), and the acceptor is
+        # never obligated to finish the route — it hauls ONE loaded-reach leg and
+        # may RE-DEPOSIT at the next depot. Chains form fully asynchronously, leg
+        # by leg, with no co-presence at any hop. depots IMPLIES the order_book
+        # machinery (escrow, stigmergic discovery, unilateral no-pause acceptance,
+        # bills settlement) — it is the SAME posted-terms surface, gated so pins
+        # live at depots and takers stage cargo forward. depots default off ⇒
+        # order_book/bills stay exactly as column V/P (bit-identical).
+        self.depots = depots
+        self.order_book = order_book or depots
+        assert not (self.order_book and bills_contingent), \
             "order_book relays settle flat 2-tuple claims (contingent off)"
-        self.bills = bills or order_book   # negotiable delivery claims
+        self.bills = bills or self.order_book   # negotiable delivery claims
         self.firm_relay = firm_relay    # snhp+firm: treasury transfer pricing
         # P23e (column P phase-2e): moral hazard in the relay. `dwell` is a PURE
         # instrument — parcels carry (acq_tick, acq_pos, mined_tick, src_pos, uid),
@@ -2094,6 +2114,8 @@ class World:
             r.load += q
             r.load_prov[r.company] += q       # provenance: miner's company
             r.mined_units += q                 # v13: middleman metric
+            if self.depots:                    # v31: fresh-mined cargo is not a relay
+                r.relay_from = None             # leg — clear the anti-churn token
             self.stock[s] -= q
             self.own_mined[r.company][s] += q  # v10b: rival-rate accounting
             self.mined_from[s] += q            # v11: per-asteroid provenance
@@ -2338,6 +2360,8 @@ class World:
                                                     else 0] += qq
             r.load_prov = [0, 0]
             self.delivered += q
+            if self.depots:                 # v31: delivered — the relay leg is over
+                r.relay_from = None
             self.energy_at_last_delivery = self.energy_drawn()
             return q
         return 0
@@ -2676,7 +2700,8 @@ class World:
 
     # ── v23 (column V): the stigmergic order book ─────────────────────────
     def post_order(self, poster: Robot, q: int, alpha: float,
-                   energy: float = 0.0, expiry: int | None = None):
+                   energy: float = 0.0, expiry: int | None = None,
+                   loc: tuple | None = None):
         """Pin a binding cargo-relay order at the poster's location. Escrow at
         post time (binding = no vaporware): q FIFO-head cargo parcels are lifted
         off the poster's load into the order (a cargo LIEN, folded into material
@@ -2684,9 +2709,16 @@ class World:
         (its compensation — a credit claim on the terminal payout, paid whoever
         delivers, so it survives the poster moving on or dying), and an optional
         energy bounty is reserved from the poster's battery. Returns the order or
-        None. Deterministic; consumes no RNG."""
+        None. Deterministic; consumes no RNG.
+
+        v31 (column V2): `loc` overrides the pin location — the DEPOT deposits at
+        the co-located charger the poster is docked at (a fixed, high-foot-traffic
+        waypoint), not the poster's transient position. loc=None ⇒ poster.pos,
+        exactly column V (bit-identical). Depositing clears relay_from (the parcel
+        is no longer in this robot's hands, so the anti-churn token is spent)."""
         if not self.order_book or q <= 0 or poster.load < q:
             return None
+        pin = poster.pos if loc is None else loc
         parcels = poster.parcels[:q]
         poster.parcels = poster.parcels[q:]
         poster.load -= q
@@ -2715,7 +2747,7 @@ class World:
             energy = min(energy, max(0.0, poster.battery - 1.0))
             poster.battery -= energy
             self.escrowed_energy += energy
-        o = dict(oid=self._order_uid, kind="relay", loc=poster.pos,
+        o = dict(oid=self._order_uid, kind="relay", loc=pin,
                  poster=poster.rid, poster_co=poster.company,
                  expiry=(self.tick + ORDER_EXPIRY if expiry is None else expiry),
                  q=q, alpha=alpha, energy=energy, parcels=parcels, prov=prov,
@@ -2723,6 +2755,8 @@ class World:
         self._order_uid += 1
         self.orders.append(o)
         self.orders_posted += 1
+        if self.depots:
+            poster.relay_from = None
         return o
 
     def accept_order(self, taker: Robot, o: dict) -> int:
@@ -2740,6 +2774,9 @@ class World:
         taker.parcels.extend(o["parcels"])
         taker.received_units += q
         taker.target_ref = None
+        if self.depots:                     # v31: remember the depot taken from so
+            taker.relay_from = o["loc"]      # the taker stages forward before it
+                                             # may re-deposit (anti-churn token)
         self.pinned_cargo -= q
         if o["energy"] > 0:
             got = min(o["energy"] * (1 - TRANSFER_LOSS),
@@ -2833,3 +2870,51 @@ class World:
         live_e = sum(o["energy"] for o in self.orders)
         return (pinned == self.pinned_cargo
                 and abs(live_e - self.escrowed_energy) < 1e-9)
+
+    # ── v31 (column V2): the depot ────────────────────────────────────────
+    def _depot_here(self, r: Robot):
+        """The charger position r is DOCKED at (Manhattan ≤ 1 — the same dock
+        range charge_step uses), or None. Depots are co-located with chargers, so
+        a robot deposits only where it already stops to charge (no new geometry).
+        Deterministic; consumes no RNG."""
+        for pos in self.chargers:
+            if manhattan(r.pos, pos) <= 1:
+                return pos
+        return None
+
+    def _forward_depot(self, r: Robot, dest: tuple):
+        """The nearest depot strictly CLOSER to the delivery refinery than r is
+        now, reachable within r's current LOADED battery — the next leg of the
+        async chain. None if no such depot (the chain cannot advance from here;
+        the robot charges, then deposits-and-returns). Deterministic; no RNG."""
+        d_here = manhattan(r.pos, dest)
+        best, best_leg = None, float("inf")
+        for pos in self.chargers:
+            if manhattan(pos, dest) >= d_here:       # must gain ground toward home
+                continue
+            leg = manhattan(r.pos, pos)
+            if r.bat() <= leg * r.eff * (1.0 + LOADED_MULT):   # unreachable loaded
+                continue
+            if leg < best_leg:
+                best, best_leg = pos, leg
+        return best
+
+    def depot_next_leg_clears(self, r: Robot, depot: tuple, alpha: float) -> bool:
+        """v31 depot posting gate: would a plausible taker, picking the residual up
+        at `depot`, clear IR on the NEXT LEG alone — a haul to the nearest depot
+        strictly closer to the refinery, or the refinery itself, whichever is
+        nearer? Residual delivery credit vs that one leg's loaded haul at the
+        reference shadow price EV_INIT. This is the depot's whole premise: the
+        taker owes only the next hop (V's gate priced the WHOLE route to the
+        refinery and so refused far deposits). Derived from existing geometry — no
+        new planner, no RNG."""
+        ref = self._home_ref(r.company)
+        dest = self.refineries[ref]
+        rate = self.credit_rate(r.company, ref)
+        d_ref = manhattan(depot, dest)
+        leg = d_ref                                  # straight to the refinery
+        for pos in self.chargers:
+            if manhattan(pos, dest) < d_ref:         # a strictly-closer depot
+                leg = min(leg, manhattan(depot, pos))
+        resid_units = (1.0 - alpha) * r.load
+        return resid_units * rate * V_DELIVER > leg * (1.0 + LOADED_MULT) * EV_INIT
