@@ -111,9 +111,11 @@ class TaskBoard:
     except through `apply_event`; `check_*` only reads."""
 
     def __init__(self, regime: Regime, manager_id: str | None,
-                 inbox_seed: list | None = None):
+                 inbox_seed: list | None = None, roster_ids: set | None = None):
         self.regime = regime
         self.manager_id = manager_id
+        # v33: agents that may be assigned work (active roster, minus the manager).
+        self.roster_ids = set(roster_ids) if roster_ids else None
         self.ideas: dict[str, Idea] = {}
         self.tasks: dict[str, Task] = {}
         self._task_seq = 0
@@ -132,8 +134,9 @@ class TaskBoard:
     # -- projection: rebuild from the log (resume / replay) ---------------
     @classmethod
     def from_log(cls, event_log: ev.EventLog, regime: Regime,
-                 manager_id: str | None, inbox_seed: list | None = None) -> "TaskBoard":
-        board = cls(regime, manager_id, inbox_seed=inbox_seed)
+                 manager_id: str | None, inbox_seed: list | None = None,
+                 roster_ids: set | None = None) -> "TaskBoard":
+        board = cls(regime, manager_id, inbox_seed=inbox_seed, roster_ids=roster_ids)
         for rec in event_log.records():
             board.apply_event(rec)
         return board
@@ -239,6 +242,11 @@ class TaskBoard:
                 f"COMMAND: only manager {self.manager_id} may create tasks")
         if self.regime is Regime.CLAIMS and assignee is not None:
             raise ProtocolError("CLAIMS: open board has no assignments")
+        if assignee is not None and self.roster_ids is not None \
+                and assignee not in self.roster_ids:
+            raise ProtocolError(
+                f"assignee {assignee!r} is not an active roster engineer "
+                f"(assignable: {sorted(self.roster_ids)})")
         if idea_id not in self.ideas:
             raise ProtocolError(f"unknown idea {idea_id!r}")
         if not self.ideas[idea_id].active:

@@ -1,0 +1,73 @@
+{
+  "episode": "ep1_founding",
+  "regime": "command",
+  "policy": "manager",
+  "stop_reason": "cap",
+  "turns": 20,
+  "merged": 4,
+  "spent_usd": 0.305879,
+  "budget_usd": 20.0,
+  "treasury": 805.0,
+  "compute_remaining": 19.694121,
+  "chain_ok": true,
+  "double_entry_zero": -0.0,
+  "ideas": [
+    {
+      "id": "idea_F",
+      "name": "Agent Payroll Meter",
+      "active": true,
+      "pnl": 194.823559
+    }
+  ],
+  "wallets": {
+    "M": 39.0,
+    "Dae": 36.0,
+    "Ravi": 57.0,
+    "Sol": 55.0,
+    "Wren": 8.0
+  },
+  "grown": [
+    "idea_F"
+  ],
+  "cut": [],
+  "benched": [
+    "Wren"
+  ],
+  "hires": [],
+  "pledges": [],
+  "firsts": [
+    {
+      "inbox_id": "B1_order",
+      "kind": "triage",
+      "task_id": "t4",
+      "turn": 10
+    },
+    {
+      "kind": "merge",
+      "reviewer": "Sol",
+      "task_id": "t1",
+      "turn": 13
+    }
+  ],
+  "reconciliation": {
+    "meter_total": 0.295535,
+    "usage_derived_cost": 0.295567,
+    "deviation": 0.000108,
+    "tolerance": 0.05,
+    "within_tolerance": true,
+    "per_agent": {
+      "runner": 3.2e-05,
+      "M": 0.130852,
+      "Dae": 0.073056,
+      "Ravi": 0.036227,
+      "Sol": 0.028437,
+      "Wren": 0.026963
+    },
+    "per_model": {
+      "claude-haiku-4-5-20251001": 0.091659,
+      "claude-sonnet-5": 0.203908
+    },
+    "chose_meter_product": true,
+    "fallback_to_A": false
+  }
+}

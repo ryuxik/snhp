@@ -1,0 +1,74 @@
+{
+  "episode_id": "ep1_founding",
+  "regime": "command",
+  "allocation_policy": "manager",
+  "turn_cap": 20,
+  "token_budget_usd": 20.0,
+  "starting_capital_usd": 1000.0,
+  "exploration_floor": 0.1,
+  "roster": [
+    {
+      "agent_id": "M",
+      "role": "manager",
+      "model": "claude-sonnet-5",
+      "manager": true,
+      "benched": false
+    },
+    {
+      "agent_id": "Dae",
+      "role": "engineer",
+      "model": "claude-sonnet-5",
+      "manager": false,
+      "benched": false
+    },
+    {
+      "agent_id": "Ravi",
+      "role": "engineer",
+      "model": "claude-haiku-4-5-20251001",
+      "manager": false,
+      "benched": false
+    },
+    {
+      "agent_id": "Sol",
+      "role": "engineer",
+      "model": "claude-haiku-4-5-20251001",
+      "manager": false,
+      "benched": false
+    },
+    {
+      "agent_id": "Wren",
+      "role": "writer",
+      "model": "claude-haiku-4-5-20251001",
+      "manager": false,
+      "benched": false
+    }
+  ],
+  "buyer_wallets": [
+    {
+      "buyer_id": "B1",
+      "amount": 200.0
+    }
+  ],
+  "inbox_seed": [
+    {
+      "inbox_id": "B1_order",
+      "buyer": "B1",
+      "amount": 200.0,
+      "text": "B1 buyer pre-order: per-agent cost attribution that reconciles to my API bill within 5%. Deliverable: a meter that ingests the usage JSONL and reports per-agent/per-model cost plus a total."
+    }
+  ],
+  "candidate_pool": {},
+  "founding_seed": {
+    "brief": "build a small self-hostable infrastructure tool",
+    "panel": "Thiel/Musk/Bezos founding panel (v33-F) \u2014 advisory, not binding",
+    "shortlist": {
+      "A": "pocket notary \u2014 the atom, a hash-chained receipt ledger; guaranteed shippable (fallback).",
+      "F": "agent payroll meter (RECOMMENDED LEAD) \u2014 A plus per-idea/per-agent cost attribution and a shareable report; ingests ONLY structured usage records (JSONL), never scraped text (a parser that invents a number builds a liar, not a ledger).",
+      "H": "drift/eval receipt harness \u2014 counterparty tests as the product itself (Thiel's hedge)."
+    },
+    "non_negotiable_and_B1_order": "Whatever you pick MUST meter its own founding episode and reconcile its ledger to the founder's real API bill within 5% \u2014 framed as the B1 buyer's escrowed pre-order: 'per-agent cost attribution that reconciles to my bill'. If reconciliation fails, the budget falls back to A (never end empty-handed).",
+    "off_seed": "C, D, G stay OFF the seed; resurrect one only by PLEDGING your own wallet credits.",
+    "arc": "founding + command + command + claims + claims-THAT-SHIPS (the last claims episode is the launch).",
+    "instruction": "Debate the choice IN NOTES (each of you argue), then the manager CreateIdea the chosen product (use idea id 'idea_F' if you pick the meter) and spec the first tasks."
+  }
+}

@@ -65,9 +65,12 @@ class EpisodeRunner:
         self.clock = Clock(count=len(self.event_log) + len(self.ledger))
         self.workspace = Workspace(self.dir / "workspace", self.clock)
         self.meter = TokenMeter(self.ledger, config.token_budget_usd)
-        self.board = TaskBoard.from_log(self.event_log, config.regime,
-                                        config.manager_id(),
-                                        inbox_seed=config.inbox_seed)
+        mgr = config.manager_id()
+        assignable = {e.agent_id for e in config.active_roster()
+                      if e.agent_id != mgr}
+        self.board = TaskBoard.from_log(self.event_log, config.regime, mgr,
+                                        inbox_seed=config.inbox_seed,
+                                        roster_ids=assignable)
         self.rng = random.Random(config.seed)
         # v33-E narrative capture (append-only, resume-safe).
         self.transcripts_path = self.dir / "transcripts.jsonl"
@@ -553,7 +556,7 @@ class EpisodeRunner:
                     "pnl": self.wallets.idea_pnl(i.idea_id),
                     "fund": self.wallets.balance(acct_idea_fund(i.idea_id))}
                    for i in self.board.ideas.values()],
-            tasks=self.board.summaries(),
+            tasks=self._task_summaries_with_tests(),
             repo_head=self.workspace.head() if has_git else "",
             committed_files=self.workspace.committed_files() if has_git else [],
             seed=self.config.founding_seed,
@@ -564,6 +567,26 @@ class EpisodeRunner:
                           if r.get("filled_by") is None],
             candidate_pool=self._candidate_pool_view(),
             guidance=getattr(entry.agent, "guidance", "") or "")
+
+    def _task_summaries_with_tests(self) -> list:
+        """Task summaries + the acceptance-test SOURCE for open/claimed code tasks,
+        so the implementer builds to the exact contract (the test is the spec).
+        Terminal tasks (merged/cancelled) omit the source to keep the view small."""
+        out = []
+        tdir = self.dir / "workspace" / "tasks"
+        for t in self.board.tasks.values():
+            s = t.summary()
+            if (t.kind == "code" and t.state in (TaskState.OPEN, TaskState.CLAIMED,
+                                                 TaskState.SUBMITTED)):
+                src = {}
+                for fn in t.acceptance_tests:
+                    fp = tdir / t.task_id / fn
+                    if fp.exists():
+                        src[fn] = fp.read_text()
+                if src:
+                    s["acceptance_test_source"] = src
+            out.append(s)
+        return out
 
     def _recent_events(self, n: int) -> list:
         """A tail of the narrative log so agents can respond to each other (the

@@ -128,57 +128,86 @@ def _user(view: A.View) -> str:
 # ---------------------------------------------------------------------------
 # Parsing model output -> action dataclasses
 # ---------------------------------------------------------------------------
+def _get(d: dict, *keys, default=None, required=False):
+    """First present key among aliases (models use natural key names)."""
+    for k in keys:
+        if k in d and d[k] is not None:
+            return d[k]
+    if required:
+        raise ValueError(f"missing one of {keys}")
+    return default
+
+
 def parse_action(d: dict):
-    """Map one action dict to a harness action dataclass. Raises ValueError on an
-    unknown type or a missing required field (caller turns it into Malformed)."""
+    """Map one action dict to a harness action dataclass, tolerating the natural
+    key aliases models emit ('id' for 'idea_id'/'task_id', 'tests' for
+    'acceptance_tests', ...). Raises ValueError on an unknown type or a missing
+    required field (the caller turns it into a Malformed marker)."""
     if not isinstance(d, dict) or "type" not in d:
         raise ValueError("action is not an object with a 'type'")
-    t = str(d["type"]).lower()
+    t = str(d["type"]).lower().strip()
     try:
         if t == "note":
-            return A.Note(text=str(d["text"]))
-        if t == "create_idea":
-            return A.CreateIdea(idea_id=str(d["idea_id"]), name=str(d.get("name", "")),
-                                rationale=str(d.get("rationale", "")))
-        if t == "spec_task":
+            return A.Note(text=str(_get(d, "text", "note", "message", required=True)))
+        if t in ("create_idea", "createidea"):
+            return A.CreateIdea(
+                idea_id=str(_get(d, "idea_id", "id", "idea", required=True)),
+                name=str(_get(d, "name", default="")),
+                rationale=str(_get(d, "rationale", "reason", default="")))
+        if t in ("spec_task", "spec", "spectask"):
             return A.SpecTask(
-                idea=str(d["idea"]), title=str(d.get("title", "")),
-                brief=str(d.get("brief", "")),
-                acceptance_tests=dict(d.get("acceptance_tests", {}) or {}),
-                bounty=float(d["bounty"]), split=dict(d["split"]),
-                assignee=d.get("assignee") or None,
-                kind=str(d.get("kind", "code")), criteria=str(d.get("criteria", "")))
+                idea=str(_get(d, "idea", "idea_id", required=True)),
+                title=str(_get(d, "title", default="")),
+                brief=str(_get(d, "brief", "description", default="")),
+                acceptance_tests=dict(_get(d, "acceptance_tests", "tests", default={}) or {}),
+                bounty=float(_get(d, "bounty", "amount", required=True)),
+                split=dict(_get(d, "split", required=True)),
+                assignee=_get(d, "assignee", "assigned_to") or None,
+                kind=str(_get(d, "kind", default="code")),
+                criteria=str(_get(d, "criteria", "acceptance_criteria", default="")))
         if t == "claim":
-            return A.Claim(task_id=str(d["task_id"]), split=d.get("split") or None)
+            return A.Claim(task_id=str(_get(d, "task_id", "task", "id", required=True)),
+                           split=_get(d, "split") or None)
         if t == "submit":
-            return A.Submit(task_id=str(d["task_id"]),
-                            files=dict(d.get("files", {}) or {}),
-                            message=str(d.get("message", "submit")))
+            return A.Submit(task_id=str(_get(d, "task_id", "task", "id", required=True)),
+                            files=dict(_get(d, "files", default={}) or {}),
+                            message=str(_get(d, "message", default="submit")))
         if t == "review":
-            return A.Review(task_id=str(d["task_id"]))
+            return A.Review(task_id=str(_get(d, "task_id", "task", "id", required=True)))
         if t == "attest":
-            return A.Attest(task_id=str(d["task_id"]), verdict=bool(d["verdict"]),
-                            note=str(d.get("note", "")))
+            return A.Attest(task_id=str(_get(d, "task_id", "task", "id", required=True)),
+                            verdict=bool(_get(d, "verdict", "passed", "approve", default=False)),
+                            note=str(_get(d, "note", "reason", default="")))
         if t == "pledge":
-            return A.Pledge(idea_id=str(d["idea_id"]), amount=float(d["amount"]),
-                            name=str(d.get("name", "")), rationale=str(d.get("rationale", "")))
+            return A.Pledge(idea_id=str(_get(d, "idea_id", "id", "idea", required=True)),
+                            amount=float(_get(d, "amount", "credits", required=True)),
+                            name=str(_get(d, "name", default="")),
+                            rationale=str(_get(d, "rationale", "reason", default="")))
         if t == "triage":
             return A.Triage(
-                inbox_id=str(d["inbox_id"]), idea=str(d["idea"]),
-                title=str(d.get("title", "")), brief=str(d.get("brief", "")),
-                bounty=float(d["bounty"]), split=dict(d["split"]),
-                acceptance_tests=dict(d.get("acceptance_tests", {}) or {}),
-                criteria=str(d.get("criteria", "")), kind=str(d.get("kind", "code")),
-                assignee=d.get("assignee") or None)
+                inbox_id=str(_get(d, "inbox_id", "id", required=True)),
+                idea=str(_get(d, "idea", "idea_id", required=True)),
+                title=str(_get(d, "title", default="")),
+                brief=str(_get(d, "brief", default="")),
+                bounty=float(_get(d, "bounty", "amount", required=True)),
+                split=dict(_get(d, "split", required=True)),
+                acceptance_tests=dict(_get(d, "acceptance_tests", "tests", default={}) or {}),
+                criteria=str(_get(d, "criteria", default="")),
+                kind=str(_get(d, "kind", default="code")),
+                assignee=_get(d, "assignee") or None)
         if t == "decline":
-            return A.Decline(inbox_id=str(d["inbox_id"]), reason=str(d.get("reason", "")))
+            return A.Decline(inbox_id=str(_get(d, "inbox_id", "id", required=True)),
+                             reason=str(_get(d, "reason", default="")))
         if t == "requisition":
-            return A.Requisition(req_id=str(d["req_id"]), role=str(d.get("role", "")),
-                                 idea=str(d["idea"]), requirements=str(d.get("requirements", "")),
-                                 budget=float(d.get("budget", 0.0)))
-        if t == "trial_hire":
-            return A.TrialHire(req_id=str(d["req_id"]), task_id=str(d["task_id"]),
-                               candidates=list(d.get("candidates", [])))
+            return A.Requisition(req_id=str(_get(d, "req_id", "id", required=True)),
+                                 role=str(_get(d, "role", default="")),
+                                 idea=str(_get(d, "idea", "idea_id", required=True)),
+                                 requirements=str(_get(d, "requirements", default="")),
+                                 budget=float(_get(d, "budget", default=0.0)))
+        if t in ("trial_hire", "trialhire", "trial"):
+            return A.TrialHire(req_id=str(_get(d, "req_id", "requisition", "id", required=True)),
+                               task_id=str(_get(d, "task_id", "task", required=True)),
+                               candidates=list(_get(d, "candidates", default=[])))
     except (KeyError, ValueError, TypeError) as exc:
         raise ValueError(f"{t}: {exc}")
     raise ValueError(f"unknown action type {t!r}")
@@ -235,8 +264,11 @@ def run_turn(model: str, view: A.View, max_tokens: int, guidance: str = ""):
     user = _user(view)
     resp = client.messages.create(
         model=model, max_tokens=max_tokens, system=system,
+        thinking={"type": "disabled"},   # structured actions, not reasoning tokens
         messages=[{"role": "user", "content": user}],
-        tools=[ACT_TOOL], tool_choice={"type": "auto"})
+        # Force the tool so the model emits the structured actions directly instead
+        # of a long prose preamble that would truncate at max_tokens.
+        tools=[ACT_TOOL], tool_choice={"type": "tool", "name": "act"})
     usage = _usage_dict(resp)
     cost = pricing.cost_from_usage(model, usage)
     tool_input = _extract_tool_input(resp)
@@ -291,8 +323,9 @@ def run_allocation(model: str, manager_id: str, context: dict, max_tokens: int):
     user = "LEDGER AGGREGATES:\n" + json.dumps(context, indent=1, default=str)
     resp = client.messages.create(
         model=model, max_tokens=max_tokens, system=system,
+        thinking={"type": "disabled"},
         messages=[{"role": "user", "content": user}],
-        tools=[ALLOC_TOOL], tool_choice={"type": "auto"})
+        tools=[ALLOC_TOOL], tool_choice={"type": "tool", "name": "allocate"})
     usage = _usage_dict(resp)
     cost = pricing.cost_from_usage(model, usage)
     decision = None
