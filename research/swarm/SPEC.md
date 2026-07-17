@@ -3616,3 +3616,11 @@ binding on D1b:
    button. Article-3 note: the Track-1 chronicle ("a freelance evolving
    software company, open for business") is the registered companion
    piece — the ledger is the manuscript.
+
+**v33-E NOTE (founder, 2026-07-17): article 3 = the five-episode
+chronicle, ending at the launch version and "open for business."** D1b
+logging gains narrative-grade capture requirements (full transcripts,
+the founding product debate, allocation-round before/afters, firsts) —
+already implied by artifacts-public-and-complete, now explicit because
+the ledger is the manuscript. Chronicle notes: ARTICLE3-NOTES.md
+(local, gitignored).
