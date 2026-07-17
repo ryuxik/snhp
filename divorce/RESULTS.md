@@ -27,6 +27,26 @@ Files: `results-kill-step1.json` (ARM-I/ARM-O only), `results-kill-step2.json`
 (all arms, seed 7), `results-kill-holdout-seed11.json`. Reproduce:
 `python3 -m divorce.kill_harness --n 100 --seed <s>`.
 
+## Where the ceiling gap lives (question-budget sweep, seed 7, 72 pairs)
+
+| Q/side | settle rate | K3 median (incl. abstentions) | median among settled |
+|---|---|---|---|
+| 6 | 79% | 88% | 94% |
+| 10 (demo) | 77% | 85% | 92% |
+| 16 | 89% | 95% | 97% |
+| 24 | **100%** | **99%** | 99% |
+
+The ~10–15% gap at demo budgets is almost entirely **elicitation information,
+purchasable with questions**: at 24 questions/side every pair settles at 99%
+of the perfect-information ceiling. The mediator's conservatism converts
+uncertainty into ABSTENTION (NO DECREE), never into bad deals — zero
+walk-away violations at every budget — so as the posterior tightens,
+abstention vanishes and capture approaches 100%. The mechanism is
+near-lossless when informed; the demo's Q=10 is a watchability choice, not a
+mechanism tax. (Tail note: even at Q=24 the 25th-percentile settled pair
+captures 88% — the hardest profiles still leave real money.) Product-side
+interviews (~5 minutes) should run 20+.
+
 ## What the build taught us (now part of the mediator design, SPEC.md §5)
 
 1. **Never mix scales.** v1 had personas state a walk-away in TRUE-utility
