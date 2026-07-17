@@ -1,0 +1,52 @@
+{
+  "episode": "ep5_claims_ships",
+  "regime": "claims",
+  "policy": "receipts",
+  "stop_reason": "cap",
+  "turns": 20,
+  "merged": 2,
+  "spent_usd": 0.204507,
+  "budget_usd": 20.0,
+  "treasury": 990.0,
+  "compute_remaining": 19.795493,
+  "chain_ok": true,
+  "double_entry_zero": 0.0,
+  "ideas": [
+    {
+      "id": "idea_F",
+      "name": "Agent Payroll Meter",
+      "active": true,
+      "pnl": 9.928317
+    }
+  ],
+  "wallets": {
+    "M": 2.0,
+    "Dae": 3.6,
+    "Ravi": 2.4,
+    "Sol": 2.0,
+    "Wren": 0.0
+  },
+  "grown": [
+    "idea_F"
+  ],
+  "cut": [],
+  "benched": [
+    "Wren"
+  ],
+  "hires": [],
+  "pledges": [],
+  "firsts": [
+    {
+      "kind": "attested_merge",
+      "task_id": "t1",
+      "turn": 3
+    },
+    {
+      "kind": "merge",
+      "reviewer": "Sol",
+      "task_id": "t1",
+      "turn": 3
+    }
+  ],
+  "reconciliation": null
+}
