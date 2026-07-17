@@ -3063,3 +3063,40 @@ in all 80 runs.
   not cost or risk: to see banknote-grade velocity this field would need
   longer-dated paper (slower settlement, farther fields) — registered here as
   the natural follow-on, not run, not claimed.
+
+**PM2 VERDICTS (2026-07-17, registrar) — the receipt becomes money, and
+exactly the money its maturity permits.**
+- **PM2c CONFIRMED, 24/24 seeds — the money test passes.** M(claims)
+  beats M(energy) in every seed at every scale and horizon (0.638 vs
+  0.257 at N=240; 0.801 vs 0.473 at N=24; energy's own ceiling on
+  claimless arms is 0.21–0.28). The receipt, not the battery, is the
+  preferred payment side of a bundle from the first active window.
+- **The physics note is the mechanism, on the record:** the claim is the
+  world's only weightless, lossless asset — energy transfer burns 10%,
+  loaded cargo burns per cell, endorsement moves face value at zero mass.
+  No money-demand heuristic exists anywhere in the code; Φ prices the
+  physics and the medium emerges. **Paper beats gold, re-derived by
+  accounting.**
+- **PM2a SPLIT:** claims genuinely circulate (12–23% endorsed, chains 10
+  deep, near-mature low-risk paper preferred at N=240 — the
+  good-collateral premium, though it inverts at village scale) but
+  velocity stays under 1: every claim settles within ~80 ticks, so
+  hold-to-settlement dominates. The cap is MATURITY, not cost or risk —
+  this is short-dated commercial paper, not banknotes. Banknote-grade
+  velocity needs longer-dated paper (slower settlement, farther fields):
+  REGISTERED-OPEN follow-on, not run, not claimed.
+- **PM2b REFUTED — spendability adds no tonnage above static bills**
+  (every outcome null vs static; the chains were already built by the
+  claims layer itself). The loud unregistered observation, logged as an
+  observation: at N=24 stranding COLLAPSES under transferability (1.9 vs
+  static 3.9, p=.011, vs spot 6.0) and 78% of endorsements move opposite
+  ENERGY — the endorsement's marginal product is the RESCUE trade: a
+  battery-poor drone buys charge with paper where barter had nothing to
+  offer. The safety-net thread (v5/v8) reappears at the monetary layer.
+- **KILL: does not fire, scoped hard.** Money emerges as a preferred
+  medium of exchange with a rescue function — not a throughput lever, not
+  a dominant store of value. The five-column arc closes: the receipt
+  makes chains exist (P23), out-scales reputation (P28), beats the boss
+  (PX), survives forgery as economics (PZ), outlives its holder as a
+  lifeline (PAA), crashes on paper only (PAB), and ends the program as
+  the money the economy chose for itself (PM2).
