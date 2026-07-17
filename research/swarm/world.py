@@ -308,6 +308,7 @@ class World:
                  lineage: bool = False,
                  bills: bool = False, firm_relay: bool = False,
                  dwell: bool = False, bills_contingent: bool = False,
+                 claims_transferable: bool = False,
                  reputation: bool = False, false_accuse: float = 0.0,
                  order_book: bool = False,
                  build_matter: float = 0.0, build: bool = False,
@@ -539,8 +540,36 @@ class World:
         assert not (bills_contingent and not bills), \
             "bills_contingent requires bills (it decays the claim-stack payout)"
         self.bills_contingent = bills_contingent
+        # v30 (column M2): the bill becomes money — ENDORSABLE claim positions. A
+        # holder may transfer (endorse) its claim position to a counterparty inside
+        # any bundle as PAYMENT: a signed claim-transfer leg (face value moved =
+        # expected settlement, priced UNDISCOUNTED by the standard bills Φ, so it is a
+        # weightless, lossless side-payment). Off by default ⇒ no claim axis, no
+        # transfer_claims, no tracking ⇒ every prior column bit-identical. Kept CLEAN:
+        # requires bills (the claim stack it endorses) and flat 2-tuple claims, and
+        # is NOT combined with the mechanisms that rewrite / snapshot the stack
+        # (contingent decay, order-book pins, the map axis, mortality voids, the
+        # crash) — the registered column-M2 grid uses none of them, and the scan-and-
+        # reassign endorsement composes cleanly only over a live flat stack.
+        self.claims_transferable = claims_transferable
+        if claims_transferable:
+            assert bills, "claims_transferable requires bills (the claim stack it endorses)"
+            assert not bills_contingent, \
+                "claims_transferable is flat-only (endorsement reassigns 2-tuple claims)"
+            assert not order_book, \
+                "claims_transferable does not scan pinned-order parcels (order_book off)"
+            assert not map_trading, \
+                "claims_transferable owns bundle axis 3 (map_trading off)"
         self.dwell = dwell or bills_contingent
         self.lineage = lineage or self.bills or firm_relay or self.dwell
+        # v30 (column M2): circulation instruments. All empty / pure bookkeeping when
+        # claims_transferable is off ⇒ bit-identical. claim_xfers counts endorsement
+        # deals; claim_xfer_log records each endorsed claim's maturity/risk proxy at
+        # transfer (the good-collateral question); claim_settle_log records the
+        # velocity (transfers-before-settlement) of every claim as it settles.
+        self.claim_xfers = 0
+        self.claim_xfer_log: list = []
+        self.claim_settle_log: list = []
         self._parcel_uid = 0
         self.hop_dwells: list[dict] = []        # P23e: per-carrier leg records
         self.delivered_dwells: list[dict] = []  # P23e: per-parcel total dwell
@@ -2008,6 +2037,12 @@ class World:
         p = {"origin": origin, "hops": 0, "chain": []}
         if self.bills:
             p["claims"] = []
+        if self.claims_transferable:
+            # v30 (column M2): per-claim circulation instruments, aligned index-for-
+            # index with p["claims"] and travelling with the parcel through every
+            # cargo hand-off. cx = endorsements so far (velocity); cb = birth tick.
+            p["cx"] = []
+            p["cb"] = []
         if self.firm_relay:
             p["advanced"] = 0.0
         if self.dwell:
@@ -2223,13 +2258,21 @@ class World:
                         self._settle_parcel_bills(p, r, rate, vm)
                     elif self.bills:                 # ── original path (bit-identical) ──
                         csum = 0.0
-                        for claim in p["claims"]:
+                        for _ci, claim in enumerate(p["claims"]):
                             if len(claim) == 3:
                                 rid, share, decay = claim
                                 paid = share * decay
                             else:
                                 rid, share = claim
                                 paid = share
+                            # v30 (column M2): a claim reaches SETTLEMENT — record its
+                            # velocity (endorsements before settlement) and age. cx==0
+                            # is a hold-to-settlement claim (never circulated); the full
+                            # distribution answers PM2a / the KILL condition.
+                            if self.claims_transferable:
+                                self.claim_settle_log.append(
+                                    (self.tick, p["cb"][_ci], p["cx"][_ci],
+                                     round(paid * V_DELIVER, 4)))
                             # v28 (column AA): a claimant left dead resolves by
                             # SENTINEL rid. VOID (claims-die / risk-premium): the
                             # share's payout is DESTROYED and booked to claims_voided
@@ -2433,6 +2476,79 @@ class World:
                                        src=giver.rid, dst=taker.rid, amt=q,
                                        d=int(giver.stranded or taker.stranded)))
         return q
+
+    def transfer_claims(self, giver: Robot, taker: Robot, target: float) -> float:
+        """v30 (column M2): ENDORSE `target` face value of the giver's outstanding
+        claims to the taker. A claim is a (rid, share) entry on SOME parcel's claim
+        stack (wherever the underlying cargo now rides); endorsement rewrites the
+        claimant rid giver→taker so the parcel settles to the taker (the CURRENT
+        holder) — a book entry on a third party's cargo, exactly as a bill of
+        exchange is endorsed without the goods moving. Claims are reassigned whole in
+        deterministic (robot rid, parcel, stack) order until `target` face is covered;
+        the final entry is SPLIT so the moved face is EXACT (the taker gets the moved
+        share, the giver keeps the remainder). claim_value is booked by the EXACT
+        target (the feasibility mask guarantees giver.claim_value ≥ target, and in this
+        column's flat-live-stack regime claim_value == Σ live-entry face, so the scan
+        always reaches it), so the endorsement is a pure lossless, weightless value
+        transfer — the physics that lets paper out-circulate the battery. Credit is
+        untouched (the claim still settles to face at delivery, now to the taker);
+        no RNG, no Φ side effects. Returns the face actually reassigned (== target)."""
+        moved = 0.0
+        remaining = target
+        V = V_DELIVER
+        for other in self.robots:                # deterministic: rid order
+            if remaining <= 1e-12:
+                break
+            for p in other.parcels:
+                if remaining <= 1e-12:
+                    break
+                cl = p.get("claims")
+                if not cl:
+                    continue
+                cx = p["cx"]
+                cb = p["cb"]
+                i = 0
+                while i < len(cl) and remaining > 1e-12:
+                    if cl[i][0] != giver.rid:
+                        i += 1
+                        continue
+                    share = cl[i][1]
+                    face_i = share * V
+                    ref_d = min(manhattan(other.pos, rf) for rf in self.refineries)
+                    if face_i <= remaining + 1e-12:
+                        # endorse the WHOLE entry to the taker
+                        cl[i] = (taker.rid, share)
+                        cx[i] += 1
+                        moved += face_i
+                        remaining -= face_i
+                        self._log_endorse(face_i, ref_d, p["hops"], cx[i])
+                        i += 1
+                    else:
+                        # SPLIT: move exactly `remaining` face, keep the rest
+                        share_move = remaining / V
+                        share_keep = share - share_move
+                        cl[i] = (taker.rid, share_move)
+                        cl.insert(i + 1, (giver.rid, share_keep))
+                        cx.insert(i + 1, cx[i])          # keep-half: giver's history
+                        cb.insert(i + 1, cb[i])
+                        cx[i] += 1                        # move-half: one more endorsement
+                        moved += remaining
+                        self._log_endorse(remaining, ref_d, p["hops"], cx[i])
+                        remaining = 0.0
+                        i += 2
+        assert abs(moved - target) < 1e-6, \
+            "endorsement under-filled: claim_value overstated its live stack"
+        giver.claim_value -= target
+        taker.claim_value += target
+        self.claim_xfers += 1
+        return moved
+
+    def _log_endorse(self, face: float, ref_d: int, hops: int, xfers: int) -> None:
+        """Record one endorsed claim's maturity/risk proxy at transfer: ref_d = the
+        current holder's Manhattan distance to the nearest refinery (near = about to
+        settle = LOW risk; far = HIGH risk — the good-collateral question), hops = the
+        underlying parcel's relay depth, xfers = endorsements including this one."""
+        self.claim_xfer_log.append((self.tick, round(face, 4), ref_d, hops, xfers))
 
     def swap_sectors(self, a: Robot, b: Robot, log: bool = True) -> None:
         a.sector, b.sector = b.sector, a.sector

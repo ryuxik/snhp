@@ -15,7 +15,7 @@ for _p in (_RESEARCH, _ROOT):
 import numpy as np                               # noqa: E402
 
 from swarm import world as W                     # noqa: E402
-from swarm.arms import SnhpArm, intent, make_arm # noqa: E402
+from swarm.arms import CLAIM_OPTS, SnhpArm, intent, make_arm  # noqa: E402
 from swarm.value import delivery_target, phi     # noqa: E402
 from swarm.world import TOTAL_STOCK, V_DELIVER, World  # noqa: E402
 
@@ -3438,6 +3438,197 @@ def test_v29_evaluated_equals_executed_under_shock_both_regimes():
         assert w.shocked, f"shock never fired (ccp={ccp})"
         assert w.writedown_log, f"no write-downs — vacuous run (ccp={ccp})"
         assert arm.deals > 0
+
+
+# ── v30 (column M2): the bill becomes money — transferable claims ─────────────
+def test_v30_claims_transferable_off_bit_identical():
+    """claims_transferable=False must leave the shipped bills economy bit-identical —
+    no claim axis in the bundle space, no endorsement path, no tracking — and turning
+    it ON adds exactly one signed axis (column 3 == CLAIM_OPTS). Checked on snhp+net
+    with bills, the arm whose Φ the claim axis would touch."""
+    outs = []
+    for kw in (dict(bills=True), dict(bills=True, claims_transferable=False)):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), **kw)
+        arm = make_arm("snhp+net", w)
+        for _ in range(500):
+            arm.tick()
+        outs.append((w.delivered, arm.deals, len(w.event_log),
+                     round(sum(r.battery for r in w.robots), 9),
+                     round(sum(r.claim_value for r in w.robots), 9),
+                     [r.pos for r in w.robots]))
+    assert outs[0] == outs[1], "claims_transferable=False perturbed the bills economy"
+    assert not arm.has_claims and arm.space.shape[1] == 3, \
+        "claim axis leaked into the bundle space when off"
+    w2 = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+               bills=True, claims_transferable=True)
+    arm2 = make_arm("snhp+net", w2)
+    assert arm2.has_claims and arm2.space.shape[1] == 4, "claim axis missing when on"
+    assert sorted(set(arm2.space[:, 3].tolist())) == sorted(CLAIM_OPTS), \
+        "column 3 is not the claim-endorsement axis"
+
+
+def test_v30_endorsement_chain_settles_to_final_holder():
+    """A hand-built A→B cargo hand-off banks A a claim on B's parcels; endorsing that
+    claim A→C→D rewrites the claimant so that when B delivers, the share settles to D
+    (the CURRENT holder) — never A or C. Credit conserved; B keeps its residual."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), bills=True,
+              claims_transferable=True)
+    arm = make_arm("snhp+net", w)
+    A, B, C, D = w.robots[0], w.robots[1], w.robots[2], w.robots[3]
+    for r in w.robots:                         # clear everyone so the scan is clean
+        r.company, r.load, r.load_prov, r.parcels, r.credit, r.claim_value = \
+            0, 0, [0, 0], [], 0.0, 0.0
+    A.sector = 0
+    A.pos, w.stock[0] = w.sources[0], 2
+    assert w.pick(A) == 2                       # A mines 2 → 2 parcels
+    w.tick = 5
+    w.transfer_cargo(A, B, 2, log=True)         # A → B (B now physically holds it)
+    arm._bills_attach(A, B, 2, 0.5)             # A banks a 0.5 claim on each parcel
+    face = 0.5 * 2 * V_DELIVER                  # 10
+    assert abs(A.claim_value - face) < 1e-9
+    w.tick = 6                                  # endorse A → C
+    assert abs(w.transfer_claims(A, C, face) - face) < 1e-9
+    assert abs(A.claim_value) < 1e-9 and abs(C.claim_value - face) < 1e-9
+    w.tick = 7                                  # endorse C → D
+    assert abs(w.transfer_claims(C, D, face) - face) < 1e-9
+    assert abs(C.claim_value) < 1e-9 and abs(D.claim_value - face) < 1e-9
+    for p in B.parcels:                         # every entry now names D
+        assert all(rid == D.rid for rid, _sh in p["claims"])
+    B.pos = w.refineries[w._home_ref(0)]        # deliver at company-0's own refinery
+    w.tick = 20
+    w.drop(B)
+    unit = V_DELIVER                            # rate 1 at own refinery
+    assert abs(D.credit - 0.5 * 2 * unit) < 1e-9, "claim did not settle to final holder D"
+    assert abs(A.credit) < 1e-9 and abs(C.credit) < 1e-9, "an intermediate endorser was paid"
+    assert abs(B.credit - 0.5 * 2 * unit) < 1e-9, "deliverer residual wrong"
+    assert w.credit_conserved() and w.ledger_accounted()
+
+
+def test_v30_face_value_pricing_responds_to_risk():
+    """Under CLAIMS-DIE the bills Φ prices a HELD claim at its survival-weighted face
+    (claim·(1−hazard)), so endorsing it from a high-hazard holder to a SAFER one
+    re-prices it UP (flight to quality raises joint Φ) — the same survival machinery
+    column AA used, composing cleanly with the transfer, which still moves EXACT face."""
+    from swarm.value import bills_correction, stranding_hazard
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), bills=True,
+              claims_transferable=True, mortality=True, death_regime="claims_die")
+    arm = make_arm("snhp+net", w)
+    assert w.claim_discount
+    H, L, X = w.robots[0], w.robots[1], w.robots[2]
+    for r in w.robots:
+        r.company, r.load, r.load_prov, r.parcels, r.credit, r.claim_value = \
+            0, 0, [0, 0], [], 0.0, 0.0
+    X.sector = 0
+    X.pos, w.stock[0] = w.sources[0], 1
+    assert w.pick(X) == 1                       # X physically holds 1 unit
+    arm._bills_attach(H, X, 1, 0.5)             # H owns a 0.5 claim on X's parcel
+    face = 0.5 * V_DELIVER
+    assert abs(H.claim_value - face) < 1e-9
+    # H high-hazard (near-empty, far from chargers); L low-hazard (full, ON a charger)
+    H.battery, H.pos = 1.0, w.sources[0]
+    L.battery, L.pos = W.BATTERY_MAX, w.chargers[0]
+    haz_H, haz_L = stranding_hazard(H, w), stranding_hazard(L, w)
+    assert haz_H > haz_L, "test setup failed to separate hazards"
+    vH = bills_correction(H, w)                 # H's held claim, survival-discounted
+    assert abs(vH - face * (1.0 - haz_H)) < 1e-9, "claim not priced at survival-weighted face"
+    assert abs(w.transfer_claims(H, L, face) - face) < 1e-9   # endorse H → L, exact
+    assert abs(H.claim_value) < 1e-9 and abs(L.claim_value - face) < 1e-9
+    vL = bills_correction(L, w)
+    assert abs(vL - face * (1.0 - haz_L)) < 1e-9
+    assert vL > vH, "endorsing to a safer holder did not raise the claim's Φ value"
+
+
+def test_v30_conservation_through_multi_transfer():
+    """800 ticks of snhp+net bills-transferable with material/ledger/credit invariants
+    live: endorsements fire, and after the run each robot's claim_value still equals
+    the Σ face of the (live-rid) claim entries it owns across every parcel — the
+    reassign-and-split endorsement never leaks a fraction of a claim."""
+    w = World(sigma=0.5, seed=1, preset="v5", tau=(0.15, 0.15), bills=True,
+              claims_transferable=True)
+    arm = make_arm("snhp+net", w)
+    for _ in range(800):
+        arm.tick()
+        assert w.material_ok() and w.ledger_accounted() and w.credit_conserved()
+    assert w.claim_xfers > 0, "no endorsement ever fired — vacuous"
+    outstanding = {r.rid: 0.0 for r in w.robots}
+    for r in w.robots:
+        for p in r.parcels:
+            for rid, share in p["claims"]:
+                if rid >= 0:
+                    outstanding[rid] += share * V_DELIVER
+    for r in w.robots:
+        assert abs(r.claim_value - outstanding[r.rid]) < 1e-6, \
+            f"claim_value diverged from live stacks after transfers (robot {r.rid})"
+
+
+def test_v30_mx_index_pinned():
+    """The medium-of-exchange index on a hand-built bundle set: a commodity is a
+    'medium' when it moves OPPOSITE some other commodity in the same bundle. Cargo paid
+    by a claim ⇒ both a medium; a claim moving the SAME way as cargo is not; a pure
+    one-commodity deal has no medium. Face sums the value moved as each medium."""
+    from swarm.run import mx_counts
+    deals = [
+        dict(q=2, e=0.0, t=-5.0),    # cargo a→b, claim b→a: cargo & claims opposite
+        dict(q=-1, e=3.0, t=0.0),    # cargo b→a, energy a→b: opposite
+        dict(q=2, e=0.0, t=4.0),     # cargo a→b, claim a→b: SAME side (no opposition)
+        dict(q=0, e=0.0, t=6.0),     # pure claim: nothing to be a medium against
+        dict(q=3, e=0.0, t=0.0),     # pure cargo: no medium
+    ]
+    mv, op, face = mx_counts(deals)
+    assert mv["cargo"] == 4 and op["cargo"] == 2      # moves 0,1,2,4; opposite 0,1
+    assert mv["energy"] == 1 and op["energy"] == 1    # moves 1; opposite 1
+    assert mv["claims"] == 3 and op["claims"] == 1    # moves 0,2,3; opposite only 0
+    assert abs(face["cargo"] - 80.0) < 1e-9           # (2+1+2+3)·V
+    assert abs(face["claims"] - 15.0) < 1e-9          # 5+4+6
+    assert abs(face["energy"] - 3.0) < 1e-9
+
+
+def test_v30_evaluated_equals_executed_under_transfers():
+    """The sacred invariant under endorsement: 600 ticks of snhp+net bills-transferable
+    with the in-arm evaluated Φ == executed Φ assert live. The claim leg is priced
+    analytically (_bills_post: claim_a−t, claim_b+t) and executed by transfer_claims;
+    any divergence fires the assert. Completing clean with endorsements landing — and
+    the velocity tracking recording — IS the test."""
+    w = World(sigma=0.5, seed=2, preset="v5", tau=(0.15, 0.15), bills=True,
+              claims_transferable=True)
+    arm = make_arm("snhp+net", w)
+    for _ in range(600):
+        arm.tick()
+    assert arm.deals > 0
+    assert w.claim_xfers > 0, "no endorsement fired — the claim axis was never exercised"
+    assert len(w.claim_xfer_log) > 0, "no endorsement maturity recorded"
+    assert any(any(x > 0 for x in p.get("cx", ())) for r in w.robots
+               for p in r.parcels) or len(w.claim_settle_log) > 0, \
+        "no circulated claim recorded in the velocity instruments"
+    assert w.material_ok() and w.ledger_accounted() and w.credit_conserved()
+
+
+def test_v30_grouped_eval_equals_perrow():
+    """The grouped bills+claims eval (apply/phi once per physical bundle, fill the
+    claim rows) must be BYTE-identical to the un-grouped per-row scalar path — it only
+    hoists apply/phi/restore out of the t-loop, the ~30× speedup that makes N=240
+    tractable. Flip FORCE_PERROW_CLAIMS and compare full trajectories."""
+    import swarm.arms as A
+
+    def run(force):
+        old = A.FORCE_PERROW_CLAIMS
+        A.FORCE_PERROW_CLAIMS = force
+        try:
+            w = World(sigma=0.5, seed=3, preset="v5", tau=(0.15, 0.15),
+                      bills=True, claims_transferable=True)
+            arm = make_arm("snhp+net", w)
+            for _ in range(500):
+                arm.tick()
+            return (w.delivered, arm.deals, w.claim_xfers, len(w.event_log),
+                    round(sum(r.credit for r in w.robots), 9),
+                    round(sum(r.claim_value for r in w.robots), 9),
+                    [r.pos for r in w.robots])
+        finally:
+            A.FORCE_PERROW_CLAIMS = old
+
+    grouped, perrow = run(False), run(True)
+    assert grouped == perrow, "grouped bills+claims eval diverged from the per-row path"
+    assert grouped[2] > 0, "no endorsement fired — vacuous"
 
 
 def benchmark(ticks=2500):

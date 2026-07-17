@@ -68,6 +68,13 @@ REPUTATION_MARK_EPS = 1e-9
 # byte-compares. Never set in production.
 FORCE_SCALAR_EVAL = False
 
+# v30 differential switch: force the bills+claims eval onto the UN-grouped per-row
+# scalar path (apply/phi per claim row). The grouped path (apply/phi once per physical
+# bundle, _bills_add per claim row) MUST produce byte-identical utilities; the v30
+# grouped-equals-perrow test flips this and compares trajectories. Never set in
+# production (the grouping is a ~30× speedup at N=240).
+FORCE_PERROW_CLAIMS = False
+
 CARGO_OPTS = [-4, -2, -1, 0, 1, 2, 4]
 ENERGY_OPTS = [-8.0, -4.0, -2.0, 0.0, 2.0, 4.0, 8.0]
 SECTOR_OPTS = [0, 1]
@@ -78,6 +85,15 @@ MAX_CARGO = max(CARGO_OPTS)
 # map_trading, not the ×2/196 the build note first sketched before revising the
 # design to a signed direction — flagged in the report.
 MAP_OPTS = [-1, 0, 1]
+# v30 (column M2): the claim-transfer (endorsement) axis — a SIGNED face value moved
+# giver→taker as payment (positive = a→b, negative = b→a). In credit units (a cargo
+# unit is worth V_DELIVER=10), so {3, 10} span a fine and a coarse side-payment each
+# direction — enough to rebalance a lopsided Nash split or clear an IR-blocked-but-
+# jointly-positive trade (the liquidity channel) without a bespoke money heuristic.
+# Only present under claims_transferable (which forces the scalar bills path), so the
+# fast path never sees it. A pure claim leg (no cargo/energy) is joint-Φ-neutral at
+# par ⇒ never picked alone; it clears only bundled with a surplus-creating leg.
+CLAIM_OPTS = [-10.0, -3.0, 0.0, 3.0, 10.0]
 # v12 K0: scouting thresholds (movement policy; consume no RNG).
 SCOUT_STALE = 250               # a company map point staler than this is worth
                                 # a scouting trip
@@ -548,18 +564,38 @@ class SnhpArm(BaseArm):
         self.has_map = bool(getattr(w, "map_trading", False))
         if self.has_map:
             opts.append(MAP_OPTS)
+        # v30 (column M2): the claim-endorsement axis, appended ONLY under
+        # claims_transferable (never with map_trading — asserted in World). It rides
+        # bundle-space column 3 (map is off whenever claims are on), so a world without
+        # the flag builds the EXACT prior space (bit-identical). The claim leg is priced
+        # analytically (_bills_post) and executed by World.transfer_claims — the fast
+        # path never sees it (bills already forces the scalar path).
+        self.has_claims = bool(getattr(w, "claims_transferable", False))
+        if self.has_claims:
+            opts.append(CLAIM_OPTS)
+            # claims is the INNERMOST product axis, so each contiguous block of
+            # NC=len(CLAIM_OPTS) rows shares one physical (q,e,s) and varies only t —
+            # the grouped scalar eval exploits this. _zt = the t==0 row's offset.
+            self._nc = len(CLAIM_OPTS)
+            self._zt = CLAIM_OPTS.index(0.0)
         self.space = generate_contract_space(opts)
         # precompute the (q, e, s) triples once — the space never changes, so
         # the hot loop reads native ints/floats instead of re-unpacking numpy
         # rows every encounter. The all-zero row (the batna reference) gets a
         # fixed index so it is priced at the pristine state, never applied.
         self._rows = [(int(r[0]), float(r[1]), int(r[2])) for r in self.space]
+        # v30: the claim-transfer face per row (0.0 when the axis is absent), read in
+        # the scalar bills loop and at execution alongside (q, e, s).
+        self._trows = [float(r[3]) if self.has_claims else 0.0 for r in self.space]
         # the batna reference is the fully-zero bundle; under map_trading the
         # (0,0,0) cargo/energy/sector triple also appears with m=-1/+1 (real map
         # syncs), so pin m==0 too — those map rows must still be applied+priced.
+        # v30: with claims on, the batna also demands t==0 (a real endorsement row
+        # is applied+priced, never the disagreement point).
         self._allzero = next(k for k, r in enumerate(self.space)
                              if r[0] == 0 and r[1] == 0 and r[2] == 0
-                             and (not self.has_map or r[3] == 0))
+                             and (not self.has_map or r[3] == 0)
+                             and (not self.has_claims or r[3] == 0))
         # bundle-space columns and their bundle-only derivatives are FIXED, so
         # precompute them once; _feas_mask then does only the robot-dependent
         # comparisons each encounter (numpy, one pass — byte-identical booleans).
@@ -573,9 +609,18 @@ class SnhpArm(BaseArm):
         self._f_epos = e > 0
         self._f_abse = np.abs(e)
         self._f_abse_loss = self._f_abse * (1 - W.TRANSFER_LOSS)
+        # v30: the claim-transfer column and its sign masks (all-zero when off ⇒ the
+        # feasibility pass adds nothing, bit-identical).
+        if self.has_claims:
+            t = self.space[:, 3]
+            self._ft = t
+            self._f_tpos = t > 0                 # a→b endorsement: a must hold ≥ t
+            self._f_tneg = t < 0                 # b→a endorsement: b must hold ≥ |t|
+            self._f_tabs = np.abs(t)
 
     def _row(self, k):
-        """(q, e, s, m) for contract-space row k; m=0 unless the map issue is on."""
+        """(q, e, s, m) for contract-space row k; m=0 unless the map issue is on
+        (the claim leg t is read separately from self._trows)."""
         row = self.space[k]
         m = int(row[3]) if self.has_map else 0
         return int(row[0]), float(row[1]), int(row[2]), m
@@ -594,7 +639,8 @@ class SnhpArm(BaseArm):
         # blacklist REFUSAL fires before Φ is ever priced, and marking is post-deal
         # bookkeeping — so Φ is byte-identical and the fast path is KEPT (no
         # scalar dispatch; the differential oracle stays green under reputation).
-        return not (w.belief_mode or w.life_pricing or self.has_map or w.bills)
+        return not (w.belief_mode or w.life_pricing or self.has_map
+                    or w.bills or self.has_claims)
 
     def _feas_mask(self, a, b):
         """_feasible over the whole bundle space in ONE numpy pass, reusing the
@@ -609,6 +655,13 @@ class SnhpArm(BaseArm):
         recv_bat = np.where(epos, b.battery, a.battery)
         ok &= ~(self._f_enz & (((donor_bat - 1.0) < self._f_abse)
                                | ((W.BATTERY_MAX - recv_bat) < self._f_abse_loss)))
+        # v30 (column M2): an endorsement is feasible only if the giving side actually
+        # holds the face it endorses — a→b (t>0) needs a.claim_value ≥ t, b→a (t<0)
+        # needs b.claim_value ≥ |t|. So early game (few claims) most claim rows are
+        # dropped here, and the axis costs almost nothing until paper accumulates.
+        if self.has_claims:
+            ok &= ~(self._f_tpos & (a.claim_value < self._ft))
+            ok &= ~(self._f_tneg & (b.claim_value < self._f_tabs))
         return ok
 
     # ── v17 PHASE 2 (snhp+bill): claim-aware bundle valuation ─────────────
@@ -645,36 +698,45 @@ class SnhpArm(BaseArm):
                     cumA=cumA, cumB=cumB, cumA_dec=cumA_dec, cumB_dec=cumB_dec,
                     alpha_a=hop_split(a, w), alpha_b=hop_split(b, w))
 
-    def _bills_post(self, q, c):
+    def _bills_post(self, q, t, c):
         """Analytic post-(owned, claim) for both robots after moving |q| FIFO-head
-        parcels — parcels are NOT moved on the log=False eval pass, so the split
-        is derived from the prefix sums instead. The giver keeps α*·R_move as an
-        undiscounted claim; the receiver carries the (1−α*)·R_move residual.
-        P23e: the PHYSICAL residual moved (own bookkeeping) is always α*·R, but the
-        giver's claim VALUE uses the decayed prefix α*·Σ res_i·decay_i (==α*·R when
-        flat), so contingent OFF is bit-identical."""
+        parcels AND endorsing face `t` of claims (t>0 = a→b, t<0 = b→a).
+        Parcels are NOT moved on the log=False eval pass, so the split is derived from
+        the prefix sums instead. The giver keeps α*·R_move as an undiscounted claim;
+        the receiver carries the (1−α*)·R_move residual. P23e: the PHYSICAL residual
+        moved (own bookkeeping) is always α*·R, but the giver's claim VALUE uses the
+        decayed prefix α*·Σ res_i·decay_i (==α*·R when flat), so contingent OFF is
+        bit-identical. v30: the endorsement shifts only CLAIM value (a weightless,
+        holder-independent-at-par store of value) — `owned` (physical residual) is
+        untouched — so it composes as a clean additive term on top of the cargo split;
+        transfer_claims reproduces it EXACTLY at execution (== priced at par)."""
         V = W.V_DELIVER
         cont = self.w.bills_contingent
         if q > 0:
             R = c["cumA"][q]
             s_phys = R * c["alpha_a"]
             s_val = (c["cumA_dec"][q] if cont else R) * c["alpha_a"]
-            return (c["own_a"] - R, c["claim_a"] + s_val * V,
-                    c["own_b"] + (R - s_phys), c["claim_b"])
-        if q < 0:
+            oa, cla, ob, clb = (c["own_a"] - R, c["claim_a"] + s_val * V,
+                                c["own_b"] + (R - s_phys), c["claim_b"])
+        elif q < 0:
             R = c["cumB"][-q]
             s_phys = R * c["alpha_b"]
             s_val = (c["cumB_dec"][-q] if cont else R) * c["alpha_b"]
-            return (c["own_a"] + (R - s_phys), c["claim_a"],
-                    c["own_b"] - R, c["claim_b"] + s_val * V)
-        return c["own_a"], c["claim_a"], c["own_b"], c["claim_b"]
+            oa, cla, ob, clb = (c["own_a"] + (R - s_phys), c["claim_a"],
+                                c["own_b"] - R, c["claim_b"] + s_val * V)
+        else:
+            oa, cla, ob, clb = c["own_a"], c["claim_a"], c["own_b"], c["claim_b"]
+        if t:                                    # v30: the endorsement leg
+            cla -= t
+            clb += t
+        return oa, cla, ob, clb
 
-    def _bills_add(self, ua, ub, k, q, a, b, c):
+    def _bills_add(self, ua, ub, k, q, t, a, b, c):
         """Add the claim correction to bundle k's utilities. a and b are already
         in the post-state (load/battery/sector) for q≠0, pristine for q==0, so
         bills_correction reads the right load/discount and we feed the analytic
-        owned/claim above."""
-        oa, cla, ob, clb = self._bills_post(q, c)
+        owned/claim above (including the endorsement shift t)."""
+        oa, cla, ob, clb = self._bills_post(q, t, c)
         ua[k] += bills_correction(a, self.w, oa, cla)
         ub[k] += bills_correction(b, self.w, ob, clb)
 
@@ -685,6 +747,7 @@ class SnhpArm(BaseArm):
         (decays None) appends 2-tuples and banks α·R_move; P23e contingent appends
         3-tuples and banks α·Σ res_i·decay_i (decays aligned to the FIFO head)."""
         s_val = 0.0
+        track = self.has_claims                  # v30: keep cx/cb aligned with claims
         for i, p in enumerate(receiver.parcels[-n:]):
             res = 1.0 - sum(sh for _rid, sh, *_ in p["claims"])
             share = alpha * res
@@ -694,6 +757,9 @@ class SnhpArm(BaseArm):
             else:
                 p["claims"].append((giver.rid, share, decays[i]))
                 s_val += share * decays[i]
+            if track:
+                p["cx"].append(0)                # a freshly minted, un-endorsed claim
+                p["cb"].append(self.w.tick)
         giver.claim_value += s_val * W.V_DELIVER
 
     def _evaluate(self, a, b):
@@ -739,23 +805,59 @@ class SnhpArm(BaseArm):
         same_co = a.company == b.company
         has_map = self.has_map
         bctx = self._bills_ctx(a, b) if w.bills else None
+        has_claims = self.has_claims
+        trows = self._trows
+        if bctx is not None and has_claims and not FORCE_PERROW_CLAIMS:
+            # ── v30 grouped bills+claims eval ──────────────────────────────
+            # The endorsement leg leaves the PHYSICAL state (load/battery/sector)
+            # untouched — only the claim shift (claim_a−t, claim_b+t) differs across the
+            # NC claim rows of one (q,e,s). So apply the physical bundle and compute
+            # phi ONCE per group, then price each claim row with the SAME per-row
+            # _bills_add (byte-identical to the un-grouped scalar path — same
+            # _bills_post + bills_correction arithmetic — it only hoists apply/phi/
+            # restore out of the t-loop). This collapses the |CLAIM_OPTS|× apply/phi
+            # cost back to the static-bills cost.
+            NC = self._nc
+            fnz = feas
+            # allzero (batna): pristine — no apply, no TXN cost (as the base path).
+            ua[allzero], ub[allzero] = phi(a, w), phi(b, w)
+            self._bills_add(ua, ub, allzero, 0, 0.0, a, b, bctx)
+            for g in range(len(space) // NC):
+                base_k = g * NC
+                if not fnz[base_k + self._zt]:   # physical feas == the t==0 row's feas
+                    continue
+                q, e, s = rows[base_k]           # identical across the group
+                apply(w, a, b, q, e, s, log=False)
+                phi_a, phi_b = phi(a, w), phi(b, w)
+                for j in range(NC):
+                    k = base_k + j
+                    if k == allzero or not fnz[k]:
+                        continue
+                    ua[k], ub[k] = phi_a, phi_b
+                    self._bills_add(ua, ub, k, q, trows[k], a, b, bctx)
+                _restore(a, a_snap)
+                _restore(b, b_snap)
+            return ua, ub
         for k in feas.nonzero()[0].tolist():
             if k == allzero:
                 ua[k], ub[k] = phi(a, w), phi(b, w)
                 if bctx is not None:                 # batna carries the pristine
-                    self._bills_add(ua, ub, k, 0, a, b, bctx)   # claim state
+                    self._bills_add(ua, ub, k, 0, 0.0, a, b, bctx)  # claim state
                 continue
             q, e, s = rows[k]
+            t = trows[k] if has_claims else 0.0      # v30: the endorsement face
             m = int(space[k][3]) if has_map else 0
             # v12 K1: a map sync is meaningless within a company (identical
             # map) — mask (leave -inf). Cross-company syncs price below.
             if m != 0 and same_co:
                 continue
+            # v30: apply_bundle moves ONLY the physical legs (q, e, s); the claim leg
+            # is priced analytically here (_bills_add) and executed at _finish_deal.
             apply(w, a, b, q, e, s, log=False)
             if m == 0:
                 ua[k], ub[k] = phi(a, w), phi(b, w)
                 if bctx is not None:
-                    self._bills_add(ua, ub, k, q, a, b, bctx)
+                    self._bills_add(ua, ub, k, q, t, a, b, bctx)
             elif m == 1:
                 # a sells its fresher map to b: a's Φ is untouched, b's Φ is
                 # scored under a temporary overlay that restores exactly.
@@ -896,6 +998,7 @@ class SnhpArm(BaseArm):
         utilities: a defense-masked frontier inflates capture."""
         w = self.w
         q, e, s, m = self._row(sol)
+        t = self._trows[sol] if self.has_claims else 0.0   # v30: endorsement face
         # v17 PHASE 2 (bills): capture the giver's split fraction from the PRISTINE
         # state (before apply_bundle mutates load/battery) — identical to the α*
         # priced in _bills_ctx, so the claim recorded below reproduces the utility
@@ -936,6 +1039,15 @@ class SnhpArm(BaseArm):
         # the evaluator priced (_bills_post) — evaluated Φ == executed Φ.
         if w.bills and q != 0:
             self._bills_attach(giver, receiver, abs(q), bill_alpha, bill_decays)
+        # v30 (column M2): execute the ENDORSEMENT leg (t>0 = a→b, t<0 = b→a). Runs
+        # AFTER _bills_attach so the just-created cargo claim is part of the giver's
+        # endorsable stock, and BEFORE the invariant check so phi_bills sees exactly
+        # the (claim_a − t, claim_b + t) the evaluator priced (_bills_post).
+        if t:
+            if t > 0:
+                w.transfer_claims(a, b, t)
+            else:
+                w.transfer_claims(b, a, -t)
         if w.bills:
             pa, pb = phi_bills(a, w), phi_bills(b, w)
         else:
@@ -949,7 +1061,7 @@ class SnhpArm(BaseArm):
         joint_best = float(surplus[feasible].max())
         achieved = float(surplus[sol])
         w.deal_log.append(dict(
-            tick=w.tick, a=a.rid, b=b.rid, q=q, e=e, s=s, m=m,
+            tick=w.tick, a=a.rid, b=b.rid, q=q, e=e, s=s, m=m, t=t,
             a_co=a.company, b_co=b.company,
             a_liar=int(a.liar), b_liar=int(b.liar),
             border=int(a.company != b.company), distress=int(distress),
