@@ -2475,3 +2475,101 @@ datum; every number on screen is a log counter or a cited SPEC verdict.
 arena/web/company/, unlinked from the arena index; publication is a
 founder decision. Y-C (endogenous structure) remains the next science
 phase, gate OPEN.
+
+## v27 (column Z): forgery — the receipt under attack
+
+Every column since v6 has ASSUMED the receipt cannot be faked; the
+assumption is load-bearing for the entire program and has never been
+attacked. Attack it. Scope: the v6 attested-books gate (bills stay OFF —
+one assumption at a time). A liar may spend energy c_f to attempt a FORGED
+attestation admitting it to the trusted cooperative tier; a counterparty
+may spend c_v to verify a proffered receipt (catch probability p_v = 1 on
+paid verification; unverified receipts accepted at face value). Sweep the
+cost ratio c_f/c_v across the grid; two verification regimes: (a) MANDATED
+(every tier admission verified) and (b) ENDOGENOUS (each agent chooses
+per-encounter whether to pay c_v, standard Φ accounting).
+- **PZa (the cliff):** a collapse threshold exists in c_f/c_v — below it
+  the trusted tier's honest advantage inverts (the v6 feeding frenzy
+  returns); the transition is sharp (phase-like), not gradual.
+- **PZb (the public-good gap):** endogenous verification under-provides
+  near the cliff — each agent free-rides on the tier's average honesty, so
+  the market sits measurably closer to collapse than mandated verification
+  at the same costs.
+- **PZc:** attestation-with-verification degrades gracefully vs the U
+  reputation baseline under equal forgery pressure (receipts stay better
+  even while under attack).
+- **KILL:** if no threshold exists (robust at any forgery cost, or
+  collapsed at all of them), the unforgeable-receipt assumption is either
+  trivially safe or already dead in this world — either way, say so
+  loudly; if forgery never pays even at c_f=0, diagnose (the walk-away
+  right may already immunize spot; the target is the TIER).
+
+## v28 (column AA): mortality and the persistence of paper — estates
+
+Bills on. Death exists (stranding/battery). Two claim-inheritance regimes:
+(a) CLAIMS-DIE — a dead robot's outstanding claim-stack entries void
+(counterparties' stacks written down); (b) ESTATES — claims survive the
+holder and settle to the company treasury (registered heir; simplest
+institutional form). If baseline mortality is too rare to discriminate,
+add a registered wear-out hazard (pre-committed once, same both regimes).
+- **PAAa (the freeze-out):** under claims-die, agents discriminate against
+  mortality risk — chain deal rate with low-battery/high-hazard partners
+  drops measurably below the estates regime; the dying are frozen out of
+  the claims economy exactly when they need trade most (v5's law, one
+  layer up: the market lets the poor die; the claims market lets the
+  DYING die).
+- **PAAb:** estates close the freeze-out gap and recover most of the
+  claims-die delivered/chain loss.
+- **PAAc (institution, not price):** a risk-premium variant (price the
+  counterparty hazard into the split instead of estates) fails to restore
+  chaining with the dying — echo of the v8/H career-pricing null: the fix
+  is institutional, not actuarial.
+- **KILL:** if claims-die is indistinguishable from estates (mortality too
+  rare or IR already prices it), report the death-rate sensitivity curve
+  and the honest null.
+
+## v29 (column AB): the crash — contagion in the counterparty web
+
+The bills that build chains (P23) also build a counterparty web: claims
+referencing future settlement are leverage. Give it a crisis. Bills on,
+long horizon; at tick T_shock a pre-registered region (the far band) goes
+dark via the v11 moving-field machinery (values collapse mid-flight), so
+in-transit stacks reference settlements that cannot complete at expected
+value. Regimes: (a) GROSS BILATERAL (P23 as-is); (b) CLEARINGHOUSE — the
+company nets and mutualizes claim exposure (a central counterparty
+guaranteeing settlement, funded by a registered per-claim fee).
+- **PABa (contagion):** losses propagate beyond the shock's direct victims
+  — write-downs reach agents ≥2 hops from the darkened region, and
+  contagion depth scales with pre-shock chain length (the P23 boon has a
+  tail).
+- **PABb:** the clearinghouse caps contagion depth (≈ direct losses only)
+  at small fee cost and shortens recovery time vs gross bilateral.
+- **PABc (the scar):** without a clearinghouse, post-shock chain formation
+  stays depressed well after the shock (the market remembers); with one,
+  chaining resumes promptly.
+- **KILL (the happy null):** if IR truncates cascades and contagion never
+  exceeds direct losses, bills carry no systemic risk in this world —
+  report loudly; it is the best possible answer for the thesis and must
+  not be buried for being undramatic.
+
+## v30 (column M2): the bill becomes money — transferable claims
+
+Historically bills of exchange became banknotes by endorsement. Test the
+re-derivation: claim-stack positions become ENDORSABLE — a holder may
+transfer its claim position inside any bundle as payment (face value =
+expected settlement, standard Φ accounting; transfer is a normal deal
+row). Measure circulation, not just outcomes: velocity (transfers per
+claim before settlement), claim-vs-goods flow shares, and the
+medium-of-exchange index M(x) pre-registered in v15/P19c (P(x on the
+opposite side of a bundle)), applied to {energy, cargo, claims}.
+- **PM2a:** claims circulate (velocity > 1 in late game), and near-mature
+  low-risk claims circulate preferentially (the good-collateral premium).
+- **PM2b (liquidity lifts trade):** transferability raises far-band
+  delivered and ≥2-hop share above static bills — agents accept chains
+  more readily when the claim is spendable before settlement.
+- **PM2c (the money test):** M(claims) comes to exceed M(energy) across
+  seeds (p<.05) — the receipt, not the battery, becomes the medium of
+  exchange. Menger's convergence, from paper.
+- **KILL:** if claims never re-transfer (velocity ≈ 0 — hold-to-settlement
+  dominates), money does not emerge from receipts in this world; diagnose
+  the friction and report loudly.
