@@ -3233,3 +3233,37 @@ token budget + models registered pre-run; demo phase asserts
 observations only; any science claim needs its registered prediction;
 the sim's numbers never blend with the swarm engine's banked results in
 any public artifact without labeling which world they came from.
+
+**v33-A AMENDMENT (founder, 2026-07-17): receipts are the allocation
+unit — the org grows and cuts BY receipt evidence. The total snhp demo.**
+The company's entire selection loop runs on the attested ledger, not on
+judgment or raw output:
+- **Provenance spine:** every task is tagged to the IDEA (product line /
+  initiative) it serves; ideas form trees (idea → tasks → claim stacks →
+  settlement receipts). An idea's value = its settled receipts net of
+  its metered spend (token costs charged per-idea). An agent's or role's
+  value = the receipt flow THROUGH it, middle roles included — spec and
+  review credits sit on the stacks, so glue work is visible by
+  construction.
+- **The allocation round (every episode boundary):** budgets, headcount,
+  and continuation are set from the receipt ledger alone. GROW: ideas
+  whose receipt flow compounds get more turns/tokens/agents. CUT: ideas
+  and roles whose receipt flow does not cover cost are wound down (tasks
+  cancelled, agents reassigned or benched). The org chart is downstream
+  of the ledger.
+- **The treatment contrast (D2 science, on real work):** allocation-by-
+  RECEIPTS vs allocation-by-OUTCOME (merged volume / task counts) vs
+  MANAGER DISCRETION (command). Prediction shapes to be formally
+  registered before D2 runs: outcome-allocation defunds spec/review (the
+  sacrifice confound eats the glue roles); manager allocation drifts
+  with the manager's stale view (the X result); receipt-allocation
+  preserves the middle and compounds across episodes.
+- **Value-anchor honesty (registered limit):** internal receipts measure
+  VERIFIED WORK (counterparty tests passed), not market value — an idea
+  can compound receipts while being a bad product. D1 ground truth is
+  merge-with-passing-tests + the episode-end smoke run; an external
+  demand signal is a registered-open D2+ extension, not assumed.
+- **Demo framing, on the record:** this is the whole thesis in one
+  artifact — provenance → attested valuation → allocation. The receipt
+  is the unit for proving value, and the org's shape is what the
+  receipts say it should be.
