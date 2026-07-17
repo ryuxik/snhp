@@ -29,7 +29,8 @@ from scipy import stats
 from swarm.arms import CLAIM_OPTS, make_arm
 from swarm.world import (BUILD_CREDIT_COST, CCP_FEE, CHARGE_SLOTS,
                          DEBT_ENERGY_PRICE, DWELL_DECAY_LAMBDA, FLATLINE_TICKS,
-                         MATTER_COST,
+                         MATTER_COST, MATURITY_LONG, MATURITY_SHORT,
+                         RECOURSE_FLOOR,
                          SHOCK_FAR_PCTL, SHOCK_VALUE_FLOOR, TOLL_GRID,
                          TOTAL_STOCK, V_DELIVER, WEAROUT_AGE, WEAROUT_P, World,
                          manhattan)
@@ -182,7 +183,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              wearout: bool = False,
              shock: bool = False, shock_tick: int | None = None,
              clearinghouse: bool = False, depots: bool = False,
-             debt_ltv: float = 0.0) -> dict:
+             debt_ltv: float = 0.0,
+             debt_maturity: int = 0, recourse: str = "full") -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -228,7 +230,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               mortality=mortality, death_regime=death_regime, wearout=wearout,
               shock=shock, shock_tick=shock_tick, clearinghouse=clearinghouse,
               depots=depots,
-              debt_ltv=debt_ltv)
+              debt_ltv=debt_ltv,
+              debt_maturity=debt_maturity, recourse=recourse)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     # v29 (column AB): sample the CCP fee-pool trajectory (and the far-band exposure)
@@ -679,6 +682,57 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
             deaths=w.deaths, deaths_post=deaths_post,
             deaths_garnished=deaths_garnished,
         )
+        # v34 (column AB3): the SEIZURE telemetry + causal chain (only when maturity is
+        # on). Each seizure event carries battery before/after and the below-survival-
+        # floor flag; the causal chain seizure→strand→death is joined here against
+        # strand_log (tick,rid onset) and death_log (tick,rid,cause). A "seizure-induced
+        # stranding" is a below-floor seizure whose drone strands within a few ticks
+        # (the seizure itself, at TICK START, precedes the same tick's drive/charge — a
+        # rescue can still lift it, which is exactly the interplay we measure); a
+        # "seizure→death" is one whose drone flatlines within FLATLINE_TICKS+50 (it must
+        # sit stranded FLATLINE_TICKS ticks to die). PAB3a's mechanism reads off these.
+        if debt_maturity > 0:
+            slog = w.seize_log
+            STRAND_WIN = 3                            # seizure strands ~immediately
+            DEATH_WIN = FLATLINE_TICKS + 50           # + the flatline dwell
+            # per-rid onset/death tick lists for the causal join
+            strand_by = {}
+            for (tk, rr) in w.strand_log:
+                strand_by.setdefault(rr, []).append(tk)
+            flat_by = {}
+            for d in w.death_log:
+                if d.get("cause") == "flatline":
+                    flat_by.setdefault(d["rid"], []).append(d["tick"])
+            n_below = sum(1 for s in slog if s["below_floor"])
+            seize_post = (sum(1 for s in slog if s["tick"] >= tshock)
+                          if tshock >= 0 else 0)
+            below_strand = below_death = 0
+            for s in slog:
+                if not s["below_floor"]:
+                    continue
+                t0, rr = s["tick"], s["rid"]
+                if any(t0 <= tk <= t0 + STRAND_WIN for tk in strand_by.get(rr, ())):
+                    below_strand += 1
+                if any(t0 <= tk <= t0 + DEATH_WIN for tk in flat_by.get(rr, ())):
+                    below_death += 1
+            seized_rids = {s["rid"] for s in slog}
+            deaths_seized = sum(1 for d in w.death_log if d["rid"] in seized_rids)
+            # rescues of seized drones: a below-floor seizure whose drone did NOT die in
+            # the window survived — the v5 net (charge/peer-transfer) lifted it back.
+            rescued_below = n_below - below_death
+            debt_detail.update(
+                debt_maturity=debt_maturity, recourse=recourse,
+                recourse_floor=RECOURSE_FLOOR,
+                n_seize=len(slog), n_seize_below=n_below,
+                energy_seized=round(w.energy_seized, 2),
+                debt_seized=round(w.debt_seized, 2),
+                below_floor_share=(round(n_below / len(slog), 3) if slog else 0.0),
+                seize_post=seize_post,
+                # the causal chain (PAB3a)
+                seize_below_strand=below_strand, seize_below_death=below_death,
+                seize_below_rescued=rescued_below,
+                deaths_seized=deaths_seized,
+            )
     # v30 (column M2): the medium-of-exchange index M(x) and flow shares, computed
     # from the deal log (q, e, s, t). M(x) = P(x on the OPPOSITE side of a bundle from
     # a good moving the other way) among deals where x moves — the v15/P19c index,
@@ -795,6 +849,11 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
     # (LTV 0 is the AB anchor — no suffix). Off ⇒ unchanged.
     if debt_ltv > 0.0:
         base_label = base_label + f"+ltv{debt_ltv:g}"
+    # v34 (column AB3): a maturity row carries "+m<M><r|x>" — M ticks + recourse regime
+    # (r=full recourse, x=exempt floor) — so the maturity × recourse grid pairs cleanly.
+    # debt_maturity 0 is the AB2 anchor (no suffix). Off ⇒ unchanged.
+    if debt_maturity > 0:
+        base_label = base_label + f"+m{debt_maturity}{'x' if recourse == 'exempt' else 'r'}"
     # v30 (column M2): an endorsable-claim row carries "+xfer" so bills-static
     # ("snhp+bill") and bills-transferable ("snhp+bill+xfer") pair cleanly. Off ⇒
     # unchanged (a static bills row is exactly the P23 "snhp+bill").
@@ -958,6 +1017,8 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         # v32 (column AB2): claim-collateralized debt
         debt_ltv=debt_ltv,
         debt_detail=debt_detail,
+        # v34 (column AB3): maturities + energy recourse
+        debt_maturity=debt_maturity, recourse=recourse,
     )
 
 
@@ -3709,6 +3770,255 @@ def pab2_report(rows: list[dict]) -> None:
     print("=" * 96)
 
 
+def pab3_report(rows: list[dict]) -> None:
+    """v34 (column AB3) — the crash with REAL teeth: maturities + ENERGY recourse.
+    Printed numbers ARE the artifact (report, not verdict). No-op unless the sweep
+    carries a maturity run. The AB2 crash economy (bills+claims-die, LTV 0.5, far band
+    dark at T_shock) PLUS a TERM STRUCTURE and ENERGY RECOURSE (the treasury seizes
+    BATTERY at maturity to cover unpaid loans). Grid: LTV 0.5 × maturity {600,2400} ×
+    recourse {full,exempt} × {gross,ccp} × {shock,ctl}, with LTV0 (≡AB) and LTV0.5
+    no-maturity (≡AB2) as bit-exact anchors. Reads debt_detail (take-up / seizure
+    telemetry / causal chain / waterfall) and shock_detail (deaths/strands post-shock)."""
+    if not any((r.get("debt_detail") or {}).get("debt_maturity", 0) > 0 for r in rows):
+        return
+    Ns = sorted({int(r["n_robots"]) for r in rows
+                 if (r.get("debt_detail") or {}).get("debt_maturity", 0) > 0
+                 or r.get("debt_ltv", 0.0) >= 0.0})
+    MATS = (600, 2400)
+    RECS = ("full", "exempt")
+
+    def lbl(ltv, mat, rec, ccp, shock):
+        s = "snhp+bill+die"
+        if ccp:
+            s += "+ccp"
+        if shock:
+            s += "+shk"
+        if ltv > 0:
+            s += f"+ltv{ltv:g}"
+        if mat > 0:
+            s += f"+m{mat}{'x' if rec == 'exempt' else 'r'}"
+        return s
+
+    def sel(ltv, mat, rec, ccp, shock, N):
+        arm = lbl(ltv, mat, rec, ccp, shock)
+        return [r for r in rows if r["arm"] == arm and int(r["n_robots"]) == N]
+
+    def dd(r):
+        return r.get("debt_detail") or {}
+
+    def sd(r):
+        return r.get("shock_detail") or {}
+
+    def byseed(g, f):
+        return {r["seed"]: f(r) for r in g}
+
+    def paired(gh, gl, f):
+        hi, lo = byseed(gh, f), byseed(gl, f)
+        common = sorted(set(hi) & set(lo))
+        if len(common) < 2:
+            return (float("nan"), float("nan"), 0, len(common))
+        a = [hi[s] for s in common]
+        b = [lo[s] for s in common]
+        d = float(np.mean([x - y for x, y in zip(a, b)]))
+        try:
+            _, p = stats.ttest_rel(a, b)
+        except Exception:
+            p = float("nan")
+        wins = sum(1 for x, y in zip(a, b) if x > y)
+        return (d, float(p), wins, len(common))
+
+    print("\n" + "=" * 96)
+    print("PAB3 (v34 · column AB3) — THE CRASH WITH REAL TEETH: MATURITIES + ENERGY "
+          "RECOURSE (report, not verdict)")
+    ex = next(r for r in rows if (r.get("debt_detail") or {}).get("debt_maturity", 0) > 0)
+    d0 = dd(ex)
+    print(f"Every loan carries due_tick = born + M (grid M ∈ {{600,2400}}); at maturity "
+          f"the treasury SEIZES BATTERY to cover the unpaid balance, at the loan's own "
+          f"energy-price {d0['energy_price']:g}/unit")
+    print(f"(a balance B = B/{d0['energy_price']:g} battery units). FULL recourse may "
+          f"cross the survival floor; EXEMPT stops at RECOURSE_FLOOR={d0.get('recourse_floor')} "
+          f"(= the strand threshold). v5 rescue net ON in every cell.")
+    print("LTV0 (≡AB) & LTV0.5 no-maturity (≡AB2) are bit-exact anchors; the inherited "
+          "borrow rule is recourse-BLIND (does not self-ration under FULL).")
+    print("=" * 96)
+
+    # [0] ANCHOR CHECK — LTV0 must reproduce AB, LTV0.5-no-maturity must reproduce AB2.
+    print("\n[0] ANCHOR CHECK — deaths at the bit-exact anchors (LTV0 ≡ AB, LTV0.5 "
+          "no-maturity ≡ AB2). These are the baselines the teeth are measured against.")
+    h = f"  {'anchor':<26} {'N':>4} {'shk deaths':>11} {'ctl deaths':>11}"
+    print(h + "\n  " + "-" * (len(h) - 2))
+    ab2_base = {}                                    # (N) -> (shk_deaths, ctl_deaths) at LTV0.5 no-mat
+    ab_base = {}
+    for N in Ns:
+        for (nm, ltv) in (("LTV0 (≡AB)", 0.0), ("LTV0.5 no-mat (≡AB2)", 0.5)):
+            gs = sel(ltv, 0, "full", False, True, N)
+            gc = sel(ltv, 0, "full", False, False, N)
+            if not gs and not gc:
+                continue
+            ds = np.mean([r["deaths"] or 0 for r in gs]) if gs else float("nan")
+            dc = np.mean([r["deaths"] or 0 for r in gc]) if gc else float("nan")
+            print(f"  {nm:<26} {N:>4} {ds:>11.2f} {dc:>11.2f}")
+            if ltv == 0.5:
+                ab2_base[N] = (gs, gc)
+            else:
+                ab_base[N] = (gs, gc)
+
+    # [1] THE DEATHS TABLE — maturity × recourse × shock/control (gross), vs AB2 baseline.
+    print("\n[1] DEATHS TABLE (GROSS) — maturity × recourse × shock/control. Δvs AB2 = "
+          "shock-cell deaths minus the LTV0.5 no-maturity (AB2) shock baseline (the teeth).")
+    h = (f"  {'cell':<22} {'N':>4} {'deaths':>7} {'dPost':>6} {'strPost':>7} {'dFrac':>7} "
+         f"{'Δshk−ctl':>9} {'Δvs AB2':>9} {'p':>6}")
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for M in MATS:
+            for rec in RECS:
+                gs = sel(0.5, M, rec, False, True, N)
+                gc = sel(0.5, M, rec, False, False, N)
+                if not gs:
+                    continue
+                dth = np.mean([r["deaths"] or 0 for r in gs])
+                dp = np.mean([sd(r).get("deaths_post", 0) for r in gs])
+                sp = np.mean([sd(r).get("strands_post", 0) for r in gs])
+                df = np.mean([r["delivered_frac"] for r in gs])
+                sc, _, _, _ = paired(gs, gc, lambda r: (r["deaths"] or 0))
+                base_gs = ab2_base.get(N, (None, None))[0]
+                dvs, pvs = (float("nan"), float("nan"))
+                if base_gs:
+                    dvs, pvs, _, _ = paired(gs, base_gs, lambda r: (r["deaths"] or 0))
+                tag = f"m{M}{'x' if rec == 'exempt' else 'r'}"
+                print(f"  ltv0.5+{tag:<14} {N:>4} {dth:>7.2f} {dp:>6.2f} {sp:>7.1f} "
+                      f"{df:>7.3f} {sc:>+9.2f} {dvs:>+9.2f} {pvs:>6.2f}")
+
+    # [2] SEIZURE TELEMETRY — count, below-floor share, energy/credit seized, causal chain.
+    print("\n[2] SEIZURE TELEMETRY (shock cells, gross) — events/run, below-survival-floor "
+          "share, energy & credit seized, and the causal chain seizure→strand→death.")
+    h = (f"  {'cell':<22} {'N':>4} {'seiz':>6} {'below':>6} {'bel%':>5} {'Eseiz':>7} "
+         f"{'$seiz':>7} {'→strand':>7} {'→death':>7} {'rescued':>7}")
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for M in MATS:
+            for rec in RECS:
+                g = sel(0.5, M, rec, False, True, N)
+                if not g:
+                    continue
+                s = [dd(r) for r in g]
+                ns = np.mean([x.get("n_seize", 0) for x in s])
+                nb = np.mean([x.get("n_seize_below", 0) for x in s])
+                bs = np.mean([x.get("below_floor_share", 0) for x in s])
+                es = np.mean([x.get("energy_seized", 0) for x in s])
+                cs = np.mean([x.get("debt_seized", 0) for x in s])
+                st = np.mean([x.get("seize_below_strand", 0) for x in s])
+                de = np.mean([x.get("seize_below_death", 0) for x in s])
+                rc = np.mean([x.get("seize_below_rescued", 0) for x in s])
+                tag = f"m{M}{'x' if rec == 'exempt' else 'r'}"
+                print(f"  ltv0.5+{tag:<14} {N:>4} {ns:>6.1f} {nb:>6.1f} {bs:>5.0%} "
+                      f"{es:>7.1f} {cs:>7.1f} {st:>7.1f} {de:>7.2f} {rc:>7.1f}")
+    print("    (→strand/→death = below-floor seizures whose drone strands within 3t / "
+          "flatlines within FLATLINE+50t; rescued = below-floor seizures that did NOT die "
+          "— the v5 net lifted them.)")
+
+    # [3] PAB3a / KILL — does FULL recourse RAISE post-shock deaths vs the AB2 baseline?
+    print("\n[3] PAB3a / KILL — shock-cell deaths at each maturity×recourse vs the LTV0.5 "
+          "no-maturity (AB2) shock baseline. Deaths RISE ⇒ paper turned lethal (KILL does "
+          "NOT fire).")
+    h = f"  {'contrast':<30} {'N':>4} {'Δdeaths':>9} {'p':>6} {'wins':>7}{'':>4}"
+    print(h + "\n  " + "-" * (len(h) - 2))
+    any_rise = False
+    for N in Ns:
+        base_gs = ab2_base.get(N, (None, None))[0]
+        if not base_gs:
+            continue
+        for M in MATS:
+            for rec in RECS:
+                for ccp in (False, True):
+                    gl = sel(0.5, M, rec, ccp, True, N)
+                    if not gl:
+                        continue
+                    d, p, w, n = paired(gl, base_gs, lambda r: (r["deaths"] or 0))
+                    rise = (d > 0 and p < 0.10)
+                    if rec == "full":
+                        any_rise = any_rise or rise
+                    flag = "  <-- RISE" if rise else ""
+                    reg = "gross" if not ccp else "ccp"
+                    tag = f"m{M}{'x' if rec == 'exempt' else 'r'}({reg})"
+                    print(f"  {tag:<30} {N:>4} {d:>+9.2f} {p:>6.2f} {w}/{n}{flag}")
+    print(f"    KILL STATUS: {'DOES NOT FIRE — FULL recourse RAISES deaths somewhere (paper CAN be made lethal)' if any_rise else 'FIRES — even FULL recourse raises deaths NOWHERE (nothing in this world makes paper lethal)'}")
+
+    # [4] PAB3b — take-up under full vs exempt (does exempt ration? does full self-ration?)
+    print("\n[4] PAB3b — TAKE-UP under full vs exempt (shock cells, gross): borrowers/run, "
+          "energy borrowed, pre/post-shock split. The borrow rule is recourse-blind, so "
+          "full & exempt take up IDENTICALLY (no self-rationing).")
+    h = (f"  {'cell':<22} {'N':>4} {'borrows':>7} {'ers/run':>7} {'Ebor':>7} "
+         f"{'pre':>6} {'post':>6}")
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for M in MATS:
+            for rec in RECS:
+                g = sel(0.5, M, rec, False, True, N)
+                if not g:
+                    continue
+                s = [dd(r) for r in g]
+                nb = np.mean([x["n_borrow_events"] for x in s])
+                ers = np.mean([x["n_borrowers"] for x in s])
+                eb = np.mean([x["energy_borrowed"] for x in s])
+                pr = np.mean([x["borrows_pre"] for x in s])
+                po = np.mean([x["borrows_post"] for x in s])
+                tag = f"m{M}{'x' if rec == 'exempt' else 'r'}"
+                print(f"  ltv0.5+{tag:<14} {N:>4} {nb:>7.0f} {ers:>7.1f} {eb:>7.0f} "
+                      f"{pr:>6.0f} {po:>6.0f}")
+
+    # [5] GARNISHMENT & TREASURY WATERFALL — loaned = repaid + written_off + seized + outstd.
+    print("\n[5] TREASURY WATERFALL — loaned = repaid + written_off + SEIZED + outstanding "
+          "(must balance). Garnishment = matured remainders the seizure could not cover.")
+    h = (f"  {'cell':<22} {'N':>4} {'loaned':>7} {'repaid':>7} {'wroff':>6} {'seized':>7} "
+         f"{'outstd':>7} {'garn':>5} {'bal':>8}")
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for M in MATS:
+            for rec in RECS:
+                for shk in (True, False):
+                    g = sel(0.5, M, rec, False, shk, N)
+                    if not g:
+                        continue
+                    s = [dd(r) for r in g]
+                    ln = np.mean([x["debt_loaned"] for x in s])
+                    rp = np.mean([x["debt_repaid"] for x in s])
+                    wo = np.mean([x["debt_written_off"] for x in s])
+                    sz = np.mean([x.get("debt_seized", 0) for x in s])
+                    ou = np.mean([x["debt_outstanding"] for x in s])
+                    ng = np.mean([x["n_garnish"] for x in s])
+                    bal = ln - rp - wo - sz - ou
+                    tag = (f"m{M}{'x' if rec == 'exempt' else 'r'}"
+                           + ("+shk" if shk else "+ctl"))
+                    print(f"  ltv0.5+{tag:<14} {N:>4} {ln:>7.0f} {rp:>7.0f} {wo:>6.0f} "
+                          f"{sz:>7.0f} {ou:>7.0f} {ng:>5.1f} {bal:>+8.0e}")
+
+    # [6] PAB3c — SHORT vs LONG maturity: does the short term couple the debt to the crash?
+    print("\n[6] PAB3c — SHORT (600, matures IN the trough) vs LONG (2400, collateral "
+          "recovers) under FULL recourse, shock cells: deaths, below-floor seizures, "
+          "seizure→death.")
+    h = (f"  {'N':>4} {'mat':>5} {'deaths':>7} {'Δvs AB2':>8} {'seizBelow':>9} "
+         f"{'→death':>7} {'strPost':>8}")
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for N in Ns:
+        base_gs = ab2_base.get(N, (None, None))[0]
+        for M in MATS:
+            gs = sel(0.5, M, "full", False, True, N)
+            if not gs:
+                continue
+            dth = np.mean([r["deaths"] or 0 for r in gs])
+            dvs = float("nan")
+            if base_gs:
+                dvs, _, _, _ = paired(gs, base_gs, lambda r: (r["deaths"] or 0))
+            s = [dd(r) for r in gs]
+            nb = np.mean([x.get("n_seize_below", 0) for x in s])
+            de = np.mean([x.get("seize_below_death", 0) for x in s])
+            sp = np.mean([sd(r).get("strands_post", 0) for r in gs])
+            print(f"  {N:>4} {M:>5} {dth:>7.2f} {dvs:>+8.2f} {nb:>9.1f} {de:>7.2f} "
+                  f"{sp:>8.1f}")
+    print("=" * 96)
+
+
 def pm2_report(rows: list[dict]) -> None:
     """v30 (column M2) — the bill becomes money: transferable claims. Printed numbers
     ARE the artifact (report, not verdict). No-op unless the sweep carries a
@@ -4626,6 +4936,61 @@ def build_jobs(column: str, seeds: int, ticks: int):
         for cell in _debt_cells(200):                   # N=24 reference, T_shock=200
             for seed in range(min(seeds, 16)):
                 jobs.append(dict(arm_name="snhp+net", seed=seed, **base24, **cell))
+    if column == "AB3":               # v34: the crash with REAL teeth — maturities + recourse (PAB3)
+        # The AB2 crash economy (bills+claims-die, LTV 0.5, far band dark at the
+        # registered per-grid T_shock — 1,000 at N=240, 200 at N=24) PLUS a TERM
+        # STRUCTURE and ENERGY RECOURSE. Grid: LTV 0.5 FIXED × maturity {600 short,
+        # 2,400 long} × recourse {full, exempt} × {shock, control}, GROSS bilateral
+        # primary (+ CCP on the treatment cells). ANCHORS: LTV 0 (≡ AB, no debt) and
+        # LTV 0.5 with NO maturity (≡ AB2) — both must reproduce the AB / AB2 numbers
+        # BIT-EXACTLY (debt_maturity=0 is column AB2; debt_ltv=0 is column AB). The
+        # paperless spot cells are omitted (recourse needs a loan; a loan needs claims).
+        import math as _math
+        g240 = int(round(32 * _math.sqrt(240 / 24)))
+        HORIZON = 7500
+        DIE = dict(bills=True, mortality=True, death_regime="claims_die")
+        LTV = 0.5
+        MATS = (MATURITY_SHORT, MATURITY_LONG)          # 600, 2400
+        RECS = ("full", "exempt")
+
+        # CCP is the SECONDARY axis here (seizure is maturity-driven, not underwater-
+        # driven, so the CCP — which only makes claimants whole — is not expected to
+        # bound recourse deaths). It runs at the CHEAP N=24 reference scale only; the
+        # expensive N=240 primary stays GROSS to keep the sweep runtime comfortable
+        # (the contract: "gross regime; CCP cells only if runtime is comfortable").
+        def _ab3_cells(T, include_ccp):
+            cells = []
+            for sh in (True, False):                    # ── ANCHOR 1: LTV0 (≡ AB) ──
+                c = dict(**DIE, debt_ltv=0.0)
+                if sh:
+                    c.update(shock=True, shock_tick=T)
+                cells.append(c)
+            for sh in (True, False):                    # ── ANCHOR 2: LTV0.5 no-mat (≡ AB2) ──
+                c = dict(**DIE, debt_ltv=LTV, debt_maturity=0)
+                if sh:
+                    c.update(shock=True, shock_tick=T)
+                cells.append(c)
+            regimes = (False, True) if include_ccp else (False,)
+            for M in MATS:                              # ── TREATMENT: mat × recourse × regime ──
+                for rec in RECS:
+                    for ccp in regimes:                 # gross primary (+ CCP interplay at N=24)
+                        for sh in (True, False):        # shock, no-shock control
+                            c = dict(**DIE, debt_ltv=LTV, debt_maturity=M,
+                                     recourse=rec, clearinghouse=ccp)
+                            if sh:
+                                c.update(shock=True, shock_tick=T)
+                            cells.append(c)
+            return cells
+        base240 = dict(sigma=0.5, ticks=HORIZON, tau=0.15, preset="v5",
+                       n_robots=240, grid=g240, lineage=True)
+        base24 = dict(sigma=0.5, ticks=HORIZON, tau=0.15, preset="v5",
+                      n_robots=24, lineage=True)
+        for cell in _ab3_cells(1000, include_ccp=False):   # N=240 primary (gross), T_shock=1,000
+            for seed in range(min(seeds, 8)):
+                jobs.append(dict(arm_name="snhp+net", seed=seed, **base240, **cell))
+        for cell in _ab3_cells(200, include_ccp=True):     # N=24 reference (+CCP), T_shock=200
+            for seed in range(min(seeds, 16)):
+                jobs.append(dict(arm_name="snhp+net", seed=seed, **base24, **cell))
     if column == "M2":                # v30: the bill becomes money — transferable claims
         # The P23 phase-2 grid (identical N, scaled grid, σ, τ, ticks, seeds) ×
         # {spot (no claims), bills-static, bills-transferable}. spot is the paperless
@@ -4671,7 +5036,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "S", "U", "UH", "V", "V2", "X", "Z", "AA", "AB", "AB2", "M2", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "S", "U", "UH", "V", "V2", "X", "Z", "AA", "AB", "AB2", "AB3", "M2", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -4701,6 +5066,7 @@ def main() -> None:
         paa_report(rows)
         pab_report(rows)
         pab2_report(rows)
+        pab3_report(rows)
         pm2_report(rows)
         return
 
@@ -4747,6 +5113,7 @@ def main() -> None:
     paa_report(rows)
     pab_report(rows)
     pab2_report(rows)
+    pab3_report(rows)
     pm2_report(rows)
 
 

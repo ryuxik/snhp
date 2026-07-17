@@ -221,6 +221,43 @@ BORROW_FRACS = (0.25, 0.5, 0.75, 1.0)   # candidate borrow sizes (× the LTV/hea
                                    # clears its survival-discounted cost (no overshoot;
                                    # the net is concave so a coarse grid suffices).
 
+# v34 (column AB3): the crash with REAL teeth — maturities + ENERGY recourse. All
+# gated on `debt_maturity > 0` (0 = AB2 behavior, the anchor: no maturity, no
+# seizure). Every field/accumulator below is allocated but NEVER read/written when
+# off, so column AB2 (and every prior column) stays bit-identical (suite-verified).
+#
+# TERM: every loan carries due_tick = born_tick + M; the grid is M ∈ {600, 2400}.
+# RECOURSE at maturity: the loan disbursed ENERGY at DEBT_ENERGY_PRICE (principal
+#   D = price·E), so the obligation is naturally energy-denominated — a balance of B
+#   credits is exactly E_owed = B / price battery units. The treasury seizes battery
+#   at that SAME rate (seizing s units retires s·price credits of balance — the exact
+#   inverse of the disbursement, no new scalar). Two regimes:
+#     "full"   — seizure may take battery below the survival threshold (may strand /
+#                kill the debtor: the debtor's-prison world).
+#     "exempt" — seizure stops at a protected battery floor (bankruptcy protection).
+# The maturity resolution runs at TICK START (like death_step / borrow_step / shock_
+# step), BEFORE drives and every bundle evaluation, so the seized battery is stable
+# through the encounter phase (evaluated Φ == executed Φ preserved); the inherited
+# AB2 borrow rule is RECOURSE-BLIND by construction (maturity/recourse are invisible
+# to phi_bills), so it does not self-ration under FULL — a registered finding, not a
+# tuned knob. The v5 rescue net stays ON in every cell (standard physics): if the net
+# absorbs even full recourse, that interplay IS the result (instrumented in seize_log).
+RECOURSE_FLOOR = RESCUE_FLOOR      # v34 the EXEMPT regime's protected battery floor,
+                                   # pre-committed ONCE from the survival-threshold
+                                   # physics: _maybe_strand strands a drone iff
+                                   # battery < RESCUE_FLOOR (5.0) with no charger within
+                                   # reach — at exactly RESCUE_FLOOR it is safe. So the
+                                   # bankruptcy floor IS the strand threshold; seizure
+                                   # under "exempt" stops here and can never strand a
+                                   # solvent-battery drone. No tuning after seeing deaths.
+MATURITY_SHORT = 600               # v34 grid: SHORT maturity — obligations come due
+                                   # INSIDE the post-shock trough (T_shock 1,000 at
+                                   # N=240 / 200 at N=24; short loans born pre-shock
+                                   # mature while collateral is crushed).
+MATURITY_LONG = 2400               # v34 grid: LONG maturity — lets collateral recover
+                                   # before settlement is forced (mature well past the
+                                   # trough).
+
 PRESETS = {
     # sources, refineries [(pos, owner)], chargers [(pos, owner)]
     "v5": dict(sources=None,        # mirrored asteroid field, seeded in init
@@ -321,6 +358,13 @@ class Robot:
                                     # value); while set, no new borrowing (ALL income
                                     # services the debt) until debt is fully cleared.
     garnish_start: int = -1         # tick garnishment was (re-)entered (telemetry).
+    loans: list = field(default_factory=list)   # v34 (column AB3): open (not-yet-
+                                    # matured) loans, each [balance, due_tick] (balance
+                                    # in credit). Populated ONLY under World.debt_maturity
+                                    # >0 (borrow_step appends; _pay_settlement pays down
+                                    # FIFO; maturity_step seizes energy at due_tick;
+                                    # death clears). Empty in every prior column (incl.
+                                    # AB2, debt_maturity=0) ⇒ never read ⇒ bit-identical.
 
     def bat(self) -> float:
         """BELIEVED battery — what every decision layer consumes. Physics
@@ -363,7 +407,8 @@ class World:
                  wearout: bool = False,
                  shock: bool = False, shock_tick: int | None = None,
                  clearinghouse: bool = False, depots: bool = False,
-                 debt_ltv: float = 0.0):
+                 debt_ltv: float = 0.0,
+                 debt_maturity: int = 0, recourse: str = "full"):
         self.rng = np.random.RandomState(seed)
         self.rng_seed = seed                 # v18: matter-field RNG keys off this
         self.hazard_phi = hazard_phi
@@ -901,6 +946,28 @@ class World:
         self._borrow_log: list = []          # (tick, rid, energy, principal, dref, taint)
         self.garnish_log: list = []          # per garnishment EPISODE: dict(rid, start,
                                              # end, hop, co) — end=-1 while open/at death
+
+        # ── v34 (column AB3): maturities + energy recourse ───────────────────
+        # `debt_maturity` (ticks; 0 = AB2, no maturity) gives every loan a due_tick;
+        # `recourse` ∈ {"full","exempt"} sets whether seizure may cross the survival
+        # floor. Off (debt_maturity==0) ⇒ borrow_step appends no loan record,
+        # maturity_step early-returns, _pay_settlement leaves r.loans untouched, and
+        # debt_seized stays 0 ⇒ bit-identical to column AB2. REQUIRES debt_ltv>0
+        # (no loans to mature otherwise).
+        self.debt_maturity = int(debt_maturity)
+        self.recourse = str(recourse)
+        assert not (self.debt_maturity > 0 and self.debt_ltv <= 0.0), \
+            "debt_maturity requires debt_ltv>0 (no loans to mature otherwise)"
+        assert self.recourse in ("full", "exempt"), \
+            "recourse must be 'full' or 'exempt'"
+        self.debt_seized = 0.0               # Σ credit balance retired by energy seizure
+                                             # (the waterfall's seized-equivalent term)
+        self.energy_seized = 0.0             # Σ battery seized at maturity (energy ledger)
+        self.seize_log: list = []            # per seizure event: dict(tick, rid, energy,
+                                             # credit, bat_before, bat_after, below_floor,
+                                             # regime, taint, mat, remainder) — the causal
+                                             # chain (seizure→strand→death) is joined
+                                             # against strand_log / death_log at analysis.
 
     # mean-preserving draws (v2 review M1): σ widens spread, never the mean
     def _draw(self, sigma):
@@ -1763,6 +1830,9 @@ class World:
         if self.debt_ltv > 0.0 and r.debt > 0.0:
             self.debt_written_off += r.debt
             r.debt = 0.0
+        r.loans.clear()                          # v34: open loans die with the chassis
+                                                 # (their balance is in the write-off).
+                                                 # No-op off (empty) ⇒ AB2-identical.
         if r.garnished:
             self._end_garnish(r)                 # close the open episode at death
         # (B) resolve the dead robot's OWN held claims on LIVING robots' parcels
@@ -2771,15 +2841,20 @@ class World:
     def debt_conserved(self) -> bool:
         """v32 (column AB2): the treasury waterfall balances. Every credit of loan
         principal is either still OUTSTANDING on a live drone, REPAID out of settlement
-        income, or WRITTEN OFF at death — nothing leaks:
-            debt_loaned == debt_repaid + debt_written_off + Σ live-drone debt.
+        income, WRITTEN OFF at death, or (v34) SEIZED as energy at maturity — nothing
+        leaks:
+            debt_loaned == debt_repaid + debt_written_off + debt_seized
+                           + Σ live-drone debt.
         Repayment is a within-company robot→treasury reallocation (credit_conserved
         stays exact) and the loan itself moves ENERGY, not credit (energy_drawn
         accounts it), so this debt ledger is SEPARATE from the credit ledger and both
-        close. Trivially true off (all terms 0) ⇒ bit-identical."""
+        close. v34 seizure retires the balance against seized battery at the same
+        DEBT_ENERGY_PRICE the loan disbursed at (debt_seized, credit-denominated); the
+        seized ENERGY leaves the fleet (recourse against the body). debt_seized is 0 off
+        (debt_maturity==0) ⇒ column-AB2-identical."""
         outstanding = sum(r.debt for r in self.robots)
         return abs(self.debt_loaned - self.debt_repaid
-                   - self.debt_written_off - outstanding) < 1e-6
+                   - self.debt_written_off - self.debt_seized - outstanding) < 1e-6
 
     def _pay_settlement(self, rid: int, amount: float) -> None:
         """v32 (column AB2): route ONE settlement credit increment to robot `rid`
@@ -2797,12 +2872,36 @@ class World:
             self.company[r.company]["treasury"] += pay
             self.debt_repaid += pay
             r.credit += amount - pay
+            # v34 (column AB3): a repayment reduces the OPEN loans (oldest-due first),
+            # so a loan that has been serviced faces less seizure at its due_tick. Any
+            # excess beyond the open balances is servicing an already-matured (garnished)
+            # remainder that lives in r.debt but no longer in r.loans — fine, it just
+            # zeroes the list. Off (debt_maturity==0) ⇒ r.loans empty ⇒ no-op ⇒
+            # AB2-identical.
+            if self.debt_maturity > 0 and r.loans:
+                self._pay_down_loans(r, pay)
             if r.debt <= 1e-12:
                 r.debt = 0.0
+                r.loans.clear()
                 if r.garnished:
                     self._end_garnish(r)
         else:
             r.credit += amount
+
+    def _pay_down_loans(self, r: Robot, pay: float) -> None:
+        """v34 (column AB3): apply `pay` credit against r's OPEN loans, oldest-due
+        first (FIFO by due_tick). Keeps each open loan's balance current so the energy
+        seized at maturity reflects what is actually still owed. Called only under
+        debt_maturity>0."""
+        r.loans.sort(key=lambda ln: ln[1])           # oldest due first
+        left = pay
+        for ln in r.loans:
+            if left <= 1e-12:
+                break
+            take = ln[0] if ln[0] < left else left
+            ln[0] -= take
+            left -= take
+        r.loans[:] = [ln for ln in r.loans if ln[0] > 1e-12]
 
     def _check_garnish(self, r: Robot) -> None:
         """v32 (column AB2): enter garnishment when a write-down has pushed debt above
@@ -2879,10 +2978,90 @@ class World:
                 r.debt += d
                 self.debt_loaned += d
                 self.energy_borrowed += best_e
+                # v34 (column AB3): stamp the loan's maturity. due_tick = born + M.
+                # Off (debt_maturity==0) ⇒ no record ⇒ maturity_step never fires ⇒
+                # AB2-identical.
+                if self.debt_maturity > 0:
+                    r.loans.append([d, self.tick + self.debt_maturity])
                 dref = min(manhattan(r.pos, rf) for rf in self.refineries) \
                     if self.refineries else 0
                 self._borrow_log.append((self.tick, r.rid, round(best_e, 4),
                                          round(d, 4), dref, self.shock_taint[r.rid]))
+
+    def maturity_step(self) -> None:
+        """v34 (column AB3): resolve loans that COME DUE this tick by ENERGY RECOURSE —
+        the treasury seizes battery to cover the unpaid balance. Called EVERY tick at
+        TICK START (from BaseArm.tick, after death_step so a chassis that dies this tick
+        is not also seized), BEFORE drives / bundle evaluation, so the seized battery is
+        stable through the encounter phase (evaluated Φ == executed Φ preserved; seizure
+        is a pure battery+treasury-side event and never enters the per-deal Φ).
+
+        The loan disbursed ENERGY at DEBT_ENERGY_PRICE, so a balance of B credits is
+        E_owed = B / price battery units; seizing s units retires s·price credits (the
+        EXACT inverse of the disbursement). FULL recourse may drive battery below the
+        survival floor (the drone may then strand and flatline — the teeth); EXEMPT
+        stops at RECOURSE_FLOOR (= the strand threshold, so a seizure can never itself
+        strand). Any remainder (the balance energy could not cover) stays in r.debt and
+        rolls the drone into GARNISHMENT exactly as in AB2 (all future settlement income
+        services it, no new borrowing). The waterfall extends to
+        loaned == repaid + written_off + SEIZED + Σ outstanding. Off (debt_maturity==0)
+        ⇒ early-return ⇒ column-AB2-identical."""
+        if self.debt_ltv <= 0.0 or self.debt_maturity <= 0:
+            return
+        exempt = (self.recourse == "exempt")
+        price = DEBT_ENERGY_PRICE
+        for r in self.robots:
+            if r.dead or not r.loans:
+                continue
+            matured = [ln for ln in r.loans if ln[1] <= self.tick]
+            if not matured:
+                continue
+            for ln in matured:
+                balance = ln[0]
+                if balance <= 1e-12:
+                    continue
+                energy_owed = balance / price
+                bat_before = r.battery
+                # the protected floor: EXEMPT cannot cross RECOURSE_FLOOR; FULL can take
+                # the whole battery (the debtor's-prison seizure).
+                seizable = (max(0.0, r.battery - RECOURSE_FLOOR) if exempt
+                            else max(0.0, r.battery))
+                seize_e = energy_owed if energy_owed < seizable else seizable
+                if seize_e < 0.0:
+                    seize_e = 0.0
+                seized_credit = seize_e * price
+                r.battery -= seize_e                  # recourse against the body (physics)
+                r.debt -= seized_credit
+                ln[0] -= seized_credit
+                self.debt_seized += seized_credit
+                self.energy_seized += seize_e
+                bat_after = r.battery
+                # below_floor = the seizure CROSSED the survival threshold (pushed a
+                # safe-battery drone under RESCUE_FLOOR) — the genuine teeth, and the
+                # causal-attribution signal for PAB3a. A drone already below the floor
+                # at maturity is not counted (this seizure did not cause its jeopardy);
+                # EXEMPT can never cross (it stops AT the floor) ⇒ its share is exactly 0.
+                crossed = (bat_before >= RESCUE_FLOOR > bat_after)
+                self.seize_log.append(dict(
+                    tick=self.tick, rid=r.rid, energy=round(seize_e, 4),
+                    credit=round(seized_credit, 4), bat_before=round(bat_before, 4),
+                    bat_after=round(bat_after, 4),
+                    below_floor=bool(crossed),
+                    regime=self.recourse, taint=self.shock_taint[r.rid],
+                    mat=self.debt_maturity, remainder=round(ln[0], 4)))
+                # the seizure may STRAND the drone (battery < RESCUE_FLOOR, no charger in
+                # reach) — the v5 net may still rescue it (the interplay is the finding).
+                self._maybe_strand(r)
+                # remainder rolls to garnishment as in AB2 (the balance is still in r.debt)
+                if ln[0] > 1e-9 and not r.garnished and not r.dead:
+                    r.garnished = True
+                    r.garnish_start = self.tick
+                    self.garnish_log.append(dict(
+                        rid=r.rid, co=r.company, start=self.tick, end=-1,
+                        hop=self.shock_taint[r.rid]))
+            # close out all matured loans (balance retired, or rolled into garnished
+            # r.debt); they no longer carry a live maturity.
+            r.loans[:] = [ln for ln in r.loans if ln[1] > self.tick]
 
     # ── v23 (column V): the stigmergic order book ─────────────────────────
     def post_order(self, poster: Robot, q: int, alpha: float,

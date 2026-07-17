@@ -3673,11 +3673,12 @@ def test_v29_evaluated_equals_executed_under_shock_both_regimes():
 
 # ── v32 (column AB2): the crash with teeth — claim-collateralized debt ─────────
 def _debt_world(seed=0, ltv=0.5, ccp=False, shock=False, shock_tick=250,
-                n_robots=24, grid=32):
+                n_robots=24, grid=32, debt_maturity=0, recourse="full"):
     w = World(n_robots=n_robots, grid=grid, sigma=0.5, seed=seed, preset="v5",
               tau=(0.15, 0.15), bills=True, mortality=True,
               death_regime="claims_die", lineage=True, hazard_phi=True,
-              shock=shock, shock_tick=shock_tick, clearinghouse=ccp, debt_ltv=ltv)
+              shock=shock, shock_tick=shock_tick, clearinghouse=ccp, debt_ltv=ltv,
+              debt_maturity=debt_maturity, recourse=recourse)
     return w, make_arm("snhp+net", w)
 
 
@@ -3851,6 +3852,143 @@ def test_v32_evaluated_equals_executed_under_debt():
         assert w.debt_loaned > 0, f"no borrowing — vacuous run (ccp={ccp})"
         assert w.shocked and w.writedown_log, f"shock never landed (ccp={ccp})"
         assert arm.deals > 0
+
+
+# ── v34 (column AB3): maturities + energy recourse ────────────────────────────
+def test_v34_maturity_off_bit_identical():
+    """debt_maturity=0 (either recourse) must be bit-identical to column AB2 (debt_ltv
+    0.5, no maturity) — the maturity/recourse plumbing may not perturb a single bit when
+    off, even through a full bills+mortality+shock run, and every AB3 accumulator stays
+    inert (no loan records, no seizures, debt_seized 0)."""
+    outs = []
+    for kw in (dict(debt_ltv=0.5),
+               dict(debt_ltv=0.5, debt_maturity=0, recourse="full"),
+               dict(debt_ltv=0.5, debt_maturity=0, recourse="exempt")):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), bills=True,
+                  mortality=True, death_regime="claims_die", lineage=True,
+                  hazard_phi=True, shock=True, shock_tick=250, **kw)
+        arm = make_arm("snhp+net", w)
+        for _ in range(600):
+            arm.tick()
+        outs.append((w.delivered, arm.deals, w.deaths,
+                     round(sum(r.battery for r in w.robots), 9),
+                     round(sum(c["credit"] for c in w.company), 9),
+                     [tuple(sorted(d.items())) for d in w.deal_log]))
+        assert w.debt_seized == 0.0 and w.energy_seized == 0.0
+        assert not w.seize_log
+        assert all(not r.loans for r in w.robots)
+        assert w.debt_conserved()
+    assert outs[0] == outs[1] == outs[2], "column-AB3 plumbing perturbed the world"
+
+
+def test_v34_full_recourse_seizes_exact_balance():
+    """A hand-built loan that matures UNPAID under FULL recourse: the treasury seizes
+    battery for EXACTLY the balance's energy-equivalent (balance / DEBT_ENERGY_PRICE),
+    the debt clears to 0, the loan record closes, and the waterfall closes through the
+    new seized term (loaned == repaid + written_off + seized + outstanding)."""
+    w, arm = _debt_world(ltv=0.5, debt_maturity=100, recourse="full")
+    A = w.robots[0]
+    A.battery = 60.0
+    A.debt = 6.0
+    A.loans = [[6.0, 100]]                          # due at tick 100
+    w.debt_loaned = 6.0
+    energy_owed = 6.0 / DEBT_ENERGY_PRICE           # 20 battery units
+    bat0 = A.battery
+    w.tick = 99
+    w.maturity_step()                               # not yet due
+    assert A.debt == 6.0 and not w.seize_log, "seized before maturity"
+    w.tick = 100
+    w.maturity_step()                               # due now → full seizure
+    assert abs(A.battery - (bat0 - energy_owed)) < 1e-9, "did not seize the exact energy"
+    assert abs(A.debt) < 1e-9, "balance not fully covered by seizure"
+    assert abs(w.debt_seized - 6.0) < 1e-9 and abs(w.energy_seized - energy_owed) < 1e-9
+    assert not A.loans, "matured loan not closed"
+    assert not A.garnished, "fully covered loan wrongly rolled to garnishment"
+    assert len(w.seize_log) == 1 and w.seize_log[0]["regime"] == "full"
+    assert w.debt_conserved()
+
+
+def test_v34_exempt_stops_at_floor_remainder_garnished():
+    """EXEMPT recourse stops at the protected battery floor (RESCUE_FLOOR): a loan whose
+    energy-equivalent EXCEEDS the seizable headroom (battery − floor) seizes only down to
+    the floor, and the uncovered remainder stays in r.debt and rolls the drone into
+    GARNISHMENT (as in AB2)."""
+    w, arm = _debt_world(ltv=0.5, debt_maturity=50, recourse="exempt")
+    A = w.robots[0]
+    A.battery = 8.0                                 # only 3.0 above the 5.0 floor
+    A.debt = 6.0                                    # energy_owed = 20 ≫ 3.0 seizable
+    A.loans = [[6.0, 50]]
+    w.debt_loaned = 6.0
+    seizable = A.battery - W.RESCUE_FLOOR           # 3.0 units
+    w.tick = 50
+    w.maturity_step()
+    assert abs(A.battery - W.RESCUE_FLOOR) < 1e-9, "exempt seizure crossed the floor"
+    assert abs(w.energy_seized - seizable) < 1e-9, "exempt did not seize down to the floor"
+    remainder = 6.0 - seizable * DEBT_ENERGY_PRICE  # 6.0 − 0.9 = 5.1
+    assert abs(A.debt - remainder) < 1e-9, "remainder wrong"
+    assert A.garnished, "uncovered remainder did not roll to garnishment"
+    assert w.garnish_log and w.garnish_log[-1]["rid"] == A.rid
+    assert not A.loans, "matured loan not closed after partial seizure"
+    assert w.debt_conserved()
+
+
+def test_v34_below_survival_threshold_possible_full_impossible_exempt():
+    """The teeth vs the exemption: an identical over-levered, charger-remote drone is
+    seized below the survival threshold under FULL (battery < RESCUE_FLOOR ⇒ it strands)
+    but NEVER under EXEMPT (seizure stops at the floor, no strand from the seizure)."""
+    def one(recourse):
+        w, arm = _debt_world(ltv=0.5, debt_maturity=40, recourse=recourse)
+        A = w.robots[0]
+        # place A far from every charger so a below-floor seizure actually strands it
+        far = max(((x, y) for x in range(w.grid) for y in range(w.grid)),
+                  key=lambda p: min(manhattan(p, c) for c in w.chargers))
+        A.pos = far
+        A.battery = 8.0
+        A.debt = 9.0                                # energy_owed = 30 ≫ battery
+        A.loans = [[9.0, 40]]
+        w.debt_loaned = 9.0
+        w.tick = 40
+        w.maturity_step()
+        return w, A
+    wf, Af = one("full")
+    assert Af.battery < W.RESCUE_FLOOR, "FULL failed to seize below the survival threshold"
+    assert wf.seize_log[-1]["below_floor"] is True
+    assert Af.stranded, "below-threshold seizure did not strand the drone"
+    wx, Ax = one("exempt")
+    assert abs(Ax.battery - W.RESCUE_FLOOR) < 1e-9, "EXEMPT crossed the floor"
+    assert wx.seize_log[-1]["below_floor"] is False
+    assert not Ax.stranded, "EXEMPT seizure wrongly stranded the drone"
+
+
+def test_v34_waterfall_balances_through_seizure_live():
+    """The treasury waterfall closes through SEIZURE across a full live run: loaned ==
+    repaid + written_off + seized + Σ outstanding at every tick, and seizures actually
+    fire (a short maturity inside a crash forces settlement while collateral is crushed)."""
+    w, arm = _debt_world(ltv=0.5, shock=True, shock_tick=200,
+                         debt_maturity=60, recourse="full")
+    for _ in range(2000):
+        arm.tick()
+        assert w.debt_conserved(), "treasury waterfall broke (seized term)"
+        assert w.credit_conserved() and w.ledger_accounted()
+    assert w.debt_loaned > 0, "no borrowing — vacuous run"
+    assert w.debt_seized > 0, "no seizure fired — maturity teeth never bit"
+    assert w.energy_seized > 0 and w.seize_log
+
+
+def test_v34_evaluated_equals_executed_under_recourse():
+    """evaluated Φ == executed Φ stays sacred under recourse: seizure runs at TICK START
+    (after death, before drives), debt/maturity are NOT terms in the per-deal Φ, so the
+    in-arm evaluated==executed assert holds through 1,500 ticks of borrowing + maturities
+    + the crash — under BOTH recourse regimes. Completing clean IS the test."""
+    for recourse in ("full", "exempt"):
+        w, arm = _debt_world(ltv=0.5, shock=True, shock_tick=250,
+                             debt_maturity=60, recourse=recourse)
+        for _ in range(1500):
+            arm.tick()
+            assert w.debt_conserved() and w.credit_conserved() and w.ledger_accounted()
+        assert w.debt_loaned > 0, f"no borrowing — vacuous ({recourse})"
+        assert w.debt_seized > 0, f"no seizure fired — vacuous teeth ({recourse})"
+        assert w.shocked and arm.deals > 0
 
 
 # ── v30 (column M2): the bill becomes money — transferable claims ─────────────

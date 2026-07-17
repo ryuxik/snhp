@@ -408,6 +408,13 @@ class BaseArm:
                                        # sees it — the write-down lands only at
                                        # settlement/death — so evaluated Φ == executed Φ
                                        # holds. No-op unless the shock is scheduled.
+        w.maturity_step()              # v34 (column AB3): resolve loans that come due
+                                       # this tick by ENERGY RECOURSE (treasury seizes
+                                       # battery). TICK START, AFTER death_step (a
+                                       # chassis dying this tick is not also seized), so
+                                       # the seized battery is stable through the
+                                       # encounter phase (evaluated Φ == executed Φ).
+                                       # No-op unless debt_maturity>0.
         if w.tick % EV_REFRESH == 0:
             for r in w.robots:
                 update_ev(r, w)
