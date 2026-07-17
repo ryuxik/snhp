@@ -3833,3 +3833,40 @@ reference); anchors LTV0 (≡AB) and LTV0.5-no-maturity (≡AB2) in-grid.
   needs a sequel. The confession's final sentence: "I gave them debt, then
   teeth, then took away the bankruptcy floor — and they died half as often
   and never once of paper."
+
+**PAB3 VERDICTS (2026-07-17, registrar) — the KILL fires in its
+strongest form: NOTHING IN THIS WORLD CAN MAKE PAPER LETHAL.**
+- **The teeth were real and they closed on ledger entries.** 58
+  seizures/run of the survival resource itself under short maturity,
+  no bankruptcy floor, a borrow rule too blind to price the danger —
+  and deaths_seized = 0.00 in every cell at both scales; seizure→strand
+  and seizure→flatline causal traces are zero everywhere; anchors
+  reproduce AB/AB2 exactly.
+- **PAB3a REFUTED:** deaths never rise; the seizure-induced-stranding
+  mechanism never fires. **PAB3b MOOT both ways:** the exemption floor
+  buys nothing and costs nothing (take-up identical under full and
+  exempt — the Φ rule is recourse-blind, and even unpriced recourse
+  produced no bodies to protect). **PAB3c REFUTED on lives, CONFIRMED
+  on the ledger:** short maturity couples obligations to the trough
+  (+36% seized vs control) and long maturity lets collateral recover —
+  the term structure works exactly as registered, one level below
+  physics.
+- **The mechanism of the immunity, and it is the finding:** the loan's
+  own lifecycle protects the borrower. Φ borrows at the bottom of the
+  energy trough mid-mission; settlement-first repayment extinguishes
+  ~96% of principal before any due date; the residual seizure lands
+  600+ ticks later on a recovered, charger-adjacent body. **A maturity
+  is a date, not a margin call — by the time the date arrives, the
+  trough it was born in is gone.** The rescue net had exactly one case
+  all season (the single below-floor seizure) and caught it; the first
+  wall held alone.
+- **The one unpulled tooth, REGISTERED-OPEN (AB4):** an obligation that
+  lands DURING its own trough — a demand loan, a mid-flight margin
+  call, a write-down-triggered acceleration. Deliberately not run; only
+  that shape could still produce a debt death, and saying so precisely
+  is the honest boundary of the law.
+- **The law, final form, closing the crash arc (AB→AB2→AB3):** paper
+  crashes stay on paper; credit against receipts is a lifeline at every
+  recourse level this world can express; and the #20 sentence is
+  earned: "I gave them debt, then teeth, then took away the bankruptcy
+  floor — and they died half as often and never once of paper."
