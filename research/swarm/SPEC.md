@@ -2639,3 +2639,24 @@ opposite side of a bundle)), applied to {energy, cargo, claims}.
 - **KILL:** if claims never re-transfer (velocity ≈ 0 — hold-to-settlement
   dominates), money does not emerge from receipts in this world; diagnose
   the friction and report loudly.
+
+**P26 VERDICTS (2026-07-16, registrar) — directionally right, and NOT a
+bankable law; the honest scope is the result.**
+- **P26a: MET on point estimate, NOT robust.** At the registered thesis
+  cell (N=24, snhp+net) granular rights recover +225% of the dumbing gap
+  (+12.9 vs a +5.8 gap) and dumb+granular is the single best snhp cell,
+  beating smart+coarse — but neither leg is significant (p=.105/.214).
+- **P26b: substitute direction at N=24 (interaction +15.0), INVERTED at
+  N=96 (−7.4, complement).** The auction control shows complement at both
+  scales — the substitution signal exists only inside the deal economy,
+  only at village scale.
+- **Horizon: front-loaded, not late-amortizing** (+12.9 → +1.7 by 7,500t;
+  the anti-truncation case, checked per the standing rule).
+- **KILL: does not fire at the registered cell** — but the verdict is
+  scoped hard: institutions substitute for cognition FAINTLY, LOCALLY,
+  EARLY, and only through tradeable claims in a bargaining economy. The
+  wished-for headline ("dumb fleets with good institutions beat smart
+  fleets") is NOT supported at scale and shall not be written.
+- **Open engine observation (not a claim):** dumb navigation HELPS the
+  auction at N=24 (286.6→296.8) — noise-dispersion may relieve Φ-routing
+  congestion; logged for a future diagnosis, not asserted.
