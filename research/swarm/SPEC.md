@@ -3624,3 +3624,39 @@ the founding product debate, allocation-round before/afters, firsts) —
 already implied by artifacts-public-and-complete, now explicit because
 the ledger is the manuscript. Chronicle notes: ARTICLE3-NOTES.md
 (local, gitignored).
+
+**v33-F FOUNDING BRIEF (Thiel/Musk/Bezos panel, 2026-07-17 — seeds the
+founding episode, does not dictate the org's choice).**
+- **SEED SHORTLIST, one spine (a hash-chained receipt ledger the company
+  runs on itself):** (1) **A, the pocket notary** — the atom, guaranteed
+  shippable; (2) **F, the agent payroll meter** (RECOMMENDED LEAD) — A
+  plus per-idea/per-agent cost attribution and a shareable report, in
+  Musk's redesigned form: ingests ONLY structured usage records (the
+  harness's own JSONL), never scraped text — a parser that can invent a
+  plausible number builds a liar, not a ledger; (3) **H, the drift/eval
+  receipt harness** (Thiel's monopoly hedge) — counterparty tests as the
+  product itself.
+- **THE NON-NEGOTIABLE (also the first customer order, per Bezos via
+  B1):** whatever the org picks must meter its OWN founding episode and
+  reconcile its ledger to the founder's real API bill within a
+  registered tolerance — framed in-sim as the B1 buyer's escrowed
+  pre-order ("per-agent cost attribution that reconciles to my bill").
+  If reconciliation fails, the org falls back to A: the budget can
+  never end empty-handed, and F's fatal failure (untrustworthy numbers)
+  is detected in episode one for ~$20 — the only self-detecting kill on
+  the slate.
+- **C, D, G stay OFF the seed** as cautionary contrasts; the org may
+  resurrect one only by PLEDGING its own wallet credits against the
+  v33-D exploration floor (conviction must be paid for).
+- **ARC 1-PRIME (unanimous):** founding + command + command + claims +
+  claims-THAT-SHIPS — the final claims episode IS the launch: v33-D
+  non-code tasks (README, launch copy) settle inside its allocation
+  round, and the founder presses publish at its terminus. No scripted
+  pivot (Musk: a pre-registered plot turn is fake work); never end on
+  the control regime (Thiel).
+- **HONESTY LABEL (Musk's, binding on article 3):** n=2 per regime is a
+  DEMONSTRATION, not a result; the chronicle says so plainly.
+- **Program risks, on the record:** competent-commodity-code instead of
+  a thing worth owning (Thiel); plausible-but-wrong cost numbers killing
+  the receipts thesis on data quality (Musk); zero installs, $0
+  terminus, the flywheel never taking its first turn (Bezos).
