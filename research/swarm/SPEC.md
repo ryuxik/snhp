@@ -3267,3 +3267,31 @@ judgment or raw output:
   artifact — provenance → attested valuation → allocation. The receipt
   is the unit for proving value, and the org's shape is what the
   receipts say it should be.
+
+**v33-B AMENDMENT (2026-07-17): tying market value to receipts — change
+the terminus, not the receipt.** Principle: a claim stack re-denominates
+automatically when its terminal settlement is market-priced; the bills
+machinery propagates value backward through the provenance spine. The
+ladder, each rung registered before it runs:
+- **B1 (D1b-ready), the demand oracle with escrowed pre-orders:** an
+  external BUYER agent, arms-length (outside the org, outside
+  allocation, no wallet flows org→buyer, protocol-enforced), holding a
+  REGISTERED utility schedule over capabilities. The buyer PRE-COMMITS:
+  escrows payment against a capability spec + acceptance tests BEFORE
+  work (a demand-side bill of lading; the V posted-order pattern on the
+  buy side). An idea's market value = its escrowed order book; revenue
+  settles backward through the stacks. Scripted utility for science; an
+  LLM buyer panel is a registered variant for realism.
+- **B2 (D2), the internal capital market:** with demand-anchored
+  termini, idea claims become tradeable (the M2 machinery). Each idea
+  then carries trailing settled receipts (backward-looking) AND a claim
+  price (forward-looking). Registered contrast for the allocation round:
+  allocate-by-receipts vs allocate-by-claim-price.
+- **B3 (registered-open), real demand:** deploy the self-hostable
+  service, meter actual usage as terminal settlement. The honest long
+  game; no in-sim claim may borrow its authority.
+**Failure modes, named now:** Goodhart (the org builds to the oracle's
+utility — realistic, and what gets Goodharted is itself data); collusion
+(arms-length enforced in protocol, never prompts); the oracle fiction
+(in-sim "market value" IS the registered demand schedule — every public
+artifact labels it so; real-market claims wait for B3).
