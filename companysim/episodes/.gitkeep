@@ -1,0 +1,3 @@
+# Recorded episodes land here (D1b+). Each episode/<id>/ commits its
+# events.jsonl + ledger.jsonl + config; workspace/ is gitignored (regenerated
+# from the event log). See ../SPEC.md.
