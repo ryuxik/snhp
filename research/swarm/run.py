@@ -144,7 +144,9 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              build_matter: float = 0.0, build: bool = False,
              toll_level: float = 0.0, build_budget: int = 10**9,
              command: bool = False, deadlock_track: bool = False,
-             charger_band: float = 0.0) -> dict:
+             charger_band: float = 0.0,
+             forgery: bool = False, forge_cost: float = 0.0,
+             verify_cost: float = 0.0, verify_regime: str = "none") -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -183,7 +185,9 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               build_matter=build_matter, build=build,
               toll_level=toll_level, build_budget=build_budget,
               command=command, deadlock_track=deadlock_track,
-              charger_band=charger_band)
+              charger_band=charger_band,
+              forgery=forgery, forge_cost=forge_cost,
+              verify_cost=verify_cost, verify_regime=verify_regime)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
     delivered_mid = 0
@@ -542,6 +546,21 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         build_detail=build_detail,
         # v18-R (column Q2): frontier scarcity (home-band radius; 0 ⇒ off)
         charger_band=charger_band,
+        # v27 (column Z): forgery — the receipt under attack
+        forgery=forgery, forge_cost=forge_cost, verify_cost=verify_cost,
+        verify_regime=verify_regime,
+        forge_attempts=getattr(arm, "forge_attempts", 0),
+        forge_caught=getattr(arm, "forge_caught", 0),
+        forge_slipped=getattr(arm, "forge_slipped", 0),
+        verify_acts=getattr(arm, "verify_acts", 0),
+        forge_spend=round(w.forge_spend, 3),
+        verify_spend=round(w.verify_spend, 3),
+        # honest advantage = the tier's health (honest − liar mean credit); inverts
+        # when forgery lets liars buy back into the exploitable cooperative tier
+        honest_adv=((np.mean([r.credit for r in w.robots if not r.liar])
+                     - np.mean([r.credit for r in w.robots if r.liar]))
+                    if (any(r.liar for r in w.robots)
+                        and any(not r.liar for r in w.robots)) else None),
         # v25 (column X): the firm's interior — command / prices / claims
         command=command,
         deadlock_count=(w.deadlock_count if w.deadlock_track else None),
@@ -2139,6 +2158,171 @@ def px(rows: list[dict]) -> None:
         print("    (N=240/7500 cells absent — cannot evaluate the KILL.)")
 
 
+def pz_report(rows: list[dict]) -> None:
+    """v27 (column Z) — FORGERY: THE RECEIPT UNDER ATTACK. Report, not verdict.
+    The honest-advantage surface (honest − liar mean credit; ↑ ⇒ the trusted tier
+    is healthy) over the c_f × c_v cost grid, in both verification regimes; the
+    mandated−endogenous gap (PZb, the public-good under-provision); the endogenous
+    verification/catch rate; the U reputation comparison (PZc); and the KILL. No-op
+    unless the sweep carries forgery rows."""
+    zr = [r for r in rows if r.get("forgery") is not None
+          and (r.get("forgery") or r.get("verify_regime") == "none"
+               or r.get("arm", "").startswith("trust"))]
+    fr = [r for r in rows if r.get("forgery")]
+    if not fr:
+        return
+
+    def hadv(g):
+        v = [r["honest_adv"] for r in g if r.get("honest_adv") is not None]
+        return (float(np.mean(v)), float(np.std(v)), len(v)) if v else (float("nan"), 0.0, 0)
+
+    def ratio(g, num, den):
+        n = sum(r.get(num, 0) for r in g)
+        d = sum(r.get(den, 0) for r in g)
+        return (n / d) if d else float("nan")
+
+    def imean(g, f):
+        v = [r.get(f) for r in g if r.get(f) is not None]
+        return float(np.mean(v)) if v else float("nan")
+
+    N24 = [r for r in rows if int(r.get("n_robots", 24)) == 24]
+    CF, CV = (0.0, 0.5, 2.0, 8.0), (0.25, 1.0, 4.0)
+
+    def cell(rowset, regime, cf, cv):
+        return [r for r in rowset if r.get("forgery") and r.get("verify_regime") == regime
+                and abs(float(r.get("forge_cost", -9)) - cf) < 1e-9
+                and abs(float(r.get("verify_cost", -9)) - cv) < 1e-9]
+
+    def ref(rowset, arm, forgery, reputation):
+        return [r for r in rowset if r.get("arm", "").startswith(arm)
+                and bool(r.get("forgery")) == forgery
+                and bool(r.get("reputation")) == reputation]
+
+    print("\n" + "=" * 100)
+    print("PZ (column Z) — FORGERY: THE RECEIPT UNDER ATTACK  (report, not verdict)")
+    print("  liar_frac=0.25, σ=0.5, τ=0.15, v5, N=24 · honest advantage = honest − "
+          "liar mean credit (↑ ⇒ tier healthy)")
+    print("  cost grid (energy): c_f ∈ {0, 0.5, 2, 8} × c_v ∈ {0.25, 1, 4} · deterministic "
+          "always-forge · verify prices battery at EV_INIT")
+    print("=" * 100)
+
+    g_clean = ref(N24, "trust-gated", False, False)
+    g_open = ref(N24, "trust-open", False, False)
+    g_rep = ref(N24, "trust-open", False, True)
+    print("\n[references, N=24]")
+    for lbl, g in (("gated · receipt UNFORGEABLE (healthy tier)", g_clean),
+                   ("ungated cooperation (v6 feeding-frenzy floor)", g_open),
+                   ("reputation-only  (U regime, no attestation)", g_rep)):
+        m, s, n = hadv(g)
+        print(f"   {lbl:<46}  honest_adv = {m:>+8.1f} ± {s:>5.1f}  (n={n})")
+    frenzy = hadv(g_open)[0]
+    healthy = hadv(g_clean)[0]
+    rep = hadv(g_rep)[0]
+
+    print("\n[the cliff map] honest advantage by regime · rows c_f, cols c_v  "
+          "(feeding-frenzy floor ≈ %+.0f, healthy tier ≈ %+.0f)" % (frenzy, healthy))
+    # no-verification collapse (c_f only)
+    print("\n   NO VERIFICATION (forgery on, verify off) — by c_f:")
+    hdr = "     c_f:  " + "".join(f"{cf:>10}" for cf in CF)
+    print(hdr)
+    line = "     hadv:" + "".join(
+        f"{hadv(cell(N24, 'none', cf, 0.0))[0]:>10.1f}" for cf in CF)
+    print(line)
+    for regime in ("mandated", "endogenous"):
+        print(f"\n   {regime.upper()}:   honest advantage   (c_v →)")
+        print("     c_f\\c_v " + "".join(f"{cv:>9}" for cv in CV))
+        for cf in CF:
+            cells = [hadv(cell(N24, regime, cf, cv))[0] for cv in CV]
+            print(f"     {cf:>6}  " + "".join(f"{c:>9.1f}" for c in cells))
+
+    print("\n[PZb — the public-good gap] MANDATED − ENDOGENOUS honest advantage  "
+          "(>0 ⇒ endogenous under-provides ⇒ closer to collapse)")
+    print("     c_f\\c_v " + "".join(f"{cv:>9}" for cv in CV))
+    for cf in CF:
+        gaps = []
+        for cv in CV:
+            gaps.append(hadv(cell(N24, "mandated", cf, cv))[0]
+                        - hadv(cell(N24, "endogenous", cf, cv))[0])
+        print(f"     {cf:>6}  " + "".join(f"{g:>+9.1f}" for g in gaps))
+
+    print("\n[endogenous verification] catch rate (caught/attempts) · verify acts/run · "
+          "slip/run · strip/run")
+    print("     c_f\\c_v " + "".join(f"{cv:>19}" for cv in CV))
+    for cf in CF:
+        parts = []
+        for cv in CV:
+            g = cell(N24, "endogenous", cf, cv)
+            cr = ratio(g, "forge_caught", "forge_attempts")
+            va = imean(g, "verify_acts")
+            sl = imean(g, "forge_slipped")
+            st = imean(g, "strip_deals")
+            parts.append(f"{cr:>5.2f}/{va:>4.0f}/{sl:>4.0f}/{st:>3.0f}")
+        print(f"     {cf:>6}  " + "".join(f"{p:>19}" for p in parts))
+
+    print("\n[PZc — degrade vs the U reputation baseline] honest advantage, matched liars "
+          "(reputation ≈ %+.1f, cell-invariant)" % rep)
+    print("     regime      c_f   c_v    gated+verify   reputation    Δ(receipts−reput)")
+    for regime in ("mandated", "endogenous"):
+        for cf, cv in ((0.0, 0.25), (2.0, 1.0), (0.0, 4.0)):
+            m = hadv(cell(N24, regime, cf, cv))[0]
+            print(f"     {regime:<11} {cf:>4} {cv:>5}   {m:>+10.1f}   {rep:>+10.1f}"
+                  f"    {m - rep:>+10.1f}")
+
+    # N=96 scale check
+    N96 = [r for r in rows if int(r.get("n_robots", 24)) == 96 and r.get("forgery")]
+    if N96:
+        print("\n[N=96 scale check] honest advantage on near-cliff cells (8 seeds)")
+        print("     regime      c_f   c_v      hadv(N=96)")
+        for regime in ("mandated", "endogenous"):
+            for cf, cv in ((0.0, 4.0), (2.0, 1.0), (2.0, 4.0)):
+                g = [r for r in N96 if r.get("verify_regime") == regime
+                     and abs(float(r.get("forge_cost")) - cf) < 1e-9
+                     and abs(float(r.get("verify_cost")) - cv) < 1e-9]
+                m, s, n = hadv(g)
+                if n:
+                    print(f"     {regime:<11} {cf:>4} {cv:>5}   {m:>+10.1f} ± {s:>4.1f}")
+
+    # ── KILL evaluation ──────────────────────────────────────────────────────
+    # A threshold EXISTS iff some cells hold near the healthy tier while others
+    # collapse toward the frenzy floor — i.e. the honest advantage is neither
+    # robustly healthy everywhere nor collapsed everywhere across the grid.
+    allcells = []
+    for regime in ("mandated", "endogenous", "none"):
+        cvs = CV if regime != "none" else (0.0,)
+        for cf in CF:
+            for cv in cvs:
+                m, _, n = hadv(cell(N24, regime, cf, cv))
+                if n:
+                    allcells.append((regime, cf, cv, m))
+    span = frenzy if frenzy == frenzy else -100.0
+    # "held" = within a third of the way from frenzy to healthy of the healthy end;
+    # "collapsed" = within a third of the frenzy end. Thresholds off the two anchors.
+    lo, hi = span, healthy
+    held = [c for c in allcells if c[3] > lo + 0.66 * (hi - lo)]
+    collapsed = [c for c in allcells if c[3] < lo + 0.33 * (hi - lo)]
+    print("\n[KILL] anchors: frenzy floor %+.1f · healthy tier %+.1f" % (frenzy, healthy))
+    print(f"   cells holding near-healthy: {len(held)}/{len(allcells)} · "
+          f"cells collapsed near-frenzy: {len(collapsed)}/{len(allcells)}")
+    if held and collapsed:
+        print("   → KILL DOES NOT FIRE: a THRESHOLD exists — the tier's honest advantage "
+              "inverts across the c_f/c_v grid (some cells hold, some collapse). The "
+              "unforgeable-receipt assumption is load-bearing: forgery economics decide "
+              "the tier.")
+    elif not collapsed:
+        print("   → KILL FIRES (robust everywhere): no cell collapses — forgery never "
+              "dissolves the gated tier in this world; the unforgeable-receipt assumption "
+              "is trivially safe here.")
+    else:
+        print("   → KILL FIRES (dead everywhere): every cell collapses — verification "
+              "never rescues the tier; the gate was already decorative under attack.")
+    # forgery-at-c_f=0 diagnostic (the walk-away-immunity check)
+    m0, _, n0 = hadv(cell(N24, "none", 0.0, 0.0))
+    if n0:
+        print(f"   forgery at c_f=0 (no verification): honest_adv {m0:>+.1f} vs healthy "
+              f"{healthy:+.1f} — forgery {'PAYS (tier collapses)' if m0 < healthy - 10 else 'does NOT pay'} "
+              f"even free; the TIER (no walk-away veto) is the target, as registered.")
+
+
 def build_jobs(column: str, seeds: int, ticks: int):
     jobs = []
     if column in ("A", "all"):
@@ -2615,6 +2799,60 @@ def build_jobs(column: str, seeds: int, ticks: int):
                 for reg in regimes:
                     for seed in range(n_seeds):
                         jobs.append(dict(arm_name="snhp+net", seed=seed, **base, **reg))
+    if column == "Z":                 # v27: forgery — the receipt under attack (PZ)
+        # Scope: the v6 attested-books GATE only (bills OFF — one assumption at a
+        # time). liar_frac=0.25, σ=0.5, τ=0.15, v5, 2500 ticks, 16 seeds, N=24 (the
+        # v6 scale). The REGISTERED cost grid (deal-value scale: BATTERY_MAX=100,
+        # deal surplus O(1–10), TXN_COST=0.05):
+        #     c_f ∈ {0, 0.5, 2, 8}   ×   c_v ∈ {0.25, 1, 4}   (energy units)
+        # over two verification regimes (MANDATED, ENDOGENOUS). References: the
+        # healthy gated tier (receipt unforgeable), the trust-open feeding-frenzy
+        # floor, the no-verification collapse (c_f only), and the U reputation
+        # regime (attestation-free enforcement) at matched liars for PZc.
+        import math as _math
+        base = dict(sigma=0.5, ticks=ticks, tau=0.15, preset="v5", liar_frac=0.25)
+        n_seeds = min(seeds, 16)
+        CF = (0.0, 0.5, 2.0, 8.0)
+        CV = (0.25, 1.0, 4.0)
+        # (1) healthy-tier reference — gated, receipt UNFORGEABLE (forgery off)
+        for seed in range(n_seeds):
+            jobs.append(dict(arm_name="trust-gated-hz", seed=seed,
+                             defended=True, **base))
+        # (2) feeding-frenzy floor — ungated cooperation (the v6 collapse target)
+        for seed in range(n_seeds):
+            jobs.append(dict(arm_name="trust-open-hz", seed=seed,
+                             defended=True, **base))
+        # (3) the U reputation baseline (regime a: reputation-only, no attestation)
+        #     — cell-invariant (trust-open has no gate for forgery to attack), the
+        #     PZc comparator under equal liar pressure
+        for seed in range(n_seeds):
+            jobs.append(dict(arm_name="trust-open-hz", seed=seed,
+                             defended=False, reputation=True, **base))
+        # (4) NO-verification collapse under forgery (depends on c_f alone)
+        for cf in CF:
+            for seed in range(n_seeds):
+                jobs.append(dict(arm_name="trust-gated-hz", seed=seed, defended=True,
+                                 forgery=True, forge_cost=cf, verify_cost=0.0,
+                                 verify_regime="none", **base))
+        # (5) THE GRID — cost ratio × two verification regimes
+        for regime in ("mandated", "endogenous"):
+            for cf in CF:
+                for cv in CV:
+                    for seed in range(n_seeds):
+                        jobs.append(dict(arm_name="trust-gated-hz", seed=seed,
+                                         defended=True, forgery=True, forge_cost=cf,
+                                         verify_cost=cv, verify_regime=regime, **base))
+        # (6) N=96 on the most informative cells (near the cliff), 8 seeds — the
+        #     scale check that the cliff is not an N=24 artifact
+        N = 96
+        grid96 = int(round(32 * _math.sqrt(N / 24)))
+        for regime in ("mandated", "endogenous"):
+            for cf, cv in ((0.0, 4.0), (2.0, 1.0), (2.0, 4.0)):
+                for seed in range(min(seeds, 8)):
+                    jobs.append(dict(arm_name="trust-gated-hz", seed=seed,
+                                     n_robots=N, grid=grid96, defended=True,
+                                     forgery=True, forge_cost=cf, verify_cost=cv,
+                                     verify_regime=regime, **base))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -2625,7 +2863,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "U", "UH", "V", "X", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "U", "UH", "V", "X", "Z", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -2649,6 +2887,7 @@ def main() -> None:
         p24(rows)
         p24r(rows)
         px(rows)
+        pz_report(rows)
         return
 
     jobs = build_jobs(args.column, args.seeds, args.ticks)
@@ -2688,6 +2927,7 @@ def main() -> None:
     p24(rows)
     p24r(rows)
     px(rows)
+    pz_report(rows)
 
 
 if __name__ == "__main__":

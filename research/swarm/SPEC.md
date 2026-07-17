@@ -2504,6 +2504,87 @@ per-encounter whether to pay c_v, standard Φ accounting).
   loudly; if forgery never pays even at c_f=0, diagnose (the walk-away
   right may already immunize spot; the target is the TIER).
 
+### PZ RESULTS (report, not verdict) — sweep_v4_Z, 544 runs, N=24 (+N=96 scale check)
+
+Registered grid (energy units; deal scale BATTERY_MAX=100 / surplus O(1–10) /
+TXN 0.05): **c_f ∈ {0, 0.5, 2, 8} × c_v ∈ {0.25, 1, 4}**, two verification
+regimes (mandated, endogenous), liar_frac=0.25, σ=0.5, τ=0.15, v5, 2500 ticks,
+16 seeds. Forgery is DETERMINISTIC always-forge — every unattested liar presents
+a forged receipt at each gated encounter that has a real beneficial deal, burning
+c_f (the seed+272727 RandomState is reserved-unused; deterministic is simpler and
+keeps the main stream untouched). The endogenous verify decision runs through the
+EXISTING valuation, no bespoke heuristic: verify iff `liar_frac·downside >
+c_v·EV_INIT`, where downside is how far below its own disagreement Φ the checker
+lands at the no-veto trusted pick, and liar_frac is the tier's forger prevalence
+(the average honesty each agent free-rides on). Costs are burned POST-settlement ⇒
+evaluated Φ == executed Φ intact; forgery-off is bit-identical; differential oracle
+green; +6 tests. Metric: **honest advantage = honest − liar mean delivery credit**
+(↑ ⇒ tier healthy).
+
+References: healthy gated tier (receipt unforgeable) **−9.5±32.7** · ungated
+feeding-frenzy floor **−179.0±36.4** · reputation-only (U regime) **+1.4±31.5**.
+
+THE CLIFF MAP (mean honest advantage; rows c_f, cols c_v):
+
+    NO VERIFICATION (c_f only):  −179.0 / −168.3 / −104.9 / +94.5   (c_f=0/0.5/2/8)
+    MANDATED     c_v→   0.25     1.0     4.0        ENDOGENOUS  c_v→  0.25    1.0    4.0
+       c_f=0          +11.2   +29.1    −0.6           c_f=0           −0.6  −17.3  −46.7
+       c_f=0.5        +34.9   +43.6    +2.9           c_f=0.5        +31.8  +14.2  −42.6
+       c_f=2          +77.5   +76.6    +4.8           c_f=2          +81.6  +69.1  +36.9
+       c_f=8         +113.5   +98.1   +11.2           c_f=8         +116.2 +115.4 +102.2
+
+- **PZa (the cliff) — CONFIRMED.** A sharp threshold in the c_f/c_v RATIO. At
+  cheap-forge / dear-verify (low c_f, high c_v) the tier's honest advantage
+  inverts toward the −179 feeding-frenzy floor (endogenous c_f=0: −0.6 → −17.3 →
+  −46.7 as c_v climbs 0.25→4); at dear-forge / cheap-verify it holds far above the
+  healthy reference (+116). TWO independent defences meet at the cliff: (i)
+  verification catches forgers, (ii) c_f alone bankrupts them — at c_f=8 even NO
+  verification gives +94.5 (forgers self-destruct paying to forge). c_v is an
+  attack surface only when c_f is too cheap to self-limit.
+- **PZb (public-good gap, MANDATED − ENDOGENOUS) — CONFIRMED in the cliff region,
+  sign-flips outside it.** Gap by (c_f rows, c_v cols): `+11.8/+46.5/+46.1` (c_f=0),
+  `+3.1/+29.4/+45.5` (0.5), `−4.1/+7.5/−32.1` (2), `−2.7/−17.2/−91.0` (8). Where
+  forgery is cheap (c_f≤0.5) endogenous UNDER-provides (gap +30…+46, closer to
+  collapse than mandated): each agent free-rides on the 75% average honesty, so
+  small individual exposures never clear the c_v bar. Where forgery self-limits
+  (c_f≥2) the sign inverts (−32…−91): mandated's blanket 2·c_v tax on every honest
+  handshake becomes the larger cost, and endogenous — correctly declining checks c_f
+  already made unnecessary — wins. The public good is under-provided exactly where
+  needed and the mandate is pure overhead exactly where it is not.
+- **Verification telemetry (endogenous, catch-rate / verify-acts / slip / strip
+  per run):** c_f=0 → `0.40/519/382/113` `0.30/322/427/152` `0.18/205/596/236`;
+  c_f=8 → `0.75/1468/342/292` `0.55/796/458/350` `0.16/228/752/568`. Catch rate
+  falls with c_v (0.40→0.18 at c_f=0) — the under-provision made mechanical: dearer
+  checks ⇒ fewer performed ⇒ more forgeries slip and strip honest partners.
+- **PZc (degrade vs the U reputation baseline +1.4) — CONFIRMED with one caveat.**
+  Attestation+verification beats the attestation-free reputation regime across the
+  interior (mandated 0.0/0.25 +11.2 → Δ+9.8; either regime 2.0/1.0 +69–77 →
+  Δ+68–75) — receipts degrade GRACEFULLY under forgery pressure and stay above
+  reputation. The lone exception is the cliff cell (endogenous, c_f=0/c_v=4: −46.7
+  → **Δ−48.2, BELOW reputation**): where forgery is free and self-verification
+  collapses, a gate you can forge past unchecked is worse than no gate at all.
+- **N=96 scale check (8 seeds):** the cliff survives scale — endogenous 0.0/4.0
+  −39.2±28.4 (collapsed) vs 2.0/1.0 +7.6±3.8 (held); mandated 0.0/4.0 −5.4 vs
+  2.0/1.0 +10.9.
+
+**KILL: DOES NOT FIRE.** A threshold exists (25/28 grid cells hold near the healthy
+tier, 2 collapse near the frenzy floor) — the honest advantage genuinely inverts
+across the c_f/c_v grid. The unforgeable-receipt assumption the whole program rests
+on is **LOAD-BEARING**, not trivially safe: at c_f=0 with no verification the tier
+collapses to −179 (the full v6 feeding frenzy returns), so forgery pays even FREE,
+confirming the TIER — which by construction has no walk-away veto — is the target the
+walk-away right cannot immunise. One-paragraph read: the receipt is forgeable-in-
+principle but the tier is defended by ECONOMICS, not cryptography — paid verification
+that catches forgers, and a forgery cost that bankrupts them before they profit.
+Either alone suffices when strong; the tier collapses only in the corner where
+forgery is free AND verification is individually unaffordable, because endogenous
+verifiers free-ride on average honesty and under-provide the very public good that
+would save them — mandating it closes the gap but taxes every honest handshake,
+winning at the cliff and losing everywhere else. The unforgeable-receipt idealisation
+is safe wherever forging or slipping-through carries real cost and dangerous exactly
+where it is free; the program's load-bearing assumption survives as a COST claim, not
+an axiom.
+
 ## v28 (column AA): mortality and the persistence of paper — estates
 
 Bills on. Death exists (stranding/battery). Two claim-inheritance regimes:

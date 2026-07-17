@@ -1139,6 +1139,11 @@ class TrustArm(SnhpArm):
         self.strip_deals = 0            # v6.2: liar gains while honest loses
         self.strip_loss = 0.0
         self.sacrifice_deals = 0        # benign joint-max losses
+        # v27 (column Z): forgery telemetry (all zero when forgery is off)
+        self.forge_attempts = 0         # forged receipts presented at the gate
+        self.verify_acts = 0            # counterparties who paid to check a receipt
+        self.forge_caught = 0           # forgeries a paid verification rejected
+        self.forge_slipped = 0          # forgeries admitted to the tier uncaught
 
     def _report_joint(self, r, batna, u):
         """Joint-tier lie: inflate reported surplus ×(1+LIE_LAMBDA)."""
@@ -1153,6 +1158,8 @@ class TrustArm(SnhpArm):
         w = self.w
         if self._reputation_refuses(a, b):  # v22: refuse a blacklisted partner
             return False
+        if self.gated and w.forgery:        # v27 (column Z): the gate under attack
+            return self._forgery_encounter(a, b)
         trusted = (a.attested and b.attested) if self.gated else True
         if not trusted:
             # the untrusted tier IS the veto tier — same lies, distrust tax
@@ -1167,8 +1174,16 @@ class TrustArm(SnhpArm):
         sol = TeamArm._pick(self, ra, rb, batna_a, batna_b, a, b)
         if sol is None:
             return False
+        self._tally_trusted(a, b, sol, ua, ub, batna_a, batna_b)
+        return self._finish_deal(a, b, sol, ua, ub, batna_a, batna_b)
+
+    def _tally_trusted(self, a, b, sol, ua, ub, batna_a, batna_b) -> None:
+        """Attribute a no-veto trusted-tier execution: any TRUE-negative surplus is
+        an exploit (STRIP if a liar gains while an honest robot loses; else a benign
+        joint-max SACRIFICE). Factored out of encounter so the v27 forgery path
+        reuses the exact same accounting the gated deal has always used."""
         sa, sb = float(ua[sol] - batna_a), float(ub[sol] - batna_b)
-        if min(sa, sb) < 0:                 # no veto up here — attribute it
+        if min(sa, sb) < 0:
             self.exploit_deals += 1
             self.exploit_loss += -min(sa, sb)
             honest_loses = (sa < 0 and not a.liar) or (sb < 0 and not b.liar)
@@ -1178,7 +1193,95 @@ class TrustArm(SnhpArm):
                 self.strip_loss += -min(sa, sb)
             else:
                 self.sacrifice_deals += 1
-        return self._finish_deal(a, b, sol, ua, ub, batna_a, batna_b)
+
+    # ── v27 (column Z): forgery — the receipt under attack ────────────────────
+    def _verifies(self, checker, u_checker, batna_checker, sol_T) -> bool:
+        """Does `checker` pay verify_cost to check the counterparty's proffered
+        receipt before honoring tier-trust? MANDATED ⇒ always. ENDOGENOUS ⇒ pay iff
+        the expected exploit-loss it would avoid exceeds the check's Φ-cost — the
+        tradeoff runs through the EXISTING valuation, no bespoke heuristic:
+
+            liar_frac · downside  >  verify_cost · EV_INIT
+
+        `downside` is how far below its own disagreement point (batna) the checker's
+        TRUE Φ would fall at the no-veto trusted pick sol_T — read straight off the
+        evaluated ua/ub and the pristine-state batna. `liar_frac` is the tier's
+        forger prevalence: the AVERAGE honesty each agent free-rides on (it does not
+        know whether THIS partner forged). verify_cost is battery, priced into Φ at
+        the reference energy shadow price EV_INIT (the same constant the order-book
+        posting gate uses); the lagged per-robot r.ev degenerates to its floor under
+        battery satiation, so the reference price keeps the decision interpretable."""
+        w = self.w
+        if w.verify_regime == "mandated":
+            return True
+        if w.verify_regime != "endogenous" or sol_T is None:
+            return False
+        downside = max(0.0, batna_checker - float(u_checker[sol_T]))
+        return w.liar_frac * downside > w.verify_cost * W.EV_INIT
+
+    def _forgery_encounter(self, a, b) -> bool:
+        """The attested gate under forgery attack (gated + w.forgery only). Every
+        liar is unattested, so to reach the trusted cooperative tier it presents a
+        FORGED receipt — deterministically, every gate encounter, burning forge_cost
+        (the reserved RandomState(seed+272727) is unused: deterministic is simpler
+        and keeps the main stream untouched). Each side may pay verify_cost to check
+        the other's receipt; a paid check catches a forgery with certainty. A caught
+        forger is denied the tier FOR THIS ENCOUNTER and the pair relegates to the
+        existing veto tier (SnhpArm) — no new penalty (the registered question is
+        ACCESS economics, not punishment). Uncaught forgeries are honored at face
+        value and reach the exploitable no-veto tier. All forge/verify energy is
+        burned AFTER the deal settles, so the evaluated Φ == executed Φ assert never
+        sees it (the bundle is priced and executed at one battery)."""
+        w = self.w
+        a_forger = a.liar and not a.attested      # unattested liar ⇒ must forge in
+        b_forger = b.liar and not b.attested
+        ua, ub = self._evaluate(a, b)
+        batna_a, batna_b = float(ua[self._allzero]), float(ub[self._allzero])
+        ra = self._report_joint(a, batna_a, ua)
+        rb = self._report_joint(b, batna_b, ub)
+        sol_T = TeamArm._pick(self, ra, rb, batna_a, batna_b, a, b)
+        # the gate apparatus (forge a receipt, verify one) engages ONLY when there
+        # is a real beneficial trusted deal to capture. No deal ⇒ nothing to trust,
+        # nothing to forge, nothing to check — the pair simply doesn't trade (as the
+        # base gated tier does when the joint max fails to beat disagreement). This
+        # also skips the disagreement/all-zero pick, whose null execution (TXN-only)
+        # is where the shared picker's 1e-9 tie-window meets the strand-hazard
+        # nonlinearity — the eval==exec assert is preserved without touching the
+        # pre-existing picker every prior column depends on.
+        if sol_T is None or sol_T == self._allzero:
+            return False
+        a_ver = self._verifies(a, ua, batna_a, sol_T)   # a checks b's receipt
+        b_ver = self._verifies(b, ub, batna_b, sol_T)   # b checks a's receipt
+        caught = (a_ver and b_forger) or (b_ver and a_forger)
+        # costs burned post-settlement (forge is presenting a receipt; verify is
+        # checking one — both spent whether or not a bundle is struck)
+        costs = []
+        if a_forger:
+            costs.append((a, w.forge_cost, "forge"))
+        if b_forger:
+            costs.append((b, w.forge_cost, "forge"))
+        if a_ver:
+            costs.append((a, w.verify_cost, "verify"))
+        if b_ver:
+            costs.append((b, w.verify_cost, "verify"))
+        self.forge_attempts += int(a_forger) + int(b_forger)
+        self.verify_acts += int(a_ver) + int(b_ver)
+        if caught:
+            self.forge_caught += ((a_ver and b_forger) + (b_ver and a_forger))
+            result = SnhpArm.encounter(self, a, b)      # relegate to the veto tier
+            self._burn_forgery_costs(costs)
+            return result
+        # uncaught: forged (or genuine) receipts honored ⇒ the trusted no-veto tier
+        self.forge_slipped += int(a_forger) + int(b_forger)
+        self._tally_trusted(a, b, sol_T, ua, ub, batna_a, batna_b)
+        ok = self._finish_deal(a, b, sol_T, ua, ub, batna_a, batna_b)
+        self._burn_forgery_costs(costs)
+        return ok
+
+    def _burn_forgery_costs(self, costs) -> None:
+        for r, amt, kind in costs:
+            if amt > 0.0:
+                self.w._forge_debit(r, amt, kind)
 
 
 def make_arm(name: str, w: W.World, issues=("cargo", "energy", "sector"),

@@ -1722,6 +1722,11 @@ _ORACLE_SUBSET = (
             reputation=True, false_accuse=0.05),
        dict(arm_name="trust-gated", preset="v5", seed=0, liar_frac=0.25,
             defended=True, reputation=True, false_accuse=0.05)]
+    # v27 (column Z): forgery burns energy AFTER the bundle settles, so the fast
+    # and scalar bundle evaluators must stay byte-identical under the attack too
+    + [dict(arm_name="trust-gated", preset="v5", seed=0, liar_frac=0.25,
+            defended=True, forgery=True, forge_cost=2.0, verify_cost=1.0,
+            verify_regime="endogenous")]
 )
 
 
@@ -1892,6 +1897,141 @@ def test_v22_evaluated_equals_executed_under_reputation():
         assert arm.deals > 0, f"{arm_name}+reputation struck no deals — vacuous"
         assert any(w.blacklist[r.rid] for r in w.robots), \
             f"{arm_name}+reputation formed no blacklists — vacuous"
+
+
+# ── v27 (column Z): forgery — the receipt under attack ───────────────────────
+def test_v27_forgery_off_bit_identical():
+    """forgery=False (even with forge/verify costs and a regime named) must be
+    bit-identical to a world that never heard of column Z — the flags, the Z-ledger
+    accumulators and the dedicated forgery RandomState may not perturb a single bit
+    of the default path. Checked on the trust-gated arm (whose encounter reads the
+    flags) AND the auction (which moves cargo)."""
+    for arm_name, defended in (("trust-gated", True), ("auction", False)):
+        outs = []
+        for kw in ({}, dict(forgery=False, forge_cost=2.0, verify_cost=1.0,
+                            verify_regime="endogenous")):
+            w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                      hazard_phi=(arm_name != "auction"), liar_frac=0.25,
+                      defended=defended, **kw)
+            arm = make_arm(arm_name, w)
+            for _ in range(500):
+                arm.tick()
+            outs.append((w.delivered, arm.deals,
+                         round(sum(r.battery for r in w.robots), 9),
+                         [r.pos for r in w.robots],
+                         [tuple(sorted(d.items())) for d in w.deal_log]))
+        assert outs[0] == outs[1], f"column-Z plumbing leaked into {arm_name}"
+
+
+def test_v27_forged_admission_reaches_the_tier_unverified():
+    """The attack's premise: with NO verification (verify_regime='none'), a forged
+    receipt is honored at face value, so an unattested liar reaches the trusted
+    no-veto tier and exploits an honest partner — forgeries slip in (forge_slipped
+    > 0), none are caught, and STRIP deals (liar gains while honest loses) reappear,
+    exactly the v6 feeding frenzy the gate had shut off."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), hazard_phi=True,
+              liar_frac=0.25, defended=True, forgery=True, forge_cost=0.0,
+              verify_cost=1.0, verify_regime="none")
+    arm = make_arm("trust-gated", w)
+    for _ in range(1500):
+        arm.tick()
+    assert arm.forge_attempts > 0, "no forgery attempted — vacuous"
+    assert arm.forge_slipped == arm.forge_attempts, \
+        "with no verification every forgery must be honored at face value"
+    assert arm.forge_caught == 0, "nothing verifies, yet a forgery was caught"
+    assert arm.strip_deals > 0, \
+        "forged tier admission did not let a liar strip an honest partner"
+
+
+def test_v27_mandated_verification_always_catches():
+    """Paid verification catches a forgery with certainty (p_v=1). Under the MANDATED
+    regime every tier admission is checked, so a forger is ALWAYS caught and relegated
+    to the veto tier: forge_caught == forge_attempts, nothing slips, and the trusted
+    tier records zero strip deals (the gate holds under attack, at the verification
+    cost)."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), hazard_phi=True,
+              liar_frac=0.25, defended=True, forgery=True, forge_cost=0.0,
+              verify_cost=0.25, verify_regime="mandated")
+    arm = make_arm("trust-gated", w)
+    for _ in range(1500):
+        arm.tick()
+    assert arm.forge_attempts > 0, "no forgery attempted — vacuous"
+    assert arm.forge_caught == arm.forge_attempts, \
+        "mandated verification let a forgery through (p_v must be 1)"
+    assert arm.forge_slipped == 0, "a forgery slipped past mandated verification"
+    assert arm.strip_deals == 0, "a caught forger still stripped an honest partner"
+
+
+def test_v27_endogenous_verification_responds_to_cv():
+    """The endogenous verify decision runs through the existing Φ valuation:
+    verify iff liar_frac · downside > verify_cost · EV_INIT, where downside is how
+    far below its disagreement point the checker's TRUE Φ falls at the trusted pick.
+    A hand-built cell (downside 1.0, liar_frac 0.25) flips the decision as c_v rises:
+    cheap verification (0.25) is worth it, dear verification (4.0) is not — the free-
+    riding lever. Mandated always checks; 'none' never does."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), hazard_phi=True,
+              liar_frac=0.25, defended=True, forgery=True, forge_cost=0.0,
+              verify_cost=0.25, verify_regime="endogenous")
+    arm = make_arm("trust-gated", w)
+    r = w.robots[0]
+    u = np.array([0.0, -1.0])          # trusted pick (index 1) ⇒ downside 1.0
+    batna, sol_T = 0.0, 1
+    # 0.25·1.0 = 0.25  vs  c_v·EV_INIT
+    w.verify_cost = 0.25               # 0.25 > 0.3·0.25 = 0.075 ⇒ verify
+    assert arm._verifies(r, u, batna, sol_T) is True
+    w.verify_cost = 4.0                # 0.25 < 0.3·4.0 = 1.2  ⇒ free-ride
+    assert arm._verifies(r, u, batna, sol_T) is False
+    # a zero-downside pick is never worth verifying at any cost
+    w.verify_cost = 0.25
+    assert arm._verifies(r, np.array([0.0, 0.5]), 0.0, 1) is False
+    # regime overrides: mandated always, none never
+    w.verify_regime = "mandated"
+    assert arm._verifies(r, u, batna, sol_T) is True
+    w.verify_regime = "none"
+    assert arm._verifies(r, u, batna, sol_T) is False
+
+
+def test_v27_costs_conserved_in_the_ledger():
+    """Every forge/verify act is booked to the Z ledger exactly once at its posted
+    price: forge_spend == forge_events · c_f and verify_spend == verify_events · c_v,
+    and (costs positive) the event counts equal the behavioural counts. The battery
+    burned is monotone (never minted)."""
+    cf, cv = 2.0, 1.0
+    w = World(sigma=0.5, seed=1, preset="v5", tau=(0.15, 0.15), hazard_phi=True,
+              liar_frac=0.25, defended=True, forgery=True, forge_cost=cf,
+              verify_cost=cv, verify_regime="endogenous")
+    arm = make_arm("trust-gated", w)
+    for _ in range(1500):
+        arm.tick()
+    assert arm.forge_attempts > 0 and arm.verify_acts > 0, "no acts — vacuous"
+    assert w.forge_spend > 0 and w.verify_spend > 0, "spend never booked — vacuous"
+    assert abs(w.forge_spend - w.forge_events * cf) < 1e-9, "forge ledger diverged"
+    assert abs(w.verify_spend - w.verify_events * cv) < 1e-9, "verify ledger diverged"
+    assert w.forge_events == arm.forge_attempts, "a forge act went unbooked"
+    assert w.verify_events == arm.verify_acts, "a verify act went unbooked"
+    # the world's own conservation invariants survive the burned overhead
+    assert w.material_ok() and w.ledger_accounted(), "Z spend broke conservation"
+
+
+def test_v27_evaluated_equals_executed_under_every_regime():
+    """The sacred invariant survives forgery: 800 ticks of the gated trust arm under
+    attack, with the in-arm evaluated Φ == executed Φ assert live, across ALL three
+    verification regimes and both a cheap and a dear verification cost. Forge/verify
+    energy is burned only AFTER a deal settles, so any leak into the priced bundle
+    fires the assert; completing clean IS the test — conservation intact, deals
+    struck, and the forgery machinery actually exercised (non-vacuous)."""
+    for regime in ("none", "mandated", "endogenous"):
+        for cv in (0.25, 4.0):
+            w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15),
+                      hazard_phi=True, liar_frac=0.25, defended=True, forgery=True,
+                      forge_cost=2.0, verify_cost=cv, verify_regime=regime)
+            arm = make_arm("trust-gated", w)
+            for _ in range(800):
+                arm.tick()
+                assert w.material_ok(), f"conservation broke ({regime}, c_v={cv})"
+            assert arm.deals > 0, f"{regime} c_v={cv} struck no deals — vacuous"
+            assert arm.forge_attempts > 0, \
+                f"{regime} c_v={cv} exercised no forgery — vacuous"
 
 
 # ── v23 (column V): the stigmergic order book ────────────────────────────────
