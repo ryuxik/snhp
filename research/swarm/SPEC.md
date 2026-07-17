@@ -3403,3 +3403,18 @@ trial, and the kill fired loudly.**
   agents to overcome a problem the synchronous claim solves for free —
   registered-open only if someone can say why it wouldn't just be a
   worse bill of lading.
+
+**CO-D1a STATUS (2026-07-17, registrar): HARNESS BUILT, 22 tests green.**
+The v33-A allocation spine is ground-in, not bolted on. Builder ambiguity
+resolutions ACCEPTED and notable: logical clock ⇒ byte-identical episode
+replays (two identical configs → identical workspace sha1s — the
+reproducibility receipt); two money pools (treasury vs compute budget)
+keep the token cap clean; illegal agent actions are logged
+`action_rejected`, never fatal (real LLMs will emit them); state is a
+pure fold of the hash-chained event log, so episodes resume from disk.
+GAP, owned by the registrar: the builder based on 5853097, before v33-B
+— the buyer-escrow funding source (external wallet funding a bounty's
+escrow) is NOT in D1a and becomes the first D1b work item alongside
+wiring the LLMAgent. D1b remains gated on: founder-authorized spend
+(registered cap $20/episode; the registered slate 1 founding + 2 per
+regime ≈ 5 episodes), API key, and the Sonnet/Haiku mix choice.
