@@ -3100,3 +3100,31 @@ exactly the money its maturity permits.**
   (PX), survives forgery as economics (PZ), outlives its holder as a
   lifeline (PAA), crashes on paper only (PAB), and ends the program as
   the money the economy chose for itself (PM2).
+
+**FOUNDER REVIEW SCOPES (2026-07-17, registered from the article critique).**
+- **PZb RE-SCOPED (founder catch): the free-rider result is conditional on
+  POPULATION-PRIOR verification.** The endogenous rule priced forgery risk
+  with a single fleet-wide liar fraction, not per-counterparty memory. A
+  verifier that tracked individual trust histories would aim its checking
+  where the risk lives and buy more protection per credit — the
+  under-provision could shrink or vanish. REGISTERED-OPEN (Z2): the
+  per-counterparty-trust verification regime. Noted plainly: that memory
+  IS the product's mechanism, so the crude version is a floor, not a
+  ceiling.
+- **PAB RE-SCOPED (founder catch, the sharper one): "nobody dies of paper"
+  is conditional on an ALL-EQUITY economy.** Claims are assets; no crab
+  OWES anything. There is no debt, no repayment obligation, no margin
+  call, no forced sale, no insolvency — so a crash can impoverish but
+  structurally cannot bankrupt. Real crises kill through the liability
+  side, and this world does not have one. The law is re-scoped to
+  UNLEVERED claims, and the word "leverage" in the PAB record should read
+  "concentration/exposure." REGISTERED-OPEN (AB2, "the crash with
+  teeth"): borrowing against claims, hard repayment, default
+  consequences; prediction to be written before any build.
+- **#14 mechanism question (founder): answered from the V record, no
+  re-scope needed.** The bulletin board removed the RENDEZVOUS (poster
+  co-presence) but not the JOURNEY — the escrowed cargo still had to be
+  physically fetched, and the V diagnosis already shows clock+battery
+  (travel), not meetings, binding at G64. The board removed the cheap
+  part of the transaction and left every expensive part in place. The
+  article now says this explicitly.
