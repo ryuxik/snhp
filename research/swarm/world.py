@@ -165,6 +165,39 @@ CLAIM_VOID = -1                    # a claim VOIDED at the holder's death (claim
 # an ESTATE claim re-points to its dead holder's company treasury via the sentinel
 # rid == -(2 + company): -2 → company 0, -3 → company 1 (decoded at settlement).
 
+# v29 (column AB): the crash — contagion in the counterparty web. All gated on
+# `shock` / `clearinghouse`; every accumulator/array below is allocated but NEVER
+# read/written when both are off, so every prior column stays bit-identical
+# (suite-verified). The shock is a pure SETTLEMENT-side event — Φ never sees it
+# (far-band cargo keeps its full Φ value; the write-down lands only at drop /
+# death_resolve), so evaluated Φ == executed Φ is preserved by construction.
+SHOCK_TICK = 1000                  # T_shock: the far band goes dark (registered;
+                                   # identical across regimes/seeds). Overridable per
+                                   # World via `shock_tick`; None ⇒ never fires (control).
+                                   # The contract's illustrative 3,500 hits a DEAD
+                                   # economy — the v5 field delivers/relays its far band
+                                   # over ticks ~500–2,000 then plateaus (far cargo
+                                   # delivered or P24-deadlocked in un-dying drones), so
+                                   # a late shock finds nothing in flight. 1,000 lands
+                                   # mid-active-phase (chains mature, far settlement
+                                   # ongoing). Rationale registered in SPEC/report.
+SHOCK_FAR_PCTL = 60                # the FAR BAND = asteroids whose nearest-refinery
+                                   # distance exceeds this percentile of the field (the
+                                   # farthest ~40%). Scale-invariant (works at grid 32 and
+                                   # 101, where a fixed cell threshold would be empty),
+                                   # non-empty, and DETERMINISTIC per field (no RNG) ⇒
+                                   # identical across regimes for a seed.
+SHOCK_VALUE_FLOOR = 0.0            # post-shock a far-band unit settles at this × its face
+                                   # value ("stock/value zero out" ⇒ 0.0); the (1−floor)·V
+                                   # gap per delivered shocked unit is the write-down.
+CCP_FEE = 0.05                     # clearinghouse per-settlement fee (fraction of face
+                                   # DELIVERY credit), charged at EVERY settlement from
+                                   # t=0 to build the pool; the CCP then tops shock and
+                                   # death write-downs back to face from the pool. If the
+                                   # pool runs dry the shortfall is a pro-rata HAIRCUT (the
+                                   # registered waterfall) — recipients eat the uncovered
+                                   # remainder exactly as under gross bilateral.
+
 PRESETS = {
     # sources, refineries [(pos, owner)], chargers [(pos, owner)]
     "v5": dict(sources=None,        # mirrored asteroid field, seeded in init
@@ -284,7 +317,9 @@ class World:
                  forgery: bool = False, forge_cost: float = 0.0,
                  verify_cost: float = 0.0, verify_regime: str = "none",
                  mortality: bool = False, death_regime: str = "none",
-                 wearout: bool = False):
+                 wearout: bool = False,
+                 shock: bool = False, shock_tick: int | None = None,
+                 clearinghouse: bool = False):
         self.rng = np.random.RandomState(seed)
         self.rng_seed = seed                 # v18: matter-field RNG keys off this
         self.hazard_phi = hazard_phi
@@ -723,6 +758,48 @@ class World:
         if defended:
             for r in self.robots:
                 r.attested = not r.liar
+        # ── v29 (column AB): the crash — contagion in the counterparty web ────
+        # `shock` schedules the far band going dark at `shock_tick`; `clearinghouse`
+        # installs a central counterparty that guarantees claims at face from a
+        # fee-funded pool. Both default off ⇒ every prior column is bit-identical:
+        # shock_step early-returns (shock_tick None), the settlement/death paths
+        # branch on `shocked`/`clearinghouse` (both false), and every accumulator/
+        # array below is allocated but never touched. shock/clearinghouse REQUIRE
+        # lineage (parcels carry the origin the write-down attributes on) and
+        # clearinghouse REQUIRES bills (the CCP guarantees CLAIMS — none exist
+        # without bills). The far band is computed once from the FIXED initial field
+        # (deterministic, no RNG), so it is identical across regimes for a seed.
+        self.shock = shock
+        self.shock_tick = (shock_tick if shock_tick is not None
+                           else (SHOCK_TICK if shock else None))
+        self.clearinghouse = clearinghouse
+        assert not ((shock or clearinghouse) and not self.lineage), \
+            "shock/clearinghouse require lineage (parcels carry the attributed origin)"
+        assert not (clearinghouse and not self.bills), \
+            "clearinghouse requires bills (the CCP guarantees claims; none exist off)"
+        self.shocked = False                 # flips True at shock_tick (once)
+        self.shock_far: set = set()          # far-band source indices (the dark region)
+        if shock or clearinghouse:
+            dists = [min(manhattan(s, rf) for rf in self.refineries)
+                     for s in self.sources]
+            if dists:
+                thr = float(np.percentile(dists, SHOCK_FAR_PCTL))
+                self.shock_far = {i for i, d in enumerate(dists) if d > thr}
+        self.shock_far_stock_lost = 0        # true far-band stock erased at the shock
+        self.shock_writedown = 0.0           # Σ (1−floor)·V over delivered shocked units
+                                             # (ledger term — value that never existed)
+        self.ccp_pool = 0.0                  # clearinghouse fee reserve (credit)
+        self.ccp_fees = 0.0                  # Σ fees collected (into the pool)
+        self.ccp_payouts = 0.0               # Σ write-down covered from the pool
+        self.ccp_haircut = 0.0               # Σ write-down eaten by claimants (pool dry)
+        self.shock_taint = [None] * len(self.robots)   # per-robot contagion depth
+                                             # (None = untainted; 0 = directly hit)
+        self.shock_exp_by_hop: dict = {}     # hop → Σ face exposure of the IN-FLIGHT
+        self.shock_exp_cnt: dict = {}        # far-band claim stacks snapshotted at the
+                                             # shock (timing/deadlock-independent reach)
+        self.writedown_log: list = []        # per write-down: (tick, rid, exposure,
+                                             # realized, cause, hop, far) — the histogram
+        self.strand_log: list = []           # (tick, rid) strand ONSET (pre/post scar)
 
     # mean-preserving draws (v2 review M1): σ widens spread, never the mean
     def _draw(self, sigma):
@@ -1535,13 +1612,42 @@ class World:
         # snapshot the freeze-out context / audit fields BEFORE clearing
         own_claim = r.claim_value
         cargo = r.load
-        # (A) write off carried cargo; write down every counterparty claim on it
+        # (A) write off carried cargo; write down every counterparty claim on it.
+        # v29 (column AB): this is the CROSS-PARCEL contagion channel. When a
+        # shock-TAINTED carrier dies (it burned energy on cargo whose settlement
+        # vanished, then stranded), its death strands OTHER parcels it was hauling —
+        # each upstream claimant on those parcels is a CONTAGION victim, one hop
+        # deeper than the carrier (hop = carrier taint + 1). A write-off on a
+        # far-band parcel is a DIRECT hit (hop 0). A death with no shock taint on a
+        # non-far parcel is a BASE-mortality write-off (not attributed; the no-shock
+        # control carries these). Under the CLEARINGHOUSE the counterparty is made
+        # whole from the pool (pro-rata haircut if dry) — that is how the CCP CAPS
+        # contagion. Off ⇒ exactly the v28 line (only claim_value drops).
+        r_taint = self.shock_taint[r.rid]
         for p in r.parcels:
+            far = p["origin"] in self.shock_far
             for claim in p.get("claims", ()):
                 cid = claim[0]
                 if cid >= 0 and cid != r.rid:
                     # 2- or 3-tuple: field 1 is the PHYSICAL share
-                    self.robots[cid].claim_value -= claim[1] * V_DELIVER
+                    exposure = claim[1] * V_DELIVER
+                    realized_wd = exposure
+                    if self.clearinghouse:
+                        cov = min(self.ccp_pool, exposure)
+                        self.ccp_pool -= cov
+                        self.ccp_payouts += cov
+                        self.ccp_haircut += exposure - cov
+                        self.robots[cid].credit += cov
+                        self.company[self.robots[cid].company]["credit"] += cov
+                        realized_wd = exposure - cov
+                    self.robots[cid].claim_value -= exposure
+                    if self.shocked and far:
+                        self._taint(cid, 0)
+                        self._record_wd(cid, exposure, realized_wd, "direct", 0, True)
+                    elif self.shocked and r_taint is not None:
+                        self._taint(cid, r_taint + 1)
+                        self._record_wd(cid, exposure, realized_wd,
+                                        "contagion", r_taint + 1, False)
         if cargo:
             self.stock_lost += cargo
         r.load = 0
@@ -1713,6 +1819,84 @@ class World:
         self.stock[i] = 0
         self.field_log.append(dict(t=self.tick, kind="departure", src=i, amt=lost))
 
+    # ── v29 (column AB): the crash ───────────────────────────────────────
+    def shock_step(self) -> None:
+        """Fire the far-band shock ONCE at shock_tick — called from BaseArm.tick at
+        TICK START (alongside field_step/death_step), BEFORE any bundle evaluation,
+        so the state it changes (stock, taint) is stable through the whole encounter
+        phase (evaluated Φ == executed Φ preserved). The far band goes dark via the
+        v11 departure machinery: every far-band asteroid's true stock is erased
+        (booked to stock_lost so material conservation holds) and stock→0, so NO new
+        far-band ore is minable. In-transit far-band cargo keeps its full Φ value
+        (Φ never sees the shock) but now settles at SHOCK_VALUE_FLOOR at drop — the
+        write-down lands mid-flight. Directly-exposed agents (holders of, or
+        claimants on, an in-transit far-band parcel) are tainted at depth 0 so the
+        death cascade can attribute contagion by hop-distance. No-op when the shock
+        is off (shock_tick None) ⇒ every prior column is bit-identical."""
+        if self.shock_tick is None or self.shocked or self.tick < self.shock_tick:
+            return
+        self.shocked = True
+        for i in self.shock_far:
+            if self.stock[i] > 0:
+                self.shock_far_stock_lost += self.stock[i]
+                self.stock_lost += self.stock[i]
+                self.stock[i] = 0
+        # taint the direct victims: anyone CARRYING an in-transit far-band parcel …
+        for r in self.robots:
+            if not r.dead and any(p["origin"] in self.shock_far for p in r.parcels):
+                self._taint(r.rid, 0)
+        # … or HOLDING A CLAIM on someone's in-transit far-band parcel (paper hit).
+        # In the SAME pass, SNAPSHOT the in-flight far-band leverage by hop (chain
+        # depth) AT the crash: the current holder's residual is hop 0 (a DIRECT victim,
+        # holds the dark ore); each upstream claimant is hop = depth-up-the-chain
+        # (CONTAGION — paper on a settlement that now cannot complete at expected
+        # value). This is "the in-transit claim stacks reference settlements that
+        # cannot complete" verbatim, measured at the moment of the crash (when the deep
+        # chains are still in flight — by the horizon they have delivered-at-0, voided
+        # on a claimant's death, or deadlocked, so this is the robust reach measure).
+        for other in self.robots:
+            if other.dead:
+                continue
+            for p in other.parcels:
+                if p["origin"] not in self.shock_far:
+                    continue
+                claims = p.get("claims", ())
+                for claim in claims:
+                    if claim[0] >= 0:
+                        self._taint(claim[0], 0)
+                n = len(claims)
+                resid = 1.0 - sum(sh for _rid, sh, *_ in claims)
+                self._exp_record(0, resid * V_DELIVER)          # holder = direct hop 0
+                for i, claim in enumerate(claims):
+                    if claim[0] != CLAIM_VOID:
+                        self._exp_record(n - i, claim[1] * V_DELIVER)   # up the chain
+        self.field_log.append(dict(t=self.tick, kind="shock",
+                                   n_far=len(self.shock_far),
+                                   stock_lost=self.shock_far_stock_lost))
+
+    def _exp_record(self, hop: int, val: float) -> None:
+        """Accumulate far-band leverage exposure at chain-depth `hop`."""
+        self.shock_exp_by_hop[hop] = self.shock_exp_by_hop.get(hop, 0.0) + val
+        self.shock_exp_cnt[hop] = self.shock_exp_cnt.get(hop, 0) + 1
+
+    def _taint(self, rid: int, depth: int) -> None:
+        """Mark robot `rid` shock-tainted at contagion `depth` (the min ever seen —
+        a shallower path wins). None means untainted. Pure bookkeeping."""
+        cur = self.shock_taint[rid]
+        if cur is None or depth < cur:
+            self.shock_taint[rid] = depth
+
+    def _record_wd(self, rid, exposure, realized, cause, hop, far) -> None:
+        """Append one write-down event. `exposure` is the pre-CCP loss (the shock's
+        REACH — regime-comparable); `realized` is what the claimant actually eats
+        (0/haircut under the CCP, == exposure under gross). cause ∈ {direct,
+        contagion}; hop is the counterparty-graph distance from the darkened region
+        (0 = direct victim). Pure bookkeeping — never touches Φ/physics/RNG."""
+        self.writedown_log.append(dict(
+            tick=self.tick, rid=rid, exposure=round(float(exposure), 6),
+            realized=round(float(realized), 6), cause=cause, hop=hop,
+            far=bool(far)))
+
     def _spawn_twin_fleets(self, n_robots, sigma):
         """Both companies receive the IDENTICAL draw multiset; company-1
         positions are the reflection (x, 32−y). Sectors stratified 6/6/6/6
@@ -1812,7 +1996,9 @@ class World:
         r.battery = max(0.0, r.battery)
         if r.battery < RESCUE_FLOOR and \
                 all(manhattan(r.pos, c) > 1 for c in self.chargers):
-            r.stranded = True
+            if not r.stranded:                  # v29: log the strand ONSET (the pre/post
+                self.strand_log.append((self.tick, r.rid))   # scar reads it; append-only,
+            r.stranded = True                   # never read by physics ⇒ bit-safe off
 
     def _new_parcel(self, origin: int) -> dict:
         """A fresh 0-hop parcel for one mined unit. Under bills it carries an
@@ -1882,6 +2068,101 @@ class World:
             return q
         return 0
 
+    def _settle_parcel_bills(self, p, r: Robot, rate: float, vm: float) -> None:
+        """v29 (column AB): distribute ONE delivered bills-parcel's credit on the
+        shock/clearinghouse path. `vm` is the parcel's value multiplier (1.0, or
+        SHOCK_VALUE_FLOOR for an in-transit far-band unit). At vm==1 with the
+        clearinghouse OFF this reduces EXACTLY to the pre-v29 distribution (each
+        live recipient books share·rate·V, the deliverer keeps the residual).
+
+        GROSS BILATERAL (clearinghouse off): each recipient books its REALIZED share
+        share·rate·V·vm; the (1−vm) gap is that recipient's write-down (it eats it —
+        every claim a bilateral position). CLEARINGHOUSE: every settlement pays a
+        CCP_FEE·face fee into the pool (building the reserve from t=0), then the pool
+        TOPS the live recipients back toward face (pro-rata by share, capped by the
+        pool — the un-coverable remainder is the pro-rata HAIRCUT, the registered
+        waterfall). A VOIDED share (dead claimant) is never topped up (no corpse to
+        pay); its realized value is destroyed to claims_voided, exactly as gross.
+
+        The parcel's (1−vm)·V is booked to shock_writedown ONCE (it covers the
+        deliver-pool shortfall AND the collapsed tariff), so the ledger closes to
+        V·delivered for ANY cover — the fee and cover cancel in the credit+pool sum
+        (derivation in SPEC v29; the ledger test is the gate). Records each live
+        recipient's write-down for the contagion-depth histogram, by hop up the
+        counterparty web (deliverer hop 0 = direct; upstream claimants = contagion)."""
+        V = V_DELIVER
+        face = rate * V
+        ccp = self.clearinghouse
+        claims = []
+        csum = 0.0
+        for claim in p["claims"]:
+            if len(claim) == 3:
+                rid, share, decay = claim
+                paid = share * decay
+            else:
+                rid, share = claim
+                paid = share
+            claims.append((rid, paid))
+            csum += paid
+        resid = 1.0 - csum
+        if vm != 1.0:
+            self.shock_writedown += (1.0 - vm) * V      # value that never existed
+        live_paid = resid + sum(pd for rid, pd in claims if rid != CLAIM_VOID)
+        cover = 0.0
+        if ccp:
+            # fee on the LIVE face pool only — a voided share pays no fee (no corpse
+            # to charge), so charging on full face would over-collect and break the
+            # ledger. Σ per-recipient fees (paid·CCP_FEE·face) == this exactly.
+            fee_total = CCP_FEE * face * live_paid
+            self.ccp_pool += fee_total
+            self.ccp_fees += fee_total
+            want = live_paid * (1.0 - vm) * face
+            cover = min(self.ccp_pool, want)
+            self.ccp_pool -= cover
+            self.ccp_payouts += cover
+            self.ccp_haircut += want - cover
+
+        def _payout(paid):
+            realized = paid * face * vm
+            wd = paid * (1.0 - vm) * face                # gross write-down (exposure)
+            if ccp:
+                topup = (paid / live_paid * cover) if live_paid > 0 else 0.0
+                realized += topup - paid * CCP_FEE * face
+                wd -= topup                             # only the un-covered haircut eaten
+            return realized, wd
+
+        # hop attribution up the counterparty web: the DELIVERER physically held the
+        # dark ore (hop 0 = a DIRECT victim); each upstream claimant handed the parcel
+        # off earlier and now holds only PAPER on a settlement that collapsed — its
+        # loss is CONTAGION, one hop further up the chain per handoff (claims are
+        # appended in handoff order, so stack index i ⇒ hop = len(stack) − i). This is
+        # the counterparty web: a claim referencing a future settlement is leverage,
+        # and the write-down reaches everyone up the chain — depth == chain length.
+        nclaims = len(claims)
+        for i, (rid, paid) in enumerate(claims):
+            if rid == CLAIM_VOID:
+                self.claims_voided += paid * face * vm  # realized-vm destroyed
+                continue
+            realized, wd = _payout(paid)
+            if rid < 0:                                  # estate → treasury heir
+                hco = -rid - 2
+                self.company[hco]["treasury"] += realized
+                self.company[hco]["credit"] += realized
+                self.estate_settled += realized
+            else:
+                cl = self.robots[rid]
+                cl.credit += realized
+                self.company[cl.company]["credit"] += realized
+                cl.claim_value -= paid * V              # the claim is settled (at face)
+            if vm != 1.0:
+                self._record_wd(rid, paid * (1.0 - vm) * face, wd,
+                                "contagion", nclaims - i, True)
+        realized, wd = _payout(resid)                    # the deliverer's residual
+        r.credit += realized
+        self.company[r.company]["credit"] += realized
+        if vm != 1.0:
+            self._record_wd(r.rid, resid * (1.0 - vm) * face, wd, "direct", 0, True)
+
     def drop(self, r: Robot) -> int:
         """Refine at whichever refinery the robot stands on. Tariff is
         assessed HERE and only here, once per unit (panel refine-once)."""
@@ -1893,6 +2174,13 @@ class World:
             rate = self.credit_rate(r.company, ref_idx)
             unit = rate * V_DELIVER             # per-unit delivery credit
             earned = unit * q
+            # v29 (column AB): the shock/clearinghouse settlement path. `sw` OFF ⇒ the
+            # ORIGINAL arithmetic below runs byte-for-byte (bit-identical); ON ⇒ each
+            # parcel settles at its value multiplier vm (1.0, or SHOCK_VALUE_FLOOR for
+            # an in-transit far-band unit) via _settle_parcel_bills, and the tariff /
+            # spot credit ride the value-weighted count qval == Σ vm.
+            sw = self.shocked or self.clearinghouse
+            qval = 0.0
             if self.lineage:                    # v17: retire this unit's lineage
                 for p in r.parcels:             # (origin, hops it took to arrive,
                     self.delivered_parcels.append(dict(   # tick, who delivered)
@@ -1916,6 +2204,13 @@ class World:
                             uid=p["uid"], total_dwell=total, total_cf=tcf,
                             inflation=total - tcf, hops=p["hops"],
                             origin=p["origin"]))
+                    # v29 (column AB): the parcel's value multiplier — 1.0, or the
+                    # collapsed floor for an in-transit far-band unit once the shock
+                    # has fired (its ore went dark mid-flight).
+                    vm = (SHOCK_VALUE_FLOOR
+                          if (self.shocked and p["origin"] in self.shock_far)
+                          else 1.0)
+                    qval += vm
                     # v17 PHASE 2 (snhp+bill): distribute this unit's credit per
                     # its notarized claim stack — each recorded claimant is paid
                     # share × unit; the deliverer keeps the residual (1 − Σshare).
@@ -1924,7 +2219,9 @@ class World:
                     # (1−decay)·share, so Σdistributed == unit EXACTLY still holds
                     # (credit conservation intact, docks reward the final hauler).
                     # Flat claims stay 2-tuples (decay ≡ 1) — bit-identical path.
-                    if self.bills:
+                    if self.bills and sw:            # v29: shock/CCP settlement
+                        self._settle_parcel_bills(p, r, rate, vm)
+                    elif self.bills:                 # ── original path (bit-identical) ──
                         csum = 0.0
                         for claim in p["claims"]:
                             if len(claim) == 3:
@@ -1959,6 +2256,15 @@ class World:
                         resid = 1.0 - csum
                         r.credit += resid * unit
                         self.company[r.company]["credit"] += resid * unit
+                    elif sw:                         # v29: spot (bills off) under shock —
+                        real = rate * V_DELIVER * vm  # the deliverer books the realized
+                        r.credit += real              # value; a paperless economy has no
+                        self.company[r.company]["credit"] += real   # claim stack to hit
+                        if vm != 1.0:
+                            self.shock_writedown += (1.0 - vm) * V_DELIVER
+                            self._record_wd(r.rid, (1.0 - vm) * rate * V_DELIVER,
+                                            (1.0 - vm) * rate * V_DELIVER,
+                                            "direct", 0, True)
                     # v17 PHASE 2 (snhp+firm): recoup the transfer price the
                     # treasury advanced for this unit — deliverer→treasury, the
                     # exact inverse of the handoff advance (net-zero within-company
@@ -1969,12 +2275,17 @@ class World:
                         self.company[r.company]["treasury"] += adv
                 r.parcels = []
             r.delivered += q
-            if not self.bills:                  # spot/firm: deliverer books it all
+            if not self.bills and not sw:       # spot/firm: deliverer books it all
                 r.credit += earned              # (firm then recoups the advances
                 self.company[r.company]["credit"] += earned   # above; net earned)
+                # v29: under `sw` the spot deliverer was already credited PER PARCEL
+                # at its realized value (loop above), so this whole-load booking is
+                # skipped; `earned` (full face) would double-count the collapse.
             if owner is not None and owner != r.company:
                 self.foreign_refined += q
-                tariff = self.tau[owner] * V_DELIVER * q
+                # v29: the tariff is on REALIZED value — the value-weighted count
+                # qval (== q when nothing is shocked ⇒ byte-identical off).
+                tariff = self.tau[owner] * V_DELIVER * (qval if sw else q)
                 self.company[owner]["tariffs_earned"] += tariff
                 self.company[r.company]["tariffs_paid"] += tariff
             for miner_co in (0, 1):           # provenance matrix
@@ -2094,6 +2405,15 @@ class World:
                     p["acq_tick"] = self.tick
                     p["acq_pos"] = taker.pos
             taker.parcels.extend(moving)
+            # v29 (column AB): acquiring an in-transit far-band parcel post-shock is a
+            # DIRECT hit (the taker now hauls worthless cargo, burning energy for a
+            # settlement that vanished) — taint it at depth 0 so a later death of the
+            # taker attributes contagion by hop-distance. No-op unless the shock has
+            # fired ⇒ bit-safe off.
+            if self.shocked:
+                for p in moving:
+                    if p["origin"] in self.shock_far:
+                        self._taint(taker.rid, 0)
             # v17 PHASE 2 (snhp+firm): a WITHIN-company handoff settles internally
             # — the treasury advances the receiver a transfer price (marginal haul
             # cost + fixed margin), tagged onto the moved parcels and recouped from
@@ -2213,7 +2533,15 @@ class World:
         # identity stays exact (the value is gone, like stranded cargo, but the
         # ledger balances). 0 in every prior column ⇒ bit-identical.
         voided = self.claims_voided
-        return abs(credit + tariffs + build + voided
+        # v29 (column AB): the shock counts a far-band unit as `delivered` (physical)
+        # but the collapsed ore never created its (1−floor)·V of value — that gap is
+        # in shock_writedown, added back exactly like a void. The clearinghouse fee
+        # RESERVE (ccp_pool) is live credit that left circulation into the pool (net
+        # of covers), so it is added back too. Fees/covers are net-zero company↔pool
+        # transfers; the per-unit algebra closes to V (SPEC v29). Both 0 in every
+        # prior column ⇒ bit-identical.
+        shock = self.shock_writedown + self.ccp_pool
+        return abs(credit + tariffs + build + voided + shock
                    - V_DELIVER * self.delivered) < 1e-6
 
     def credit_conserved(self) -> bool:

@@ -381,6 +381,11 @@ class BaseArm:
                                        # mid-encounter, so the claim stack Φ prices is
                                        # stable through the encounter phase (evaluated
                                        # Φ == executed Φ). No-op when mortality is off.
+        w.shock_step()                 # v29 (column AB): fire the far-band shock at
+                                       # T_shock (TICK START, same invariant). Φ never
+                                       # sees it — the write-down lands only at
+                                       # settlement/death — so evaluated Φ == executed Φ
+                                       # holds. No-op unless the shock is scheduled.
         if w.tick % EV_REFRESH == 0:
             for r in w.robots:
                 update_ev(r, w)

@@ -1727,6 +1727,11 @@ _ORACLE_SUBSET = (
     + [dict(arm_name="trust-gated", preset="v5", seed=0, liar_frac=0.25,
             defended=True, forgery=True, forge_cost=2.0, verify_cost=1.0,
             verify_regime="endogenous")]
+    # v29 (column AB): the shock is a pure SETTLEMENT-side event — Φ never sees it —
+    # so the SPOT+shock economy (bills off ⇒ fast path) must keep fast == scalar. The
+    # shock fires early (tick 60) so the darkened-value drop path is exercised.
+    + [dict(arm_name="snhp+net", preset="v5", seed=0, ticks=180, mortality=True,
+            death_regime="none", lineage=True, shock=True, shock_tick=60)]
 )
 
 
@@ -3273,6 +3278,166 @@ def test_v28_premium_split_responds_to_hazard():
     _, disc = load_factors(r0, w_off)
     assert abs(hop_split(r0, w_off) - 0.5 * (1.0 + disc)) < 1e-12, \
         "plain bills split is not the P23 α*"
+
+
+# ── v29 (column AB): the crash — contagion in the counterparty web ────────────
+def _shock_world(seed=0, ccp=False, shock_tick=250, n_robots=24, grid=32):
+    w = World(n_robots=n_robots, grid=grid, sigma=0.5, seed=seed, preset="v5",
+              tau=(0.15, 0.15), bills=True, mortality=True,
+              death_regime="claims_die", lineage=True, hazard_phi=True,
+              shock=True, shock_tick=shock_tick, clearinghouse=ccp)
+    return w, make_arm("snhp+net", w)
+
+
+def test_v29_shock_off_bit_identical():
+    """shock=False / clearinghouse=False must be bit-identical to a world that never
+    heard of column AB — the shock arrays, the taint vector, the CCP pool and every AB
+    branch may not perturb a single bit when off, and every AB accumulator must stay
+    inert after a full bills+mortality run (the settlement/death paths AB touches)."""
+    outs = []
+    for kw in (dict(), dict(shock=False, clearinghouse=False)):
+        w = World(sigma=0.5, seed=0, preset="v5", tau=(0.15, 0.15), bills=True,
+                  mortality=True, death_regime="claims_die", wearout=True,
+                  lineage=True, hazard_phi=True, **kw)
+        arm = make_arm("snhp+net", w)
+        for _ in range(500):
+            arm.tick()
+        outs.append((w.delivered, arm.deals, len(w.event_log),
+                     round(sum(r.battery for r in w.robots), 9),
+                     [tuple(sorted(d.items())) for d in w.deal_log]))
+        assert not w.shocked and not w.writedown_log and w.ccp_pool == 0.0
+        assert w.shock_writedown == 0.0 and w.ccp_fees == 0.0
+        assert not w.shock_far and all(t is None for t in w.shock_taint)
+    assert outs[0] == outs[1], "column-AB plumbing perturbed the world"
+
+
+def test_v29_shock_voids_exact_far_band():
+    """At T_shock the far-band asteroids' stock zeros out — booked to stock_lost so
+    material conservation holds — and NOTHING else (near/mid rocks untouched). The far
+    band is the registered percentile of nearest-refinery distance, non-empty."""
+    w, _ = _shock_world(shock_tick=5)
+    far = set(w.shock_far)
+    assert far, "far band is empty"
+    stock0, lost0 = list(w.stock), w.stock_lost
+    far_stock = sum(w.stock[i] for i in far)
+    assert far_stock > 0
+    w.tick = 5
+    w.shock_step()
+    assert w.shocked
+    for i in range(len(w.stock)):
+        if i in far:
+            assert w.stock[i] == 0, "far-band stock not zeroed"
+        else:
+            assert w.stock[i] == stock0[i], "non-far stock perturbed by the shock"
+    assert w.stock_lost - lost0 == far_stock == w.shock_far_stock_lost
+    assert w.material_ok()
+
+
+def test_v29_three_hop_chain_contagion_attribution():
+    """A hand-built far-band A→B→C→deliver chain. After the far band goes dark the
+    parcel settles at the collapsed floor: the DELIVERER (physically held the dark ore)
+    is a DIRECT hop-0 write-down; the two UPSTREAM claimants hold only PAPER up the
+    chain, so their loss is CONTAGION — B at hop 1, A at hop 2. The MIDDLE write-down
+    is attributed as contagion, NOT direct (the counterparty web transmitting the
+    collapse). Depth == chain length, as registered."""
+    w = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), bills=True,
+              mortality=True, death_regime="claims_die", lineage=True,
+              shock=True, shock_tick=1)
+    arm = make_arm("snhp+net", w)
+    far_i = min(w.shock_far)
+    A, B, C = w.robots[0], w.robots[1], w.robots[2]
+    for r in (A, B, C):
+        r.company, r.sector, r.cap, r.load, r.load_prov, r.parcels = \
+            0, far_i, 5, 0, [0, 0], []
+    A.pos, w.stock[far_i] = w.sources[far_i], 2
+    assert w.pick(A) == 2                      # A mines 2 FAR units (origin=far_i)
+    w.tick = 1
+    w.transfer_cargo(A, B, 2, log=True); arm._bills_attach(A, B, 2, 0.5)   # A→B, A claims
+    w.transfer_cargo(B, C, 2, log=True); arm._bills_attach(B, C, 2, 0.5)   # B→C, B claims
+    w.shock_step()                             # the far band goes dark; C holds worthless
+    assert w.shocked and far_i in w.shock_far
+    C.pos = w.refineries[0]
+    w.tick = 2
+    w.drop(C)                                  # settle at the collapsed floor
+    byrid = {}
+    for e in w.writedown_log:
+        byrid.setdefault(e["rid"], []).append(e)
+    assert C.rid in byrid and byrid[C.rid][0]["cause"] == "direct" \
+        and byrid[C.rid][0]["hop"] == 0, "deliverer not a direct hop-0 victim"
+    assert B.rid in byrid and byrid[B.rid][0]["cause"] == "contagion" \
+        and byrid[B.rid][0]["hop"] == 1, "middle claimant not contagion@hop1"
+    assert A.rid in byrid and byrid[A.rid][0]["cause"] == "contagion" \
+        and byrid[A.rid][0]["hop"] == 2, "upstream claimant not contagion@hop2"
+    assert w.ledger_accounted() and w.credit_conserved()
+
+
+def test_v29_ccp_fee_conservation_and_waterfall():
+    """The clearinghouse conserves credit through the shock: fees build the pool, the
+    pool covers write-downs, and when it runs DRY the uncovered remainder is a pro-rata
+    HAIRCUT (recipients eat it) — the ledger balances in every case. A full shock+CCP
+    economy with the invariants live, then a hand-built dry-pool settlement to exercise
+    the waterfall explicitly."""
+    w, arm = _shock_world(ccp=True, shock_tick=200)
+    for _ in range(1200):
+        arm.tick()
+        assert w.ledger_accounted() and w.credit_conserved() and w.material_ok()
+    assert w.shocked and w.ccp_fees > 0 and w.writedown_log, "vacuous CCP shock run"
+    # explicit WATERFALL: drain the pool, settle a shocked chain, eat the haircut
+    w2 = World(sigma=0.5, seed=0, preset="v5", tau=(0.0, 0.0), bills=True,
+               mortality=True, death_regime="claims_die", lineage=True,
+               shock=True, shock_tick=1, clearinghouse=True)
+    arm2 = make_arm("snhp+net", w2)
+    far_i = min(w2.shock_far)
+    A, B = w2.robots[0], w2.robots[1]
+    for r in (A, B):
+        r.company, r.sector, r.cap, r.load, r.load_prov, r.parcels = \
+            0, far_i, 5, 0, [0, 0], []
+    A.pos, w2.stock[far_i] = w2.sources[far_i], 2
+    w2.pick(A)
+    w2.tick = 1
+    w2.transfer_cargo(A, B, 2, log=True); arm2._bills_attach(A, B, 2, 0.5)
+    w2.shock_step()
+    w2.ccp_pool = 0.0                          # force the pool DRY before settlement
+    B.pos = w2.refineries[0]; w2.tick = 2
+    w2.drop(B)
+    assert w2.ccp_haircut > 0, "waterfall did not engage on a dry pool"
+    assert w2.ledger_accounted() and w2.credit_conserved()
+
+
+def test_v29_scar_windows_sane_and_preshock_identical():
+    """The scar series (mortality_detail.chain_by_window) sums to at most the deal
+    count and is non-empty, and PRE-shock a shock run and its no-shock control are
+    bit-identical (the shock fires only at T_shock) — so every pre-shock window
+    matches, isolating the shock's post-shock effect. The shock leaves a footprint."""
+    import swarm.run as R
+    common = dict(arm_name="snhp+net", sigma=0.5, seed=0, ticks=900, tau=0.15,
+                  preset="v5", n_robots=24, lineage=True, mortality=True,
+                  death_regime="claims_die", bills=True)
+    r_sh = R.run_once(shock=True, shock_tick=250, **common)
+    r_ct = R.run_once(**common)
+    md_sh, md_ct = r_sh["mortality_detail"], r_ct["mortality_detail"]
+    win = md_sh["window"]
+    assert 0 < sum(md_sh["chain_by_window"]) <= r_sh["deals"]
+    pw = 250 // win
+    assert md_sh["chain_by_window"][:pw] == md_ct["chain_by_window"][:pw], \
+        "pre-shock chain windows differ between shock and control"
+    assert md_sh["death_by_window"][:pw] == md_ct["death_by_window"][:pw]
+    sd = r_sh["shock_detail"]
+    assert sd["shocked"] and sd["shock_writedown"] > 0, "shock left no footprint"
+
+
+def test_v29_evaluated_equals_executed_under_shock_both_regimes():
+    """The sacred invariant survives the crash: Φ NEVER sees the shock (far cargo keeps
+    its full Φ value; the write-down lands only at settlement/death), so the in-arm
+    evaluated Φ == executed Φ assert holds under GROSS and under the CLEARINGHOUSE.
+    Completing 1,500 ticks clean IS the test; the shock must fire and write-downs land."""
+    for ccp in (False, True):
+        w, arm = _shock_world(ccp=ccp, shock_tick=250)
+        for _ in range(1500):
+            arm.tick()
+        assert w.shocked, f"shock never fired (ccp={ccp})"
+        assert w.writedown_log, f"no write-downs — vacuous run (ccp={ccp})"
+        assert arm.deals > 0
 
 
 def benchmark(ticks=2500):

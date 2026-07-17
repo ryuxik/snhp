@@ -27,9 +27,11 @@ import numpy as np
 from scipy import stats
 
 from swarm.arms import make_arm
-from swarm.world import (BUILD_CREDIT_COST, CHARGE_SLOTS, DWELL_DECAY_LAMBDA,
-                         FLATLINE_TICKS, MATTER_COST, TOLL_GRID, TOTAL_STOCK,
-                         V_DELIVER, WEAROUT_AGE, WEAROUT_P, World, manhattan)
+from swarm.world import (BUILD_CREDIT_COST, CCP_FEE, CHARGE_SLOTS,
+                         DWELL_DECAY_LAMBDA, FLATLINE_TICKS, MATTER_COST,
+                         SHOCK_FAR_PCTL, SHOCK_VALUE_FLOOR, TOLL_GRID,
+                         TOTAL_STOCK, V_DELIVER, WEAROUT_AGE, WEAROUT_P, World,
+                         manhattan)
 
 FULL = ("cargo", "energy", "sector")
 LADDER = ["null", "rules", "auction", "auction-co", "team", "team-co",
@@ -148,7 +150,9 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
              forgery: bool = False, forge_cost: float = 0.0,
              verify_cost: float = 0.0, verify_regime: str = "none",
              mortality: bool = False, death_regime: str = "none",
-             wearout: bool = False) -> dict:
+             wearout: bool = False,
+             shock: bool = False, shock_tick: int | None = None,
+             clearinghouse: bool = False) -> dict:
     if noise > 0 and (liar_frac > 0 or defended):
         # the liar/defended branch pre-empts the v5 noise machinery, so the
         # combination would run noiseless while the row claims noise>0
@@ -190,14 +194,23 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
               charger_band=charger_band, nav_dumb=nav_dumb,
               forgery=forgery, forge_cost=forge_cost,
               verify_cost=verify_cost, verify_regime=verify_regime,
-              mortality=mortality, death_regime=death_regime, wearout=wearout)
+              mortality=mortality, death_regime=death_regime, wearout=wearout,
+              shock=shock, shock_tick=shock_tick, clearinghouse=clearinghouse)
     arm = make_arm(base, w, issues=issues, noise=noise)
     makespan = ticks
+    # v29 (column AB): sample the CCP fee-pool trajectory (and the far-band exposure)
+    # once per window across the run — the scar/pool trajectory reads it. Windowed so
+    # the row stays small at 7,500 ticks. No-op unless shock/clearinghouse is on.
+    _pab = shock or clearinghouse
+    _WIN = 250
+    _pool_traj = []
     delivered_mid = 0
     stale = []          # v10 P15b: mean (tick − last_seen) over all
     stale_own, stale_other = [], []   # v12 K2 P17d: patrol differentiation
     for t in range(ticks):        # (company, asteroid) pairs, every 50 ticks
         arm.tick()
+        if _pab and (t + 1) % _WIN == 0:       # v29: window the CCP pool trajectory
+            _pool_traj.append(round(w.ccp_pool, 3))
         if belief_mode and (t + 1) % 50 == 0:
             if gossip:
                 # v14: fleet-average per-robot staleness (each robot carries its
@@ -229,6 +242,7 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         delivered_mid = w.total_stock   # finished before the checkpoint
     assert w.material_ok(), "material leak"
     assert w.ledger_accounted(), "ledger leak"
+    assert w.credit_conserved(), "credit leak"        # v29 (column AB): CCP + shock
     assert w.matter_conserved(), "matter leak"        # v18 (column Q)
     assert w.toll_conserved(), "toll leak"            # v18 (column Q)
 
@@ -467,6 +481,90 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
             deaths_bat_pct=[d["bat_pct"] for d in w.death_log],
             deaths_own_claim=[d["own_claim"] for d in w.death_log],
         )
+        # v29 (column AB): the SCAR series — chain deals (cargo, q≠0), deaths and
+        # strand ONSETS binned per WINDOW. Lives on mortality_detail so BOTH the shock
+        # cells and their no-shock controls carry it (the scar is a shock-vs-control
+        # contrast). Cheap; poolable across seeds.
+        _nwin = makespan // _WIN + 1
+        _chain = [0] * _nwin; _dwin = [0] * _nwin; _swin = [0] * _nwin
+        for d in deals:
+            if d["q"] != 0:
+                _chain[min(_nwin - 1, d["tick"] // _WIN)] += 1
+        for d in w.death_log:
+            _dwin[min(_nwin - 1, d["tick"] // _WIN)] += 1
+        for (tk, _rid) in w.strand_log:
+            _swin[min(_nwin - 1, tk // _WIN)] += 1
+        mortality_detail["window"] = _WIN
+        mortality_detail["n_windows"] = _nwin
+        mortality_detail["chain_by_window"] = _chain
+        mortality_detail["death_by_window"] = _dwin
+        mortality_detail["strand_by_window"] = _swin
+    # v29 (column AB): the crash blob (only when shock/clearinghouse is on). The
+    # contagion-depth HISTOGRAM (write-down $ by hop-distance from the darkened
+    # region — hop 0 = direct victims, ≥1 = contagion), the direct/contagion split,
+    # the SCAR (chain-deal / death / strand-onset counts per WINDOW, so the reporter
+    # can read pre- vs post-shock rate + recovery), and the CCP pool accounting +
+    # trajectory. Poolable across seeds. No-op unless the shock/CCP is on.
+    shock_detail = None
+    if shock or clearinghouse:
+        HOPCAP = 6                     # bin hops 0..5, ≥6 folds into the last bin
+        wd_exp = [0.0] * (HOPCAP + 1)  # Σ exposure (pre-CCP reach) by hop
+        wd_real = [0.0] * (HOPCAP + 1) # Σ realized (post-CCP eaten) by hop
+        wd_cnt = [0] * (HOPCAP + 1)
+        wd_direct_exp = wd_direct_real = wd_cont_exp = wd_cont_real = 0.0
+        for e in w.writedown_log:
+            h = min(HOPCAP, e["hop"])
+            wd_exp[h] += e["exposure"]; wd_real[h] += e["realized"]; wd_cnt[h] += 1
+            if e["cause"] == "direct":
+                wd_direct_exp += e["exposure"]; wd_direct_real += e["realized"]
+            else:
+                wd_cont_exp += e["exposure"]; wd_cont_real += e["realized"]
+        max_hop = max((e["hop"] for e in w.writedown_log), default=-1)
+        # the ROBUST reach: in-flight far-band leverage snapshotted AT the shock, by
+        # hop (deadlock-independent). exp_snap_by_hop[h] = Σ face exposure at depth h.
+        exp_snap = [0.0] * (HOPCAP + 1)
+        exp_cnt = [0] * (HOPCAP + 1)
+        for hop, val in w.shock_exp_by_hop.items():
+            exp_snap[min(HOPCAP, hop)] += val
+        for hop, c in w.shock_exp_cnt.items():
+            exp_cnt[min(HOPCAP, hop)] += c
+        exp_maxhop = max(w.shock_exp_by_hop.keys(), default=-1)
+        exp_direct = w.shock_exp_by_hop.get(0, 0.0)
+        exp_contagion = sum(v for h, v in w.shock_exp_by_hop.items() if h >= 1)
+        tshock = w.shock_tick if w.shock_tick is not None else -1
+        shock_detail = dict(
+            shock=bool(shock), clearinghouse=bool(clearinghouse),
+            shocked=bool(w.shocked), shock_tick=tshock,
+            far_pctl=SHOCK_FAR_PCTL, value_floor=SHOCK_VALUE_FLOOR,
+            ccp_fee=CCP_FEE, n_far=len(w.shock_far),
+            far_stock_lost=w.shock_far_stock_lost,
+            window=_WIN,
+            # PABa (robust): in-flight far-band leverage snapshotted AT the shock
+            exp_snap_by_hop=[round(x, 2) for x in exp_snap],
+            exp_snap_cnt_by_hop=exp_cnt, exp_snap_maxhop=exp_maxhop,
+            exp_snap_direct=round(exp_direct, 2),
+            exp_snap_contagion=round(exp_contagion, 2),
+            # REALIZED write-downs at settlement/death (materialized subset)
+            wd_exp_by_hop=[round(x, 2) for x in wd_exp],
+            wd_real_by_hop=[round(x, 2) for x in wd_real],
+            wd_count_by_hop=wd_cnt, max_hop=max_hop,
+            wd_direct_exp=round(wd_direct_exp, 2),
+            wd_direct_real=round(wd_direct_real, 2),
+            wd_contagion_exp=round(wd_cont_exp, 2),
+            wd_contagion_real=round(wd_cont_real, 2),
+            shock_writedown=round(w.shock_writedown, 2),
+            # deaths/strands after the shock (the physical damage window)
+            deaths=w.deaths,
+            deaths_post=sum(1 for d in w.death_log if d["tick"] >= tshock)
+            if tshock >= 0 else 0,
+            strands_total=len(w.strand_log),
+            strands_post=sum(1 for (tk, _r) in w.strand_log if tk >= tshock)
+            if tshock >= 0 else 0,
+            # CCP accounting
+            ccp_fees=round(w.ccp_fees, 2), ccp_payouts=round(w.ccp_payouts, 2),
+            ccp_haircut=round(w.ccp_haircut, 2),
+            ccp_pool_final=round(w.ccp_pool, 2), ccp_pool_traj=_pool_traj,
+        )
     # v17 PHASE 2: the mechanism rides the same snhp+net base (SnhpArm) — the
     # world flag IS the treatment, so relabel for the tables/pairings.
     # P23e: contingent splits get a distinct label so spot/flat/contingent pair.
@@ -491,6 +589,13 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         _mort = {"claims_die": "+die", "estates": "+est",
                  "risk_premium": "+rp", "none": "+mort"}[death_regime]
         base_label = base_label + _mort
+    # v29 (column AB): a crash row carries its clearinghouse / shock flags in the
+    # label so gross/CCP × shock/control pair cleanly. Off ⇒ unchanged (a gross
+    # no-shock row is exactly the v28 claims-die anchor "snhp+bill+die").
+    if clearinghouse:
+        base_label = base_label + "+ccp"
+    if shock:
+        base_label = base_label + "+shk"
     label = base_label if tuple(issues) == FULL else \
         f"{base_label}[{'+'.join(issues)}]"
     return dict(
@@ -635,6 +740,10 @@ def run_once(arm_name: str, sigma: float, seed: int, ticks: int = 2500,
         mortality=mortality, death_regime=death_regime, wearout=wearout,
         deaths=(w.deaths if mortality else None),
         mortality_detail=mortality_detail,
+        # v29 (column AB): the crash — contagion in the counterparty web
+        shock=shock, clearinghouse=clearinghouse,
+        shock_tick=(w.shock_tick if (shock or clearinghouse) else None),
+        shock_detail=shock_detail,
     )
 
 
@@ -2767,6 +2876,220 @@ def pz_report(rows: list[dict]) -> None:
               f"even free; the TIER (no walk-away veto) is the target, as registered.")
 
 
+def pab_report(rows: list[dict]) -> None:
+    """v29 (column AB) — the crash: contagion in the counterparty web. Printed
+    numbers ARE the artifact (report, not verdict). No-op unless the sweep carries a
+    shock run. Six cells pair off the same bills+mortality(claims-die) config:
+      snhp+bill+die+shk       GROSS BILATERAL, shock       (each claim eats its own)
+      snhp+bill+die           GROSS, no-shock control      (== the v28 claims-die run)
+      snhp+bill+die+ccp+shk   CLEARINGHOUSE, shock         (CCP guarantees at face)
+      snhp+bill+die+ccp       CLEARINGHOUSE, no-shock       (fees build, no payouts)
+      snhp+net+mort+shk       SPOT (paperless), shock       (no claim web to spread)
+      snhp+net+mort           SPOT, no-shock control
+    T_shock is registered in shock_detail; pre-shock the shock and control runs are
+    bit-identical, so the SCAR (post- minus pre-shock chain rate, differenced against
+    the control) isolates the shock. Reads shock_detail (histogram/CCP) and
+    mortality_detail (the per-window scar series)."""
+    srows = [r for r in rows if r.get("shock_detail")]
+    if not srows:
+        return
+    GS, GC = "snhp+bill+die+shk", "snhp+bill+die"
+    CS, CC = "snhp+bill+die+ccp+shk", "snhp+bill+die+ccp"
+    SS, SC = "snhp+net+mort+shk", "snhp+net+mort"
+    lab = {GS: "gross+shk", GC: "gross(ctl)", CS: "ccp+shk", CC: "ccp(ctl)",
+           SS: "spot+shk", SC: "spot(ctl)"}
+    Ns = sorted({int(r["n_robots"]) for r in srows})
+    HOPCAP = 6
+
+    def sel(arm, N):
+        return [r for r in rows if r["arm"] == arm and int(r["n_robots"]) == N]
+
+    def sd(r):
+        return r.get("shock_detail") or {}
+
+    def md(r):
+        return r.get("mortality_detail") or {}
+
+    d0 = sd(srows[0])
+    print("\n" + "=" * 94)
+    print("PAB (v29 · column AB) — THE CRASH: CONTAGION IN THE COUNTERPARTY WEB "
+          "(report, not verdict)")
+    print(f"T_shock={d0['shock_tick']} (registered, identical across regimes/seeds); "
+          f"far band = rocks beyond the p{d0['far_pctl']} nearest-refinery distance "
+          f"(farthest ~40%),")
+    print(f"value floor={d0['value_floor']:g} (ore zeros out), CCP fee={d0['ccp_fee']:g} "
+          f"of face per settlement. Φ never sees the shock — write-downs land only at "
+          f"settlement/death.")
+    print("=" * 94)
+
+    # [1] the shock's footprint + physical damage (deaths/strands post-shock vs ctl)
+    print("\n[1] SHOCK FOOTPRINT — far-band size, delivered, total value written down, "
+          "deaths/strands POST-shock (vs no-shock control):")
+    h = (f"  {'cell':<11} {'N':>4} {'far':>4} {'farLost':>7} {'deliv':>6} "
+         f"{'writedn$':>9} {'deaths':>7} {'dPost':>6} {'strPost':>7}")
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for arm in (GS, GC, CS, CC, SS, SC):
+            g = sel(arm, N)
+            if not g:
+                continue
+            s = [sd(r) for r in g]
+            far = np.mean([x.get("n_far", 0) for x in s])
+            fl = np.mean([x.get("far_stock_lost", 0) for x in s])
+            dv = np.mean([r["delivered"] for r in g])
+            wdn = np.mean([x.get("shock_writedown", 0) for x in s])
+            dth = np.mean([r["deaths"] or 0 for r in g])   # top-level (all cells)
+            dp = np.mean([x.get("deaths_post", 0) for x in s])
+            sp = np.mean([x.get("strands_post", 0) for x in s])
+            print(f"  {lab[arm]:<11} {N:>4} {far:>4.0f} {fl:>7.0f} {dv:>6.0f} "
+                  f"{wdn:>9.0f} {dth:>7.1f} {dp:>6.1f} {sp:>7.1f}")
+
+    def snap_hop(r):
+        """Far-band leverage $ by hop, snapshotted AT the crash (the in-transit claim
+        stacks referencing a settlement that cannot complete). The robust PABa reach
+        measure — the realized settlement/death write-downs are the materialized
+        subset (many chains later deliver-at-0, void on a claimant's death, or
+        deadlock, so realized under-counts the reach)."""
+        return sd(r).get("exp_snap_by_hop", [0.0] * (HOPCAP + 1))
+
+    # [2] PABa — the CONTAGION-DEPTH HISTOGRAM: in-flight far-band leverage $ by hop up
+    # the web, snapshotted AT the crash (per-cell, per-seed mean).
+    print("\n[2] PABa CONTAGION-DEPTH HISTOGRAM — in-flight far-band leverage EXPOSURE $ "
+          "by hop up the counterparty web, snapshotted AT the crash (per-seed mean).")
+    print("     hop 0 = DIRECT victim (holds the dark ore); hop ≥1 = CONTAGION up the "
+          "web (paper-claimants, depth == chain length). h6 folds all hops ≥6.")
+    hd = "  {:<11} {:>4} " + " ".join(f"{'h'+str(k):>8}" for k in range(HOPCAP + 1))
+    hdr = hd.format("cell", "N")
+    print(hdr + "\n  " + "-" * (len(hdr) - 2))
+    for N in Ns:
+        for arm in (GS, CS, SS):
+            g = sel(arm, N)
+            if not g:
+                continue
+            tot = np.mean([snap_hop(r) for r in g], axis=0)
+            cells = " ".join(f"{v:>8.0f}" for v in tot)
+            print(f"  {lab[arm]:<11} {N:>4} {cells}")
+
+    # [3] PABa split — direct (hop 0) vs contagion (hop ≥1), the ≥2-hop share, the
+    # deepest hop; plus what MATERIALIZED as realized write-downs at settlement/death.
+    print("\n[3] PABa DIRECT vs CONTAGION — does the loss escape the direct victims "
+          "(hop ≥1)?  ≥2-hop reach IS the systemic-risk signal. [snap]=in-flight "
+          "leverage at the crash, [real]=materialized at settlement/death.")
+    h = (f"  {'cell':<11} {'N':>4} {'direct$':>9} {'contag$':>9} {'contag%':>8} "
+         f"{'≥2hop$':>8} {'maxhop':>7} {'realCon$':>9}")
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for arm in (GS, CS, SS):
+            g = sel(arm, N)
+            if not g:
+                continue
+            fh = [snap_hop(r) for r in g]
+            d0 = np.mean([x[0] for x in fh])
+            c1 = np.mean([sum(x[1:]) for x in fh])
+            ge2 = np.mean([sum(x[2:]) for x in fh])
+            frac = c1 / (d0 + c1) if (d0 + c1) > 0 else 0.0
+            mh = np.mean([sd(r).get("exp_snap_maxhop", -1) for r in g])
+            rcon = np.mean([sd(r).get("wd_contagion_exp", 0) for r in g])
+            print(f"  {lab[arm]:<11} {N:>4} {d0:>9.0f} {c1:>9.0f} {frac:>7.1%} "
+                  f"{ge2:>8.0f} {mh:>7.1f} {rcon:>9.0f}")
+
+    # [4] PABb — the CLEARINGHOUSE caps contagion (realized loss) at a fee cost
+    print("\n[4] PABb CLEARINGHOUSE CAP — REALIZED write-down (what claimants actually "
+          "eat) gross vs CCP, plus the CCP's fee income / payouts / haircut / pool:")
+    h = (f"  {'cell':<11} {'N':>4} {'realized$':>10} {'exposure$':>10} "
+         f"{'fees':>7} {'payout':>7} {'haircut':>8} {'poolEnd':>8}")
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for arm in (GS, CS):
+            g = sel(arm, N)
+            if not g:
+                continue
+            real = np.mean([sd(r).get("wd_direct_real", 0)
+                            + sd(r).get("wd_contagion_real", 0) for r in g])
+            exp = np.mean([sd(r).get("wd_direct_exp", 0)
+                           + sd(r).get("wd_contagion_exp", 0) for r in g])
+            fee = np.mean([sd(r).get("ccp_fees", 0) for r in g])
+            pay = np.mean([sd(r).get("ccp_payouts", 0) for r in g])
+            hair = np.mean([sd(r).get("ccp_haircut", 0) for r in g])
+            pool = np.mean([sd(r).get("ccp_pool_final", 0) for r in g])
+            print(f"  {lab[arm]:<11} {N:>4} {real:>10.0f} {exp:>10.0f} {fee:>7.0f} "
+                  f"{pay:>7.0f} {hair:>8.0f} {pool:>8.0f}")
+    # the CCP fee-pool trajectory (pre-shock build, post-shock drawdown), one cell
+    for N in Ns:
+        g = sel(CS, N)
+        if g and sd(g[0]).get("ccp_pool_traj"):
+            traj = np.mean([sd(r)["ccp_pool_traj"] for r in g
+                            if len(sd(r).get("ccp_pool_traj", [])) ==
+                            len(sd(g[0])["ccp_pool_traj"])], axis=0)
+            win = sd(g[0]).get("window", 250)
+            tsh = sd(g[0]).get("shock_tick", -1)
+            samp = [f"t{(i+1)*win}:{v:.0f}" for i, v in enumerate(traj)
+                    if (i + 1) * win % (win * 3) == 0][:12]
+            print(f"    CCP pool traj N={N} (shock@{tsh}): " + "  ".join(samp))
+
+    # [5] PABc — the SCAR: chain-formation rate pre vs post shock, shock vs control
+    print("\n[5] PABc THE SCAR — chain-deal rate (cargo deals / tick) by window, "
+          "shock vs no-shock control. Pre-shock the two are bit-identical.")
+    for N in Ns:
+        for stag, sarm, carm in (("GROSS", GS, GC), ("CCP", CS, CC),
+                                  ("SPOT", SS, SC)):
+            gs, gc = sel(sarm, N), sel(carm, N)
+            if not gs or not gc:
+                continue
+            win = md(gs[0]).get("window", 250)
+            tsh = sd(gs[0]).get("shock_tick", -1)
+            pw = tsh // win if tsh >= 0 else 0
+
+            def rate(rowset, w0, w1):
+                vals = []
+                for r in rowset:
+                    cw = md(r).get("chain_by_window", [])
+                    seg = cw[w0:w1]
+                    if seg:
+                        vals.append(sum(seg) / (len(seg) * win))
+                return float(np.mean(vals)) if vals else 0.0
+
+            nmin = min(len(md(r).get("chain_by_window", [])) for r in gs + gc)
+            pre_s = rate(gs, 0, pw)
+            post_s = rate(gs, pw, min(pw + 4, nmin))     # ~1000 ticks after shock
+            post_c = rate(gc, pw, min(pw + 4, nmin))
+            deficit = (post_c - post_s) / post_c if post_c > 1e-9 else 0.0
+            # recovery: first post window where shock rate >= control rate again
+            rec = None
+            for wk in range(pw, nmin):
+                rs = rate(gs, wk, wk + 1)
+                rc = rate(gc, wk, wk + 1)
+                if wk > pw and rs >= rc - 1e-9:
+                    rec = (wk - pw) * win
+                    break
+            recs = f"{rec}t" if rec is not None else ">horizon"
+            print(f"    N={N:>3} {stag:<6} pre={pre_s:.3f} post-shock={post_s:.3f} "
+                  f"post-ctl={post_c:.3f}  scar={deficit:+.0%} of ctl  recovery≈{recs}")
+
+    # [6] the leverage question — does the shock hurt the PAPERLESS economy less?
+    print("\n[6] THE LEVERAGE QUESTION — spot (no claim web) vs bills. Same far ore "
+          "darkens; does PAPER spread the loss to more agents / deeper hops? (at-shock "
+          "in-flight exposure snapshot).")
+    h = (f"  {'cell':<11} {'N':>4} {'total$':>8} {'hop0$':>8} "
+         f"{'≥1hop$':>8} {'≥1hop%':>7} {'maxhop':>7}")
+    print(h + "\n  " + "-" * (len(h) - 2))
+    for N in Ns:
+        for arm in (GS, CS, SS):
+            g = sel(arm, N)
+            if not g:
+                continue
+            fh = [snap_hop(r) for r in g]
+            c0 = np.mean([x[0] for x in fh])
+            c1 = np.mean([sum(x[1:]) for x in fh])
+            f1 = c1 / (c0 + c1) if (c0 + c1) > 0 else 0.0
+            mh = np.mean([sd(r).get("exp_snap_maxhop", -1) for r in g])
+            print(f"  {lab[arm]:<11} {N:>4} {c0+c1:>8.0f} {c0:>8.0f} "
+                  f"{c1:>8.0f} {f1:>6.1%} {mh:>7.1f}")
+    print("    Read: spot concentrates the loss on hop-0 holders (no claim web ⇒ ≥1hop "
+          "≈ 0); bills SPREAD the identical ore-loss up the web — that spread IS the "
+          "leverage / systemic risk.")
+
+
 def build_jobs(column: str, seeds: int, ticks: int):
     jobs = []
     if column in ("A", "all"):
@@ -3388,6 +3711,50 @@ def build_jobs(column: str, seeds: int, ticks: int):
                                  mortality=True, death_regime=reg,
                                  sigma=0.5, ticks=7500, tau=0.15, preset="v5",
                                  n_robots=24, lineage=True))
+    if column == "AB":                # v29: the crash — contagion in the web (PAB)
+        # The bills+mortality(claims-die) economy, LONG horizon, with the far band
+        # going dark at T_shock. Six cells: {gross, clearinghouse} × {shock,
+        # no-shock control} + spot × {shock, no-shock control} (the leverage
+        # question — does the shock hurt a paperless economy less?).
+        #
+        # REGISTERED T_shock — PER GRID, NOT the contract's illustrative 3,500. The v5
+        # economy delivers/relays its far band over an ACTIVE phase then PLATEAUS (far
+        # cargo either delivered or P24-deadlocked in living, un-dying drones); a shock
+        # AFTER that phase lands on a settled economy with nothing in flight and is
+        # inert. The active phase's timescale is N-dependent — the dense N=24 field
+        # resolves its far band by ~tick 350, the N=240 field relays it over ~ticks
+        # 300–2,000 — so T_shock is set to the MIDPOINT of each grid's active far-band
+        # relay phase: N=24 → tick 200 (15/16 seeds have far cargo in flight there),
+        # N=240 → tick 1,000. Each catches mature pre-shock chains mid-flight
+        # (identical across regimes and seeds within a grid). Horizon stays LONG
+        # (7,500t) so the scar's recovery window and any late
+        # amortization are observable. (N=240 is the PRIMARY; the dense N=24 web is
+        # transient, so N=24 is the weaker scale reference — reported honestly.)
+        import math as _math
+        g240 = int(round(32 * _math.sqrt(240 / 24)))
+        HORIZON = 7500
+        DIE = dict(bills=True, mortality=True, death_regime="claims_die")
+
+        def _cells(T):
+            return [
+                dict(**DIE, shock=True, shock_tick=T),                      # gross+shk
+                dict(**DIE),                                               # gross ctl
+                dict(**DIE, clearinghouse=True, shock=True, shock_tick=T), # ccp+shk
+                dict(**DIE, clearinghouse=True),                          # ccp  ctl
+                dict(bills=False, mortality=True, death_regime="none",
+                     shock=True, shock_tick=T),                            # spot+shk
+                dict(bills=False, mortality=True, death_regime="none"),    # spot ctl
+            ]
+        base240 = dict(sigma=0.5, ticks=HORIZON, tau=0.15, preset="v5",
+                       n_robots=240, grid=g240, lineage=True)
+        base24 = dict(sigma=0.5, ticks=HORIZON, tau=0.15, preset="v5",
+                      n_robots=24, lineage=True)
+        for cell in _cells(1000):                       # N=240 primary, T_shock=1,000
+            for seed in range(min(seeds, 8)):
+                jobs.append(dict(arm_name="snhp+net", seed=seed, **base240, **cell))
+        for cell in _cells(200):                        # N=24 reference, T_shock=200
+            for seed in range(min(seeds, 16)):
+                jobs.append(dict(arm_name="snhp+net", seed=seed, **base24, **cell))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -3398,7 +3765,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "S", "U", "UH", "V", "X", "Z", "AA", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "S", "U", "UH", "V", "X", "Z", "AA", "AB", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -3425,6 +3792,7 @@ def main() -> None:
         p26(rows)
         pz_report(rows)
         paa_report(rows)
+        pab_report(rows)
         return
 
     jobs = build_jobs(args.column, args.seeds, args.ticks)
@@ -3467,6 +3835,7 @@ def main() -> None:
     p26(rows)
     pz_report(rows)
     paa_report(rows)
+    pab_report(rows)
 
 
 if __name__ == "__main__":
