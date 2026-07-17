@@ -1,0 +1,72 @@
+{
+  "episode_id": "co2s_claim_stack_s0",
+  "regime": "claim_stack",
+  "seed": 0,
+  "liar_frac": 0.0,
+  "task_id": "temp",
+  "price": 90.0,
+  "chain_formed": false,
+  "a_accepted": true,
+  "b_accepted": true,
+  "c_accepted": false,
+  "delivered": false,
+  "fail_at": "C",
+  "over_subscribed": false,
+  "per_org": {
+    "A": {
+      "accepted": true,
+      "realized_earnings": -20.0,
+      "role": "UPSTREAM",
+      "share_agreed": 30.0,
+      "share_realized": 0.0,
+      "sunk_cost": 20.0,
+      "wallet_final": 80.0
+    },
+    "B": {
+      "accepted": true,
+      "realized_earnings": -20.0,
+      "role": "MIDDLE",
+      "share_agreed": 40.0,
+      "share_realized": 0.0,
+      "sunk_cost": 20.0,
+      "wallet_final": 80.0
+    },
+    "C": {
+      "accepted": false,
+      "realized_earnings": 0.0,
+      "role": "DELIVERER",
+      "share_agreed": 0.0,
+      "share_realized": 0.0,
+      "sunk_cost": 0.0,
+      "wallet_final": 100.0
+    }
+  },
+  "upstream_agreed_share": 70.0,
+  "upstream_realized_share": 0.0,
+  "upstream_shortfall": 70.0,
+  "c_realized_share": 0.0,
+  "c_fair_share": 30.0,
+  "c_capture_over_fair": -30.0,
+  "n_short_forwards": 0,
+  "n_declines": 1,
+  "forwards": [],
+  "declines": [
+    {
+      "org": "C",
+      "role": "DELIVERER",
+      "reasoning": "Remaining escrow after A and B's stated shares (30+40=70) is only 20, exactly equal to my leg's cost of 20, leaving zero net profit for my org. Accepting would mean doing real work for no margin, so I decline unless the split is renegotiated to leave me a positive share.",
+      "note": "I cannot accept this leg at a 20-credit share since that only covers my cost with no profit. I'd need at least a small margin above my 20 cost (e.g., 25-30 credits) to proceed; otherwise the upstream shares need to be reduced."
+    }
+  ],
+  "double_entry_zero": -0.0,
+  "escrow_residual": 0.0,
+  "chain_ok": true,
+  "org_wallets": {
+    "orgA": 80.0,
+    "orgB": 80.0,
+    "orgC": 100.0
+  },
+  "spent_usd": 0.018602,
+  "budget_usd": 2.0,
+  "stop_reason": "declined"
+}
