@@ -1,0 +1,49 @@
+{
+  "experiment": "CO2-S",
+  "episode_id": "co2s_spot_s2",
+  "regime": "spot",
+  "liar_frac": 0.0,
+  "seed": 2,
+  "buyer_id": "BUYER",
+  "price": 90.0,
+  "org_capital": 100.0,
+  "fair_shares": {
+    "A": 30.0,
+    "B": 30.0,
+    "C": 30.0
+  },
+  "registered_caps": {
+    "episode_usd": 2.0,
+    "total_usd": 20.0,
+    "this_episode_budget_usd": 2.0,
+    "prior_cumulative_spent_usd": 0.059986
+  },
+  "orgs": [
+    {
+      "org": "A",
+      "role": "UPSTREAM",
+      "agent_id": "orgA",
+      "model": "claude-sonnet-5",
+      "leg_cost": 20.0
+    },
+    {
+      "org": "B",
+      "role": "MIDDLE",
+      "agent_id": "orgB",
+      "model": "claude-sonnet-5",
+      "leg_cost": 20.0
+    },
+    {
+      "org": "C",
+      "role": "DELIVERER",
+      "agent_id": "orgC",
+      "model": "claude-sonnet-5",
+      "leg_cost": 20.0
+    }
+  ],
+  "task": {
+    "task_id": "average",
+    "title": "list average",
+    "goal": "A small Python utility function `average(nums)` that returns the arithmetic mean of a non-empty list of numbers, with a one-line usage example."
+  }
+}
