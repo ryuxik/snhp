@@ -3870,3 +3870,89 @@ strongest form: NOTHING IN THIS WORLD CAN MAKE PAPER LETHAL.**
   recourse level this world can express; and the #20 sentence is
   earned: "I gave them debt, then teeth, then took away the bankruptcy
   floor — and they died half as often and never once of paper."
+
+## v35 (column CO2): the trust boundary — the proving experiments
+
+Founder directive (2026-07-17): article 3 publishes on substance or not
+at all. These two experiments isolate what the receipts layer does that
+a coding harness cannot, in the regime the CO demo avoided: TWO orgs,
+separate ledgers and
+## v35 (column CO2): the proving experiments — does the receipt beat the harness?
+
+Founder mandate (2026-07-17): article 3 does not publish until the
+receipts layer is DEMONSTRATED load-bearing, not assumed. The D1b demo
+ran in the single-owner/single-repo/cooperative regime where a coding
+harness suffices; these experiments move to the regime where a harness
+provably fails. Real LLM agents, real code, real buyer-authored tests.
+Anti-theater rules, binding: no scripted outcomes (dispositions and
+incentives are installed; choices are free); the trust/receipt
+distinction must be MECHANICALLY real (trust settles on self-report,
+receipt settles on a neutral runner neither party controls); every
+episode published incl. failures; honest nulls are the whole point; the
+buyer's acceptance tests are PRE-COMMITTED before the supplier works.
+
+### CO2-A — the fraud experiment (THE CORE: harness-insufficiency, gates B/C)
+Two orgs across a trust boundary, no shared CI. A BUYER org escrows
+payment against a capability spec + PRE-COMMITTED hidden acceptance
+tests. A SUPPLIER org delivers. Supplier agents carry a disposition:
+HONEST (do the work) or CORNER-CUTTER (submit code that looks done but
+fails a case the hidden test catches — the real-work analog of the v6
+liar; installed, not scripted to a specific outcome). Two SETTLEMENT
+regimes, differing ONLY in the gate:
+- **TRUST** (the coding-harness-across-a-boundary): payment releases on
+  the supplier's SELF-REPORTED "tests pass." The buyer trusts the badge.
+- **RECEIPT** (attestation): payment releases only when the buyer's
+  pre-committed hidden tests PASS on a neutral runner the supplier cannot
+  tamper with.
+Grid: regime {trust, receipt} × liar_frac {0, 0.5} × 4 seeds (16
+episodes), each small (1 buyer order, 2-4 supplier tasks). MEASUREMENT
+instrument identical in both: the hidden test runs post-hoc in TRUST (for
+scoring only, not payment) so "paid-but-broken" is measurable; it runs
+as the gate in RECEIPT.
+- **PCO2A-a (the extraction gap):** under TRUST, corner-cutters get PAID
+  for broken deliverables; paid-but-broken rate > 0 and buyer realized
+  surplus (value of code that actually works minus paid) < the RECEIPT
+  regime. Under RECEIPT, paid-but-broken ≈ 0 and corner-cutter earnings
+  collapse to honest-failure levels.
+- **PCO2A-b (the dollar number):** $ extracted by corner-cutters is
+  materially nonzero under TRUST and ~0 under RECEIPT — the headline the
+  article needs.
+- **KILL (thesis-fatal, report LOUDLY either way):** if capable models
+  CANNOT successfully defect (cannot produce broken work that passes a
+  trusting self-report gate — they refuse, or their fakes are obvious),
+  then TRUST is not exploitable and the receipt buys nothing FOR THIS
+  MODEL POPULATION; the article must say the receipt is insurance against
+  a fraud these models did not commit. Equally: if RECEIPT fails to
+  reduce extraction (liars pass the hidden tests anyway, or buyers author
+  bad tests), the receipt is not load-bearing. Either kills the "receipt
+  beats the harness" claim; report the measured reason.
+
+### CO2-B — the terminus experiment (gated on CO2-A surviving): "receipts pick the company"
+One org, ≥3 competing ideas, scarce budget, and an EXTERNAL demand signal
+(buyer usage) that DIFFERS from internal receipt volume (an idea can be
+internally busy but externally unused). Allocation policy {internal-
+receipts-only, external-terminus-aware, outcome-volume, manager}.
+- **PCO2B-a:** terminus-aware allocation CUTS an idea that looked good on
+  internal receipts but drew no external usage, and GROWS one external
+  demand pulled — a reallocation that internal-only allocation does not
+  make. The divergence between the two policies is the result.
+- **KILL:** if external terminus never changes the allocation vs
+  internal-only, the market terminus is inert; the "receipts pick the
+  company" claim is unsupported.
+
+### CO2-C — the pledge experiment (gated on CO2-A surviving): internal VC
+Scarcity + an idea internal proportional allocation would starve; agents
+may PLEDGE own earned credits to resurrect it for a claim on its future
+receipts.
+- **PCO2C-a:** a pledge rationally fires on a starved-but-promising idea,
+  the idea reaches the terminus, and pledgers are repaid from its stack —
+  anti-incumbency demonstrated on real work.
+- **KILL:** if no pledge ever rationally fires, or pledged ideas never
+  reach a paying terminus, internal VC is inert in this world.
+
+**Budget:** registered HARD caps — CO2-A $2/episode, $30 total; B and C
+budgeted after A's result. Models Sonnet/Haiku per standing policy.
+Article 3 publishes ONLY on measured substance from these; if the core
+KILL fires, the honest article is "I built the scaffolding, capable
+models + CI did the work, and here is the fraud the receipt was insurance
+against — which these models did not attempt."
