@@ -3696,3 +3696,39 @@ the hedge (pledges fund H if drift-receipt demand appears); the price
 (first negotiated quote vs PWYW, founder executing the transaction).
 Marketing needs no episode — v33-D lets allocation fund it whenever the
 receipts say so.
+
+**v33-I AMENDMENT (founder, 2026-07-17): HR — hiring by price and
+requirements, decided by receipts.** The roster becomes fully
+endogenous; labor is procured like everything else.
+- **Wage = the real API price.** A candidate is a (model tier, role
+  config) pair with a posted per-token wage — actual provider pricing,
+  known upfront. The allowlist of hirable tiers is founder-registered
+  (standing policy: Sonnet/Haiku in-sim; Opus never; founder may extend
+  tiers later).
+- **Requisitions:** an allocation round that grows an idea may open a
+  REQUISITION: role + requirements (task types, expected volume) + a
+  budget line, inside the episode's hard cap — a hire fits the budget or
+  does not happen.
+- **THE INTERVIEW IS A TRIAL RECEIPT.** Candidates are evaluated by
+  giving N of them the same small REAL task from the backlog; the
+  counterparty acceptance test verdict plus the metered cost IS the
+  interview. Hire the cheapest candidate that passes. The resume is a
+  claim; the trial receipt is the proof — no vibes-based hiring exists
+  in this company by construction.
+- **Trial costs are metered against the requesting idea's P&L** — so
+  over-interviewing shows up as cost where it was incurred
+  (Goodhart-resistant HR).
+- **Fire/bench already exists** (v33-A): an agent's continuation is its
+  net receipt flow minus wage, the same criterion as ideas. Hiring
+  completes the symmetry: the payroll meter (F) is the HR analytics —
+  cost-per-settled-receipt by model × role × task type is exactly the
+  data F produces, so the company's product runs its own HR. Third
+  dogfood loop.
+- **HR as a department is an EVOLUTION question, not a fiat:** the
+  mechanism (requisition + trial) lives in the protocol; whether the org
+  funds a dedicated HR agent (better requisitions, better trial design)
+  is decided by allocation rounds or pledges like any function (v33-D).
+- **D1b work item:** requisition + trial-hire actions in the harness
+  (protocol-enforced, logged; fixture-tested before any live episode).
+  Article beat registered: "the company interviewed three models and
+  hired the cheapest one that passed the counterparty's tests."
