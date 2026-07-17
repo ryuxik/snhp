@@ -3504,3 +3504,39 @@ N=24 (16 seeds) reference; σ=0.5, τ=0.15, v5.
   needs what this world still lacks — recourse against the body (seizable
   battery/chassis), margin calls mid-flight, or debt-service obligations
   payable in energy rather than credit. Registered-open for any AB3.
+
+**PAB2 VERDICTS (2026-07-17, registrar) — the kill fires INVERTED: I gave
+them debt and they died half as often.**
+- **Pre-flight PASSED, rule honest:** ~150/240 drones borrow, 9-11% of
+  all energy drawn, borrow rule derived from Φ (argmax ΔΦ(E) minus
+  expected repayment cost), deterministic, no appetite heuristic.
+- **PAB2-pre: NULL on tonnage, TRANSMUTED to survival.** Borrowing moves
+  delivery nowhere (n.s. everywhere) — but halves BASELINE mortality
+  with no crash at all (14.0 → 7.6/7.1, p=.0003, 8/8). The bait was
+  never throughput. It was life.
+- **PAB2a: REFUTED, INVERTED.** Post-shock deaths FALL at every LTV ×
+  regime × scale (10.2 → 5.5 gross, 3.9 CCP; p=.011-.056), and the
+  levered fleet buys back a third of the crash's tonnage loss (shock
+  far d/m 0.305 → 0.44: borrowed energy completes the chains the crash
+  stranded). LTV0 reproduces AB bit-exactly — the comparison is clean.
+- **PAB2b: REFUTED.** Garnishment is real, shock-specific, and
+  essentially PERMANENT (mean 5,400-5,900 ticks) — the founder's
+  "worked back the loss" exists — and it is 100% hop-0 (direct victims,
+  no contagion body count) and kills nobody at scale (0 garnished
+  deaths, every cell).
+- **PAB2c: CONFIRMED, TRANSMUTED.** The CCP cannot buy lives (none at
+  stake); it buys SOLVENCY: garnishment episodes 3.0-4.2 → 0.1-0.4.
+- **Treasury waterfall exact in all 288 runs; write-offs ~0.1% — the
+  LTV cap keeps the book collateralized.**
+- **THE LAW, fourth safety-net echo (v5 net, AA estates, M2 rescue
+  trade, AB2 credit): in this world, credit against receipts IS the
+  safety net with a price attached.** The loan disburses energy (life)
+  against paper (credit), Φ self-targets it at exactly the drones about
+  to flatline, and limited liability at death + IR + the floor keep
+  every consequence on the ledger. The receipt's deepest measured
+  function, at every layer it has ever been tested: rescue.
+- **Scope + AB3 REGISTERED-OPEN ("the crash with real teeth"):** this
+  world's debt has no recourse against the body. A real debt death needs
+  a seizable battery, a margin call mid-flight, or an obligation payable
+  in energy. Only that world can produce one; predictions to be written
+  before any build.
