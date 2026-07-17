@@ -3587,3 +3587,32 @@ Mechanism on top of AB2's claim-collateralized loans (LTV 0.5):
   make paper lethal — the strongest possible form of the law, and the
   article's #20 close gets its final sentence either way. Report
   loudly.
+
+**v33-D AMENDMENT (founder, 2026-07-17): the org must be able to EVOLVE
+and invest in its own growth — marketing included.** Four provisions,
+binding on D1b:
+1. **Non-code work class:** tasks whose deliverable is not code (docs,
+   launch copy, site pages, demo media, user support) settle on ATTESTED
+   REVIEW — acceptance criteria authored by a counterparty, checked by a
+   reviewer who is not the author; the reviewer's attestation is the
+   receipt. Weaker per-task than pytest, and priced accordingly by the
+   second provision.
+2. **Terminus-judged function P&L:** a non-code idea's allocation-round
+   P&L is judged against the REAL terminus — site analytics (hits.jsonl)
+   and PWYW revenue attributed to it — not against its internal
+   settlement volume. The org may over-invest in marketing freely; the
+   allocation round cuts what the terminus does not reward.
+3. **New-idea funding (anti-incumbency):** proportional receipt
+   allocation starves zero-history ideas, so evolution requires (a) an
+   EXPLORATION FLOOR — a registered fraction of each allocation round
+   reserved for new ideas — and (b) AGENT PLEDGES: an agent may stake
+   its own wallet credits to seed a new idea in exchange for a claim on
+   that idea's future receipts (the B2 internal claims market, pulled
+   forward). Self-investment becomes endogenous: departments exist
+   because members bet their own receipts on them.
+4. **Idea creation is an ongoing action** (not founding-episode-only),
+   and outward PUBLICATION of any marketing artifact remains
+   founder-gated: agents produce in-repo; the founder presses the
+   button. Article-3 note: the Track-1 chronicle ("a freelance evolving
+   software company, open for business") is the registered companion
+   piece — the ledger is the manuscript.
