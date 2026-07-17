@@ -4048,3 +4048,51 @@ for the no-receipt arm):**
 × 4 seeds (8 episodes; add a liar_frac=0.5 pair only if the honest cells
 show signal). Anti-theater rules from v35 bind. Gates nothing further;
 result stands on its own. Article 3 still HARD HOLD.
+
+## v35-E (column CO2-E): the efficiency experiments — receipts as a CAPABILITY, not a defense (founder reframe)
+
+Founder (2026-07-17): "I thought receipts would be about company
+efficiency — enabling longer-horizon tasks requiring more cooperation,
+like in the swarm." Registrar concurs and owns the anchoring error: the
+swarm's flagship results (P23 chains exist, X claims beat command, the
+truncation trap) were CAPABILITY results, not defense results; CO2-A/S's
+adversarial framing imported a confound (cooperative LLMs don't defect)
+the capability framing does not have.
+
+**The distinction that matters:** DEFENSE value ("the receipt stops a
+liar / prevents hold-up") requires self-interested defectors — and
+frontier LLMs, cooperative by disposition, do not supply them (CO2-A $0
+extracted; CO2-S below). CAPABILITY value ("the receipt lets a deal exist
+that otherwise cannot") is STRUCTURAL and robust to cooperation: two
+parties with genuinely opposed hidden utilities over an INDIVISIBLE good
+(a dog, a house) deadlock item-by-item no matter how honest they are, and
+only a bundle traded across issues clears — bundling-or-silence is a
+mechanism fact, not a behavior fact. So the surviving demonstrable values
+are exactly two, and neither depends on agents being crooked: (1)
+BUNDLING/joint-optimization as a capability, and (2) PROVABILITY to a
+skeptical third party. **The DIVORCE DEMO ([[snhp-demo-wedge-slate]]) is
+the vehicle for v35-E — it showcases both survivors and dodges both dead
+defense framings.** No further cooperative-company sim is registered;
+the company/intra-agent-enforcement line is CLOSED (four convergences:
+Thiel/Musk deletion, the swarm nulls, the creative panel, CO2-A/S).
+
+**PCO2S VERDICT (2026-07-17, registrar) — KILL FIRED, and the claim-stack
+was COUNTERPRODUCTIVE, not merely ceremony.** SPOT delivered 4/4 chains;
+CLAIM-STACK delivered 1/4 (3 collapsed). The terminal holder C, custodying
+the buyer's whole payment under SPOT, VOLUNTARILY self-limited to its fair
+share (+0 capture-over-fair in all 4) and forwarded the rest, explicitly
+citing "trust and future collaboration." B never declined a middle leg in
+either regime. PCO2S-a (hold-up at hand-off) REFUTED; PCO2S-b (terminal
+capture) REFUTED. The claim-stack's non-renegotiable splits instead
+COLLAPSED chains: locking the split removed C's ability to accept-then-
+self-adjust, so it walked from thin locked residuals it accepted and
+honored under flexible SPOT (verbatim: "Accepting would mean doing real
+work for no margin, so I decline unless the split is renegotiated").
+Anti-theater: builder caught its OWN violation (regime leaked via
+episode_id into the agent view), redacted it, added a guard test, rewound
+8 leaked commits, re-ran clean. n=4/arm, temp 1 — magnitude sampling-
+sensitive, DIRECTION robust across both runs. $0.20 of $20. 72 tests.
+The pre-registered informative null, confirmed: cooperative frontier
+agents need no policing, so the receipts layer's demonstrable value is
+third-party PROVABILITY (the notary), not enforcing division among
+good-faith insiders — and enforcement can HURT by removing flexibility.
