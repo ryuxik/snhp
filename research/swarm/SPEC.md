@@ -2831,3 +2831,38 @@ aggregate throughput, so the KILL fires on delivery and misses on mechanism.
   never void them — voiding doesn't dent throughput but it quietly freezes out and
   kills off exactly the agents already in trouble, and pricing the hazard into the
   spread (an insurance premium) makes it worse, not better.
+
+**PAA VERDICTS (2026-07-16, registrar) — the freeze-out is real, the heir
+is the fix, and the paper saves lives without moving tonnage.**
+- **PAAa CONFIRMED, and sharper than registered.** The freeze-out rides
+  entirely through Φ (no bolted-on rule): pricing a holder's claims at
+  survival probability makes chaining with the dying irrational, and at
+  N=24 claims-die pushes the dying quartile's chain rate BELOW the
+  no-bills spot baseline (0.073 vs 0.089) — **the claims market excludes
+  the dying harder than having no claims market at all.** v5's law, one
+  layer up, with teeth.
+- **PAAb CONFIRMED on mechanism, null on throughput — the split IS the
+  finding.** Estates keeps the dying trading (dying-quartile gap +0.031,
+  p=.049) and cuts fleet mortality ~26% vs claims-die; the full ladder is
+  the article number: **deaths/run 21.6 (spot) → 13.6 (claims-die) →
+  10.1 (estates) — the paper economy with an heir kills less than half
+  what the spot economy kills.** But delivered is flat across regimes
+  (Δ≤+0.003, n.s., no late amortization at 7,500t): in this over-served
+  field the healthy fleet absorbs the dead's abandoned cargo, so estates'
+  value is DISTRIBUTIONAL AND LIFE-PRESERVING, not throughput. (Open
+  note, unregistered: a scarce-fleet variant might couple lives to
+  tonnage; not run, not claimed.)
+- **PAAc CONFIRMED — the actuarial fix BACKFIRES, third echo of the
+  career-pricing null.** Pricing mortality hazard into the split shifts
+  void-risk onto the receiver, who vetoes the dying MORE: dying chain
+  rate falls below plain claims-die and deaths rise (16.1 vs 13.6). The
+  fix is an institution (an heir), not a spread.
+- **KILL: SPLIT, recorded honestly.** Fires on the throughput leg
+  (claims-die ≈ estates on delivered at every death rate), does not fire
+  on the mechanism leg (the freeze-out and its cure are real, p=.049).
+- **The law, on the record: paper that outlives its holder is a lifeline,
+  not a throughput lever.** Product translation: a claims/bill registry
+  must settle a dead or vanished counterparty's positions to a registered
+  heir — never void them (the void teaches the market to shun the
+  fragile) and never price the hazard into the spread (the premium does
+  the shunning arithmetically).
