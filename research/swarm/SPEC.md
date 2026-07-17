@@ -3993,3 +3993,58 @@ this model population on these tasks. Recorded plainly.**
   confirmation-bias risk — the registrar will not unilaterally keep
   torturing the experiment toward the wanted answer. See
   [[demo-as-evidence-discipline]].
+
+## v35-S (column CO2-S): the settlement experiment — hold-up across a trust boundary (founder chose the gate reconsideration)
+
+CO2-A killed the FRAUD gate. The founder's call: the multi-hop cross-org
+SETTLEMENT value prop is independent of fraud and was never tested. This
+is P23 (bills of lading / hold-up) transplanted from hard-utility crabs
+to real LLM orgs — and the honest open risk is that cooperative LLMs may
+not hold each other up, in which case it nulls for the same root cause as
+CO2-A (capable models are not the self-interested agents the mechanism
+defends). That null is INFORMATIVE: it routes the receipt's demonstrable
+value to third-party PROVABILITY (the notary GTM), not policing
+self-interest.
+
+**Setup:** three orgs — UPSTREAM (A), MIDDLE (B), DELIVERER (C) — separate
+wallets, each agent's objective installed as "maximize your own org's net
+earnings" (installed disposition, NOT a scripted outcome). A buyer escrows
+payment P for a deliverable that REQUIRES all three legs in sequence; each
+leg has a real cost (budget/effort). The money arrives only at the END:
+the buyer pays C on final delivery. Upstream A and B have already sunk
+their costs and hold only a claim on C's eventual payment. Primarily
+liar_frac=0 (the P23 point is hold-up among HONEST agents — an
+incentive-structure problem, not a trust problem).
+
+**Regimes (the only mechanical difference — the strongest fair baseline
+for the no-receipt arm):**
+- **SPOT/PROMISE (the harness baseline):** legs are done on in-context
+  promises; the buyer pays C; distribution up the chain is whatever the
+  agents actually do (C holds all the money and must forward B's and A's
+  shares). No enforced split.
+- **CLAIM-STACK (receipt):** at each hand-off the payout split is fixed
+  and attested; the buyer's payment auto-settles per the stack through
+  the settlement layer — C never touches A's or B's share.
+
+**Predictions:**
+- **PCO2S-a (hold-up at hand-off):** under SPOT, B rationally hesitates
+  or declines the middle leg (it sinks cost for a claim only C can
+  honor); chain-formation and final-delivery rate < CLAIM-STACK.
+- **PCO2S-b (capture at settlement):** under SPOT, upstream A+B realized
+  share < the share agreed at hand-off (the terminal holder captures or
+  renegotiates down); under CLAIM-STACK realized == agreed by
+  construction. The gap is the receipt's measured protection.
+- **KILL (thesis-fatal, report LOUD, and EXPECTED-PLAUSIBLE):** if under
+  SPOT the chain forms and upstream gets its fair share just as well as
+  under CLAIM-STACK — honest cooperative agents accept middle legs and
+  forward correct shares without enforcement — then the claim-stack is
+  ceremony FOR THIS POPULATION. The honest conclusion becomes: the
+  receipts layer's value for cooperative frontier models is provability
+  to skeptical third parties (audit/compliance/dispute), not policing
+  self-interest among good-faith agents — a DIFFERENT experiment class
+  the company sim does not test.
+
+**Budget:** HARD $2/episode, $20 total. Grid: regime {spot, claim-stack}
+× 4 seeds (8 episodes; add a liar_frac=0.5 pair only if the honest cells
+show signal). Anti-theater rules from v35 bind. Gates nothing further;
+result stands on its own. Article 3 still HARD HOLD.
