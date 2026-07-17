@@ -3540,3 +3540,50 @@ them debt and they died half as often.**
   a seizable battery, a margin call mid-flight, or an obligation payable
   in energy. Only that world can produce one; predictions to be written
   before any build.
+
+**v33-C AMENDMENT (founder, 2026-07-17): real revenue, TRACK 1.** The
+eBay developer account was rejected (paperswarm's live phase is DEAD;
+the protocol/code remain assets). The company's real-money channel: on
+completing its self-hostable tool (D1b episodes), the repo is published
+publicly with a founder-owned pay-what-you-want / sponsors rail. Honesty
+rules: every cent lands on the public ledger as a terminal settlement
+and propagates through the claim stacks (the B-ladder terminus, real);
+the revenue is LABELED audience-funded, not product-market fit; the
+founder owns all accounts and rails (the registrar/agents never touch
+payment credentials). Track 2 (escrowed bounties) PARKED, not
+registered. D1b remains the gate: founder API key + confirmed spend
+($20/episode × the registered 5-episode slate).
+
+## v34 (column AB3): the crash with real teeth — recourse, maturities, energy obligations
+
+The founder's levers, registered: obligations get TIME and TEETH.
+Mechanism on top of AB2's claim-collateralized loans (LTV 0.5):
+- **TERM STRUCTURE:** every loan carries a maturity — due at
+  T_loan + M, grid M ∈ {short ~600, long ~2,400 ticks}.
+- **ENERGY RECOURSE at maturity:** unpaid balance is collected in
+  ENERGY, the survival resource — the treasury seizes battery. Two
+  recourse regimes: (a) FULL — seizure can take battery below the
+  survival threshold (the debtor's-prison world); (b) EXEMPT-FLOOR —
+  seizure stops at a protected battery floor (bankruptcy protection).
+  The v5 rescue net stays ON in all cells (standard physics); if the
+  net simply absorbs even full recourse, that interplay IS the finding.
+- Grid: AB2 config (N=240×8, N=24×16, 7,500t, shock protocol
+  unchanged, LTV 0.5), maturity × recourse × {shock, control}, gross
+  regime (CCP cells only if cheap). LTV0 and AB2-style no-maturity
+  cells as anchors.
+- **PAB3a (the teeth):** under FULL recourse the shock finally produces
+  debt deaths — post-shock deaths RISE vs AB2's fall, concentrated
+  among underwater borrowers, mechanism = seizure-induced stranding.
+- **PAB3b (the exemption):** the protected floor eliminates recourse
+  deaths at the price of tighter credit (take-up falls or rationing
+  appears) — the bankruptcy-protection tradeoff, measured.
+- **PAB3c (the margin call):** SHORT maturities couple the debt cycle
+  to the crash (obligations come due inside the trough while collateral
+  is crushed); LONG maturities let collateral recover — the crash
+  crosses into physics only when term structure forces settlement
+  during the trough.
+- **KILL (the final safety result):** if even full energy recourse at
+  short maturity raises deaths nowhere, then NOTHING in this world can
+  make paper lethal — the strongest possible form of the law, and the
+  article's #20 close gets its final sentence either way. Report
+  loudly.
