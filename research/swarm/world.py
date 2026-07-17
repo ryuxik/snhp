@@ -198,6 +198,29 @@ CCP_FEE = 0.05                     # clearinghouse per-settlement fee (fraction 
                                    # registered waterfall) — recipients eat the uncovered
                                    # remainder exactly as under gross bilateral.
 
+# v32 (column AB2): the crash with teeth — claim-collateralized debt. All gated on
+# `debt_ltv > 0`; every accumulator/field below is allocated but NEVER read/written
+# when off, so every prior column (AB included) stays bit-identical (suite-verified).
+# The mechanism is a pure TREASURY/SETTLEMENT-side + battery-infusion event — it never
+# enters the per-deal Φ (debt is not a term in the drone's valuation), so evaluated Φ
+# == executed Φ is preserved by construction, and garnishment is resolved only at
+# settlement/death (never retroactively inside a deal).
+DEBT_ENERGY_PRICE = EV_INIT        # the treasury lends energy at this reference credit
+                                   # price per battery unit (EV_INIT = 0.3, the world's
+                                   # NEUTRAL energy shadow price). A drone borrows when
+                                   # its OWN marginal energy value (∂Φ/∂battery, up to
+                                   # EV_MAX=1.0) exceeds this survival-discounted price
+                                   # — energy-hungry (far, low-battery, high-hazard)
+                                   # drones borrow; sated ones (ev<price) do not. This
+                                   # is the LOAN'S TERMS, not a borrow-appetite knob:
+                                   # the DECISION derives from Φ (below), the ONLY new
+                                   # scalar is the LTV treatment and this fixed price.
+BORROW_FRACS = (0.25, 0.5, 0.75, 1.0)   # candidate borrow sizes (× the LTV/headroom-
+                                   # capped max), argmax'd over Φ-net so the drone stops
+                                   # where the marginal value of the NEXT unit no longer
+                                   # clears its survival-discounted cost (no overshoot;
+                                   # the net is concave so a coarse grid suffices).
+
 PRESETS = {
     # sources, refineries [(pos, owner)], chargers [(pos, owner)]
     "v5": dict(sources=None,        # mirrored asteroid field, seeded in init
@@ -279,6 +302,17 @@ class Robot:
                                     # values (paid at delivery regardless of this
                                     # robot's position). 0 unless World.bills; pure
                                     # bookkeeping otherwise (never read by Φ off).
+                                    # v32 (column AB2): claim_value is the borrower's
+                                    # COLLATERAL (face value of held claims) — the
+                                    # borrow cap is LTV × claim_value.
+    debt: float = 0.0               # v32 (column AB2): outstanding energy loan owed to
+                                    # the company treasury (credit units). Settlement
+                                    # income repays it FIRST. 0 unless World.debt_ltv>0.
+    garnished: bool = False         # v32: latched distress state — entered when a
+                                    # write-down pushes debt above collateral (claim_
+                                    # value); while set, no new borrowing (ALL income
+                                    # services the debt) until debt is fully cleared.
+    garnish_start: int = -1         # tick garnishment was (re-)entered (telemetry).
 
     def bat(self) -> float:
         """BELIEVED battery — what every decision layer consumes. Physics
@@ -320,7 +354,8 @@ class World:
                  mortality: bool = False, death_regime: str = "none",
                  wearout: bool = False,
                  shock: bool = False, shock_tick: int | None = None,
-                 clearinghouse: bool = False):
+                 clearinghouse: bool = False,
+                 debt_ltv: float = 0.0):
         self.rng = np.random.RandomState(seed)
         self.rng_seed = seed                 # v18: matter-field RNG keys off this
         self.hazard_phi = hazard_phi
@@ -829,6 +864,23 @@ class World:
         self.writedown_log: list = []        # per write-down: (tick, rid, exposure,
                                              # realized, cause, hop, far) — the histogram
         self.strand_log: list = []           # (tick, rid) strand ONSET (pre/post scar)
+
+        # ── v32 (column AB2): claim-collateralized debt ──────────────────────
+        # `debt_ltv` sets the loan-to-value cap (borrow up to LTV × face value of held
+        # claims). REQUIRES bills (the claim stack is the collateral) — none exist off.
+        # Off (debt_ltv==0) ⇒ borrow_step early-returns, _pay_settlement reduces EXACTLY
+        # to the pre-v32 credit-increment, _check_garnish/death write-off no-op, and
+        # every accumulator below stays 0 ⇒ bit-identical to column AB.
+        self.debt_ltv = float(debt_ltv)
+        assert not (self.debt_ltv > 0.0 and not self.bills), \
+            "debt_ltv requires bills (the claim stack is the collateral)"
+        self.debt_loaned = 0.0               # Σ loan principal advanced (credit)
+        self.debt_repaid = 0.0               # Σ credit collected from settlement → treasury
+        self.debt_written_off = 0.0          # Σ outstanding debt written off at death
+        self.energy_borrowed = 0.0           # Σ battery injected via loans (energy ledger)
+        self._borrow_log: list = []          # (tick, rid, energy, principal, dref, taint)
+        self.garnish_log: list = []          # per garnishment EPISODE: dict(rid, start,
+                                             # end, hop, co) — end=-1 while open/at death
 
     # mean-preserving draws (v2 review M1): σ widens spread, never the mean
     def _draw(self, sigma):
@@ -1670,6 +1722,7 @@ class World:
                         self.company[self.robots[cid].company]["credit"] += cov
                         realized_wd = exposure - cov
                     self.robots[cid].claim_value -= exposure
+                    self._check_garnish(self.robots[cid])   # v32: collateral destroyed → may go underwater
                     if self.shocked and far:
                         self._taint(cid, 0)
                         self._record_wd(cid, exposure, realized_wd, "direct", 0, True)
@@ -1683,6 +1736,15 @@ class World:
         r.load_prov = [0, 0]
         r.parcels = []
         r.claim_value = 0.0
+        # v32 (column AB2): the death write-off — the drone's OUTSTANDING debt is
+        # unrecoverable (it settles no more), booked to debt_written_off so the treasury
+        # waterfall closes (loaned == repaid + written_off + Σ live debt). Fires EXACTLY
+        # once per death (death_resolve is called once). Off ⇒ r.debt==0 ⇒ no-op.
+        if self.debt_ltv > 0.0 and r.debt > 0.0:
+            self.debt_written_off += r.debt
+            r.debt = 0.0
+        if r.garnished:
+            self._end_garnish(r)                 # close the open episode at death
         # (B) resolve the dead robot's OWN held claims on LIVING robots' parcels
         heir = -(2 + r.company)                 # estate sentinel for r's company
         inherited = 0.0
@@ -2186,15 +2248,18 @@ class World:
                 self.estate_settled += realized
             else:
                 cl = self.robots[rid]
-                cl.credit += realized
-                self.company[cl.company]["credit"] += realized
                 cl.claim_value -= paid * V              # the claim is settled (at face)
+                # v32 (column AB2): settlement income repays this claimant's debt first
+                # (waterfall); under the shock realized≈0 so a floored settlement retires
+                # collateral WITHOUT servicing the debt — the underwater trigger. Off ⇒
+                # `cl.credit += realized; company.credit += realized` (bit-identical).
+                self._pay_settlement(rid, realized)
+                self._check_garnish(cl)
             if vm != 1.0:
                 self._record_wd(rid, paid * (1.0 - vm) * face, wd,
                                 "contagion", nclaims - i, True)
         realized, wd = _payout(resid)                    # the deliverer's residual
-        r.credit += realized
-        self.company[r.company]["credit"] += realized
+        self._pay_settlement(r.rid, realized)            # v32: repays the deliverer's debt first
         if vm != 1.0:
             self._record_wd(r.rid, resid * (1.0 - vm) * face, wd, "direct", 0, True)
 
@@ -2292,13 +2357,14 @@ class World:
                                 self.estate_settled += paid * unit
                             else:
                                 cl = self.robots[rid]
-                                cl.credit += paid * unit
-                                self.company[cl.company]["credit"] += paid * unit
                                 cl.claim_value -= paid * V_DELIVER
+                                # v32 (column AB2): repay this claimant's debt first
+                                # (waterfall). Off ⇒ the pre-v32 credit pair, bit-identical.
+                                self._pay_settlement(rid, paid * unit)
+                                self._check_garnish(cl)
                             csum += paid
                         resid = 1.0 - csum
-                        r.credit += resid * unit
-                        self.company[r.company]["credit"] += resid * unit
+                        self._pay_settlement(r.rid, resid * unit)   # v32: deliverer debt first
                     elif sw:                         # v29: spot (bills off) under shock —
                         real = rate * V_DELIVER * vm  # the deliverer books the realized
                         r.credit += real              # value; a paperless economy has no
@@ -2614,7 +2680,11 @@ class World:
         return pairs
 
     def energy_drawn(self) -> float:
-        return self.energy_initial + self.energy_charged
+        # v32 (column AB2): borrowed energy is real battery injected into the fleet
+        # (the treasury advances it against claim collateral), burned like any charge —
+        # accounted here so efficiency denominators stay honest. 0 unless debt_ltv>0
+        # ⇒ bit-identical to every prior column.
+        return self.energy_initial + self.energy_charged + self.energy_borrowed
 
     def material_accounted(self) -> int:
         # v23: pinned_cargo (units escrowed in live relay orders) is neither in a
@@ -2673,6 +2743,122 @@ class World:
                    - self.company[c]["credit"]) > 1e-6:
                 return False
         return True
+
+    def debt_conserved(self) -> bool:
+        """v32 (column AB2): the treasury waterfall balances. Every credit of loan
+        principal is either still OUTSTANDING on a live drone, REPAID out of settlement
+        income, or WRITTEN OFF at death — nothing leaks:
+            debt_loaned == debt_repaid + debt_written_off + Σ live-drone debt.
+        Repayment is a within-company robot→treasury reallocation (credit_conserved
+        stays exact) and the loan itself moves ENERGY, not credit (energy_drawn
+        accounts it), so this debt ledger is SEPARATE from the credit ledger and both
+        close. Trivially true off (all terms 0) ⇒ bit-identical."""
+        outstanding = sum(r.debt for r in self.robots)
+        return abs(self.debt_loaned - self.debt_repaid
+                   - self.debt_written_off - outstanding) < 1e-6
+
+    def _pay_settlement(self, rid: int, amount: float) -> None:
+        """v32 (column AB2): route ONE settlement credit increment to robot `rid`
+        through the debt waterfall. company credit is booked in FULL (so
+        ledger_accounted / the delivery identity is untouched); if the drone owes debt,
+        settlement proceeds repay it FIRST (robot→treasury, within-company — so
+        credit_conserved is untouched) and the drone pockets only the residual. Clearing
+        the debt exits garnishment. debt_ltv==0 ⇒ EXACTLY `robot.credit += amount;
+        company.credit += amount` (the pre-v32 pair) ⇒ bit-identical."""
+        r = self.robots[rid]
+        self.company[r.company]["credit"] += amount
+        if self.debt_ltv > 0.0 and r.debt > 1e-12 and amount > 0.0:
+            pay = amount if amount < r.debt else r.debt
+            r.debt -= pay
+            self.company[r.company]["treasury"] += pay
+            self.debt_repaid += pay
+            r.credit += amount - pay
+            if r.debt <= 1e-12:
+                r.debt = 0.0
+                if r.garnished:
+                    self._end_garnish(r)
+        else:
+            r.credit += amount
+
+    def _check_garnish(self, r: Robot) -> None:
+        """v32 (column AB2): enter garnishment when a write-down has pushed debt above
+        collateral (the face value of remaining claims). Called at SETTLEMENT RESOLUTION
+        only (after a claim_value write-down at settlement / death) — never inside a
+        deal, so evaluated Φ == executed Φ is untouched. Latched: exit is only on the
+        debt fully clearing (in _pay_settlement). No-op off / for a solvent drone."""
+        if self.debt_ltv <= 0.0 or r.dead:
+            return
+        if not r.garnished and r.debt > r.claim_value + 1e-9:
+            r.garnished = True
+            r.garnish_start = self.tick
+            self.garnish_log.append(dict(
+                rid=r.rid, co=r.company, start=self.tick, end=-1,
+                hop=self.shock_taint[r.rid]))   # contagion depth at entry (None=untainted)
+
+    def _end_garnish(self, r: Robot) -> None:
+        """Close the drone's open garnishment episode (debt cleared, or at death)."""
+        r.garnished = False
+        for g in reversed(self.garnish_log):
+            if g["rid"] == r.rid and g["end"] == -1:
+                g["end"] = self.tick
+                break
+
+    def borrow_step(self) -> None:
+        """v32 (column AB2): claim-collateralized energy borrowing, at TICK START (from
+        BaseArm.tick, right after update_ev, BEFORE drives / every bundle evaluation) —
+        the borrowed battery is stable through the whole encounter phase, so evaluated Φ
+        == executed Φ holds exactly as for field_step / charge (nothing borrows mid-deal).
+
+        DECISION (derived from Φ, no borrow-appetite heuristic): a drone borrows energy
+        E from the treasury when the Φ-value of the infusion exceeds the survival-
+        discounted cost of the debt it takes on. The energy is lent at DEBT_ENERGY_PRICE
+        (the neutral shadow price); principal D = price·E is capped at LTV × claim_value
+        (the collateral) minus outstanding debt, and by the battery headroom. The drone
+        picks the borrow size that MAXIMIZES [ΔΦ(E) − price·E·(1−hazard)] over a coarse
+        grid — ΔΦ is the exact Φ delta (the same phi_bills the arm prices with), and
+        (1−hazard) is the existing stranding-hazard survival weight (death discharges the
+        debt, so the obligation's EXPECTED cost is below face — the limited-liability
+        channel). Garnished / stranded / dead / claimless drones do not borrow. Off
+        (debt_ltv==0) ⇒ early return ⇒ bit-identical."""
+        if self.debt_ltv <= 0.0:
+            return
+        from swarm import value           # deferred: value imports world at module load
+        price = DEBT_ENERGY_PRICE
+        phi_fn = value.phi_bills if self.bills else value.phi
+        for r in self.robots:
+            if r.dead or r.stranded or r.garnished or r.claim_value <= 0.0:
+                continue
+            cap = self.debt_ltv * r.claim_value - r.debt   # borrowable principal (credit)
+            if cap <= 1e-9:
+                continue
+            headroom = BATTERY_MAX - r.battery
+            if headroom <= 1e-9:
+                continue
+            e_max = min(headroom, cap / price)
+            if e_max <= 1e-9:
+                continue
+            surv = 1.0 - value.stranding_hazard(r, self)
+            b0 = r.battery
+            phi0 = phi_fn(r, self)
+            best_e, best_net = 0.0, 0.0
+            for frac in BORROW_FRACS:
+                e = e_max * frac
+                r.battery = b0 + e
+                gain = phi_fn(r, self) - phi0
+                r.battery = b0
+                net = gain - price * e * surv
+                if net > best_net + 1e-12:
+                    best_net, best_e = net, e
+            if best_e > 1e-9:
+                d = price * best_e
+                r.battery = b0 + best_e            # the infusion (physics)
+                r.debt += d
+                self.debt_loaned += d
+                self.energy_borrowed += best_e
+                dref = min(manhattan(r.pos, rf) for rf in self.refineries) \
+                    if self.refineries else 0
+                self._borrow_log.append((self.tick, r.rid, round(best_e, 4),
+                                         round(d, 4), dref, self.shock_taint[r.rid]))
 
     # ── v23 (column V): the stigmergic order book ─────────────────────────
     def post_order(self, poster: Robot, q: int, alpha: float,

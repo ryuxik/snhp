@@ -405,6 +405,11 @@ class BaseArm:
         if w.tick % EV_REFRESH == 0:
             for r in w.robots:
                 update_ev(r, w)
+            w.borrow_step()            # v32 (column AB2): claim-collateralized energy
+                                       # borrowing at TICK START (after fresh EV, BEFORE
+                                       # drives/encounters) — the infusion is stable
+                                       # through the encounter phase, so evaluated Φ ==
+                                       # executed Φ holds. No-op unless debt_ltv>0.
         order = list(w.robots)
         w.rng.shuffle(order)
         for r in order:

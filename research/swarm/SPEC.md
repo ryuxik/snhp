@@ -3181,3 +3181,90 @@ vacuous.
   the walk-away right + the safety floor absorb debt service), and the
   article's #20 confession gets rewritten to "I gave them debt and they
   still did not die." Report loudly either way.
+
+**PAB2 RESULTS (2026-07-17 · column AB2 — report, NOT a verdict; numbers
+loud either way).** The crash with teeth: claim-collateralized debt on the
+AB crash economy (bills + claims-die, 7,500t; far band dark at the
+registered per-grid T_shock — 1,000 at N=240, 200 at N=24). Mechanism
+(`debt_ltv`, off by default; all prior columns bit-identical, differential
+oracle green): a drone may borrow ENERGY from its company treasury against
+the face value of its held claims, up to LTV × claim_value. The decision
+derives from Φ — borrow size argmaxes [ΔΦ(E) − price·E·(1−hazard)] where
+ΔΦ is the exact phi_bills delta of the infusion, price is the neutral
+shadow price EV_INIT=0.3/unit, and (1−hazard) is the existing
+stranding-hazard survival weight (death discharges the debt, so the
+obligation's expected cost is below face — the limited-liability channel);
+no borrow-appetite heuristic, no RNG (the argmax is deterministic, so the
+dedicated-stream rule is satisfied vacuously). Settlement proceeds repay
+debt FIRST (robot→treasury, inside the audited credit accounting);
+debt > remaining collateral at a settlement-resolution write-down ⇒
+GARNISHMENT (latched: no new borrowing, all income services debt); death
+writes off outstanding debt exactly once. The treasury waterfall
+(loaned == repaid + written_off + Σ outstanding) closed to <1e-6 in all
+288 runs, alongside credit/material/ledger conservation. Φ never prices
+the debt and garnishment resolves only at settlement/death, so evaluated
+Φ == executed Φ held live throughout. Grid: LTV {0 (≡AB as run, verified —
+deaths 10.2/14.0 reproduce the AB cells exactly), 0.5, 0.8} × {gross,
+clearinghouse} × {shock, control}; N=240 (grid 101, 8 seeds) primary,
+N=24 (16 seeds) reference; σ=0.5, τ=0.15, v5.
+- **PRE-FLIGHT PASSED — take-up is real and self-targeting.** At N=240
+  no-shock, **~150 of 240 drones borrow per run** (~1,100 events, 14,100–
+  16,800 energy = **9–11% of all energy drawn**; N=24: ~14 of 24 drones,
+  12–15%). 16–18% of borrows are struck beyond the far-band threshold
+  (mean borrow distance-to-refinery 27 vs threshold 48) — the loan funds
+  real field work, and borrowing is ~96% pre-shock (955 pre vs 38 post at
+  N=240 gross+shk: the post-crash economy has little collateral left and
+  less far work to fund). Repayment is nearly complete in controls
+  (e.g. 4,159 of 4,237 loaned = 98%).
+- **PAB2-pre NULL on tonnage — the bait is not throughput, it is
+  survival.** Pre-shock/no-shock far-band d/m is flat: gross control
+  0.471 → 0.467 at LTV 0.5 (p=.75), 0.491 at 0.8 (p=.10, 7/8);
+  delivered_frac +0.002/+0.006 (n.s.). But CONTROL mortality HALVES:
+  N=240 deaths **14.0 → 7.6 (LTV 0.5, p=.0003, 8/8) → 7.1 (0.8, p=.016)**;
+  ccp 6.5/6.0. The Φ-derived rule self-targets the energy-poor (borrow
+  exactly when ∂Φ/∂battery clears the survival-discounted price), so the
+  credit line functions as claim-collateralized rescue — the same
+  over-served-field logic that made PAAb and PM2b throughput-null.
+- **PAB2a REFUTED — INVERTED.** Post-shock deaths do not rise at any LTV;
+  total shock-cell deaths FALL: N=240 gross **10.2 → 5.5 (LTV 0.5,
+  Δ=−4.75, p=.013) / 5.6 (0.8, Δ=−4.62, p=.056)**; ccp 10.2 → 3.9/4.9
+  (p=.011/.032); post-shock deaths 1.5 → 0.4–0.8; post-shock strand
+  onsets **1,582 → 447–470**. And the crash costs LESS tonnage with
+  leverage: shock-cell delivered_frac **0.707 → 0.777/0.770 (+0.063 to
+  +0.070, 8/8, p≤1e-4)**, far d/m 0.305 → 0.437–0.441 — borrowed energy
+  lets chains stranded mid-relay by the crash complete anyway. Crabs do
+  not die working back paper losses; the loan is the rescue. (The shock
+  still saves lives at every LTV — Δ(shk−ctl) stays negative, shrinking
+  14.0−10.2=−3.8 → −2.1/−1.5 as debt removes the baseline deaths the
+  dark far band would have prevented.)
+- **PAB2b REFUTED — garnishment is real, permanent, and harmless.** The
+  shock DOES push drones underwater: N=240 gross 3.0–4.2 episodes/run vs
+  ~0 in controls (N=24: ~2.6 vs ~0.1), essentially permanent once entered
+  (mean 5,400–5,900 ticks, rarely cleared). But the garnished are **hop-0
+  DIRECT victims, not ≥1-hop contagion** (100% of shock-cell garnishment
+  entries at taint 0 at N=240), and they do not die: **0 garnished deaths
+  at N=240 in every cell** (N=24: 2–4 of ~41 across 16 seeds). Garnishment
+  is a ledger state — the drone keeps hauling, income services the debt,
+  IR + the safety floor keep it alive. Contagion gains no body count.
+- **PAB2c SUPPORTED on distress, MOOT on lives.** The CCP nearly
+  eliminates garnishment (N=240 shock: gross 3.0–4.2 → ccp **0.1–0.4**
+  episodes/run) — making claimants whole at settlement preserves their
+  collateral, so write-downs stop pushing borrowers underwater. The LTV
+  cap keeps the book collateralized everywhere: death write-offs are
+  ≤5 credits of ~3,800–5,000 loaned (**~0.1%**) in every cell. But there
+  are no deaths for the institution to bound — it buys solvency, not
+  lives, because lives were never at stake.
+- **KILL FIRES, loudly, and overshoots the happy null.** Deaths do not
+  rise at ANY LTV — they FALL at every LTV × regime × scale (shock cells
+  −4.6 to −6.4 deaths at N=240, p=.01–.06; controls −6.4 to −8.0,
+  p≤.016). The registered mechanism (IR + walk-away + safety floor
+  absorbing debt service) holds and is joined by a stronger one: the loan
+  disburses ENERGY (life) against CREDIT (paper), and limited liability
+  at death makes the exchange one-way — debt service never touches
+  physics, while the infusion rescues exactly the drones that would have
+  flatlined. The article's #20 confession is now: **"I gave them debt and
+  they died half as often."** The liability side this world can build out
+  of claim collateral is a lifeline, not a noose; a REAL debt crisis
+  needs what this world still lacks — recourse against the body (seizable
+  battery/chassis), margin calls mid-flight, or debt-service obligations
+  payable in energy rather than credit. Registered-open for any AB3.
