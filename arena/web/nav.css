@@ -75,6 +75,46 @@ a.snhp-nav__logo:focus-visible { outline: 2px solid #c4b1ff; outline-offset: 2px
   z-index: 2147483000;   /* above any in-page app chrome, below nothing of ours */
 }
 
+/* ── auto-hide ──────────────────────────────────────────────────────────
+   The bar slides out of view once the reader scrolls into the page, and
+   returns on scroll-up, scroll-to-top, a hover at the top edge, or keyboard
+   focus. nav.js toggles .is-hidden; overlay pages (which keep a persistent
+   reserved strip) and any page with data-snhp-nav-autohide="off" never get
+   the .snhp-nav--autohide class, so they stay put.
+
+   Positioned `fixed` rather than the base `sticky`: every content page sets
+   `overflow-x: hidden` on <html>/<body>, which turns the body into a scroll
+   container and quietly defeats a sticky bar (it scrolls away instead of
+   pinning). Fixing it to the viewport is what makes the slide-out/return
+   actually land. nav.js drops in a same-height spacer so the now-out-of-flow
+   bar doesn't let the page jump up under it. */
+.snhp-nav--autohide {
+  position: fixed; top: 0; left: 0; right: 0;
+  transition: transform .2s ease;
+  will-change: transform;
+}
+.snhp-nav--autohide.is-hidden {
+  transform: translateY(-100%);
+}
+/* the flow spacer standing in for the fixed bar; its height is set by nav.js */
+.snhp-nav__spacer { flex: 0 0 auto; }
+/* honour a reduced-motion preference — snap rather than slide */
+@media (prefers-reduced-motion: reduce) {
+  .snhp-nav--autohide { transition: none; }
+}
+
+/* the invisible strip pinned to the very top: hovering it pulls the bar back.
+   It sits just under the bar (which covers it when shown) and, on touch, must
+   never intercept taps — only a fine pointer arms it. */
+.snhp-nav__revealzone {
+  position: fixed; top: 0; left: 0; right: 0; height: 16px;
+  z-index: 27;
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .snhp-nav__revealzone { pointer-events: auto; }
+}
+
 /* ── shared footer: injected by nav.js on every non-archive page ──
    Archive lives here only, muted; the rest are the load-bearing exits. */
 .snhp-foot {

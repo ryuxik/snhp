@@ -76,12 +76,109 @@
       + "</span>";
     if (!overlay) body.appendChild(foot);
 
-    // 5) one fire-and-forget pageview beacon (no cookies, no identity)
+    // 5) auto-hide the bar — let it slide away as the reader scrolls into the
+    // page and return on scroll-up, scroll-to-top, a hover at the top edge, or
+    // keyboard focus. Overlay pages keep a persistent reserved strip, so they
+    // (and any page setting data-snhp-nav-autohide="off") opt out.
+    if (!overlay && body.getAttribute("data-snhp-nav-autohide") !== "off") {
+      setupAutoHide(nav, body);
+    }
+
+    // 6) one fire-and-forget pageview beacon (no cookies, no identity)
     try {
       var blob = new Blob([JSON.stringify({ page: location.pathname })],
         { type: "application/json" });
       navigator.sendBeacon("/api/hit", blob);
     } catch (e) { /* static host / no beacon — analytics must never break a page */ }
+  }
+
+  // Auto-hide the shared bar. `nav` is the injected .snhp-nav; `body` is
+  // document.body. Never called for overlay / opted-out pages (see run()).
+  function setupAutoHide(nav, body) {
+    var THRESH = 80;        // px scrolled before the bar is allowed to hide
+    var EDGE = 16;          // top-edge band (px) that a pointer reveals from
+    var LEAVE_DELAY = 400;  // ms grace after the pointer leaves the band
+    var scrollShow = true;  // scroll-direction intent: up reveals, down hides
+    var overReveal = false; // pointer is resting in the top band / over the bar
+    var focusIn = false;    // keyboard focus lives inside the bar
+    var lastY = getY(), leaveTimer = null, ticking = false;
+    var navH = nav.offsetHeight || 40;
+
+    function getY() {
+      return window.pageYOffset || document.documentElement.scrollTop || 0;
+    }
+    function render() {
+      var show = getY() <= THRESH || scrollShow || overReveal || focusIn;
+      nav.classList.toggle("is-hidden", !show);
+    }
+    function clearLeave() { if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null; } }
+    function reveal() { clearLeave(); if (!overReveal) { overReveal = true; render(); } }
+    function scheduleHide() {
+      if (!overReveal || leaveTimer) return;
+      leaveTimer = setTimeout(function () {
+        leaveTimer = null; overReveal = false; render();
+      }, LEAVE_DELAY);
+    }
+
+    // switch the bar to fixed positioning (see nav.css) and reserve the flow
+    // space it vacates with a same-height spacer, so content doesn't jump up.
+    nav.classList.add("snhp-nav--autohide");
+    var spacer = document.createElement("div");
+    spacer.className = "snhp-nav__spacer";
+    spacer.setAttribute("aria-hidden", "true");
+    body.insertBefore(spacer, nav.nextSibling);
+
+    // keep the spacer matched to the bar's real height. The shared stylesheet
+    // loads async, so this first read can be the unstyled (taller) bar — a
+    // ResizeObserver re-syncs before paint once CSS/fonts/wrapping settle.
+    function syncSpacer() {
+      navH = nav.offsetHeight || navH;
+      spacer.style.height = navH + "px";
+    }
+    syncSpacer();
+    if (window.ResizeObserver) new ResizeObserver(syncSpacer).observe(nav);
+    else { window.addEventListener("load", syncSpacer); setTimeout(syncSpacer, 250); }
+
+    // the literal thin invisible strip at the very top of the viewport
+    var zone = document.createElement("div");
+    zone.className = "snhp-nav__revealzone";
+    zone.setAttribute("aria-hidden", "true");
+    body.appendChild(zone);
+
+    // scroll: track direction (rAF-throttled); up reveals, down past the
+    // threshold hides, and the top strip (<=THRESH) always pins it visible.
+    window.addEventListener("scroll", function () {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {
+        var y = getY();
+        if (y < lastY - 2) scrollShow = true;                      // up   → reveal
+        else if (y > lastY + 2 && y > THRESH) scrollShow = false;  // down → hide
+        lastY = y; render(); ticking = false;
+      });
+    }, { passive: true });
+
+    // pointer at the top edge reveals; leaving the band hides after the grace.
+    // Mouse only — touch/pen have no hover, matching native expectations. The
+    // band grows to the bar's height once shown so skimming across it holds it.
+    window.addEventListener("pointermove", function (e) {
+      if (e.pointerType && e.pointerType !== "mouse") return;
+      var band = nav.classList.contains("is-hidden") ? EDGE : Math.max(EDGE, navH);
+      if (e.clientY >= 0 && e.clientY <= band) reveal();
+      else scheduleHide();
+    }, { passive: true });
+
+    // the invisible strip's mouseenter is an immediate trigger the instant the
+    // cursor crosses the top edge — backs up (and documents) the pointermove.
+    zone.addEventListener("mouseenter", reveal);
+
+    // keyboard focus entering the bar reveals it — no pointer required (Tab)
+    nav.addEventListener("focusin", function () { focusIn = true; clearLeave(); render(); });
+    nav.addEventListener("focusout", function () { focusIn = false; render(); });
+
+    window.addEventListener("resize", syncSpacer, { passive: true });
+
+    render();
   }
 
   if (document.body) run();
