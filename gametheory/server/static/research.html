@@ -2,8 +2,8 @@
 <html lang="en">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Results — SNHP</title>
-<meta name="description" content="Every experiment we ran, including the ones that killed our own ideas. Each entry: what we expected, what happened, and the command that regenerates it." />
+<title>Research — SNHP</title>
+<meta name="description" content="Five experiments, each with its kill condition written down with numbers before the run. Four came back against us. Here they are, with the commands to reproduce them — plus the live demos they came from." />
 <meta property="og:title" content="What we got wrong" />
 <meta property="og:description" content="Kills we registered in advance and then honored: a product we did not build, a spec claim we retracted, two scoring designs we threw away." />
 <style>
@@ -41,32 +41,30 @@
   nav.top a:hover, nav.top a[aria-current] { color: var(--gold); }
   nav.top .brand { color: var(--ink); font-weight: 700; letter-spacing: .16em; margin-right: 6px; }
 
-  .keyfact { border: 1px solid rgba(255,224,138,.4); border-radius: 12px;
-             background: linear-gradient(180deg, rgba(255,224,138,.06), rgba(255,224,138,.02));
-             padding: 18px 20px; margin: 22px 0 8px; }
-  .keyfact .k { color: var(--gold); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
-  .keyfact p { margin: 0; font-size: 13.5px; line-height: 1.75; color: var(--ink); }
-
   .limits { border: 1px solid var(--line); border-radius: 12px; background: #131022;
             padding: 18px 20px; margin: 16px 0 8px; }
   .limits .k { color: var(--dim); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
   .limits ul { margin: 0; } .limits li { font-size: 12.5px; }
-
-  .three { display: grid; gap: 10px; margin: 14px 0 6px; }
-  .prop { border: 1px solid var(--line); border-radius: 10px; background: #131022; padding: 13px 15px; }
-  .prop .nm { font-weight: 700; font-size: 13px; color: var(--gold); margin-bottom: 5px; }
-  .prop p { margin: 0; font-size: 12.5px; }
   .note { color: #807a99; font-size: 11.5px; line-height: 1.65; margin-top: 8px; }
   a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  .doors { display: grid; gap: 10px; margin: 14px 0 6px; }
+  .door { border: 1px solid var(--line); border-radius: 10px; background: #131022;
+          padding: 13px 15px; text-decoration: none; display: block; }
+  .door:hover { border-color: rgba(255,224,138,.4); }
+  .door .nm { font-weight: 700; font-size: 13px; color: var(--gold); margin-bottom: 4px; }
+  .door p { margin: 0; font-size: 12.5px; }
 
   .entry { border: 1px solid var(--line); border-left-width: 3px; border-radius: 10px;
            background: #131022; padding: 16px 18px; margin: 12px 0; }
   .entry.killed { border-left-color: var(--red); }
   .entry.survived { border-left-color: var(--green); }
+  .entry.plain { border-left-color: var(--violet); }
   .entry .hd { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; margin-bottom: 8px; }
   .entry .tag { font-size: 10px; letter-spacing: .16em; }
   .entry.killed .tag { color: var(--red); }
   .entry.survived .tag { color: var(--green); }
+  .entry.plain .tag { color: var(--violet); }
   .entry .when { font-size: 10px; letter-spacing: .12em; color: #6f6a87; }
   .entry .ti { font-weight: 700; font-size: 13.5px; color: var(--ink);
                width: 100%; line-height: 1.5; }
@@ -80,15 +78,14 @@
   <nav class="top">
     <a class="brand" href="/">SNHP</a>
     <a href="/certificate">Certificate</a>
-    <a href="/build">Build</a>
-    <a href="/results" aria-current="page">Results</a>
+    <a href="/research" aria-current="page">Research</a>
   </nav>
 
   <h1>Everything we ran, <b>including what killed our own ideas.</b></h1>
   <p class="lede">
-    Every experiment below had its kill condition written down <b>before</b> the
-    run, with numbers frozen in advance. Four of the five came back against us.
-    We published them anyway.
+    Five experiments. Each had its kill condition written down, <b>with numbers,
+    before the run</b>. Four came back against us. Here they are, with the
+    commands to reproduce them.
   </p>
 
   <h2>JULY 2026</h2>
@@ -108,58 +105,78 @@ python -m research.spendguard.run --full --regime blind
 python -m research.spendguard.analyze --regime blind</pre>
   </div>
 
-  <div class="entry killed">
+  <div class="entry killed" id="nx">
     <div class="hd"><span class="tag">KILL FIRED — CLAIM RETRACTED</span><span class="when">JUL 2026</span>
-      <div class="ti">SNHP-NX/1: bundling is <em>not</em> needed for machine trade to happen</div></div>
-    <p>We registered that if price-only haggling reached 80% of NX's deal
-      formation, the claim was dead. On 240 scenarios it reached <b>94.2%</b> —
-      a workable price range already existed at the seller's quote in 226 of them.</p>
-    <p><b>What survived:</b> packages raise realized joint surplus (0.928 vs
-      0.889 price-only, 0.880 plain checkout), and under tight deadlines
-      price-only recovers only 0.696 of deal formation.
-      <a href="/spec">The spec now rests on those →</a></p>
+      <div class="ti">SNHP-NX/1: package deals are <em>not</em> needed to close machine trades</div></div>
+    <p>We predicted you'd need package deals to close machine trades. Price-only
+      haggling got to <b>94.2%</b> of our deal rate — the registered kill bar was
+      80%. We retracted the claim and kept the spec, because packages still
+      capture more surplus (<b>0.928</b> vs 0.889 price-only, 0.880 plain
+      checkout).</p>
+    <p>Under tight deadlines price-only recovers only 0.696 of NX's deal
+      formation — that re-run is exploratory, not pre-registered, and says so
+      when you run it.
+      <a href="https://github.com/ryuxik/snhp/blob/main/nx/SPEC.md" target="_blank" rel="noopener">nx/SPEC.md</a> ·
+      <a href="https://github.com/ryuxik/snhp/blob/main/nx/test_nx.py" target="_blank" rel="noopener">conformance suite</a></p>
 <pre>python -m nx.experiment
-python -m nx.experiment --regime constrained   <span class="c"># exploratory, self-labelled</span></pre>
+python -m nx.experiment --regime constrained   <span class="c"># exploratory, self-labelled</span>
+python -m pytest nx/test_nx.py -q              <span class="c"># conformance</span></pre>
   </div>
 
   <div class="entry survived">
-    <div class="hd"><span class="tag">SURVIVED — ON A HELD-OUT SET</span><span class="when">JUL 2026</span>
-      <div class="ti">Certificate design #3: three fixed opponents separated skill</div></div>
-    <p>After two failures we changed the protocol, not the metric: the problem
-      was the opponent, since one counterparty that negotiates well carries a
-      mediocre agent along with it.</p>
-    <p>The competent agent beat the split-the-difference baseline on both sets —
-      held-out <b>0.5651 vs 0.4566</b>, gap <b>+0.1086</b>, p=0.0001, n=360 —
-      and against all three opponents individually. The bar was set in advance
-      at p&lt;0.01 on <em>both</em> sets.
-      <a href="/certificate">See the certificate →</a></p>
-<pre>python -m arena.gauntlet.pool_experiment
+    <div class="hd"><span class="tag">TWO DESIGNS KILLED — THE THIRD SURVIVED</span><span class="when">JUL 2026</span>
+      <div class="ti">The certificate: it took three scoring designs to measure the agent instead of the pair</div></div>
+    <p><b>Design #1 measured the pair.</b> Against a counterparty that finds good
+      trades from its own side, even a plain anchor-and-split bargainer rides
+      along. Registered bar p&lt;0.01; the public set gave p=0.0128 and the
+      held-out set had the naive baseline <em>ahead</em> (p=0.76). Retired.</p>
+    <p><b>Design #2 was picked after seeing the data</b> that suggested it, which
+      makes it worthless without a held-out check. We ran one and it failed: the
+      naive baseline was ahead, 0.6662 vs 0.6152, p=0.43. Thrown away.</p>
+    <p><b>Design #3 changed the opponent, not the metric</b> — three fixed
+      scripted opponents — and cleared a held-out set that had never been used:
+      gap <b>+0.1086</b>, p=0.0001, n=360, and against all three opponents
+      individually. <a href="/certificate">See the certificate →</a></p>
+<pre>python -m arena.gauntlet.separation        <span class="c"># designs #1 and #2</span>
+python -m arena.gauntlet.pool_experiment   <span class="c"># design #3</span>
 python -m arena.gauntlet.certify --run engine</pre>
   </div>
 
-  <div class="entry killed">
-    <div class="hd"><span class="tag">KILLED — FAILED VALIDATION</span><span class="when">JUL 2026</span>
-      <div class="ti">Certificate design #2: cross-issue trading failed its held-out check</div></div>
-    <p>We picked this metric <em>after</em> seeing the data that suggested it,
-      which makes it worthless without a held-out check. We ran one and it
-      failed: the naive baseline was ahead (0.6662 vs 0.6152, p=0.43).</p>
-    <p>On the public set, significance also flipped across the threshold
-      depending on the per-match seed recipe. <b>Thrown away</b> — it stays on
-      certificates as context with no claim attached.</p>
-<pre>python -m arena.gauntlet.separation</pre>
+  <div class="entry plain">
+    <div class="hd"><span class="tag">MEASURED — NOT CERTIFIED</span><span class="when">JUL 2026</span>
+      <div class="ti">One honest note on language models</div></div>
+    <p>Unaided frontier models have been measured here, but on an <b>earlier and
+      different protocol</b>, scored with a metric a later kill showed cannot
+      rank skill. On that older setup the weaker models scored <b>below</b> the
+      split-the-difference baseline, and wiring them to the engine pulled them
+      back toward it.</p>
+    <p>Those runs are <b>not certified and not comparable</b> to the certificate
+      table. We keep them because they are the honest record. Detail:
+      <code>arena/gauntlet/certs/CERTIFIED-TABLE.md</code>, section 3.</p>
   </div>
 
-  <div class="entry killed">
-    <div class="hd"><span class="tag">KILL FIRED — METRIC RETIRED</span><span class="when">JUL 2026</span>
-      <div class="ti">Certificate design #1: joint efficiency measured the pair, not the agent</div></div>
-    <p>Against a counterparty that finds good trades from its own side, even a
-      plain anchor-and-split bargainer rides along to about 90% of the ceiling.
-      The registered bar was p&lt;0.01; the public set gave p=0.0128 and the
-      held-out set had the naive baseline <em>ahead</em> (p=0.76).</p>
-    <p><b>Still good for one thing:</b> it flags agents performing below the
-      baseline sharply and reliably. It cannot certify skill, so it never
-      appears as a claim.</p>
-<pre>python -m arena.gauntlet.separation</pre>
+  <h2>THE DEMOS THESE CAME FROM</h2>
+  <p class="note" style="margin-bottom:12px">
+    Each one is a research artifact, not a product. They run in a browser.
+  </p>
+  <div class="doors">
+    <a class="door" href="https://arena.snhp.dev/divorce/" target="_blank" rel="noopener">
+      <div class="nm">Irreconcilable Agents →</div>
+      <p>Two adversarial household AIs split the assets. The bundle clears where
+        item-by-item deadlocks, and the receipt is judge-checkable.</p>
+    </a>
+    <a class="door" href="https://arena.snhp.dev/world" target="_blank" rel="noopener">
+      <div class="nm">The evolution sim →</div>
+      <p>Negotiating strategies mutate and compete until one of them wins.</p>
+    </a>
+    <a class="door" href="https://arena.snhp.dev/swarm.html" target="_blank" rel="noopener">
+      <div class="nm">The drone economy →</div>
+      <p>Machines bargaining with machines over jobs, routes and payment.</p>
+    </a>
+    <a class="door" href="https://arena.snhp.dev/" target="_blank" rel="noopener">
+      <div class="nm">All of them →</div>
+      <p>The full index of what we have built and run.</p>
+    </a>
   </div>
 
   <h2>HOW TO READ THIS PAGE</h2>

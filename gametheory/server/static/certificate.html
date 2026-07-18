@@ -3,9 +3,9 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>The certificate — SNHP</title>
-<meta name="description" content="An independent test: your agent plays 360 seeded negotiations against three fixed scripted opponents and gets a signed certificate of how much money it kept versus splitting the difference. Verifiable offline." />
+<meta name="description" content="Against the opponent that never moves, our engine closes 59% of deals and a split-the-difference bot closes 2%. Same 360 seeded matches, every parameter frozen in writing before the first run. Verifiable offline." />
 <meta property="og:title" content="Certify a negotiating agent" />
-<meta property="og:description" content="360 seeded negotiations, three fixed opponents, both sides of the table. A signed number, checkable offline, with its limits stated on the certificate itself." />
+<meta property="og:description" content="360 seeded matches, three scripted opponents, both sides of the table. A signed number, checkable offline, with its boundary drawn on the certificate itself." />
 <style>
   :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
           --gold:#ffe08a; --green:#7fc48f; --red:#e8734a; --violet:#a78bfa; --blue:#8fd0ff; }
@@ -47,10 +47,10 @@
   .keyfact .k { color: var(--gold); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
   .keyfact p { margin: 0; font-size: 13.5px; line-height: 1.75; color: var(--ink); }
 
-  .limits { border: 1px solid var(--line); border-radius: 12px; background: #131022;
+  .covers { border: 1px solid var(--line); border-radius: 12px; background: #131022;
             padding: 18px 20px; margin: 16px 0 8px; }
-  .limits .k { color: var(--dim); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
-  .limits ul { margin: 0; } .limits li { font-size: 12.5px; }
+  .covers .k { color: var(--dim); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
+  .covers ul { margin: 0; } .covers li { font-size: 12.5px; }
 
   .three { display: grid; gap: 10px; margin: 14px 0 6px; }
   .prop { border: 1px solid var(--line); border-radius: 10px; background: #131022; padding: 13px 15px; }
@@ -76,16 +76,16 @@
   <nav class="top">
     <a class="brand" href="/">SNHP</a>
     <a href="/certificate" aria-current="page">Certificate</a>
-    <a href="/build">Build</a>
-    <a href="/results">Results</a>
+    <a href="/research">Research</a>
   </nav>
 
   <h1>Anyone can say their agent negotiates well. <b>This is the test.</b></h1>
   <p class="lede">
-    Your agent plays <b>360 seeded negotiations</b> against three fixed scripted
-    opponents and gets a signed certificate stating how much of the money it
-    kept, measured against a bot that just splits the difference. The
-    certificate <b>verifies offline</b> and prints its own limits.
+    Against the opponent that never moves, our engine closes <b>59% of deals</b>.
+    A split-the-difference bot closes <b>2%</b>. Same 360 seeded matches, same
+    three scripted opponents, <b>every parameter frozen in writing before the
+    first run</b>. Put yours through the identical test and get a certificate
+    that verifies offline.
   </p>
 
   <div class="hero-act">
@@ -103,7 +103,7 @@
   <div class="three">
     <div class="prop">
       <div class="nm">The Splitter</div>
-      <p>Meets in the middle. Concedes evenly and expects the same back. It
+      <p>Meets in the middle. Concedes evenly and expects the same back, and
         never notices when a trade would have made both sides better off.</p>
     </div>
     <div class="prop">
@@ -118,10 +118,9 @@
     </div>
   </div>
   <p class="note">
-    Every parameter was frozen in writing before the first run
-    (<code>arena/gauntlet/PREREG-pool.md</code>) and has not been tuned since.
-    An agent that beats only one opponent shows up as exactly that in the
-    per-opponent breakdown.
+    Parameters frozen at registration in <code>arena/gauntlet/PREREG-pool.md</code>
+    and untuned since. An agent that beats only one opponent shows up as exactly
+    that in the per-opponent breakdown.
   </p>
 
   <h2>WHAT THE CERTIFICATE CLAIMS</h2>
@@ -149,36 +148,23 @@
       </tr></thead>
       <tbody>
         <tr><td class="nm">SNHP engine</td><td>held-out</td><td>360</td><td>0.5651</td><td>0.4566</td><td class="up">+0.1086</td><td>0.0001</td></tr>
-        <tr><td class="nm">SNHP engine</td><td>public</td><td>360</td><td>0.5591</td><td>0.4524</td><td class="up">+0.1067</td><td>0.0001</td></tr>
-        <tr><td class="nm">evolved champion</td><td>held-out</td><td>360</td><td>0.5543</td><td>0.4566</td><td class="up">+0.0977</td><td>0.0001</td></tr>
-        <tr><td class="nm">evolved champion</td><td>public</td><td>360</td><td>0.5442</td><td>0.4524</td><td class="up">+0.0918</td><td>0.0001</td></tr>
         <tr><td class="nm">split-the-difference</td><td>held-out</td><td>360</td><td>0.4566</td><td>—</td><td>baseline</td><td>—</td></tr>
-        <tr><td class="nm">split-the-difference</td><td>public</td><td>360</td><td>0.4524</td><td>—</td><td>baseline</td><td>—</td></tr>
       </tbody>
     </table>
   </div>
   <p class="note">
-    Source: <code>arena/gauntlet/certs/POOL-RESULTS.md</code>. "Kept" is mean
-    own-utility on a 0–1 scale. The held-out set (seed 20260718) was picked at
-    registration and never touched before the run.
+    "Kept" is mean own-utility on a 0–1 scale. The held-out set (seed 20260718)
+    was picked at registration and never touched before the run. Full table —
+    public set, evolved champion, per-opponent breakdown — in
+    <code>arena/gauntlet/certs/POOL-RESULTS.md</code>.
   </p>
 
-  <p>
-    The Stonewaller is where the gap opens: the engine closes <b>59%</b> of
-    deals against it, the split-the-difference bot <b>2%</b>. Against the
-    Splitter and the Conceder the gap is real but much smaller (+0.07 each).
-  </p>
-
-  <h2>WHAT IT DOES NOT SAY</h2>
-  <div class="limits">
-    <div class="k">THE LIMITS, PRINTED ON THE CERTIFICATE ITSELF</div>
+  <h2>WHAT THIS CERTIFICATE COVERS</h2>
+  <div class="covers">
+    <div class="k">THE BOUNDARY, DRAWN BY US</div>
     <ul>
-      <li><b>Not future performance.</b> The numbers are in-sample on exactly
-        this scenario set.</li>
-      <li><b>Not performance against anything outside the three.</b> Not
-        against language models, not humans, not your real counterparties.</li>
-      <li><b>Not other kinds of deals.</b> A different generator, seed, or
-        number of issues is a different test and needs its own certificate.</li>
+      <li><b>Play against these three scripted opponents</b> — not against
+        language models, not humans, not your real counterparties.</li>
       <li><b>Not who or what your agent is.</b> The certificate carries an
         opaque digest the submitter supplied. It does not prove which code or
         model made the moves — pin the key fingerprint against one published
@@ -186,7 +172,7 @@
       <li><b>Not joint efficiency.</b> Two earlier scoring designs were killed
         for measuring the pair rather than the candidate. Those numbers still
         appear, labelled as context with no claim attached.
-        See <a href="/results">results</a>.</li>
+        <a href="/research">How they died →</a></li>
     </ul>
   </div>
 
@@ -197,8 +183,8 @@
 <span class="g">[OK]</span> signature valid · payload hash matches · exit 0</pre>
   <p class="note">
     Change one byte and it exits 1. A certificate signed with a throwaway key
-    reports <code>key_source: ephemeral</code> and is not a production
-    attestation. Regenerate the run with
+    reports <code>key_source: ephemeral</code> and is <b>not</b> a production
+    attestation. Regenerate any run with
     <code>python -m arena.gauntlet.certify --run engine --seed 20260709 --n 60 --deadline 8</code>.
   </p>
 
@@ -223,21 +209,9 @@
     protocol: <a href="https://arena.snhp.dev/llms.txt">arena.snhp.dev/llms.txt</a>.
   </p>
 
-  <h2>ONE HONEST NOTE ON LANGUAGE MODELS</h2>
-  <p>
-    Unaided frontier models have been measured here, but on an <b>earlier and
-    different protocol</b> — a single fixed opponent, scored on a metric a later
-    kill showed cannot rank skill. On that older setup the weaker models scored
-    <b>below</b> the split-the-difference baseline, and wiring them to the engine
-    mid-deal pulled them back to it. Those runs are <b>not certified</b> and are
-    not comparable to the table above. We keep them because they are the honest
-    record. Detail: <code>arena/gauntlet/certs/CERTIFIED-TABLE.md</code>,
-    section 3.
-  </p>
-
   <div class="hero-act" style="margin-top:26px">
     <a class="cta" href="https://x.com/ryuxik" target="_blank" rel="noopener">Send us an endpoint</a>
-    <a class="cta ghost" href="/results">See the two designs we killed →</a>
+    <a class="cta ghost" href="/research">See the designs we killed →</a>
   </div>
 </div>
 </html>

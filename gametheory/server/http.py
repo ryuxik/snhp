@@ -638,21 +638,28 @@ def certificate_page():
 
 @app.get("/build", include_in_schema=False)
 def build_page():
-    """The (free, open-source) negotiation engine: install and usage."""
-    return _serve_static_page("build.html")
+    """The engine pitch folded into the landing page; keep the URL alive."""
+    return RedirectResponse("/", status_code=301)
 
 
 @app.get("/spec", include_in_schema=False)
 def spec_page():
-    """SNHP-NX/1 — the open spec for carrying multi-issue package deals
-    through checkout-shaped agent-payment protocols."""
-    return _serve_static_page("spec.html")
+    """SNHP-NX/1 lives in its normative document; the page it had here is now
+    one entry on /research. Redirect rather than 404 so citations survive."""
+    return RedirectResponse("/research#nx", status_code=301)
+
+
+@app.get("/research", include_in_schema=False)
+def research_page():
+    """The surface: every experiment (including the pre-registered kills that
+    fired) and the live demos they came from."""
+    return _serve_static_page("research.html")
 
 
 @app.get("/results", include_in_schema=False)
 def results_page():
-    """Every experiment, including the pre-registered kills that fired."""
-    return _serve_static_page("results.html")
+    """Renamed to /research."""
+    return RedirectResponse("/research", status_code=301)
 
 
 @app.get("/demo.html", include_in_schema=False)
