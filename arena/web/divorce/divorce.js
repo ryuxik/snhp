@@ -1,4 +1,4 @@
-/* Irreconcilable Agents — cinematic trace player.
+/* Who Gets the Dog — cinematic trace player.
  *
  * This file renders NOTHING it invented. Every number, count, band, draft,
  * verdict and hash on screen is read from the loaded trace JSON (real engine
@@ -621,7 +621,7 @@
     $('#scene-cold').innerHTML =
       '<div class="corner-stamp">valuations sealed · ' + shortSeal(req(m.cast.A, 'seal'))
         + ' · ' + shortSeal(req(m.cast.B, 'seal')) + '</div>'
-      + '<div class="cold-head"><h1>IRRECONCILABLE AGENTS</h1>'
+      + '<div class="cold-head"><h1>WHO GETS THE DOG</h1>'
       + '<p class="tagline">The divorce is fake. The math is real.</p>'
       // The premise used to be three paragraphs (~60 words) held for 18
       // seconds. The tagline above already does that job in eight words —
@@ -1228,11 +1228,14 @@
   }
 
   function stampHTML() {
-    // The stamp OWNS "nobody peeked" on the decree screen — and it's a real
-    // door: clicking it reopens the flip-and-verify panel, permanently.
-    return '<button class="stamp" title="sealed before the first question — click to check them yourself">'
-      + '<span class="st-top">NOBODY PEEKED</span>'
-      + '<span class="st-sub">verified · snhp</span></button>';
+    // "Nobody peeked" described OUR anxiety — nobody arrives worried a court
+    // read a diary. What a stranger wants to know is whether it's rigged, so
+    // the seal answers that question in words they already own. The brand
+    // comes off the seal: a logo inside your own proof is the ad showing
+    // through. It stays a real door — tapping it flips and verifies.
+    return '<button class="stamp" title="sealed before the first question — tap to check it yourself">'
+      + '<span class="st-top">NOBODY COULD CHEAT</span>'
+      + '<span class="st-sub">sealed before question one · tap to check</span></button>';
   }
 
   /** Decree ledger lines carry NAMES, never pronouns — "hers/his" maps to
@@ -1260,10 +1263,14 @@
    *  the number is the door). Presets are bundled archive traces — no ledger
    *  entry exists for them, so they never claim "same number, same divorce". */
   function caseLineHTML(m) {
+    // This card travels alone in timelines, so it has to say what made it and
+    // where to get one. "Seed" was engineer-speak on the face of a screenshot.
+    const tail = ' · WHO GETS THE DOG · arena.snhp.dev';
     if (m.caseNo != null) {
-      return '<div class="dc-case">CASE #' + esc(String(m.caseNo)) + ' — same number, same divorce.</div>';
+      return '<div class="dc-case">CASE #' + esc(String(m.caseNo)) + tail
+        + '<span class="dc-case-sub">same number, same divorce.</span></div>';
     }
-    return '<div class="dc-case">county archive — seed ' + esc(String(req(m.meta, 'preset_seed'))) + '</div>';
+    return '<div class="dc-case">ARCHIVE CASE ' + esc(String(req(m.meta, 'preset_seed'))) + tail + '</div>';
   }
 
   function taxBandHTML(label, numHTML) {
@@ -1273,16 +1280,19 @@
 
   function buildDecree(m, steps, opts) {
     const sc = $('#scene-decree');
-    const inre = 'IN RE: ' + esc(RELATIONSHIPS[m.rel].inre) + ' '
-      + esc(m.names.A.charAt(0).toUpperCase()) + '. &amp; '
-      + esc(m.names.B.charAt(0).toUpperCase()) + '.';
+    // Latin, and it cut Dana and Morgan down to initials twelve pixels above
+    // a ledger printed with their full names. Their names ARE the in-re line.
+    const inre = esc(m.names.A) + ' v. ' + esc(m.names.B);
     const relNote = m.rel !== 'marriage'
       ? ' · county standard estate, relabeled for this filing' : '';
+    const letterhead = '<div class="dc-letterhead">WHO GETS THE DOG</div>';
 
     let cardHTML, belowHTML;
+    // COPY THE LINE is gone: the pinned button already copies this sentence
+    // PLUS the case number and the domain, and a cold visitor screenshots
+    // rather than clipboards. The sentence stays — as type. It is the payload.
     const shareRow = '<div class="dc-share"><span class="share-text" id="share-line">'
-      + esc(shareLineText(m)) + '</span>'
-      + '<button id="share-copy" title="copy the line">COPY THE LINE</button></div>';
+      + esc(shareLineText(m)) + '</span></div>';
 
     // ONE action under the card. The decree is the best screen in the product
     // and it used to offer six competing exits — none of which was "make your
@@ -1309,6 +1319,7 @@
       const why = m.decree.no_zopa ? VOICE.whyNoZopa : VOICE.whyAbstain;
       cardHTML =
         '<div id="decree-card" class="nodecree">'
+        + letterhead
         + '<div class="dc-head"><div class="dc-title">FINAL DECREE</div>'
         + '<div class="dc-inre">' + inre + '</div></div>'
         + '<div class="dc-nodecree">NO DECREE.</div>'
@@ -1317,12 +1328,11 @@
         + plural(m.totalInterview, 'question') + '. ' + plural(m.drafts.length, 'draft') + '.</p>'
         + '<p class="dc-why">' + esc(why) + '</p>'
         + '</div>'
-        + taxBandHTML('PETTINESS TAX', 'EVERYTHING.')
+        + taxBandHTML('BURNED', 'EVERYTHING.')
+        + '<div class="dc-tax-sub">No deal. They kept the argument and nothing else.</div>'
         + shareRow
         + '<div class="dc-bottom"><div class="dc-dog">' + dogSVG() + '</div>' + stampHTML() + '</div>'
         + caseLineHTML(m)
-        + '<div class="dc-fine">valuations sealed · ' + shortSeal(m.flip.A.seal) + ' · '
-        + shortSeal(m.flip.B.seal) + ' · no decree issued' + relNote + '</div>'
         + '</div>';
       belowHTML = actionsHTML;
     } else {
@@ -1334,45 +1344,55 @@
       const autopsy = req(s, 'hill_autopsy.' + loser);
       const rc = m.receipt;
       const checks = req(rc, 'checks');
-      const ratifiedLine = (checks.ratified_a === true && checks.ratified_b === true)
-        ? ' · both parties ratified' : '';
+      // The best fact on this card was buried inside a hex string: two parties
+      // who fought this hard both SIGNED it. Promote it; the hashes move
+      // behind "view receipt", unchanged, every character intact.
+      const ratified = checks.ratified_a === true && checks.ratified_b === true;
       const fine = 'engine ' + esc(req(rc, 'engine_version'))
         + ' · ' + shortSeal(req(rc, 'inputs.digest_a'))
-        + ' · ' + shortSeal(req(rc, 'inputs.digest_b')) + ratifiedLine + relNote;
+        + ' · ' + shortSeal(req(rc, 'inputs.digest_b'))
+        + (ratified ? ' · both parties ratified' : '') + relNote;
+
+      // "The lawyers' way" meant nothing to a stranger, and it sat BELOW the
+      // card — outside every screenshot anyone has ever taken. Say what it is,
+      // and put it on the card.
+      const delta = req(s, 'joint_surplus') - req(s, 'arm_i_joint_surplus');
+      const lawyersBit = delta > 0
+        ? 'ITEM BY ITEM, THEY’D HAVE LOST ANOTHER ' + fmtMoney(delta) + '.'
+        : 'ITEM BY ITEM, THEY’D HAVE COME OUT ' + fmtMoney(-delta) + ' AHEAD — it happens.';
 
       cardHTML =
         '<div id="decree-card">'
+        + letterhead
         + '<div class="dc-head"><div class="dc-title">FINAL DECREE</div>'
         + '<div class="dc-inre">' + inre + '</div></div>'
         + '<div class="ledger">' + ledgerRowsHTML(m, m.sharesA) + '</div>'
-        + taxBandHTML('PETTINESS TAX', esc(fmtMoney(tax)))
-        + '<div class="dc-tax-sub">(' + esc(loserName) + ', dying on ' + esc(hillTitle(m, req(autopsy, 'hill')))
-        + ' Hill — retail ' + fmtMoney(req(autopsy, 'retail')) + ')'
-        + ' — what ' + esc(loserName) + '’s feelings cost at the table</div>'
+        // "PETTINESS TAX" was a term of art that also read as a lie: "tax"
+        // means money you pay, and nobody pays this. Name the thing that
+        // happened, then kill the wrong reading in the first two words.
+        + taxBandHTML('BURNED ON ' + esc(cleanDisp(m, req(autopsy, 'hill')).toUpperCase()),
+                      esc(fmtMoney(tax)))
+        + '<div class="dc-tax-sub">Nobody paid this. Without ' + esc(loserName) + '’s stand on '
+        + esc(cleanDisp(m, req(autopsy, 'hill'))) + ', the two of them end up '
+        + fmtMoney(tax) + ' better off.</div>'
         + shareRow
         + '<div class="dc-bottom"><div class="dc-dog">' + dogSVG() + '</div>' + stampHTML() + '</div>'
+        + (ratified ? '<div class="dc-signed">Both of them signed it anyway.</div>' : '')
+        + '<div class="dc-lawyers">' + esc(lawyersBit) + '</div>'
         + caseLineHTML(m)
-        + '<div class="dc-fine">' + fine + '</div>'
         + '</div>';
 
-      // Scoreboard keeps ONE line: what the lawyers' way cost (or didn't —
-      // the rare reversal gets the clerk's flattest respect).
-      const delta = req(s, 'joint_surplus') - req(s, 'arm_i_joint_surplus');
-      const lawyersBit = delta > 0
-        ? 'the lawyers’ way left ' + fmtMoney(delta) + ' on the table'
-        : 'the lawyers’ way came out ' + fmtMoney(-delta) + ' ahead here';
       const totalTax = taxA + taxB;
       const closing = totalTax < 1000
         ? '<p id="closing-line">Nothing much set on fire. Was it ever love?</p>' : '';
 
       belowHTML =
-        '<div id="scoreboard">' + esc(lawyersBit) + '</div>'
-        + (delta <= 0 ? '<p id="rare-line">' + esc(VOICE.rareLawyers) + '</p>' : '')
+        (delta <= 0 ? '<p id="rare-line">' + esc(VOICE.rareLawyers) + '</p>' : '')
         + closing
         + '<div id="receipt-row"><button id="rc-toggle">view receipt</button>'
         + '<div id="rc-panel" hidden>'
-        + '<p class="rc-line">engine <span class="mono">' + esc(req(rc, 'engine_version')) + '</span>'
-        + ' · two sealed digests · signature <span id="rc-sig" class="mono">checking…</span>'
+        + '<p class="rc-line">' + esc(fine) + '</p>'
+        + '<p class="rc-line">signature <span id="rc-sig" class="mono">checking…</span>'
         + ' — computed from the interviews alone, checkable by replay</p>'
         + '<div class="rc-settle">' + ledgerRowsHTML(m, req(rc, 'settlement.shares_a')) + '</div>'
         + '<p class="rc-counts">' + rcCountsText(m) + '</p>'
@@ -1463,29 +1483,10 @@
       });
     }
 
-    // the share line's copy affordance — clipboard if available, else select
-    // it and SAY what to press (silent fallback was undiscoverable).
-    const copyBtn = $('#share-copy');
-    const selectShare = () => {
-      const rng = document.createRange();
-      rng.selectNodeContents($('#share-line'));
-      const sel = window.getSelection();
-      sel.removeAllRanges(); sel.addRange(rng);
-    };
-    copyBtn.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      const text = $('#share-line').textContent;
-      const done = () => {
-        copyBtn.textContent = 'COPIED';
-        setTimeout(() => { copyBtn.textContent = 'COPY THE LINE'; }, 1200);
-      };
-      const manual = () => { selectShare(); copyBtn.textContent = 'PRESS ⌘C'; };
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(done, manual);
-      } else {
-        manual();
-      }
-    });
+    // (COPY THE LINE deleted — the pinned button copies the line plus the case
+    // number plus the domain, which is strictly better, and two copy buttons
+    // on one card is a bug. The sentence remains as type: it is the payload
+    // of the screenshot, not a thing to click.)
 
     steps.push({
       scene: 'decree',
