@@ -402,6 +402,16 @@ def mediate(prior: PopPrior, answerer_a: TrueBuyer, answerer_b: TrueBuyer,
                                   view(o)) for o in outcomes])
         return med, m, p
 
+
+    def final_bands():
+        # instrumentation for science_eval's recoverable-abstention analysis:
+        # the mediator's OWN final read (q25/q50/q75) of each side, so an
+        # auditor can reconstruct its confident set post-hoc.
+        return {"a": {x: [la.quantile(x, .25), la.quantile(x, .5),
+                          la.quantile(x, .75)] for x in ELICITABLE},
+                "b": {x: [lb.quantile(x, .25), lb.quantile(x, .5),
+                          lb.quantile(x, .75)] for x in ELICITABLE}}
+
     n_questions = len(trace_a) + len(trace_b)
     drafts = []
     excl_a = np.zeros(len(outcomes), dtype=bool)
@@ -436,7 +446,8 @@ def mediate(prior: PopPrior, answerer_a: TrueBuyer, answerer_b: TrueBuyer,
         if ok_a and ok_b:
             return {"proposal": proposal, "trace_a": trace_a, "trace_b": trace_b,
                     "n_questions": n_questions, "drafts": drafts,
-                    "v_hat_a": med_a, "v_hat_b": med_b}
+                    "v_hat_a": med_a, "v_hat_b": med_b,
+                    "final_bands": final_bands()}
         # A refusal is information twice over: (1) posterior update — the
         # refuser's margin at this bundle is negative, a linear inequality on
         # its values (update_refusal); (2) hard exclusion — this allocation at
@@ -454,7 +465,8 @@ def mediate(prior: PopPrior, answerer_a: TrueBuyer, answerer_b: TrueBuyer,
             excl_b |= same_alloc & (1.0 - wallet_a <= (1.0 - s) + 1e-9)
     return {"proposal": None, "trace_a": trace_a, "trace_b": trace_b,
             "n_questions": n_questions, "drafts": drafts,
-            "v_hat_a": med_a, "v_hat_b": med_b}
+            "v_hat_a": med_a, "v_hat_b": med_b,
+            "final_bands": final_bands()}
 
 
 def run_arm_b(pa: P.Persona, pb: P.Persona, prior: PopPrior,
