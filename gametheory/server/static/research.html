@@ -41,22 +41,35 @@
   nav.top a:hover, nav.top a[aria-current] { color: var(--gold); }
   nav.top .brand { color: var(--ink); font-weight: 700; letter-spacing: .16em; margin-right: 6px; }
 
-  .limits { border: 1px solid var(--line); border-radius: 12px; background: #131022;
-            padding: 18px 20px; margin: 16px 0 8px; }
-  .limits .k { color: var(--dim); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
-  .limits ul { margin: 0; } .limits li { font-size: 12.5px; }
   .note { color: #807a99; font-size: 11.5px; line-height: 1.65; margin-top: 8px; }
   a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
-  .doors { display: grid; gap: 10px; margin: 14px 0 6px; }
-  .door { border: 1px solid var(--line); border-radius: 10px; background: #131022;
-          padding: 13px 15px; text-decoration: none; display: block; }
-  .door:hover { border-color: rgba(255,224,138,.4); }
-  .door .nm { font-weight: 700; font-size: 13px; color: var(--gold); margin-bottom: 4px; }
-  .door p { margin: 0; font-size: 12.5px; }
+  /* ── the ledger: the whole argument in one glance ───────────────────── */
+  .ledger { margin: 14px 0 6px; }
+  .ledger .lrow { display:flex; align-items:baseline; gap:14px; padding:12px 2px;
+                  border-bottom:1px solid var(--line); text-decoration:none; color:var(--ink); }
+  .ledger .lrow:last-child { border-bottom:0; }
+  .ledger .what { font-size:13px; line-height:1.55; flex:1; }
+  .ledger .lrow:hover .what { color: var(--gold); }
+  .ledger .st { font-size:10px; letter-spacing:.14em; white-space:nowrap; margin-left:auto; }
+  .ledger .st.red { color: var(--red); }
+  .ledger .st.green { color: var(--green); }
+  .ledger .st.dim { color: var(--dim); }
+
+  /* ── the one device: receipt rows ───────────────────────────────────── */
+  .rows { margin: 12px 0 6px; }
+  .rows .row { display:flex; align-items:baseline; gap:10px; padding:11px 2px;
+               border-bottom:1px solid var(--line); text-decoration:none; }
+  .rows .row:last-child { border-bottom:0; }
+  .rows .k { font-size:10.5px; letter-spacing:.14em; color:var(--violet); white-space:nowrap;
+             min-width: 12ch; }
+  .rows .v { font-size:13px; color:var(--ink); }
+  .rows .v .sub { color:var(--dim); }
+  .rows a.row:hover .k { color: var(--gold); }
+  .rows.demos .k { min-width: 22ch; flex-shrink: 0; }
 
   .entry { border: 1px solid var(--line); border-left-width: 3px; border-radius: 10px;
-           background: #131022; padding: 16px 18px; margin: 12px 0; }
+           background: #131022; padding: 16px 18px; margin: 12px 0; scroll-margin-top: 18px; }
   .entry.killed { border-left-color: var(--red); }
   .entry.survived { border-left-color: var(--green); }
   .entry.plain { border-left-color: var(--violet); }
@@ -71,7 +84,22 @@
   .entry p { margin: 0 0 8px; font-size: 12.5px; }
   .entry p:last-of-type { margin-bottom: 0; }
   .entry pre { margin: 10px 0 0; background: #0e0c1c; font-size: 11.5px; }
-  @media (max-width: 560px) { h1 { font-size: 22px; } .wrap { padding: 26px 16px 60px; } }
+
+  /* ── collapsible detail, styled to match ────────────────────────────── */
+  details { border: 1px solid var(--line); border-radius: 10px; background: #131022;
+            padding: 0 16px; margin: 14px 0 6px; }
+  details > summary { list-style: none; cursor: pointer; color: var(--blue);
+                      font-size: 12.5px; line-height: 1.6; padding: 13px 0; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::before { content: "+ "; color: var(--violet); font-weight: 700; }
+  details[open] > summary::before { content: "− "; }
+  details[open] > summary { border-bottom: 1px solid var(--line); }
+  details > *:not(summary) { margin-top: 6px; }
+  details > *:last-child { margin-bottom: 12px; }
+
+  @media (max-width: 560px) { h1 { font-size: 22px; } .wrap { padding: 26px 16px 60px; }
+    .rows .k, .rows.demos .k { min-width: 100%; } .rows .row { flex-direction: column; gap: 3px; }
+    .ledger .lrow { flex-direction: column; gap: 4px; } .ledger .st { margin-left: 0; } }
 </style>
 
 <div class="wrap">
@@ -84,13 +112,30 @@
   <h1>Everything we ran, <b>including what killed our own ideas.</b></h1>
   <p class="lede">
     Five experiments. Each had its kill condition written down, <b>with numbers,
-    before the run</b>. Four came back against us. Here they are, with the
-    commands to reproduce them.
+    before the run</b>. Four came back against us.
   </p>
+
+  <div class="ledger">
+    <a class="lrow" href="#spendguard">
+      <span class="what">The spend guard: agents never overpaid, so there was nothing to sell</span>
+      <span class="st red">KILLED</span></a>
+    <a class="lrow" href="#nx">
+      <span class="what">Package deals are <em>not</em> needed to close machine trades</span>
+      <span class="st red">KILL FIRED</span></a>
+    <a class="lrow" href="#scoring">
+      <span class="what">Two scoring designs measured the pair, not the agent</span>
+      <span class="st red">TWO KILLED</span></a>
+    <a class="lrow" href="#scoring">
+      <span class="what">The third design changed the opponent, not the metric</span>
+      <span class="st green">SURVIVED</span></a>
+    <a class="lrow" href="#models">
+      <span class="what">Unaided language models, on a protocol a later kill retired</span>
+      <span class="st dim">MEASURED</span></a>
+  </div>
 
   <h2>JULY 2026</h2>
 
-  <div class="entry killed">
+  <div class="entry killed" id="spendguard">
     <div class="hd"><span class="tag">KILLED — WE DID NOT BUILD IT</span><span class="when">JUL 2026</span>
       <div class="ti">The spend guard: agents never overpaid, so there was nothing to sell</div></div>
     <p>We expected a buying agent under pressure — fake urgency, hidden fees,
@@ -123,7 +168,7 @@ python -m nx.experiment --regime constrained   <span class="c"># exploratory, se
 python -m pytest nx/test_nx.py -q              <span class="c"># conformance</span></pre>
   </div>
 
-  <div class="entry survived">
+  <div class="entry survived" id="scoring">
     <div class="hd"><span class="tag">TWO DESIGNS KILLED — THE THIRD SURVIVED</span><span class="when">JUL 2026</span>
       <div class="ti">The certificate: it took three scoring designs to measure the agent instead of the pair</div></div>
     <p><b>Design #1 measured the pair.</b> Against a counterparty that finds good
@@ -142,7 +187,7 @@ python -m arena.gauntlet.pool_experiment   <span class="c"># design #3</span>
 python -m arena.gauntlet.certify --run engine</pre>
   </div>
 
-  <div class="entry plain">
+  <div class="entry plain" id="models">
     <div class="hd"><span class="tag">MEASURED — NOT CERTIFIED</span><span class="when">JUL 2026</span>
       <div class="ti">One honest note on language models</div></div>
     <p>Unaided frontier models have been measured here, but on an <b>earlier and
@@ -156,49 +201,35 @@ python -m arena.gauntlet.certify --run engine</pre>
   </div>
 
   <h2>THE DEMOS THESE CAME FROM</h2>
-  <p class="note" style="margin-bottom:12px">
-    Each one is a research artifact, not a product. They run in a browser.
+  <p class="note" style="margin-bottom:4px">
+    Each one is a research artifact, not a product. They run in a browser —
+    <a href="https://arena.snhp.dev/" target="_blank" rel="noopener">full index →</a>
   </p>
-  <div class="doors">
-    <a class="door" href="https://arena.snhp.dev/divorce/" target="_blank" rel="noopener">
-      <div class="nm">Irreconcilable Agents →</div>
-      <p>Two adversarial household AIs split the assets. The bundle clears where
-        item-by-item deadlocks, and the receipt is judge-checkable.</p>
-    </a>
-    <a class="door" href="https://arena.snhp.dev/world" target="_blank" rel="noopener">
-      <div class="nm">The evolution sim →</div>
-      <p>Negotiating strategies mutate and compete until one of them wins.</p>
-    </a>
-    <a class="door" href="https://arena.snhp.dev/swarm.html" target="_blank" rel="noopener">
-      <div class="nm">The drone economy →</div>
-      <p>Machines bargaining with machines over jobs, routes and payment.</p>
-    </a>
-    <a class="door" href="https://arena.snhp.dev/" target="_blank" rel="noopener">
-      <div class="nm">All of them →</div>
-      <p>The full index of what we have built and run.</p>
-    </a>
+  <div class="rows demos">
+    <a class="row" href="https://arena.snhp.dev/divorce/" target="_blank" rel="noopener">
+      <span class="k">IRRECONCILABLE AGENTS</span>
+      <span class="v">Two household AIs split the assets <span class="sub">— the bundle clears where item-by-item deadlocks, and a judge can check the receipt</span></span></a>
+    <a class="row" href="https://arena.snhp.dev/world" target="_blank" rel="noopener">
+      <span class="k">THE EVOLUTION SIM</span>
+      <span class="v">Negotiating strategies mutate and compete until one of them wins</span></a>
+    <a class="row" href="https://arena.snhp.dev/swarm.html" target="_blank" rel="noopener">
+      <span class="k">THE DRONE ECONOMY</span>
+      <span class="v">Machines bargaining with machines over jobs, routes and payment</span></a>
   </div>
 
-  <h2>HOW TO READ THIS PAGE</h2>
-  <div class="limits">
-    <div class="k">WHAT "PRE-REGISTERED" MEANS HERE, AND WHAT IT DOESN'T</div>
-    <ul>
-      <li><b>Thresholds were frozen before the run</b>, in a committed file,
-        with both directions stated — what would count as success and what
-        would count as failure.</li>
-      <li><b>Nothing was excluded afterward.</b> Where a result was picked after
-        seeing data, it says so and proves nothing until it clears a fresh
-        held-out set.</li>
-      <li><b>These are small, scripted, offline experiments.</b> No result here
-        is a claim about your counterparties, your market, or the future.</li>
-      <li><b>Everything regenerates.</b> The commands above are the real ones,
-        and the runs are deterministic.</li>
-    </ul>
-  </div>
-
-  <div class="hero-act" style="margin-top:26px">
+  <div class="hero-act" style="margin-top:34px">
     <a class="cta" href="https://github.com/ryuxik/snhp" target="_blank" rel="noopener">Read the raw results</a>
     <a class="cta ghost" href="/">What we actually sell →</a>
   </div>
+
+  <details style="margin-top:34px">
+    <summary>What "pre-registered" means here — and what it doesn't.</summary>
+    <div class="rows">
+      <div class="row"><span class="k">FROZEN</span><span class="v">Thresholds fixed before the run, in a committed file <span class="sub">— both directions stated: what would count as success, what as failure</span></span></div>
+      <div class="row"><span class="k">NO CUTS</span><span class="v">Nothing was excluded afterward <span class="sub">— a result picked after seeing data says so, and proves nothing until it clears a fresh held-out set</span></span></div>
+      <div class="row"><span class="k">SCOPE</span><span class="v">Small, scripted, offline experiments <span class="sub">— no result here is a claim about your counterparties, your market, or the future</span></span></div>
+      <div class="row"><span class="k">REPRODUCE</span><span class="v">The commands above are the real ones, and the runs are deterministic</span></div>
+    </div>
+  </details>
 </div>
 </html>

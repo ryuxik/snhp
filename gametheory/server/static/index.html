@@ -3,59 +3,79 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>SNHP — the receipt for what your software spends</title>
-<meta name="description" content="Every price an AI agent agrees to — listed, accepted, saved. Checkable offline, years later, without us. A receipt for more than the list price cannot be built: the code refuses." />
+<meta name="description" content="Your payment processor proves the money moved. It was not in the room when the price was set. SNHP signs what the price should have been — checkable offline, and a receipt above list cannot be printed at all." />
 <meta property="og:title" content="Software is spending your money. Here's the receipt." />
-<meta property="og:description" content="A log is us saying we behaved. A receipt is evidence you can check without us — and a receipt above the list price cannot be built." />
+<meta property="og:description" content="Stripe proves you paid. This proves you shouldn't have paid more." />
 <style>
   :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
-          --gold:#ffe08a; --green:#7fc48f; --violet:#a78bfa; --blue:#8fd0ff; }
+          --gold:#ffe08a; --green:#7fc48f; --violet:#a78bfa; --blue:#8fd0ff;
+          --paper:#f5f1e6; --papink:#1a1720; --papdim:#6d6555; }
   html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
                font-family: ui-monospace, Menlo, monospace; }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 34px 20px 80px; }
-  h1 { font-size: 28px; letter-spacing: .03em; margin: 0 0 14px; line-height: 1.28; text-wrap: balance; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 34px 20px 70px; }
+  h1 { font-size: 28px; letter-spacing: .03em; margin: 0 0 8px; line-height: 1.28; text-wrap: balance; }
   h1 b { color: var(--gold); }
-  h2 { font-size: 13px; letter-spacing: .2em; color: var(--violet); margin: 44px 0 10px; }
-  p, li { color: var(--dim); font-size: 13px; line-height: 1.7; }
-  p b, li b { color: var(--ink); }
+  h2 { font-size: 12.5px; letter-spacing: .2em; color: var(--violet); margin: 42px 0 10px; }
+  p { color: var(--dim); font-size: 13px; line-height: 1.7; }
+  p b { color: var(--ink); }
   a { color: var(--blue); }
-  ul { padding-left: 20px; } li { margin: 6px 0; }
-  .lede { color: var(--dim); font-size: 14px; line-height: 1.7; max-width: 62ch; margin: 0 0 20px; }
-  .lede b { color: var(--ink); }
   pre { background: #131022; border: 1px solid var(--line); border-radius: 10px;
-        padding: 14px 16px; font-size: 12px; line-height: 1.6; overflow-x: auto; color: #d6d2e6; }
-  pre b { color: var(--gold); font-weight: 700; }
-  pre .c { color: #807a99; } pre .g { color: var(--green); }
-  code { background: #131022; border: 1px solid var(--line); border-radius: 5px;
-         padding: 1px 6px; color: #d6d2e6; font-size: 12px; }
+        padding: 13px 15px; font-size: 12px; line-height: 1.6; overflow-x: auto; color: #d6d2e6; }
+  pre b { color: var(--gold); } pre .c { color: #807a99; } pre .g { color: var(--green); }
   .cta { display:inline-block; padding: 12px 18px; border-radius: 9px; font-size: 13px;
          font-weight: 700; text-decoration: none; letter-spacing: .05em;
          background: var(--gold); color: #0a0812; font-family: inherit; }
   .cta:hover { filter: brightness(1.06); }
-  .cta.ghost { background: none; color: var(--gold); border: 1px solid rgba(255,224,138,.4); }
-  .hero-act { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 2px; }
-
   nav.top { display:flex; gap:18px; align-items:center; margin-bottom: 26px; flex-wrap:wrap; }
   nav.top a { color: var(--dim); font-size: 12px; text-decoration: none; letter-spacing: .08em; }
   nav.top a:hover, nav.top a[aria-current] { color: var(--gold); }
   nav.top .brand { color: var(--ink); font-weight: 700; letter-spacing: .16em; margin-right: 6px; }
 
-  .keyfact { border: 1px solid rgba(255,224,138,.4); border-radius: 12px;
+  /* the slip: the product, looking like itself */
+  .slip { width: 34ch; max-width: 100%; margin: 26px auto 8px; background: var(--paper);
+          color: var(--papink); padding: 20px 22px 8px; position: relative;
+          box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+  .slip::after { content:""; position:absolute; left:0; right:0; bottom:-9px; height:10px;
+                 background: var(--paper);
+                 -webkit-mask-image: repeating-linear-gradient(135deg,#000 0 6px,transparent 6px 12px);
+                 mask-image: repeating-linear-gradient(135deg,#000 0 6px,transparent 6px 12px); }
+  .slip .hd { text-align:center; font-size:10.5px; letter-spacing:.14em; color:var(--papdim);
+              padding-bottom:12px; border-bottom:1px dashed #c9c0ab; }
+  .slip .r { display:flex; align-items:baseline; font-size:12.5px; margin:9px 0; }
+  .slip .r .d { flex:1; border-bottom:1px dotted #b3aa96; margin:0 6px; transform:translateY(-4px); }
+  .slip .r .v { font-variant-numeric: tabular-nums; white-space:nowrap; }
+  .slip .tot { display:flex; justify-content:space-between; font-weight:700; font-size:15px;
+               border-top:1px solid var(--papink); padding-top:10px; margin-top:12px; }
+  .slip .stamp { margin:14px 0 10px; text-align:center; font-size:10px; letter-spacing:.16em;
+                 border:1.5px solid #2f7d4f; color:#2f7d4f; padding:5px 0; border-radius:2px; }
+  .slip .sig { text-align:center; font-size:9.5px; color:var(--papdim); letter-spacing:.06em;
+               padding-bottom:14px; }
+
+  /* the one device: receipt rows */
+  .rows { margin: 12px 0 6px; }
+  .rows .row { display:flex; align-items:baseline; gap:10px; padding:11px 2px;
+               border-bottom:1px solid var(--line); }
+  .rows .row:last-child { border-bottom:0; }
+  .rows .k { font-size:10.5px; letter-spacing:.14em; color:var(--violet); white-space:nowrap;
+             min-width: 12ch; }
+  .rows .v { font-size:13px; color:var(--ink); }
+  .rows .v .sub { color:var(--dim); }
+
+  .keyfact { border:1px solid rgba(255,224,138,.4); border-radius:12px;
              background: linear-gradient(180deg, rgba(255,224,138,.06), rgba(255,224,138,.02));
-             padding: 18px 20px; margin: 22px 0 8px; }
-  .keyfact p { margin: 0; font-size: 14px; line-height: 1.75; color: var(--ink); }
-  .covers { border: 1px solid var(--line); border-radius: 12px; background: #131022;
-            padding: 18px 20px; margin: 16px 0 8px; }
-  .covers .k { color: var(--dim); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
-  .covers ul { margin: 0; } .covers li { font-size: 12.5px; }
-  .doors { display: grid; gap: 10px; margin: 14px 0 6px; }
-  .door { border: 1px solid var(--line); border-radius: 10px; background: #131022;
-          padding: 13px 15px; text-decoration: none; display: block; }
+             padding:18px 20px; margin:24px 0 8px; }
+  .keyfact p { margin:0 0 10px; font-size:14px; line-height:1.75; color:var(--ink); }
+  .keyfact p:last-child { margin-bottom:0; }
+  .doors { display:grid; gap:10px; margin:14px 0 6px; }
+  .door { border:1px solid var(--line); border-radius:10px; background:#131022;
+          padding:13px 15px; text-decoration:none; display:block; }
   .door:hover { border-color: rgba(255,224,138,.4); }
-  .door .nm { font-weight: 700; font-size: 13px; color: var(--gold); margin-bottom: 4px; }
-  .door p { margin: 0; font-size: 12.5px; }
-  .foot { color: #807a99; font-size: 11.5px; margin-top: 40px; }
-  a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-  @media (max-width: 560px) { h1 { font-size: 22px; } .wrap { padding: 26px 16px 60px; } }
+  .door .nm { font-weight:700; font-size:13px; color:var(--gold); margin-bottom:4px; }
+  .door p { margin:0; font-size:12.5px; }
+  .foot { color:#807a99; font-size:11.5px; margin-top:40px; }
+  a:focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
+  @media (max-width:560px){ h1{font-size:22px;} .wrap{padding:26px 16px 56px;}
+    .rows .k{min-width:100%;} .rows .row{flex-direction:column; gap:3px;} }
 </style>
 
 <div class="wrap">
@@ -66,18 +86,33 @@
   </nav>
 
   <h1>Software is spending your money.<br /><b>Here's the receipt.</b></h1>
-  <p class="lede">
-    Every price an agent agrees to — <b>listed, accepted, saved</b>. Checkable
-    offline, years later, without us. And a receipt for <b>more than the list
-    price cannot be built</b>: the code refuses to make one.
-  </p>
+
+  <div class="slip">
+    <div class="hd">SNHP NOTARY · DEAL 4471 · 2026-07-18</div>
+    <div class="r"><span>List price</span><span class="d"></span><span class="v">2,670.00</span></div>
+    <div class="r"><span>Agreed</span><span class="d"></span><span class="v">2,536.50</span></div>
+    <div class="tot"><span>YOU SAVED</span><span>133.50</span></div>
+    <div class="stamp">NEVER ABOVE LIST — VERIFIED</div>
+    <div class="sig">ed25519 · 9f2a…4c1b</div>
+  </div>
 
   <div class="keyfact">
     <p>
-      A log is us saying we behaved. A receipt is <b>evidence you can check
-      without us</b> — and the one receipt that would matter most, the one that
-      overcharges you, is the one that cannot be printed.
+      Your payment processor already sends you a receipt. It proves the money
+      moved — <b>it wasn't in the room when the price was set.</b> This was.
     </p>
+    <p>
+      Stripe can tell you what you paid. Only the thing that formed the price can
+      tell you what you <b>should</b> have paid. And the one receipt that would
+      matter most — the one that overcharges you — <b>cannot be printed at
+      all</b>. The code refuses to build it.
+    </p>
+  </div>
+
+  <div class="rows">
+    <div class="row"><span class="k">SIGNED</span><span class="v">Listed, agreed, saved <span class="sub">— every price an agent accepts</span></span></div>
+    <div class="row"><span class="k">CHECKABLE</span><span class="v">Offline, years later, without us</span></div>
+    <div class="row"><span class="k">ABOVE LIST</span><span class="v">Cannot be printed <span class="sub">— enforced in code, not policy</span></span></div>
   </div>
 
   <p>
@@ -86,52 +121,9 @@
     true — which is the only reason the true ones are worth anything.
   </p>
 
-  <h2>WHAT'S IN ONE</h2>
-<pre>list_price      2670.00   <span class="c">the public list</span>
-quoted_price    2536.50   <span class="c">what was agreed</span>
-saving           133.50   <span class="c">list − quoted</span>
-notary_sig      <b>ed25519…</b> <span class="c">breaks if any byte above changes</span>
-
-<span class="c">…plus five fields that chain it to the previous receipt,
-reproduce the price from its inputs, and disclose the signer.</span></pre>
-
-  <h2>CHECK ONE WITHOUT TRUSTING US</h2>
-<pre>python -m core.notary verify <b>receipts.jsonl</b>
+<pre>python -m core.notary verify <b>receipts.jsonl</b>   <span class="c"># open, offline, needs nothing from us</span>
 
 <span class="g">[OK]</span> signature valid · never-above-list holds · chain intact</pre>
-  <p>
-    Fetch the public key once from <code>/v1/notary/key</code> and you never need
-    to contact us again — including years later, when the receipt matters and we
-    might not be around.
-  </p>
-
-  <h2>WHAT THIS RECEIPT COVERS</h2>
-  <div class="covers">
-    <div class="k">THE BOUNDARY, DRAWN BY US</div>
-    <ul>
-      <li><b>What happened inside the mechanism</b> — a deal negotiated elsewhere
-        is not covered.</li>
-      <li><b>That the price never exceeded the list</b> — not that the buyer's
-        story was true, unless an attestation token is attached.</li>
-    </ul>
-  </div>
-
-  <h2>THE ENGINE IS FREE</h2>
-  <p>
-    The math that picks the price costs nothing and runs locally — no model call,
-    Apache 2.0. We sell the proof on top, not the arithmetic underneath.
-  </p>
-<pre>uvx snhp                     <span class="c"># zero-install MCP server</span>
-pip install snhp             <span class="c"># or the library</span>
-
-<span class="c"># in any MCP client:</span>
-{ "mcpServers": { "snhp": { "command": "uvx", "args": ["snhp"] } } }</pre>
-  <p>
-    Wired into a frontier model mid-deal it captured about <b>+12.5% more
-    surplus</b> than the same model without it — n=20 paired seeds, single issue;
-    against a tuned production prompt roughly half that. A measurement, not a
-    promise. <a href="https://github.com/ryuxik/snhp">Source and docs →</a>
-  </p>
 
   <h2>THE REST OF IT</h2>
   <div class="doors">
@@ -145,11 +137,15 @@ pip install snhp             <span class="c"># or the library</span>
       <p>Five experiments, each with its kill condition written down first. Four
         came back against us. Plus the demos they came from.</p>
     </a>
+    <a class="door" href="https://github.com/ryuxik/snhp">
+      <div class="nm">Take the engine, free →</div>
+      <p>The math that picks the price. No model call, runs locally, Apache 2.0.
+        We sell the proof on top, not the arithmetic underneath.</p>
+    </a>
   </div>
 
-  <div class="hero-act" style="margin-top:28px">
+  <div style="margin-top:30px">
     <a class="cta" href="mailto:ryuxik@gmail.com?subject=SNHP%20pilot">Talk to us about a pilot</a>
-    <a class="cta ghost" href="/research">See what we got wrong →</a>
   </div>
 
   <p class="foot">
