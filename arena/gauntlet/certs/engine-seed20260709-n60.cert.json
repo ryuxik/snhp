@@ -62,17 +62,17 @@
   }
  },
  "candidate": {
-  "candidate_digest": "sha256:f01eeea98280571a290769219ad143c019bf1524ac44928f1d849f71765d5004",
+  "candidate_digest": "sha256:4e05f1bf0e4a1d2fedc7c9f599edb4172172547c099e2f4694c700e4f735bbe9",
   "name": "engine"
  },
- "cert_sig": "nCLt_Kh9opD9tIWzoWw5K9q6Ui3X3MCHIQ4kv1A2HWWpnwwtxAbBIqO-_aOBHzksSUUFaK-kulnv9Im2FZ9PAg",
+ "cert_sig": "8mI7ygYixsuMHexIsv5-xdcCrteZ6OBQD953ha4m_pJ3io-GnHv9k6dY1kSH4ldD892RmAkyGvGcM5VWrKLfAQ",
  "changelog": [
   "3.1 \u2014 gauntlet-cert/3: primary claim = pooled own-utility vs the frozen three (naive, hardball, conceder); registered pool experiment SURVIVED on public + held-out sets (PREREG-pool.md, certs/POOL-RESULTS.md)",
   "3.2 \u2014 ADDITIVE: `reference_tier` block (counterparty snhp-engine) with its registered prediction and outcome (PREREG-pool.md Amendment 1). Reported context only; the certified claim is UNCHANGED and the reference tier is never pooled into the primary statistic"
  ],
  "content_revision": 2,
- "generated": "2026-07-18T20:50:08+00:00",
- "key_source": "ephemeral",
+ "generated": "2026-07-18T22:51:33+00:00",
+ "key_source": "env",
  "metrics": {
   "bootstrap_b": 10000,
   "bootstrap_seed": 439704677,
@@ -110,7 +110,7 @@
   "the REFERENCE TIER (`reference_tier`, counterparty snhp-engine) \u2014 it is REPORTED CONTEXT, NOT part of the certified claim. It is measured on the same statistic but is never pooled into the primary, per PREREG-pool.md Amendment 1; its registered prediction is that it catches weakness and cannot rank strength. Nothing in that block strengthens or weakens the certified pooled-own-utility claim against the frozen three",
   "anything about runs this certificate did not sign \u2014 each certificate stands alone, there is no chain"
  ],
- "payload_sha256": "sha256:ebb55976f80d516254c8ad75310680d17b8a6df81c5fbad7373aaed0d6169aaf",
+ "payload_sha256": "sha256:4a4744258b68df2639bd00941c2a3f9d925fe0f1a25769478c6cdc46f4d9e830",
  "per_match": {
   "baseline": [
    {
@@ -11657,9 +11657,9 @@
   "runner": "arena.gauntlet.pool.run_pool_match",
   "validation": "certs/POOL-RESULTS.md \u2014 registered experiment SURVIVED on public (20260709) and held-out (20260718) sets"
  },
- "pubkey_b64": "KJypDgDZs/FRHzrsaJuQM1nWozxCAMEzQnfHBBV/T50=",
- "pubkey_fpr": "sha256:f2ebb3836c331481a4dc51a9",
- "pubkey_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAKJypDgDZs/FRHzrsaJuQM1nWozxCAMEzQnfHBBV/T50=\n-----END PUBLIC KEY-----\n",
+ "pubkey_b64": "kBV2FJCV8WDdwj0KPpGsmMG+/E50KY8hiJluhu3+1t0=",
+ "pubkey_fpr": "sha256:57fac11a3062c2c5b4064ef5",
+ "pubkey_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAkBV2FJCV8WDdwj0KPpGsmMG+/E50KY8hiJluhu3+1t0=\n-----END PUBLIC KEY-----\n",
  "reference_tier": {
   "both_sets": "certs/POOL-RESULTS.md + certs/reference-tier.json",
   "counterparty": "snhp-engine",
@@ -11683,13 +11683,13 @@
   "note": "reproduces this run byte-for-byte on the pinned code_version"
  },
  "scenario_set": {
-  "code_version": "94a206f",
+  "code_version": "41006f1",
   "deadline": 8,
   "generator": "arena.gauntlet.protocol.gen_gauntlet_scenarios",
   "n": 60,
   "n_issues": 4,
   "seed": 20260709
  },
- "signed_at": "2026-07-18T20:50:08+00:00",
+ "signed_at": "2026-07-18T22:51:33+00:00",
  "spec_version": "gauntlet-cert/3"
 }

@@ -110,8 +110,10 @@ from typing import Optional
 import numpy as np
 
 from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey, Ed25519PublicKey)
+from cryptography.hazmat.primitives.serialization import (
+    Encoding, PublicFormat, load_pem_private_key)
 
 # Reuse core.notary's crypto DNA verbatim — same canonical hashing, same
 # env-or-ephemeral key policy, same fingerprint/verify helpers. We do NOT
@@ -125,6 +127,7 @@ from core.notary import (
     canon_hash,
     generate_key_pem,
     load_notary_key,
+    _key_from_private,
 )
 
 SPEC_VERSION = "gauntlet-cert/3"
@@ -610,12 +613,53 @@ def _raw_pubkey_b64(pubkey_pem: str) -> str:
     return base64.b64encode(raw).decode()
 
 
+CERT_KEY_ENV_VAR = "SNHP_CERT_KEY_PEM"
+_CACHED_CERT_KEY = None
+
+
+def load_cert_key(*, refresh: bool = False) -> NotaryKey:
+    """Load the CERTIFICATE signing key — deliberately a DIFFERENT key from the
+    notary's receipt key.
+
+    Why separate: a receipt attests one transaction; a certificate attests a
+    claim about a vendor's agent. Different trust domains, different revocation.
+    If the certificate key is ever compromised you revoke certificates; the
+    receipt ledger is untouched. This loader therefore NEVER falls back to
+    NOTARY_KEY_PEM — sharing the key would silently merge the two domains.
+
+    Policy mirrors core.notary.load_notary_key: a malformed
+    SNHP_CERT_KEY_PEM RAISES rather than silently downgrading to an ephemeral
+    key (a silent swap would invalidate every prior certificate unnoticed).
+    Unset falls back to an ephemeral key for local dev and tests, marked
+    key_source="ephemeral" so a verifier can SEE it is not an attestation;
+    `certify --run --require-persistent-key` refuses to mint on that path.
+    """
+    global _CACHED_CERT_KEY
+    if _CACHED_CERT_KEY is not None and not refresh:
+        return _CACHED_CERT_KEY
+    pem = os.environ.get(CERT_KEY_ENV_VAR, "").strip()
+    if pem:
+        try:
+            priv = load_pem_private_key(pem.encode(), password=None)
+        except (ValueError, TypeError) as e:
+            raise RuntimeError(
+                f"{CERT_KEY_ENV_VAR} is set but does not parse as a PEM private "
+                f"key: {e}. Refusing to fall back to an ephemeral key.") from e
+        if not isinstance(priv, Ed25519PrivateKey):
+            raise RuntimeError(f"{CERT_KEY_ENV_VAR} is not an Ed25519 key.")
+        _CACHED_CERT_KEY = _key_from_private(priv, "env")
+    else:
+        _CACHED_CERT_KEY = _key_from_private(Ed25519PrivateKey.generate(),
+                                             "ephemeral")
+    return _CACHED_CERT_KEY
+
+
 def sign_certificate(cert: dict, *, key: Optional[NotaryKey] = None) -> dict:
     """Sign an unsigned certificate. Adds the payload hash, the public key (raw
     b64 + PEM), the fingerprint, key_source, algo, timestamp, and the Ed25519
     signature. Re-signing an already-signed certificate is safe: the previous
     signing envelope is stripped first, so the content hash is stable."""
-    key = key or load_notary_key()
+    key = key or load_cert_key()
     base = _content(cert)                      # strip any prior signing fields
     signed = dict(base)
     signed["payload_sha256"] = canon_hash(base)
@@ -999,6 +1043,21 @@ def _fmt_opt(v, spec: str = ".4f") -> str:
 
 
 def _cmd_run(args) -> int:
+    if getattr(args, "require_persistent_key", False):
+        # A reputation artifact signed with a throwaway key is not an
+        # attestation — it proves internal consistency and nothing about who
+        # signed it. Fail BEFORE spending a run rather than emit a cert that
+        # has to be recalled.
+        k = load_cert_key(refresh=True)
+        if k.key_source != "env":
+            print(f"REFUSING: --require-persistent-key was set but no valid "
+                  f"{CERT_KEY_ENV_VAR} is present, so this certificate would be "
+                  f"signed with an ephemeral key.\n"
+                  f"  generate one:  python -m core.notary keygen > ~/.snhp/cert_key.pem "
+                  f"&& chmod 600 ~/.snhp/cert_key.pem\n"
+                  f"  then:          export {CERT_KEY_ENV_VAR}=\"$(cat ~/.snhp/cert_key.pem)\"",
+                  file=sys.stderr)
+            return 2
     cert = make_certificate(args.run, seed=args.seed, n=args.n,
                             deadline=args.deadline, verbose=not args.quiet)
     out_dir = pathlib.Path(args.out_dir) if args.out_dir else _CERTS_DIR
@@ -1083,6 +1142,9 @@ def main(argv=None) -> int:
     p.add_argument("--pubkey-b64", default=None,
                    help="verify: raw Ed25519 public key (b64) to pin against")
     p.add_argument("--quiet", action="store_true")
+    p.add_argument("--require-persistent-key", action="store_true",
+                   help="refuse to mint if the certificate would be signed "
+                        "with an ephemeral key (use for anything published)")
     args = p.parse_args(argv)
     if args.run:
         return _cmd_run(args)
