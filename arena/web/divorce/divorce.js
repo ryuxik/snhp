@@ -283,7 +283,14 @@
     m.wildcardLabel = req(trace, 'meta.wildcard_label');
     m.engineNote = req(trace, 'meta.engine');
     m.caseNo = (m.meta.case_no != null) ? m.meta.case_no : null;   // live filings only
-    m.rel = RELATIONSHIPS[opts && opts.rel] ? opts.rel : 'marriage';
+    // The skin is DISPLAY-only, but it must survive a case replay: a case
+    // filed as ROOMMATES has to come back with the couch, not the dog, or
+    // "same number, same divorce" visibly breaks for anyone who types the
+    // number off a screenshot. Live opts win; otherwise the ledger's record.
+    const relOpt = opts && opts.rel;
+    const relMeta = m.meta.rel;
+    m.rel = RELATIONSHIPS[relOpt] ? relOpt
+      : (RELATIONSHIPS[relMeta] ? relMeta : 'marriage');
     m.relLabels = RELATIONSHIPS[m.rel].labels;
 
     m.cast = { A: req(trace, 'cast.a'), B: req(trace, 'cast.b') };
@@ -403,10 +410,15 @@
     }
     const tax = fmtMoney(Math.max(taxA, taxB));
     const retail = fmtMoney(req(autopsy, 'retail'));
-    if (hillKey === 'wildcard') {
-      // wildcard labels arrive as written ("his mother's painting") — keep them whole
+    // "a $340 <noun>" only parses when the label IS a bare noun phrase — i.e.
+    // it arrived as "the X". User wildcards ("his mother's painting") and skin
+    // labels that aren't ("custody of the group-chat name") take the whole-label
+    // form instead; the alternative renders "a $340 custody of the group-chat
+    // name" in the biggest type on the card.
+    const raw = cleanDisp(m, hillKey);
+    if (hillKey === 'wildcard' || !/^the\s+/i.test(raw)) {
       return 'That’s ' + aOrAn(tax) + ' ' + tax + ' opinion about '
-        + cleanDisp(m, hillKey) + '. Retail: ' + retail + '.';
+        + raw + '. Retail: ' + retail + '.';
     }
     return 'That’s ' + aOrAn(tax) + ' ' + tax + ' opinion about '
       + aOrAn(retail) + ' ' + retail + ' ' + hillNoun(m, hillKey) + '.';
@@ -1892,7 +1904,9 @@
     }
 
     const fronts = Array.from(document.querySelectorAll('.bfront input:checked')).map((x) => x.value);
-    const body = { a, b, wildcard_label: wildcard, fronts };
+    // rel travels WITH the filing so the ledger can replay it under the same
+    // labels the filer saw (the engine ignores it).
+    const body = { a, b, wildcard_label: wildcard, fronts, rel: builderRel };
     if (seed !== undefined) body.seed = seed;
 
     const btn = $('#b-file');

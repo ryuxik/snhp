@@ -56,14 +56,14 @@ def _load_cases() -> None:
                 continue                     # a torn line never kills the office
 
 
-def _file_case(seed: int, spec: dict) -> int:
+def _file_case(seed: int, spec: dict, rel: str = "marriage") -> int:
     with _CASES_LOCK:
         if not _CASES:
             _load_cases()
         case_no = int.from_bytes(os.urandom(4), "big") % 9_000_000 + 1_000_000
         while case_no in _CASES:
             case_no = int.from_bytes(os.urandom(4), "big") % 9_000_000 + 1_000_000
-        rec = {"case_no": case_no, "seed": seed, "spec": spec}
+        rec = {"case_no": case_no, "seed": seed, "spec": spec, "rel": rel}
         _CASES[case_no] = rec
         with open(_CASES_PATH, "a") as f:
             f.write(json.dumps(rec) + "\n")
@@ -95,12 +95,20 @@ class SideSpec(BaseModel):
                             "patience": self.patience}}
 
 
+# Display skins the chrome can apply to the SAME six mechanical assets. The
+# engine never sees these — but the ledger must carry the chosen one, or a
+# case filed as ROOMMATES replays as a MARRIAGE for whoever types the number,
+# which breaks "same number, same divorce" in the most public way possible.
+REL_SKINS = ("marriage", "roommates", "cofounders", "situationship")
+
+
 class RunRequest(BaseModel):
     a: SideSpec
     b: SideSpec
     wildcard_label: str = Field(default="the sentimental item", max_length=40)
     fronts: list[str] = Field(default=["dog"], max_length=2)
     seed: int | None = Field(default=None, ge=1, le=10_000_000)
+    rel: str = Field(default="marriage")
 
 
 def warm() -> None:
@@ -115,6 +123,8 @@ def run(req: RunRequest) -> dict:
     for f in req.fronts:
         if f not in ("dog", "vinyl", "wildcard"):
             raise HTTPException(422, "fronts must be from dog/vinyl/wildcard")
+    if req.rel not in REL_SKINS:
+        raise HTTPException(422, f"rel must be one of {list(REL_SKINS)}")
     spec = {"wildcard_label": _clean(req.wildcard_label, 40),
             "fronts": list(dict.fromkeys(req.fronts)),
             "a": req.a.to_spec(), "b": req.b.to_spec()}
@@ -126,7 +136,8 @@ def run(req: RunRequest) -> dict:
         ep = trace.run_episode(seed, spec, _PRIOR)
     except Exception as exc:  # noqa: BLE001 — a failed run is a 500 with a reason
         raise HTTPException(500, f"episode failed: {type(exc).__name__}") from exc
-    ep["meta"]["case_no"] = _file_case(seed, spec)
+    ep["meta"]["case_no"] = _file_case(seed, spec, req.rel)
+    ep["meta"]["rel"] = req.rel
     return ep
 
 
@@ -143,6 +154,9 @@ def replay_case(case_no: int) -> dict:
                                  "excellent records; this number isn't in them.")
     ep = trace.run_episode(int(rec["seed"]), rec["spec"], _PRIOR)
     ep["meta"]["case_no"] = case_no
+    # Cases filed before skins were recorded default to the marriage labels
+    # they were actually played with.
+    ep["meta"]["rel"] = rec.get("rel", "marriage")
     return ep
 
 
