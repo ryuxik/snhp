@@ -1320,8 +1320,11 @@
       cardHTML =
         '<div id="decree-card" class="nodecree">'
         + letterhead
-        + '<div class="dc-head"><div class="dc-title">FINAL DECREE</div>'
-        + '<div class="dc-inre">' + inre + '</div></div>'
+        // No "FINAL DECREE" heading: the card lists who got what, so it is
+        // self-evidently a ruling — and on the NO DECREE branch the words
+        // sat directly above "NO DECREE.", contradicting themselves. The
+        // names are the heading.
+        + '<div class="dc-head"><div class="dc-inre">' + inre + '</div></div>'
         + '<div class="dc-nodecree">NO DECREE.</div>'
         + '<div class="dc-lines">'
         + '<p>' + m.assetCount + ' assets. ' + plural(m.exchanges.length, 'exchange') + '. '
@@ -1364,8 +1367,11 @@
       cardHTML =
         '<div id="decree-card">'
         + letterhead
-        + '<div class="dc-head"><div class="dc-title">FINAL DECREE</div>'
-        + '<div class="dc-inre">' + inre + '</div></div>'
+        // No "FINAL DECREE" heading: the card lists who got what, so it is
+        // self-evidently a ruling — and on the NO DECREE branch the words
+        // sat directly above "NO DECREE.", contradicting themselves. The
+        // names are the heading.
+        + '<div class="dc-head"><div class="dc-inre">' + inre + '</div></div>'
         + '<div class="ledger">' + ledgerRowsHTML(m, m.sharesA) + '</div>'
         // "PETTINESS TAX" was a term of art that also read as a lie: "tax"
         // means money you pay, and nobody pays this. Name the thing that
