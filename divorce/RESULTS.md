@@ -47,6 +47,33 @@ mechanism tax. (Tail note: even at Q=24 the 25th-percentile settled pair
 captures 88% — the hardest profiles still leave real money.) Product-side
 interviews (~5 minutes) should run 20+.
 
+## Elicitation robustness: can humans actually answer these questions?
+
+Founder critique (Jul 17): "is X worth $Y to you?" is introspection humans
+can't do — stated dollar valuations are anchorable and constructed. Measured
+response (40 pairs, Q=10):
+
+| condition | settle | K3 median |
+|---|---|---|
+| A. probes+pairs, clean answers (status quo) | 77% | 82% |
+| B. probes+pairs, dollar-probe answers 5× noisy | 72% | 77% |
+| C. choices only — no cash questions at all | 51% | **35%** |
+
+Verdict, both directions: (1) the machinery is robust to noisy-but-unbiased
+probe answers (B); (2) you CANNOT simply delete cash questions — pure "A or
+B?" comparisons are ordinal and leave absolute scale unidentified, and the
+margin logic needs dollars (C craters). The resolution: **cash never appears
+as the object of a question, only as an option inside a choice** — "the
+espresso machine, or $800 more of the wallet?" / "if the settlement paid you
+$X for the dog, take it?" — the identical inequality for the engine
+(conjoint-style discrete choice), an answerable question for a human. Demo
+clerk templates rephrased accordingly (display-only change).
+
+Open before any HUMAN-facing interview ships (Mandate especially): the
+harness answer model is noisy-but-honest; real humans are BIASED (anchoring,
+yes-drift). Register a biased-answer model + bundle-choice query pool and
+re-measure K3 under it before claiming human-readiness.
+
 ## What the build taught us (now part of the mediator design, SPEC.md §5)
 
 1. **Never mix scales.** v1 had personas state a walk-away in TRUE-utility

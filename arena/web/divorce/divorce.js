@@ -454,9 +454,18 @@
         inner.style.left = p25 + '%'; inner.style.width = Math.max(0.5, p75 - p25) + '%';
         row.querySelector('.b-tick').style.left = p50 + '%';
         row.querySelector('.b-med').textContent = fmtCompact(b[2]);
-        // HILL? chip — purely from the data: p50 exceeds 2.5x its own step-0 p50
-        const chip = row.querySelector('.hill-chip');
-        const isHill = stepIdx > 0 && b[2] > HILL_RATIO * m.base50[side][a];
+      }
+      // HILL? chip — the mechanic is ONE hill per persona, so flag only the
+      // side's strongest outlier: the max p50-growth asset, and only once it
+      // exceeds HILL_RATIO x its own step-0 p50 (still purely data-derived).
+      let hillAsset = null, hillGrowth = 0;
+      for (const a of BAND_ASSETS) {
+        const growth = bands[a][2] / m.base50[side][a];
+        if (growth > hillGrowth) { hillGrowth = growth; hillAsset = a; }
+      }
+      for (const a of BAND_ASSETS) {
+        const chip = panel.querySelector('.band-row[data-asset="' + a + '"] .hill-chip');
+        const isHill = stepIdx > 0 && a === hillAsset && hillGrowth > HILL_RATIO;
         if (isHill && chip.hidden) {
           chip.hidden = false;
           chip.classList.remove('flash'); void chip.offsetWidth; chip.classList.add('flash');
@@ -485,8 +494,16 @@
           const parts = [];
           parts.push([0, () => {
             if (q.kind === 'probe') {
-              say('clerk', 'Question ' + qNum + ' of ' + m.totalInterview + '. '
-                + cap(assetDisp(m, req(q, 'asset'))) + ': worth ' + fmtPrice(req(q, 'price')) + ' to you?');
+              // A probe is a TRADE OFFER, never a valuation question — humans
+              // can answer "would you take this deal", not "what is it worth"
+              // (the engine's update is the same inequality either way).
+              const price = req(q, 'price');
+              const disp = assetDisp(m, req(q, 'asset'));
+              const offer = price <= 24000
+                ? cap(disp) + ', or ' + fmtPrice(price) + ' more of the wallet?'
+                : 'If the settlement paid you ' + fmtPrice(price)
+                  + ' to give up ' + disp + ' — take it?';
+              say('clerk', 'Question ' + qNum + ' of ' + m.totalInterview + '. ' + offer);
             } else if (q.kind === 'pair') {
               say('clerk', 'Question ' + qNum + '. ' + cap(assetDisp(m, req(q, 'A')))
                 + ', or ' + assetDisp(m, req(q, 'B')) + '?');
