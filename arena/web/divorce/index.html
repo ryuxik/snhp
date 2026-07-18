@@ -13,18 +13,23 @@
 <header id="topbar">
   <div id="brand">IRRECONCILABLE&nbsp;AGENTS</div>
   <nav id="presets" aria-label="Preset">
-    <button data-preset="bloodbath">The Bloodbath</button>
-    <button data-preset="spreadsheets">The Two Spreadsheets</button>
-    <button data-preset="nodecree">NO DECREE</button>
+    <button data-preset="bloodbath" title="Two people, one dog, no brakes.">The Bloodbath</button>
+    <button data-preset="spreadsheets" title="A divorce with itemized receipts.">The Two Spreadsheets</button>
+    <button data-preset="nodecree" title="Some filings never clear.">NO DECREE</button>
   </nav>
+  <button id="build-btn" title="Two parties of your own design. Real engine, real decree.">Build Your Exes</button>
   <div id="playctl">
-    <button id="replay" title="Replay from the top">&#8635; replay</button>
-    <button id="skip">Skip to Decree &rarr;</button>
+    <span id="case-chip" class="mono" hidden></span>
+    <button id="pp" title="Pause / resume autoplay" disabled>&#9208; pause</button>
+    <button id="speed" title="Playback speed">1&times;</button>
+    <button id="replay" title="Replay from the top">&#8635; run it back</button>
+    <button id="skip" title="Skip to the decree">who gets the dog? &rarr;</button>
   </div>
 </header>
 
 <main id="stage">
   <div id="error" hidden></div>
+  <section id="scene-build"  class="scene"></section>
   <section id="scene-cold"   class="scene"></section>
   <section id="scene-act1"   class="scene"></section>
   <section id="scene-turn"   class="scene"></section>
@@ -36,11 +41,11 @@
 <footer id="foot">
   <p>Nothing on this page is scripted. Every number was produced by the snhp engine
      (deadlock, interview, drafts, decree, receipt) and recorded to the trace this page
-     plays back. <span id="engine-note" class="mono"></span></p>
+     plays back. We checked. Twice. <span id="engine-note" class="mono"></span></p>
   <p><a href="../index.html">arena</a></p>
 </footer>
 
-<noscript><p style="padding:2rem;font-family:system-ui">This player needs JavaScript to load and play back the engine trace.</p></noscript>
+<noscript><p style="padding:2rem;font-family:system-ui">This player needs JavaScript to load and play back the engine trace. The clerk declines to mime it.</p></noscript>
 <script src="divorce.js" defer></script>
 </body>
 </html>
