@@ -5,25 +5,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Irreconcilable Agents — snhp</title>
 <meta name="description" content="Two adversarial agents divorce. The deadlock, the interview, the drafts, the decree — every number on screen is recorded engine output, played back.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Irreconcilable Agents — the divorce is fake, the math is real">
+<meta property="og:description" content="Two adversarial AIs split the estate. A clerk who trusts neither asks its questions, the sealed valuations flip at the end, and the decree carries a pettiness tax. Every number is recorded engine output — checkable by replay.">
+<meta property="og:site_name" content="snhp arena">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Irreconcilable Agents — the divorce is fake, the math is real">
+<meta name="twitter:description" content="Two adversarial AIs split the estate. A clerk who trusts neither asks its questions, the sealed valuations flip at the end, and the decree carries a pettiness tax. Checkable by replay.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%96%EF%B8%8F%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="divorce.css">
 </head>
 <body>
 
-<header id="topbar">
-  <div id="brand">IRRECONCILABLE&nbsp;AGENTS</div>
-  <nav id="presets" aria-label="Preset">
-    <button data-preset="bloodbath" title="Two people, one dog, no brakes.">The Bloodbath</button>
-    <button data-preset="spreadsheets" title="A divorce with itemized receipts.">The Two Spreadsheets</button>
-    <button data-preset="nodecree" title="Some filings never clear.">NO DECREE</button>
-  </nav>
-  <button id="build-btn" title="Two parties of your own design. Real engine, real decree.">Build Your Exes</button>
-  <div id="playctl">
-    <span id="case-chip" class="mono" hidden></span>
-    <button id="pp" title="Pause / resume autoplay" disabled>&#9208; pause</button>
-    <button id="speed" title="Playback speed">1&times;</button>
-    <button id="replay" title="Replay from the top">&#8635; run it back</button>
-    <button id="skip" title="Skip to the decree">who gets the dog? &rarr;</button>
+<header id="chrome">
+  <div id="topbar">
+    <div id="brand">IRRECONCILABLE&nbsp;AGENTS</div>
+    <nav id="presets" aria-label="Preset">
+      <button data-preset="bloodbath" title="Two people, one dog, no brakes.">The Bloodbath</button>
+      <button data-preset="spreadsheets" title="A divorce with itemized receipts.">The Two Spreadsheets</button>
+      <button data-preset="nodecree" title="Some filings never clear.">NO DECREE</button>
+    </nav>
+    <button id="build-btn" title="You name them. We divorce them.">Build Your Exes</button>
+    <div id="playctl">
+      <button id="pp" title="Pause / resume autoplay" aria-label="Pause or resume" disabled>&#9208;</button>
+      <button id="speed" title="Playback speed">1&times;</button>
+      <button id="skip" title="who gets the dog?"><span class="wide">skip &rarr; the ending</span><span class="narrow">&rarr; end</span></button>
+    </div>
+  </div>
+  <div id="case-rail" hidden>
+    <span id="cr-case" class="mono"></span>
+    <span id="cr-names"></span>
+    <span id="cr-acts" class="mono" aria-label="Act progress"><i data-seg="act1">I</i><i data-seg="act2">II</i><i data-seg="act3">III</i><i data-seg="decree">IV</i></span>
   </div>
 </header>
 
@@ -37,6 +49,8 @@
   <section id="scene-act3"   class="scene"></section>
   <section id="scene-decree" class="scene"></section>
 </main>
+
+<div id="pause-chip" hidden>paused — click steps · &#9205; resumes</div>
 
 <footer id="foot">
   <p>Nothing on this page is scripted. Every number was produced by the snhp engine
