@@ -1304,8 +1304,14 @@
     const small = [];
     if (opts && opts.toEnd) small.push('<a href="#" id="watch-link">watch how it happened</a>');
     if (filedThis) small.push('<a href="#" id="again-link">file another</a>');
-    const actionsHTML = '<div id="post-actions">' + primary + '</div>'
+    // The CTA is PINNED to the bottom of the viewport, not parked at the end
+    // of a long card. Scrolling is a terrible way to discover the one thing
+    // you're meant to do — on a phone the decree is ~2 screens tall, so a
+    // button under it was a button most people never saw. Secondary links
+    // ride in the same bar so they're reachable without hunting too.
+    const actionsHTML = '<div id="post-actions">' + primary
       + (small.length ? '<p class="dc-small">' + small.join(' · ') + '</p>' : '')
+      + '</div>'
       + '<p id="science-link"><a href="science.html">the math, measured →</a></p>';
 
     if (m.noDecree) {

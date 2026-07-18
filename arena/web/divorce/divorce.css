@@ -137,7 +137,9 @@ a { color: var(--cream-70); }
 #stage {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1.25rem 1.25rem 2rem;
+  /* bottom padding clears the pinned action bar (~120px incl. safe area) so
+     the decree's last line is never hidden behind it */
+  padding: 1.25rem 1.25rem calc(9rem + env(safe-area-inset-bottom, 0px));
   min-height: 78vh;
   cursor: pointer;
 }
@@ -1169,18 +1171,25 @@ button.stamp:hover { border-color: var(--red); opacity: 1; transform: rotate(-8d
 }
 #rc-json.open { display: block; }
 
+/* THE ACTION BAR — pinned, always on screen. The decree runs ~2 screens on a
+   phone; a CTA at the bottom of it is a CTA most visitors never reach. This
+   sits above the fold at all times, and #stage reserves room so it never
+   covers the card's last line. Only rendered inside the decree scene, so it
+   cannot collide with the film's own controls. */
 #post-actions {
-  margin-top: 1.6rem;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25;
   display: flex;
-  gap: 0.8rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-#post-actions button {
-  font-family: var(--mono);
-  font-size: 0.8rem;
-  letter-spacing: 0.1em;
-  padding: 0.5rem 1.1rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.7rem 1rem calc(0.7rem + env(safe-area-inset-bottom, 0px));
+  background: rgba(20, 19, 16, 0.96);
+  border-top: 1px solid var(--cream-15);
+  backdrop-filter: blur(8px);
 }
 #post-actions .primary {
   font-family: var(--serif);
@@ -1208,10 +1217,10 @@ button.stamp:hover { border-color: var(--red); opacity: 1; transform: rotate(-8d
 
 /* the quiet exits — text links, never buttons */
 .dc-small {
-  margin: 0.9rem 0 0;
+  margin: 0;
   text-align: center;
   font-family: var(--mono);
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   letter-spacing: 0.06em;
   color: var(--cream-50);
 }
@@ -1386,9 +1395,12 @@ button.stamp:hover { border-color: var(--red); opacity: 1; transform: rotate(-8d
 
 /* ---------- THE INTAKE WIZARD: one question per screen ---------- */
 
-.wz { max-width: 34rem; margin: 0 auto; padding: 1rem 0 3rem; }
+/* Every step is sized to FIT — all five options visible at once on a 375x812
+   phone. If you have to scroll to find out an option exists, it may as well
+   not exist. */
+.wz { max-width: 34rem; margin: 0 auto; padding: 0.5rem 0 1rem; }
 
-.wz-dots { display: flex; gap: 0.4rem; justify-content: center; margin-bottom: 2rem; }
+.wz-dots { display: flex; gap: 0.4rem; justify-content: center; margin-bottom: 1.2rem; }
 .wz-dots i {
   width: 26px; height: 3px; border-radius: 2px;
   background: var(--cream-15); transition: background 0.25s;
@@ -1399,20 +1411,20 @@ button.stamp:hover { border-color: var(--red); opacity: 1; transform: rotate(-8d
 .wz-q {
   font-family: var(--serif);
   font-weight: 400;
-  font-size: clamp(1.5rem, 5.5vw, 2.1rem);
-  line-height: 1.25;
+  font-size: clamp(1.35rem, 5vw, 2rem);
+  line-height: 1.2;
   text-align: center;
-  margin: 0 0 1.6rem;
+  margin: 0 0 1.1rem;
   color: var(--cream-90);
 }
 .wz-hint {
   text-align: center;
   font-family: var(--mono);
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--cream-50);
-  margin: 1.2rem 0 0.7rem;
+  margin: 0.8rem 0 0.5rem;
 }
 
 /* one big text field, thumb-height, never a tiny input */
@@ -1421,18 +1433,18 @@ button.stamp:hover { border-color: var(--red); opacity: 1; transform: rotate(-8d
   width: 100%;
   box-sizing: border-box;
   font-family: var(--serif);
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   text-align: center;
   color: var(--cream-90);
   background: var(--ink-2);
   border: 1px solid var(--cream-30);
   border-radius: 6px;
-  padding: 0.85rem 1rem;
-  min-height: 52px;
+  padding: 0.7rem 1rem;
+  min-height: 48px;
 }
 .wz-name:focus { outline: none; border-color: var(--paper); }
 
-.wz-cards { display: grid; gap: 0.6rem; }
+.wz-cards { display: grid; gap: 0.45rem; }
 .wz-card {
   display: block;
   width: 100%;
@@ -1440,8 +1452,8 @@ button.stamp:hover { border-color: var(--red); opacity: 1; transform: rotate(-8d
   background: var(--ink-2);
   border: 1px solid var(--cream-15);
   border-radius: 8px;
-  padding: 0.9rem 1rem;
-  min-height: 56px;                 /* comfortably tappable */
+  padding: 0.62rem 0.9rem;
+  min-height: 48px;                 /* still comfortably tappable */
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
@@ -1453,7 +1465,7 @@ button.stamp:hover { border-color: var(--red); opacity: 1; transform: rotate(-8d
 .wz-card .ac-name {
   display: block;
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--cream-90);
@@ -1462,9 +1474,10 @@ button.stamp:hover { border-color: var(--red); opacity: 1; transform: rotate(-8d
   display: block;
   font-family: var(--serif);
   font-style: italic;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
+  line-height: 1.3;
   color: var(--cream-50);
-  margin-top: 0.25rem;
+  margin-top: 0.12rem;
 }
 /* the four relationship buttons: big, centered, no epithet */
 .wz-card.wz-big {
@@ -1476,11 +1489,27 @@ button.stamp:hover { border-color: var(--red); opacity: 1; transform: rotate(-8d
   padding: 1.1rem 1rem;
 }
 
-.wz-go { margin-top: 1.6rem; text-align: center; }
+/* the file button uses the same pinned bar as the decree's CTA — one place
+   on the page where the next action always lives */
+.wz-go {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25;
+  padding: 0.7rem 1rem calc(0.7rem + env(safe-area-inset-bottom, 0px));
+  background: rgba(20, 19, 16, 0.96);
+  border-top: 1px solid var(--cream-15);
+  backdrop-filter: blur(8px);
+}
 .wz-go button {
-  font-size: 1rem;
+  display: block;
+  max-width: 34rem;
+  margin: 0 auto;
+  font-family: var(--mono);
+  font-size: 0.92rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--paper);
   background: var(--red);
@@ -1494,7 +1523,7 @@ button.stamp:hover { border-color: var(--red); opacity: 1; transform: rotate(-8d
 
 .wz-back {
   display: block;
-  margin: 2rem auto 0;
+  margin: 1.4rem auto 0;
   font-family: var(--mono);
   font-size: 0.72rem;
   letter-spacing: 0.08em;
