@@ -1596,11 +1596,10 @@
     currentPreset = presetKey;
     currentTrace = trace;
     currentOpts = opts;
-    document.querySelectorAll('#presets button').forEach((b) => {
-      b.classList.toggle('active', b.dataset.preset === presetKey);
-    });
     $('#build-btn').classList.remove('active');
-    $('#playctl').hidden = false;
+    // Nothing to pause or skip when we open ON the ruling — playback chrome
+    // over a still frame is three dead controls next to the one live CTA.
+    $('#playctl').hidden = !!(opts && opts.toEnd);
     if (player) { player.destroy(); player = null; }
     $('#error').hidden = true;
     lastScene = null;
@@ -1631,7 +1630,9 @@
     }
   }
 
-  async function loadPreset(key) {
+  /** opts.toEnd shows the RULING first and demotes the film to a link —
+   *  the default for a cold arrival (see the init at the bottom). */
+  async function loadPreset(key, opts) {
     const preset = PRESETS[key];
     if (!preset) throw new Error('unknown preset "' + key + '"');
     if (player) { player.destroy(); player = null; }
@@ -1648,7 +1649,7 @@
         + '\n\nThis page is a player of pre-generated engine traces; without the trace there is nothing honest to show.');
       return;
     }
-    playTrace(trace, key);
+    playTrace(trace, key, opts || {});
   }
 
   /** ?case=N — the printed number IS the door. Decree first, film on demand. */
@@ -1824,7 +1825,6 @@
     $('#case-rail').hidden = true;
     $('#playctl').hidden = true;        // no playback chrome over the intake
     $('#pause-chip').hidden = true;
-    document.querySelectorAll('#presets button').forEach((b) => b.classList.remove('active'));
     $('#build-btn').classList.add('active');
     if (!archetypeInfo) {
       $('#scene-build').innerHTML = '<p class="kicker">intake</p>'
@@ -1938,9 +1938,6 @@
   }
 
   function wireControls() {
-    document.querySelectorAll('#presets button').forEach((b) => {
-      b.addEventListener('click', () => loadPreset(b.dataset.preset));
-    });
     $('#build-btn').addEventListener('click', openBuilder);
     $('#pp').addEventListener('click', () => {
       if (!player || player.isFinished()) return;
@@ -1986,8 +1983,13 @@
   if (caseParam && /^\d+$/.test(caseParam)) {
     loadCase(parseInt(caseParam, 10));
   } else {
+    // RESULT FIRST. A cold arrival lands on a finished ruling — the payoff,
+    // immediately — with one button under it and the film demoted to a link.
+    // Asking a stranger on a phone for three minutes before they know whether
+    // it's worth thirty seconds is how you lose them; the film is the reward
+    // for being interested, not the toll for arriving.
     const initial = params.get('preset');
-    loadPreset(PRESETS[initial] ? initial : 'bloodbath');
+    loadPreset(PRESETS[initial] ? initial : 'bloodbath', { toEnd: true });
   }
 
 })();

@@ -81,23 +81,6 @@ a { color: var(--cream-70); }
   white-space: nowrap;
 }
 
-#presets { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
-#watch-label {
-  font-family: var(--mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--cream-50);
-  margin-right: 0.15rem;
-  white-space: nowrap;
-}
-#presets button { font-size: 0.78rem; color: var(--cream-70); white-space: nowrap; }
-#presets button.active {
-  background: var(--paper);
-  color: var(--paper-ink);
-  border-color: var(--paper);
-}
-
 /* Build Your Exes: the loudest chrome on the page — the funnel to the magic. */
 #build-btn {
   font-size: 0.82rem;
@@ -269,23 +252,6 @@ a { color: var(--cream-70); }
   line-height: 1.5;
   color: var(--cream-70);
 }
-/* The inline BUILD YOUR EXES — same words, same color, same door as the
-   top-bar button, so a cold reader can act on the sentence they just read. */
-.premise-build {
-  display: inline;
-  font-family: inherit;
-  font-size: 0.85em;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--paper);
-  background: var(--red);
-  border: 1px solid var(--red);
-  padding: 0.1rem 0.5rem;
-  cursor: pointer;
-  vertical-align: baseline;
-}
-.premise-build:hover { background: #c84436; border-color: #c84436; }
-
 .preset-sub {
   margin: 1.3rem 0 0;
   font-family: var(--mono);
@@ -1634,16 +1600,6 @@ body.instant .sig svg path { stroke-dashoffset: 0 !important; }
     padding: 0.45rem 0.6rem;
   }
   #brand { display: none; }
-  #presets {
-    flex: 1 1 100%;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  #presets::-webkit-scrollbar { display: none; }
-  #watch-label { font-size: 0.6rem; }
-  #presets button { font-size: 0.68rem; padding: 0.28rem 0.5rem; }
   #build-btn { font-size: 0.72rem; padding: 0.42rem 0.7rem; }
   #playctl { margin-left: auto; gap: 0.3rem; }
   #playctl button { font-size: 0.7rem; padding: 0.34rem 0.5rem; }
