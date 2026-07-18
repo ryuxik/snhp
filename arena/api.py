@@ -522,7 +522,12 @@ if os.path.isdir(_CORE_JS):
 # (SPEC.md section 11.3). The case ledger persists on the arena volume via
 # DIVORCE_CASES_PATH so "same number, same divorce" survives deploys.
 from divorce.api import router as _divorce_router  # noqa: E402
+from divorce.api import clerk_voiced_422 as _clerk_422  # noqa: E402
+from fastapi.exceptions import RequestValidationError as _ReqValErr  # noqa: E402
 app.include_router(_divorce_router)
+# include_router does not carry exception handlers; the clerk answers 422s
+# on /v1/divorce/* only (path guard inside the handler).
+app.add_exception_handler(_ReqValErr, _clerk_422)
 
 # Serve the renderer SPA same-origin; /arena/* and /health matched first.
 _WEB = os.path.join(os.path.dirname(__file__), "web")

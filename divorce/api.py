@@ -19,6 +19,7 @@ import threading
 
 import numpy as np
 from fastapi import APIRouter, FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -153,15 +154,16 @@ def archetypes() -> dict:
             "hillable": personas.HILLABLE}
 
 
-app = FastAPI(title="snhp divorce — live episode runner")
-app.include_router(router)
-
-
-@app.exception_handler(RequestValidationError)
 async def clerk_voiced_422(request: Request, exc: RequestValidationError):
     """Validation failures answer in the clerk's voice, honestly — never
     blaming infrastructure for the caller's paperwork (CMO finding: the
-    40-char wildcard rejection surfaced as 'the office is closed', a lie)."""
+    40-char wildcard rejection surfaced as 'the office is closed', a lie).
+    Exception handlers are app-level in FastAPI (include_router does NOT
+    carry them), so hosts mounting the router must register this themselves;
+    the path guard keeps the clerk out of non-county endpoints."""
+    if not request.url.path.startswith("/v1/divorce"):
+        return JSONResponse(status_code=422,
+                            content={"detail": jsonable_encoder(exc.errors())})
     for err in exc.errors():
         loc = ".".join(str(p) for p in err.get("loc", []))
         if "wildcard_label" in loc and err.get("type", "").startswith("string_too_long"):
@@ -176,6 +178,11 @@ async def clerk_voiced_422(request: Request, exc: RequestValidationError):
         loc = ".".join(str(p) for p in first.get("loc", [])[1:]) or "the form"
         detail = f"The county rejects this filing: check {loc}."
     return JSONResponse(status_code=422, content={"detail": detail})
+
+
+app = FastAPI(title="snhp divorce — live episode runner")
+app.include_router(router)
+app.add_exception_handler(RequestValidationError, clerk_voiced_422)
 app.add_middleware(
     CORSMiddleware,
     # Local dev origins + the deployed arena; same-origin mounting makes this
