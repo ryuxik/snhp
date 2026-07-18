@@ -208,6 +208,17 @@ a { color: var(--cream-70); }
   text-align: center;
 }
 
+/* the arithmetic-of-optimism beat under the versus poster */
+.conf-note {
+  margin: 1.6rem auto 0;
+  max-width: 34em;
+  text-align: center;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(0.95rem, 2vw, 1.1rem);
+  color: var(--cream-70);
+}
+
 /* paused indicator — pause is a mode, never a mystery */
 #pause-chip {
   position: fixed;

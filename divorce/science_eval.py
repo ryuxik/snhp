@@ -270,9 +270,14 @@ def aggregate() -> None:
     path = os.path.join(OUT_DIR, "results-science.json")
     with open(path, "w") as f:
         json.dump(out, f, indent=1)
-    # the page's copy (adds the committed trap-check numbers for the lede)
+    # the page's copy (adds the committed trap-check numbers for the lede).
+    # Median leak severity — dollars below the rule's threshold — is computed
+    # from the per-leak records here so the page never pins a stale constant.
     trap = json.load(open(os.path.join(OUT_DIR, "results-trap-check.json")))
-    out["trap_check"] = trap["summary"]
+    out["trap_check"] = dict(trap["summary"])
+    sev = sorted(lk["threshold"] - lk["delta"] for lk in trap["leaks"])
+    out["trap_check"]["median_leak_severity_usd"] = (
+        round(sev[len(sev) // 2]) if sev else 0)
     with open(WEB_JSON, "w") as f:
         json.dump(out, f, indent=1)
     print(json.dumps({k: out[k] for k in ("E1", "E2", "E3")}, indent=1))

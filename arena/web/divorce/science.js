@@ -6,12 +6,9 @@
    says so — it never estimates. */
 'use strict';
 
-// Median goodwill-leak severity in dollars below the walk-away bound.
-// Source: divorce/RESULTS.md, "Trap check — COMPLETE (2026-07-17)" ("median
-// severity $4,505 below threshold"); per-decision records live in
-// divorce/results-trap-check.json. The summary block copied into
-// science-data.json does not carry this field, hence pinned here.
-const MEDIAN_LEAK_SEVERITY_USD = 4505;
+// Median goodwill-leak severity (dollars below the committed rule's
+// threshold) now travels IN science-data.json — computed from the per-leak
+// records by science_eval's aggregate step, never pinned here.
 
 const $id = (s) => document.getElementById(s);
 const esc = (s) => String(s).replace(/[&<>"]/g,
@@ -163,7 +160,7 @@ function renderTrap(t) {
     + ' decisions — ' + pct1(leakShare) + ' — were goodwill leaks:</b> accepts of offers '
     + 'clearly below that side&rsquo;s walk-away bound (more than three noise standard '
     + 'deviations below the committed rule&rsquo;s threshold), giving away a median of '
-    + money(MEDIAN_LEAK_SEVERITY_USD) + ' per leak. The recorded reasonings are '
+    + money(t.median_leak_severity_usd) + ' per leak. The recorded reasonings are '
     + 'arithmetic-adjacent rationalization; in the cleanest specimen the model computed that '
     + 'the offer was worse than litigation, then accepted it. It also rejected '
     + t.clear_over_toughness_rejects + ' clearly acceptable offers and split with the rule on '

@@ -205,17 +205,21 @@ def _find_seed(name: str, spec: dict, prior) -> tuple[int, dict]:
     (prefer a refused draft for the 'Draft #2. Refused. Noted.' beat).
     spreadsheets: decree signed with zero tax. nodecree: no decree."""
     fallback = None
-    for seed in range(1, 120):
+    for seed in range(1, 400):
         ep = run_episode(seed, spec, prior)
         d, sc = ep["decree"], ep["scorecard"]
         if name == "nodecree":
             if d.get("no_decree"):
                 return seed, ep
         elif name == "spreadsheets":
-            # Near-zero, not exactly zero: even a Spreadsheet's hill carries a
-            # small spike, and the card must print the real number.
+            # Near-zero RELATIVE to the estate, not exactly zero: even a
+            # Spreadsheet's hill carries a small spike, and the card must
+            # print the real number. ($500 absolute was a cartoon-scale
+            # constant; both hills collide on the espresso by design, and
+            # the additive spike alone can exceed it at realistic retail.)
             if not d.get("no_decree") and \
-                    sc["pettiness_tax_a"] + sc["pettiness_tax_b"] <= 500:
+                    sc["pettiness_tax_a"] + sc["pettiness_tax_b"] \
+                    <= 0.05 * max(sc["joint_surplus"], 1):
                 return seed, ep
         else:  # bloodbath
             good = (not d.get("no_decree")

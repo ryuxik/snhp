@@ -583,16 +583,33 @@
       + (epithet ? '<div class="p-epithet">' + esc(epithet) + '</div>' : '')
       + meters
       + '<div class="p-fight">declared fight cost · ' + fmtMoney(req(c, 'fight_cost')) + '</div>'
+      + '<div class="p-fight">believes the judge will side with them · ' + esc(String(req(c, 'court_confidence_pct'))) + '%</div>'
       + '</div>';
   }
 
-  function buildColdOpen(m, steps) {
+  function confNote(m) {
+    // Data-derived, template-bound: renders ONLY when the recorded declared
+    // confidences genuinely overflow — mutual optimism (M&K impediment #4)
+    // is now a stated input, and the arithmetic is the joke.
+    const sum = req(m.cast.A, 'court_confidence_pct') + req(m.cast.B, 'court_confidence_pct');
+    if (sum <= 110) return '';
+    return '<p class="conf-note">Combined confidence in victory: ' + sum
+      + '%. The county notes this exceeds the available victory.</p>';
+  }
+
+  function buildColdOpen(m, steps, opts) {
+    // A case the visitor JUST filed skips the tutorial: they wrote the cast
+    // themselves, and 8+ seconds of static poster after pressing FILE read
+    // as "nothing happened" (founder finding). Short hold, no premise.
+    const justFiled = !!(opts && opts.justFiled);
     // Subtitle: the preset's card line, or — for a live filing — the case number
     // straight from the trace (meta.case_no is the county ledger's number).
     const p = PRESETS[currentPreset];
-    const subline = 'NOW SHOWING · ' + (p
-      ? '“' + p.label + '” — ' + p.sub
-      : 'CASE #' + esc(String(m.caseNo != null ? m.caseNo : req(m.meta, 'preset_seed'))) + ', filed at this window.');
+    const subline = justFiled
+      ? 'FILED · CASE #' + esc(String(m.caseNo != null ? m.caseNo : req(m.meta, 'preset_seed'))) + ' — the proceedings begin.'
+      : 'NOW SHOWING · ' + (p
+        ? '“' + p.label + '” — ' + p.sub
+        : 'CASE #' + esc(String(m.caseNo != null ? m.caseNo : req(m.meta, 'preset_seed'))) + ', filed at this window.');
 
     // The last clause is template-bound to the recorded ending — a NO DECREE
     // trace never promises a decree (usability finding).
@@ -603,16 +620,17 @@
         + ' · ' + shortSeal(req(m.cast.B, 'seal')) + '</div>'
       + '<div class="cold-head"><h1>IRRECONCILABLE AGENTS</h1>'
       + '<p class="tagline">The divorce is fake. The math is real.</p>'
-      + '<div class="premise">'
-      + '<p>Two AIs are getting divorced. Everything they own must be split — the dog included.</p>'
-      + '<p>A robot court that trusts neither of them asks its questions, then stamps who gets what. Nothing is scripted.</p>'
-      + '<p>Sit back — it plays itself, about three minutes. Or press '
-      + '<button type="button" class="premise-build">BUILD YOUR EXES</button>'
-      + ' and this court will divorce a pair of your own making.</p>'
-      + '</div>'
+      + (justFiled ? '' : '<div class="premise">'
+        + '<p>Two AIs are getting divorced. Everything they own must be split — the dog included.</p>'
+        + '<p>A robot court that trusts neither of them asks its questions, then stamps who gets what. Nothing is scripted.</p>'
+        + '<p>Sit back — it plays itself, about three minutes. Or press '
+        + '<button type="button" class="premise-build">BUILD YOUR EXES</button>'
+        + ' and this court will divorce a pair of your own making.</p>'
+        + '</div>')
       + '<p class="preset-sub">' + subline + '</p></div>'
       + '<div class="versus">' + portraitHTML(m, 'A', 'p-a')
       + '<div class="vs">vs</div>' + portraitHTML(m, 'B', 'p-b') + '</div>'
+      + confNote(m)
       + '<p class="hint">click / space pauses, then steps one beat at a time · ▶ resumes · ' + lastClause + '</p>';
 
     // The premise's inline BUILD YOUR EXES is the same door as the top-bar
@@ -622,8 +640,9 @@
 
     // First poster of the session holds long enough to actually READ the
     // premise cold (founder finding: a cold visitor had no idea what the page
-    // was); later cold-opens (preset switches, replays) keep the brisk hold.
-    const dur = posterSeen ? 8000 : 18000;
+    // was); later cold-opens (preset switches, replays) keep the brisk hold;
+    // a just-filed case gets a beat to register the case number, then rolls.
+    const dur = justFiled ? 4000 : (posterSeen ? 8000 : 18000);
     posterSeen = true;
     steps.push({ scene: 'cold', dur, run() { showScene('cold'); } });
   }
@@ -1534,7 +1553,7 @@
     const m = deriveModel(trace, opts);
     $('#engine-note').textContent = m.engineNote;
     const steps = [];
-    buildColdOpen(m, steps);
+    buildColdOpen(m, steps, opts);
     buildAct1(m, steps);
     buildTurn(m, steps);
     buildAct2(m, steps);
@@ -1910,7 +1929,7 @@
       sessionFiled = true;
       // If the returned trace fails validation, playTrace shows the plain error —
       // never a fake trace, never a preset in disguise.
-      playTrace(trace, null, { rel: builderRel });
+      playTrace(trace, null, { rel: builderRel, justFiled: true });
     })();
   }
 

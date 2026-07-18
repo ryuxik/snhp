@@ -207,3 +207,82 @@ Phrasing discipline for E3: the ratio compares the despiked re-run's joint-
 value gain to the actual settlement's surplus over litigation — "the median
 couple's spite costs 59% as much as everything their settlement achieves,"
 not "59% of the pie is burned."
+
+## Realistic-retail re-anchor + mutual optimism (2026-07-18, registered 85be4c4 + 7b6e025)
+
+Founder finding: cartoon retail ($6–14k dogs) broke the demo's realism. Two
+registered revisions, each committed BEFORE its results; SAME frozen kill
+thresholds throughout.
+
+**Revision 1 (85be4c4) — realistic retail, and it fired the kills.** Base
+ranges re-anchored to Google-able prices (dog $900–2.8k, lake weeks $4–9k,
+vinyl $800–2.6k, espresso $340, wildcard $600–2.4k, wallet $18k); sentiment
+stacks ADDITIVELY in market units (multiplicative compounding had produced
+$100k vinyl); ONE shared retail table per pair (the same dog has one price);
+contested = both sides ≥ 2× market on ≥ 2 indivisibles (the old
+20%-of-own-total criterion structurally required cartoon prices). Result:
+**K1 and K2-surplus FIRED on 3–4 of 4 seeds** (results-seed*.json @ 85be4c4):
+ARM-I settled 94–97%, bundle advantage ≈ 0, NO DECREE 0%. Reading: when the
+fight cost rivals the stakes, RATIONAL agents simply settle — true of
+rational agents, false of divorcing humans. The cartoon values had been
+silently substituting for the documented human impediments.
+
+**Revision 2 (7b6e025) — mutual optimism (M&K impediment #4, Priest-Klein).**
+Expected court share = 0.5 + 0.25·pettiness (+N(0,0.03), cap 0.30), a
+DECLARED structured input alongside lam/fight_cost: ARM-I private
+benchmarks, mediator margins (pessimistic weights flip at s−0.5−ω), refusal
+updates, wallet refinement, input digest, trace cast (court_confidence_pct).
+First calibration value; no tuning iterations against kill outcomes.
+
+**K1–K4 at N=100 × seeds 7/11/23/31 (results-seed*.json):**
+
+| seed | ARM-I settle | ARM-B settle | NO DECREE | K1 | K2-IR | K2-surplus (median adv) | K3 | K4 |
+|---|---|---|---|---|---|---|---|---|
+| 7  | 58% | 79% | 18% | survive | survive | **FIRES** (3.3%) | 93.9% | 0 |
+| 11 | 50% | 83% | 13% | survive | survive | **FIRES** (4.9%) | 94.0% | 0 |
+| 23 | 58% | 84% | 13% | survive | survive | **FIRES** (0.7%) | 94.3% | 0 |
+| 31 | 59% | 81% | 16% | survive | survive | **FIRES** (1.5%) | 96.1% | 0 |
+
+**K2-surplus is DEAD at realistic scale and stays dead in all copy: no
+"bundling captures more surplus" claim, anywhere.** The bundle's measured
+edge is DEAL EXISTENCE — a 21–33pp settle-rate gap over item-by-item, with
+0 rejected proposals (K2-IR) and elicitation still load-bearing (K3
+94–96%). NO DECREE 13–18% sits inside contested-mediation impasse rates.
+
+**E1–E3 re-run (results-science.json; n=340):**
+- **E1: KILL_DOWN FIRES.** Selective risk stays 0.0 (no certified decree
+  ever violated a true walk-away) but 4/14 abstentions at Q=10 were
+  recoverable (28.6% > 15%) → the word "calibrated" is RETIRED; the gate is
+  conservative refusal, and the /science page prints the fired kill.
+- **E2: KILL FIRES.** v2-under-bias median capture 92.2% ≤ v1-honest 93.7%
+  → "human-robust" is DROPPED per registration. v2 stays the shipped
+  default on incentive-compatibility grounds (Carson & Groves), claimed as
+  design rationale, not measured superiority.
+- **E3: SURVIVES both kills.** Median tax $1,144 = 8.8% of joint surplus
+  (≥5% floor), seed stability 1.44× (<3×), median non-hill drift 0. The
+  per-case spite counterfactual is intact at realistic scale — "a $3,899
+  opinion about a $1,131 dog" (the re-pinned bloodbath's real numbers).
+
+Preset traces re-pinned via story-shape search (bloodbath seed 20,
+spreadsheets seed 1, nodecree seed 1); spreadsheets' "near-zero tax"
+constant recalibrated from ≤$500 absolute to ≤5% of joint surplus (story
+constant, not a registered kill). Declared court confidence renders on the
+portraits; the poster prints the combined-confidence overflow only when the
+recorded sum exceeds 110%.
+
+NOTE — case-ledger continuity: cases filed before 7b6e025 replay through
+the CURRENT engine, so their decrees differ from what the filer saw. The
+ledger held only this session's test filings (no public users yet); after
+launch, an engine revision of this kind would require version-pinned replay.
+
+**Trap check re-run at realistic scale (results-trap-check.json):** the
+confound REPLICATES and sharpens — 38/451 Haiku-fronted decisions (8.4%)
+were goodwill leaks (median $3,321 below the committed rule's threshold,
+severity now computed from the per-leak records into science-data.json),
+while the same model ALSO rejected 93 clearly acceptable offers: aggregate
+accept rates 20.4% (LLM) vs 39.7% (rule). The old population's
+aggregate-masking (16.5%=16.5%) became aggregate-divergence — an auditor
+watching aggregates would now misread the model as merely conservative
+while it leaks past the IR bound on 1 in 12 decisions. Both shapes make the
+same point: only per-decision grading against a committed rule audits an
+LLM negotiator. $0.79 of metered inference.
