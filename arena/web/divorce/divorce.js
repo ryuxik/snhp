@@ -540,6 +540,7 @@
   const RAIL_SEG = { act1: 'act1', turn: 'act2', act2: 'act2', act3: 'act3', decree: 'decree' };
   const RAIL_ORDER = ['act1', 'act2', 'act3', 'decree'];
   let lastScene = null;
+  let posterSeen = false;      // first cold-open holds longer (premise read time)
 
   function showScene(key) {
     for (const s of SCENES) {
@@ -589,9 +590,9 @@
     // Subtitle: the preset's card line, or — for a live filing — the case number
     // straight from the trace (meta.case_no is the county ledger's number).
     const p = PRESETS[currentPreset];
-    const subline = p
+    const subline = 'NOW SHOWING · ' + (p
       ? '“' + p.label + '” — ' + p.sub
-      : 'CASE #' + esc(String(m.caseNo != null ? m.caseNo : req(m.meta, 'preset_seed'))) + ', filed at this window.';
+      : 'CASE #' + esc(String(m.caseNo != null ? m.caseNo : req(m.meta, 'preset_seed'))) + ', filed at this window.');
 
     // The last clause is template-bound to the recorded ending — a NO DECREE
     // trace never promises a decree (usability finding).
@@ -602,12 +603,29 @@
         + ' · ' + shortSeal(req(m.cast.B, 'seal')) + '</div>'
       + '<div class="cold-head"><h1>IRRECONCILABLE AGENTS</h1>'
       + '<p class="tagline">The divorce is fake. The math is real.</p>'
+      + '<div class="premise">'
+      + '<p>Two AIs are getting divorced. Everything they own must be split — the dog included.</p>'
+      + '<p>A robot court that trusts neither of them asks its questions, then stamps who gets what. Nothing is scripted.</p>'
+      + '<p>Sit back — it plays itself, about three minutes. Or press '
+      + '<button type="button" class="premise-build">BUILD YOUR EXES</button>'
+      + ' and this court will divorce a pair of your own making.</p>'
+      + '</div>'
       + '<p class="preset-sub">' + subline + '</p></div>'
       + '<div class="versus">' + portraitHTML(m, 'A', 'p-a')
       + '<div class="vs">vs</div>' + portraitHTML(m, 'B', 'p-b') + '</div>'
       + '<p class="hint">click / space pauses, then steps one beat at a time · ▶ resumes · ' + lastClause + '</p>';
 
-    steps.push({ scene: 'cold', dur: 8000, run() { showScene('cold'); } });
+    // The premise's inline BUILD YOUR EXES is the same door as the top-bar
+    // button (on phones the top bar scrolls; the words must work everywhere).
+    const pb = $('#scene-cold').querySelector('.premise-build');
+    if (pb) pb.addEventListener('click', () => $('#build-btn').click());
+
+    // First poster of the session holds long enough to actually READ the
+    // premise cold (founder finding: a cold visitor had no idea what the page
+    // was); later cold-opens (preset switches, replays) keep the brisk hold.
+    const dur = posterSeen ? 8000 : 18000;
+    posterSeen = true;
+    steps.push({ scene: 'cold', dur, run() { showScene('cold'); } });
   }
 
   function buildAct1(m, steps) {
