@@ -78,7 +78,6 @@
 <div class="wrap">
   <nav class="top">
     <a class="brand" href="/">SNHP</a>
-    <a href="/receipt">Receipt</a>
     <a href="/certificate">Certificate</a>
     <a href="/build">Build</a>
     <a href="/results">Results</a>
@@ -86,32 +85,25 @@
 
   <h1>SNHP-NX/1 — <b>package deals for agent payments</b></h1>
   <p class="lede">
-    Agent-payment protocols are shaped like a checkout: a cart resolves to one
-    price, and the buyer agent can pay or not. Quantity against delivery date,
-    scope against price — <b>there is no field for a trade like that</b>. NX is
-    an open extension that adds one. It mounts between the cart step and the
-    payment step, and hands a settled package back.
+    Agent-payment protocols are shaped like a checkout: the cart resolves to one
+    price, and the buyer can pay or not. There is no field for trading quantity
+    against delivery date. <b>NX adds one</b> — an open extension that mounts
+    between the cart step and the payment step and hands back a settled package.
   </p>
 
   <div class="keyfact killed">
-    <div class="k">OUR OWN PRE-REGISTERED KILL FIRED — READ THIS FIRST</div>
+    <div class="k">OUR PRE-REGISTERED KILL FIRED — READ THIS FIRST</div>
     <p>
-      We registered, in advance, that if cheap price-only haggling reached 80%
-      of NX's deal-formation rate, the "you need bundling to close the deal"
-      claim was dead. On a neutral mix of 240 procurement scenarios it reached
-      <b>94.2%</b>. So NX does <em>not</em> claim bundling is necessary for
-      deals to happen. Most of the time a price alone closes it.
+      We registered in advance that if price-only haggling reached 80% of NX's
+      deal rate, the claim "you need bundling to close the deal" was dead. On
+      240 procurement scenarios it reached <b>94.2%</b>. NX does <em>not</em>
+      claim bundling is needed to close a deal.
     </p>
   </div>
-  <p class="note">
-    Mechanism, since it is legible: 226 of 240 scenarios already had a workable
-    price range at the seller's quoted configuration. Registration:
-    <code>nx/PREREG.md</code>. Result: <code>nx/results/RESULTS.md</code>.
-  </p>
 
   <h2>WHAT SURVIVED</h2>
-  <p><b>1. Package deals produce better deals.</b> Same scenarios, same utility
-    functions, share of the achievable joint surplus actually realized:</p>
+  <p><b>Packages capture more surplus.</b> Share of the achievable joint surplus
+    actually realized, same scenarios:</p>
   <div class="tbl">
     <table>
       <thead><tr><th>arm</th><th>deal rate</th><th>surplus captured</th></tr></thead>
@@ -122,88 +114,42 @@
       </tbody>
     </table>
   </div>
-  <p class="note">
-    +3.9 points of the achievable pie over the best price-only arm. Price
-    splits a pie; only a package changes its size.
-  </p>
-
-  <p><b>2. When deadlines are tight, bundling does become load-bearing.</b> Re-run
-    on a high-urgency, tight-deadline regime, price-only recovers just
-    <b>0.696</b> of NX's deal formation — roughly 30% of the workable trades are
-    unreachable without moving more than price — and the surplus gap widens to
-    +25.6 points (0.820 vs 0.564).</p>
-  <p class="note">
-    That second run is <b>exploratory, not pre-registered</b>, and self-labels
-    as such when you run it. It locates a boundary; it does not establish a
-    headline.
-  </p>
-
-  <h2>THE FOUR RULES AN IMPLEMENTATION MUST ENFORCE</h2>
-  <div class="three">
-    <div class="prop">
-      <div class="nm">I1 — never above list</div>
-      <p>No message may price a line above its listed price. Constructing one
-        must raise, not be rejected downstream. The seller's opening quote is
-        the sole list authority, so a buyer cannot invent headroom.</p>
-    </div>
-    <div class="prop">
-      <div class="nm">I2 — bounded</div>
-      <p>The round limit is declared when the session mounts. The proposal past
-        it must raise. Nobody can be griefed into an endless negotiation.</p>
-    </div>
-    <div class="prop">
-      <div class="nm">I3 — whole packages only</div>
-      <p>Counters are complete packages, and accepting adopts the standing
-        package verbatim. "Accept" can never smuggle in new terms.</p>
-    </div>
-    <div class="prop">
-      <div class="nm">I4 — receipt hook</div>
-      <p>Every settled session exposes a hash over the canonical transcript,
-        plus an optional signature. Attestor-neutral: anyone may sign, under
-        any scheme. The SNHP notary is one example, not a requirement.</p>
-    </div>
-  </div>
-
-  <h2>WHAT IT LOOKS LIKE ON THE WIRE</h2>
-<pre><span class="c">// buyer counters to a faster, smaller, cheaper package</span>
-{"type": "NX-PROPOSE", "session_ref": "rfq-8817", "round": 1, "party": "buyer",
- "package": [{"line_id": "L0", "item": "item3", "qty": 12, "ship_date": 2,
-              "list_price": 742.10, "price": 690.0}]}
-
-<span class="c">// seller ratifies — no package field, by rule I3</span>
-{"type": "NX-ACCEPT", "session_ref": "rfq-8817", "round": 2, "party": "seller"}</pre>
+  <p><b>Tight deadlines are where bundling bites.</b> In a high-urgency re-run,
+    price-only recovers only <b>0.696</b> of NX's deal formation. That run is
+    <b>exploratory, not pre-registered</b>, and says so when you run it.</p>
 
   <h2>WHAT IT DOES NOT DO</h2>
   <div class="limits">
     <div class="k">SCOPE, STATED UP FRONT</div>
     <ul>
-      <li><b>It moves no money and holds no goods.</b> The host protocol settles
-        the agreed package; NX just gets it agreed.</li>
-      <li><b>It does not police fairness.</b> NX never verifies the seller's
-        costs or the buyer's valuation. It bounds and records the negotiation.</li>
+      <li><b>Moves no money, holds no goods.</b> The host protocol settles the
+        package; NX only gets it agreed.</li>
+      <li><b>Does not police fairness.</b> It never verifies the seller's costs
+        or the buyer's valuation.</li>
       <li><b>Attestation is not settlement.</b> It proves what was agreed and
         that nothing priced above list. It does not prove delivery.</li>
-      <li><b>All the measurements used scripted policies.</b> They show what the
-        message set can <em>reach</em>, not how clever an agent is. A smarter
-        buyer still cannot express a quantity-for-date trade in a format that
-        has no field for one.</li>
+      <li><b>Every measurement used scripted policies.</b> They show what the
+        message set can reach, not how clever an agent is.</li>
       <li><b>Single seller, one line per item.</b> Multi-seller packages and
-        in-session re-quotes are open questions in the spec, not solved.</li>
+        in-session re-quotes are open questions, not solved.</li>
     </ul>
   </div>
 
-  <h2>REPRODUCE IT</h2>
-<pre>python -m nx.experiment                        <span class="c"># the pre-registered set, deterministic</span>
-python -m nx.experiment --regime constrained   <span class="c"># the exploratory tight regime</span>
-python -m pytest nx/test_nx.py -q              <span class="c"># conformance suite</span></pre>
-  <p class="note">
-    The conformance suite is portable: a third-party implementation runs it
-    against its own classes through a small shim documented in that file.
+  <h2>THE ACTUAL SPEC</h2>
+  <p>
+    This page is the introduction. The normative document has the four rules an
+    implementation must enforce, the wire format, and the open questions.
   </p>
+<pre>python -m nx.experiment                        <span class="c"># the pre-registered run</span>
+python -m pytest nx/test_nx.py -q              <span class="c"># conformance suite</span></pre>
 
-  <div class="hero-act" style="margin-top:26px">
-    <a class="cta" href="https://github.com/ryuxik/snhp/blob/main/nx/SPEC.md" target="_blank" rel="noopener">Read the full spec →</a>
-    <a class="cta ghost" href="/results">See the kill in context</a>
+  <div class="hero-act" style="margin-top:22px">
+    <a class="cta" href="https://github.com/ryuxik/snhp/blob/main/nx/SPEC.md" target="_blank" rel="noopener">Read nx/SPEC.md →</a>
+    <a class="cta ghost" href="https://github.com/ryuxik/snhp/blob/main/nx/test_nx.py" target="_blank" rel="noopener">Conformance suite</a>
   </div>
+  <p class="note">
+    Registration: <code>nx/PREREG.md</code> · result:
+    <code>nx/results/RESULTS.md</code> · <a href="/results">the kill in context</a>
+  </p>
 </div>
 </html>

@@ -3,12 +3,12 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>SNHP — proof of what your AI agent paid</title>
-<meta name="description" content="Software is starting to spend real money. SNHP signs a receipt for every price an agent agrees to, and anyone can verify it offline. The negotiation engine is free; the proof is what we sell." />
+<meta name="description" content="SNHP signs a receipt for every price an AI agent agrees to — what was listed, what was accepted, what it saved. Anyone can verify it offline, without asking us. A receipt claiming a price above list cannot be built at all." />
 <meta property="og:title" content="Your AI agent agreed to a price. Prove it was a good one." />
-<meta property="og:description" content="Signed, offline-verifiable proof of every price an agent agreed to. The engine is free. The proof is the product." />
+<meta property="og:description" content="A log says we recorded that we behaved. A receipt says here is evidence, checkable without us. The negotiation engine is free; the proof is what we sell." />
 <style>
   :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
-          --gold:#ffe08a; --green:#7fc48f; --red:#e8734a; --violet:#a78bfa; --blue:#8fd0ff; }
+          --gold:#ffe08a; --green:#7fc48f; --violet:#a78bfa; --blue:#8fd0ff; }
   html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
                font-family: ui-monospace, Menlo, monospace; }
   .wrap { max-width: 760px; margin: 0 auto; padding: 34px 20px 80px; }
@@ -18,15 +18,13 @@
   p, li { color: var(--dim); font-size: 13px; line-height: 1.7; }
   p b, li b { color: var(--ink); }
   a { color: var(--blue); }
-  ol, ul { padding-left: 20px; }
-  li { margin: 6px 0; }
+  ul { padding-left: 20px; } li { margin: 6px 0; }
   .lede { color: var(--dim); font-size: 14px; line-height: 1.7; max-width: 64ch; margin: 0 0 22px; }
   .lede b { color: var(--ink); }
   pre { background: #131022; border: 1px solid var(--line); border-radius: 10px;
         padding: 14px 16px; font-size: 12px; line-height: 1.6; overflow-x: auto; color: #d6d2e6; }
   pre b { color: var(--gold); font-weight: 700; }
-  pre .c { color: #807a99; }
-  pre .g { color: var(--green); }
+  pre .c { color: #807a99; } pre .g { color: var(--green); }
   code { background: #131022; border: 1px solid var(--line); border-radius: 5px;
          padding: 1px 6px; color: #d6d2e6; font-size: 12px; }
   .cta { display:inline-block; padding: 12px 18px; border-radius: 9px; font-size: 13px;
@@ -44,30 +42,25 @@
   .keyfact { border: 1px solid rgba(255,224,138,.4); border-radius: 12px;
              background: linear-gradient(180deg, rgba(255,224,138,.06), rgba(255,224,138,.02));
              padding: 18px 20px; margin: 22px 0 8px; }
-  .keyfact .k { color: var(--gold); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
-  .keyfact p { margin: 0; font-size: 13.5px; line-height: 1.75; color: var(--ink); }
-
+  .keyfact p { margin: 0; font-size: 14px; line-height: 1.75; color: var(--ink); }
   .limits { border: 1px solid var(--line); border-radius: 12px; background: #131022;
             padding: 18px 20px; margin: 16px 0 8px; }
   .limits .k { color: var(--dim); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
   .limits ul { margin: 0; } .limits li { font-size: 12.5px; }
-
-  .three { display: grid; gap: 10px; margin: 14px 0 6px; }
-  .prop { border: 1px solid var(--line); border-radius: 10px; background: #131022; padding: 13px 15px; }
-  .prop .nm { font-weight: 700; font-size: 13px; color: var(--gold); margin-bottom: 5px; }
-  .prop p { margin: 0; font-size: 12.5px; }
-  .note { color: #807a99; font-size: 11.5px; line-height: 1.65; margin-top: 8px; }
+  .doors { display: grid; gap: 10px; margin: 14px 0 6px; }
+  .door { border: 1px solid var(--line); border-radius: 10px; background: #131022;
+          padding: 13px 15px; text-decoration: none; display: block; }
+  .door:hover { border-color: rgba(255,224,138,.4); }
+  .door .nm { font-weight: 700; font-size: 13px; color: var(--gold); margin-bottom: 4px; }
+  .door p { margin: 0; font-size: 12.5px; }
+  .foot { color: #807a99; font-size: 11.5px; margin-top: 40px; }
   a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-  a.door { display:block; text-decoration:none; }
-  a.door:hover { border-color: rgba(255,224,138,.45); }
-  a.door .nm { text-decoration: none; }
   @media (max-width: 560px) { h1 { font-size: 22px; } .wrap { padding: 26px 16px 60px; } }
 </style>
 
 <div class="wrap">
   <nav class="top">
     <a class="brand" href="/">SNHP</a>
-    <a href="/receipt">Receipt</a>
     <a href="/certificate">Certificate</a>
     <a href="/build">Build</a>
     <a href="/results">Results</a>
@@ -75,48 +68,87 @@
 
   <h1>Your AI agent agreed to a price. <b>Prove it was a good one.</b></h1>
   <p class="lede">
-    Software is starting to spend real money. SNHP signs a receipt for every
-    price an agent agrees to — what was listed, what was accepted, what it
-    saved — and <b>anyone can verify it offline</b>, without asking us.
-    The negotiation engine is free. The proof is what we sell.
+    Software is starting to spend real money. SNHP signs a <b>receipt</b> for every
+    price an agent agrees to — what was listed, what was accepted, what it saved.
+    <b>Anyone can check it offline</b>, without asking us. The negotiation engine is
+    free. The proof is what we sell.
   </p>
 
-  <div class="three">
-    <a class="door prop" href="/receipt">
-      <div class="nm">See a receipt →</div>
-      <p>One negotiation, signed. A receipt claiming a price above list cannot
-         be built at all — the code refuses.</p>
-    </a>
-    <a class="door prop" href="/certificate">
+  <div class="keyfact">
+    <p>
+      A log says <em>we recorded that we behaved.</em> A receipt says
+      <em>here is evidence, checkable without us.</em> And a receipt claiming a
+      price <b>above</b> the list price cannot be built at all — the code refuses
+      to make one.
+    </p>
+  </div>
+
+  <h2>WHAT'S IN ONE</h2>
+<pre>list_price      2670.00      <span class="c">the public list</span>
+quoted_price    2536.50      <span class="c">what was agreed</span>
+saving           133.50      <span class="c">list − quoted</span>
+c_eff           2100.00      <span class="c">the seller's floor</span>
+
+conditions      { a: <span class="g">true</span>,  <span class="c">never above list</span>
+                  b: <span class="g">true</span>,  <span class="c">floor didn't move with the buyer's story</span>
+                  c: <span class="g">true</span> } <span class="c">disagreement point is the posted menu</span>
+
+context_hash      9f2c…      <span class="c">same inputs ⇒ same price</span>
+disclosure_digest 4b81…      <span class="c">digest only — never the raw willingness-to-pay</span>
+prev_hash         a07e…      <span class="c">chains to the previous receipt</span>
+key_source        "env"      <span class="c">or "ephemeral" — the signer is disclosed</span>
+notary_sig        <b>ed25519…</b>  <span class="c">breaks if any byte above changes</span></pre>
+
+  <h2>CHECK ONE WITHOUT TRUSTING US</h2>
+<pre>python -m core.notary verify <b>receipts.jsonl</b>
+
+<span class="g">[OK]</span> signature valid · never-above-list holds · chain intact</pre>
+  <p>
+    Fetch the public key once from <code>/v1/notary/key</code> and you never need to
+    contact us again — including years later, when the receipt matters and we might
+    not be around.
+  </p>
+
+  <h2>WHAT IT DOES NOT PROVE</h2>
+  <div class="limits">
+    <div class="k">THE LIMITS, STATED UP FRONT</div>
+    <ul>
+      <li><b>Only what happened inside the mechanism.</b> A deal negotiated
+        elsewhere is not covered.</li>
+      <li><b>Not that the buyer told the truth</b>, unless an attestation token is
+        attached. Without one, the receipt says so.</li>
+      <li><b>When scarcity legitimately moves the seller's floor</b>, the receipt
+        reports that and marks the condition false. We ship an honest false rather
+        than a flattering true.</li>
+    </ul>
+  </div>
+
+  <h2>THE REST OF IT</h2>
+  <div class="doors">
+    <a class="door" href="/certificate">
       <div class="nm">Certify an agent →</div>
-      <p>360 seeded negotiations against three fixed opponents. A signed
-         statement of how much money your agent kept versus splitting the
-         difference.</p>
+      <p>360 seeded negotiations against three fixed opponents, and a signed
+        statement of how much money your agent kept versus splitting the difference.</p>
     </a>
-    <a class="door prop" href="/results">
-      <div class="nm">Read the results, including the ones that went badly →</div>
-      <p>Every experiment we ran, with the ones that killed our own ideas kept
-         at the top.</p>
+    <a class="door" href="/build">
+      <div class="nm">Build with the engine →</div>
+      <p>The math that picks the price, free and open source — plus the open spec for
+        carrying package deals through agent-payment protocols.</p>
+    </a>
+    <a class="door" href="/results">
+      <div class="nm">Read what we got wrong →</div>
+      <p>Every experiment we ran, with the ones that killed our own ideas kept at the
+        top.</p>
     </a>
   </div>
 
-  <h2>THE SHORT VERSION</h2>
-  <p>
-    A log says <b>we recorded that we behaved</b>. A receipt says
-    <b>here is evidence, checkable without us</b>. That is the whole company.
-    The math that picks the price is open source and free
-    (<a href="/build">install it</a>); so is the
-    <a href="/spec">open spec</a> for carrying package deals through
-    agent-payment protocols.
-  </p>
-
-  <div class="hero-act" style="margin-top:26px">
-    <a class="cta" href="https://x.com/ryuxik" target="_blank" rel="noopener">Talk to us about a pilot</a>
+  <div class="hero-act" style="margin-top:28px">
+    <a class="cta" href="mailto:ryuxik@gmail.com?subject=SNHP%20pilot">Talk to us about a pilot</a>
     <a class="cta ghost" href="/results">See what we got wrong →</a>
   </div>
-  <p class="note">
+
+  <p class="foot">
     <a href="https://github.com/ryuxik/snhp">github.com/ryuxik/snhp</a> ·
     ryuxik@gmail.com · machine-readable context at <a href="/llms.txt">/llms.txt</a>
   </p>
 </div>
-</html>

@@ -75,7 +75,6 @@
 <div class="wrap">
   <nav class="top">
     <a class="brand" href="/">SNHP</a>
-    <a href="/receipt">Receipt</a>
     <a href="/certificate" aria-current="page">Certificate</a>
     <a href="/build">Build</a>
     <a href="/results">Results</a>
@@ -84,51 +83,45 @@
   <h1>Anyone can say their agent negotiates well. <b>This is the test.</b></h1>
   <p class="lede">
     Your agent plays <b>360 seeded negotiations</b> against three fixed scripted
-    opponents, from both sides of the table, and gets a signed certificate
-    stating how much of the money it kept — measured against a bot that just
-    splits the difference. The certificate <b>verifies offline</b> and lists
-    what it does not cover, on its own face.
+    opponents and gets a signed certificate stating how much of the money it
+    kept, measured against a bot that just splits the difference. The
+    certificate <b>verifies offline</b> and prints its own limits.
   </p>
 
   <div class="hero-act">
     <a class="cta" href="#submit">Put an agent through it →</a>
-    <a class="cta ghost" href="#standings">See who has run it</a>
   </div>
 
   <h2>THE TEST</h2>
   <p>
-    60 generated multi-issue deals × 2 roles (your agent plays buyer and seller)
-    × 3 opponents = <b>360 matches</b>. Eight turns each, then both sides take
-    their walk-away. Everything is deterministic: same seed, same scenarios,
-    same result. No model is called; the opponents are scripts.
+    60 multi-issue deals × 2 roles (your agent plays buyer and seller) × 3
+    opponents = <b>360 matches</b>, eight turns each. No model is called; the
+    opponents are scripts. Same seed, same result.
   </p>
 
   <h2>THE THREE OPPONENTS</h2>
   <div class="three">
     <div class="prop">
       <div class="nm">The Splitter</div>
-      <p>Meets in the middle. Concedes evenly on every issue and expects the
-        same back. Easy to deal with, and it never notices when a trade would
-        have made both sides better off.</p>
+      <p>Meets in the middle. Concedes evenly and expects the same back. It
+        never notices when a trade would have made both sides better off.</p>
     </div>
     <div class="prop">
       <div class="nm">The Stonewaller</div>
-      <p>Opens at its own best case and holds there. Only accepts if the deal
-        is still worth 0.65 to it. Will run out the clock rather than move.
-        This is where most agents fail.</p>
+      <p>Opens at its own best case and holds. Accepts only if the deal is
+        still worth 0.65 to it. This is where most agents fail.</p>
     </div>
     <div class="prop">
       <div class="nm">The Conceder</div>
-      <p>Caves slowly — about 0.15 of its own value per turn — and takes
-        anything worth 0.45 to it, or anything beating its walk-away in the
-        last two turns. Rewards patience, punishes panic.</p>
+      <p>Caves slowly — about 0.15 of its value per turn — and takes anything
+        worth 0.45 to it. Rewards patience, punishes panic.</p>
     </div>
   </div>
   <p class="note">
-    Every parameter above was frozen in writing before the first run
-    (<code>arena/gauntlet/PREREG-pool.md</code>) and none has been tuned since.
-    Three opponents is the whole pool — a candidate that beats only one of them
-    shows up as exactly that in the per-opponent breakdown on its certificate.
+    Every parameter was frozen in writing before the first run
+    (<code>arena/gauntlet/PREREG-pool.md</code>) and has not been tuned since.
+    An agent that beats only one opponent shows up as exactly that in the
+    per-opponent breakdown.
   </p>
 
   <h2>WHAT THE CERTIFICATE CLAIMS</h2>
@@ -141,10 +134,10 @@
     </p>
   </div>
   <p>
-    Formally: mean own-utility, pooled over all 360 matches, paired
-    match-for-match against the baseline, two-sided sign-flip permutation test
-    with 10,000 permutations. The design was registered before the run and then
-    validated on a <b>held-out scenario set that had never been used</b>.
+    Formally: mean own-utility, paired match-for-match against the baseline,
+    two-sided sign-flip permutation test with 10,000 permutations. Registered
+    before the run, then validated on a <b>held-out scenario set that had never
+    been used</b>.
   </p>
 
   <h2 id="standings">WHO HAS RUN IT</h2>
@@ -171,11 +164,9 @@
   </p>
 
   <p>
-    The Stonewaller is where the gap opens. Against it, the engine closes
-    <b>59%</b> of deals; the split-the-difference bot closes <b>2%</b> — it
-    keeps offering the middle to an opponent that never moves, and the clock
-    runs out. Against the Splitter and the Conceder the gap is real but much
-    smaller (+0.07 each).
+    The Stonewaller is where the gap opens: the engine closes <b>59%</b> of
+    deals against it, the split-the-difference bot <b>2%</b>. Against the
+    Splitter and the Conceder the gap is real but much smaller (+0.07 each).
   </p>
 
   <h2>WHAT IT DOES NOT SAY</h2>
@@ -185,17 +176,16 @@
       <li><b>Not future performance.</b> The numbers are in-sample on exactly
         this scenario set.</li>
       <li><b>Not performance against anything outside the three.</b> Not
-        against language models, not against humans, not against your actual
-        counterparties.</li>
+        against language models, not humans, not your real counterparties.</li>
       <li><b>Not other kinds of deals.</b> A different generator, seed, or
         number of issues is a different test and needs its own certificate.</li>
-      <li><b>Not who or what your agent is.</b> A certificate carries an opaque
-        digest the submitter supplied. It does not prove which code or model
-        made the moves — pin the key fingerprint against one published
+      <li><b>Not who or what your agent is.</b> The certificate carries an
+        opaque digest the submitter supplied. It does not prove which code or
+        model made the moves — pin the key fingerprint against one published
         elsewhere.</li>
       <li><b>Not joint efficiency.</b> Two earlier scoring designs were killed
         for measuring the pair rather than the candidate. Those numbers still
-        appear on the certificate, labelled as context with no claim attached.
+        appear, labelled as context with no claim attached.
         See <a href="/results">results</a>.</li>
     </ul>
   </div>
@@ -208,7 +198,7 @@
   <p class="note">
     Change one byte and it exits 1. A certificate signed with a throwaway key
     reports <code>key_source: ephemeral</code> and is not a production
-    attestation. Regenerate the whole run with
+    attestation. Regenerate the run with
     <code>python -m arena.gauntlet.certify --run engine --seed 20260709 --n 60 --deadline 8</code>.
   </p>
 
@@ -228,22 +218,21 @@
 { "action": "accept" }   <span class="c">takes their latest package</span>
 { "action": "walk" }     <span class="c">both sides take their walk-away</span></pre>
   <p class="note">
-    Invalid replies count as format failures — they are published on the
-    certificate and forfeit the turn. A dead endpoint aborts the run. Full
-    machine-readable protocol:
-    <a href="https://arena.snhp.dev/llms.txt">arena.snhp.dev/llms.txt</a>.
+    Invalid replies are published on the certificate as format failures and
+    forfeit the turn. A dead endpoint aborts the run. Full machine-readable
+    protocol: <a href="https://arena.snhp.dev/llms.txt">arena.snhp.dev/llms.txt</a>.
   </p>
 
   <h2>ONE HONEST NOTE ON LANGUAGE MODELS</h2>
   <p>
-    Unaided frontier models have been measured here, but on an
-    <b>earlier and different protocol</b> — a single fixed opponent, scored on
-    a metric a later kill showed cannot rank skill. On that older setup, the
-    weaker models scored <b>below</b> the split-the-difference baseline, and
-    wiring them to the engine mid-deal pulled them back to it. Those runs are
-    <b>not certified</b> and are not comparable to the table above; they are
-    kept because they are the honest record. Detail:
-    <code>arena/gauntlet/certs/CERTIFIED-TABLE.md</code>, section 3.
+    Unaided frontier models have been measured here, but on an <b>earlier and
+    different protocol</b> — a single fixed opponent, scored on a metric a later
+    kill showed cannot rank skill. On that older setup the weaker models scored
+    <b>below</b> the split-the-difference baseline, and wiring them to the engine
+    mid-deal pulled them back to it. Those runs are <b>not certified</b> and are
+    not comparable to the table above. We keep them because they are the honest
+    record. Detail: <code>arena/gauntlet/certs/CERTIFIED-TABLE.md</code>,
+    section 3.
   </p>
 
   <div class="hero-act" style="margin-top:26px">

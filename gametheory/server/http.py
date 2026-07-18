@@ -624,8 +624,9 @@ def landing(request: Request):
 
 @app.get("/receipt", include_in_schema=False)
 def receipt_page():
-    """The receipt: a signed record of one negotiation, verifiable offline."""
-    return _serve_static_page("receipt.html")
+    """The receipt pitch merged into the landing page; keep the URL alive as a
+    real redirect for anything that already links to /receipt."""
+    return RedirectResponse("/", status_code=301)
 
 
 @app.get("/certificate", include_in_schema=False)

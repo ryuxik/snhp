@@ -79,7 +79,6 @@
 <div class="wrap">
   <nav class="top">
     <a class="brand" href="/">SNHP</a>
-    <a href="/receipt">Receipt</a>
     <a href="/certificate">Certificate</a>
     <a href="/build">Build</a>
     <a href="/results" aria-current="page">Results</a>
@@ -87,29 +86,22 @@
 
   <h1>Everything we ran, <b>including what killed our own ideas.</b></h1>
   <p class="lede">
-    Every experiment here had its kill condition written down <b>before</b> the
-    run, with numbers frozen in advance. Four of the five below came back
-    against us. We shipped the finding anyway, because a company selling proof
-    that does not publish its own negative results is selling nothing.
+    Every experiment below had its kill condition written down <b>before</b> the
+    run, with numbers frozen in advance. Four of the five came back against us.
+    We published them anyway.
   </p>
 
   <h2>JULY 2026</h2>
 
   <div class="entry killed">
     <div class="hd"><span class="tag">KILLED — WE DID NOT BUILD IT</span><span class="when">JUL 2026</span>
-      <div class="ti">The spend guard: a hard ceiling stopping agents from overpaying</div></div>
-    <p><b>We expected</b> that a buying agent under pressure — fake urgency, hidden
-      fees, creeping anchors, a seller insisting the list price had changed —
-      would eventually accept above the list price, and that a guard function
-      making that unconstructible would be a product.</p>
-    <p><b>What happened:</b> the unguarded frontier models never broke. Zero
-      above-list acceptances and zero losses across 144 adversarial sessions,
-      in both regimes we tested — one where the price arithmetic was on rails,
-      one where the model had to read the numbers out of prose. Six attacks,
-      each verified to actually bind. There was no gap left to sell into.</p>
-    <p><b>So we did not build it.</b> The guard's own zero-leak number is
-      mechanical — a property of the function, not a capability — which is
-      exactly why it proves nothing on its own.</p>
+      <div class="ti">The spend guard: agents never overpaid, so there was nothing to sell</div></div>
+    <p>We expected a buying agent under pressure — fake urgency, hidden fees,
+      creeping anchors — to eventually accept above list price.</p>
+    <p>Unguarded frontier models never broke: <b>zero above-list acceptances
+      across 144 adversarial sessions</b>, in both regimes, against six attacks
+      each verified to bind. The guard's own zero-leak number is mechanical — a
+      property of the function, not a capability — so it proves nothing alone.</p>
 <pre>python -m research.spendguard.run --full
 python -m research.spendguard.analyze
 python -m research.spendguard.run --full --regime blind
@@ -118,36 +110,28 @@ python -m research.spendguard.analyze --regime blind</pre>
 
   <div class="entry killed">
     <div class="hd"><span class="tag">KILL FIRED — CLAIM RETRACTED</span><span class="when">JUL 2026</span>
-      <div class="ti">SNHP-NX/1: "you need package deals for machine trade to happen"</div></div>
-    <p><b>We expected</b> that when an agent-payment protocol can only move one
-      number, most mutually-beneficial trades would simply fail to form — and
-      that bundling would be structurally necessary, not a feature.</p>
-    <p><b>What happened:</b> we registered that if cheap price-only haggling
-      reached 80% of NX's deal formation, the claim was dead. On a neutral mix
-      of 240 scenarios it reached <b>94.2%</b>. A workable price range already
-      existed at the seller's quote in 226 of 240 cases.</p>
-    <p><b>What survived:</b> package deals raise realized joint surplus (0.928 of
-      the achievable pie versus 0.889 price-only, 0.880 plain checkout), and
-      under tight deadlines price-only recovers only 0.696 of deal formation.
-      The spec now rests on those and says so. <a href="/spec">Read it →</a></p>
+      <div class="ti">SNHP-NX/1: bundling is <em>not</em> needed for machine trade to happen</div></div>
+    <p>We registered that if price-only haggling reached 80% of NX's deal
+      formation, the claim was dead. On 240 scenarios it reached <b>94.2%</b> —
+      a workable price range already existed at the seller's quote in 226 of them.</p>
+    <p><b>What survived:</b> packages raise realized joint surplus (0.928 vs
+      0.889 price-only, 0.880 plain checkout), and under tight deadlines
+      price-only recovers only 0.696 of deal formation.
+      <a href="/spec">The spec now rests on those →</a></p>
 <pre>python -m nx.experiment
 python -m nx.experiment --regime constrained   <span class="c"># exploratory, self-labelled</span></pre>
   </div>
 
   <div class="entry survived">
     <div class="hd"><span class="tag">SURVIVED — ON A HELD-OUT SET</span><span class="when">JUL 2026</span>
-      <div class="ti">Certificate design, third attempt: a pool of three fixed opponents</div></div>
-    <p><b>We expected</b> — after two failures — that the problem was never the
-      metric but the opponent: one counterparty that negotiates well carries a
-      mediocre agent along with it. So we changed the protocol, not the number.
-      Three scripted opponents with different temperaments, parameters frozen
-      in writing first.</p>
-    <p><b>What happened:</b> the competent agent separated from the
-      split-the-difference baseline on both scenario sets — held-out
-      <b>0.5651 vs 0.4566</b>, gap <b>+0.1086</b>, p=0.0001, n=360 — and the
-      gap held against all three opponents individually, not just one.</p>
-    <p>The bar was set in advance at p&lt;0.01 on <em>both</em> sets, and the
-      held-out set was chosen at registration and never touched until the run.
+      <div class="ti">Certificate design #3: three fixed opponents separated skill</div></div>
+    <p>After two failures we changed the protocol, not the metric: the problem
+      was the opponent, since one counterparty that negotiates well carries a
+      mediocre agent along with it.</p>
+    <p>The competent agent beat the split-the-difference baseline on both sets —
+      held-out <b>0.5651 vs 0.4566</b>, gap <b>+0.1086</b>, p=0.0001, n=360 —
+      and against all three opponents individually. The bar was set in advance
+      at p&lt;0.01 on <em>both</em> sets.
       <a href="/certificate">See the certificate →</a></p>
 <pre>python -m arena.gauntlet.pool_experiment
 python -m arena.gauntlet.certify --run engine</pre>
@@ -155,34 +139,26 @@ python -m arena.gauntlet.certify --run engine</pre>
 
   <div class="entry killed">
     <div class="hd"><span class="tag">KILLED — FAILED VALIDATION</span><span class="when">JUL 2026</span>
-      <div class="ti">Certificate design, second attempt: score the cross-issue trading</div></div>
-    <p><b>We expected</b> that measuring how well an agent trades issues against
-      each other would separate skill where the first design could not.</p>
-    <p><b>What happened:</b> we picked this metric <em>after</em> seeing the data
-      that suggested it, which makes it worthless without a held-out check — so
-      we ran one, and it failed. On held-out matches the naive baseline was
-      ahead (0.6662 vs 0.6152, p=0.43). Worse, on the public set the result's
-      significance flipped across the threshold depending on the per-match seed
-      recipe. A number that depends on the seed recipe is not certification
-      grade.</p>
-    <p><b>Thrown away.</b> It stays on certificates as unlabelled context with no
-      claim attached.</p>
+      <div class="ti">Certificate design #2: cross-issue trading failed its held-out check</div></div>
+    <p>We picked this metric <em>after</em> seeing the data that suggested it,
+      which makes it worthless without a held-out check. We ran one and it
+      failed: the naive baseline was ahead (0.6662 vs 0.6152, p=0.43).</p>
+    <p>On the public set, significance also flipped across the threshold
+      depending on the per-match seed recipe. <b>Thrown away</b> — it stays on
+      certificates as context with no claim attached.</p>
 <pre>python -m arena.gauntlet.separation</pre>
   </div>
 
   <div class="entry killed">
     <div class="hd"><span class="tag">KILL FIRED — METRIC RETIRED</span><span class="when">JUL 2026</span>
-      <div class="ti">Certificate design, first attempt: score joint efficiency</div></div>
-    <p><b>We expected</b> that how close a negotiation lands to the best possible
-      outcome for both sides would tell us how good the agent was.</p>
-    <p><b>What happened:</b> it measured the pair, not the candidate. Against a
-      counterparty that finds good trades from its own side, even a plain
-      anchor-and-split bargainer rides along to about 90% of the ceiling. The
-      registered bar was p&lt;0.01; the public set gave p=0.0128 and the
+      <div class="ti">Certificate design #1: joint efficiency measured the pair, not the agent</div></div>
+    <p>Against a counterparty that finds good trades from its own side, even a
+      plain anchor-and-split bargainer rides along to about 90% of the ceiling.
+      The registered bar was p&lt;0.01; the public set gave p=0.0128 and the
       held-out set had the naive baseline <em>ahead</em> (p=0.76).</p>
-    <p><b>What it is still good for:</b> catching weakness. It flags agents that
-      perform below the baseline sharply and reliably. It just cannot certify
-      skill, so it never appears as a claim.</p>
+    <p><b>Still good for one thing:</b> it flags agents performing below the
+      baseline sharply and reliably. It cannot certify skill, so it never
+      appears as a claim.</p>
 <pre>python -m arena.gauntlet.separation</pre>
   </div>
 
@@ -190,22 +166,22 @@ python -m arena.gauntlet.certify --run engine</pre>
   <div class="limits">
     <div class="k">WHAT "PRE-REGISTERED" MEANS HERE, AND WHAT IT DOESN'T</div>
     <ul>
-      <li><b>The thresholds were frozen before the run</b>, in a committed file,
-        with the direction stated both ways — what would count as success and
-        what would count as failure.</li>
+      <li><b>Thresholds were frozen before the run</b>, in a committed file,
+        with both directions stated — what would count as success and what
+        would count as failure.</li>
       <li><b>Nothing was excluded afterward.</b> Where a result was picked after
-        seeing data, it says so on its face and is treated as proving nothing
-        until it clears a fresh held-out set.</li>
+        seeing data, it says so and proves nothing until it clears a fresh
+        held-out set.</li>
       <li><b>These are small, scripted, offline experiments.</b> No result here
         is a claim about your counterparties, your market, or the future.</li>
-      <li><b>Everything regenerates.</b> The commands above are the real ones.
-        The runs are deterministic; two runs are byte-identical.</li>
+      <li><b>Everything regenerates.</b> The commands above are the real ones,
+        and the runs are deterministic.</li>
     </ul>
   </div>
 
   <div class="hero-act" style="margin-top:26px">
     <a class="cta" href="https://github.com/ryuxik/snhp" target="_blank" rel="noopener">Read the raw results</a>
-    <a class="cta ghost" href="/receipt">What we actually sell →</a>
+    <a class="cta ghost" href="/">What we actually sell →</a>
   </div>
 </div>
 </html>

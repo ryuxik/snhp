@@ -64,7 +64,6 @@
 <div class="wrap">
   <nav class="top">
     <a class="brand" href="/">SNHP</a>
-    <a href="/receipt">Receipt</a>
     <a href="/certificate">Certificate</a>
     <a href="/build" aria-current="page">Build</a>
     <a href="/results">Results</a>
@@ -73,8 +72,7 @@
   <h1>The engine is free. <b>Take it.</b></h1>
   <p class="lede">
     Plain dollars in, the move out. Single-price and multi-issue, no model call,
-    runs locally, Apache 2.0. Your agent brings the language; SNHP brings the
-    game theory.
+    runs locally, Apache 2.0.
   </p>
 
 <pre>uvx snhp            <span class="c"># zero-install: runs the stdio MCP server on demand</span>
@@ -83,9 +81,8 @@ pip install snhp    <span class="c"># or the library</span></pre>
   <h2>WIRE IT INTO AN MCP CLIENT</h2>
 <pre>{ "mcpServers": { "snhp": { "command": "uvx", "args": ["snhp"] } } }</pre>
   <p class="note">
-    Works in Claude Desktop, Cursor, Cline, or anything else speaking MCP.
-    There is also a hosted streamable endpoint at <code>/mcp</code> if you would
-    rather not install anything.
+    Works in anything speaking MCP. A hosted endpoint is at <code>/mcp</code> if
+    you would rather not install.
   </p>
 
   <h2>ONE PRICE</h2>
@@ -99,10 +96,7 @@ gt_negotiate_turn(
 <span class="c">#     'message': "Thanks for the offer. The best I can do on this is $5,714.00.", ...}</span></pre>
 
   <h2>MANY ISSUES AT ONCE</h2>
-  <p>
-    Concede what you value least to hold what you value most. The engine finds
-    the package, not just the price.
-  </p>
+  <p>Concede what you value least to hold what you value most.</p>
 <pre>from gametheory.server.mcp_server import gt_negotiate_bundle
 
 gt_negotiate_bundle(
@@ -126,13 +120,12 @@ gt_negotiate_bundle(
     </p>
   </div>
   <p class="note">
-    n = 20 paired seeds, single-issue price, LLM versus LLM, and the opponent
-    ran a <em>general</em> prompt rather than a tuned one. Committed run:
-    <code>gametheory/server/static/e6_cross_vendor.json</code>. Against a
-    strong production prompt the edge is roughly half that, on a smaller sample
-    — both runs and their caveats are in the
-    <a href="https://github.com/ryuxik/snhp#empirical-anchor">README</a>. Treat
-    +12.5% as a measurement with a small n, not a guarantee.
+    n = 20 paired seeds, single-issue price, and the opponent ran a
+    <em>general</em> prompt rather than a tuned one. Against a strong production
+    prompt the edge is roughly half that, on a smaller sample. Treat +12.5% as a
+    measurement with a small n, not a guarantee. Run:
+    <code>gametheory/server/static/e6_cross_vendor.json</code>; caveats in the
+    <a href="https://github.com/ryuxik/snhp#empirical-anchor">README</a>.
   </p>
 
   <h2>FROM SOURCE</h2>
@@ -146,11 +139,10 @@ snhp                                            <span class="c"># stdio MCP serv
 
   <h2>WHAT WE SELL INSTEAD</h2>
   <p>
-    Nothing above costs anything. What we sell is the proof that sits on top of
-    it: a <a href="/receipt">signed receipt</a> for a price your agent agreed
-    to, and a <a href="/certificate">signed certificate</a> for how well it
-    negotiates. If you are moving package deals through an agent-payment
-    protocol, the wire format for that is also open —
+    Nothing above costs anything. We sell the proof on top: a
+    <a href="/">signed receipt</a> for a price your agent agreed to, and a
+    <a href="/certificate">signed certificate</a> for how well it negotiates.
+    The wire format for package deals is open too —
     <a href="/spec">SNHP-NX/1</a>.
   </p>
 
