@@ -2,18 +2,17 @@
 <html lang="en">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>SNHP — the receipt for what your software spends</title>
-<meta name="description" content="Your payment processor proves the money moved. It was not in the room when the price was set. SNHP signs what the price should have been — checkable offline, and a receipt above list cannot be printed at all." />
-<meta property="og:title" content="Software is spending your money. Here's the receipt." />
-<meta property="og:description" content="Stripe proves you paid. This proves you shouldn't have paid more." />
+<title>SNHP — negotiation math for AI agents, free and tested in public</title>
+<meta name="description" content="An open-source negotiation engine for AI agents: single-price and multi-issue, no model call, runs locally. Plus the independent test that scores it, and the research — including the experiments that killed our own ideas." />
+<meta property="og:title" content="Negotiation math for AI agents. Free, open, tested in public." />
+<meta property="og:description" content="The engine picks the price. The test says whether it's any good. The research says what we got wrong." />
 <style>
   :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
-          --gold:#ffe08a; --green:#7fc48f; --violet:#a78bfa; --blue:#8fd0ff;
-          --paper:#f5f1e6; --papink:#1a1720; --papdim:#6d6555; }
+          --gold:#ffe08a; --green:#7fc48f; --violet:#a78bfa; --blue:#8fd0ff; }
   html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
                font-family: ui-monospace, Menlo, monospace; }
   .wrap { max-width: 720px; margin: 0 auto; padding: 34px 20px 70px; }
-  h1 { font-size: 28px; letter-spacing: .03em; margin: 0 0 8px; line-height: 1.28; text-wrap: balance; }
+  h1 { font-size: 27px; letter-spacing: .03em; margin: 0 0 10px; line-height: 1.3; text-wrap: balance; }
   h1 b { color: var(--gold); }
   h2 { font-size: 12.5px; letter-spacing: .2em; color: var(--violet); margin: 42px 0 10px; }
   p { color: var(--dim); font-size: 13px; line-height: 1.7; }
@@ -22,36 +21,13 @@
   pre { background: #131022; border: 1px solid var(--line); border-radius: 10px;
         padding: 13px 15px; font-size: 12px; line-height: 1.6; overflow-x: auto; color: #d6d2e6; }
   pre b { color: var(--gold); } pre .c { color: #807a99; } pre .g { color: var(--green); }
-  .cta { display:inline-block; padding: 12px 18px; border-radius: 9px; font-size: 13px;
-         font-weight: 700; text-decoration: none; letter-spacing: .05em;
-         background: var(--gold); color: #0a0812; font-family: inherit; }
-  .cta:hover { filter: brightness(1.06); }
+  code { background:#131022; border:1px solid var(--line); border-radius:5px;
+         padding:1px 6px; color:#d6d2e6; font-size:12px; }
   nav.top { display:flex; gap:18px; align-items:center; margin-bottom: 26px; flex-wrap:wrap; }
   nav.top a { color: var(--dim); font-size: 12px; text-decoration: none; letter-spacing: .08em; }
   nav.top a:hover, nav.top a[aria-current] { color: var(--gold); }
   nav.top .brand { color: var(--ink); font-weight: 700; letter-spacing: .16em; margin-right: 6px; }
 
-  /* the slip: the product, looking like itself */
-  .slip { width: 34ch; max-width: 100%; margin: 26px auto 8px; background: var(--paper);
-          color: var(--papink); padding: 20px 22px 8px; position: relative;
-          box-shadow: 0 10px 30px rgba(0,0,0,.45); }
-  .slip::after { content:""; position:absolute; left:0; right:0; bottom:-9px; height:10px;
-                 background: var(--paper);
-                 -webkit-mask-image: repeating-linear-gradient(135deg,#000 0 6px,transparent 6px 12px);
-                 mask-image: repeating-linear-gradient(135deg,#000 0 6px,transparent 6px 12px); }
-  .slip .hd { text-align:center; font-size:10.5px; letter-spacing:.14em; color:var(--papdim);
-              padding-bottom:12px; border-bottom:1px dashed #c9c0ab; }
-  .slip .r { display:flex; align-items:baseline; font-size:12.5px; margin:9px 0; }
-  .slip .r .d { flex:1; border-bottom:1px dotted #b3aa96; margin:0 6px; transform:translateY(-4px); }
-  .slip .r .v { font-variant-numeric: tabular-nums; white-space:nowrap; }
-  .slip .tot { display:flex; justify-content:space-between; font-weight:700; font-size:15px;
-               border-top:1px solid var(--papink); padding-top:10px; margin-top:12px; }
-  .slip .stamp { margin:14px 0 10px; text-align:center; font-size:10px; letter-spacing:.16em;
-                 border:1.5px solid #2f7d4f; color:#2f7d4f; padding:5px 0; border-radius:2px; }
-  .slip .sig { text-align:center; font-size:9.5px; color:var(--papdim); letter-spacing:.06em;
-               padding-bottom:14px; }
-
-  /* the one device: receipt rows */
   .rows { margin: 12px 0 6px; }
   .rows .row { display:flex; align-items:baseline; gap:10px; padding:11px 2px;
                border-bottom:1px solid var(--line); }
@@ -60,19 +36,16 @@
              min-width: 12ch; }
   .rows .v { font-size:13px; color:var(--ink); }
   .rows .v .sub { color:var(--dim); }
+  .rows .row.heavy .v { font-size:19px; font-weight:700; color:var(--green);
+                        font-variant-numeric: tabular-nums; }
 
-  .keyfact { border:1px solid rgba(255,224,138,.4); border-radius:12px;
-             background: linear-gradient(180deg, rgba(255,224,138,.06), rgba(255,224,138,.02));
-             padding:18px 20px; margin:24px 0 8px; }
-  .keyfact p { margin:0 0 10px; font-size:14px; line-height:1.75; color:var(--ink); }
-  .keyfact p:last-child { margin-bottom:0; }
   .doors { display:grid; gap:10px; margin:14px 0 6px; }
   .door { border:1px solid var(--line); border-radius:10px; background:#131022;
-          padding:13px 15px; text-decoration:none; display:block; }
+          padding:14px 16px; text-decoration:none; display:block; }
   .door:hover { border-color: rgba(255,224,138,.4); }
   .door .nm { font-weight:700; font-size:13px; color:var(--gold); margin-bottom:4px; }
   .door p { margin:0; font-size:12.5px; }
-  .foot { color:#807a99; font-size:11.5px; margin-top:40px; }
+  .foot { color:#807a99; font-size:11.5px; margin-top:44px; line-height:1.8; }
   a:focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
   @media (max-width:560px){ h1{font-size:22px;} .wrap{padding:26px 16px 56px;}
     .rows .k{min-width:100%;} .rows .row{flex-direction:column; gap:3px;} }
@@ -85,78 +58,63 @@
     <a href="/research">Research</a>
   </nav>
 
-  <h1>Software is spending your money.<br /><b>Here's the receipt.</b></h1>
-
-  <div class="slip">
-    <div class="hd">SNHP NOTARY · DEAL 4471 · 2026-07-18</div>
-    <div class="r"><span>List price</span><span class="d"></span><span class="v">2,670.00</span></div>
-    <div class="r"><span>Agreed</span><span class="d"></span><span class="v">2,536.50</span></div>
-    <div class="tot"><span>YOU SAVED</span><span>133.50</span></div>
-    <div class="stamp">NEVER ABOVE LIST — VERIFIED</div>
-    <div class="sig">ed25519 · 9f2a…4c1b</div>
-  </div>
-
-  <div class="keyfact">
-    <p>
-      Your payment processor already sends you a receipt. It proves the money
-      moved — <b>it wasn't in the room when the price was set.</b> This was.
-    </p>
-    <p>
-      So be exact about what that buys you. This proves the price
-      <b>wasn't rigged against you</b>: never above the seller's posted price,
-      and the seller's floor didn't move because of anything your agent let slip
-      about itself. A receipt that breaks either rule <b>cannot be printed at
-      all</b> — the code refuses to build it.
-    </p>
-    <p>
-      It does <b>not</b> prove the posted price was fair. A clean process on a
-      bad list price still gets you a bad deal. That's a market question, and
-      this is a mechanism — see below.
-    </p>
-  </div>
-
-  <div class="rows">
-    <div class="row"><span class="k">PROVES</span><span class="v">You never paid above the seller's posted price <span class="sub">— a receipt that says otherwise cannot be built</span></span></div>
-    <div class="row"><span class="k">PROVES</span><span class="v">The seller's floor didn't move with what your agent revealed <span class="sub">— no quiet surcharge for looking eager, rich, or in a hurry</span></span></div>
-    <div class="row"><span class="k">PROVES</span><span class="v">Same inputs, same price <span class="sub">— reproducible, not improvised per buyer</span></span></div>
-    <div class="row"><span class="k">DOES NOT</span><span class="v">Tell you the posted price was fair <span class="sub">— no market comparison. The list price is still your problem.</span></span></div>
-  </div>
-
+  <h1>Negotiation math for AI agents.<br /><b>Free, open, tested in public.</b></h1>
   <p>
-    When scarcity genuinely moves a seller's floor, the receipt says so and marks
-    that condition <b>false</b>. We ship an honest false rather than a flattering
-    true — which is the only reason the true ones are worth anything.
+    The engine picks the price. The <a href="/certificate">test</a> says whether it's any
+    good. The <a href="/research">research</a> says what we got wrong. No model call, runs
+    locally, Apache 2.0.
   </p>
 
-<pre>python -m core.notary verify <b>receipts.jsonl</b>   <span class="c"># open, offline, needs nothing from us</span>
+<pre>uvx snhp                     <span class="c"># zero-install MCP server</span>
+pip install snhp             <span class="c"># or the library</span>
 
-<span class="g">[OK]</span> signature valid · never-above-list holds · chain intact</pre>
+<span class="c"># in any MCP client:</span>
+{ "mcpServers": { "snhp": { "command": "uvx", "args": ["snhp"] } } }</pre>
 
-  <h2>THE REST OF IT</h2>
-  <div class="doors">
-    <a class="door" href="/certificate">
-      <div class="nm">Certify an agent →</div>
-      <p>Against the opponent that never moves, our engine closes 59% of deals.
-        A split-the-difference bot closes 2%. Put yours through the same test.</p>
-    </a>
-    <a class="door" href="/research">
-      <div class="nm">Read what we got wrong →</div>
-      <p>Five experiments, each with its kill condition written down first. Four
-        came back against us. Plus the demos they came from.</p>
-    </a>
-    <a class="door" href="https://github.com/ryuxik/snhp">
-      <div class="nm">Take the engine, free →</div>
-      <p>The math that picks the price. No model call, runs locally, Apache 2.0.
-        We sell the proof on top, not the arithmetic underneath.</p>
-    </a>
+  <h2>WHAT IT DOES</h2>
+  <div class="rows">
+    <div class="row"><span class="k">ONE PRICE</span><span class="v">Plain dollars in, the next move out <span class="sub">— walk-away, target, their offers so far</span></span></div>
+    <div class="row"><span class="k">MANY ISSUES</span><span class="v">Logrolls a package <span class="sub">— concede what you value least to hold what you value most</span></span></div>
+    <div class="row"><span class="k">NEVER ABOVE</span><span class="v">Discount-only by construction <span class="sub">— the worst case is the posted price, enforced in code</span></span></div>
+    <div class="row"><span class="k">SIGNED</span><span class="v">Every quote and every certificate verifies offline <span class="sub">— Ed25519, no call back to us</span></span></div>
   </div>
 
-  <div style="margin-top:30px">
-    <a class="cta" href="mailto:ryuxik@gmail.com?subject=SNHP%20pilot">Talk to us about a pilot</a>
+<pre>from gametheory.server.mcp_server import gt_negotiate_turn
+
+gt_negotiate_turn(side="sell", walk_away=4000, target=6000,
+                  counterparty_offers=[4200, 4500], rounds_left=6)
+<span class="c"># -> {'action': 'counter', 'recommended_price': 5714.0, 'message': ...}</span></pre>
+
+  <h2>IS IT ANY GOOD</h2>
+  <div class="rows">
+    <div class="row heavy"><span class="k">+0.1086</span><span class="v">vs split-the-difference</span></div>
+    <div class="row"><span class="k">MEANING</span><span class="v">Own-utility kept across 360 seeded negotiations against three frozen opponents, p=0.0001 <span class="sub">— on a held-out set never used before. Full method and limits on the certificate page.</span></span></div>
+  </div>
+
+  <h2>THE THREE THINGS HERE</h2>
+  <div class="doors">
+    <a class="door" href="/certificate">
+      <div class="nm">The test →</div>
+      <p>Put an agent through 360 seeded negotiations against three scripted opponents and
+        get a signed score. Standings for everything we've run.</p>
+    </a>
+    <a class="door" href="/research">
+      <div class="nm">The research →</div>
+      <p>Five experiments with kill conditions written down first. Four came back against
+        us. Plus the live demos they came from.</p>
+    </a>
+    <a class="door" href="https://github.com/ryuxik/snhp">
+      <div class="nm">The source →</div>
+      <p>Engine, notary, test harness, and every experiment above — the commands in the
+        write-ups are the real ones.</p>
+    </a>
   </div>
 
   <p class="foot">
+    We publish the experiments that kill our own ideas; four of the last five did.
+    If you're working on agent negotiation, pricing conduct, or want to put an agent
+    through the test — <a href="mailto:ryuxik@gmail.com">ryuxik@gmail.com</a>.<br />
     <a href="https://github.com/ryuxik/snhp">github.com/ryuxik/snhp</a> ·
-    ryuxik@gmail.com · machine-readable context at <a href="/llms.txt">/llms.txt</a>
+    machine-readable context at <a href="/llms.txt">/llms.txt</a>
   </p>
 </div>
