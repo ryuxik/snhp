@@ -180,6 +180,107 @@ def elicit(learner: PosteriorLearner, answerer: TrueBuyer, budget: int) -> list[
     return trace
 
 
+# ─── v2 query pool: EVERY question is a choice (RESULTS.md: humans answer
+# trades, not valuations). A choice between package A and package B is linear
+# in the value vector: u(A) - u(B) = sum_a weights[a]*v_a + sweetener (the
+# cash rider). Single-asset-vs-cash and plain pairwise are special cases, so
+# one update/gain pair covers the whole pool.
+
+def update_linear_choice(learner: PosteriorLearner, weights: dict[str, float],
+                         sweetener: float, chose_A: bool, tau: float) -> None:
+    """Mean-field grid update for a linear package choice (the update_refusal
+    pattern, generalized to a soft two-sided answer)."""
+    import numpy as _np
+    med = {a: learner.quantile(a, 0.5) for a in learner.skus}
+    for a, w in weights.items():
+        if abs(w) < 1e-12:
+            continue
+        other = sum(w2 * med[a2] for a2, w2 in weights.items()
+                    if a2 != a) + sweetener
+        v = learner.prior.grid_v[a]
+        p_A = 1.0 / (1.0 + _np.exp(_np.clip(-(w * v + other) / tau, -60, 60)))
+        learner._apply(a, p_A if chose_A else 1.0 - p_A)
+
+
+def _linear_tau(learner: PosteriorLearner, weights: dict[str, float],
+                sweetener: float) -> float:
+    med = {a: learner.quantile(a, 0.5) for a in learner.skus}
+    scale = sum(abs(w) * med[a] for a, w in weights.items()) + abs(sweetener)
+    return max(50.0, PAIR_TAU_FRAC * 0.5 * scale)
+
+
+def _linear_gain(learner: PosteriorLearner, weights: dict[str, float],
+                 sweetener: float, tau: float) -> float:
+    """Expected rel-var reduction of a linear package choice (mean-field),
+    summed over involved assets — the _pair_gain structure, generalized."""
+    import numpy as _np
+    med = {a: learner.quantile(a, 0.5) for a in learner.skus}
+    total = 0.0
+    for a, w in weights.items():
+        if abs(w) < 1e-12:
+            continue
+        other = sum(w2 * med[a2] for a2, w2 in weights.items()
+                    if a2 != a) + sweetener
+        v, wt = learner.prior.grid_v[a], learner.w[a]
+        p_A = 1.0 / (1.0 + _np.exp(_np.clip(-(w * v + other) / tau, -60, 60)))
+        m0 = float(wt @ v)
+        v0 = float(wt @ (v - m0) ** 2) / (m0 * m0 + 1e-12)
+        exp_v = 0.0
+        for branch in (p_A, 1.0 - p_A):
+            pr = float(wt @ branch)
+            if pr < 1e-4:
+                continue
+            wr = wt * branch
+            wr /= wr.sum()
+            mr = float(wr @ v)
+            exp_v += pr * float(wr @ (v - mr) ** 2) / (mr * mr + 1e-12)
+        total += v0 - exp_v
+    return total
+
+
+def _best_query_v2(learner: PosteriorLearner):
+    """The all-choices pool: cash-for-asset trades at three quantiles, plain
+    asset-vs-asset, and asset-vs-asset with an equalizing cash rider."""
+    best, best_gain = None, MIN_GAIN
+
+    def consider(weights, sweetener):
+        nonlocal best, best_gain
+        tau = _linear_tau(learner, weights, sweetener)
+        g = _linear_gain(learner, weights, sweetener, tau)
+        if g > best_gain:
+            best, best_gain = (weights, sweetener, tau), g
+
+    med = {a: learner.quantile(a, 0.5) for a in ELICITABLE}
+    for a in ELICITABLE:
+        for q in (0.25, 0.5, 0.75):
+            consider({a: 1.0}, -learner.quantile(a, q))
+    for i, a1 in enumerate(ELICITABLE):
+        for a2 in ELICITABLE[i + 1:]:
+            consider({a1: 1.0, a2: -1.0}, 0.0)
+            consider({a1: 1.0, a2: -1.0}, -(med[a1] - med[a2]))
+            consider({a2: 1.0, a1: -1.0}, -(med[a2] - med[a1]))
+    return best
+
+
+def elicit_v2(learner: PosteriorLearner, answerer, budget: int) -> list[dict]:
+    """The choices-only interview: every question is answer_linear(weights,
+    sweetener) -> bool (took package A). Same trace-with-bands contract as
+    elicit()."""
+    trace = []
+    for step in range(budget):
+        best = _best_query_v2(learner)
+        if best is None:
+            break
+        weights, sweetener, tau = best
+        chose_A = bool(answerer.answer_linear(weights, sweetener))
+        update_linear_choice(learner, weights, sweetener, chose_A, tau)
+        trace.append({"step": step, "kind": "linear",
+                      "weights": {k: round(v, 2) for k, v in weights.items()},
+                      "sweetener": round(sweetener, 2), "answer": chose_A,
+                      "bands": bands(learner)})
+    return trace
+
+
 def _margin(v_hat: dict[str, float], lam: float, fight: float,
             my_shares: dict[str, float]) -> float:
     """IR margin over litigation, on the mediator's OWN scale:
@@ -225,7 +326,7 @@ def update_refusal(learner: PosteriorLearner, shares: dict[str, float],
 def mediate(prior: PopPrior, answerer_a: TrueBuyer, answerer_b: TrueBuyer,
             stated_a: dict, stated_b: dict, budget: int = Q_BUDGET,
             outcomes: list[dict[str, float]] | None = None,
-            ratify_a=None, ratify_b=None) -> dict:
+            ratify_a=None, ratify_b=None, elicit_fn=None) -> dict:
     """The mediator, end to end — GROUND-TRUTH-FREE by construction: elicit
     both posteriors, score every bundle by each side's IR MARGIN (elicited
     medians + stated lam/fight_cost), restrict to bundles whose PESSIMISTIC
@@ -241,8 +342,9 @@ def mediate(prior: PopPrior, answerer_a: TrueBuyer, answerer_b: TrueBuyer,
     declarations; never a raw utility number on the true scale."""
     outcomes = outcomes if outcomes is not None else enumerate_outcomes()
     la, lb = PosteriorLearner(prior), PosteriorLearner(prior)
-    trace_a = elicit(la, answerer_a, budget)
-    trace_b = elicit(lb, answerer_b, budget)
+    ask = elicit_fn if elicit_fn is not None else elicit
+    trace_a = ask(la, answerer_a, budget)
+    trace_b = ask(lb, answerer_b, budget)
 
     W = {"wallet": WALLET_VALUE}
     wallet_a = np.array([o["wallet"] for o in outcomes])
@@ -329,7 +431,8 @@ def mediate(prior: PopPrior, answerer_a: TrueBuyer, answerer_b: TrueBuyer,
 def run_arm_b(pa: P.Persona, pb: P.Persona, prior: PopPrior,
               pair_seed: tuple[int, int], budget: int = Q_BUDGET,
               bluff_a: bool = False, bluff_b: bool = False,
-              outcomes: list[dict[str, float]] | None = None) -> dict:
+              outcomes: list[dict[str, float]] | None = None,
+              elicit_fn=None, make=None) -> dict:
     """ARM-B: mediated bundle from elicited posteriors, graded under TRUE
     utilities. The mediated proposal is accepted only if it clears BOTH sides'
     true walk-aways (each side's own private check — the second-signature
@@ -342,14 +445,18 @@ def run_arm_b(pa: P.Persona, pb: P.Persona, prior: PopPrior,
     # Ratification = the persona's own noiseless true-IR check ("would you
     # sign this?"). Bluffing here would mean refusing deals that help you —
     # self-punishing — so both arms ratify truthfully (SPEC.md §8.3).
+    build = make if make is not None else (
+        lambda p, uid: make_answerer(p, uid,
+                                     bluff=(bluff_a if p is pa else bluff_b)))
     med = mediate(prior,
-                  make_answerer(pa, uid=seed * 100_003 + 2 * i, bluff=bluff_a),
-                  make_answerer(pb, uid=seed * 100_003 + 2 * i + 1, bluff=bluff_b),
+                  build(pa, seed * 100_003 + 2 * i),
+                  build(pb, seed * 100_003 + 2 * i + 1),
                   {"lam": pa.lam, "fight_cost": pa.fight_cost},
                   {"lam": pb.lam, "fight_cost": pb.fight_cost},
                   budget, outcomes,
                   ratify_a=lambda o: pa.utility(o) >= pa.walk_away,
-                  ratify_b=lambda o: pb.utility(flip_o(o)) >= pb.walk_away)
+                  ratify_b=lambda o: pb.utility(flip_o(o)) >= pb.walk_away,
+                  elicit_fn=elicit_fn)
     if med["proposal"] is None:
         return {"settled": False, "rejected": False, "proposed": False,
                 "u_a": pa.walk_away, "u_b": pb.walk_away, "joint_surplus": 0.0,

@@ -69,10 +69,28 @@ $X for the dog, take it?" — the identical inequality for the engine
 (conjoint-style discrete choice), an answerable question for a human. Demo
 clerk templates rephrased accordingly (display-only change).
 
-Open before any HUMAN-facing interview ships (Mandate especially): the
-harness answer model is noisy-but-honest; real humans are BIASED (anchoring,
-yes-drift). Register a biased-answer model + bundle-choice query pool and
-re-measure K3 under it before claiming human-readiness.
+**K3 under biased humans (the follow-up, same day):** with an anchoring +
+acquiescence answer model (kappa=.30 toward the offered number on cash-for-
+asset offers, .10 on cash riders inside package choices, 10% yes-drift,
+1.5x comparison noise), 40 pairs, Q=10:
+
+| interview | answerer | settle | K3 median |
+|---|---|---|---|
+| v1 (cash probes + pairs) | honest | 77% | 82% |
+| v1 | biased humans | 64% | **57%** |
+| v2 — every question a package choice, cash only as rider | biased humans | **100%** | **92%** |
+| v2 | honest | 100% | 98% |
+
+The all-choices pool (`elicit_v2`: cash-for-asset trades + plain pairs +
+asset-vs-asset with an equalizing cash rider, one linear-choice update for
+all of them) is not just human-robust — it beats v1's HONEST performance,
+because sweetened comparisons bisect value DIFFERENCES (what allocation
+actually needs) and anchor scale continuously. ADOPT v2 as the interview.
+Migration queue (in order, so the demo never renders an unknown question
+kind): (1) chrome template for "linear" questions, (2) honest linear
+answerer as harness default, (3) re-run the kill suite on seeds 7/11/23
+under v2 + regenerate the three preset traces — a post-freeze design change,
+re-validated in full rather than grandfathered.
 
 ## What the build taught us (now part of the mediator design, SPEC.md §5)
 
