@@ -31,7 +31,7 @@ import numpy as np
 # options = the share of the asset side A receives under each option index.
 # 3 * 5 * 11 * 2 * 2 * 2 = 1,320 outcomes < the engine's 4,000 cap.
 
-WALLET_VALUE = 24_000.0
+WALLET_VALUE = 18_000.0
 
 ASSETS: list[dict] = [
     {"name": "dog", "kind": "custody", "shares_a": [1.0, 0.0, 0.5]},
@@ -46,22 +46,28 @@ INDIVISIBLES = [a["name"] for a in ASSETS if a["kind"] in ("custody", "indivisib
 SYMBOLIC = ["vinyl", "espresso", "wildcard"]  # pettiness targets
 HILLABLE = ["dog", "lake_weeks", "vinyl", "espresso", "wildcard"]  # never the wallet
 
-# Base dollar-value sampling ranges (full ownership). The dog is high for both
-# sides by construction — contested dogs are the point of the joke and of the
-# opposition sampler. The espresso machine is objectively worthless (retail
-# $340): it generates the pettiness tax, not the contested-pair count.
+# Base dollar-value sampling ranges (full ownership) — REALISTIC RETAIL
+# anchors (founder finding 2026-07-18: cartoon retail numbers broke the
+# realism; a real dog is $1-3k, not $6-14k). The drama lives in the
+# multipliers below — sentiment inflates the PERSONAL value well past
+# retail, which is the human truth the flip reveals — while the "retail"
+# the chrome quotes stays a number you could Google. The espresso machine
+# is objectively worthless (retail $340): it generates the pettiness tax,
+# not the contested-pair count. Changing any number here invalidates the
+# committed harness/eval artifacts — re-run K1-K4 + E1-E3 + trap check and
+# re-pin the preset traces (goldens are scaffolding).
 BASE_VALUE_RANGES: dict[str, tuple[float, float]] = {
-    "dog": (6_000.0, 14_000.0),
-    "lake_weeks": (12_000.0, 24_000.0),
-    "vinyl": (1_500.0, 4_000.0),
+    "dog": (900.0, 2_800.0),
+    "lake_weeks": (4_000.0, 9_000.0),
+    "vinyl": (800.0, 2_600.0),
     "espresso": (340.0, 340.0),
-    "wildcard": (1_000.0, 4_000.0),
+    "wildcard": (600.0, 2_400.0),
 }
 
-FIGHT_COST_BASE = 8_000.0
-HILL_MULT_RANGE = (4.0, 8.0)
-PETTINESS_SYMBOLIC_GAIN = 3.0   # v_symbolic *= 1 + gain * pettiness
-FRONT_MULT_RANGE = (3.0, 5.0)   # shared-front boost, both sides (see sample_pair)
+FIGHT_COST_BASE = 8_000.0       # $6.4k-12.8k by patience — real contested-divorce legal cost
+HILL_MULT_RANGE = (3.0, 6.0)
+PETTINESS_SYMBOLIC_GAIN = 2.0   # v_symbolic *= 1 + gain * pettiness
+FRONT_MULT_RANGE = (2.0, 3.5)   # shared-front boost, both sides (see sample_pair)
 
 # ─── Archetypes (SPEC.md §1): slider presets + a valuation shape ─────────────
 # shape = per-asset multipliers on the sampled base value; sliders in [0, 1]
@@ -135,14 +141,32 @@ def _sample_slider(rng: np.random.Generator, preset: float) -> float:
     return float(np.clip(preset + rng.normal(0.0, SLIDER_JITTER), 0.0, 1.0))
 
 
+def sample_market(rng: np.random.Generator) -> dict[str, float]:
+    """One objective retail price per asset — the SAME dog has the SAME price
+    for both exes (per-side market draws were a realism leak: the chrome
+    quotes 'retail $X' as fact, so there must be exactly one X per case)."""
+    m = {"wallet": WALLET_VALUE}
+    for name, (lo, hi) in BASE_VALUE_RANGES.items():
+        m[name] = float(rng.uniform(lo, hi))
+    return m
+
+
 def compile_persona(rng: np.random.Generator, side: str, archetype: str,
                     hill: str, front_mults: dict[str, float],
-                    sliders: dict | None = None) -> Persona:
-    """One persona: sample base values, apply archetype shape, pettiness,
-    shared-front boosts, then spike the hill. Deterministic given rng state.
-    `sliders` (the demo's Build-Your-Ex dials) overrides the sampled
-    pettiness/spite/patience with explicit values in [0,1] ([0,0.6] for
-    spite); the harness population never passes it."""
+                    sliders: dict | None = None,
+                    market: dict[str, float] | None = None) -> Persona:
+    """One persona. Sentiment stacks ADDITIVELY in market units:
+
+        v = market * max(0.2, 1 + (shape-1) + gain*pettiness*[symbolic]
+                              + (front-1)*[front])  +  (hill_mult-1)*market*[hill]
+
+    Multiplicative stacking compounded to cartoon valuations ($100k vinyl);
+    additive keeps the tails absurd-but-human (a $3k opinion about a $340
+    espresso machine, not a $30k one). The hill spike is the last, separable
+    term so the despike counterfactual can subtract it exactly. Deterministic
+    given rng state. `sliders` (the demo's Build-Your-Ex dials) overrides the
+    sampled pettiness/spite/patience; `market` shares one retail table across
+    the pair (sample_pair/_compile_pair pass it; standalone callers sample)."""
     spec = ARCHETYPES[archetype]
     pettiness = _sample_slider(rng, spec["pettiness"])
     lam = float(np.clip(spec["spite"] + rng.normal(0.0, 0.05), 0.0, 0.6))
@@ -152,36 +176,41 @@ def compile_persona(rng: np.random.Generator, side: str, archetype: str,
         lam = float(np.clip(sliders.get("spite", lam), 0.0, 0.6))
         patience = float(np.clip(sliders.get("patience", patience), 0, 1))
 
+    if market is None:
+        market = sample_market(rng)
     values: dict[str, float] = {"wallet": WALLET_VALUE}
-    market: dict[str, float] = {"wallet": WALLET_VALUE}
-    for name, (lo, hi) in BASE_VALUE_RANGES.items():
-        raw = float(rng.uniform(lo, hi))
-        market[name] = raw
-        v = raw * spec["shape"].get(name, 1.0)
+    for name in BASE_VALUE_RANGES:
+        raw = market[name]
+        mult = spec["shape"].get(name, 1.0)
         if name in SYMBOLIC:
-            v *= 1.0 + PETTINESS_SYMBOLIC_GAIN * pettiness
-        v *= front_mults.get(name, 1.0)
-        values[name] = v
+            mult += PETTINESS_SYMBOLIC_GAIN * pettiness
+        if name in front_mults:
+            mult += front_mults[name] - 1.0
+        values[name] = raw * max(mult, 0.2)
 
     hill_mult = float(rng.uniform(*HILL_MULT_RANGE))
-    values[hill] *= hill_mult
+    values[hill] += (hill_mult - 1.0) * market[hill]
     return Persona(side=side, archetype=archetype, pettiness=pettiness, lam=lam,
                    patience=patience, hill=hill, hill_mult=hill_mult,
-                   values=values, market_values=market)
+                   values=values, market_values=dict(market))
 
 
 # ─── Opposition: measured, not asserted (SPEC.md §8) ─────────────────────────
 
-def contested_assets(pa: Persona, pb: Persona, frac: float) -> list[str]:
-    """Indivisible assets BOTH sides value at >= frac of their own total."""
-    tot_a = sum(pa.values.values())
-    tot_b = sum(pb.values.values())
+def contested_assets(pa: Persona, pb: Persona, mult: float) -> list[str]:
+    """Indivisible assets BOTH sides value at >= mult x its market price — a
+    head-on sentimental collision (neither side can be cheaply bought out).
+    Scale-invariant: the old >=20%-of-own-total criterion silently required
+    cartoon retail prices; a realistic $2k dog can never be 20% of an estate
+    with a wallet in it, yet two exes each valuing it at 3x market is
+    exactly what 'contested' means."""
     return [a for a in INDIVISIBLES
-            if pa.values[a] >= frac * tot_a and pb.values[a] >= frac * tot_b]
+            if pa.values[a] >= mult * pa.market_values[a]
+            and pb.values[a] >= mult * pb.market_values[a]]
 
 
 def sample_pair(rng: np.random.Generator, arch_a: str, arch_b: str,
-                contested_frac: float = 0.20, min_contested: int = 2,
+                contested_mult: float = 2.0, min_contested: int = 2,
                 max_resamples: int = 50) -> dict:
     """Sample a qualifying persona pair.
 
@@ -206,9 +235,10 @@ def sample_pair(rng: np.random.Generator, arch_a: str, arch_b: str,
                 return str(rng.choice(fronts))
             return str(rng.choice(HILLABLE))
 
-        pa = compile_persona(rng, "A", arch_a, pick_hill(), front_mults)
-        pb = compile_persona(rng, "B", arch_b, pick_hill(), front_mults)
-        contested = contested_assets(pa, pb, contested_frac)
+        market = sample_market(rng)   # one retail table for the pair
+        pa = compile_persona(rng, "A", arch_a, pick_hill(), front_mults, market=market)
+        pb = compile_persona(rng, "B", arch_b, pick_hill(), front_mults, market=market)
+        contested = contested_assets(pa, pb, contested_mult)
         qualified = len(contested) >= min_contested
         if qualified or attempts >= max_resamples:
             return {"a": pa, "b": pb, "contested": contested,

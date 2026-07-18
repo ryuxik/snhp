@@ -270,7 +270,9 @@ def pettiness_tax(pa: Persona, pb: Persona,
     for label in ("a", "b"):
         p = pa if label == "a" else pb
         clone = copy.deepcopy(p)
-        clone.values[clone.hill] /= clone.hill_mult
+        # Hill spike is additive in market units (personas.compile_persona):
+        # subtracting (hill_mult-1)*market undoes it exactly.
+        clone.values[clone.hill] -= (clone.hill_mult - 1.0) * clone.market_values[clone.hill]
         clone.__post_init__()                      # recompute court/BATNA
         da, db = (clone, pb) if label == "a" else (pa, clone)
         cf = run_arm_o(da, db, outcomes)

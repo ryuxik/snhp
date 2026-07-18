@@ -105,7 +105,7 @@ def _user(asset: str, share: float, cashflow: float) -> str:
 
 
 def run_pair(pair_index: int, seed: int, arch_a: str, arch_b: str) -> dict | None:
-    q = {"contested_frac": 0.20, "min_contested": 2, "max_resamples": 50}
+    q = {"contested_mult": 2.0, "min_contested": 2, "max_resamples": 50}
     rng = np.random.default_rng([seed, pair_index])
     pair = personas.sample_pair(rng, arch_a, arch_b, **q)
     if not pair["qualified"]:

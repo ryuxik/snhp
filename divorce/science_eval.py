@@ -139,7 +139,7 @@ def run_seed(seed: int) -> dict:
         for label, p in (("a", pa), ("b", pb)):
             import copy
             clone = copy.deepcopy(p)
-            clone.values[clone.hill] /= clone.hill_mult
+            clone.values[clone.hill] -= (clone.hill_mult - 1.0) * clone.market_values[clone.hill]
             clone.__post_init__()
             da, db = (clone, pb) if label == "a" else (pa, clone)
             cf = arms.run_arm_o(da, db, outcomes)

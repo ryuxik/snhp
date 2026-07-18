@@ -59,12 +59,13 @@ def _compile_pair(seed: int, spec: dict):
     rng = np.random.default_rng([seed, 0])
     mults = {f: float(rng.uniform(*personas.FRONT_MULT_RANGE))
              for f in spec["fronts"]}
+    market = personas.sample_market(rng)   # one retail table per case
     pa = personas.compile_persona(rng, "A", spec["a"]["archetype"],
                                   spec["a"]["hill"], mults,
-                                  sliders=spec["a"]["sliders"])
+                                  sliders=spec["a"]["sliders"], market=market)
     pb = personas.compile_persona(rng, "B", spec["b"]["archetype"],
                                   spec["b"]["hill"], mults,
-                                  sliders=spec["b"]["sliders"])
+                                  sliders=spec["b"]["sliders"], market=market)
     return pa, pb, rng
 
 

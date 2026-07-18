@@ -25,10 +25,14 @@ from divorce import arms, elicit, personas
 
 REGISTRATION = {
     "status": "FROZEN 2026-07-17 — thresholds committed before chrome build; "
-              "confirmatory run on a fresh seed follows the freeze commit",
+              "confirmatory run on a fresh seed follows the freeze commit. "
+              "2026-07-18: population re-anchored to realistic retail values "
+              "(additive sentiment stacking, shared per-pair market, "
+              "market-multiple contested criterion); SAME kill thresholds, "
+              "full re-run on all four seeds — committed before results.",
     "population": {"n_pairs": 100, "seed": 7,
                    "stratification": "5x5 ordered archetype grid, cycled"},
-    "qualification": {"contested_frac": 0.20, "min_contested": 2,
+    "qualification": {"contested_mult": 2.0, "min_contested": 2,
                       "max_resamples": 50},
     "protocol": {"exchange_budget": arms.EXCHANGE_BUDGET,
                  "open_demand": arms.OPEN_DEMAND,
@@ -81,7 +85,7 @@ def run_population(n_pairs: int, seed: int) -> dict:
         arch_a, arch_b = combos[i % len(combos)]
         rng = np.random.default_rng([seed, i])
         pair = personas.sample_pair(rng, arch_a, arch_b,
-                                    contested_frac=q["contested_frac"],
+                                    contested_mult=q["contested_mult"],
                                     min_contested=q["min_contested"],
                                     max_resamples=q["max_resamples"])
         pa, pb = pair["a"], pair["b"]
