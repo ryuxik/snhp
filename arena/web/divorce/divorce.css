@@ -258,18 +258,17 @@ a { color: var(--cream-70); }
   font-size: clamp(1.05rem, 2.8vw, 1.45rem);
 }
 
-/* The premise: what a stone-cold visitor needs before anything moves.
-   Plain words, full sentences, no jargon — the rest of the page can be
-   in-world BECAUSE these three lines aren't. */
+/* The premise: ONE line. The tagline above it already explains the product;
+   three paragraphs held for 18s was a loading screen made of prose. */
 .premise {
-  max-width: 36em;
-  margin: 1.4rem auto 0;
+  max-width: 26em;
+  margin: 1.2rem auto 0;
+  text-align: center;
   font-family: var(--serif);
   font-size: clamp(1rem, 2.4vw, 1.2rem);
-  line-height: 1.55;
-  color: var(--cream-90);
+  line-height: 1.5;
+  color: var(--cream-70);
 }
-.premise p { margin: 0.45rem 0 0; }
 /* The inline BUILD YOUR EXES — same words, same color, same door as the
    top-bar button, so a cold reader can act on the sentence they just read. */
 .premise-build {
@@ -1225,8 +1224,35 @@ button.stamp:hover { border-color: var(--red); opacity: 1; transform: rotate(-8d
   color: var(--paper-ink);
   border-color: var(--paper);
 }
-#post-actions .primary:hover { background: var(--cream-90); }
-#amend-btn { text-transform: uppercase; }
+/* The one CTA. Red, thumb-sized, and unmistakably the thing to press —
+   it competes with nothing, because nothing else on this screen is a button. */
+#post-actions .primary {
+  background: var(--red);
+  color: var(--paper);
+  border-color: var(--red);
+  font-family: var(--mono);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.9rem 1.8rem;
+  min-height: 52px;
+}
+#post-actions .primary:hover { background: #c84436; border-color: #c84436; }
+
+/* the quiet exits — text links, never buttons */
+.dc-small {
+  margin: 0.9rem 0 0;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  color: var(--cream-50);
+}
+.dc-small a { color: var(--cream-50); text-decoration: underline; }
+.dc-small a:hover { color: var(--cream-90); }
+#science-link { margin: 1.2rem 0 0; font-size: 0.78rem; text-align: center; }
+#science-link a { color: var(--cream-30); }
 
 /* ---------- build your exes ---------- */
 
@@ -1392,20 +1418,127 @@ button.stamp:hover { border-color: var(--red); opacity: 1; transform: rotate(-8d
   background: transparent;
 }
 
-/* the folded dials — a real control group, not a mystery link */
-.bs-fold { margin: 0.5rem 0; }
-.bs-fold > summary {
-  cursor: pointer;
+/* ---------- THE INTAKE WIZARD: one question per screen ---------- */
+
+.wz { max-width: 34rem; margin: 0 auto; padding: 1rem 0 3rem; }
+
+.wz-dots { display: flex; gap: 0.4rem; justify-content: center; margin-bottom: 2rem; }
+.wz-dots i {
+  width: 26px; height: 3px; border-radius: 2px;
+  background: var(--cream-15); transition: background 0.25s;
+}
+.wz-dots i.on { background: var(--red); }
+.wz-dots i.done { background: var(--cream-50); }
+
+.wz-q {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.5rem, 5.5vw, 2.1rem);
+  line-height: 1.25;
+  text-align: center;
+  margin: 0 0 1.6rem;
+  color: var(--cream-90);
+}
+.wz-hint {
+  text-align: center;
   font-family: var(--mono);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--cream-50);
-  padding: 0.5rem 0;
-  list-style: revert;
+  margin: 1.2rem 0 0.7rem;
 }
-.bs-fold > summary:hover { color: var(--cream-90); }
-.bs-fold[open] > summary { color: var(--cream-70); margin-bottom: 0.2rem; }
+
+/* one big text field, thumb-height, never a tiny input */
+.wz-name {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  text-align: center;
+  color: var(--cream-90);
+  background: var(--ink-2);
+  border: 1px solid var(--cream-30);
+  border-radius: 6px;
+  padding: 0.85rem 1rem;
+  min-height: 52px;
+}
+.wz-name:focus { outline: none; border-color: var(--paper); }
+
+.wz-cards { display: grid; gap: 0.6rem; }
+.wz-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--ink-2);
+  border: 1px solid var(--cream-15);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  min-height: 56px;                 /* comfortably tappable */
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.wz-card:hover, .wz-card:focus-visible {
+  border-color: var(--paper);
+  background: #211f1b;
+  outline: none;
+}
+.wz-card .ac-name {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cream-90);
+}
+.wz-card .ac-epi {
+  display: block;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--cream-50);
+  margin-top: 0.25rem;
+}
+/* the four relationship buttons: big, centered, no epithet */
+.wz-card.wz-big {
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  color: var(--cream-90);
+  padding: 1.1rem 1rem;
+}
+
+.wz-go { margin-top: 1.6rem; text-align: center; }
+.wz-go button {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--red);
+  border: 1px solid var(--red);
+  padding: 0.85rem 1.6rem;
+  min-height: 52px;
+  width: 100%;
+  cursor: pointer;
+}
+.wz-go button:hover { background: #c84436; }
+
+.wz-back {
+  display: block;
+  margin: 2rem auto 0;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--cream-50);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.6rem 1rem;
+}
+.wz-back:hover { color: var(--cream-90); }
 
 .b-shared {
   max-width: 640px;

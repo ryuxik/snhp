@@ -632,29 +632,21 @@
         + ' · ' + shortSeal(req(m.cast.B, 'seal')) + '</div>'
       + '<div class="cold-head"><h1>IRRECONCILABLE AGENTS</h1>'
       + '<p class="tagline">The divorce is fake. The math is real.</p>'
-      + (justFiled ? '' : '<div class="premise">'
-        + '<p>Two AIs are getting divorced. Everything they own must be split — the dog included.</p>'
-        + '<p>A robot court that trusts neither of them asks its questions, then stamps who gets what. Nothing is scripted.</p>'
-        + '<p>Sit back — it plays itself, about three minutes. Or press '
-        + '<button type="button" class="premise-build">BUILD YOUR EXES</button>'
-        + ' and this court will divorce a pair of your own making.</p>'
-        + '</div>')
+      // The premise used to be three paragraphs (~60 words) held for 18
+      // seconds. The tagline above already does that job in eight words —
+      // this is one line, and only when we haven't already said it.
+      + (justFiled ? '' : '<p class="premise">Two of them. One pile of stuff. '
+        + 'A court that can’t see how they feel.</p>')
       + '<p class="preset-sub">' + subline + '</p></div>'
       + '<div class="versus">' + portraitHTML(m, 'A', 'p-a')
       + '<div class="vs">vs</div>' + portraitHTML(m, 'B', 'p-b') + '</div>'
       + confNote(m)
       + '<p class="hint">click / space pauses, then steps one beat at a time · ▶ resumes · ' + lastClause + '</p>';
 
-    // The premise's inline BUILD YOUR EXES is the same door as the top-bar
-    // button (on phones the top bar scrolls; the words must work everywhere).
-    const pb = $('#scene-cold').querySelector('.premise-build');
-    if (pb) pb.addEventListener('click', () => $('#build-btn').click());
-
-    // First poster of the session holds long enough to actually READ the
-    // premise cold (founder finding: a cold visitor had no idea what the page
-    // was); later cold-opens (preset switches, replays) keep the brisk hold;
-    // a just-filed case gets a beat to register the case number, then rolls.
-    const dur = justFiled ? 4000 : (posterSeen ? 8000 : 18000);
+    // One line instead of three paragraphs means the poster no longer needs
+    // an 18-second hold to be readable — it was a loading screen made of
+    // prose. A just-filed case gets a beat to register its case number.
+    const dur = justFiled ? 4000 : 6000;
     posterSeen = true;
     steps.push({ scene: 'cold', dur, run() { showScene('cold'); } });
   }
@@ -1301,18 +1293,20 @@
       + esc(shareLineText(m)) + '</span>'
       + '<button id="share-copy" title="copy the line">COPY THE LINE</button></div>';
 
-    // one action row under the card — the door back into the film / intake
-    const actions = [];
-    if (opts && opts.toEnd) {
-      actions.push('<button id="watch-btn" class="primary">watch how it happened →</button>');
-    } else {
-      actions.push('<button id="replay-btn">↻ run it back</button>');
-    }
-    const showAmend = m.noDecree || (currentPreset === null && sessionFiled);
-    if (showAmend) actions.push('<button id="amend-btn">AMEND THE FILING</button>');
-    const actionsHTML = '<div id="post-actions">' + actions.join('') + '</div>'
-      + '<p id="science-link" style="margin:1.2rem 0 0;font-size:0.82rem">'
-      + '<a href="science.html">the math, measured →</a></p>';
+    // ONE action under the card. The decree is the best screen in the product
+    // and it used to offer six competing exits — none of which was "make your
+    // own", the only one that turns a viewer into someone holding a case
+    // number. Everything else is a quiet text link underneath (Jobs review).
+    const filedThis = sessionFiled && currentPreset === null;
+    const primary = filedThis
+      ? '<button id="send-btn" class="primary">SEND IT TO THEM</button>'
+      : '<button id="mine-btn" class="primary">FILE YOUR OWN →</button>';
+    const small = [];
+    if (opts && opts.toEnd) small.push('<a href="#" id="watch-link">watch how it happened</a>');
+    if (filedThis) small.push('<a href="#" id="again-link">file another</a>');
+    const actionsHTML = '<div id="post-actions">' + primary + '</div>'
+      + (small.length ? '<p class="dc-small">' + small.join(' · ') + '</p>' : '')
+      + '<p id="science-link"><a href="science.html">the math, measured →</a></p>';
 
     if (m.noDecree) {
       const why = m.decree.no_zopa ? VOICE.whyNoZopa : VOICE.whyAbstain;
@@ -1434,23 +1428,42 @@
       });
     }
 
-    const watch = $('#watch-btn');
-    if (watch) {
-      watch.addEventListener('click', (ev) => {
-        ev.stopPropagation();
+    const mine = $('#mine-btn');
+    if (mine) mine.addEventListener('click', (ev) => { ev.stopPropagation(); openBuilder(); });
+    const again = $('#again-link');
+    if (again) {
+      again.addEventListener('click', (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        wiz.step = 0;                       // straight back to question one
+        openBuilder();
+      });
+    }
+    const watchLink = $('#watch-link');
+    if (watchLink) {
+      watchLink.addEventListener('click', (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
         playTrace(currentTrace, currentPreset, { rel: currentOpts.rel });
       });
     }
-    const replayBtn = $('#replay-btn');
-    if (replayBtn) {
-      replayBtn.addEventListener('click', (ev) => {
+    // SEND IT TO THEM: one string that works as a paste AND as a screenshot
+    // caption — the line alone was half a share (it pointed nowhere).
+    const sendBtn = $('#send-btn');
+    if (sendBtn) {
+      sendBtn.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        playTrace(currentTrace, currentPreset, { rel: currentOpts.rel });
+        const parts = [shareLineText(m)];
+        if (m.caseNo != null) {
+          parts.push('CASE #' + m.caseNo + ' · arena.snhp.dev/divorce');
+        }
+        const text = parts.join('\n');
+        const done = () => {
+          sendBtn.textContent = 'COPIED — NOW PASTE IT';
+          setTimeout(() => { sendBtn.textContent = 'SEND IT TO THEM'; }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, done);
+        } else { done(); }
       });
-    }
-    const amend = $('#amend-btn');
-    if (amend) {
-      amend.addEventListener('click', (ev) => { ev.stopPropagation(); openBuilder(); });
     }
 
     // the share line's copy affordance — clipboard if available, else select
@@ -1684,132 +1697,112 @@
     return n ? n.replace(/\s*\u{1F415}\s*/gu, ' ').trim() : key;
   }
 
-  function personaColHTML(side, title, defaultName) {
-    const cards = Object.keys(archetypeInfo.archetypes).map((k) =>
-      '<label class="arch-card">'
-      + '<input type="radio" name="arch-' + esc(side) + '" value="' + esc(k) + '">'
+  /* ------------------------------------------------------------------ *
+   *  THE INTAKE — four screens, one action each.
+   *
+   *  Jobs review (2026-07-18): the old intake was 2,076px / 30 controls on a
+   *  phone and asked the visitor to do the product's job. Deleted outright:
+   *  the six sliders (the archetype already implies them, and says it better
+   *  in seven words than "spite 0.45" ever will), both hill dropdowns (you
+   *  cannot stage a surprise for the person who wrote it — the client rolls
+   *  it now, so Act IV's flip is a real reveal), the fronts checkboxes (the
+   *  client always sends dog + the item they typed, which is strictly better
+   *  than asking), and the seed field (a debug control on a consumer page;
+   *  the case number already does reproducibility, better).
+   *
+   *  Everything deleted is still SENT — derived here, not asked for. Zero
+   *  server changes: the /v1/divorce/run contract is unchanged.
+   * ------------------------------------------------------------------ */
+
+  const WIZ_STEPS = 4;
+  const wiz = { step: 0, a: { name: 'Dana', archetype: null },
+                b: { name: 'Morgan', archetype: null }, item: '' };
+
+  /** The five archetype cards — one tap is the whole decision. */
+  function archCardsHTML(side) {
+    return '<div class="wz-cards">' + Object.keys(archetypeInfo.archetypes).map((k) =>
+      '<button type="button" class="wz-card" data-arch="' + esc(k) + '">'
       + '<span class="ac-name">' + esc(k.replace(/_/g, ' ')) + '</span>'
       + (EPITHETS[k] ? '<span class="ac-epi">' + esc(EPITHETS[k]) + '</span>' : '')
-      + '</label>').join('');
-    const sliders = SLIDER_KEYS.map((s) =>
-      '<label class="bslider"><span class="bs-label"><span>' + s + '</span>'
-      + '<span class="bs-val" data-out="' + s + '">0.50</span></span>'
-      + '<input type="range" min="0" max="1" step="0.05" value="0.5" data-slider="' + s + '"></label>').join('');
-    const hills = archetypeInfo.hillable.map((h) =>
-      '<option value="' + esc(h) + '">' + esc(relLabelFor(h, '')) + '</option>').join('');
-    return '<div class="bp-col" data-side="' + side + '">'
-      + '<h3>' + title + '</h3>'
-      + '<label class="bfield"><span>name</span>'
-      + '<input type="text" maxlength="24" class="b-name" value="' + esc(defaultName) + '"></label>'
-      + '<div class="arch-wrap"><div class="arch-legend">archetype — pick one; sets the dials below</div>'
-      + '<div class="arch-cards">' + cards + '</div></div>'
-      // The archetype already sets all three dials, so they are refinement,
-      // not a required decision. On a phone the intake ran 2.6 screens; folding
-      // them by default cuts six controls out of the default path without
-      // removing them. Open by default where there's room.
-      + '<details class="bs-fold"' + (IS_NARROW ? '' : ' open') + '>'
-      + '<summary>fine-tune the dials</summary>' + sliders + '</details>'
-      + '<label class="bfield"><span>the hill they’ll die on — sealed until the flip</span>'
-      + '<select class="b-hill">' + hills + '</select></label>'
-      + '</div>';
+      + '</button>').join('') + '</div>';
   }
 
-  function renderBuilder() {
+  function wizDots() {
+    let s = '<div class="wz-dots" aria-hidden="true">';
+    for (let i = 0; i < WIZ_STEPS; i += 1) {
+      s += '<i class="' + (i === wiz.step ? 'on' : (i < wiz.step ? 'done' : '')) + '"></i>';
+    }
+    return s + '</div>';
+  }
+
+  /** Back is a quiet text link — present on every step but the first. */
+  function wizBack() {
+    return wiz.step === 0 ? ''
+      : '<button type="button" class="wz-back" id="wz-back">← back</button>';
+  }
+
+  function renderWizard() {
     const sc = $('#scene-build');
-    const rels = Object.keys(RELATIONSHIPS).map((k) =>
-      '<button type="button" class="rel-pill" data-rel="' + k + '">' + esc(RELATIONSHIPS[k].name) + '</button>').join('');
-    const fronts = FRONTABLE.map((k) =>
-      '<label class="bfront" data-front="' + k + '"><input type="checkbox" value="' + k + '"><span>'
-      + esc(relLabelFor(k, 'the wildcard item')) + '</span></label>').join('');
-    sc.innerHTML =
-      '<p class="kicker">intake · build your exes</p>'
-      + '<p class="build-lede">Two parties, one engine, no script. The county sees everything and tells no one.</p>'
-      + '<div id="rel-row"><span class="rel-lede">this is the dissolution of a</span>' + rels
-      + '<span class="rel-note">labels only — the estate is the county’s standard six either way.</span></div>'
-      + '<div id="build-grid">'
-      + personaColHTML('a', 'Party A', 'Dana')
-      + personaColHTML('b', 'Party B', 'Morgan')
-      + '</div>'
-      + '<div class="b-shared">'
-      + '<fieldset class="bfronts"><legend>what you both loved — pick up to two</legend>' + fronts + '</fieldset>'
-      + '<label class="bfield" id="wc-field"><span>the thing neither of you actually wants'
-      + ' <span id="wc-count" class="mono">0/' + WILDCARD_MAX + '</span></span>'
-      + '<input type="text" id="b-wildcard" maxlength="' + WILDCARD_MAX + '" placeholder="the karaoke machine"></label>'
-      + '<label class="bfield"><span>seed — optional · same seed, same form, same divorce</span>'
-      + '<input type="text" id="b-seed" inputmode="numeric" placeholder="e.g. 29"></label>'
-      + '</div>'
-      + '<div class="b-actions"><button id="b-file">File for divorce →</button>'
-      + '<p id="b-status"></p></div>';
+    let body = '';
 
-    // relationship pills: display labels only (fronts + hill dropdowns flex)
-    const applyRel = () => {
-      sc.querySelectorAll('.rel-pill').forEach((b) => {
-        b.classList.toggle('active', b.dataset.rel === builderRel);
+    if (wiz.step === 0) {
+      body = '<h2 class="wz-q">What kind of breakup?</h2>'
+        + '<div class="wz-cards wz-rel">'
+        + Object.keys(RELATIONSHIPS).map((k) =>
+          '<button type="button" class="wz-card wz-big" data-rel="' + esc(k) + '">'
+          + esc(RELATIONSHIPS[k].name) + '</button>').join('')
+        + '</div>';
+    } else if (wiz.step === 1 || wiz.step === 2) {
+      const side = wiz.step === 1 ? 'a' : 'b';
+      body = '<h2 class="wz-q">' + (side === 'a' ? 'Who’s the first one?' : 'And who’s the other one?')
+        + '</h2>'
+        + '<input type="text" class="wz-name" id="wz-name" maxlength="24" '
+        + 'value="' + esc(wiz[side].name) + '" aria-label="name">'
+        + '<p class="wz-hint">Now pick what they’re like.</p>'
+        + archCardsHTML(side);
+    } else {
+      body = '<h2 class="wz-q">Name one thing they’d both refuse to give up.</h2>'
+        + '<input type="text" class="wz-name" id="wz-item" maxlength="' + WILDCARD_MAX + '" '
+        + 'value="' + esc(wiz.item) + '" placeholder="his mother’s painting" aria-label="the item">'
+        + '<div class="wz-go"><button type="button" id="b-file">File for divorce →</button></div>'
+        + '<p id="b-status"></p>';
+    }
+
+    sc.innerHTML = '<div class="wz">' + wizDots() + body + wizBack() + '</div>';
+
+    const back = $('#wz-back');
+    if (back) back.addEventListener('click', () => { wiz.step -= 1; renderWizard(); });
+
+    // Tapping a card IS the action — no Next button anywhere in the flow.
+    sc.querySelectorAll('[data-rel]').forEach((b) => {
+      b.addEventListener('click', () => {
+        builderRel = b.dataset.rel;
+        wiz.step = 1;
+        renderWizard();
       });
-      const wc = $('#b-wildcard').value.trim();
-      sc.querySelectorAll('.bfront').forEach((f) => {
-        f.querySelector('span').textContent = relLabelFor(f.dataset.front, wc);
-      });
-      sc.querySelectorAll('.b-hill').forEach((sel) => {
-        sel.querySelectorAll('option').forEach((o) => {
-          o.textContent = relLabelFor(o.value, wc);
-        });
-      });
-    };
-    sc.querySelectorAll('.rel-pill').forEach((b) => {
-      b.addEventListener('click', () => { builderRel = b.dataset.rel; applyRel(); });
     });
-    applyRel();
-
-    // an archetype card presets the three sliders from the server listing;
-    // the sliders stay adjustable afterwards
-    sc.querySelectorAll('.bp-col').forEach((col) => {
-      col.querySelectorAll('input[type="radio"]').forEach((r) => {
-        r.addEventListener('change', () => {
-          const a = archetypeInfo.archetypes[r.value];
-          if (!a) return;
-          for (const s of SLIDER_KEYS) {
-            const el = col.querySelector('[data-slider="' + s + '"]');
-            if (typeof a[s] === 'number') el.value = a[s];
-            col.querySelector('[data-out="' + s + '"]').textContent = Number(el.value).toFixed(2);
-          }
-        });
-      });
-      col.querySelectorAll('input[type="range"]').forEach((el) => {
-        el.addEventListener('input', () => {
-          col.querySelector('[data-out="' + el.dataset.slider + '"]').textContent = Number(el.value).toFixed(2);
-        });
+    sc.querySelectorAll('[data-arch]').forEach((b) => {
+      b.addEventListener('click', () => {
+        const side = wiz.step === 1 ? 'a' : 'b';
+        const nameEl = $('#wz-name');
+        if (nameEl && nameEl.value.trim()) wiz[side].name = nameEl.value.trim();
+        wiz[side].archetype = b.dataset.arch;
+        wiz.step += 1;
+        renderWizard();
       });
     });
 
-    // fronts: at most two
-    const boxes = Array.from(sc.querySelectorAll('.bfront input'));
-    boxes.forEach((b) => b.addEventListener('change', () => {
-      const n = boxes.filter((x) => x.checked).length;
-      boxes.forEach((x) => { x.disabled = !x.checked && n >= 2; });
-    }));
-
-    // the wildcard's name flows into the hill dropdowns live; the counter
-    // makes the 40-char wall a BIT, not a wall (CMO finding — the county's
-    // own 422 line displays verbatim if anything slips past).
-    const wcInput = $('#b-wildcard');
-    const wcCount = $('#wc-count');
-    wcInput.addEventListener('input', () => {
-      const v = wcInput.value;
-      wcCount.textContent = v.length + '/' + WILDCARD_MAX;
-      wcCount.classList.toggle('limit', v.length >= WILDCARD_MAX);
-      setFieldErr($('#wc-field'), v.length >= WILDCARD_MAX
-        ? 'Item names: ' + WILDCARD_MAX + ' characters. This is a government office.' : null);
-      const trimmed = v.trim();
-      sc.querySelectorAll('.b-hill option[value="wildcard"]').forEach((o) => {
-        o.textContent = trimmed || 'the wildcard item';
+    const item = $('#wz-item');
+    if (item) {
+      item.addEventListener('input', () => { wiz.item = item.value; });
+      item.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); fileDivorce(); }
       });
-      sc.querySelectorAll('.bfront[data-front="wildcard"] span').forEach((s2) => {
-        s2.textContent = trimmed || 'the wildcard item';
-      });
-    });
+    }
+    const file = $('#b-file');
+    if (file) file.addEventListener('click', fileDivorce);
 
-    $('#b-file').addEventListener('click', fileDivorce);
+    ownScroll(sc, 'start');
     builderReady = true;
   }
 
@@ -1855,7 +1848,7 @@
         return;
       }
     }
-    if (!builderReady) renderBuilder();   // built once; edits persist across tabs & filings
+    renderWizard();                       // always re-enter at step 0 with prior picks
     showScene('build');
   }
 
@@ -1864,57 +1857,34 @@
     status.classList.remove('bad');
     status.textContent = '';
 
-    // SINGLE-PASS validation: every problem at once, inline at its field —
-    // the drip-feed of rejections was three round trips of feeling stupid.
-    let nBad = 0;
-    const mark = (anchor, msg) => { setFieldErr(anchor, msg); if (msg) nBad += 1; };
+    // Nothing here can fail validation any more: the wizard cannot advance
+    // past a side without an archetype, names fall back to their defaults,
+    // and an empty item takes the county's own placeholder. The button is
+    // never disabled — never punish someone for pressing Enter.
+    const HILLABLE = archetypeInfo.hillable;
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
     const readPersona = (side) => {
-      const col = document.querySelector('.bp-col[data-side="' + side + '"]');
-      const arch = col.querySelector('input[type="radio"]:checked');
-      const nameEl = col.querySelector('.b-name');
-      const p = { name: nameEl.value.trim() };
-      if (arch) p.archetype = arch.value;
-      for (const s of SLIDER_KEYS) p[s] = parseFloat(col.querySelector('[data-slider="' + s + '"]').value);
-      p.hill = col.querySelector('.b-hill').value;
-      mark(nameEl.closest('.bfield'), p.name ? null : 'The county requires a name.');
-      mark(col.querySelector('.arch-wrap'), p.archetype ? null : 'Pick one. Everyone is one of these.');
-      return p;
+      const w = wiz[side];
+      const preset = archetypeInfo.archetypes[w.archetype] || {};
+      // The dials are DERIVED from the archetype (same values the old sliders
+      // were preset to) and the hill is rolled here, so the flip stays a
+      // surprise to the person who filed.
+      return {
+        name: (w.name || '').trim() || (side === 'a' ? 'Dana' : 'Morgan'),
+        archetype: w.archetype,
+        pettiness: typeof preset.pettiness === 'number' ? preset.pettiness : 0.5,
+        spite: typeof preset.spite === 'number' ? preset.spite : 0.2,
+        patience: typeof preset.patience === 'number' ? preset.patience : 0.5,
+        hill: pick(HILLABLE),
+      };
     };
     const a = readPersona('a'), b = readPersona('b');
+    const wildcard = (wiz.item || '').trim().slice(0, WILDCARD_MAX) || 'the karaoke machine';
 
-    const wildcard = $('#b-wildcard').value.trim();
-    if (!wildcard) { mark($('#wc-field'), 'Name it. It matters more than you think.'); }
-    else if (wildcard.length < WILDCARD_MAX) { setFieldErr($('#wc-field'), null); }
-
-    const seedRaw = $('#b-seed').value.trim();
-    let seed;
-    const seedField = $('#b-seed').closest('.bfield');
-    if (seedRaw !== '') {
-      if (!/^\d+$/.test(seedRaw) || +seedRaw < 1 || +seedRaw > 10000000) {
-        mark(seedField, 'Whole numbers, 1 to 10,000,000.');
-      } else {
-        seed = parseInt(seedRaw, 10);
-        setFieldErr(seedField, null);
-      }
-    } else {
-      setFieldErr(seedField, null);
-    }
-
-    if (nBad > 0) {
-      status.classList.add('bad');
-      status.textContent = 'Returned: ' + nBad + (nBad === 1 ? ' deficiency' : ' deficiencies')
-        + '. Corrections are marked.';
-      const firstErr = document.querySelector('#scene-build .f-err');
-      if (firstErr) ownScroll(firstErr, 'center');
-      return;
-    }
-
-    const fronts = Array.from(document.querySelectorAll('.bfront input:checked')).map((x) => x.value);
-    // rel travels WITH the filing so the ledger can replay it under the same
-    // labels the filer saw (the engine ignores it).
-    const body = { a, b, wildcard_label: wildcard, fronts, rel: builderRel };
-    if (seed !== undefined) body.seed = seed;
+    // Always dog + the item they typed: their own words, maximum consequence.
+    const body = { a, b, wildcard_label: wildcard,
+                   fronts: ['dog', 'wildcard'], rel: builderRel };
 
     const btn = $('#b-file');
     btn.disabled = true;
