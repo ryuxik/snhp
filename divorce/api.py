@@ -12,12 +12,16 @@ Deploy shape: mount `router` into gametheory.server.http alongside the other
 """
 from __future__ import annotations
 
+import json
 import os
 import re
+import threading
 
 import numpy as np
-from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from divorce import elicit, personas, trace
@@ -26,6 +30,43 @@ router = APIRouter()
 _PRIOR = None                      # built once, first request (or warm())
 
 _LABEL_RE = re.compile(r"[^\w \-'&.!?]", re.UNICODE)
+
+# ── the case registry: a printed case number must be a REAL door ────────────
+# "Same number, same divorce" is only true if the number alone reproduces the
+# episode — seed AND spec. Filed cases persist to a JSONL ledger; GET
+# /v1/divorce/case/{n} deterministically replays. (CMO finding: the screenshot
+# is the post and the number is the only pointer that survives a no-link
+# doctrine — so the number has to actually work at the counter.)
+_CASES_PATH = os.environ.get(
+    "DIVORCE_CASES_PATH", os.path.join(os.path.dirname(__file__), "cases.jsonl"))
+_CASES: dict[int, dict] = {}
+_CASES_LOCK = threading.Lock()
+
+
+def _load_cases() -> None:
+    if not os.path.exists(_CASES_PATH):
+        return
+    with open(_CASES_PATH) as f:
+        for line in f:
+            try:
+                rec = json.loads(line)
+                _CASES[int(rec["case_no"])] = rec
+            except (ValueError, KeyError):
+                continue                     # a torn line never kills the office
+
+
+def _file_case(seed: int, spec: dict) -> int:
+    with _CASES_LOCK:
+        if not _CASES:
+            _load_cases()
+        case_no = int.from_bytes(os.urandom(4), "big") % 9_000_000 + 1_000_000
+        while case_no in _CASES:
+            case_no = int.from_bytes(os.urandom(4), "big") % 9_000_000 + 1_000_000
+        rec = {"case_no": case_no, "seed": seed, "spec": spec}
+        _CASES[case_no] = rec
+        with open(_CASES_PATH, "a") as f:
+            f.write(json.dumps(rec) + "\n")
+        return case_no
 
 
 def _clean(s: str, limit: int) -> str:
@@ -81,9 +122,27 @@ def run(req: RunRequest) -> dict:
     seed = req.seed if req.seed is not None else \
         int.from_bytes(os.urandom(4), "big") % 10_000_000 + 1
     try:
-        return trace.run_episode(seed, spec, _PRIOR)
+        ep = trace.run_episode(seed, spec, _PRIOR)
     except Exception as exc:  # noqa: BLE001 — a failed run is a 500 with a reason
         raise HTTPException(500, f"episode failed: {type(exc).__name__}") from exc
+    ep["meta"]["case_no"] = _file_case(seed, spec)
+    return ep
+
+
+@router.get("/v1/divorce/case/{case_no}")
+def replay_case(case_no: int) -> dict:
+    """Same number, same divorce — deterministic replay from the ledger."""
+    warm()
+    with _CASES_LOCK:
+        if not _CASES:
+            _load_cases()
+        rec = _CASES.get(case_no)
+    if rec is None:
+        raise HTTPException(404, "No such case on file. The county keeps "
+                                 "excellent records; this number isn't in them.")
+    ep = trace.run_episode(int(rec["seed"]), rec["spec"], _PRIOR)
+    ep["meta"]["case_no"] = case_no
+    return ep
 
 
 @router.get("/v1/divorce/archetypes")
@@ -96,6 +155,27 @@ def archetypes() -> dict:
 
 app = FastAPI(title="snhp divorce — live episode runner")
 app.include_router(router)
+
+
+@app.exception_handler(RequestValidationError)
+async def clerk_voiced_422(request: Request, exc: RequestValidationError):
+    """Validation failures answer in the clerk's voice, honestly — never
+    blaming infrastructure for the caller's paperwork (CMO finding: the
+    40-char wildcard rejection surfaced as 'the office is closed', a lie)."""
+    for err in exc.errors():
+        loc = ".".join(str(p) for p in err.get("loc", []))
+        if "wildcard_label" in loc and err.get("type", "").startswith("string_too_long"):
+            detail = ("Item names cap at 40 characters. "
+                      "This is a government office.")
+            break
+        if loc.endswith("name") and err.get("type", "").startswith("string_too_long"):
+            detail = "Names cap at 24 characters. Initials are traditional."
+            break
+    else:
+        first = exc.errors()[0] if exc.errors() else {}
+        loc = ".".join(str(p) for p in first.get("loc", [])[1:]) or "the form"
+        detail = f"The county rejects this filing: check {loc}."
+    return JSONResponse(status_code=422, content={"detail": detail})
 app.add_middleware(
     CORSMiddleware,
     # Local dev origins + the deployed arena; same-origin mounting makes this
