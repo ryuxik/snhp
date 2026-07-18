@@ -12,7 +12,7 @@ import os
 from typing import Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from arena.config import CONFIG
@@ -503,6 +503,29 @@ if os.environ.get("BLOCK_LIVE") == "1":
 @app.get("/")
 def root() -> FileResponse:
     return FileResponse(os.path.join(os.path.dirname(__file__), "web", "index.html"))
+
+
+# Marketing pages moved to the product site (snhp.dev). Real 301s so machine
+# clients — crawlers, llms.txt readers, curl — follow them; the .html files on
+# disk remain as client-side fallbacks for anything that ignores the redirect.
+_MOVED = {
+    "benchmark.html": "/certificate", "submit.html": "/certificate",
+    "certify.html": "/certificate", "nx.html": "/spec",
+    "build.html": "/build", "hire.html": "/build",
+    "read.html": "/results", "science.html": "/results",
+    "archive.html": "/results",
+}
+
+
+def _moved(_page: str, _target: str):
+    def _h() -> RedirectResponse:
+        return RedirectResponse("https://snhp.dev" + _target, status_code=301)
+    return _h
+
+
+for _page, _target in _MOVED.items():
+    app.add_api_route("/" + _page, _moved(_page, _target),
+                      methods=["GET", "HEAD"], include_in_schema=False)
 
 
 @app.get("/world")
