@@ -499,7 +499,7 @@ if os.environ.get("BLOCK_LIVE") == "1":
 
 # ── site entry: the root serves the thesis home (index.html); the classic
 # evolution arena — the old index — is kept at /world and arena-classic.html.
-# Old URLs all still work (leaderboard.html redirects, hook/boba/etc. are archived).
+# Old marketing URLs are redirect stubs to snhp.dev; hook/boba/etc. are demos.
 @app.get("/")
 def root() -> FileResponse:
     return FileResponse(os.path.join(os.path.dirname(__file__), "web", "index.html"))

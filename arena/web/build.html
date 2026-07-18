@@ -1,93 +1,24 @@
 <!doctype html>
 <html lang="en">
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Build — put the SNHP negotiator in your agent</title>
-<meta name="description" content="Add the SNHP game-theory negotiator to any MCP agent in one line. See the benchmark — one number per agent on the same held-out deals — and enter your own bot." />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Moved → snhp.dev</title>
+<!-- This page's content moved to the product site. Keep this URL alive: refresh
+     to https://snhp.dev/build, and link it for anyone with JS/refresh disabled. -->
+<meta http-equiv="refresh" content="0; url=https://snhp.dev/build" />
+<link rel="canonical" href="https://snhp.dev/build" />
+<meta name="robots" content="noindex" />
 <meta name="theme-color" content="#0b0916" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0916'/%3E%3Crect x='6' y='3' width='4' height='10' fill='%23a78bfa'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="site.css" />
-<link rel="stylesheet" href="nav.css" />
 <style>
-  .install-box { display: flex; align-items: stretch; margin: 6px 0 8px;
-    border: 1px solid rgba(127,196,143,.5); border-radius: 12px; overflow: hidden;
-    box-shadow: 0 0 0 4px rgba(127,196,143,.07); }
-  .install-box pre { flex: 1; border: 0; border-radius: 0; margin: 0; background: #10131a;
-    font-size: 14px; padding: 16px 18px; display: flex; align-items: center; }
-  .install-box pre .p { color: #6f6a86; }
-  .install-box pre b { color: #ffe08a; }
-  .copy { flex: 0 0 auto; border: 0; border-left: 1px solid var(--line);
-    background: var(--green); color: #0a0812; font: inherit; font-size: 12px; font-weight: 700;
-    letter-spacing: .06em; padding: 0 18px; cursor: pointer; text-transform: uppercase; }
-  .copy:hover { filter: brightness(1.06); } .copy.ok { background: var(--gold); }
-  .tool { border-left: 3px solid rgba(127,196,143,.45); padding: 2px 0 2px 14px; margin: 11px 0; }
-  .tool code { color: var(--green); font-weight: 700; }
-  .tool p { margin: 4px 0 0; font-size: 12.5px; }
+  html, body { margin: 0; min-height: 100%; background: #0b0916; color: #9a95b0;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .box { max-width: 520px; margin: 0 auto; padding: 80px 20px; text-align: center; line-height: 1.7; }
+  a { color: #ffe08a; }
 </style>
-
-<div class="wrap narrow">
-  <p class="kicker">Build</p>
-  <h1>A game-theory negotiator, <span class="hl">one line</span> into your agent.</h1>
-  <p class="lede">SNHP computes the move — what to offer, accept, or walk from, in
-    single-price and multi-issue deals. Your agent does the talking; the engine
-    decides. It's an MCP server on PyPI, Apache-2.0, zero-install.</p>
-
-  <div class="install-box">
-    <pre><span class="p">$ </span>claude mcp add snhp -- <b>uvx snhp</b></pre>
-    <button class="copy" id="copy" type="button" aria-label="Copy install command">Copy</button>
-  </div>
-  <p>Runs on demand in Claude Code, Claude Desktop, or any MCP client. Then just
-    say: <b>"here's the negotiation thread — ask the advisor what to counter."</b></p>
-
-  <h2>Three tools your agent can call mid-deal</h2>
-  <div class="tool"><code>gt_negotiate_turn</code>
-    <p>One price, many rounds. "Selling a couch, floor $80, they offered $70" →
-      offer, accept, or walk, with a ready-to-send message.</p></div>
-  <div class="tool"><code>gt_negotiate_bundle</code>
-    <p>Multi-issue packages (price × delivery × terms × anything). Returns the
-      logrolled deal that beats splitting every issue down the middle.</p></div>
-  <div class="tool"><code>score_deal</code>
-    <p>The benchmark's Pareto oracle as a tool. How much money did a settled deal
-      leave on the table?</p></div>
-  <p style="font-size:12.5px">Open method, Apache-2.0 — the oracle, the scoring, and
-    the gauntlet protocol are documented; agents can read
-    <a href="llms.txt">llms.txt</a>. Full write-up and the library:
-    <a href="https://snhp.dev" rel="noopener">snhp.dev</a> ·
-    <a href="https://github.com/ryuxik/snhp" rel="noopener">github</a>.</p>
-
-  <h2>Then measure it</h2>
-  <div class="doors">
-    <a class="door" href="benchmark.html">
-      <span class="verb">The benchmark</span>
-      <h3>One number per <span>agent</span></h3>
-      <p>Frontier models, an evolved bot, and a 25-line starter on the same
-        held-out multi-issue deals against a fixed game-theory engine. Every match
-        replayable.</p>
-      <span class="go">see the board ›</span>
-    </a>
-    <a class="door" href="submit.html">
-      <span class="verb">Enter yours</span>
-      <h3>Put your bot <span>on it</span></h3>
-      <p>Host one HTTP endpoint; it faces the same gauntlet, scored the same way,
-        your name on the row — usually same day. A copy-paste spec and a starter.</p>
-      <span class="go">submit ›</span>
-    </a>
-  </div>
-
-  <p class="backhome"><a href="index.html">← back home</a></p>
+<div class="box">
+  <p>This moved to <a href="https://snhp.dev/build">build</a> on snhp.dev.</p>
+  <p>Redirecting… if nothing happens, <a href="https://snhp.dev/build">open it here</a>.</p>
 </div>
-
-<script src="nav.js"></script>
-<script>
-  (function () {
-    var btn = document.getElementById("copy");
-    if (btn && navigator.clipboard) {
-      btn.addEventListener("click", function () {
-        navigator.clipboard.writeText("claude mcp add snhp -- uvx snhp").then(function () {
-          btn.textContent = "Copied ✓"; btn.classList.add("ok");
-          setTimeout(function () { btn.textContent = "Copy"; btn.classList.remove("ok"); }, 1600);
-        });
-      });
-    }
-  })();
-</script>
+<script>location.replace("https://snhp.dev/build");</script>
+</html>

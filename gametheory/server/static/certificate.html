@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>The certificate — SNHP</title>
+<meta name="description" content="An independent test: your agent plays 360 seeded negotiations against three fixed scripted opponents and gets a signed certificate of how much money it kept versus splitting the difference. Verifiable offline." />
+<meta property="og:title" content="Certify a negotiating agent" />
+<meta property="og:description" content="360 seeded negotiations, three fixed opponents, both sides of the table. A signed number, checkable offline, with its limits stated on the certificate itself." />
+<style>
+  :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
+          --gold:#ffe08a; --green:#7fc48f; --red:#e8734a; --violet:#a78bfa; --blue:#8fd0ff; }
+  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
+               font-family: ui-monospace, Menlo, monospace; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 34px 20px 80px; }
+  h1 { font-size: 27px; letter-spacing: .03em; margin: 0 0 12px; line-height: 1.3; text-wrap: balance; }
+  h1 b { color: var(--gold); }
+  h2 { font-size: 13px; letter-spacing: .2em; color: var(--violet); margin: 44px 0 10px; }
+  p, li { color: var(--dim); font-size: 13px; line-height: 1.7; }
+  p b, li b { color: var(--ink); }
+  a { color: var(--blue); }
+  ol, ul { padding-left: 20px; }
+  li { margin: 6px 0; }
+  .lede { color: var(--dim); font-size: 14px; line-height: 1.7; max-width: 64ch; margin: 0 0 22px; }
+  .lede b { color: var(--ink); }
+  pre { background: #131022; border: 1px solid var(--line); border-radius: 10px;
+        padding: 14px 16px; font-size: 12px; line-height: 1.6; overflow-x: auto; color: #d6d2e6; }
+  pre b { color: var(--gold); font-weight: 700; }
+  pre .c { color: #807a99; }
+  pre .g { color: var(--green); }
+  code { background: #131022; border: 1px solid var(--line); border-radius: 5px;
+         padding: 1px 6px; color: #d6d2e6; font-size: 12px; }
+  .cta { display:inline-block; padding: 12px 18px; border-radius: 9px; font-size: 13px;
+         font-weight: 700; text-decoration: none; letter-spacing: .05em;
+         background: var(--gold); color: #0a0812; font-family: inherit; }
+  .cta:hover { filter: brightness(1.06); }
+  .cta.ghost { background: none; color: var(--gold); border: 1px solid rgba(255,224,138,.4); }
+  .hero-act { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 2px; }
+
+  nav.top { display:flex; gap:18px; align-items:center; margin-bottom: 26px; flex-wrap:wrap; }
+  nav.top a { color: var(--dim); font-size: 12px; text-decoration: none; letter-spacing: .08em; }
+  nav.top a:hover, nav.top a[aria-current] { color: var(--gold); }
+  nav.top .brand { color: var(--ink); font-weight: 700; letter-spacing: .16em; margin-right: 6px; }
+
+  .keyfact { border: 1px solid rgba(255,224,138,.4); border-radius: 12px;
+             background: linear-gradient(180deg, rgba(255,224,138,.06), rgba(255,224,138,.02));
+             padding: 18px 20px; margin: 22px 0 8px; }
+  .keyfact .k { color: var(--gold); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
+  .keyfact p { margin: 0; font-size: 13.5px; line-height: 1.75; color: var(--ink); }
+
+  .limits { border: 1px solid var(--line); border-radius: 12px; background: #131022;
+            padding: 18px 20px; margin: 16px 0 8px; }
+  .limits .k { color: var(--dim); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
+  .limits ul { margin: 0; } .limits li { font-size: 12.5px; }
+
+  .three { display: grid; gap: 10px; margin: 14px 0 6px; }
+  .prop { border: 1px solid var(--line); border-radius: 10px; background: #131022; padding: 13px 15px; }
+  .prop .nm { font-weight: 700; font-size: 13px; color: var(--gold); margin-bottom: 5px; }
+  .prop p { margin: 0; font-size: 12.5px; }
+  .note { color: #807a99; font-size: 11.5px; line-height: 1.65; margin-top: 8px; }
+  a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  .tbl { overflow-x: auto; margin: 14px 0 6px; border: 1px solid var(--line);
+         border-radius: 10px; background: #131022; }
+  table { border-collapse: collapse; width: 100%; min-width: 520px; }
+  th { text-align: left; font-size: 10px; letter-spacing: .13em; color: var(--dim);
+       font-weight: 400; padding: 11px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { font-size: 12px; color: var(--dim); padding: 9px 12px;
+       border-bottom: 1px solid rgba(167,139,250,.09); white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  td.nm { color: var(--ink); }
+  td.up { color: var(--green); }
+  @media (max-width: 560px) { h1 { font-size: 22px; } .wrap { padding: 26px 16px 60px; } }
+</style>
+
+<div class="wrap">
+  <nav class="top">
+    <a class="brand" href="/">SNHP</a>
+    <a href="/receipt">Receipt</a>
+    <a href="/certificate" aria-current="page">Certificate</a>
+    <a href="/build">Build</a>
+    <a href="/results">Results</a>
+  </nav>
+
+  <h1>Anyone can say their agent negotiates well. <b>This is the test.</b></h1>
+  <p class="lede">
+    Your agent plays <b>360 seeded negotiations</b> against three fixed scripted
+    opponents, from both sides of the table, and gets a signed certificate
+    stating how much of the money it kept — measured against a bot that just
+    splits the difference. The certificate <b>verifies offline</b> and lists
+    what it does not cover, on its own face.
+  </p>
+
+  <div class="hero-act">
+    <a class="cta" href="#submit">Put an agent through it →</a>
+    <a class="cta ghost" href="#standings">See who has run it</a>
+  </div>
+
+  <h2>THE TEST</h2>
+  <p>
+    60 generated multi-issue deals × 2 roles (your agent plays buyer and seller)
+    × 3 opponents = <b>360 matches</b>. Eight turns each, then both sides take
+    their walk-away. Everything is deterministic: same seed, same scenarios,
+    same result. No model is called; the opponents are scripts.
+  </p>
+
+  <h2>THE THREE OPPONENTS</h2>
+  <div class="three">
+    <div class="prop">
+      <div class="nm">The Splitter</div>
+      <p>Meets in the middle. Concedes evenly on every issue and expects the
+        same back. Easy to deal with, and it never notices when a trade would
+        have made both sides better off.</p>
+    </div>
+    <div class="prop">
+      <div class="nm">The Stonewaller</div>
+      <p>Opens at its own best case and holds there. Only accepts if the deal
+        is still worth 0.65 to it. Will run out the clock rather than move.
+        This is where most agents fail.</p>
+    </div>
+    <div class="prop">
+      <div class="nm">The Conceder</div>
+      <p>Caves slowly — about 0.15 of its own value per turn — and takes
+        anything worth 0.45 to it, or anything beating its walk-away in the
+        last two turns. Rewards patience, punishes panic.</p>
+    </div>
+  </div>
+  <p class="note">
+    Every parameter above was frozen in writing before the first run
+    (<code>arena/gauntlet/PREREG-pool.md</code>) and none has been tuned since.
+    Three opponents is the whole pool — a candidate that beats only one of them
+    shows up as exactly that in the per-opponent breakdown on its certificate.
+  </p>
+
+  <h2>WHAT THE CERTIFICATE CLAIMS</h2>
+  <div class="keyfact">
+    <div class="k">IN PLAIN ENGLISH</div>
+    <p>
+      Across these 360 matches, this agent kept <em>more of the money on the
+      table</em> than a split-the-difference bot playing the identical matches —
+      by this much, and here is the chance that gap is noise.
+    </p>
+  </div>
+  <p>
+    Formally: mean own-utility, pooled over all 360 matches, paired
+    match-for-match against the baseline, two-sided sign-flip permutation test
+    with 10,000 permutations. The design was registered before the run and then
+    validated on a <b>held-out scenario set that had never been used</b>.
+  </p>
+
+  <h2 id="standings">WHO HAS RUN IT</h2>
+  <div class="tbl">
+    <table>
+      <thead><tr>
+        <th>agent</th><th>set</th><th>n</th><th>kept</th>
+        <th>baseline</th><th>gap</th><th>p</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="nm">SNHP engine</td><td>held-out</td><td>360</td><td>0.5651</td><td>0.4566</td><td class="up">+0.1086</td><td>0.0001</td></tr>
+        <tr><td class="nm">SNHP engine</td><td>public</td><td>360</td><td>0.5591</td><td>0.4524</td><td class="up">+0.1067</td><td>0.0001</td></tr>
+        <tr><td class="nm">evolved champion</td><td>held-out</td><td>360</td><td>0.5543</td><td>0.4566</td><td class="up">+0.0977</td><td>0.0001</td></tr>
+        <tr><td class="nm">evolved champion</td><td>public</td><td>360</td><td>0.5442</td><td>0.4524</td><td class="up">+0.0918</td><td>0.0001</td></tr>
+        <tr><td class="nm">split-the-difference</td><td>held-out</td><td>360</td><td>0.4566</td><td>—</td><td>baseline</td><td>—</td></tr>
+        <tr><td class="nm">split-the-difference</td><td>public</td><td>360</td><td>0.4524</td><td>—</td><td>baseline</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">
+    Source: <code>arena/gauntlet/certs/POOL-RESULTS.md</code>. "Kept" is mean
+    own-utility on a 0–1 scale. The held-out set (seed 20260718) was picked at
+    registration and never touched before the run.
+  </p>
+
+  <p>
+    The Stonewaller is where the gap opens. Against it, the engine closes
+    <b>59%</b> of deals; the split-the-difference bot closes <b>2%</b> — it
+    keeps offering the middle to an opponent that never moves, and the clock
+    runs out. Against the Splitter and the Conceder the gap is real but much
+    smaller (+0.07 each).
+  </p>
+
+  <h2>WHAT IT DOES NOT SAY</h2>
+  <div class="limits">
+    <div class="k">THE LIMITS, PRINTED ON THE CERTIFICATE ITSELF</div>
+    <ul>
+      <li><b>Not future performance.</b> The numbers are in-sample on exactly
+        this scenario set.</li>
+      <li><b>Not performance against anything outside the three.</b> Not
+        against language models, not against humans, not against your actual
+        counterparties.</li>
+      <li><b>Not other kinds of deals.</b> A different generator, seed, or
+        number of issues is a different test and needs its own certificate.</li>
+      <li><b>Not who or what your agent is.</b> A certificate carries an opaque
+        digest the submitter supplied. It does not prove which code or model
+        made the moves — pin the key fingerprint against one published
+        elsewhere.</li>
+      <li><b>Not joint efficiency.</b> Two earlier scoring designs were killed
+        for measuring the pair rather than the candidate. Those numbers still
+        appear on the certificate, labelled as context with no claim attached.
+        See <a href="/results">results</a>.</li>
+    </ul>
+  </div>
+
+  <h2>CHECK ONE WITHOUT TRUSTING US</h2>
+  <p>Certificates are Ed25519-signed and verify from the file alone, offline:</p>
+<pre>python -m arena.gauntlet.certify --verify <b>certs/engine-seed20260709-n60.cert.json</b>
+
+<span class="g">[OK]</span> signature valid · payload hash matches · exit 0</pre>
+  <p class="note">
+    Change one byte and it exits 1. A certificate signed with a throwaway key
+    reports <code>key_source: ephemeral</code> and is not a production
+    attestation. Regenerate the whole run with
+    <code>python -m arena.gauntlet.certify --run engine --seed 20260709 --n 60 --deadline 8</code>.
+  </p>
+
+  <h2 id="submit">PUT AN AGENT THROUGH IT</h2>
+  <p>
+    Expose one HTTP endpoint speaking <code>snhp-gauntlet/1</code> and send us
+    the URL. We POST once per turn; you reply within 30 seconds with exactly
+    one of three things:
+  </p>
+<pre><span class="c">// we send</span>
+{ "protocol": "snhp-gauntlet/1", "role": "buyer", "turn": 3, "deadline": 8,
+  "batna": 0.3, "issues": [...], "weights": {...},
+  "your_offers": [...], "their_offers": [...] }
+
+<span class="c">// you reply — exactly one</span>
+{ "action": "offer", "package": { <span class="c">every issue, options verbatim</span> } }
+{ "action": "accept" }   <span class="c">takes their latest package</span>
+{ "action": "walk" }     <span class="c">both sides take their walk-away</span></pre>
+  <p class="note">
+    Invalid replies count as format failures — they are published on the
+    certificate and forfeit the turn. A dead endpoint aborts the run. Full
+    machine-readable protocol:
+    <a href="https://arena.snhp.dev/llms.txt">arena.snhp.dev/llms.txt</a>.
+  </p>
+
+  <h2>ONE HONEST NOTE ON LANGUAGE MODELS</h2>
+  <p>
+    Unaided frontier models have been measured here, but on an
+    <b>earlier and different protocol</b> — a single fixed opponent, scored on
+    a metric a later kill showed cannot rank skill. On that older setup, the
+    weaker models scored <b>below</b> the split-the-difference baseline, and
+    wiring them to the engine mid-deal pulled them back to it. Those runs are
+    <b>not certified</b> and are not comparable to the table above; they are
+    kept because they are the honest record. Detail:
+    <code>arena/gauntlet/certs/CERTIFIED-TABLE.md</code>, section 3.
+  </p>
+
+  <div class="hero-act" style="margin-top:26px">
+    <a class="cta" href="https://x.com/ryuxik" target="_blank" rel="noopener">Send us an endpoint</a>
+    <a class="cta ghost" href="/results">See the two designs we killed →</a>
+  </div>
+</div>
+</html>

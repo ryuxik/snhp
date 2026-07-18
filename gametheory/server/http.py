@@ -617,6 +617,43 @@ def landing(request: Request):
     return _serve_static_page("index.html")
 
 
+# ─── Product pages, at clean extensionless paths ─────────────────────────────
+# Each is a self-contained static file in static/. Explicit routes (not a
+# /{page} catch-all) so nothing can shadow /v1/*, /health, /docs or /llms.txt.
+
+
+@app.get("/receipt", include_in_schema=False)
+def receipt_page():
+    """The receipt: a signed record of one negotiation, verifiable offline."""
+    return _serve_static_page("receipt.html")
+
+
+@app.get("/certificate", include_in_schema=False)
+def certificate_page():
+    """The certificate: 360 seeded negotiations against three fixed scripted
+    opponents, the certified claim and its limits, and how to submit an agent."""
+    return _serve_static_page("certificate.html")
+
+
+@app.get("/build", include_in_schema=False)
+def build_page():
+    """The (free, open-source) negotiation engine: install and usage."""
+    return _serve_static_page("build.html")
+
+
+@app.get("/spec", include_in_schema=False)
+def spec_page():
+    """SNHP-NX/1 — the open spec for carrying multi-issue package deals
+    through checkout-shaped agent-payment protocols."""
+    return _serve_static_page("spec.html")
+
+
+@app.get("/results", include_in_schema=False)
+def results_page():
+    """Every experiment, including the pre-registered kills that fired."""
+    return _serve_static_page("results.html")
+
+
 @app.get("/demo.html", include_in_schema=False)
 def demo_page():
     """Interactive replay of vanilla-vs-scaffolded LLM negotiation

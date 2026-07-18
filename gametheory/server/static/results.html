@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Results — SNHP</title>
+<meta name="description" content="Every experiment we ran, including the ones that killed our own ideas. Each entry: what we expected, what happened, and the command that regenerates it." />
+<meta property="og:title" content="What we got wrong" />
+<meta property="og:description" content="Kills we registered in advance and then honored: a product we did not build, a spec claim we retracted, two scoring designs we threw away." />
+<style>
+  :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
+          --gold:#ffe08a; --green:#7fc48f; --red:#e8734a; --violet:#a78bfa; --blue:#8fd0ff; }
+  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
+               font-family: ui-monospace, Menlo, monospace; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 34px 20px 80px; }
+  h1 { font-size: 27px; letter-spacing: .03em; margin: 0 0 12px; line-height: 1.3; text-wrap: balance; }
+  h1 b { color: var(--gold); }
+  h2 { font-size: 13px; letter-spacing: .2em; color: var(--violet); margin: 44px 0 10px; }
+  p, li { color: var(--dim); font-size: 13px; line-height: 1.7; }
+  p b, li b { color: var(--ink); }
+  a { color: var(--blue); }
+  ol, ul { padding-left: 20px; }
+  li { margin: 6px 0; }
+  .lede { color: var(--dim); font-size: 14px; line-height: 1.7; max-width: 64ch; margin: 0 0 22px; }
+  .lede b { color: var(--ink); }
+  pre { background: #131022; border: 1px solid var(--line); border-radius: 10px;
+        padding: 14px 16px; font-size: 12px; line-height: 1.6; overflow-x: auto; color: #d6d2e6; }
+  pre b { color: var(--gold); font-weight: 700; }
+  pre .c { color: #807a99; }
+  pre .g { color: var(--green); }
+  code { background: #131022; border: 1px solid var(--line); border-radius: 5px;
+         padding: 1px 6px; color: #d6d2e6; font-size: 12px; }
+  .cta { display:inline-block; padding: 12px 18px; border-radius: 9px; font-size: 13px;
+         font-weight: 700; text-decoration: none; letter-spacing: .05em;
+         background: var(--gold); color: #0a0812; font-family: inherit; }
+  .cta:hover { filter: brightness(1.06); }
+  .cta.ghost { background: none; color: var(--gold); border: 1px solid rgba(255,224,138,.4); }
+  .hero-act { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 2px; }
+
+  nav.top { display:flex; gap:18px; align-items:center; margin-bottom: 26px; flex-wrap:wrap; }
+  nav.top a { color: var(--dim); font-size: 12px; text-decoration: none; letter-spacing: .08em; }
+  nav.top a:hover, nav.top a[aria-current] { color: var(--gold); }
+  nav.top .brand { color: var(--ink); font-weight: 700; letter-spacing: .16em; margin-right: 6px; }
+
+  .keyfact { border: 1px solid rgba(255,224,138,.4); border-radius: 12px;
+             background: linear-gradient(180deg, rgba(255,224,138,.06), rgba(255,224,138,.02));
+             padding: 18px 20px; margin: 22px 0 8px; }
+  .keyfact .k { color: var(--gold); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
+  .keyfact p { margin: 0; font-size: 13.5px; line-height: 1.75; color: var(--ink); }
+
+  .limits { border: 1px solid var(--line); border-radius: 12px; background: #131022;
+            padding: 18px 20px; margin: 16px 0 8px; }
+  .limits .k { color: var(--dim); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
+  .limits ul { margin: 0; } .limits li { font-size: 12.5px; }
+
+  .three { display: grid; gap: 10px; margin: 14px 0 6px; }
+  .prop { border: 1px solid var(--line); border-radius: 10px; background: #131022; padding: 13px 15px; }
+  .prop .nm { font-weight: 700; font-size: 13px; color: var(--gold); margin-bottom: 5px; }
+  .prop p { margin: 0; font-size: 12.5px; }
+  .note { color: #807a99; font-size: 11.5px; line-height: 1.65; margin-top: 8px; }
+  a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  .entry { border: 1px solid var(--line); border-left-width: 3px; border-radius: 10px;
+           background: #131022; padding: 16px 18px; margin: 12px 0; }
+  .entry.killed { border-left-color: var(--red); }
+  .entry.survived { border-left-color: var(--green); }
+  .entry .hd { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; margin-bottom: 8px; }
+  .entry .tag { font-size: 10px; letter-spacing: .16em; }
+  .entry.killed .tag { color: var(--red); }
+  .entry.survived .tag { color: var(--green); }
+  .entry .when { font-size: 10px; letter-spacing: .12em; color: #6f6a87; }
+  .entry .ti { font-weight: 700; font-size: 13.5px; color: var(--ink);
+               width: 100%; line-height: 1.5; }
+  .entry p { margin: 0 0 8px; font-size: 12.5px; }
+  .entry p:last-of-type { margin-bottom: 0; }
+  .entry pre { margin: 10px 0 0; background: #0e0c1c; font-size: 11.5px; }
+  @media (max-width: 560px) { h1 { font-size: 22px; } .wrap { padding: 26px 16px 60px; } }
+</style>
+
+<div class="wrap">
+  <nav class="top">
+    <a class="brand" href="/">SNHP</a>
+    <a href="/receipt">Receipt</a>
+    <a href="/certificate">Certificate</a>
+    <a href="/build">Build</a>
+    <a href="/results" aria-current="page">Results</a>
+  </nav>
+
+  <h1>Everything we ran, <b>including what killed our own ideas.</b></h1>
+  <p class="lede">
+    Every experiment here had its kill condition written down <b>before</b> the
+    run, with numbers frozen in advance. Four of the five below came back
+    against us. We shipped the finding anyway, because a company selling proof
+    that does not publish its own negative results is selling nothing.
+  </p>
+
+  <h2>JULY 2026</h2>
+
+  <div class="entry killed">
+    <div class="hd"><span class="tag">KILLED — WE DID NOT BUILD IT</span><span class="when">JUL 2026</span>
+      <div class="ti">The spend guard: a hard ceiling stopping agents from overpaying</div></div>
+    <p><b>We expected</b> that a buying agent under pressure — fake urgency, hidden
+      fees, creeping anchors, a seller insisting the list price had changed —
+      would eventually accept above the list price, and that a guard function
+      making that unconstructible would be a product.</p>
+    <p><b>What happened:</b> the unguarded frontier models never broke. Zero
+      above-list acceptances and zero losses across 144 adversarial sessions,
+      in both regimes we tested — one where the price arithmetic was on rails,
+      one where the model had to read the numbers out of prose. Six attacks,
+      each verified to actually bind. There was no gap left to sell into.</p>
+    <p><b>So we did not build it.</b> The guard's own zero-leak number is
+      mechanical — a property of the function, not a capability — which is
+      exactly why it proves nothing on its own.</p>
+<pre>python -m research.spendguard.run --full
+python -m research.spendguard.analyze
+python -m research.spendguard.run --full --regime blind
+python -m research.spendguard.analyze --regime blind</pre>
+  </div>
+
+  <div class="entry killed">
+    <div class="hd"><span class="tag">KILL FIRED — CLAIM RETRACTED</span><span class="when">JUL 2026</span>
+      <div class="ti">SNHP-NX/1: "you need package deals for machine trade to happen"</div></div>
+    <p><b>We expected</b> that when an agent-payment protocol can only move one
+      number, most mutually-beneficial trades would simply fail to form — and
+      that bundling would be structurally necessary, not a feature.</p>
+    <p><b>What happened:</b> we registered that if cheap price-only haggling
+      reached 80% of NX's deal formation, the claim was dead. On a neutral mix
+      of 240 scenarios it reached <b>94.2%</b>. A workable price range already
+      existed at the seller's quote in 226 of 240 cases.</p>
+    <p><b>What survived:</b> package deals raise realized joint surplus (0.928 of
+      the achievable pie versus 0.889 price-only, 0.880 plain checkout), and
+      under tight deadlines price-only recovers only 0.696 of deal formation.
+      The spec now rests on those and says so. <a href="/spec">Read it →</a></p>
+<pre>python -m nx.experiment
+python -m nx.experiment --regime constrained   <span class="c"># exploratory, self-labelled</span></pre>
+  </div>
+
+  <div class="entry survived">
+    <div class="hd"><span class="tag">SURVIVED — ON A HELD-OUT SET</span><span class="when">JUL 2026</span>
+      <div class="ti">Certificate design, third attempt: a pool of three fixed opponents</div></div>
+    <p><b>We expected</b> — after two failures — that the problem was never the
+      metric but the opponent: one counterparty that negotiates well carries a
+      mediocre agent along with it. So we changed the protocol, not the number.
+      Three scripted opponents with different temperaments, parameters frozen
+      in writing first.</p>
+    <p><b>What happened:</b> the competent agent separated from the
+      split-the-difference baseline on both scenario sets — held-out
+      <b>0.5651 vs 0.4566</b>, gap <b>+0.1086</b>, p=0.0001, n=360 — and the
+      gap held against all three opponents individually, not just one.</p>
+    <p>The bar was set in advance at p&lt;0.01 on <em>both</em> sets, and the
+      held-out set was chosen at registration and never touched until the run.
+      <a href="/certificate">See the certificate →</a></p>
+<pre>python -m arena.gauntlet.pool_experiment
+python -m arena.gauntlet.certify --run engine</pre>
+  </div>
+
+  <div class="entry killed">
+    <div class="hd"><span class="tag">KILLED — FAILED VALIDATION</span><span class="when">JUL 2026</span>
+      <div class="ti">Certificate design, second attempt: score the cross-issue trading</div></div>
+    <p><b>We expected</b> that measuring how well an agent trades issues against
+      each other would separate skill where the first design could not.</p>
+    <p><b>What happened:</b> we picked this metric <em>after</em> seeing the data
+      that suggested it, which makes it worthless without a held-out check — so
+      we ran one, and it failed. On held-out matches the naive baseline was
+      ahead (0.6662 vs 0.6152, p=0.43). Worse, on the public set the result's
+      significance flipped across the threshold depending on the per-match seed
+      recipe. A number that depends on the seed recipe is not certification
+      grade.</p>
+    <p><b>Thrown away.</b> It stays on certificates as unlabelled context with no
+      claim attached.</p>
+<pre>python -m arena.gauntlet.separation</pre>
+  </div>
+
+  <div class="entry killed">
+    <div class="hd"><span class="tag">KILL FIRED — METRIC RETIRED</span><span class="when">JUL 2026</span>
+      <div class="ti">Certificate design, first attempt: score joint efficiency</div></div>
+    <p><b>We expected</b> that how close a negotiation lands to the best possible
+      outcome for both sides would tell us how good the agent was.</p>
+    <p><b>What happened:</b> it measured the pair, not the candidate. Against a
+      counterparty that finds good trades from its own side, even a plain
+      anchor-and-split bargainer rides along to about 90% of the ceiling. The
+      registered bar was p&lt;0.01; the public set gave p=0.0128 and the
+      held-out set had the naive baseline <em>ahead</em> (p=0.76).</p>
+    <p><b>What it is still good for:</b> catching weakness. It flags agents that
+      perform below the baseline sharply and reliably. It just cannot certify
+      skill, so it never appears as a claim.</p>
+<pre>python -m arena.gauntlet.separation</pre>
+  </div>
+
+  <h2>HOW TO READ THIS PAGE</h2>
+  <div class="limits">
+    <div class="k">WHAT "PRE-REGISTERED" MEANS HERE, AND WHAT IT DOESN'T</div>
+    <ul>
+      <li><b>The thresholds were frozen before the run</b>, in a committed file,
+        with the direction stated both ways — what would count as success and
+        what would count as failure.</li>
+      <li><b>Nothing was excluded afterward.</b> Where a result was picked after
+        seeing data, it says so on its face and is treated as proving nothing
+        until it clears a fresh held-out set.</li>
+      <li><b>These are small, scripted, offline experiments.</b> No result here
+        is a claim about your counterparties, your market, or the future.</li>
+      <li><b>Everything regenerates.</b> The commands above are the real ones.
+        The runs are deterministic; two runs are byte-identical.</li>
+    </ul>
+  </div>
+
+  <div class="hero-act" style="margin-top:26px">
+    <a class="cta" href="https://github.com/ryuxik/snhp" target="_blank" rel="noopener">Read the raw results</a>
+    <a class="cta ghost" href="/receipt">What we actually sell →</a>
+  </div>
+</div>
+</html>

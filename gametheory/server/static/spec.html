@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>SNHP-NX/1 — the package-deal spec</title>
+<meta name="description" content="An open, host-neutral extension that lets a checkout-shaped agent-payment protocol carry multi-issue package deals. Its own pre-registered kill fired; the surviving claim is surplus, not deal existence." />
+<meta property="og:title" content="SNHP-NX/1 — package deals for agent payments" />
+<meta property="og:description" content="Checkout protocols have one negotiable number. NX adds package counters. The pre-registered kill fired and is stated up front." />
+<style>
+  :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
+          --gold:#ffe08a; --green:#7fc48f; --red:#e8734a; --violet:#a78bfa; --blue:#8fd0ff; }
+  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
+               font-family: ui-monospace, Menlo, monospace; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 34px 20px 80px; }
+  h1 { font-size: 27px; letter-spacing: .03em; margin: 0 0 12px; line-height: 1.3; text-wrap: balance; }
+  h1 b { color: var(--gold); }
+  h2 { font-size: 13px; letter-spacing: .2em; color: var(--violet); margin: 44px 0 10px; }
+  p, li { color: var(--dim); font-size: 13px; line-height: 1.7; }
+  p b, li b { color: var(--ink); }
+  a { color: var(--blue); }
+  ol, ul { padding-left: 20px; }
+  li { margin: 6px 0; }
+  .lede { color: var(--dim); font-size: 14px; line-height: 1.7; max-width: 64ch; margin: 0 0 22px; }
+  .lede b { color: var(--ink); }
+  pre { background: #131022; border: 1px solid var(--line); border-radius: 10px;
+        padding: 14px 16px; font-size: 12px; line-height: 1.6; overflow-x: auto; color: #d6d2e6; }
+  pre b { color: var(--gold); font-weight: 700; }
+  pre .c { color: #807a99; }
+  pre .g { color: var(--green); }
+  code { background: #131022; border: 1px solid var(--line); border-radius: 5px;
+         padding: 1px 6px; color: #d6d2e6; font-size: 12px; }
+  .cta { display:inline-block; padding: 12px 18px; border-radius: 9px; font-size: 13px;
+         font-weight: 700; text-decoration: none; letter-spacing: .05em;
+         background: var(--gold); color: #0a0812; font-family: inherit; }
+  .cta:hover { filter: brightness(1.06); }
+  .cta.ghost { background: none; color: var(--gold); border: 1px solid rgba(255,224,138,.4); }
+  .hero-act { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 2px; }
+
+  nav.top { display:flex; gap:18px; align-items:center; margin-bottom: 26px; flex-wrap:wrap; }
+  nav.top a { color: var(--dim); font-size: 12px; text-decoration: none; letter-spacing: .08em; }
+  nav.top a:hover, nav.top a[aria-current] { color: var(--gold); }
+  nav.top .brand { color: var(--ink); font-weight: 700; letter-spacing: .16em; margin-right: 6px; }
+
+  .keyfact { border: 1px solid rgba(255,224,138,.4); border-radius: 12px;
+             background: linear-gradient(180deg, rgba(255,224,138,.06), rgba(255,224,138,.02));
+             padding: 18px 20px; margin: 22px 0 8px; }
+  .keyfact .k { color: var(--gold); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
+  .keyfact p { margin: 0; font-size: 13.5px; line-height: 1.75; color: var(--ink); }
+  .keyfact.killed { border-color: rgba(232,115,74,.5);
+        background: linear-gradient(180deg, rgba(232,115,74,.07), rgba(232,115,74,.02)); }
+  .keyfact.killed .k { color: var(--red); }
+
+  .limits { border: 1px solid var(--line); border-radius: 12px; background: #131022;
+            padding: 18px 20px; margin: 16px 0 8px; }
+  .limits .k { color: var(--dim); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
+  .limits ul { margin: 0; } .limits li { font-size: 12.5px; }
+
+  .three { display: grid; gap: 10px; margin: 14px 0 6px; }
+  .prop { border: 1px solid var(--line); border-radius: 10px; background: #131022; padding: 13px 15px; }
+  .prop .nm { font-weight: 700; font-size: 13px; color: var(--gold); margin-bottom: 5px; }
+  .prop p { margin: 0; font-size: 12.5px; }
+  .note { color: #807a99; font-size: 11.5px; line-height: 1.65; margin-top: 8px; }
+  a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  .tbl { overflow-x: auto; margin: 14px 0 6px; border: 1px solid var(--line);
+         border-radius: 10px; background: #131022; }
+  table { border-collapse: collapse; width: 100%; min-width: 460px; }
+  th { text-align: left; font-size: 10px; letter-spacing: .13em; color: var(--dim);
+       font-weight: 400; padding: 11px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { font-size: 12px; color: var(--dim); padding: 9px 12px;
+       border-bottom: 1px solid rgba(167,139,250,.09); white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  td.nm { color: var(--ink); }
+  td.up { color: var(--green); }
+  @media (max-width: 560px) { h1 { font-size: 22px; } .wrap { padding: 26px 16px 60px; } }
+</style>
+
+<div class="wrap">
+  <nav class="top">
+    <a class="brand" href="/">SNHP</a>
+    <a href="/receipt">Receipt</a>
+    <a href="/certificate">Certificate</a>
+    <a href="/build">Build</a>
+    <a href="/results">Results</a>
+  </nav>
+
+  <h1>SNHP-NX/1 — <b>package deals for agent payments</b></h1>
+  <p class="lede">
+    Agent-payment protocols are shaped like a checkout: a cart resolves to one
+    price, and the buyer agent can pay or not. Quantity against delivery date,
+    scope against price — <b>there is no field for a trade like that</b>. NX is
+    an open extension that adds one. It mounts between the cart step and the
+    payment step, and hands a settled package back.
+  </p>
+
+  <div class="keyfact killed">
+    <div class="k">OUR OWN PRE-REGISTERED KILL FIRED — READ THIS FIRST</div>
+    <p>
+      We registered, in advance, that if cheap price-only haggling reached 80%
+      of NX's deal-formation rate, the "you need bundling to close the deal"
+      claim was dead. On a neutral mix of 240 procurement scenarios it reached
+      <b>94.2%</b>. So NX does <em>not</em> claim bundling is necessary for
+      deals to happen. Most of the time a price alone closes it.
+    </p>
+  </div>
+  <p class="note">
+    Mechanism, since it is legible: 226 of 240 scenarios already had a workable
+    price range at the seller's quoted configuration. Registration:
+    <code>nx/PREREG.md</code>. Result: <code>nx/results/RESULTS.md</code>.
+  </p>
+
+  <h2>WHAT SURVIVED</h2>
+  <p><b>1. Package deals produce better deals.</b> Same scenarios, same utility
+    functions, share of the achievable joint surplus actually realized:</p>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>arm</th><th>deal rate</th><th>surplus captured</th></tr></thead>
+      <tbody>
+        <tr><td class="nm">plain checkout</td><td>0.908</td><td>0.880</td></tr>
+        <tr><td class="nm">price-only haggling</td><td>0.942</td><td>0.889</td></tr>
+        <tr><td class="nm">NX packages</td><td>1.000</td><td class="up">0.928</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">
+    +3.9 points of the achievable pie over the best price-only arm. Price
+    splits a pie; only a package changes its size.
+  </p>
+
+  <p><b>2. When deadlines are tight, bundling does become load-bearing.</b> Re-run
+    on a high-urgency, tight-deadline regime, price-only recovers just
+    <b>0.696</b> of NX's deal formation — roughly 30% of the workable trades are
+    unreachable without moving more than price — and the surplus gap widens to
+    +25.6 points (0.820 vs 0.564).</p>
+  <p class="note">
+    That second run is <b>exploratory, not pre-registered</b>, and self-labels
+    as such when you run it. It locates a boundary; it does not establish a
+    headline.
+  </p>
+
+  <h2>THE FOUR RULES AN IMPLEMENTATION MUST ENFORCE</h2>
+  <div class="three">
+    <div class="prop">
+      <div class="nm">I1 — never above list</div>
+      <p>No message may price a line above its listed price. Constructing one
+        must raise, not be rejected downstream. The seller's opening quote is
+        the sole list authority, so a buyer cannot invent headroom.</p>
+    </div>
+    <div class="prop">
+      <div class="nm">I2 — bounded</div>
+      <p>The round limit is declared when the session mounts. The proposal past
+        it must raise. Nobody can be griefed into an endless negotiation.</p>
+    </div>
+    <div class="prop">
+      <div class="nm">I3 — whole packages only</div>
+      <p>Counters are complete packages, and accepting adopts the standing
+        package verbatim. "Accept" can never smuggle in new terms.</p>
+    </div>
+    <div class="prop">
+      <div class="nm">I4 — receipt hook</div>
+      <p>Every settled session exposes a hash over the canonical transcript,
+        plus an optional signature. Attestor-neutral: anyone may sign, under
+        any scheme. The SNHP notary is one example, not a requirement.</p>
+    </div>
+  </div>
+
+  <h2>WHAT IT LOOKS LIKE ON THE WIRE</h2>
+<pre><span class="c">// buyer counters to a faster, smaller, cheaper package</span>
+{"type": "NX-PROPOSE", "session_ref": "rfq-8817", "round": 1, "party": "buyer",
+ "package": [{"line_id": "L0", "item": "item3", "qty": 12, "ship_date": 2,
+              "list_price": 742.10, "price": 690.0}]}
+
+<span class="c">// seller ratifies — no package field, by rule I3</span>
+{"type": "NX-ACCEPT", "session_ref": "rfq-8817", "round": 2, "party": "seller"}</pre>
+
+  <h2>WHAT IT DOES NOT DO</h2>
+  <div class="limits">
+    <div class="k">SCOPE, STATED UP FRONT</div>
+    <ul>
+      <li><b>It moves no money and holds no goods.</b> The host protocol settles
+        the agreed package; NX just gets it agreed.</li>
+      <li><b>It does not police fairness.</b> NX never verifies the seller's
+        costs or the buyer's valuation. It bounds and records the negotiation.</li>
+      <li><b>Attestation is not settlement.</b> It proves what was agreed and
+        that nothing priced above list. It does not prove delivery.</li>
+      <li><b>All the measurements used scripted policies.</b> They show what the
+        message set can <em>reach</em>, not how clever an agent is. A smarter
+        buyer still cannot express a quantity-for-date trade in a format that
+        has no field for one.</li>
+      <li><b>Single seller, one line per item.</b> Multi-seller packages and
+        in-session re-quotes are open questions in the spec, not solved.</li>
+    </ul>
+  </div>
+
+  <h2>REPRODUCE IT</h2>
+<pre>python -m nx.experiment                        <span class="c"># the pre-registered set, deterministic</span>
+python -m nx.experiment --regime constrained   <span class="c"># the exploratory tight regime</span>
+python -m pytest nx/test_nx.py -q              <span class="c"># conformance suite</span></pre>
+  <p class="note">
+    The conformance suite is portable: a third-party implementation runs it
+    against its own classes through a small shim documented in that file.
+  </p>
+
+  <div class="hero-act" style="margin-top:26px">
+    <a class="cta" href="https://github.com/ryuxik/snhp/blob/main/nx/SPEC.md" target="_blank" rel="noopener">Read the full spec →</a>
+    <a class="cta ghost" href="/results">See the kill in context</a>
+  </div>
+</div>
+</html>

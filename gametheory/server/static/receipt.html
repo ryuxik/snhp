@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>The receipt — SNHP</title>
+<meta name="description" content="A signed record of what an AI agent agreed to pay, and why. Verifiable offline by anyone, with no account and no call back to us. A receipt claiming a price above list cannot be constructed." />
+<meta property="og:title" content="Proof of what your AI agent paid" />
+<meta property="og:description" content="Signed, offline-verifiable proof of every price an agent agreed to. Not a promise we behaved — evidence from a system that could not have done otherwise." />
+<style>
+  :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
+          --gold:#ffe08a; --green:#7fc48f; --red:#e8734a; --violet:#a78bfa; --blue:#8fd0ff; }
+  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
+               font-family: ui-monospace, Menlo, monospace; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 34px 20px 80px; }
+  h1 { font-size: 27px; letter-spacing: .03em; margin: 0 0 12px; line-height: 1.3; text-wrap: balance; }
+  h1 b { color: var(--gold); }
+  h2 { font-size: 13px; letter-spacing: .2em; color: var(--violet); margin: 44px 0 10px; }
+  p, li { color: var(--dim); font-size: 13px; line-height: 1.7; }
+  p b, li b { color: var(--ink); }
+  a { color: var(--blue); }
+  ol, ul { padding-left: 20px; }
+  li { margin: 6px 0; }
+  .lede { color: var(--dim); font-size: 14px; line-height: 1.7; max-width: 64ch; margin: 0 0 22px; }
+  .lede b { color: var(--ink); }
+  pre { background: #131022; border: 1px solid var(--line); border-radius: 10px;
+        padding: 14px 16px; font-size: 12px; line-height: 1.6; overflow-x: auto; color: #d6d2e6; }
+  pre b { color: var(--gold); font-weight: 700; }
+  pre .c { color: #807a99; }
+  pre .g { color: var(--green); }
+  code { background: #131022; border: 1px solid var(--line); border-radius: 5px;
+         padding: 1px 6px; color: #d6d2e6; font-size: 12px; }
+  .cta { display:inline-block; padding: 12px 18px; border-radius: 9px; font-size: 13px;
+         font-weight: 700; text-decoration: none; letter-spacing: .05em;
+         background: var(--gold); color: #0a0812; font-family: inherit; }
+  .cta:hover { filter: brightness(1.06); }
+  .cta.ghost { background: none; color: var(--gold); border: 1px solid rgba(255,224,138,.4); }
+  .hero-act { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 2px; }
+
+  nav.top { display:flex; gap:18px; align-items:center; margin-bottom: 26px; flex-wrap:wrap; }
+  nav.top a { color: var(--dim); font-size: 12px; text-decoration: none; letter-spacing: .08em; }
+  nav.top a:hover, nav.top a[aria-current] { color: var(--gold); }
+  nav.top .brand { color: var(--ink); font-weight: 700; letter-spacing: .16em; margin-right: 6px; }
+
+  .keyfact { border: 1px solid rgba(255,224,138,.4); border-radius: 12px;
+             background: linear-gradient(180deg, rgba(255,224,138,.06), rgba(255,224,138,.02));
+             padding: 18px 20px; margin: 22px 0 8px; }
+  .keyfact .k { color: var(--gold); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
+  .keyfact p { margin: 0; font-size: 13.5px; line-height: 1.75; color: var(--ink); }
+
+  .limits { border: 1px solid var(--line); border-radius: 12px; background: #131022;
+            padding: 18px 20px; margin: 16px 0 8px; }
+  .limits .k { color: var(--dim); font-size: 10px; letter-spacing: .16em; margin-bottom: 10px; }
+  .limits ul { margin: 0; } .limits li { font-size: 12.5px; }
+
+  .three { display: grid; gap: 10px; margin: 14px 0 6px; }
+  .prop { border: 1px solid var(--line); border-radius: 10px; background: #131022; padding: 13px 15px; }
+  .prop .nm { font-weight: 700; font-size: 13px; color: var(--gold); margin-bottom: 5px; }
+  .prop p { margin: 0; font-size: 12.5px; }
+  .note { color: #807a99; font-size: 11.5px; line-height: 1.65; margin-top: 8px; }
+  a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  @media (max-width: 560px) { h1 { font-size: 22px; } .wrap { padding: 26px 16px 60px; } }
+</style>
+
+<div class="wrap">
+  <nav class="top">
+    <a class="brand" href="/">SNHP</a>
+    <a href="/receipt" aria-current="page">Receipt</a>
+    <a href="/certificate">Certificate</a>
+    <a href="/build">Build</a>
+    <a href="/results">Results</a>
+  </nav>
+
+  <h1>Your agent agreed to a price. <b>Prove what it did.</b></h1>
+  <p class="lede">
+    A receipt is a signed record of one negotiation — what was listed, what was
+    agreed, and what the seller's floor was. <b>Anyone can check it offline</b>,
+    with no account and no call back to us. And a receipt claiming a price
+    <b>above</b> the list price cannot be created at all: the code refuses to
+    build one.
+  </p>
+
+  <div class="hero-act">
+    <a class="cta" href="/certificate">See it on a real agent →</a>
+    <a class="cta ghost" href="https://github.com/ryuxik/snhp/blob/main/core/notary.py">Read the verifier</a>
+  </div>
+
+  <div class="keyfact">
+    <div class="k">WHY THIS IS DIFFERENT FROM A LOG FILE</div>
+    <p>
+      A log says <em>we recorded that we behaved.</em> A receipt says
+      <em>here is evidence, checkable without us, produced by a system that
+      could not have misbehaved in this specific way.</em> That last part is
+      mechanical, not a promise — the constructor raises rather than sign a
+      price above list.
+    </p>
+  </div>
+
+  <h2>WHAT A RECEIPT ATTESTS</h2>
+  <div class="three">
+    <div class="prop">
+      <div class="nm">Never above list</div>
+      <p>The agreed price never exceeded the public list price. Enforced at three
+        separate points — when the receipt is built, when it is issued, and again
+        when anyone replays it.</p>
+    </div>
+    <div class="prop">
+      <div class="nm">The seller's floor didn't move</div>
+      <p>A probe tests whether the seller's reservation price shifted when the
+        buyer's claimed outside option changed. If it moved, the receipt says so
+        — plainly, in the record, rather than hiding it.</p>
+    </div>
+    <div class="prop">
+      <div class="nm">Same inputs, same price</div>
+      <p>The receipt carries a hash of the context and a one-way digest of the
+        buyer's disclosure — enough to reproduce the price, never enough to
+        recover what the buyer was privately willing to pay.</p>
+    </div>
+  </div>
+
+  <h2>WHAT'S ACTUALLY IN ONE</h2>
+<pre><span class="c">// the money</span>
+list_price      2670.00      <span class="c">the public list</span>
+quoted_price    2536.50      <span class="c">what was agreed</span>
+saving           133.50      <span class="c">list − quoted</span>
+c_eff           2100.00      <span class="c">the seller's floor</span>
+
+<span class="c">// what was checked</span>
+conditions      { a: <span class="g">true</span>,  <span class="c">never above list</span>
+                  b: <span class="g">true</span>,  <span class="c">floor independent of buyer's claim</span>
+                  c: <span class="g">true</span> } <span class="c">disagreement point is the posted menu</span>
+regime          "finite_stock"
+reservation_basis "report_independent(state)"
+
+<span class="c">// what makes it checkable, and by whom</span>
+context_hash      9f2c…      <span class="c">same inputs ⇒ same price</span>
+disclosure_digest 4b81…      <span class="c">digest only — never the raw willingness-to-pay</span>
+engine_version    35fab66    <span class="c">which code produced it</span>
+prev_hash         a07e…      <span class="c">chains to the previous receipt</span>
+key_source        "env"      <span class="c">or "ephemeral" — the signer is disclosed</span>
+notary_sig        <b>ed25519…</b>  <span class="c">breaks if any byte above changes</span></pre>
+
+  <h2>CHECK ONE WITHOUT TRUSTING US</h2>
+  <p>The verifier is open and runs offline. Nothing here asks for the benefit of the doubt:</p>
+<pre>python -m core.notary verify <b>receipts.jsonl</b>
+
+<span class="g">[OK]</span> signature valid · never-above-list holds · chain intact
+     signed by sha256:b518…  key_source=env</pre>
+  <p class="note">
+    Tamper with any field and verification fails. Fetch the public key once from
+    <code>/v1/notary/key</code> and you never need to contact us again — including
+    years later, when the receipt matters and we might not be around.
+  </p>
+
+  <h2>WHAT IT DOES NOT ATTEST</h2>
+  <div class="limits">
+    <div class="k">THE LIMITS, STATED UP FRONT</div>
+    <ul>
+      <li><b>Only what happened inside the mechanism.</b> A deal negotiated
+        somewhere else is not covered by a receipt from here.</li>
+      <li><b>Not that the buyer told the truth</b> — unless an attestation token
+        is attached. Without one, the receipt says so rather than assuming it.</li>
+      <li><b>Capacity venues are named, not papered over.</b> When the seller's
+        floor legitimately depends on scarcity, the receipt reports
+        <code>regime: capacity</code> and marks that condition false. We would
+        rather ship an honest false than a flattering true.</li>
+      <li><b>An ephemeral signature proves consistency, not identity.</b> If a
+        throwaway key signed it, the receipt says <code>key_source: ephemeral</code>
+        and the verifier warns you.</li>
+    </ul>
+  </div>
+
+  <h2>WHO NEEDS ONE</h2>
+  <ul>
+    <li><b>You answer to an auditor or a regulator.</b> Your agents set or accepted
+      prices; "our system wouldn't do that" is not evidence. A receipt is.</li>
+    <li><b>You let software spend company money.</b> The control your finance team
+      wants isn't a dashboard — it's a record that holds up when someone asks.</li>
+    <li><b>You operate a venue agents transact on.</b> A party to the transaction
+      cannot be its own notary, the same way a bank cannot audit itself.</li>
+  </ul>
+
+  <div class="hero-act" style="margin-top:26px">
+    <a class="cta" href="https://x.com/ryuxik" target="_blank" rel="noopener">Talk to us about a pilot</a>
+    <a class="cta ghost" href="/results">See what we got wrong →</a>
+  </div>
+</div>

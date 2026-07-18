@@ -365,11 +365,11 @@ async function finish() {
   const showCta = plays >= 2 && cumGap >= 12 && !isWin;
   const cta = !showCta ? "" : '<div class="cta"><div class="hook">' + hook + '</div><button class="cta-go" id="rev-cta">' + DAY.cta.verb + ' →</button></div>';
   // the family door: PAR is the FEEL step of the funnel — hand the player to
-  // the leaderboard (watch) and the engine (want) instead of dead-ending here
+  // the certification test (watch) and the engine (want) instead of dead-ending here
   const fam = '<div style="margin-top:14px;font-size:11.5px;color:var(--muted)">' +
-    'watch frontier AIs play deals like this — <a href="https://arena.snhp.dev/leaderboard.html" ' +
-    'style="color:var(--violet-bright)">the negotiation leaderboard</a> · or ' +
-    '<a href="https://arena.snhp.dev/hire.html" style="color:var(--violet-bright)">put the engine in your corner</a></div>';
+    'watch frontier AIs play deals like this — <a href="https://snhp.dev/certificate" ' +
+    'style="color:var(--violet-bright)">how AI agents actually negotiate</a> · or ' +
+    '<a href="https://snhp.dev/build" style="color:var(--violet-bright)">put the engine in your corner</a></div>';
   $("rev-body").innerHTML = '<div style="border-top:0.5px solid var(--line);margin-top:8px;padding-top:14px">' + head + board + cta + btns + fam + '</div>';
   if ($("rev-cta")) { $("rev-cta").onclick = openAgent; track("cta_view"); }
   wireTabs();
