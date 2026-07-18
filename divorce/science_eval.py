@@ -112,11 +112,11 @@ def _pairs(seed: int):
     return out
 
 
-def _pess_margin(bands, lam, fight, shares):
+def _pess_margin(bands, lam, fight, shares, omega=0.0):
     return (1.0 + lam) * sum(
-        (s - 0.5) * (bands[a][0] if s > 0.5 else bands[a][2])
+        (s - 0.5 - omega) * (bands[a][0] if s - 0.5 - omega > 0 else bands[a][2])
         for a, s in shares.items() if a != "wallet"
-    ) + (1.0 + lam) * (shares.get("wallet", 0.5) - 0.5) * arms.WALLET_VALUE + fight
+    ) + (1.0 + lam) * (shares.get("wallet", 0.5) - 0.5 - omega) * arms.WALLET_VALUE + fight
 
 
 def run_seed(seed: int) -> dict:
@@ -174,16 +174,20 @@ def run_seed(seed: int) -> dict:
                     prior,
                     elicit.make_answerer(pa, uid=seed * 100_003 + 2 * i),
                     elicit.make_answerer(pb, uid=seed * 100_003 + 2 * i + 1),
-                    {"lam": pa.lam, "fight_cost": pa.fight_cost},
-                    {"lam": pb.lam, "fight_cost": pb.fight_cost},
+                    {"lam": pa.lam, "fight_cost": pa.fight_cost,
+                     "optimism": pa.optimism},
+                    {"lam": pb.lam, "fight_cost": pb.fight_cost,
+                     "optimism": pb.optimism},
                     10, outcomes)
                 fb = med.get("final_bands")
                 if fb:
                     def flip(o):
                         return {a: 1.0 - s for a, s in o.items()}
                     for o in outcomes:
-                        pm_a = _pess_margin(fb["a"], pa.lam, pa.fight_cost, o)
-                        pm_b = _pess_margin(fb["b"], pb.lam, pb.fight_cost, flip(o))
+                        pm_a = _pess_margin(fb["a"], pa.lam, pa.fight_cost, o,
+                                            pa.optimism)
+                        pm_b = _pess_margin(fb["b"], pb.lam, pb.fight_cost,
+                                            flip(o), pb.optimism)
                         if pm_a >= 0 and pm_b >= 0 \
                                 and pa.utility(o) >= pa.walk_away \
                                 and pb.utility(flip(o)) >= pb.walk_away:

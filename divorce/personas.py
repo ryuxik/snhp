@@ -69,6 +69,19 @@ HILL_MULT_RANGE = (3.0, 6.0)
 PETTINESS_SYMBOLIC_GAIN = 2.0   # v_symbolic *= 1 + gain * pettiness
 FRONT_MULT_RANGE = (2.0, 3.5)   # shared-front boost, both sides (see sample_pair)
 
+# Mutual optimism — Mnookin & Kornhauser impediment #4, Priest-Klein divergent
+# expectations: each side privately expects the judge to favor them, so both
+# BATNAs are inflated and can sum past the whole estate. At the old cartoon
+# value scale this was masked (stakes dwarfed the fight cost and deadlock
+# emerged anyway); at realistic retail prices rational agents simply settle
+# (the 2026-07-18 K1 firing), which is TRUE of rational agents and FALSE of
+# divorcing humans — the documented impediments are the difference. Expected
+# court share = 0.5 + optimism, optimism = GAIN * pettiness (+ jitter):
+# grievance breeds "the judge will obviously see." Spreadsheets stay rational.
+OPTIMISM_GAIN = 0.25
+OPTIMISM_JITTER = 0.03
+OPTIMISM_MAX = 0.30
+
 # ─── Archetypes (SPEC.md §1): slider presets + a valuation shape ─────────────
 # shape = per-asset multipliers on the sampled base value; sliders in [0, 1]
 # except spite (lam), which is the utility weight directly.
@@ -113,15 +126,20 @@ class Persona:
     # multipliers — the objective "retail" number the demo's hill-autopsy card
     # quotes ("the espresso machine, retail $340").
     market_values: dict[str, float] = field(default_factory=dict)
+    optimism: float = 0.0          # expected court share = 0.5 + optimism (M&K #4)
     fight_cost: float = field(init=False)
     court_utility: float = field(init=False)
     walk_away: float = field(init=False)   # the litigation BATNA, in utility dollars
 
     def __post_init__(self):
         self.fight_cost = FIGHT_COST_BASE * (1.6 - 0.8 * self.patience)
-        # Court: every asset at 0.5 expected share for each side.
+        # Court, as THIS side privately expects it: (0.5 + optimism) of every
+        # asset to me, (0.5 - optimism) to the ex (whose pile stings at lam).
+        # Both sides' expectations are mutually inconsistent by construction —
+        # that inconsistency IS the Priest-Klein settlement gap.
         total = sum(self.values.values())
-        self.court_utility = 0.5 * (1.0 - self.lam) * total
+        w = 0.5 + self.optimism
+        self.court_utility = (w - self.lam * (1.0 - w)) * total
         self.walk_away = self.court_utility - self.fight_cost
 
     def utility(self, my_shares: dict[str, float]) -> float:
@@ -175,6 +193,9 @@ def compile_persona(rng: np.random.Generator, side: str, archetype: str,
         pettiness = float(np.clip(sliders.get("pettiness", pettiness), 0, 1))
         lam = float(np.clip(sliders.get("spite", lam), 0.0, 0.6))
         patience = float(np.clip(sliders.get("patience", patience), 0, 1))
+    optimism = float(np.clip(OPTIMISM_GAIN * pettiness
+                             + rng.normal(0.0, OPTIMISM_JITTER),
+                             0.0, OPTIMISM_MAX))
 
     if market is None:
         market = sample_market(rng)
@@ -192,7 +213,7 @@ def compile_persona(rng: np.random.Generator, side: str, archetype: str,
     values[hill] += (hill_mult - 1.0) * market[hill]
     return Persona(side=side, archetype=archetype, pettiness=pettiness, lam=lam,
                    patience=patience, hill=hill, hill_mult=hill_mult,
-                   values=values, market_values=dict(market))
+                   values=values, market_values=dict(market), optimism=optimism)
 
 
 # ─── Opposition: measured, not asserted (SPEC.md §8) ─────────────────────────

@@ -311,16 +311,18 @@ def elicit_v2(learner: PosteriorLearner, answerer, budget: int) -> list[dict]:
 
 
 def _margin(v_hat: dict[str, float], lam: float, fight: float,
-            my_shares: dict[str, float]) -> float:
+            my_shares: dict[str, float], omega: float = 0.0) -> float:
     """IR margin over litigation, on the mediator's OWN scale:
-        u(outcome) - u(court) + fight = (1+lam) * sum_a (s_a - 0.5) * v_a + fight
-    (from the Persona.utility convention; court = 0.5 of everything). Assets
-    split at the court ratio cancel exactly, so estimation error enters only
-    weighted by |share - 0.5| — this is what makes elicited feasibility
-    transfer to true feasibility. The scale-mixing bug this replaces (stated
+        u(outcome) - u(court) + fight
+            = (1+lam) * sum_a (s_a - 0.5 - omega) * v_a + fight
+    (from the Persona.utility convention; court = 0.5 + omega of everything to
+    an optimist — the STATED court-confidence declaration, M&K impediment #4).
+    At omega = 0, assets split at the court ratio cancel exactly; a declared
+    optimist pays an estimation-error toll of omega per asset — the price of
+    insisting the judge loves you. The scale-mixing bug this replaces (stated
     walk-away in TRUE units vs utilities in ESTIMATED units) was the first
     pilot's 77%-rejection driver."""
-    return (1.0 + lam) * sum((s - 0.5) * v_hat[a]
+    return (1.0 + lam) * sum((s - 0.5 - omega) * v_hat[a]
                              for a, s in my_shares.items()) + fight
 
 
@@ -329,9 +331,10 @@ REFUSAL_TAU = 750.0     # $ logistic width of the refusal likelihood
 
 
 def update_refusal(learner: PosteriorLearner, shares: dict[str, float],
-                   lam: float, fight: float, refused_by_this_side: bool) -> None:
+                   lam: float, fight: float, refused_by_this_side: bool,
+                   omega: float = 0.0) -> None:
     """A draft refusal is elicitation data: refusing shares o says
-        (1+lam) * sum_a (s_a - 0.5) * v_a + fight < 0
+        (1+lam) * sum_a (s_a - 0.5 - omega) * v_a + fight < 0
     — a linear inequality on the refuser's value vector, ingested mean-field
     per involved asset (others held at posterior medians), exactly the
     preflearn update_accept pattern at asset scale. An accepted draft would be
@@ -343,11 +346,11 @@ def update_refusal(learner: PosteriorLearner, shares: dict[str, float],
     med["wallet"] = WALLET_VALUE
     for a in learner.skus:
         s_a = shares.get(a, 0.5)
-        if abs(s_a - 0.5) < 1e-9:
+        if abs(s_a - 0.5 - omega) < 1e-9:
             continue
-        other = sum((s - 0.5) * med[nm] for nm, s in shares.items() if nm != a)
+        other = sum((s - 0.5 - omega) * med[nm] for nm, s in shares.items() if nm != a)
         v = learner.prior.grid_v[a]
-        margin = (1.0 + lam) * ((s_a - 0.5) * v + other) + fight
+        margin = (1.0 + lam) * ((s_a - 0.5 - omega) * v + other) + fight
         p_refuse = 1.0 / (1.0 + _np.exp(_np.clip(margin / REFUSAL_TAU, -60, 60)))
         learner._apply(a, p_refuse)
 
@@ -367,8 +370,8 @@ def mediate(prior: PopPrior, answerer_a: TrueBuyer, answerer_b: TrueBuyer,
     (no decree beats a decree a signature refuses). Ratification is still
     self-selection — the most decision-relevant choice there is — and the
     answers cross the wall as booleans via the ratify callbacks; this function
-    never touches a Persona. stated_* = {"lam", "fight_cost"} — structured
-    declarations; never a raw utility number on the true scale."""
+    never touches a Persona. stated_* = {"lam", "fight_cost", "optimism"} —
+    structured declarations; never a raw utility number on the true scale."""
     outcomes = outcomes if outcomes is not None else enumerate_outcomes()
     la, lb = PosteriorLearner(prior), PosteriorLearner(prior)
     ask = elicit_fn if elicit_fn is not None else elicit_v2   # v2 = the default
@@ -381,10 +384,13 @@ def mediate(prior: PopPrior, answerer_a: TrueBuyer, answerer_b: TrueBuyer,
     def flip(o):
         return {a: 1.0 - s for a, s in o.items()}
 
-    def pess_margin(lo, hi, lam, fight, o):
-        # worst case within the band: received assets at q25, conceded at q75
+    def pess_margin(lo, hi, lam, fight, o, omega):
+        # worst case within the band: the margin's per-asset weight is
+        # (s - 0.5 - omega) — pessimism takes q25 where the weight is
+        # positive, q75 where it is negative
         return (1.0 + lam) * sum(
-            (s - 0.5) * (lo[a] if s > 0.5 else hi[a]) for a, s in o.items()
+            (s - 0.5 - omega) * (lo[a] if s - 0.5 - omega > 0 else hi[a])
+            for a, s in o.items()
         ) + fight
 
     def score(learner, stated, flipped: bool):
@@ -396,10 +402,11 @@ def mediate(prior: PopPrior, answerer_a: TrueBuyer, answerer_b: TrueBuyer,
         lo = {a: learner.quantile(a, 0.25) for a in ELICITABLE} | W
         hi = {a: learner.quantile(a, 0.75) for a in ELICITABLE} | W
         view = (lambda o: flip(o)) if flipped else (lambda o: o)
-        m = np.array([_margin(med, stated["lam"], stated["fight_cost"], view(o))
+        om = stated.get("optimism", 0.0)
+        m = np.array([_margin(med, stated["lam"], stated["fight_cost"], view(o), om)
                       for o in outcomes])
         p = np.array([pess_margin(lo, hi, stated["lam"], stated["fight_cost"],
-                                  view(o)) for o in outcomes])
+                                  view(o), om) for o in outcomes])
         return med, m, p
 
 
@@ -435,8 +442,10 @@ def mediate(prior: PopPrior, answerer_a: TrueBuyer, answerer_b: TrueBuyer,
             break
         base = dict(outcomes[best], wallet=0.0)
         s = refine_wallet_generic(
-            _margin(med_a, stated_a["lam"], stated_a["fight_cost"], base),
-            _margin(med_b, stated_b["lam"], stated_b["fight_cost"], flip(base)),
+            _margin(med_a, stated_a["lam"], stated_a["fight_cost"], base,
+                    stated_a.get("optimism", 0.0)),
+            _margin(med_b, stated_b["lam"], stated_b["fight_cost"], flip(base),
+                    stated_b.get("optimism", 0.0)),
             stated_a["lam"], stated_b["lam"], 0.0, 0.0)
         proposal = dict(outcomes[best], wallet=s)
         ok_a = ratify_a(proposal) if ratify_a is not None else True
@@ -457,11 +466,13 @@ def mediate(prior: PopPrior, answerer_a: TrueBuyer, answerer_b: TrueBuyer,
                 for a in o if a != "wallet") for o in outcomes])
         if not ok_a:
             update_refusal(la, proposal, stated_a["lam"],
-                           stated_a["fight_cost"], True)
+                           stated_a["fight_cost"], True,
+                           stated_a.get("optimism", 0.0))
             excl_a |= same_alloc & (wallet_a <= s + 1e-9)
         if not ok_b:
             update_refusal(lb, flip(proposal), stated_b["lam"],
-                           stated_b["fight_cost"], True)
+                           stated_b["fight_cost"], True,
+                           stated_b.get("optimism", 0.0))
             excl_b |= same_alloc & (1.0 - wallet_a <= (1.0 - s) + 1e-9)
     return {"proposal": None, "trace_a": trace_a, "trace_b": trace_b,
             "n_questions": n_questions, "drafts": drafts,
@@ -492,8 +503,10 @@ def run_arm_b(pa: P.Persona, pb: P.Persona, prior: PopPrior,
     med = mediate(prior,
                   build(pa, seed * 100_003 + 2 * i),
                   build(pb, seed * 100_003 + 2 * i + 1),
-                  {"lam": pa.lam, "fight_cost": pa.fight_cost},
-                  {"lam": pb.lam, "fight_cost": pb.fight_cost},
+                  {"lam": pa.lam, "fight_cost": pa.fight_cost,
+                   "optimism": pa.optimism},
+                  {"lam": pb.lam, "fight_cost": pb.fight_cost,
+                   "optimism": pb.optimism},
                   budget, outcomes,
                   ratify_a=lambda o: pa.utility(o) >= pa.walk_away,
                   ratify_b=lambda o: pb.utility(flip_o(o)) >= pb.walk_away,

@@ -61,6 +61,7 @@ def input_digest(trace: list[dict], stated: dict, ratifications: list[bool]) -> 
     return canon_hash({"trace": trace,
                        "lam": round(float(stated["lam"]), 4),
                        "fight_cost": round(float(stated["fight_cost"]), 2),
+                       "optimism": round(float(stated.get("optimism", 0.0)), 4),
                        "ratify": list(ratifications)})
 
 

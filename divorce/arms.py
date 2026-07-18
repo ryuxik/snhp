@@ -120,14 +120,18 @@ def _propose(p: Persona, asset: dict, my_budget: float, their_budget: float,
     side's values — concession means lowering p's own take, not modeling the
     opponent. Returns (option_index, signed_transfer, delta_p)."""
     v = p.values[asset["name"]]
-    stake = 0.5 * v * (1.0 + p.lam)               # p's max conceivable item gain
+    # Court benchmark is PRIVATE: an optimist expects 0.5 + optimism of the
+    # item from the judge, so its zero line sits higher (M&K #4). ω ≤ 0.3 < 0.5
+    # keeps the full-share candidate's delta ≥ 0, preserving the assert below.
+    base = 0.5 + p.optimism
+    stake = (1.0 - base) * v * (1.0 + p.lam)      # p's max conceivable item gain
     target = demand * stake
     a_side = p.side == "A"
 
     best = None
     for opt_idx, s_a in enumerate(asset["shares_a"]):
         share = s_a if a_side else 1.0 - s_a
-        raw = (share - 0.5) * v - target / (1.0 + p.lam)  # exact-target transfer
+        raw = (share - base) * v - target / (1.0 + p.lam)  # exact-target transfer
         raw = float(np.clip(raw, -their_budget, my_budget))
         # Snap to the cash grid on BOTH sides of the target: rounding one way
         # can cross the self-harm line, but the floored full-share candidate
@@ -135,7 +139,7 @@ def _propose(p: Persona, asset: dict, my_budget: float, their_budget: float,
         for t in {np.floor(raw / TRANSFER_STEP) * TRANSFER_STEP,
                   np.ceil(raw / TRANSFER_STEP) * TRANSFER_STEP}:
             t = float(np.clip(t, -their_budget, my_budget))
-            delta = (1.0 + p.lam) * ((share - 0.5) * v - t)
+            delta = (1.0 + p.lam) * ((share - base) * v - t)
             if delta < 0:
                 continue                          # never propose self-harm
             # Closest to the concession target; tie-break toward taking the
@@ -200,7 +204,10 @@ def run_arm_i(pa: Persona, pb: Persona, rng: np.random.Generator,
                 s_a = asset["shares_a"][opt_idx]
                 q_share = s_a if other == "A" else 1.0 - s_a
                 q_cashflow = t  # positive t = proposer pays: q receives it
-                delta_q = (1.0 + q.lam) * ((q_share - 0.5) * q.values[name] + q_cashflow)
+                # The responder benchmarks against its PRIVATE court expectation
+                # (0.5 + optimism of this item) — mutual optimism is what makes
+                # two reasonable-sounding lawyers unable to close (M&K #4).
+                delta_q = (1.0 + q.lam) * ((q_share - 0.5 - q.optimism) * q.values[name] + q_cashflow)
                 threshold = -credit[other] + rng.normal(0.0, ACCEPT_NOISE_SD)
                 accepted = (delta_q >= threshold if respond is None else
                             respond(q, name, q_share, q_cashflow, delta_q, threshold))

@@ -29,7 +29,15 @@ REGISTRATION = {
               "2026-07-18: population re-anchored to realistic retail values "
               "(additive sentiment stacking, shared per-pair market, "
               "market-multiple contested criterion); SAME kill thresholds, "
-              "full re-run on all four seeds — committed before results.",
+              "full re-run on all four seeds — committed before results. "
+              "RESULT: K1 + K2-surplus FIRED at realistic scale (rational "
+              "agents settle when the fight cost rivals the stakes; results-"
+              "seed*.json @ that commit). REVISION, committed before its own "
+              "results: mutual optimism (M&K impediment #4 / Priest-Klein) — "
+              "expected court share 0.5 + 0.25*pettiness; a DECLARED "
+              "structured input like lam/fight_cost, threaded through "
+              "ARM-I acceptance, mediator margins, and the input digest. "
+              "Same thresholds; all four seeds re-run after this commit.",
     "population": {"n_pairs": 100, "seed": 7,
                    "stratification": "5x5 ordered archetype grid, cycled"},
     "qualification": {"contested_mult": 2.0, "min_contested": 2,

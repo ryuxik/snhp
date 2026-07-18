@@ -83,8 +83,10 @@ def run_episode(seed: int, spec: dict, prior=None) -> dict:
     def flip_o(o):
         return {k: 1.0 - v for k, v in o.items()}
 
-    stated_a = {"lam": pa.lam, "fight_cost": pa.fight_cost}
-    stated_b = {"lam": pb.lam, "fight_cost": pb.fight_cost}
+    stated_a = {"lam": pa.lam, "fight_cost": pa.fight_cost,
+                "optimism": pa.optimism}
+    stated_b = {"lam": pb.lam, "fight_cost": pb.fight_cost,
+                "optimism": pb.optimism}
     med = elicit.mediate(
         prior,
         elicit.make_answerer(pa, uid=seed * 100_003),
@@ -136,6 +138,10 @@ def run_episode(seed: int, spec: dict, prior=None) -> dict:
                             "patience": round(p.patience, 2)},
                 "hill": p.hill,                    # revealed at the flip
                 "fight_cost": round(p.fight_cost),
+                # Declared court confidence, as a percentage — the chrome's
+                # "believes the judge will side with them: 62%" line. Both
+                # sides' numbers can't both be right; that's the point.
+                "court_confidence_pct": round(100 * (0.5 + p.optimism)),
                 "seal": receipt.seal_persona(p)}
 
     return {
