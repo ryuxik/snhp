@@ -1379,7 +1379,33 @@ button.stamp:hover { border-color: var(--red); opacity: 1; transform: rotate(-8d
   color: var(--cream-50);
   margin-bottom: 0.15rem;
 }
-.bslider input[type="range"] { width: 100%; accent-color: var(--paper); }
+/* 44px is the smallest reliable thumb target (Apple HIG / Material 48dp).
+   The native control renders ~16px tall, so the extra height is transparent
+   padding around the same track — it reads identically and stops the dials
+   from being a precision-tapping exercise on a phone. */
+.bslider input[type="range"] {
+  width: 100%;
+  accent-color: var(--paper);
+  min-height: 44px;
+  padding: 14px 0;
+  box-sizing: border-box;
+  background: transparent;
+}
+
+/* the folded dials — a real control group, not a mystery link */
+.bs-fold { margin: 0.5rem 0; }
+.bs-fold > summary {
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cream-50);
+  padding: 0.5rem 0;
+  list-style: revert;
+}
+.bs-fold > summary:hover { color: var(--cream-90); }
+.bs-fold[open] > summary { color: var(--cream-70); margin-bottom: 0.2rem; }
 
 .b-shared {
   max-width: 640px;
@@ -1464,23 +1490,30 @@ body.instant .sig svg path { stroke-dashoffset: 0 !important; }
   .wide { display: none; }
   .narrow { display: inline; }
 
-  /* ONE control row — horizontally scrollable, never 3 wrapped rows */
+  /* TWO rows, deliberately. The old single scrollable row pushed 291px of
+     chrome off a 375px screen: BUILD YOUR EXES and the entire playback group
+     — including SKIP, the only escape from a 3-minute film — sat off-viewport
+     with no scroll affordance. Row 1 = the case tabs, which MAY scroll
+     (secondary). Row 2 = the actions, which may never scroll. */
   #topbar {
-    flex-wrap: nowrap;
-    overflow-x: auto;
+    flex-wrap: wrap;
     gap: 0.4rem;
     padding: 0.45rem 0.6rem;
+  }
+  #brand { display: none; }
+  #presets {
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
-  #topbar::-webkit-scrollbar { display: none; }
-  #brand { display: none; }
-  #presets { flex-wrap: nowrap; }
+  #presets::-webkit-scrollbar { display: none; }
   #watch-label { font-size: 0.6rem; }
   #presets button { font-size: 0.68rem; padding: 0.28rem 0.5rem; }
-  #build-btn { font-size: 0.7rem; padding: 0.32rem 0.6rem; }
-  #playctl { margin-left: 0; gap: 0.3rem; }
-  #playctl button { font-size: 0.7rem; padding: 0.28rem 0.45rem; }
+  #build-btn { font-size: 0.72rem; padding: 0.42rem 0.7rem; }
+  #playctl { margin-left: auto; gap: 0.3rem; }
+  #playctl button { font-size: 0.7rem; padding: 0.34rem 0.5rem; }
   #case-rail { gap: 0.6rem; font-size: 0.6rem; }
 
   .scene { scroll-margin-top: 84px; }

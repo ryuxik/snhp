@@ -1673,6 +1673,8 @@
   const FRONTABLE = ['dog', 'vinyl', 'wildcard']; // per the API contract
   const SLIDER_KEYS = ['pettiness', 'spite', 'patience'];
   const WILDCARD_MAX = 40;
+  // Matches the CSS mobile breakpoint; read once when the intake is built.
+  const IS_NARROW = window.matchMedia('(max-width: 720px)').matches;
 
   function relLabelFor(key, wildcardText) {
     if (key === 'wildcard') return wildcardText || 'the wildcard item';
@@ -1701,7 +1703,12 @@
       + '<input type="text" maxlength="24" class="b-name" value="' + esc(defaultName) + '"></label>'
       + '<div class="arch-wrap"><div class="arch-legend">archetype — pick one; sets the dials below</div>'
       + '<div class="arch-cards">' + cards + '</div></div>'
-      + sliders
+      // The archetype already sets all three dials, so they are refinement,
+      // not a required decision. On a phone the intake ran 2.6 screens; folding
+      // them by default cuts six controls out of the default path without
+      // removing them. Open by default where there's room.
+      + '<details class="bs-fold"' + (IS_NARROW ? '' : ' open') + '>'
+      + '<summary>fine-tune the dials</summary>' + sliders + '</details>'
       + '<label class="bfield"><span>the hill they’ll die on — sealed until the flip</span>'
       + '<select class="b-hill">' + hills + '</select></label>'
       + '</div>';
