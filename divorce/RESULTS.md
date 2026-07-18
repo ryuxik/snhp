@@ -174,3 +174,36 @@ seeds, same story shapes); the chrome renders linear package choices through
 the same clerk voice ("The espresso machine, or $1,714 more of the joint
 wallet?"), verified live. v1 code paths retained (elicit, make_answerer_v1)
 for reproducing pre-migration artifacts.
+
+## /science experiments (E1–E3) — registered b7fb7ad, run same day, ALL KILLS SURVIVE
+
+Population: qualified pairs w/ settled oracle across seeds 7/11/23 + FRESH
+seed 31 (n=278 pair-evaluations; v2 elicitation). Files:
+results-science-seed{7,11,23,31}.json, results-science.json (aggregate),
+arena/web/divorce/science-data.json (page copy).
+
+**E1 — calibrated abstention.** Selective risk (true walk-away violated |
+decree certified) = **0.0 at every budget** (6/10/24 q/side; coverage 95% /
+97% / 98%). At the shipped gate, 8 abstentions occurred and **0 were
+recoverable** — no abstained pair had ANY outcome inside the mediator's own
+final confident set that cleared both true walk-aways. The abstention is
+information-limited caution, not miscalibrated pessimism. Both registered
+kills (risk>2%; recoverable>15%) survive → the word "calibrated" is earned.
+
+**E2 — budget curve + human robustness.** Capture medians 86% / 92% / 99.5%
+at 6/10/24 questions. v2-under-biased-humans (93.5%) beats v1-under-honest
+(90.2%) on the same pairs → "human-robust" survives its kill.
+
+**E3 — pettiness tax population.** Median per-case spite counterfactual
+**$36,703**; as the registered headline ratio (max-side tax / realized
+surplus over litigation) the median is **59%** — spite's price is the same
+order as everything the settlement achieves. Distribution: 6% of couples at
+$0, p25 $15.2k, p75 $60.3k, max $158k. Seed-stable (1.42x < 3x bound →
+single-number reporting permitted). Attribution: the counterfactual
+typically reallocates ONE non-hill asset (median drift 1 ≤ 2 bound) — state
+per-case framing with that caveat. Both kills survive.
+
+Phrasing discipline for E3: the ratio compares the despiked re-run's joint-
+value gain to the actual settlement's surplus over litigation — "the median
+couple's spite costs 59% as much as everything their settlement achieves,"
+not "59% of the pie is burned."
