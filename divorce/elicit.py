@@ -78,9 +78,38 @@ def build_asset_prior(cal_seed: int = CAL_SEED, n_cal: int = CAL_N) -> PopPrior:
     return PopPrior(ELICITABLE, grid_v, grid_lw, prior_w, mu_log, sigma_log)
 
 
-def make_answerer(persona: P.Persona, uid: int, bluff: bool = False) -> TrueBuyer:
-    """The persona's answering self — the ONLY object holding its (possibly
-    distorted) value table on the mediator's side of the wall."""
+class LinearAnswerer:
+    """The persona's answering self for the v2 all-choices interview — the
+    ONLY object holding its (possibly distorted) value table on the
+    mediator's side of the wall. Answers ANY package choice u(A)-u(B) =
+    sum(w*v)+sweetener with seeded logistic noise on the margin."""
+
+    def __init__(self, values: dict[str, float], uid: int,
+                 tau_frac: float = 0.08):
+        self.v = dict(values)
+        self.tau_frac = tau_frac
+        self._rng = np.random.default_rng((uid * 2654435761) & 0x7FFFFFFF)
+
+    def answer_linear(self, weights: dict[str, float], sweetener: float) -> bool:
+        d = sum(w * self.v[a] for a, w in weights.items()) + sweetener
+        scale = sum(abs(w) * self.v[a] for a, w in weights.items()) + abs(sweetener)
+        tau = self.tau_frac * max(scale * 0.5, 200.0)
+        p = 1.0 / (1.0 + np.exp(-np.clip(d / tau, -60, 60)))
+        return bool(self._rng.random() < p)
+
+
+def make_answerer(persona: P.Persona, uid: int, bluff: bool = False) -> LinearAnswerer:
+    """Default (v2) answerer. Bluffing stays a numeric policy: the answer
+    table carries an intensity-exaggerated hill (K4's registered form)."""
+    vals = {a: persona.values[a] for a in ELICITABLE}
+    if bluff:
+        vals[persona.hill] *= BLUFF_HILL_MULT
+    return LinearAnswerer(vals, uid)
+
+
+def make_answerer_v1(persona: P.Persona, uid: int, bluff: bool = False) -> TrueBuyer:
+    """The v1 (probe/pairwise) answerer — kept for reproducing pre-migration
+    results; not the default."""
     vals = {a: persona.values[a] for a in ELICITABLE}
     if bluff:
         vals[persona.hill] *= BLUFF_HILL_MULT
@@ -342,7 +371,7 @@ def mediate(prior: PopPrior, answerer_a: TrueBuyer, answerer_b: TrueBuyer,
     declarations; never a raw utility number on the true scale."""
     outcomes = outcomes if outcomes is not None else enumerate_outcomes()
     la, lb = PosteriorLearner(prior), PosteriorLearner(prior)
-    ask = elicit_fn if elicit_fn is not None else elicit
+    ask = elicit_fn if elicit_fn is not None else elicit_v2   # v2 = the default
     trace_a = ask(la, answerer_a, budget)
     trace_b = ask(lb, answerer_b, budget)
 

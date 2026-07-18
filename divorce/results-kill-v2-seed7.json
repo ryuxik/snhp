@@ -1,0 +1,6831 @@
+{
+ "registration": {
+  "status": "FROZEN 2026-07-17 \u2014 thresholds committed before chrome build; confirmatory run on a fresh seed follows the freeze commit",
+  "population": {
+   "n_pairs": 100,
+   "seed": 7,
+   "stratification": "5x5 ordered archetype grid, cycled"
+  },
+  "qualification": {
+   "contested_frac": 0.2,
+   "min_contested": 2,
+   "max_resamples": 50
+  },
+  "protocol": {
+   "exchange_budget": 40,
+   "open_demand": 0.9,
+   "demand_decay": 0.65,
+   "accept_noise_sd": 150.0,
+   "transfer_step": 500.0
+  },
+  "elicitation": {
+   "q_budget_per_side": 10,
+   "cal_seed": 20260717,
+   "cal_n": 400,
+   "pool": "v2 all-choices (linear package choices w/ cash riders) \u2014 adopted post-freeze after the biased-human K3 result; revalidated on seeds 7/11/23 rather than grandfathered",
+   "bluff_policy": "hill intensity x1.5, stated lam/walk_away truthful"
+  },
+  "kills": {
+   "K1_margin_pp": 5,
+   "K2_ir_violation_max": 0.1,
+   "K2_min_median_advantage": 0.15,
+   "K3_min_elicited_over_oracle": 0.8,
+   "K4_max_bluff_gain": 0.1
+  }
+ },
+ "run": {
+  "n": 100,
+  "seed": 7
+ },
+ "summary": {
+  "n_pairs": 100,
+  "n_qualified": 72,
+  "qualified_rate": 0.72,
+  "mean_resample_attempts": 18.98611111111111,
+  "contested_count_dist": {
+   "2": 72
+  },
+  "ARM_I": {
+   "full_settle_with_IR_rate": 0.1111111111111111,
+   "settled_fraction_median": 0.8333333333333334,
+   "dog_exchanges_median": 12.0,
+   "most_common_unsettled": {
+    "vinyl": 40,
+    "wildcard": 30,
+    "dog": 26
+   }
+  },
+  "ARM_O": {
+   "settle_rate": 0.9861111111111112,
+   "no_decree_rate": 0.01388888888888884,
+   "ef_both_rate": 0.9577464788732394,
+   "median_joint_surplus": 53507.082425761415,
+   "median_pettiness_tax": 30062.328824645025
+  },
+  "ARM_B": {
+   "settle_rate": 0.9861111111111112,
+   "proposal_rejected_rate": 0.0,
+   "ef_both_rate": 0.8169014084507042,
+   "median_joint_surplus": 45216.87340825345,
+   "median_questions": 22.0
+  },
+  "kills": {
+   "K1_deadlock_is_real": {
+    "fires": false,
+    "arm_i_rate": 0.1111111111111111,
+    "arm_b_rate": 0.9861111111111112
+   },
+   "K2_bundle_clears": {
+    "ir_half_fires": false,
+    "proposal_rejected_rate": 0.0,
+    "surplus_half_fires": false,
+    "median_advantage_of_oracle_headroom": 0.6661023737895573
+   },
+   "K3_elicitation_load_bearing": {
+    "fires": false,
+    "median_elicited_over_oracle": 0.9164570606001684,
+    "q_budget_per_side": 10
+   },
+   "K4_bluff": {
+    "manipulation_pays": false,
+    "median_bluff_gain_frac": 0.0,
+    "bluff_reject_rate": 0.0,
+    "honest_reject_rate": 0.0,
+    "note": "if manipulation_pays: no manipulation-resistance language anywhere in the demo, ever"
+   }
+  }
+ },
+ "pairs": [
+  {
+   "i": 0,
+   "arch_a": "already_healed",
+   "arch_b": "already_healed",
+   "qualified": true,
+   "attempts": 31,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "vinyl"
+   },
+   "walk_a": 29921.593492819768,
+   "walk_b": 32456.17129457212,
+   "arm_i": {
+    "settled_fraction": 1.0,
+    "fully_settled": true,
+    "joint_surplus": 14554.953645710932,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 1,
+     "lake_weeks": 5,
+     "dog": 11,
+     "vinyl": 14
+    },
+    "unsettled": []
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 16432.661892800435,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": false
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 14116.072557375297,
+    "u_a": 37570.82257414717,
+    "u_b": 38923.014770620015,
+    "ef_a": true,
+    "ef_b": false,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 37570.82257414717,
+    "joint_surplus": 14116.072557375297
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 21008.53047104283
+   }
+  },
+  {
+   "i": 1,
+   "arch_a": "already_healed",
+   "arch_b": "ledger",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [],
+   "fronts": [
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "wildcard"
+   },
+   "walk_a": 22510.180032192555,
+   "walk_b": 76338.45140034067,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 64381.10757373913,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "dog": 2,
+     "lake_weeks": 4,
+     "vinyl": 14,
+     "wildcard": 1
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 70957.4580594966,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 67982.2138979123,
+    "u_a": 48924.762347199954,
+    "u_b": 117906.08298324556,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 48924.762347199954,
+    "joint_surplus": 67982.2138979123
+   },
+   "pettiness_tax": {
+    "a": 19392.123105462233,
+    "b": 12831.724319481087
+   }
+  },
+  {
+   "i": 2,
+   "arch_a": "already_healed",
+   "arch_b": "scorched_earth",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "lake_weeks"
+   },
+   "walk_a": 42648.05043390243,
+   "walk_b": 57663.11467314542,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 28091.392703062826,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "dog": 2,
+     "wildcard": 3,
+     "vinyl": 14,
+     "lake_weeks": 14
+    },
+    "unsettled": [
+     "lake_weeks",
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 116926.26339343147,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 112472.76443627983,
+    "u_a": 63498.927191133946,
+    "u_b": 149285.00235219373,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 61210.377762964505,
+    "joint_surplus": 113389.7671134602
+   },
+   "pettiness_tax": {
+    "a": 1069.4281194645155,
+    "b": 6923.543556476841
+   }
+  },
+  {
+   "i": 3,
+   "arch_a": "already_healed",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 10,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "dog",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "dog"
+   },
+   "walk_a": 29682.630135062507,
+   "walk_b": 227145.33380314722,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 171127.51935269748,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "lake_weeks": 5,
+     "vinyl": 1,
+     "wildcard": 14,
+     "dog": 1
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 132565.00550718178,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 113603.29765199003,
+    "u_a": 57615.19381201225,
+    "u_b": 312816.0677781875,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 57179.13121932519,
+    "joint_surplus": 130758.7476521314
+   },
+   "pettiness_tax": {
+    "a": 127009.52946603985,
+    "b": 70387.17052983609
+   }
+  },
+  {
+   "i": 4,
+   "arch_a": "already_healed",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 1,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard",
+    "dog"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "wildcard"
+   },
+   "walk_a": 26952.474592307764,
+   "walk_b": 86053.63258728223,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 5208.0529824267505,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 2,
+     "lake_weeks": 8,
+     "dog": 14,
+     "wildcard": 13
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 65155.06753729718,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 40013.44815687047,
+    "u_a": 51021.116457216296,
+    "u_b": 101998.43887924418,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 51021.116457216296,
+    "joint_surplus": 40013.44815687047
+   },
+   "pettiness_tax": {
+    "a": 18600.559520063485,
+    "b": 29450.15810088435
+   }
+  },
+  {
+   "i": 5,
+   "arch_a": "ledger",
+   "arch_b": "already_healed",
+   "qualified": true,
+   "attempts": 43,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "dog",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "espresso",
+    "b": "wildcard"
+   },
+   "walk_a": 63263.663105986474,
+   "walk_b": 36114.108948017856,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 14681.839574943915,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 9,
+     "vinyl": 5,
+     "lake_weeks": 2,
+     "wildcard": 14,
+     "dog": 8
+    },
+    "unsettled": [
+     "dog",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 42038.04779361793,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 42683.48299975168,
+    "u_a": 89920.62886231046,
+    "u_b": 52140.626191445546,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 89965.385198854,
+    "joint_surplus": 42691.71490371622
+   },
+   "pettiness_tax": {
+    "a": 259.2304852186353,
+    "b": 34776.265631925824
+   }
+  },
+  {
+   "i": 6,
+   "arch_a": "ledger",
+   "arch_b": "ledger",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "vinyl"
+   },
+   "walk_a": 64639.70226650243,
+   "walk_b": 231715.2823046453,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 10335.568954368675,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "dog": 9,
+     "wildcard": 5,
+     "lake_weeks": 9,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": false,
+    "joint_surplus": 0.0,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": null,
+    "ef_b": null
+   },
+   "arm_b": {
+    "settled": false,
+    "rejected": false,
+    "proposed": false,
+    "joint_surplus": 0.0,
+    "u_a": 64639.70226650243,
+    "u_b": 231715.2823046453,
+    "ef_a": null,
+    "ef_b": null,
+    "n_questions": 20
+   },
+   "arm_b_bluff_a": {
+    "settled": false,
+    "rejected": false,
+    "u_a": 64639.70226650243,
+    "joint_surplus": 0.0
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 7,
+   "arch_a": "ledger",
+   "arch_b": "scorched_earth",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "lake_weeks"
+   },
+   "walk_a": 163066.56261583976,
+   "walk_b": 42814.54340579311,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 230219.46362952632,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "wildcard": 2,
+     "dog": 14,
+     "lake_weeks": 5,
+     "vinyl": 1
+    },
+    "unsettled": [
+     "dog"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 297272.641225126,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 291020.74408707407,
+    "u_a": 314332.50650563795,
+    "u_b": 182569.34360306896,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 314332.50650563795,
+    "joint_surplus": 291020.74408707407
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 8,
+   "arch_a": "ledger",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 5,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "dog",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "dog"
+   },
+   "walk_a": 100996.17760627264,
+   "walk_b": 195103.64034910843,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 9398.64904311391,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "lake_weeks": 7,
+     "vinyl": 5,
+     "wildcard": 14,
+     "dog": 10
+    },
+    "unsettled": [
+     "dog",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 62452.54747878373,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 62452.54747878373,
+    "u_a": 109510.14445869873,
+    "u_b": 249042.22097546607,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 26
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 109510.14445869873,
+    "joint_surplus": 62452.54747878373
+   },
+   "pettiness_tax": {
+    "a": 31406.805509610684,
+    "b": 76026.05727668857
+   }
+  },
+  {
+   "i": 9,
+   "arch_a": "ledger",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 26,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "dog",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "wildcard"
+   },
+   "walk_a": 75052.74432366213,
+   "walk_b": 56934.69428605907,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 29456.800694124075,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "lake_weeks": 11,
+     "vinyl": 1,
+     "wildcard": 14,
+     "dog": 10
+    },
+    "unsettled": [
+     "dog",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 48402.54053272507,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 49250.303295984,
+    "u_a": 108968.72314623042,
+    "u_b": 72269.01875947478,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 76458.27545595952,
+    "joint_surplus": 31574.337716052927
+   },
+   "pettiness_tax": {
+    "a": 8309.955162298225,
+    "b": 43612.54229638551
+   }
+  },
+  {
+   "i": 10,
+   "arch_a": "scorched_earth",
+   "arch_b": "already_healed",
+   "qualified": true,
+   "attempts": 15,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "dog",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "wildcard"
+   },
+   "walk_a": 64479.95110496108,
+   "walk_b": 40265.92720615814,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 4391.800525457547,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 4,
+     "lake_weeks": 8,
+     "dog": 14,
+     "wildcard": 11
+    },
+    "unsettled": [
+     "dog",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 86029.76843657845,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 78842.58870549983,
+    "u_a": 122064.57361875933,
+    "u_b": 61523.893397859734,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 120720.34856579186,
+    "joint_surplus": 77889.98172347205
+   },
+   "pettiness_tax": {
+    "a": 43874.07272631086,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 11,
+   "arch_a": "scorched_earth",
+   "arch_b": "ledger",
+   "qualified": true,
+   "attempts": 42,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "dog",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "espresso"
+   },
+   "walk_a": 43278.70607470993,
+   "walk_b": 55713.530946036706,
+   "arm_i": {
+    "settled_fraction": 0.5,
+    "fully_settled": false,
+    "joint_surplus": 6626.8912556006035,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 9,
+     "wildcard": 14,
+     "dog": 14,
+     "vinyl": 0
+    },
+    "unsettled": [
+     "dog",
+     "vinyl",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 41843.04701926288,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 35164.735081152714,
+    "u_a": 55936.54610213012,
+    "u_b": 78220.42599976923,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 57038.95076281752,
+    "joint_surplus": 37559.08259030936
+   },
+   "pettiness_tax": {
+    "a": 17331.62493205769,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 12,
+   "arch_a": "scorched_earth",
+   "arch_b": "scorched_earth",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "vinyl"
+   },
+   "walk_a": 41454.45421750879,
+   "walk_b": 56804.85402484181,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 3548.1525813105764,
+    "ir_a": false,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 3,
+     "dog": 7,
+     "lake_weeks": 10,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": false,
+    "joint_surplus": 0.0,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": null,
+    "ef_b": null
+   },
+   "arm_b": {
+    "settled": false,
+    "rejected": false,
+    "proposed": false,
+    "joint_surplus": 0.0,
+    "u_a": 41454.45421750879,
+    "u_b": 56804.85402484181,
+    "ef_a": null,
+    "ef_b": null,
+    "n_questions": 20
+   },
+   "arm_b_bluff_a": {
+    "settled": false,
+    "rejected": false,
+    "u_a": 41454.45421750879,
+    "joint_surplus": 0.0
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 13,
+   "arch_a": "scorched_earth",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 5,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "lake_weeks"
+   },
+   "walk_a": 50023.11634615315,
+   "walk_b": 87804.12635197787,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 65957.5342150628,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "wildcard": 4,
+     "dog": 14,
+     "lake_weeks": 8,
+     "vinyl": 3
+    },
+    "unsettled": [
+     "dog"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 102700.27694946146,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 93792.37828832079,
+    "u_a": 100557.93805902664,
+    "u_b": 131061.68292742516,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 100557.93805902664,
+    "joint_surplus": 93792.37828832079
+   },
+   "pettiness_tax": {
+    "a": 23428.427932849998,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 14,
+   "arch_a": "scorched_earth",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 46,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "dog"
+   },
+   "walk_a": 31457.42359407195,
+   "walk_b": 57991.111343088465,
+   "arm_i": {
+    "settled_fraction": 1.0,
+    "fully_settled": true,
+    "joint_surplus": 28459.646718766955,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 3,
+     "lake_weeks": 6,
+     "vinyl": 6,
+     "dog": 10
+    },
+    "unsettled": []
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 29108.1419947725,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 21684.022222065185,
+    "u_a": 50363.894199490256,
+    "u_b": 60768.662959735346,
+    "ef_a": true,
+    "ef_b": false,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 41243.07440853675,
+    "joint_surplus": 18751.306946254575
+   },
+   "pettiness_tax": {
+    "a": 32575.601020635513,
+    "b": 39076.04187140196
+   }
+  },
+  {
+   "i": 15,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "already_healed",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [],
+   "fronts": [
+    "wildcard"
+   ],
+   "hills": {
+    "a": "lake_weeks",
+    "b": "lake_weeks"
+   },
+   "walk_a": 90569.7055664098,
+   "walk_b": 25075.007273162868,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 44564.39225259507,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "dog": 4,
+     "vinyl": 1,
+     "wildcard": 1,
+     "lake_weeks": 14
+    },
+    "unsettled": [
+     "lake_weeks"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 59113.975043099796,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 39087.28946769064,
+    "u_a": 108099.75725578713,
+    "u_b": 46632.24505147618,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 108099.75725578713,
+    "joint_surplus": 39087.28946769064
+   },
+   "pettiness_tax": {
+    "a": 15607.82117760455,
+    "b": 43259.3192260034
+   }
+  },
+  {
+   "i": 16,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "ledger",
+   "qualified": true,
+   "attempts": 1,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "dog"
+   },
+   "walk_a": 239155.8698370561,
+   "walk_b": 125135.23618670518,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 3709.135272028245,
+    "ir_a": false,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "wildcard": 9,
+     "lake_weeks": 7,
+     "vinyl": 14,
+     "dog": 6
+    },
+    "unsettled": [
+     "dog",
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": false,
+    "joint_surplus": 0.0,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": null,
+    "ef_b": null
+   },
+   "arm_b": {
+    "settled": false,
+    "rejected": false,
+    "proposed": false,
+    "joint_surplus": 0.0,
+    "u_a": 239155.8698370561,
+    "u_b": 125135.23618670518,
+    "ef_a": null,
+    "ef_b": null,
+    "n_questions": 28
+   },
+   "arm_b_bluff_a": {
+    "settled": false,
+    "rejected": false,
+    "u_a": 239155.8698370561,
+    "joint_surplus": 0.0
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 17,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "scorched_earth",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "vinyl"
+   },
+   "walk_a": 262937.3417907435,
+   "walk_b": 30802.497493709394,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 8058.496523819318,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "dog": 10,
+     "wildcard": 4,
+     "lake_weeks": 5,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 357447.1259888937,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": false
+   },
+   "arm_b": {
+    "settled": false,
+    "rejected": false,
+    "proposed": false,
+    "joint_surplus": 0.0,
+    "u_a": 262937.3417907435,
+    "u_b": 30802.497493709394,
+    "ef_a": null,
+    "ef_b": null,
+    "n_questions": 20
+   },
+   "arm_b_bluff_a": {
+    "settled": false,
+    "rejected": false,
+    "u_a": 262937.3417907435,
+    "joint_surplus": 0.0
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 18,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 6,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "dog"
+   },
+   "walk_a": 78375.26339551744,
+   "walk_b": 63800.09929100259,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 3264.790654739045,
+    "ir_a": true,
+    "ir_b": false,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 4,
+     "wildcard": 3,
+     "dog": 13,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 35989.47604587378,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 35409.13949315575,
+    "u_a": 104083.78094168326,
+    "u_b": 73500.72123799252,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 81164.96287057729,
+    "joint_surplus": 10676.552372439917
+   },
+   "pettiness_tax": {
+    "a": 367.7419193134119,
+    "b": 22586.644604690722
+   }
+  },
+  {
+   "i": 19,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 44,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "vinyl"
+   },
+   "walk_a": 272997.50553446054,
+   "walk_b": 74145.78863260629,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 21575.73075518926,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 8,
+     "wildcard": 1,
+     "vinyl": 14,
+     "dog": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 202269.06832076632,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 202269.06832076632,
+    "u_a": 430501.45250719896,
+    "u_b": 118910.9099806342,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 430501.45250719896,
+    "joint_surplus": 202269.06832076632
+   },
+   "pettiness_tax": {
+    "a": 76167.87337134004,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 20,
+   "arch_a": "spreadsheet",
+   "arch_b": "already_healed",
+   "qualified": true,
+   "attempts": 34,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "vinyl"
+   },
+   "walk_a": 57852.93861201255,
+   "walk_b": 37235.649648846345,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 20561.95455108153,
+    "ir_a": true,
+    "ir_b": false,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 1,
+     "lake_weeks": 3,
+     "vinyl": 14,
+     "dog": 3
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 41250.41031979709,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 36659.74670564696,
+    "u_a": 68789.92109031,
+    "u_b": 62958.41387619585,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 79208.15806610437,
+    "joint_surplus": 36401.07283764564
+   },
+   "pettiness_tax": {
+    "a": 44.29124866522034,
+    "b": 23599.246519546752
+   }
+  },
+  {
+   "i": 21,
+   "arch_a": "spreadsheet",
+   "arch_b": "ledger",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "wildcard"
+   },
+   "walk_a": 50063.85301594297,
+   "walk_b": 109883.85240349553,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 9592.849625195551,
+    "ir_a": false,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 1,
+     "dog": 9,
+     "lake_weeks": 8,
+     "wildcard": 14
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 121909.08694556972,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": false,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 121909.08694556972,
+    "u_a": 57625.903413719265,
+    "u_b": 224230.88895128897,
+    "ef_a": false,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 57625.903413719265,
+    "joint_surplus": 121909.08694556972
+   },
+   "pettiness_tax": {
+    "a": 12448.356994236994,
+    "b": 52518.12532168756
+   }
+  },
+  {
+   "i": 22,
+   "arch_a": "spreadsheet",
+   "arch_b": "scorched_earth",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "wildcard"
+   },
+   "walk_a": 96943.85427991056,
+   "walk_b": 32675.04774476757,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 6614.425334454772,
+    "ir_a": false,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 4,
+     "dog": 6,
+     "lake_weeks": 6,
+     "wildcard": 14
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": false,
+    "joint_surplus": 0.0,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": null,
+    "ef_b": null
+   },
+   "arm_b": {
+    "settled": false,
+    "rejected": false,
+    "proposed": false,
+    "joint_surplus": 0.0,
+    "u_a": 96943.85427991056,
+    "u_b": 32675.04774476757,
+    "ef_a": null,
+    "ef_b": null,
+    "n_questions": 20
+   },
+   "arm_b_bluff_a": {
+    "settled": false,
+    "rejected": false,
+    "u_a": 96943.85427991056,
+    "joint_surplus": 0.0
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 23,
+   "arch_a": "spreadsheet",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 9,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "dog"
+   },
+   "walk_a": 57434.05386433808,
+   "walk_b": 148362.21015056118,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 105861.09918882554,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 1,
+     "lake_weeks": 2,
+     "vinyl": 14,
+     "dog": 3
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 95239.64645107172,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 93709.03465022551,
+    "u_a": 100568.01890096968,
+    "u_b": 198937.2797641551,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 100568.01890096968,
+    "joint_surplus": 93709.03465022551
+   },
+   "pettiness_tax": {
+    "a": 80935.96151386935,
+    "b": 59294.53864347981
+   }
+  },
+  {
+   "i": 24,
+   "arch_a": "spreadsheet",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 15,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "vinyl"
+   },
+   "walk_a": 50470.54515762183,
+   "walk_b": 68737.96983775281,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": -1454.9562835951147,
+    "ir_a": true,
+    "ir_b": false,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 2,
+     "lake_weeks": 7,
+     "dog": 14,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 36357.97402840697,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 36017.11580461856,
+    "u_a": 69407.18538641752,
+    "u_b": 85818.44541357568,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 69407.18538641752,
+    "joint_surplus": 36017.11580461856
+   },
+   "pettiness_tax": {
+    "a": 5402.922779468965,
+    "b": 28271.156617909015
+   }
+  },
+  {
+   "i": 25,
+   "arch_a": "already_healed",
+   "arch_b": "already_healed",
+   "qualified": true,
+   "attempts": 3,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "dog",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "wildcard"
+   },
+   "walk_a": 42828.76088453724,
+   "walk_b": 24025.362763970097,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 3157.2033696450344,
+    "ir_a": true,
+    "ir_b": false,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 1,
+     "lake_weeks": 5,
+     "dog": 7,
+     "wildcard": 14
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 30685.25950729098,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 27473.409038960763,
+    "u_a": 55416.20098744442,
+    "u_b": 38911.33170002368,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 55416.20098744442,
+    "joint_surplus": 27473.409038960763
+   },
+   "pettiness_tax": {
+    "a": 17716.38349754455,
+    "b": 95.87467637463124
+   }
+  },
+  {
+   "i": 26,
+   "arch_a": "already_healed",
+   "arch_b": "ledger",
+   "qualified": true,
+   "attempts": 13,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard",
+    "dog"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "espresso"
+   },
+   "walk_a": 39835.95543651277,
+   "walk_b": 76538.18825918867,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 14572.251882203913,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 1,
+     "lake_weeks": 2,
+     "dog": 13,
+     "wildcard": 14
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 35920.677425162234,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 19676.81258964084,
+    "u_a": 44473.36669098226,
+    "u_b": 91577.58959436002,
+    "ef_a": false,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 43992.02632180623,
+    "joint_surplus": 20243.80878233495
+   },
+   "pettiness_tax": {
+    "a": 10538.524043095065,
+    "b": 2659.159164906683
+   }
+  },
+  {
+   "i": 27,
+   "arch_a": "already_healed",
+   "arch_b": "scorched_earth",
+   "qualified": true,
+   "attempts": 9,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "espresso"
+   },
+   "walk_a": 25065.18967111975,
+   "walk_b": 13570.584113008816,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 14396.45900636732,
+    "ir_a": false,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "wildcard": 1,
+     "espresso": 3,
+     "lake_weeks": 3,
+     "vinyl": 14,
+     "dog": 11
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 30869.941513620877,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 30163.892411288747,
+    "u_a": 32252.005118524783,
+    "u_b": 36547.66107689253,
+    "ef_a": false,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 32252.005118524783,
+    "joint_surplus": 30163.892411288747
+   },
+   "pettiness_tax": {
+    "a": 23122.690840878204,
+    "b": 886.2193736189511
+   }
+  },
+  {
+   "i": 28,
+   "arch_a": "already_healed",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 12,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "dog"
+   },
+   "walk_a": 38798.8691592991,
+   "walk_b": 115629.1473977679,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 14995.320233899918,
+    "ir_a": false,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 7,
+     "wildcard": 1,
+     "vinyl": 14,
+     "dog": 14
+    },
+    "unsettled": [
+     "dog",
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 63609.69969463896,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 57567.86107339638,
+    "u_a": 67907.4684411619,
+    "u_b": 144088.40918930148,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 67907.4684411619,
+    "joint_surplus": 57567.86107339638
+   },
+   "pettiness_tax": {
+    "a": 89599.37175651192,
+    "b": 54591.22081893742
+   }
+  },
+  {
+   "i": 29,
+   "arch_a": "already_healed",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 2,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard",
+    "dog"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "wildcard"
+   },
+   "walk_a": 36561.48781072162,
+   "walk_b": 81632.59010643167,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 2354.858587871495,
+    "ir_a": true,
+    "ir_b": false,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 2,
+     "lake_weeks": 4,
+     "dog": 12,
+     "wildcard": 14
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 35018.40933890593,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 29225.01469155387,
+    "u_a": 51404.240042511876,
+    "u_b": 96014.85256619529,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 24
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 48756.081912504094,
+    "joint_surplus": 14428.536404052975
+   },
+   "pettiness_tax": {
+    "a": 5887.183161819034,
+    "b": 40154.5768956494
+   }
+  },
+  {
+   "i": 30,
+   "arch_a": "ledger",
+   "arch_b": "already_healed",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "dog"
+   ],
+   "fronts": [
+    "dog"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "vinyl"
+   },
+   "walk_a": 63579.03608864178,
+   "walk_b": 21718.486184360387,
+   "arm_i": {
+    "settled_fraction": 1.0,
+    "fully_settled": true,
+    "joint_surplus": 62823.384173120816,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "vinyl": 2,
+     "lake_weeks": 7,
+     "dog": 14,
+     "wildcard": 1
+    },
+    "unsettled": []
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 65392.12379282607,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 43091.35106900307,
+    "u_a": 100664.30205015998,
+    "u_b": 27724.571291845252,
+    "ef_a": true,
+    "ef_b": false,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 70237.52831544174,
+    "joint_surplus": 17395.042149653003
+   },
+   "pettiness_tax": {
+    "a": 13639.418825634784,
+    "b": 18248.986766178452
+   }
+  },
+  {
+   "i": 31,
+   "arch_a": "ledger",
+   "arch_b": "ledger",
+   "qualified": true,
+   "attempts": 27,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "dog"
+   },
+   "walk_a": 66287.43186723274,
+   "walk_b": 76677.44232207187,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 3880.884563410742,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 5,
+     "lake_weeks": 10,
+     "wildcard": 14,
+     "dog": 8
+    },
+    "unsettled": [
+     "dog",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 58160.81844855199,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 49939.11643723202,
+    "u_a": 86159.05608822663,
+    "u_b": 106744.93453831,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 92972.05210235287,
+    "joint_surplus": 49850.46613307882
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 25436.876580099837
+   }
+  },
+  {
+   "i": 32,
+   "arch_a": "ledger",
+   "arch_b": "scorched_earth",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [],
+   "fronts": [
+    "wildcard",
+    "dog"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "dog"
+   },
+   "walk_a": 127607.37315360265,
+   "walk_b": 55212.925607416706,
+   "arm_i": {
+    "settled_fraction": 1.0,
+    "fully_settled": true,
+    "joint_surplus": 127179.15915634079,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 5,
+     "wildcard": 2,
+     "vinyl": 1,
+     "dog": 7
+    },
+    "unsettled": []
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 214758.62104852364,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 214758.62104852364,
+    "u_a": 219046.19104101326,
+    "u_b": 178532.72876852972,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 155306.68870927911,
+    "joint_surplus": 184895.3114938612
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 8495.874745633104
+   }
+  },
+  {
+   "i": 33,
+   "arch_a": "ledger",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 6,
+   "contested": [
+    "vinyl",
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard",
+    "dog"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "vinyl"
+   },
+   "walk_a": 89810.27565791237,
+   "walk_b": 131799.57742965894,
+   "arm_i": {
+    "settled_fraction": 0.5,
+    "fully_settled": false,
+    "joint_surplus": 3858.5009743329138,
+    "ir_a": true,
+    "ir_b": false,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "lake_weeks": 7,
+     "dog": 14,
+     "wildcard": 14,
+     "vinyl": 1
+    },
+    "unsettled": [
+     "dog",
+     "vinyl",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 55154.67193636694,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 50372.59868707799,
+    "u_a": 117919.08542709076,
+    "u_b": 154063.36634755853,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 24
+   },
+   "arm_b_bluff_a": {
+    "settled": false,
+    "rejected": false,
+    "u_a": 89810.27565791237,
+    "joint_surplus": 0.0
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 49242.289975827356
+   }
+  },
+  {
+   "i": 34,
+   "arch_a": "ledger",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 5,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "vinyl"
+   },
+   "walk_a": 89030.79495549508,
+   "walk_b": 56744.363991227256,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 3815.58327134524,
+    "ir_a": true,
+    "ir_b": false,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 1,
+     "lake_weeks": 11,
+     "vinyl": 14,
+     "dog": 11
+    },
+    "unsettled": [
+     "dog",
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 47670.88385011699,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 46327.55116900514,
+    "u_a": 110951.09210269476,
+    "u_b": 81151.61801303271,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 101961.46093147816,
+    "joint_surplus": 44347.29401023209
+   },
+   "pettiness_tax": {
+    "a": 56151.85493356624,
+    "b": 29186.24632630759
+   }
+  },
+  {
+   "i": 35,
+   "arch_a": "scorched_earth",
+   "arch_b": "already_healed",
+   "qualified": true,
+   "attempts": 21,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard",
+    "dog"
+   ],
+   "hills": {
+    "a": "espresso",
+    "b": "wildcard"
+   },
+   "walk_a": 26535.119628386783,
+   "walk_b": 38248.93684286789,
+   "arm_i": {
+    "settled_fraction": 1.0,
+    "fully_settled": true,
+    "joint_surplus": 46337.212846001996,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "vinyl": 1,
+     "espresso": 11,
+     "lake_weeks": 3,
+     "wildcard": 13,
+     "dog": 5
+    },
+    "unsettled": []
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 43452.571823917584,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 44444.5354966272,
+    "u_a": 55474.42017943647,
+    "u_b": 53754.171788445405,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 55474.42017943647,
+    "joint_surplus": 44444.5354966272
+   },
+   "pettiness_tax": {
+    "a": 887.2496839216183,
+    "b": 21516.19257123189
+   }
+  },
+  {
+   "i": 36,
+   "arch_a": "scorched_earth",
+   "arch_b": "ledger",
+   "qualified": true,
+   "attempts": 27,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "dog"
+   },
+   "walk_a": 31958.364586455107,
+   "walk_b": 85787.15836181519,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 9012.78882519032,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "wildcard": 2,
+     "lake_weeks": 9,
+     "vinyl": 14,
+     "dog": 11
+    },
+    "unsettled": [
+     "dog",
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 46577.8630882066,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 44367.704175543564,
+    "u_a": 52830.28685462155,
+    "u_b": 109282.94026919232,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 38883.60697401689,
+    "joint_surplus": 30406.21294795742
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 65390.719936499605
+   }
+  },
+  {
+   "i": 37,
+   "arch_a": "scorched_earth",
+   "arch_b": "scorched_earth",
+   "qualified": true,
+   "attempts": 31,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "vinyl"
+   },
+   "walk_a": 30243.93963046697,
+   "walk_b": 28350.25417415758,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 11020.14161486291,
+    "ir_a": false,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 3,
+     "lake_weeks": 4,
+     "dog": 9,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 27534.37272524033,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 18098.473609251105,
+    "u_a": 43851.85773506459,
+    "u_b": 32840.80967881107,
+    "ef_a": true,
+    "ef_b": false,
+    "n_questions": 24
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 38409.16514740148,
+    "joint_surplus": 16028.434751339086
+   },
+   "pettiness_tax": {
+    "a": 54378.28919475447,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 38,
+   "arch_a": "scorched_earth",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 22,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "dog"
+   },
+   "walk_a": 25592.40404044141,
+   "walk_b": 77824.76304506118,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 9028.055769407882,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 8,
+     "wildcard": 2,
+     "dog": 14,
+     "vinyl": 13
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 52666.69600322808,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 51691.1084765279,
+    "u_a": 52947.08804099916,
+    "u_b": 102161.18752103133,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 52947.08804099916,
+    "joint_surplus": 51691.1084765279
+   },
+   "pettiness_tax": {
+    "a": 27122.400383096465,
+    "b": 6138.618085963535
+   }
+  },
+  {
+   "i": 39,
+   "arch_a": "scorched_earth",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 32,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "dog",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "wildcard"
+   },
+   "walk_a": 63749.982364458476,
+   "walk_b": 72412.674347083,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 5407.35994936691,
+    "ir_a": true,
+    "ir_b": false,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 2,
+     "lake_weeks": 6,
+     "dog": 12,
+     "wildcard": 14
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 64452.95080925707,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 66779.96607604666,
+    "u_a": 109558.32090178484,
+    "u_b": 93384.30188580329,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 93637.18756318072,
+    "joint_surplus": 60354.9157865362
+   },
+   "pettiness_tax": {
+    "a": 61373.79110390463,
+    "b": 5181.423326480988
+   }
+  },
+  {
+   "i": 40,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "already_healed",
+   "qualified": true,
+   "attempts": 12,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "vinyl"
+   },
+   "walk_a": 137598.83998181438,
+   "walk_b": 26485.463657018907,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 9451.476780128978,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "lake_weeks": 5,
+     "wildcard": 1,
+     "vinyl": 14,
+     "dog": 14
+    },
+    "unsettled": [
+     "dog",
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 90490.24188952487,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 88167.54765186437,
+    "u_a": 202291.32786905073,
+    "u_b": 49960.52342164693,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 184237.35726850526,
+    "joint_surplus": 71924.87668755205
+   },
+   "pettiness_tax": {
+    "a": 36772.34002765361,
+    "b": 46917.45793428115
+   }
+  },
+  {
+   "i": 41,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "ledger",
+   "qualified": true,
+   "attempts": 1,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "dog",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "espresso"
+   },
+   "walk_a": 159237.85217863356,
+   "walk_b": 55062.92976674602,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 18646.008729031702,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 7,
+     "vinyl": 3,
+     "wildcard": 14,
+     "dog": 13
+    },
+    "unsettled": [
+     "dog",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 78584.31692110306,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 78584.31692110306,
+    "u_a": 200563.7876277439,
+    "u_b": 92321.31123873874,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 200563.7876277439,
+    "joint_surplus": 78584.31692110306
+   },
+   "pettiness_tax": {
+    "a": 80821.96677299461,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 42,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "scorched_earth",
+   "qualified": true,
+   "attempts": 9,
+   "contested": [
+    "vinyl",
+    "wildcard"
+   ],
+   "fronts": [
+    "vinyl",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "vinyl"
+   },
+   "walk_a": 121838.61725553346,
+   "walk_b": 37993.683226846566,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 28032.76010163508,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "lake_weeks": 7,
+     "dog": 1,
+     "vinyl": 14,
+     "wildcard": 14
+    },
+    "unsettled": [
+     "vinyl",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 81481.20390189902,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 79295.48645658477,
+    "u_a": 164105.46237356027,
+    "u_b": 75022.32456540453,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 174221.08968577426,
+    "joint_surplus": 76144.39814690154
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 30062.328824645025
+   }
+  },
+  {
+   "i": 43,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 18,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "dog"
+   },
+   "walk_a": 74394.7406896026,
+   "walk_b": 82276.6080596496,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 10100.594125756077,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 6,
+     "vinyl": 4,
+     "dog": 13,
+     "wildcard": 14
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 38174.8343826583,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": false,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 22589.78281188631,
+    "u_a": 74758.9478111475,
+    "u_b": 104502.183749991,
+    "ef_a": false,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 74758.9478111475,
+    "joint_surplus": 22589.78281188631
+   },
+   "pettiness_tax": {
+    "a": 15430.570293722325,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 44,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 7,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "vinyl"
+   },
+   "walk_a": 167181.5439915046,
+   "walk_b": 59139.17087565901,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 13831.70335205803,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 7,
+     "wildcard": 1,
+     "vinyl": 14,
+     "dog": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 68339.68629735248,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 68226.43120408553,
+    "u_a": 190652.9071350122,
+    "u_b": 103894.23893623691,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 190652.9071350122,
+    "joint_surplus": 68226.43120408553
+   },
+   "pettiness_tax": {
+    "a": 58577.26581801975,
+    "b": 55056.48919142486
+   }
+  },
+  {
+   "i": 45,
+   "arch_a": "spreadsheet",
+   "arch_b": "already_healed",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "dog"
+   ],
+   "fronts": [
+    "wildcard",
+    "dog"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "dog"
+   },
+   "walk_a": 84661.9382657553,
+   "walk_b": 90203.82092766052,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 10575.79272361139,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 1,
+     "wildcard": 2,
+     "lake_weeks": 6,
+     "dog": 14
+    },
+    "unsettled": [
+     "dog"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 26693.454740613393,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 20798.774899674492,
+    "u_a": 100417.16090841062,
+    "u_b": 95247.3731846797,
+    "ef_a": true,
+    "ef_b": false,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 100417.16090841062,
+    "joint_surplus": 20798.774899674492
+   },
+   "pettiness_tax": {
+    "a": 63904.434790336905,
+    "b": 43321.538513475796
+   }
+  },
+  {
+   "i": 46,
+   "arch_a": "spreadsheet",
+   "arch_b": "ledger",
+   "qualified": true,
+   "attempts": 47,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "espresso"
+   },
+   "walk_a": 73407.84195154022,
+   "walk_b": 70294.80536217349,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 19065.97312293462,
+    "ir_a": false,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 7,
+     "wildcard": 1,
+     "dog": 13,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 47011.52253431632,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 41499.94000917094,
+    "u_a": 103916.62168548578,
+    "u_b": 81285.96563739887,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 86736.93217441837,
+    "joint_surplus": 48364.91797138947
+   },
+   "pettiness_tax": {
+    "a": 50649.96766712416,
+    "b": 419.5315294920292
+   }
+  },
+  {
+   "i": 47,
+   "arch_a": "spreadsheet",
+   "arch_b": "scorched_earth",
+   "qualified": true,
+   "attempts": 12,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "espresso"
+   },
+   "walk_a": 35761.64088110265,
+   "walk_b": 25316.71579174308,
+   "arm_i": {
+    "settled_fraction": 1.0,
+    "fully_settled": true,
+    "joint_surplus": 42130.21524500437,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 3,
+     "wildcard": 4,
+     "lake_weeks": 3,
+     "dog": 13,
+     "vinyl": 5
+    },
+    "unsettled": []
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 50288.507946725294,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 44915.274346433434,
+    "u_a": 49851.91109523072,
+    "u_b": 56141.71992404845,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 49851.91109523072,
+    "joint_surplus": 44915.274346433434
+   },
+   "pettiness_tax": {
+    "a": 9462.138214694816,
+    "b": 399.4654260680254
+   }
+  },
+  {
+   "i": 48,
+   "arch_a": "spreadsheet",
+   "arch_b": "sentimental_hoarder",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "vinyl"
+   },
+   "walk_a": 79830.9602661985,
+   "walk_b": 482703.39906710037,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 15135.899655443121,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "lake_weeks": 6,
+     "wildcard": 1,
+     "dog": 13,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": false,
+    "joint_surplus": 0.0,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": null,
+    "ef_b": null
+   },
+   "arm_b": {
+    "settled": false,
+    "rejected": false,
+    "proposed": false,
+    "joint_surplus": 0.0,
+    "u_a": 79830.9602661985,
+    "u_b": 482703.39906710037,
+    "ef_a": null,
+    "ef_b": null,
+    "n_questions": 20
+   },
+   "arm_b_bluff_a": {
+    "settled": false,
+    "rejected": false,
+    "u_a": 79830.9602661985,
+    "joint_surplus": 0.0
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 49,
+   "arch_a": "spreadsheet",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 24,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "dog",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "wildcard"
+   },
+   "walk_a": 46042.28666991653,
+   "walk_b": 53842.825823193496,
+   "arm_i": {
+    "settled_fraction": 1.0,
+    "fully_settled": true,
+    "joint_surplus": 34146.56793298026,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 1,
+     "lake_weeks": 7,
+     "wildcard": 5,
+     "dog": 9
+    },
+    "unsettled": []
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 34135.68228711848,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 10958.71643645347,
+    "u_a": 55560.32740353453,
+    "u_b": 55283.501526028966,
+    "ef_a": false,
+    "ef_b": false,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 55560.32740353453,
+    "joint_surplus": 10958.71643645347
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 16523.56851738118
+   }
+  },
+  {
+   "i": 50,
+   "arch_a": "already_healed",
+   "arch_b": "already_healed",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "dog"
+   ],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "lake_weeks"
+   },
+   "walk_a": 20694.335173953572,
+   "walk_b": 39001.30162582118,
+   "arm_i": {
+    "settled_fraction": 1.0,
+    "fully_settled": true,
+    "joint_surplus": 33620.24169941047,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 5,
+     "vinyl": 2,
+     "dog": 9,
+     "lake_weeks": 3
+    },
+    "unsettled": []
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 33748.50966705972,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 33249.611018175565,
+    "u_a": 30953.71348201698,
+    "u_b": 61991.534335933335,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 30953.71348201698,
+    "joint_surplus": 33249.611018175565
+   },
+   "pettiness_tax": {
+    "a": 291.7794043518079,
+    "b": 935.8220648081187
+   }
+  },
+  {
+   "i": 51,
+   "arch_a": "already_healed",
+   "arch_b": "ledger",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "dog"
+   ],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "dog"
+   },
+   "walk_a": 24420.30799675094,
+   "walk_b": 129567.79506456504,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 5445.672401556312,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 4,
+     "lake_weeks": 6,
+     "vinyl": 14,
+     "dog": 12
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 145685.19104892047,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 143607.04611774586,
+    "u_a": 48950.82620391425,
+    "u_b": 248644.3229751476,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 48950.82620391425,
+    "joint_surplus": 143607.04611774586
+   },
+   "pettiness_tax": {
+    "a": 50595.868863342155,
+    "b": 47957.23719690219
+   }
+  },
+  {
+   "i": 52,
+   "arch_a": "already_healed",
+   "arch_b": "scorched_earth",
+   "qualified": true,
+   "attempts": 34,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "wildcard"
+   },
+   "walk_a": 29563.96922456635,
+   "walk_b": 38340.687783888956,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 29569.413847818734,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 2,
+     "wildcard": 1,
+     "dog": 12,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 44477.78086873604,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 21241.31621570078,
+    "u_a": 43852.27591463558,
+    "u_b": 45293.6973095205,
+    "ef_a": true,
+    "ef_b": false,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 43852.27591463558,
+    "joint_surplus": 21241.31621570078
+   },
+   "pettiness_tax": {
+    "a": 18581.06487712718,
+    "b": 989.41982038469
+   }
+  },
+  {
+   "i": 53,
+   "arch_a": "already_healed",
+   "arch_b": "sentimental_hoarder",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "dog"
+   ],
+   "fronts": [
+    "dog",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "dog"
+   },
+   "walk_a": 37691.49106510481,
+   "walk_b": 109662.7775867389,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 43948.83102284398,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 4,
+     "vinyl": 3,
+     "wildcard": 1,
+     "dog": 14
+    },
+    "unsettled": [
+     "dog"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 60415.79675100219,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 60438.05006420201,
+    "u_a": 58314.31456284253,
+    "u_b": 149478.0041532032,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 58314.31456284253,
+    "joint_surplus": 60438.05006420201
+   },
+   "pettiness_tax": {
+    "a": 81529.72108541636,
+    "b": 17130.68672394828
+   }
+  },
+  {
+   "i": 54,
+   "arch_a": "already_healed",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 34,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "dog",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "wildcard"
+   },
+   "walk_a": 39434.13732270578,
+   "walk_b": 49161.14111642848,
+   "arm_i": {
+    "settled_fraction": 1.0,
+    "fully_settled": true,
+    "joint_surplus": 33169.41464341984,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 1,
+     "lake_weeks": 10,
+     "wildcard": 7,
+     "dog": 2
+    },
+    "unsettled": []
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 37244.49079584329,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 37169.92301621043,
+    "u_a": 55698.5191675022,
+    "u_b": 70066.68228784249,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 50871.72739164328,
+    "joint_surplus": 37169.92301621043
+   },
+   "pettiness_tax": {
+    "a": 12486.975358979238,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 55,
+   "arch_a": "ledger",
+   "arch_b": "already_healed",
+   "qualified": true,
+   "attempts": 40,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "vinyl"
+   },
+   "walk_a": 166465.7151841338,
+   "walk_b": 50447.177642059185,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 6595.205832768683,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "wildcard": 1,
+     "lake_weeks": 11,
+     "vinyl": 14,
+     "dog": 10
+    },
+    "unsettled": [
+     "dog",
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 107562.14253144638,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 105487.05875089506,
+    "u_a": 238298.01181183802,
+    "u_b": 84101.93976525,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 227563.00803074398,
+    "joint_surplus": 95429.8087947334
+   },
+   "pettiness_tax": {
+    "a": 66042.60842562147,
+    "b": 104259.16786498745
+   }
+  },
+  {
+   "i": 56,
+   "arch_a": "ledger",
+   "arch_b": "ledger",
+   "qualified": true,
+   "attempts": 17,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard",
+    "dog"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "espresso"
+   },
+   "walk_a": 81285.8613432391,
+   "walk_b": 73963.78894103038,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 14904.081538155035,
+    "ir_a": false,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 11,
+     "vinyl": 4,
+     "wildcard": 14,
+     "dog": 8
+    },
+    "unsettled": [
+     "dog",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 81775.39117412404,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 81669.1668285592,
+    "u_a": 110312.10250487187,
+    "u_b": 126606.7146079568,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 101618.82308326064,
+    "joint_surplus": 81592.4857771398
+   },
+   "pettiness_tax": {
+    "a": 13103.637246670463,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 57,
+   "arch_a": "ledger",
+   "arch_b": "scorched_earth",
+   "qualified": true,
+   "attempts": 25,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "dog"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "wildcard"
+   },
+   "walk_a": 91086.86703451727,
+   "walk_b": 31238.832583059906,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 6307.32147134807,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 2,
+     "lake_weeks": 12,
+     "dog": 14,
+     "wildcard": 9
+    },
+    "unsettled": [
+     "dog",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 52856.1993259019,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 54701.498412628134,
+    "u_a": 106609.2438818921,
+    "u_b": 70417.95414831322,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 106609.2438818921,
+    "joint_surplus": 54701.498412628134
+   },
+   "pettiness_tax": {
+    "a": 43373.742577557,
+    "b": 371.64920143643394
+   }
+  },
+  {
+   "i": 58,
+   "arch_a": "ledger",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 23,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard",
+    "dog"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "espresso"
+   },
+   "walk_a": 103409.14036017406,
+   "walk_b": 63196.8656518813,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 8284.301849773743,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 6,
+     "lake_weeks": 9,
+     "dog": 13,
+     "wildcard": 9
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 82499.94479430179,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 88860.77545503745,
+    "u_a": 175918.8897356321,
+    "u_b": 79547.8917314607,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 153629.76512395064,
+    "joint_surplus": 76386.5244198463
+   },
+   "pettiness_tax": {
+    "a": 36695.27282927238,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 59,
+   "arch_a": "ledger",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 35,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "espresso",
+    "b": "vinyl"
+   },
+   "walk_a": 75639.0287515847,
+   "walk_b": 63831.5498296444,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 10214.292416380456,
+    "ir_a": true,
+    "ir_b": false,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "wildcard": 2,
+     "espresso": 2,
+     "lake_weeks": 8,
+     "dog": 14,
+     "vinyl": 12
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 38200.8450377581,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 32913.61175610096,
+    "u_a": 87168.88538862612,
+    "u_b": 85215.30494870394,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 87168.88538862612,
+    "joint_surplus": 32913.61175610096
+   },
+   "pettiness_tax": {
+    "a": 127.99892676569289,
+    "b": 339.73311710960115
+   }
+  },
+  {
+   "i": 60,
+   "arch_a": "scorched_earth",
+   "arch_b": "already_healed",
+   "qualified": true,
+   "attempts": 2,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "espresso",
+    "b": "vinyl"
+   },
+   "walk_a": 21854.377116989035,
+   "walk_b": 29197.07828079306,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 16358.435502497185,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 1,
+     "lake_weeks": 8,
+     "dog": 13,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 33099.40547928585,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 23869.571611166877,
+    "u_a": 36899.5010385768,
+    "u_b": 38021.525970372175,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 37338.24777369747,
+    "joint_surplus": 24004.980807643482
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 8687.194855063091
+   }
+  },
+  {
+   "i": 61,
+   "arch_a": "scorched_earth",
+   "arch_b": "ledger",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "vinyl"
+   },
+   "walk_a": 84222.09087398535,
+   "walk_b": 220966.58907235131,
+   "arm_i": {
+    "settled_fraction": 1.0,
+    "fully_settled": true,
+    "joint_surplus": 548963.0259577874,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 3,
+     "wildcard": 6,
+     "lake_weeks": 9,
+     "dog": 1,
+     "vinyl": 1
+    },
+    "unsettled": []
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 550805.344798768,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 550805.344798768,
+    "u_a": 361458.16611441266,
+    "u_b": 494535.8586306921,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 361458.16611441266,
+    "joint_surplus": 550805.344798768
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 62,
+   "arch_a": "scorched_earth",
+   "arch_b": "scorched_earth",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [],
+   "fronts": [
+    "vinyl",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "lake_weeks"
+   },
+   "walk_a": 35254.24305339707,
+   "walk_b": 34258.43324212821,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 49273.777598586,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "dog": 12,
+     "vinyl": 2,
+     "wildcard": 14,
+     "lake_weeks": 2
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 137745.33747556884,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 116069.4775454145,
+    "u_a": 59707.15828012124,
+    "u_b": 125874.99556081853,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 59707.15828012124,
+    "joint_surplus": 116069.4775454145
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 1832.82931441463
+   }
+  },
+  {
+   "i": 63,
+   "arch_a": "scorched_earth",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 10,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "espresso"
+   },
+   "walk_a": 49727.4095669689,
+   "walk_b": 76670.38376422023,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 17920.957088936586,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 2,
+     "lake_weeks": 3,
+     "dog": 13,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 27614.393437452964,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": false,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 26466.27102279493,
+    "u_a": 51958.6787373133,
+    "u_b": 100905.38561667076,
+    "ef_a": false,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": false,
+    "rejected": false,
+    "u_a": 49727.4095669689,
+    "joint_surplus": 0.0
+   },
+   "pettiness_tax": {
+    "a": 2339.6427588200313,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 64,
+   "arch_a": "scorched_earth",
+   "arch_b": "spreadsheet",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [],
+   "fronts": [
+    "vinyl",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "vinyl"
+   },
+   "walk_a": 62839.173474656825,
+   "walk_b": 56008.48474739951,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 131598.70479763031,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "dog": 4,
+     "lake_weeks": 10,
+     "vinyl": 14,
+     "wildcard": 1
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 158006.69391230485,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 161992.9146470682,
+    "u_a": 177815.01693429908,
+    "u_b": 103025.55593482545,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 139669.1566408451,
+    "joint_surplus": 151157.03616390142
+   },
+   "pettiness_tax": {
+    "a": 17074.287624288205,
+    "b": 37771.16966724032
+   }
+  },
+  {
+   "i": 65,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "already_healed",
+   "qualified": true,
+   "attempts": 24,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "vinyl"
+   },
+   "walk_a": 153117.41569147163,
+   "walk_b": 34017.48197997922,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 9038.062752188205,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "wildcard": 1,
+     "lake_weeks": 6,
+     "vinyl": 14,
+     "dog": 10
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 76819.17762407544,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 74142.01119057124,
+    "u_a": 200153.00929356157,
+    "u_b": 61123.89956846052,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 200153.00929356157,
+    "joint_surplus": 74142.01119057124
+   },
+   "pettiness_tax": {
+    "a": 76402.89932136275,
+    "b": 111527.78762145468
+   }
+  },
+  {
+   "i": 66,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "ledger",
+   "qualified": true,
+   "attempts": 3,
+   "contested": [
+    "vinyl",
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "espresso"
+   },
+   "walk_a": 151202.3092322949,
+   "walk_b": 40009.687390026826,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 38681.111906305676,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "dog": 3,
+     "lake_weeks": 9,
+     "vinyl": 3,
+     "wildcard": 14
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 89801.19445609172,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 73117.7669584261,
+    "u_a": 210096.13579795868,
+    "u_b": 54233.62778278915,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 196755.26411471108,
+    "joint_surplus": 89801.19445609172
+   },
+   "pettiness_tax": {
+    "a": 50296.51809727571,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 67,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "scorched_earth",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "vinyl"
+   },
+   "walk_a": 367494.73506175523,
+   "walk_b": 52311.42259336688,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 32981.778141463496,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "dog": 6,
+     "lake_weeks": 6,
+     "wildcard": 3,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": false,
+    "joint_surplus": 0.0,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": null,
+    "ef_b": null
+   },
+   "arm_b": {
+    "settled": false,
+    "rejected": false,
+    "proposed": false,
+    "joint_surplus": 0.0,
+    "u_a": 367494.73506175523,
+    "u_b": 52311.42259336688,
+    "ef_a": null,
+    "ef_b": null,
+    "n_questions": 20
+   },
+   "arm_b_bluff_a": {
+    "settled": false,
+    "rejected": false,
+    "u_a": 367494.73506175523,
+    "joint_surplus": 0.0
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 68,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 1,
+   "contested": [
+    "vinyl",
+    "wildcard"
+   ],
+   "fronts": [
+    "vinyl",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "lake_weeks",
+    "b": "espresso"
+   },
+   "walk_a": 136208.7887660446,
+   "walk_b": 69354.069184307,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 39977.767328165675,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "dog": 6,
+     "espresso": 1,
+     "wildcard": 14,
+     "lake_weeks": 1,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 97849.82269876281,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 97849.82269876281,
+    "u_a": 205385.88345727077,
+    "u_b": 98026.79719184364,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 209900.3666247336,
+    "joint_surplus": 97251.75272328268
+   },
+   "pettiness_tax": {
+    "a": 1656.5155554716475,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 69,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 1,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "vinyl"
+   },
+   "walk_a": 185563.93491134615,
+   "walk_b": 86659.19155037518,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 12715.012306779885,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 7,
+     "wildcard": 1,
+     "vinyl": 14,
+     "dog": 14
+    },
+    "unsettled": [
+     "dog",
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 105359.64746429404,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 105359.64746429404,
+    "u_a": 255504.8463656562,
+    "u_b": 122077.92756035917,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 252716.24274812068,
+    "joint_surplus": 102996.48457521948
+   },
+   "pettiness_tax": {
+    "a": 100459.3848497989,
+    "b": 31446.41461166588
+   }
+  },
+  {
+   "i": 70,
+   "arch_a": "spreadsheet",
+   "arch_b": "already_healed",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "dog"
+   ],
+   "fronts": [
+    "vinyl"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "dog"
+   },
+   "walk_a": 29465.50715455033,
+   "walk_b": 29601.29431319577,
+   "arm_i": {
+    "settled_fraction": 1.0,
+    "fully_settled": true,
+    "joint_surplus": 27728.59210089444,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 1,
+     "vinyl": 2,
+     "lake_weeks": 2,
+     "dog": 7
+    },
+    "unsettled": []
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 28281.584538695748,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 26411.27353589048,
+    "u_a": 41020.842992322156,
+    "u_b": 44457.23201131442,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 35320.1729616336,
+    "joint_surplus": 11033.375154438556
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 24035.124268207743
+   }
+  },
+  {
+   "i": 71,
+   "arch_a": "spreadsheet",
+   "arch_b": "ledger",
+   "qualified": true,
+   "attempts": 8,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "dog"
+   },
+   "walk_a": 90695.01168976506,
+   "walk_b": 136164.483162734,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 8674.67316460784,
+    "ir_a": false,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 1,
+     "lake_weeks": 9,
+     "vinyl": 14,
+     "dog": 13
+    },
+    "unsettled": [
+     "dog",
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 132143.6705724192,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 132168.94459371542,
+    "u_a": 151417.32900159043,
+    "u_b": 207611.11044462404,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 151417.32900159043,
+    "joint_surplus": 132168.94459371542
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 1801.9162672739185
+   }
+  },
+  {
+   "i": 72,
+   "arch_a": "spreadsheet",
+   "arch_b": "scorched_earth",
+   "qualified": true,
+   "attempts": 41,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "wildcard"
+   },
+   "walk_a": 67438.90306746603,
+   "walk_b": 23493.510118960774,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 21465.804464507964,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 11,
+     "wildcard": 1,
+     "dog": 14,
+     "vinyl": 11
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 64780.06450994062,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 46624.18272753916,
+    "u_a": 98563.42870926735,
+    "u_b": 38993.16720469862,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 90222.09505637175,
+    "joint_surplus": 50293.283880125724
+   },
+   "pettiness_tax": {
+    "a": 20548.70496860164,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 73,
+   "arch_a": "spreadsheet",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 49,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "dog",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "dog"
+   },
+   "walk_a": 55243.68384214675,
+   "walk_b": 182271.24376919906,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 19603.827024398954,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "lake_weeks": 8,
+     "vinyl": 1,
+     "wildcard": 14,
+     "dog": 13
+    },
+    "unsettled": [
+     "dog",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 102519.9491083246,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 102519.9491083246,
+    "u_a": 84435.1270032978,
+    "u_b": 255599.7497163726,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 84435.1270032978,
+    "joint_surplus": 102519.9491083246
+   },
+   "pettiness_tax": {
+    "a": 37750.613432929385,
+    "b": 118906.63517000314
+   }
+  },
+  {
+   "i": 74,
+   "arch_a": "spreadsheet",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 45,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "dog",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "wildcard"
+   },
+   "walk_a": 97378.96058929618,
+   "walk_b": 60076.75569929224,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 3333.5620464825042,
+    "ir_a": true,
+    "ir_b": false,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 1,
+     "lake_weeks": 11,
+     "dog": 13,
+     "wildcard": 12
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 38300.216282221714,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 34189.68060760963,
+    "u_a": 111885.68220629243,
+    "u_b": 79759.71468990562,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 111416.60648299474,
+    "joint_surplus": 34119.431845661726
+   },
+   "pettiness_tax": {
+    "a": 60290.3433195189,
+    "b": 7248.272683371353
+   }
+  },
+  {
+   "i": 75,
+   "arch_a": "already_healed",
+   "arch_b": "already_healed",
+   "qualified": true,
+   "attempts": 2,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "vinyl"
+   },
+   "walk_a": 32760.3680284338,
+   "walk_b": 30225.261630171066,
+   "arm_i": {
+    "settled_fraction": 1.0,
+    "fully_settled": true,
+    "joint_surplus": 16060.432018604854,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 1,
+     "lake_weeks": 6,
+     "vinyl": 9,
+     "dog": 10
+    },
+    "unsettled": []
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 16415.107104954794,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 13941.14607567438,
+    "u_a": 41360.484311815635,
+    "u_b": 35566.29142246361,
+    "ef_a": true,
+    "ef_b": false,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 37173.24843212107,
+    "joint_surplus": 16362.340750806692
+   },
+   "pettiness_tax": {
+    "a": 14400.047312329327,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 76,
+   "arch_a": "already_healed",
+   "arch_b": "ledger",
+   "qualified": true,
+   "attempts": 37,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "espresso"
+   },
+   "walk_a": 30889.92094812746,
+   "walk_b": 56173.57504826359,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 18084.008299068722,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 1,
+     "lake_weeks": 2,
+     "dog": 13,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 49632.977252271914,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 49632.977252271914,
+    "u_a": 45166.385418507154,
+    "u_b": 91530.08783015581,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 34778.59485602868,
+    "joint_surplus": 13827.993952922116
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 77,
+   "arch_a": "already_healed",
+   "arch_b": "scorched_earth",
+   "qualified": true,
+   "attempts": 22,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "vinyl"
+   },
+   "walk_a": 25351.513191606435,
+   "walk_b": 33324.99752646851,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 8391.984262815946,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 9,
+     "lake_weeks": 2,
+     "dog": 10,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 68866.94794638065,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 45216.87340825345,
+    "u_a": 45449.475750578546,
+    "u_b": 58443.90837574985,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 45449.475750578546,
+    "joint_surplus": 45216.87340825345
+   },
+   "pettiness_tax": {
+    "a": 23650.074538127228,
+    "b": 42461.6458426694
+   }
+  },
+  {
+   "i": 78,
+   "arch_a": "already_healed",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 31,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard",
+    "dog"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "dog"
+   },
+   "walk_a": 26231.095649539435,
+   "walk_b": 102302.23746373005,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 9140.413174439083,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "lake_weeks": 8,
+     "vinyl": 1,
+     "wildcard": 14,
+     "dog": 12
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 64636.38706122187,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 64677.86192723103,
+    "u_a": 42750.9847201634,
+    "u_b": 150460.21032033712,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 42750.9847201634,
+    "joint_surplus": 64677.86192723103
+   },
+   "pettiness_tax": {
+    "a": 46339.61870237824,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 79,
+   "arch_a": "already_healed",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 23,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard",
+    "dog"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "wildcard"
+   },
+   "walk_a": 33652.9390908966,
+   "walk_b": 59202.36145173623,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 5119.704625952429,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 1,
+     "lake_weeks": 4,
+     "dog": 12,
+     "wildcard": 14
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 40579.676473935455,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 38147.40245942627,
+    "u_a": 48109.285037536734,
+    "u_b": 82893.41796452236,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 36494.36033028101,
+    "joint_surplus": 8895.044475342555
+   },
+   "pettiness_tax": {
+    "a": 159.36643189872848,
+    "b": 15263.207760239457
+   }
+  },
+  {
+   "i": 80,
+   "arch_a": "ledger",
+   "arch_b": "already_healed",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "dog"
+   ],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "dog"
+   },
+   "walk_a": 124814.39668313546,
+   "walk_b": 104519.43921054139,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 62977.129453980684,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "lake_weeks": 3,
+     "wildcard": 1,
+     "vinyl": 1,
+     "dog": 14
+    },
+    "unsettled": [
+     "dog"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 71423.06501845927,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 65045.92411669095,
+    "u_a": 178289.40125660985,
+    "u_b": 116090.35875375794,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 180258.42575205915,
+    "joint_surplus": 65417.22410216014
+   },
+   "pettiness_tax": {
+    "a": 81642.28408942101,
+    "b": 101754.36505296966
+   }
+  },
+  {
+   "i": 81,
+   "arch_a": "ledger",
+   "arch_b": "ledger",
+   "qualified": true,
+   "attempts": 27,
+   "contested": [
+    "vinyl",
+    "wildcard"
+   ],
+   "fronts": [
+    "vinyl",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "espresso"
+   },
+   "walk_a": 109111.97381369284,
+   "walk_b": 64012.35629429945,
+   "arm_i": {
+    "settled_fraction": 0.5,
+    "fully_settled": false,
+    "joint_surplus": 6068.404610933052,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 8,
+     "vinyl": 14,
+     "wildcard": 14,
+     "dog": 1
+    },
+    "unsettled": [
+     "dog",
+     "vinyl",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 86668.21391064726,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 76840.81442827685,
+    "u_a": 177260.52787443157,
+    "u_b": 72704.61666183756,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 161757.11144487557,
+    "joint_surplus": 77486.59657630607
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 82,
+   "arch_a": "ledger",
+   "arch_b": "scorched_earth",
+   "qualified": true,
+   "attempts": 6,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard",
+    "dog"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "wildcard"
+   },
+   "walk_a": 124141.16323158168,
+   "walk_b": 35031.557937367346,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 14314.075145980692,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "lake_weeks": 5,
+     "vinyl": 2,
+     "wildcard": 14,
+     "dog": 14
+    },
+    "unsettled": [
+     "dog",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 123246.8854044553,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 123246.8854044553,
+    "u_a": 210406.4737454001,
+    "u_b": 72013.13282800425,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 175882.1722334129,
+    "joint_surplus": 102639.45559017707
+   },
+   "pettiness_tax": {
+    "a": 20765.436247165897,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 83,
+   "arch_a": "ledger",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 8,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "espresso",
+    "b": "dog"
+   },
+   "walk_a": 55036.18752900298,
+   "walk_b": 195388.22583832097,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 19070.109773440192,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 7,
+     "wildcard": 3,
+     "vinyl": 14,
+     "dog": 13
+    },
+    "unsettled": [
+     "dog",
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 97081.9280758577,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 97081.9280758577,
+    "u_a": 108014.1779852502,
+    "u_b": 239492.16345793146,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 108014.1779852502,
+    "joint_surplus": 97081.9280758577
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 63815.3322519848
+   }
+  },
+  {
+   "i": 84,
+   "arch_a": "ledger",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 1,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "vinyl"
+   },
+   "walk_a": 48044.037647638754,
+   "walk_b": 42834.927545216415,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 12589.291274039286,
+    "ir_a": true,
+    "ir_b": false,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 2,
+     "lake_weeks": 2,
+     "dog": 7,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 43806.86820331917,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 35053.74091960297,
+    "u_a": 66461.94902803969,
+    "u_b": 59470.75708441845,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 66461.94902803969,
+    "joint_surplus": 35053.74091960297
+   },
+   "pettiness_tax": {
+    "a": 23709.22133076712,
+    "b": 725.4482285129197
+   }
+  },
+  {
+   "i": 85,
+   "arch_a": "scorched_earth",
+   "arch_b": "already_healed",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "espresso"
+   },
+   "walk_a": 62478.03165921563,
+   "walk_b": 25931.655222453304,
+   "arm_i": {
+    "settled_fraction": 1.0,
+    "fully_settled": true,
+    "joint_surplus": 158275.58918545122,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "wildcard": 3,
+     "lake_weeks": 3,
+     "dog": 13,
+     "vinyl": 1
+    },
+    "unsettled": []
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 146941.00054063788,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 125318.67332845292,
+    "u_a": 152085.59357963596,
+    "u_b": 61642.766630485894,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 152085.59357963596,
+    "joint_surplus": 125318.67332845292
+   },
+   "pettiness_tax": {
+    "a": 11409.493704229564,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 86,
+   "arch_a": "scorched_earth",
+   "arch_b": "ledger",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "vinyl"
+   ],
+   "fronts": [
+    "wildcard",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "lake_weeks"
+   },
+   "walk_a": 64275.97156846674,
+   "walk_b": 80391.29590676396,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 14217.507572579161,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 3,
+     "dog": 7,
+     "wildcard": 5,
+     "lake_weeks": 14,
+     "vinyl": 9
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 124702.15151188469,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 128591.89058645317,
+    "u_a": 150846.27060089985,
+    "u_b": 122412.88746078403,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 131877.8800905502,
+    "joint_surplus": 120812.4124373162
+   },
+   "pettiness_tax": {
+    "a": 41265.61786432477,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 87,
+   "arch_a": "scorched_earth",
+   "arch_b": "scorched_earth",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [],
+   "fronts": [
+    "wildcard"
+   ],
+   "hills": {
+    "a": "lake_weeks",
+    "b": "wildcard"
+   },
+   "walk_a": 50347.86634373856,
+   "walk_b": 32120.46100544686,
+   "arm_i": {
+    "settled_fraction": 1.0,
+    "fully_settled": true,
+    "joint_surplus": 178834.15700619726,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 4,
+     "dog": 6,
+     "wildcard": 2,
+     "lake_weeks": 4
+    },
+    "unsettled": []
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 174176.5525735955,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 175452.90497075027,
+    "u_a": 177291.27567990083,
+    "u_b": 80629.95664003486,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 177291.27567990083,
+    "joint_surplus": 175452.90497075027
+   },
+   "pettiness_tax": {
+    "a": 6067.487109583613,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 88,
+   "arch_a": "scorched_earth",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 15,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "espresso"
+   },
+   "walk_a": 44413.668686655416,
+   "walk_b": 65148.16912957209,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 19046.21266455696,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 5,
+     "wildcard": 1,
+     "dog": 14,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "dog",
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 50404.79150329792,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 20005.64763418425,
+    "u_a": 49618.21352070938,
+    "u_b": 79949.27192970237,
+    "ef_a": false,
+    "ef_b": true,
+    "n_questions": 24
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 44619.09082860795,
+    "joint_surplus": 37265.440934418046
+   },
+   "pettiness_tax": {
+    "a": 63508.71660533581,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 89,
+   "arch_a": "scorched_earth",
+   "arch_b": "spreadsheet",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "dog"
+   ],
+   "fronts": [
+    "dog"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "lake_weeks"
+   },
+   "walk_a": 29870.077505055953,
+   "walk_b": 75527.29972851402,
+   "arm_i": {
+    "settled_fraction": 1.0,
+    "fully_settled": true,
+    "joint_surplus": 81308.09979515432,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 1,
+     "dog": 13,
+     "wildcard": 1,
+     "lake_weeks": 2
+    },
+    "unsettled": []
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 105858.20576417827,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 89250.05918767702,
+    "u_a": 70514.0972089141,
+    "u_b": 124133.3392123329,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 70514.0972089141,
+    "joint_surplus": 89250.05918767702
+   },
+   "pettiness_tax": {
+    "a": 4549.842260151927,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 90,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "already_healed",
+   "qualified": true,
+   "attempts": 34,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "vinyl",
+    "dog"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "vinyl"
+   },
+   "walk_a": 155625.93509569007,
+   "walk_b": 33350.88634382844,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 12092.017521237438,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "lake_weeks": 8,
+     "wildcard": 1,
+     "vinyl": 14,
+     "dog": 13
+    },
+    "unsettled": [
+     "dog",
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 103623.94029772101,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 44394.544489794105,
+    "u_a": 178268.58714402406,
+    "u_b": 55102.77878528856,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 184073.9454846048,
+    "joint_surplus": 47163.7555386038
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 97504.45040478726
+   }
+  },
+  {
+   "i": 91,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "ledger",
+   "qualified": true,
+   "attempts": 17,
+   "contested": [
+    "dog",
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard",
+    "dog"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "espresso"
+   },
+   "walk_a": 127305.56328569511,
+   "walk_b": 62273.88624549001,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 13386.148433133014,
+    "ir_a": false,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "lake_weeks": 5,
+     "vinyl": 2,
+     "dog": 14,
+     "wildcard": 14
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 63364.824809212514,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 39523.79545911969,
+    "u_a": 145835.33297490893,
+    "u_b": 83267.91201539588,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 135448.45653046307,
+    "joint_surplus": 39817.32690318243
+   },
+   "pettiness_tax": {
+    "a": 24212.625005411304,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 92,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "scorched_earth",
+   "qualified": true,
+   "attempts": 4,
+   "contested": [
+    "vinyl",
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "espresso"
+   },
+   "walk_a": 101121.28757973216,
+   "walk_b": 26277.360552643895,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 21253.651371758224,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "lake_weeks": 9,
+     "dog": 3,
+     "vinyl": 14,
+     "wildcard": 10
+    },
+    "unsettled": [
+     "vinyl",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 53507.082425761415,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 8614.622668934957,
+    "u_a": 103320.53467682705,
+    "u_b": 32692.73612448396,
+    "ef_a": false,
+    "ef_b": false,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 138167.539885308,
+    "joint_surplus": 45402.29509064842
+   },
+   "pettiness_tax": {
+    "a": 1884.1812881891092,
+    "b": 2124.531610014732
+   }
+  },
+  {
+   "i": 93,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "sentimental_hoarder",
+   "qualified": true,
+   "attempts": 1,
+   "contested": [
+    "vinyl",
+    "wildcard"
+   ],
+   "fronts": [
+    "vinyl",
+    "wildcard"
+   ],
+   "hills": {
+    "a": "espresso",
+    "b": "lake_weeks"
+   },
+   "walk_a": 72859.76932370194,
+   "walk_b": 152203.9158862483,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 25938.80145515196,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "dog": 6,
+     "lake_weeks": 8,
+     "vinyl": 14,
+     "wildcard": 9
+    },
+    "unsettled": [
+     "vinyl",
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 94715.22965575728,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 31363.722267013538,
+    "u_a": 100667.11645238861,
+    "u_b": 155760.29102457516,
+    "ef_a": true,
+    "ef_b": false,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 100667.11645238861,
+    "joint_surplus": 31363.722267013538
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 94,
+   "arch_a": "sentimental_hoarder",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 16,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "dog",
+    "b": "vinyl"
+   },
+   "walk_a": 177489.21930225973,
+   "walk_b": 58923.275098414124,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 3777.8468802844145,
+    "ir_a": true,
+    "ir_b": false,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 1,
+     "lake_weeks": 6,
+     "vinyl": 14,
+     "dog": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 130663.89650341339,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 128681.90611044207,
+    "u_a": 271725.39405664906,
+    "u_b": 93369.00645446686,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 271725.39405664906,
+    "joint_surplus": 128681.90611044207
+   },
+   "pettiness_tax": {
+    "a": 35918.97174166198,
+    "b": 0.0
+   }
+  },
+  {
+   "i": 95,
+   "arch_a": "spreadsheet",
+   "arch_b": "already_healed",
+   "qualified": true,
+   "attempts": 36,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "vinyl"
+   },
+   "walk_a": 50742.17772504144,
+   "walk_b": 47572.18664607197,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 1900.7317424549474,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 2,
+     "lake_weeks": 5,
+     "dog": 11,
+     "vinyl": 14
+    },
+    "unsettled": [
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 29790.000264947463,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 26733.881458584336,
+    "u_a": 61415.092496881014,
+    "u_b": 63633.15333281673,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 61415.092496881014,
+    "joint_surplus": 26733.881458584336
+   },
+   "pettiness_tax": {
+    "a": 39111.70807120582,
+    "b": 1692.7491935532598
+   }
+  },
+  {
+   "i": 96,
+   "arch_a": "spreadsheet",
+   "arch_b": "ledger",
+   "qualified": true,
+   "attempts": 19,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog",
+    "vinyl"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "dog"
+   },
+   "walk_a": 66424.68390400168,
+   "walk_b": 188439.64654990722,
+   "arm_i": {
+    "settled_fraction": 0.6666666666666666,
+    "fully_settled": false,
+    "joint_surplus": 5450.3568261588225,
+    "ir_a": false,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 2,
+     "wildcard": 4,
+     "lake_weeks": 9,
+     "vinyl": 14,
+     "dog": 9
+    },
+    "unsettled": [
+     "dog",
+     "vinyl"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 123442.83220141397,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 121403.23037505364,
+    "u_a": 100578.03022724541,
+    "u_b": 275689.5306017171,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 100578.03022724541,
+    "joint_surplus": 121403.23037505364
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 53524.39377450576
+   }
+  },
+  {
+   "i": 97,
+   "arch_a": "spreadsheet",
+   "arch_b": "scorched_earth",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [
+    "wildcard"
+   ],
+   "fronts": [
+    "wildcard"
+   ],
+   "hills": {
+    "a": "wildcard",
+    "b": "wildcard"
+   },
+   "walk_a": 26601.38111516436,
+   "walk_b": 44250.3027531711,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 5043.421942430687,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 3,
+     "dog": 5,
+     "lake_weeks": 6,
+     "wildcard": 14
+    },
+    "unsettled": [
+     "wildcard"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 77637.9146242641,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 77637.9146242641,
+    "u_a": 51848.59998612321,
+    "u_b": 96640.99850647635,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 52188.59998612321,
+    "joint_surplus": 77038.23275651253
+   },
+   "pettiness_tax": {
+    "a": 8526.414222406922,
+    "b": 26772.80662524575
+   }
+  },
+  {
+   "i": 98,
+   "arch_a": "spreadsheet",
+   "arch_b": "sentimental_hoarder",
+   "qualified": false,
+   "attempts": 50,
+   "contested": [],
+   "fronts": [
+    "wildcard",
+    "dog"
+   ],
+   "hills": {
+    "a": "lake_weeks",
+    "b": "wildcard"
+   },
+   "walk_a": 85460.6148282291,
+   "walk_b": 217470.91978575467,
+   "arm_i": {
+    "settled_fraction": 0.8333333333333334,
+    "fully_settled": false,
+    "joint_surplus": 279380.4053433058,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "vinyl": 1,
+     "dog": 5,
+     "lake_weeks": 14,
+     "wildcard": 1
+    },
+    "unsettled": [
+     "lake_weeks"
+    ]
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 356442.68291385693,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 328684.0499517929,
+    "u_a": 193601.84975049814,
+    "u_b": 438013.73481527856,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 193601.84975049814,
+    "joint_surplus": 328684.0499517929
+   },
+   "pettiness_tax": {
+    "a": 0.0,
+    "b": 2187.7233818951063
+   }
+  },
+  {
+   "i": 99,
+   "arch_a": "spreadsheet",
+   "arch_b": "spreadsheet",
+   "qualified": true,
+   "attempts": 3,
+   "contested": [
+    "dog",
+    "vinyl"
+   ],
+   "fronts": [
+    "dog"
+   ],
+   "hills": {
+    "a": "vinyl",
+    "b": "vinyl"
+   },
+   "walk_a": 36747.771118200595,
+   "walk_b": 41810.51619073687,
+   "arm_i": {
+    "settled_fraction": 1.0,
+    "fully_settled": true,
+    "joint_surplus": 26616.30525151705,
+    "ir_a": true,
+    "ir_b": true,
+    "per_item_exchanges": {
+     "wallet": 2,
+     "espresso": 1,
+     "wildcard": 3,
+     "lake_weeks": 5,
+     "vinyl": 12,
+     "dog": 7
+    },
+    "unsettled": []
+   },
+   "arm_o": {
+    "settled": true,
+    "joint_surplus": 26620.96915528454,
+    "ir_a": true,
+    "ir_b": true,
+    "ef_a": true,
+    "ef_b": true
+   },
+   "arm_b": {
+    "settled": true,
+    "rejected": false,
+    "proposed": true,
+    "joint_surplus": 23644.986563414466,
+    "u_a": 49309.27768004143,
+    "u_b": 52893.9961923105,
+    "ef_a": true,
+    "ef_b": true,
+    "n_questions": 22
+   },
+   "arm_b_bluff_a": {
+    "settled": true,
+    "rejected": false,
+    "u_a": 45090.70049160548,
+    "joint_surplus": 26696.956942842276
+   },
+   "pettiness_tax": {
+    "a": 17740.507794715406,
+    "b": 0.0
+   }
+  }
+ ]
+}

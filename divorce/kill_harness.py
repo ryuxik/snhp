@@ -37,6 +37,10 @@ REGISTRATION = {
                  "transfer_step": arms.TRANSFER_STEP},
     "elicitation": {"q_budget_per_side": elicit.Q_BUDGET,
                     "cal_seed": elicit.CAL_SEED, "cal_n": elicit.CAL_N,
+                    "pool": "v2 all-choices (linear package choices w/ cash "
+                            "riders) — adopted post-freeze after the "
+                            "biased-human K3 result; revalidated on seeds "
+                            "7/11/23 rather than grandfathered",
                     "bluff_policy": f"hill intensity x{elicit.BLUFF_HILL_MULT}, "
                                     "stated lam/walk_away truthful"},
     "kills": {

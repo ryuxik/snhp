@@ -156,3 +156,21 @@ layer, in harness or demo — the LLM-free acceptance rule is load-bearing,
 not paranoia. Any future change letting the LLM decide acceptance is
 invalid. Evidence: `results-trap-check.json` (per-decision records +
 reasonings). Rerun: `python3 -m divorce.trap_check --pairs 20 --seed 7`.
+
+## v2 elicitation ADOPTED (post-freeze design change, fully revalidated)
+
+The all-choices interview (elicit_v2) is now the default across harness,
+API, and demo. Revalidation on all three seeds (N=100 each, frozen
+thresholds): every kill survives with wider margins than v1 —
+
+| seed | ARM-B settle | K2 adv | K3 | K4 |
+|---|---|---|---|---|
+| 7 | 98.6% (was 76%) | 67% | 92% | 0 |
+| 11 | 93.2% | 58% | 93% | 0 |
+| 23 | 92.8% | 63% | 90% | 0 |
+
+Files: results-kill-v2-seed{7,11,23}.json. Preset traces regenerated (same
+seeds, same story shapes); the chrome renders linear package choices through
+the same clerk voice ("The espresso machine, or $1,714 more of the joint
+wallet?"), verified live. v1 code paths retained (elicit, make_answerer_v1)
+for reproducing pre-migration artifacts.

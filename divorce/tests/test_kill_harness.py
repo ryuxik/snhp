@@ -63,9 +63,9 @@ def test_evaluate_smoke():
 def test_answerer_table_is_independent_of_persona(pair):
     from divorce import elicit
     ans = elicit.make_answerer(pair["a"], uid=1)
-    before = dict(ans.wtp)
-    ans.wtp["dog"] *= 2
-    assert pair["a"].values["dog"] != ans.wtp["dog"] or before["dog"] == 0
+    before = dict(ans.v)
+    ans.v["dog"] *= 2
+    assert pair["a"].values["dog"] != ans.v["dog"] or before["dog"] == 0
 
 
 def test_arm_b_settled_implies_true_ir(pair):

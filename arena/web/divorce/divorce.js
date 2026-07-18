@@ -309,6 +309,7 @@
       req(q, 'step'); req(q, 'bands');
       if (q.kind === 'probe') { req(q, 'asset'); req(q, 'price'); req(q, 'answer'); }
       else if (q.kind === 'pair') { req(q, 'A'); req(q, 'B'); req(q, 'answer'); }
+      else if (q.kind === 'linear') { req(q, 'weights'); req(q, 'sweetener'); req(q, 'answer'); }
       else throw new Error('unknown question kind "' + q.kind + '" in trace');
     }
 
@@ -902,6 +903,33 @@
               say('clerk', lead + cap(assetDisp(m, req(q, 'A')))
                 + ', or ' + assetDisp(m, req(q, 'B')) + '?'
                 + pick(VOICE.pairTail, qNum));
+            } else if (q.kind === 'linear') {
+              // v2 all-choices interview: every question is a package choice
+              // u(A)-u(B) = sum(weights*v)+sweetener. Cash appears only as a
+              // rider inside a package — same registered trade-offer rule.
+              const ws = req(q, 'weights');
+              const sw = req(q, 'sweetener');
+              const aSide = Object.keys(ws).filter((x) => ws[x] > 0).map((x) => assetDisp(m, x));
+              const bSide = Object.keys(ws).filter((x) => ws[x] < 0).map((x) => assetDisp(m, x));
+              if (bSide.length === 0 && sw < 0) {
+                // pure cash-for-asset trade — the probe skeletons apply
+                const t = Math.abs(sw);
+                const disp = aSide.join(' and ');
+                const offer = t <= 24000
+                  ? cap(disp) + ', or ' + fmtPrice(t) + ' more of ' + cleanDisp(m, 'wallet') + '?'
+                    + pick(VOICE.probeWalletTail, qNum)
+                  : 'If the settlement paid you ' + fmtPrice(t)
+                    + ' to give up ' + disp + ' — take it?'
+                    + pick(VOICE.probeBuyoutTail, qNum);
+                say('clerk', lead + offer);
+              } else {
+                let left = aSide.join(' and ');
+                let right = bSide.join(' and ');
+                if (sw > 0) left += (left ? ' plus ' : '') + fmtPrice(sw);
+                if (sw < 0) right += (right ? ' plus ' : '') + fmtPrice(Math.abs(sw));
+                say('clerk', lead + cap(left) + ' — or ' + right + '?'
+                  + pick(VOICE.pairTail, qNum));
+              }
             } else {
               throw new Error('unknown question kind "' + q.kind + '" in trace');
             }
@@ -910,6 +938,17 @@
             let ans;
             if (q.kind === 'probe') {
               ans = q.answer === true ? 'Yes.' : 'No.';
+            } else if (q.kind === 'linear') {
+              const ws = q.weights;
+              const aSide = Object.keys(ws).filter((x) => ws[x] > 0).map((x) => assetDisp(m, x));
+              const bSide = Object.keys(ws).filter((x) => ws[x] < 0).map((x) => assetDisp(m, x));
+              if (bSide.length === 0 && q.sweetener < 0) {
+                ans = q.answer === true ? 'Yes.' : 'No.';   // took/refused the trade
+              } else if (q.answer === true) {
+                ans = cap(aSide.join(' and ')) + '.';
+              } else {
+                ans = bSide.length ? cap(bSide.join(' and ')) + '.' : 'The money.';
+              }
             } else if (q.answer === 'A') ans = cap(assetDisp(m, q.A)) + '.';
             else if (q.answer === 'B') ans = cap(assetDisp(m, q.B)) + '.';
             else ans = 'Neither.'; // pair answer "walk" (never invented; schema event type)
@@ -917,8 +956,12 @@
             const revealedHill = updateBands(side, req(q, 'bands'), req(q, 'step'));
             // deterministic clerk punctuation, keyed only to real events:
             // a hill detection, a refusal, an answer landing on the cadence.
+            const cashDecline = q.answer === false
+              && (q.kind === 'probe'
+                  || (q.kind === 'linear' && q.sweetener < 0
+                      && Object.values(q.weights).every((w) => w > 0)));
             if (revealedHill) say('aside', pick(VOICE.hill, hillSeen++));
-            else if (q.kind === 'probe' && q.answer === false && k % 7 === 5) say('aside', 'That’s what they all say.');
+            else if (cashDecline && k % 7 === 5) say('aside', 'That’s what they all say.');
             else if (q.kind === 'pair' && ans === 'Neither.') say('aside', 'Neither. Bold.');
             else if (k % 5 === 4) say('aside', pick(VOICE.ack, Math.floor(k / 5)));
           }]);
