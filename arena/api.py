@@ -363,7 +363,7 @@ def _is_page(path: str) -> bool:
     if path in ("/", "/world"):
         return True
     if path.startswith(("/api", "/arena", "/health", "/hit", "/core",
-                        "/block/live", "/vendor")):
+                        "/block/live", "/vendor", "/v1")):
         return False
     return path.endswith(".html") or path.endswith("/")
 
@@ -517,6 +517,12 @@ def world() -> FileResponse:
 _CORE_JS = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "js")
 if os.path.isdir(_CORE_JS):
     app.mount("/core/js", StaticFiles(directory=_CORE_JS), name="corejs")
+
+# The divorce demo's live engine — same-origin with its chrome at /divorce/
+# (SPEC.md section 11.3). The case ledger persists on the arena volume via
+# DIVORCE_CASES_PATH so "same number, same divorce" survives deploys.
+from divorce.api import router as _divorce_router  # noqa: E402
+app.include_router(_divorce_router)
 
 # Serve the renderer SPA same-origin; /arena/* and /health matched first.
 _WEB = os.path.join(os.path.dirname(__file__), "web")

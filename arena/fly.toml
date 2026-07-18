@@ -29,6 +29,8 @@ primary_region = "sjc"
   # is reproducible: python3 -m block.live --seed S --season N --day D
   BLOCK_LIVE = "1"
   BLOCK_LIVE_SECS_PER_DAY = "120"
+  # Divorce case ledger on the persistent volume (same number, same divorce)
+  DIVORCE_CASES_PATH = "/data/divorce-cases.jsonl"
 
 [http_service]
   internal_port = 8080

@@ -67,7 +67,10 @@
   const Q_FAST_ANSWER_AT = 480;
 
   // Live mode. Same-origin deploys set this to '' (the API mounts /v1/divorce/*).
-  const API_BASE = 'http://localhost:8203';
+  // Local dev: the standalone engine on :8203. Deployed: same-origin — the
+  // divorce router is mounted inside the arena app (SPEC.md §11.3).
+  const API_BASE = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
+    ? 'http://localhost:8203' : '';
 
   // Playback speed multiplier: 1x / 2x. (0.5x removed — if the pacing needs a
   // slow knob, the pacing is wrong.) Scales every beat duration.
@@ -1258,7 +1261,9 @@
     }
     const showAmend = m.noDecree || (currentPreset === null && sessionFiled);
     if (showAmend) actions.push('<button id="amend-btn">AMEND THE FILING</button>');
-    const actionsHTML = '<div id="post-actions">' + actions.join('') + '</div>';
+    const actionsHTML = '<div id="post-actions">' + actions.join('') + '</div>'
+      + '<p id="science-link" style="margin:1.2rem 0 0;font-size:0.82rem">'
+      + '<a href="science.html">the math, measured →</a></p>';
 
     if (m.noDecree) {
       const why = m.decree.no_zopa ? VOICE.whyNoZopa : VOICE.whyAbstain;
