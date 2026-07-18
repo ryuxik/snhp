@@ -529,6 +529,23 @@ app.include_router(_divorce_router)
 # on /v1/divorce/* only (path guard inside the handler).
 app.add_exception_handler(_ReqValErr, _clerk_422)
 
+# Static text assets must revalidate on every load (Cache-Control: no-cache;
+# ETags keep repeats as cheap 304s). Without this, browsers heuristically
+# cache html/css/js and a redeploy can serve a returning visitor a stale/fresh
+# HYBRID (new markup styled by old css — observed live after the premise
+# deploy). no-cache ≠ no-store: content still caches, it just always asks.
+_REVALIDATE_EXTS = (".html", ".css", ".js", ".mjs", ".json")
+
+
+@app.middleware("http")
+async def _static_no_cache(request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path.endswith(_REVALIDATE_EXTS) or path.endswith("/") or "." not in path.rsplit("/", 1)[-1]:
+        response.headers.setdefault("Cache-Control", "no-cache")
+    return response
+
+
 # Serve the renderer SPA same-origin; /arena/* and /health matched first.
 _WEB = os.path.join(os.path.dirname(__file__), "web")
 if os.path.isdir(_WEB):
