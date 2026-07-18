@@ -549,8 +549,6 @@
    * ------------------------------------------------------------------ */
 
   const SCENES = ['build', 'cold', 'act1', 'turn', 'act2', 'act3', 'decree'];
-  const RAIL_SEG = { act1: 'act1', turn: 'act2', act2: 'act2', act3: 'act3', decree: 'decree' };
-  const RAIL_ORDER = ['act1', 'act2', 'act3', 'decree'];
   let lastScene = null;
   let posterSeen = false;      // first cold-open holds longer (premise read time)
 
@@ -558,13 +556,6 @@
     for (const s of SCENES) {
       $('#scene-' + s).classList.toggle('active', s === key);
     }
-    const seg = RAIL_SEG[key] || null;
-    const segIdx = seg ? RAIL_ORDER.indexOf(seg) : -1;
-    document.querySelectorAll('#cr-acts i').forEach((el) => {
-      const k = RAIL_ORDER.indexOf(el.dataset.seg);
-      el.classList.toggle('on', seg !== null && k === segIdx);
-      el.classList.toggle('done', seg !== null && k < segIdx);
-    });
     if (key !== lastScene) {
       lastScene = key;
       $('#scene-' + key).scrollIntoView({ block: 'start', behavior: SCROLL_BEHAVIOR });
@@ -1565,19 +1556,10 @@
 
   function showError(msg) {
     for (const s of SCENES) $('#scene-' + s).classList.remove('active');
-    $('#case-rail').hidden = true;
     $('#pause-chip').hidden = true;
     const el = $('#error');
     el.hidden = false;
     el.textContent = msg;
-  }
-
-  function setRail(m) {
-    $('#cr-case').textContent = m.caseNo != null
-      ? 'CASE #' + m.caseNo
-      : 'ARCHIVE · SEED ' + req(m.meta, 'preset_seed');
-    $('#cr-names').textContent = m.names.A.toUpperCase() + ' v. ' + m.names.B.toUpperCase();
-    $('#case-rail').hidden = false;
   }
 
   function buildFilm(trace, opts) {
@@ -1620,7 +1602,6 @@
       return;
     }
     currentModel = film.m;
-    setRail(film.m);
 
     player = makePlayer(film.steps, (e) => {
       showError('Playback halted — ' + e.message
@@ -1828,7 +1809,6 @@
     if (player) { player.destroy(); player = null; }
     refreshPP();
     $('#error').hidden = true;
-    $('#case-rail').hidden = true;
     $('#playctl').hidden = true;        // no playback chrome over the intake
     $('#pause-chip').hidden = true;
     $('#build-btn').classList.add('active');
