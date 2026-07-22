@@ -28,6 +28,11 @@
   logrolling), score_deal (the test's Pareto oracle as a callable tool).
   Install: `claude mcp add snhp -- uvx snhp` (PyPI, zero-install)
   Repo: https://github.com/ryuxik/snhp
+- The counter (pay-per-use for agents): a prepaid-wallet store with a one-time
+  50¢ starter credit. Two live paid slots — a $2 tuned/receipted negotiation
+  SESSION and a BLIND LOCKER (park & retrieve customer-encrypted ciphertext) —
+  plus a free negotiation turn. Pay by Stripe Checkout or agent-native MPP/SPT
+  (no human). Machine manifests: /.well-known/agents.json, /llms-full.txt.
 - Dispute copilot (consumer refunds): https://snhp.dev/dispute.html
 - Research — Transfer Market Mechanics: https://snhp.dev/research — the engine
   applied to football (transfer pricing, clause auctions, World Cup ticket

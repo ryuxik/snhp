@@ -1650,59 +1650,175 @@ math endpoints; replicate it in your draft-time code.
 - Auto-execution: never. We return recommendations; your environment
   delivers offers / places bids. No escrow, no settlement.
 
-## THE STORE — paid convenience counter (prepaid wallet, settle-on-delivery)
-One counter, one prepaid wallet (millicents; 1000 per cent), many slots. The
-value: you cannot pay for nothing — a call settles ONLY when a mechanical
-predicate passes, at wholesale PASSTHROUGH (price == the backend's exact cost,
-no per-call markup); the counter earns ONE published fee on wallet top-ups, not
-on calls: 5% + a fixed 30¢ per transaction. The fixed 30¢ is the card rail's own
-per-transaction toll, passed through — at $2.10 the old flat-5% fee collected 10¢
-against ~36¢ of processing cost, so the store was paying to be paid. Two doors,
-one wallet: the MCP tools (store_catalog, store_fetch, store_request*) and these
-HTTP routes are the same engine.
+## THE STORE — pay-per-use counter for agents (one wallet, settle-on-delivery)
+A paid convenience counter for AI agents. Two doors, ONE engine: the MCP tools
+(store_catalog, nextmove_open/advise/close, store_park, store_retrieve,
+store_request) and the HTTP routes below. One prepaid wallet per key holds a
+single balance in millicents (1000 per cent). Every new key gets a one-time 50¢
+STARTER CREDIT — unconditional, no card — so you can taste a slot before you
+fund it.
 
-- POST /v1/keys — issue a key; the one-time 50¢ starter credit attaches to it
-  (unconditional, no card). Fund more via /v1/billing/checkout_session.
+The rule that makes it safe to spend: you CANNOT PAY FOR NOTHING. A paid call
+settles only when a machine-checkable outcome is delivered; a failure is an
+uncharged 200 {ok:false, charged:false, reason, code}. Every settled call
+returns an Ed25519-signed receipt stating the exact price and a content hash,
+verifiable OFFLINE with no callback to us (pin the signer at GET
+/v1/store/notary_pubkey). The counter earns ONE published fee, on wallet top-ups
+only — never on the calls: 5% + a fixed 30¢ per transaction (the 30¢ is the card
+rail's own per-transaction toll, passed through). Calls settle at wholesale
+passthrough. Funded credit is prepaid and NON-REFUNDABLE — size top-ups to
+usage; the $2 custom minimum lets you buy small.
+
+Live paid slots (two, today):
+
+- NEGOTIATE A PRICE, tuned + receipted — the $2 NEXTMOVE session. $2 once covers
+  the WHOLE negotiation (cap 10 moves, 7 days): category-tuned, deterministic
+  (same inputs → same move), signed receipts, persistent session state. The paid
+  upgrade of the free /v1/negotiate/turn below.
+    curl -sX POST https://api.snhp.dev/v1/advice/session \\
+      -H 'content-type: application/json' \\
+      -d '{"api_key":"gt_...","category":"resale","side":"sell",
+           "walk_away":4000,"target":6000,"their_offers":[4200,4500]}'
+    -> {session_id, first_move:{offer, message, receipt}, ...}
+  Next moves: POST /v1/advice/move (no extra charge). MCP: nextmove_open, then
+  nextmove_advise / nextmove_bundle / nextmove_close.
+
+- STORE AN ENCRYPTED BLOB ACROSS SESSIONS — the blind locker. Park customer-
+  encrypted ciphertext, get a claim ticket, retrieve it later; the store holds
+  only opaque bytes (you encrypt BEFORE parking — keys never transit, contents
+  are never logged). Park is the paid action (thin flat fee, settle-on-durable-
+  store); retrieve is free. A wrong owner is indistinguishable from a missing
+  ticket. The receipt's content_hash is over YOUR ciphertext.
+    curl -sX POST https://api.snhp.dev/v1/store/park \\
+      -H "Authorization: Bearer gt_..." -H 'content-type: application/json' \\
+      -d '{"blob_b64":"<your ciphertext, base64>","ttl_seconds":86400}'
+    -> {ok:true, ticket, expires_at, receipt}
+    curl -s https://api.snhp.dev/v1/store/parcel/<ticket> \\
+      -H "Authorization: Bearer gt_..."
+  MCP: store_park / store_retrieve.
+
+- FREE, no wallet: POST /v1/negotiate/turn — a generic single-price counter-offer
+  in plain dollars (documented above). Pay for the $2 session when you want it
+  tuned, deterministic, and receipted.
+
+Note: there is NO page-fetch / "read a URL" slot today. More slots are decided
+by demand — file the demand box (below); a fetch slot is a possible future
+addition, not a current capability. Do not call it.
+
 - GET  /v1/store/catalog — the shelf: per-slot {tier, max_price, predicate_id +
   predicate_doc, request_doc, backend ids}, the money unit, admission +
   no-refund terms, and the receipts-verification block. No key material.
-- POST /v1/fetch — the fetch slot: one clean read of a stubborn page → markdown,
-  failover across backends, paid from your wallet at wholesale passthrough (2¢
-  admission cap; a call typically costs well under it). Charged ONLY on a
-  delivered, predicate-passing read; a blank/block-page cascades to the next
-  backend, and if none passes it is an uncharged 200 {ok:false, charged:false,
-  reason, code}. The receipt is Ed25519-signed and states the exact price
-  (price_millicents + price_usd), the wallet delta, any absorbed tail, and a
-  content hash. Verify the signer out-of-band: GET /v1/store/notary_pubkey.
-  Request privacy: we record a keyed hash of each request — no browsable history
-  exists, and matching requires already knowing the exact URL (used to attribute
-  vendor abuse reports to a wallet).
 - GET  /v1/store/notary_pubkey — the receipt-signing notary's public key
   {pubkey_pem, fingerprint, key_source} to pin (distinct from the first-strike
   and AP2 settlement keys). key_source is visible: 'ephemeral' proves only
   signer-consistency within one server lifetime; prod pins NOTARY_KEY_PEM.
-- Admission is NEVER-STRAND for commodity slots only: your last millicent buys a
-  full call and the store eats the bounded tail. Anchor SKUs (the $2 NEXTMOVE
-  session) charge full price up front — an underfunded wallet gets a 402 with
-  top-up options (incl. the $2 custom minimum), never a discount.
-- Funded credit is PREPAID and NON-REFUNDABLE (no cashout); size top-ups to
-  usage — the $2 custom minimum exists so you can buy small.
 
-## THE STORE — the demand loop (what to stock next)
-- POST /v1/store/request — file a request for a capability the counter doesn't
-  stock. Free, keyless OK; returns {request_id, status, check}.
+## THE STORE — how to pay (no card to start; agent-native rails)
+- Human-clickable: POST /v1/billing/checkout_session {api_key, amount_cents} ->
+  a Stripe Checkout URL a human opens once.
+- Agent-native (MPP / Shared Payment Token): PAY PER INVOCATION with no human.
+  GET /v1/mpp/manifest is a pure read that tells your payment tooling how to pay
+  us (accepted method = Stripe SPT, fiat only; the fee; the 402 →
+  authorize-with-SPT → retry → receipt flow). Then POST /v1/mpp/topup to fund
+  the wallet with an SPT you minted scoped to this store. Reference client:
+  vend/mpp_client.py. Crypto is declined.
+
+## THE STORE — the demand box (ask for what's not stocked)
+The shelf writes itself from unmet demand: unmet asks decide the next slot.
+- POST /v1/store/request {text} — file a request. Free, keyless OK; returns
+  {request_id, status, check}. MCP: store_request.
 - GET  /v1/store/request/{id} — that request's status + note, plus
   same_ask_count (how many filings collapse to the same normalized ask —
   mechanical exact-match, no fuzzy classification).
 - GET  /v1/store/requests — the public tally {total, distinct, recent, requests}
-  with exact-match duplicate counts, most-asked first. Unmet demand decides the
-  next slot.
+  with exact-match duplicate counts, most-asked first.
+- GET  /v1/store/observatory — the public, citable observatory: per-slot volumes
+  and the mechanical tally of what agents ask for that nobody sells yet.
+  Aggregate + pseudonymous; no key material.
 
 ## Discovery
 - GET /v1/catalog — JSON list of all tools, cost class, stability
 - GET /openapi.json — OpenAPI 3.1 spec
 - GET /docs — Swagger UI (for human inspection)
 - GET /llms.txt — this file
+- GET /llms-full.txt — the detailed companion (store endpoint list, auth, money
+  unit + fee, the MCP tool catalog, and the full MPP payment flow)
+- GET /.well-known/agents.json — machine-readable agent-capability manifest
+  (name, capabilities, endpoints, auth, payment) — pure read, no auth
+- GET /.well-known/mcp/server-card.json — MCP server card (SEP-1649)
+- GET /.well-known/agent-card.json — A2A Agent Card
+"""
+
+
+# The detailed companion to /llms.txt: the same store content PLUS a full
+# reference an integrator wants in one place — the endpoint list, auth (starter
+# credit, key issuance, header auth), the millicent unit + counter fee, the MCP
+# tool catalog, and the no-human MPP flow. Appended AFTER _LLMS_TXT so
+# /llms-full.txt is a strict superset of /llms.txt (never a divergent second
+# story). Fee/unit numbers are stated as text here; the machine-authoritative
+# copies are the billing constants and /.well-known/agents.json.
+_LLMS_FULL_APPENDIX = """\
+## THE STORE — full reference (endpoints, auth, units, tools, MPP)
+
+### Auth & wallet
+- Issue a key (no human, no card): POST /v1/keys {agent_id, contact_email,
+  intended_use_summary} -> {api_key: "gt_*", wallet}. The one-time 50¢ starter
+  credit attaches at issuance (unconditional).
+- Present the key as a HEADER on paid store calls: `Authorization: Bearer gt_*`
+  or `X-API-Key: gt_*` (the header also reaches the 600/min keyed rate lane; a
+  body-only key falls to the 60/min per-IP floor). The $2 session routes read
+  the key from the JSON body.
+- Balance: GET /v1/billing/balance (X-API-Key header) -> the one wallet in
+  millicents, starter + funded buckets both visible.
+- Rotate: POST /v1/keys/rotate {api_key} -> new key, full balance carries over,
+  old key dies immediately.
+
+### Money unit & fee
+- Unit: millicents (1000 per cent; a millicent is $0.00001). Receipts and
+  balances display exact five-decimal USD (integer math, no float rounding).
+- The counter's only cut is a top-up fee: 5% + a fixed 30¢ per transaction.
+  Calls settle at wholesale passthrough (no per-call markup). Funded credit is
+  prepaid, non-refundable.
+
+### Paid endpoints
+- POST /v1/advice/session {api_key, category, side, walk_away, target,
+  their_offers?} -> open the $2 NEXTMOVE session (covers every move).
+- POST /v1/advice/move {api_key, session_id, their_offers} -> next move, no
+  extra charge. Pass the FULL offer history each time.
+- POST /v1/advice/bundle {api_key, session_id, issues, ...} -> a multi-issue
+  (logrolling) move inside the session.
+- POST /v1/advice/close {api_key, session_id} -> a signed session-summary
+  receipt.
+- POST /v1/store/park {blob_b64, ttl_seconds?} (key in header or body) -> park
+  encrypted ciphertext, get {ticket, expires_at, receipt}. Thin flat park fee.
+- GET  /v1/store/parcel/{ticket} (key in header) -> retrieve your ciphertext.
+  Free (the park settled it).
+
+### Free endpoints
+- POST /v1/negotiate/turn — single-price counter in plain dollars.
+- POST /v1/negotiate/bundle — multi-issue logrolling advice.
+- GET  /v1/store/catalog — the shelf (no key material).
+- GET  /v1/store/notary_pubkey — pin the receipt signer out-of-band.
+- POST /v1/store/request, GET /v1/store/request/{id}, GET /v1/store/requests,
+  GET /v1/store/observatory — the demand box + the public, citable observatory.
+
+### MCP tools (same engine, second door; MCP endpoint /mcp)
+store_catalog, nextmove_open, nextmove_advise, nextmove_bundle, nextmove_close,
+store_park, store_retrieve, store_request, store_request_status, store_requests,
+store_my_requests. Server card: /.well-known/mcp/server-card.json.
+
+### Pay without a human (MPP / Shared Payment Token)
+1. GET /v1/mpp/manifest — pure read: the accepted method (Stripe SPT, fiat
+   only), the counter fee, the SPT minimum, the settlement API version, and the
+   resources you can pay for (e.g. /v1/mpp/topup). `live_ready` reflects real
+   server state honestly.
+2. POST /v1/mpp/topup with no credential -> 402 with a signed WWW-Authenticate:
+   Payment challenge naming the exact price.
+3. Mint a Shared Payment Token scoped to this store (buyer-side; we never see
+   the card) and retry with `Authorization: Payment <credential>`.
+4. Receive the wallet credit + a Payment-Receipt header.
+Reference client: vend/mpp_client.py. Human fallback: POST
+/v1/billing/checkout_session.
 """
 
 
@@ -1716,6 +1832,16 @@ def llms_txt() -> str:
             return f.read().rstrip() + "\n\n\n" + _LLMS_TXT
     except OSError:   # missing, unreadable, permissions — never 500 discovery
         return _LLMS_TXT
+
+
+@app.get("/llms-full.txt", tags=["discovery"], response_class=PlainTextResponse,
+         summary="Detailed companion to /llms.txt (store endpoints, auth, MPP flow)")
+def llms_full_txt() -> str:
+    """A strict SUPERSET of /llms.txt: the same content, then a store reference
+    appendix (endpoint list, auth, money unit + fee, MCP tool catalog, the
+    no-human MPP flow). Built by appending _LLMS_FULL_APPENDIX to the /llms.txt
+    body so the two can never tell divergent stories."""
+    return llms_txt().rstrip() + "\n\n\n" + _LLMS_FULL_APPENDIX
 
 
 @app.get("/PRICING.md", tags=["discovery"], response_class=PlainTextResponse,

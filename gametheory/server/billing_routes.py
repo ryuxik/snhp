@@ -600,6 +600,38 @@ def store_requests():
     return _demand.tally()
 
 
+@router.get("/store/observatory", tags=["store"])
+def store_observatory():
+    """The public, citable observatory (vend.observatory.snapshot): per-slot
+    call volumes and the MECHANICAL tally of what agents ask for that nobody
+    sells yet. Every number is a count, a sum, or an exact-match group — no
+    interpretation, no LLM. Aggregate + PSEUDONYMOUS: wallets appear only as
+    counts of a keyed pseudonym (repeat_key), never a raw api_key, so NO key
+    material can leak. Pure read, no auth. The demand-loop citation asset: what
+    the shelf is missing, straight from the raw records."""
+    try:
+        from vend import observatory as _obs
+    except ImportError:
+        raise HTTPException(status_code=503, detail="store not present in this build")
+    import os as _os
+    import tempfile as _tempfile
+    # snapshot() renders observatory.{json,md} into out_dir as a side effect. We
+    # only return the in-memory dict, so point it at a fixed server temp dir the
+    # response never reads back — a write race there cannot affect this response.
+    out_dir = _os.path.join(_tempfile.gettempdir(), "snhp_observatory_http")
+    try:
+        data = _obs.snapshot(out_dir=out_dir)
+    except OSError:
+        # No telemetry file yet (a fresh deploy with zero recorded calls) — the
+        # observatory has nothing to read. Return an honest empty shape, not a 500.
+        return {"schema": "observatory.v1", "available": False,
+                "note": "no telemetry recorded yet"}
+    # Drop the local filesystem artifact paths (a server temp dir) — they are not
+    # part of the public citation surface. snapshot() already emits no key material.
+    data.pop("_artifacts", None)
+    return data
+
+
 @router.get("/store/my_requests", tags=["store"])
 def store_my_requests(request: Request):
     """Your OWN filings (roadmap: a voter comes back a reachable customer), keyed
