@@ -1,3 +1,0 @@
-{"implementer": null, "kind": "false_completion_caught", "reviewer": "Ravi", "task_id": "t1", "turn": 6}
-{"kind": "rejection", "reason": "tests_failed", "task_id": "t1", "turn": 6}
-{"kind": "merge", "reviewer": "Sol", "task_id": "t2", "turn": 7}

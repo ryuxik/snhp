@@ -104,3 +104,8 @@ research/spendguard/results/
 .agents/
 skills-lock.json
 observatory/
+
+# experiment output — pure artifacts, not loaded by any shipping code (untracked 2026-07-22)
+divorce/results-*.json
+arena/gauntlet/certs/*.json
+companysim/episodes/
