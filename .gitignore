@@ -101,3 +101,6 @@ research/spendguard/results/
 # NOT ignored, deliberately: arena/gauntlet/certs/*.cert.json and
 # reference-tier.json are the product artifacts a third party verifies offline —
 # the cert embeds its per-match rows so a tampered metric is caught on replay.
+.agents/
+skills-lock.json
+observatory/

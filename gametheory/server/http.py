@@ -464,7 +464,71 @@ class PostedPriceResponse(BaseModel):
 from contextlib import asynccontextmanager as _asynccontextmanager  # noqa: E402
 from gametheory.server.mcp_server import mcp as _mcp  # noqa: E402
 
+# ── MCP door host fix (GAUNTLET.md #7: "MCP live door 421s on truthful Host") ──
+# mcp_server.py configures an EXACT-match host allow-list for DNS-rebinding
+# protection. A client that addresses the box directly — `127.0.0.1:8787`,
+# `snhp.fly.dev:443`, a Fly health probe — sends a Host header carrying the
+# PORT, which exact-match rejects with 421 "Invalid Host header" even though
+# the bare host is allowed. Fly's proxy strips :443 on the public hostnames,
+# but local dev and direct-IP probes don't. We widen the list HERE (mcp_server.py
+# is outside this change's lane) to accept each legit host both bare AND on any
+# port, via the MCP library's own `host:*` wildcard-port form. DNS-rebinding
+# protection stays ON — a foreign Host (evil.com) is still rejected 421.
+_MCP_ACCEPTED_HOSTS = ("snhp.dev", "www.snhp.dev", "api.snhp.dev",
+                       "snhp.fly.dev", "localhost", "127.0.0.1")
+_mcp_sec = _mcp.settings.transport_security
+if _mcp_sec is not None:
+    _widened_hosts = []
+    for _h in _mcp_sec.allowed_hosts:
+        _widened_hosts.append(_h)
+        if ":" not in _h:                       # bare host -> also accept any port
+            _widened_hosts.append(_h + ":*")
+    _mcp_sec.allowed_hosts = _widened_hosts      # session manager reads this live
+
 _mcp_app = _mcp.streamable_http_app()
+
+
+class _McpHostRejectHint:
+    """Wrap the mounted MCP ASGI app so a DNS-rebinding 421 carries a body that
+    NAMES the accepted hosts, instead of the library's bare 'Invalid Host
+    header'. Validation itself is untouched (still the library's, still ON) —
+    this only makes the failure legible to an agent debugging a Host mismatch,
+    which GAUNTLET.md #7 flagged. Only 421 responses are rewritten; every other
+    response passes through byte-for-byte."""
+
+    def __init__(self, app, accepted_hosts):
+        self._app = app
+        self._body = (
+            "Invalid Host header. This MCP endpoint accepts Host: "
+            + ", ".join(accepted_hosts)
+            + " (any port allowed on each). Behind Fly's proxy the public host "
+              "is api.snhp.dev / snhp.fly.dev."
+        ).encode()
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") != "http":
+            await self._app(scope, receive, send)
+            return
+        rewrite = {"active": False}
+
+        async def _send(message):
+            mt = message["type"]
+            if mt == "http.response.start" and message["status"] == 421:
+                rewrite["active"] = True
+                headers = [(k, v) for (k, v) in message.get("headers", [])
+                           if k.lower() not in (b"content-length", b"content-type")]
+                headers.append((b"content-type", b"text/plain; charset=utf-8"))
+                headers.append((b"content-length", str(len(self._body)).encode()))
+                await send({"type": "http.response.start", "status": 421,
+                            "headers": headers})
+            elif mt == "http.response.body" and rewrite["active"]:
+                # The library's 421 is a single-shot Response; replace its body.
+                await send({"type": "http.response.body", "body": self._body,
+                            "more_body": False})
+            else:
+                await send(message)
+
+        await self._app(scope, receive, _send)
 
 
 @_asynccontextmanager
@@ -521,6 +585,21 @@ app.add_middleware(BodySizeLimit)
 from gametheory.server.a2a_routes import router as _a2a_router  # noqa: E402
 app.include_router(_a2a_router)
 
+# ─── BILLING: Stripe credit packs + the paid NEXTMOVE advice endpoint ────────
+# Fully-tested module (test_billing.py) re-wired per its own docstring note.
+# Boots fine without Stripe keys — they're only required when a billing call
+# actually happens (lazy _stripe()).
+from gametheory.server.billing_routes import router as _billing_router  # noqa: E402
+app.include_router(_billing_router)
+
+# ─── MPP: Machine Payments Protocol (HTTP-402 SPT rail) ──────────────────────
+# Merchant-side MPP (docs.stripe.com/payments/machine/mpp): pay-per-invocation via
+# a signed 402 challenge, settled with a Shared Payment Token (fiat rail; crypto
+# deferred). A SECOND rail beside the prepaid wallet. Self-contained protocol logic
+# in gametheory/server/mpp.py; boots fine without Stripe keys (lazy settlement).
+from gametheory.server.mpp_routes import router as _mpp_router  # noqa: E402
+app.include_router(_mpp_router)
+
 # ─── VEND: snhp-price/1 — the price-link demo (quote/settle/machine) ─────────
 # The price a buyer sees is computed at request time (never above list,
 # receipt mandatory, context-hashed). See vend/DESIGN.md. Guarded: vend ships
@@ -556,8 +635,9 @@ except ImportError:
 
 # Hosted MCP server (streamable HTTP) at /mcp — same toolkit, MCP-native, so
 # agents/clients that speak MCP over HTTP can connect without installing the
-# stdio package. (Endpoint serves at /mcp/; /mcp 307-redirects to it.)
-app.mount("/mcp", _mcp_app)
+# stdio package. (Endpoint serves at /mcp/; /mcp 307-redirects to it.) Wrapped
+# so a DNS-rebinding 421 names the accepted hosts (see _McpHostRejectHint).
+app.mount("/mcp", _McpHostRejectHint(_mcp_app, _MCP_ACCEPTED_HOSTS))
 
 
 # ─── Static landing page + assets ───────────────────────────────────────────
@@ -1426,9 +1506,16 @@ Full inventory + metadata: `gametheory/negotiation/_config.py`.
 
 ## Cost model
 All endpoints are FREE today (math only — NumPy / SciPy, ~50ms p99).
-Rate limit: 600/min per key. We do not host or resell LLM calls; if your
-agent needs natural-language drafting, do that with your own LLM provider
-(see "Drafting messages client-side" below).
+Rate limits (in-memory token bucket, per single instance):
+  - keyless /v1/* calls:   60/min per IP   (the free floor)
+  - keyed /v1/* calls:    600/min per key  (send the key as a HEADER —
+        `Authorization: Bearer gt_*` or `X-API-Key: gt_*`; a key in the
+        request body does NOT raise your limit, it stays on the 60/min floor)
+  - POST /v1/keys:         10/hour per IP   (issuance is unauthenticated)
+A 429 always carries `Retry-After` (whole seconds until a token frees up).
+We do not host or resell LLM calls; if your agent needs natural-language
+drafting, do that with your own LLM provider (see "Drafting messages
+client-side" below).
 
 ## Onboarding (no human in the loop)
 - POST /v1/keys
@@ -1539,6 +1626,48 @@ math endpoints; replicate it in your draft-time code.
 - Auto-execution: never. We return recommendations; your environment
   delivers offers / places bids. No escrow, no settlement.
 
+## THE STORE — paid convenience counter (prepaid wallet, settle-on-delivery)
+One counter, one prepaid wallet (millicents; 1000 per cent), many slots. The
+value: you cannot pay for nothing — a call settles ONLY when a mechanical
+predicate passes, at wholesale PASSTHROUGH (price == the backend's exact cost,
+no per-call markup); the counter earns ONE published fee on wallet top-ups, not
+on calls. Two doors, one wallet: the MCP tools (store_catalog, store_fetch,
+store_request*) and these HTTP routes are the same engine.
+
+- POST /v1/keys — issue a key; the one-time 50¢ starter credit attaches to it
+  (unconditional, no card). Fund more via /v1/billing/checkout_session.
+- GET  /v1/store/catalog — the shelf: per-slot {tier, max_price, predicate_id +
+  predicate_doc, request_doc, backend ids}, the money unit, admission +
+  no-refund terms, and the receipts-verification block. No key material.
+- POST /v1/fetch — the fetch slot: one clean read of a stubborn page → markdown,
+  failover across backends, paid from your wallet at wholesale passthrough (2¢
+  admission cap; a call typically costs well under it). Charged ONLY on a
+  delivered, predicate-passing read; a blank/block-page cascades to the next
+  backend, and if none passes it is an uncharged 200 {ok:false, charged:false,
+  reason, code}. The receipt is Ed25519-signed and states the exact price
+  (price_millicents + price_usd), the wallet delta, any absorbed tail, and a
+  content hash. Verify the signer out-of-band: GET /v1/store/notary_pubkey.
+- GET  /v1/store/notary_pubkey — the receipt-signing notary's public key
+  {pubkey_pem, fingerprint, key_source} to pin (distinct from the first-strike
+  and AP2 settlement keys). key_source is visible: 'ephemeral' proves only
+  signer-consistency within one server lifetime; prod pins NOTARY_KEY_PEM.
+- Admission is NEVER-STRAND for commodity slots only: your last millicent buys a
+  full call and the store eats the bounded tail. Anchor SKUs (the $2 NEXTMOVE
+  session) charge full price up front — an underfunded wallet gets a 402 with
+  top-up options (incl. the $2 custom minimum), never a discount.
+- Funded credit is PREPAID and NON-REFUNDABLE (no cashout); size top-ups to
+  usage — the $2 custom minimum exists so you can buy small.
+
+## THE STORE — the demand loop (what to stock next)
+- POST /v1/store/request — file a request for a capability the counter doesn't
+  stock. Free, keyless OK; returns {request_id, status, check}.
+- GET  /v1/store/request/{id} — that request's status + note, plus
+  same_ask_count (how many filings collapse to the same normalized ask —
+  mechanical exact-match, no fuzzy classification).
+- GET  /v1/store/requests — the public tally {total, distinct, recent, requests}
+  with exact-match duplicate counts, most-asked first. Unmet demand decides the
+  next slot.
+
 ## Discovery
 - GET /v1/catalog — JSON list of all tools, cost class, stability
 - GET /openapi.json — OpenAPI 3.1 spec
@@ -1590,12 +1719,24 @@ class IssueKeyRequest(BaseModel):
         ))
 
 
+class WalletSummary(BaseModel):
+    starter_millicents: int = Field(
+        description="The one-time 50¢ starter grant (millicents, 1000/cent)")
+    funded_millicents: int = Field(description="Own-money top-ups, in millicents")
+    total_millicents: int = Field(description="Spendable total across both buckets")
+
+
 class IssueKeyResponse(BaseModel):
     api_key: str
     tier: str
-    rate_limit_per_minute: int
+    rate_limit_per_minute: int = Field(
+        description=("Your per-key lane: 600/min — but ONLY when the key is "
+                     "sent as a header (Authorization: Bearer / X-API-Key). "
+                     "Keyless or body-only callers share the 60/min-per-IP "
+                     "free floor."))
     created_at: int
-    balance_usd_cents: int = Field(description="Remaining credit balance in cents")
+    wallet: WalletSummary = Field(
+        description="The one prepaid wallet — starter + funded, in millicents")
     telemetry_consent: bool = Field(description="True if opted into telemetry at issuance")
     reused: bool = Field(description="True if an existing key for this agent_id was returned")
 
@@ -1607,8 +1748,12 @@ class IssueKeyResponse(BaseModel):
     summary="Programmatic API key issuance (no human approval)",
     description=(
         "Self-serve key issuance for AI agents. No human approval gate. "
-        "Idempotent on agent_id within 24h. All endpoints currently free; "
-        "rate-limited to 600 requests/minute per key."
+        "Idempotent on agent_id within 24h. Issuance itself is rate-limited "
+        "to 10 requests/hour per IP. All endpoints currently free. The "
+        "returned `rate_limit_per_minute` (600) is your per-key lane — it "
+        "applies ONLY when you send the key as a header (`Authorization: "
+        "Bearer gt_*` or `X-API-Key: gt_*`). Callers with no key, or with a "
+        "key only in the request body, share the 60/min-per-IP free floor."
     ),
 )
 def issue_key(req: IssueKeyRequest):

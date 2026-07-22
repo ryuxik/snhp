@@ -16,6 +16,8 @@ streamable_http_app() — wired below behind a flag.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import sys
 from typing import Literal, Optional
 
@@ -141,6 +143,16 @@ def gt_negotiate_turn(
         my_previous_offers=my_previous_offers, rounds_left=rounds_left, item=item)
 
 
+def _bundle_seed(*parts) -> int:
+    """Deterministic seed derived from a bundle call's inputs — identical inputs
+    map to the identical seed, so identical calls return identical advice. Mirrors
+    the free advisor's input-derived determinism (mcp_server.py `_seed_from_args`)
+    but is passed STRUCTURALLY as negotiate_bundle(seed=...), never mutating the
+    global RNG (P10 Fix 2)."""
+    blob = json.dumps(parts, sort_keys=True, default=str).encode()
+    return int.from_bytes(hashlib.blake2b(blob, digest_size=8).digest(), "big") & 0x7FFFFFFF
+
+
 @mcp.tool()
 def gt_negotiate_bundle(
     issues: list[dict],
@@ -194,15 +206,23 @@ def gt_negotiate_bundle(
     if compute_ms and compute_ms > 0:
         # Tier 1 (multi-issue): spend the budget on rollouts over the remaining
         # rounds_left, refining WHICH package to propose (a timing decision). Never
-        # worse than the closed-form package in-model.
+        # worse than the closed-form package in-model. NOTE (P10): negotiate_bundle_mc
+        # has its OWN unseeded rollout cloud in mc_search.py — that determinism gap is
+        # P9-adjacent (mc_search lane) and is deliberately NOT seeded from here.
         from gametheory.negotiation.mc_search import negotiate_bundle_mc
         return negotiate_bundle_mc(
             issues=issues, their_offers=their_offers, my_priorities=my_priorities,
             my_batna=my_batna, their_batna_estimate=their_batna_estimate,
             rounds_left=rounds_left, compute_ms=compute_ms)
+    # Closed-form path: derive a deterministic seed from the inputs (the same
+    # input-derived determinism the free advisor gets from _seed_from_args, but via
+    # the structural seed= param — no global RNG mutation, so concurrent requests
+    # don't perturb each other) and thread rounds_left for the final-round endgame.
     return _negotiate_bundle(
         issues=issues, their_offers=their_offers, my_priorities=my_priorities,
-        my_batna=my_batna, their_batna_estimate=their_batna_estimate)
+        my_batna=my_batna, their_batna_estimate=their_batna_estimate,
+        rounds_left=rounds_left, seed=_bundle_seed(
+            issues, their_offers, my_priorities, my_batna, their_batna_estimate))
 
 
 # ─── Tier 1: Negotiation (low-level primitives — prefer gt_negotiate_turn) ────
@@ -850,6 +870,325 @@ def gt_negotiate_close_session(session_id: str) -> dict:
     """Close a pondering session and cancel any in-flight background speculation."""
     from gametheory.negotiation import pondering as _p
     return {"closed": _p.close_session(session_id)}
+
+
+# ─── NEXTMOVE: the agent vending machine (paid advice; see vend/NEXTMOVE.md) ─
+# Guarded like http.py's vend mount: vend ships in the repo/image, not the
+# PyPI wheel — the MCP server must import fine without it.
+try:
+    from vend.advice import CATEGORIES as _NM_CATEGORIES, ADVISE_COST_CENTS as _NM_PRICE  # noqa: E402
+
+    @mcp.tool()
+    def nextmove_catalog() -> dict:
+        """The NEXTMOVE vending machine: what's on the shelf and how to pay.
+        One SKU: a paid NEGOTIATION SESSION — $2 covers every move of one
+        negotiation (up to 10, 7-day window), category-tuned, receipted,
+        and deterministic (fixed 400k-rollout budget + seed: same context
+        in, bit-identical advice out, auditable via context_hash).
+
+        Free vs paid, honestly: gt_negotiate_turn on this same server is
+        free — generic, no receipt, no category tuning, wall-clock compute
+        (non-deterministic). Pay when you want the tuned, auditable,
+        replayable version with the drafted message and the receipt.
+
+        Don't see your category? nextmove_request — unmet requests decide
+        what gets stocked next."""
+        return {
+            "sku": "negotiation_session",
+            "price_cents": _NM_PRICE,
+            "covers": "all moves of one negotiation (cap 10, TTL 7 days)",
+            "categories": [
+                {"id": t.id, "label": t.label,
+                 "typical_rounds": t.rounds_default,
+                 "rounds_note": ("PRIOR, not data — override rounds_left "
+                                  "per move if you know your venue"),
+                 "usual_side": t.side_hint, "note": t.form_note}
+                for t in _NM_CATEGORIES.values()
+            ],
+            "free_tier": ("gt_negotiate_turn — same engine core, generic, "
+                          "unreceipted, non-deterministic; the taste"),
+            "pay": ("POST https://api.snhp.dev/v1/billing/checkout_session "
+                    "{api_key, pack: small|medium|large} -> hosted Checkout URL "
+                    "for your human; credits land on the api_key via webhook. "
+                    "Get an api_key: POST /v1/keys."),
+            "receipt": "every move: why[], confidence, context_hash, compute block",
+        }
+
+    @mcp.tool()
+    def nextmove_open(api_key: str, category: str, side: str,
+                      walk_away: float, target: float,
+                      their_offers: Optional[list[float]] = None,
+                      my_offers: Optional[list[float]] = None,
+                      rounds_left: Optional[int] = None,
+                      seed: int = 0) -> dict:
+        """PAID ($2 once, from your credit balance): open a negotiation
+        session covering EVERY move of this negotiation (up to 10 moves,
+        7 days). category: resale | supply | retail. side: buy | sell.
+        walk_away = your true floor (sell) / ceiling (buy) — private,
+        never crossed. Pass their_offers to get the first move back
+        immediately with the session. Subsequent moves: nextmove_advise
+        with the session_id — no further charge."""
+        from vend import session as _vs, telemetry as _tm
+        from gametheory.server import billing as _billing
+        try:
+            sess = _vs.open_session_charged(
+                api_key=api_key, category=category, side=side,
+                walk_away=walk_away, target=target, seed=seed)
+        except _billing.BillingError as e:
+            return {"error": str(e), "price_cents": _NM_PRICE,
+                    "how_to_pay": "see nextmove_catalog"}
+        except KeyError as e:
+            return {"error": str(e)}
+        _tm.log_session_open(api_key=api_key, door="mcp",
+                             category=category, side=side,
+                             stake=abs(target - walk_away),
+                             price_cents=_NM_PRICE,
+                             session_id=sess["session_id"])
+        out = dict(sess)
+        if their_offers is not None:
+            a, idx = _vs.session_advise(
+                session_id=sess["session_id"], api_key=api_key,
+                their_offers=their_offers, my_offers=my_offers,
+                rounds_left=rounds_left)
+            _tm.log_advice(advice=a, api_key=api_key, door="mcp",
+                           price_cents=0, session_id=sess["session_id"],
+                           move_index=idx)
+            out["first_move"] = {
+                "move": a.move, "offer": a.offer, "message": a.message,
+                "why": a.why, "confidence_note": a.confidence_note,
+                "context_hash": a.context_hash, "move_index": idx,
+                "compute": a.engine.get("compute", {}),
+                "receipt": a.receipt}      # W2 handoff: the first move's receipt
+        return out
+
+    @mcp.tool()
+    def nextmove_advise(api_key: str, session_id: str,
+                        their_offers: list[float],
+                        my_offers: Optional[list[float]] = None,
+                        rounds_left: Optional[int] = None) -> dict:
+        """A move inside your paid session — no additional charge (the $2
+        at nextmove_open covered the negotiation). Pass the FULL offer
+        history each time, oldest first. Returns move, exact price,
+        ready-to-send message, and the receipt (why[], context_hash,
+        deterministic compute block)."""
+        from vend import session as _vs, telemetry as _tm
+        try:
+            a, idx = _vs.session_advise(
+                session_id=session_id, api_key=api_key,
+                their_offers=their_offers, my_offers=my_offers,
+                rounds_left=rounds_left)
+        except _vs.SessionError as e:
+            return {"error": str(e)}
+        _tm.log_advice(advice=a, api_key=api_key, door="mcp",
+                       price_cents=0, session_id=session_id, move_index=idx)
+        return {"move": a.move, "offer": a.offer, "message": a.message,
+                "why": a.why, "confidence_note": a.confidence_note,
+                "context_hash": a.context_hash, "policy_id": a.policy_id,
+                "move_index": idx, "compute": a.engine.get("compute", {}),
+                # W2 handoff: the signed move receipt (GAUNTLET #4) — the free
+                # move now hands back the same third-party-checkable receipt the
+                # anchor open did, so provenance never drops mid-session.
+                "receipt": a.receipt}
+
+    @mcp.tool()
+    def nextmove_bundle(api_key: str, session_id: str, issues: list[dict],
+                        their_offers: Optional[list[dict]] = None,
+                        my_priorities: Optional[dict] = None,
+                        my_batna: float = 0.40,
+                        their_batna_estimate: float = 0.40,
+                        cooperation: Optional[float] = None) -> dict:
+        """A MULTI-ISSUE move inside your paid session — the logrolling
+        tier, the thing the free tool does NOT have. Trade the issues you
+        care less about for the ones you value: issues = [{name, options,
+        my_utility (per option), their_utility (your read of their
+        direction)}]; their_offers = packages they've tabled, oldest
+        first. Returns the recommended package, trade logic, inferred
+        counterparty priorities, acceptance probability, and the receipt.
+        Deterministic closed form — no rollout theater. The package is
+        guaranteed to clear YOUR stated BATNA (enforced, not promised)."""
+        from vend import session as _vs, telemetry as _tm
+        try:
+            a, idx = _vs.session_advise_bundle(
+                session_id=session_id, api_key=api_key, issues=issues,
+                their_offers=their_offers, my_priorities=my_priorities,
+                my_batna=my_batna,
+                their_batna_estimate=their_batna_estimate,
+                cooperation=cooperation)
+        except _vs.SessionError as e:
+            return {"error": str(e)}
+        except Exception as e:
+            return {"error": f"invalid issues spec: {e}"}
+        _tm.log_advice(advice=a, api_key=api_key, door="mcp",
+                       price_cents=0, session_id=session_id, move_index=idx)
+        return {"move": a.move, "package": a.engine.get("package"),
+                "message": a.message, "why": a.why,
+                "confidence_note": a.confidence_note,
+                "context_hash": a.context_hash, "move_index": idx,
+                "their_expected_utility": a.engine.get("their_expected_utility"),
+                "acceptance_probability": a.engine.get("acceptance_probability"),
+                # W2 handoff: the signed bundle-move receipt (GAUNTLET #4).
+                "receipt": a.receipt}
+
+    @mcp.tool()
+    def nextmove_close(api_key: str, session_id: str) -> dict:
+        """Mark your negotiation finished (you accepted or walked). Optional
+        — sessions also expire on their own — but closing timestamps the
+        outcome, which helps the machine learn real round-counts per
+        category. Returns the `closed` flag AND a signed session-summary
+        receipt (GAUNTLET #4) — moves count, total charged (one $2 open), and
+        the per-move context_hashes — to hand your principal. An unknown session
+        or key mismatch leaves `closed` false and returns an `error` instead of
+        the receipt (indistinguishable, so a session id can't be probed)."""
+        from vend import session as _vs
+        closed = _vs.close_session(session_id=session_id, api_key=api_key)
+        try:
+            receipt = _vs.session_summary_receipt(session_id=session_id,
+                                                  api_key=api_key)
+        except _vs.SessionError as e:
+            return {"closed": closed, "error": str(e)}
+        return {"closed": closed, "receipt": receipt}
+
+    @mcp.tool()
+    def nextmove_request(text: str, api_key: Optional[str] = None,
+                         watch: bool = False) -> dict:
+        """Ask the vending machine for ANYTHING it doesn't stock — a
+        negotiation category, a different game, a capability. Free, keyless OK.
+        One intake, two names: this shares the store's demand loop, so a request
+        filed here gets the SAME request_id + status you can return to (GAUNTLET
+        #5). Check it with GET /v1/store/request/{id}; the public count is
+        GET /v1/store/requests. Unmet demand decides the next slot — thank you.
+
+        Pass watch=True WITH an api_key to flag the ask for a heads-up on a
+        status flip (poll store_my_requests to see it — poll-based, no push); an
+        anonymous watch is ignored, and the chosen flag is echoed as `watch`."""
+        from vend import demand as _demand
+        rec = _demand.file_request(text=text, api_key=api_key, door="mcp",
+                                   watch=watch)
+        return {"request_id": rec["request_id"], "status": rec["status"],
+                "watch": rec["watch"],
+                "check": f"GET /v1/store/request/{rec['request_id']}",
+                "note": "unmet demand decides the next slot — thank you"}
+
+except ImportError:
+    pass
+
+
+# ─── THE STORE: the agent convenience counter (commodity slots; see STORE.md) ─
+# Guarded like the NEXTMOVE block above: vend ships in the repo/image, not the
+# PyPI wheel — the MCP server must import fine without it. One MCP door, one
+# prepaid wallet, many slots; settlement-on-delivery so an agent cannot pay for
+# nothing (STORE.md §0, §2d.5).
+try:
+    from vend import shelf as _store_shelf  # noqa: E402
+    from vend import store as _store  # noqa: E402
+    from vend import demand as _store_demand  # noqa: E402
+
+    @mcp.tool()
+    def store_catalog() -> dict:
+        """THE STORE: one counter, one prepaid wallet, many slots. What's on
+        the shelf, what a call can cost, and how it settles.
+
+        Every commodity slot settles ON DELIVERY: the wallet is debited only
+        when a machine-checkable predicate passes — a failed fetch is never
+        charged, because here you cannot pay for nothing. Each receipt names
+        the backend that served and its EXACT wholesale cost (passthrough, no
+        per-call markup); the counter's cut is a published fee on wallet
+        top-ups, not on the calls.
+
+        Every new key gets a one-time 50¢ starter credit — unconditional, no
+        card — enough to taste the shelf before funding it. Don't see the
+        capability you need? store_request logs it; unmet demand decides what
+        gets stocked next. Returns the money unit (millicents, 1000 per cent),
+        per-slot {tier, max_price_millicents, predicate_id, request_doc,
+        serving-backend ids}, the anchor SKUs, and the two pricing facts. Never
+        returns key material."""
+        _store_shelf.ensure_shelf()
+        return _store.catalog()
+
+    @mcp.tool()
+    def store_fetch(api_key: str, url: str) -> dict:
+        """PAID from your wallet at wholesale passthrough (typically well
+        under the 2¢ admission cap): one clean read of a stubborn page →
+        markdown, proxy/anti-bot handling included, automatic failover across
+        backends. url must be http(s), <= 2048 chars.
+
+        Settlement-on-delivery: you are charged ONLY when the fetch returns
+        non-empty markdown that clears the predicate. A blank/block-page read
+        cascades to the next backend before giving up; if none passes the call
+        costs nothing. Every uncharged outcome is the canonical envelope
+        {ok: false, charged: false, reason: <stable string>, code: <machine
+        enum>} (code ∈ unknown_slot, slot_unavailable, insufficient_balance,
+        all_backends_failed, predicate_failed), optionally with backends_tried
+        [{id, reason}] / backends_untried / retry_hint — one code path reads
+        `charged`/`code`. On success: {ok: true, payload: {markdown, url,
+        final_url, title}, receipt} — the receipt carries the serving backend,
+        the exact price (price_millicents + exact price_usd), the wallet delta
+        and any absorbed tail, a content hash you can check against the markdown,
+        and (when the vendor reported one) an upstream_ref. A fresh key's first
+        call auto-grants the 50¢ starter credit, so it just works."""
+        _store_shelf.ensure_shelf()
+        try:
+            return _store.call_slot("fetch", api_key, {"url": url}, "mcp")
+        except ValueError as e:
+            # Malformed url (bad scheme, no host) — rejected pre-network.
+            return {"ok": False, "error": str(e), "charged": False}
+
+    @mcp.tool()
+    def store_request(text: str, api_key: Optional[str] = None,
+                      watch: bool = False) -> dict:
+        """Ask the counter for ANYTHING it doesn't stock — a capability, a
+        slot, a backend. Free, keyless OK. Every request is logged verbatim
+        (size-capped, stored as data, never rendered raw) and now hands back a
+        request_id + status you can come back to (GAUNTLET #5): the demand loop
+        is no longer a write-only void. Check it any time with
+        GET /v1/store/request/{id}; the public count is GET /v1/store/requests.
+        Unmet demand decides what gets stocked next — the shelf writes itself
+        from what agents ask for and can't get.
+
+        Pass watch=True WITH an api_key to flag the ask for a heads-up on a
+        status flip (poll store_my_requests to see it — poll-based, no push); an
+        anonymous watch is ignored, and the chosen flag is echoed as `watch`."""
+        rec = _store_demand.file_request(text=text, api_key=api_key, door="mcp",
+                                         watch=watch)
+        return {"request_id": rec["request_id"], "status": rec["status"],
+                "watch": rec["watch"],
+                "check": f"GET /v1/store/request/{rec['request_id']}"}
+
+    @mcp.tool()
+    def store_request_status(request_id: str) -> dict:
+        """Check a filed store_request by its id (GAUNTLET #5: the void now has
+        a status to return). Returns {request_id, status, status_note, filed_at,
+        door, text} — status is 'logged' until the shelf-owner acts on it, at
+        which point status_note carries the reason. Unknown id → {found: false}."""
+        rec = _store_demand.get_request(request_id)
+        if rec is None:
+            return {"found": False, "request_id": request_id}
+        return {"found": True, **rec}
+
+    @mcp.tool()
+    def store_requests() -> dict:
+        """The public demand tally (GAUNTLET #5, the §3 observatory's first
+        increment): {total, distinct, recent[], requests[]}. `requests` is
+        distinct asks with EXACT-MATCH duplicate counts (whitespace/case folded,
+        no fuzzy classification), most-asked first — the mechanical read of what
+        the shelf is missing. No key material, text display-truncated."""
+        return _store_demand.tally()
+
+    @mcp.tool()
+    def store_my_requests(api_key: str) -> dict:
+        """YOUR OWN filings (roadmap: a voter comes back a reachable customer) —
+        the private counterpart to the public store_requests tally, keyed to your
+        api_key. Returns {requests: [{request_id, filed_at, text, status,
+        status_note, status_ts, watch, same_ask_count}]}, newest first; `watch`
+        echoes whether you asked to hear back on a status flip (poll THIS to learn
+        of one — poll-based, no push). Only rows attributable to your key (via the
+        keyed pseudonym, never a raw-key match) are returned, so you can't read
+        another caller's filings; an unknown/keyless caller just gets []. Text is
+        display-truncated, untrusted data — no key material on the surface."""
+        return {"requests": _store_demand.my_requests(api_key)}
+
+except ImportError:
+    pass
 
 
 def main() -> None:

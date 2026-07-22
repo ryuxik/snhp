@@ -21,6 +21,8 @@ primary_region = "sjc"
 
 [env]
   HOST = "0.0.0.0"
+  # NEXTMOVE telemetry on the persistent volume (default is CWD = ephemeral)
+  NEXTMOVE_TELEMETRY_PATH = "/data/nextmove_telemetry.jsonl"
   PORT = "8080"
   LOG_LEVEL = "info"
   # Fly doesn't auto-inject $PORT — we have to set it here so uvicorn binds

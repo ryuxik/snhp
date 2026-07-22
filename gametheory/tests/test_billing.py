@@ -12,6 +12,7 @@ SDK. When/if the HTTP routes come back, add an integration-test layer
 that hits the routes; the function-level tests here remain the source
 of truth for billing semantics.
 """
+import itertools
 import json
 import os
 import tempfile
@@ -32,7 +33,7 @@ os.environ["STRIPE_WEBHOOK_SECRET"] = "whsec_fakefakefake"
 
 from gametheory.server import billing as billing_mod  # noqa: E402
 from gametheory.server.onboarding import (  # noqa: E402
-    issue_key, lookup_key, credit_balance, deduct_balance,
+    MILLICENTS_PER_CENT, STARTER_GRANT_MILLICENTS, issue_key, wallet_available,
 )
 
 
@@ -46,6 +47,18 @@ class _FakeCheckoutSession:
         self.metadata = kwargs.get("metadata", {})
 
 
+_PI_COUNTER = itertools.count(1)
+
+
+class _FakePaymentIntent:
+    def __init__(self, **kwargs):
+        self.id = f"pi_test_FAKE_{next(_PI_COUNTER)}"
+        self.amount = kwargs.get("amount")
+        self.currency = kwargs.get("currency")
+        self.metadata = kwargs.get("metadata", {})
+        self.status = "succeeded"
+
+
 class _FakeStripeModule:
     """Minimal stand-in for the stripe SDK; enough for our handlers."""
     api_key = None
@@ -55,6 +68,24 @@ class _FakeStripeModule:
             @staticmethod
             def create(**kwargs):
                 return _FakeCheckoutSession(**kwargs)
+
+    class PaymentIntent:
+        # Models Stripe idempotency: the SAME idempotency_key returns the SAME
+        # PaymentIntent (same id), so our intent-id dedupe sees a duplicate.
+        # A call with no key gets a fresh, globally-unique id — no false
+        # duplicates across tests that share the persistent dedupe table.
+        _by_idem: dict = {}
+
+        @staticmethod
+        def create(**kwargs):
+            idem = kwargs.get("idempotency_key")
+            store = _FakeStripeModule.PaymentIntent._by_idem
+            if idem is not None and idem in store:
+                return store[idem]
+            pi = _FakePaymentIntent(**kwargs)   # SPT redeem: succeeds in test mode
+            if idem is not None:
+                store[idem] = pi
+            return pi
 
     class Webhook:
         @staticmethod
@@ -85,6 +116,7 @@ def _completed_event(event_id: str, api_key: str, credits_cents: int) -> bytes:
         "type": "checkout.session.completed",
         "data": {"object": {
             "id": "cs_test_session_id",
+            "payment_status": "paid",
             "metadata": {
                 "api_key": api_key,
                 "pack": "small",
@@ -107,8 +139,10 @@ def test_create_checkout_session_returns_url(stub_stripe):
     assert out["checkout_url"].startswith("https://checkout.stripe.com/")
     assert out["session_id"].startswith("cs_")
     assert out["pack"] == "small"
-    assert out["price_cents"] == 1000
+    # price = credits + the 5% counter fee (STORE.md §2d.4)
+    assert out["price_cents"] == 1050
     assert out["credits_cents"] == 1000
+    assert out["fee_cents"] == 50
 
 
 def test_create_checkout_session_rejects_unknown_pack(stub_stripe):
@@ -130,18 +164,103 @@ def test_create_checkout_session_rejects_unknown_key(stub_stripe):
         )
 
 
+# ─── Counter fee arithmetic + custom top-up ─────────────────────────────────
+
+
+def test_counter_fee_matches_every_pack():
+    """The fee helper must reproduce every CREDIT_PACKS price exactly — the
+    module-load assert depends on this, and the receipt must never disagree
+    with the published fee."""
+    for name, p in billing_mod.CREDIT_PACKS.items():
+        fee = billing_mod.counter_fee_cents(p["credits_cents"])
+        assert p["credits_cents"] + fee == p["price_cents"], name
+
+
+def test_counter_fee_rounds_half_up():
+    # 250¢ credit → 5% = 12.5¢ → rounds half-up to 13¢ (not banker's-even 12¢)
+    assert billing_mod.counter_fee_cents(250) == 13
+    # the $2 anchor need: 200¢ → 10¢ fee → $2.10 total (GAUNTLET #2)
+    assert billing_mod.counter_fee_cents(200) == 10
+    assert billing_mod.counter_fee_cents(0) == 0
+
+
+def test_custom_topup_checkout_arithmetic(stub_stripe):
+    """A $2 need costs $2.10, never $10.50."""
+    key = _new_key("custom-1")
+    out = billing_mod.create_checkout_session(
+        api_key=key, amount_cents=200,
+        success_url="https://snhp.dev/paid", cancel_url="https://snhp.dev/cancel",
+    )
+    assert out["pack"] == "custom"
+    assert out["credits_cents"] == 200
+    assert out["price_cents"] == 210
+    assert out["fee_cents"] == 10
+
+
+def test_custom_topup_enforces_minimum(stub_stripe):
+    key = _new_key("custom-min")
+    with pytest.raises(ValueError, match="amount_cents must be >= 200"):
+        billing_mod.create_checkout_session(
+            api_key=key, amount_cents=199,
+            success_url="https://snhp.dev/paid",
+            cancel_url="https://snhp.dev/cancel",
+        )
+
+
+def test_checkout_rejects_both_pack_and_amount(stub_stripe):
+    key = _new_key("custom-both")
+    with pytest.raises(ValueError, match="exactly one"):
+        billing_mod.create_checkout_session(
+            api_key=key, pack="small", amount_cents=500,
+            success_url="https://snhp.dev/paid",
+            cancel_url="https://snhp.dev/cancel",
+        )
+
+
+def test_checkout_rejects_neither_pack_nor_amount(stub_stripe):
+    key = _new_key("custom-neither")
+    with pytest.raises(ValueError, match="exactly one"):
+        billing_mod.create_checkout_session(
+            api_key=key,
+            success_url="https://snhp.dev/paid",
+            cancel_url="https://snhp.dev/cancel",
+        )
+
+
+def test_custom_topup_rejects_bool_amount(stub_stripe):
+    """bool is an int subclass — True must not read as '1 cent'."""
+    key = _new_key("custom-bool")
+    with pytest.raises(ValueError, match="amount_cents must be an integer"):
+        billing_mod.create_checkout_session(
+            api_key=key, amount_cents=True,  # type: ignore[arg-type]
+            success_url="https://snhp.dev/paid",
+            cancel_url="https://snhp.dev/cancel",
+        )
+
+
+def test_webhook_credits_custom_amount(stub_stripe):
+    """The webhook is amount-agnostic: a custom credits_cents flows through the
+    SAME signed/deduped path with no handler change."""
+    key = _new_key("custom-webhook")
+    out = billing_mod.handle_webhook(
+        payload=_completed_event("evt_custom_wh", key, 200), signature="valid")
+    assert out["new_balance_millicents"] == STARTER_GRANT_MILLICENTS + 200_000
+    assert wallet_available(key)["funded_millicents"] == 200_000
+
+
 # ─── Webhook ────────────────────────────────────────────────────────────────
 
 
 def test_webhook_credits_balance(stub_stripe):
     key = _new_key("webhook-1")
-    assert lookup_key(key)["balance_usd_cents"] == 0
+    assert wallet_available(key)["funded_millicents"] == 0
     out = billing_mod.handle_webhook(
         payload=_completed_event("evt_unit_1", key, 1000),
         signature="valid",
     )
-    assert out["new_balance_cents"] == 1000
-    assert lookup_key(key)["balance_usd_cents"] == 1000
+    # top-up lands in funded; the new balance is starter + the credited money
+    assert out["new_balance_millicents"] == STARTER_GRANT_MILLICENTS + 1_000_000
+    assert wallet_available(key)["funded_millicents"] == 1_000_000
 
 
 def test_webhook_is_idempotent(stub_stripe):
@@ -153,7 +272,7 @@ def test_webhook_is_idempotent(stub_stripe):
     r2 = billing_mod.handle_webhook(payload=payload, signature="valid")
     assert r1.get("duplicate") is False
     assert r2.get("duplicate") is True
-    assert lookup_key(key)["balance_usd_cents"] == 5000  # ONE credit, not two
+    assert wallet_available(key)["funded_millicents"] == 5_000_000  # ONE credit
 
 
 def test_webhook_acks_unhandled_events(stub_stripe):
@@ -174,7 +293,7 @@ def test_webhook_rejects_invalid_signature(stub_stripe):
             payload=_completed_event("evt_unit_badsig", key, 1000),
             signature="INVALID",
         )
-    assert lookup_key(key)["balance_usd_cents"] == 0
+    assert wallet_available(key)["funded_millicents"] == 0
 
 
 def test_webhook_rejects_missing_metadata(stub_stripe):
@@ -196,32 +315,256 @@ def test_charge_or_raise_unknown_key():
 
 
 def test_charge_or_raise_insufficient():
-    key = _new_key("charge-low")
-    credit_balance(api_key=key, cents=2)
+    key = _new_key("charge-low")     # starter 50_000 (= 50¢), no own money
     with pytest.raises(billing_mod.InsufficientCreditsError) as exc_info:
-        billing_mod.charge_or_raise(key, 5)
-    assert exc_info.value.available_cents == 2
-    assert exc_info.value.required_cents == 5
+        billing_mod.charge_or_raise(key, 60)     # 60¢ > the 50¢ starter
+    assert exc_info.value.available_millicents == STARTER_GRANT_MILLICENTS
+    assert exc_info.value.required_millicents == 60 * MILLICENTS_PER_CENT
+    # rerun P4: the 402 message points at top-up options, incl. the $2 custom
+    # minimum, so an underfunded anchor-session buyer is directed, not stranded.
+    msg = str(exc_info.value)
+    assert "checkout_session" in msg
+    assert f"{billing_mod.CUSTOM_MIN_CENTS}" in msg and "$2.00" in msg
 
 
-def test_charge_or_raise_succeeds():
+def test_charge_or_raise_succeeds_from_starter():
     key = _new_key("charge-ok")
-    credit_balance(api_key=key, cents=10)
-    billing_mod.charge_or_raise(key, 3)
-    assert lookup_key(key)["balance_usd_cents"] == 7
+    split = billing_mod.charge_or_raise(key, 3)   # 3¢ = 3_000 millicents
+    assert split["starter_spent"] == 3_000
+    assert split["funded_spent"] == 0
+    assert wallet_available(key)["total_millicents"] == \
+        STARTER_GRANT_MILLICENTS - 3_000
 
 
-# ─── credit_balance / deduct_balance helpers ────────────────────────────────
+# ─── charge spends the starter bucket first, then funded ────────────────────
 
 
-def test_credit_then_deduct_then_insufficient():
-    key = _new_key("deduct-agent")
-    assert credit_balance(api_key=key, cents=10) == 10
-    assert deduct_balance(api_key=key, cents=3) is True
-    assert lookup_key(key)["balance_usd_cents"] == 7
-    assert deduct_balance(api_key=key, cents=100) is False
-    assert lookup_key(key)["balance_usd_cents"] == 7
+def test_charge_spends_starter_then_funded(stub_stripe):
+    key = _new_key("charge-split")
+    # top up 10¢ of own money via the webhook path
+    billing_mod.handle_webhook(
+        payload=_completed_event("evt_split", key, 10), signature="valid")
+    # wallet now: starter 50_000 + funded 10_000
+    split = billing_mod.charge_or_raise(key, 55)  # 55_000 millicents
+    assert split["starter_spent"] == STARTER_GRANT_MILLICENTS
+    assert split["funded_spent"] == 5_000
+    assert wallet_available(key)["total_millicents"] == 5_000
 
 
-def test_deduct_unknown_key_returns_false():
-    assert deduct_balance(api_key="gt_does_not_exist", cents=1) is False
+def test_webhook_releases_claim_on_credit_failure(stub_stripe, monkeypatch):
+    """A transient failure AFTER the claim must release the claim, so
+    Stripe's retry can reprocess and the customer actually gets credited.
+    Without the release, retries see duplicate=True forever: paid, never
+    credited, silent."""
+    key = _new_key("webhook-release-1")
+    payload = _completed_event("evt_unit_release", key, 1000)
+
+    calls = {"n": 0}
+    real_credit = billing_mod.onboarding.wallet_credit
+
+    def flaky_credit(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("simulated transient DB failure")
+        return real_credit(*args, **kwargs)
+
+    monkeypatch.setattr(billing_mod.onboarding, "wallet_credit", flaky_credit)
+
+    # First delivery: crashes mid-credit, must release the claim.
+    with pytest.raises(RuntimeError, match="simulated transient"):
+        billing_mod.handle_webhook(payload=payload, signature="valid")
+    assert wallet_available(key)["funded_millicents"] == 0
+
+    # Stripe retries: must NOT be a duplicate — must credit this time.
+    out = billing_mod.handle_webhook(payload=payload, signature="valid")
+    assert out.get("duplicate") is False
+    assert out["new_balance_millicents"] == STARTER_GRANT_MILLICENTS + 1_000_000
+    assert wallet_available(key)["funded_millicents"] == 1_000_000
+
+
+def test_checkout_session_passes_idempotency_key(stub_stripe, monkeypatch):
+    seen = {}
+    real_create = _FakeStripeModule.checkout.Session.create
+
+    def capture(**kwargs):
+        seen.update(kwargs)
+        kwargs.pop("idempotency_key", None)
+        return real_create(**kwargs)
+
+    monkeypatch.setattr(_FakeStripeModule.checkout.Session, "create", capture)
+    key = _new_key("checkout-idem-1")
+    billing_mod.create_checkout_session(
+        api_key=key, pack="small",
+        success_url="https://snhp.dev/paid", cancel_url="https://snhp.dev/cancel",
+        idempotency_key="req_abc123",
+    )
+    assert seen.get("idempotency_key") == "req_abc123"
+
+
+def test_webhook_completed_unpaid_acks_without_credit(stub_stripe):
+    """Managed Payments: async methods can complete a session unpaid; the
+    credit must wait for async_payment_succeeded."""
+    key = _new_key("webhook-unpaid-1")
+    payload = json.dumps({
+        "id": "evt_unit_unpaid",
+        "type": "checkout.session.completed",
+        "data": {"object": {
+            "id": "cs_x", "payment_status": "unpaid",
+            "metadata": {"api_key": key, "credits_cents": "1000"},
+        }},
+    }).encode()
+    out = billing_mod.handle_webhook(payload=payload, signature="valid")
+    assert out.get("awaiting_payment") is True
+    assert wallet_available(key)["funded_millicents"] == 0
+
+
+def test_webhook_async_payment_succeeded_credits(stub_stripe):
+    key = _new_key("webhook-async-1")
+    payload = json.dumps({
+        "id": "evt_unit_async",
+        "type": "checkout.session.async_payment_succeeded",
+        "data": {"object": {
+            "id": "cs_x",
+            "metadata": {"api_key": key, "credits_cents": "1000"},
+        }},
+    }).encode()
+    out = billing_mod.handle_webhook(payload=payload, signature="valid")
+    assert out["new_balance_millicents"] == STARTER_GRANT_MILLICENTS + 1_000_000
+    assert wallet_available(key)["funded_millicents"] == 1_000_000
+
+
+# ─── Agentic top-up: redeem a Shared Payment Token (PREVIEW) ────────────────
+
+
+def test_agentic_topup_credits_and_names_fee(stub_stripe):
+    key = _new_key("agentic-1")
+    out = billing_mod.agentic_topup(
+        api_key=key, amount_cents=200, payment_token="spt_test_123")
+    assert out["credited"] is True
+    assert out["duplicate"] is False
+    assert out["status"] == "succeeded"
+    # same fee math as the custom Checkout top-up: $2 → $2.10
+    assert out["credits_cents"] == 200
+    assert out["price_cents"] == 210
+    assert out["fee_cents"] == 10
+    assert out["new_balance_millicents"] == STARTER_GRANT_MILLICENTS + 200_000
+    assert wallet_available(key)["funded_millicents"] == 200_000
+
+
+def test_agentic_topup_charges_price_not_credits(stub_stripe, monkeypatch):
+    """Stripe must be asked to redeem the SPT for price (credits+fee), the
+    wallet credited only the credits, and the SPT param + preview version must
+    be present on the call."""
+    seen = {}
+
+    def capture(**kwargs):
+        seen.update(kwargs)
+        return _FakePaymentIntent(**kwargs)   # fresh unique id per call
+
+    monkeypatch.setattr(_FakeStripeModule.PaymentIntent, "create", capture)
+    key = _new_key("agentic-charge")
+    billing_mod.agentic_topup(
+        api_key=key, amount_cents=1000, payment_token="spt_abc",
+        idempotency_key="req_xyz")
+    assert seen["amount"] == 1050                     # price = 1000 + 5% fee
+    assert seen["currency"] == "usd"
+    assert seen["confirm"] is True
+    assert seen["payment_method_data"] == {
+        "shared_payment_granted_token": "spt_abc"}
+    assert seen["stripe_version"] == billing_mod.AGENTIC_PREVIEW_API_VERSION
+    assert seen["idempotency_key"] == "req_xyz"
+    assert wallet_available(key)["funded_millicents"] == 1_000_000  # credits only
+
+
+def test_agentic_topup_enforces_minimum(stub_stripe):
+    key = _new_key("agentic-min")
+    with pytest.raises(ValueError, match="amount_cents must be >= 200"):
+        billing_mod.agentic_topup(
+            api_key=key, amount_cents=199, payment_token="spt_x")
+
+
+def test_agentic_topup_unknown_key(stub_stripe):
+    with pytest.raises(ValueError, match="unknown api_key"):
+        billing_mod.agentic_topup(
+            api_key="gt_nope", amount_cents=200, payment_token="spt_x")
+
+
+def test_agentic_topup_requires_token(stub_stripe):
+    key = _new_key("agentic-notoken")
+    with pytest.raises(ValueError, match="payment_token"):
+        billing_mod.agentic_topup(
+            api_key=key, amount_cents=200, payment_token="  ")
+
+
+def test_agentic_topup_is_idempotent(stub_stripe):
+    """A retry with the same idempotency key → same PaymentIntent id → credits
+    once (Stripe idempotency + our intent-id dedupe)."""
+    key = _new_key("agentic-idem")
+    r1 = billing_mod.agentic_topup(
+        api_key=key, amount_cents=200, payment_token="spt_dup",
+        idempotency_key="req_dup")
+    r2 = billing_mod.agentic_topup(
+        api_key=key, amount_cents=200, payment_token="spt_dup",
+        idempotency_key="req_dup")
+    assert r1.get("duplicate") is False
+    assert r2.get("duplicate") is True
+    assert wallet_available(key)["funded_millicents"] == 200_000  # ONE credit
+
+
+def test_agentic_topup_declined_raises(stub_stripe, monkeypatch):
+    """A Stripe error on redeem surfaces as PaymentDeclinedError (→ 402), never
+    a 500, and never credits."""
+    def boom(**kwargs):
+        raise RuntimeError("card_declined")  # stand-in for stripe.error.CardError
+
+    monkeypatch.setattr(_FakeStripeModule.PaymentIntent, "create", boom)
+    key = _new_key("agentic-declined")
+    with pytest.raises(billing_mod.PaymentDeclinedError, match="card_declined"):
+        billing_mod.agentic_topup(
+            api_key=key, amount_cents=200, payment_token="spt_bad")
+    assert wallet_available(key)["funded_millicents"] == 0
+
+
+def test_agentic_topup_non_succeeded_does_not_credit(stub_stripe, monkeypatch):
+    """requires_action / processing: returned uncredited, wallet untouched."""
+    def pending(**kwargs):
+        pi = _FakePaymentIntent(**kwargs)
+        pi.status = "requires_action"
+        return pi
+
+    monkeypatch.setattr(_FakeStripeModule.PaymentIntent, "create", pending)
+    key = _new_key("agentic-pending")
+    out = billing_mod.agentic_topup(
+        api_key=key, amount_cents=200, payment_token="spt_pending")
+    assert out["credited"] is False
+    assert out["status"] == "requires_action"
+    assert wallet_available(key)["funded_millicents"] == 0
+
+
+def test_agentic_topup_releases_claim_on_credit_failure(stub_stripe, monkeypatch):
+    """A transient failure AFTER the intent-id claim must release it, so a retry
+    can credit — never paid-but-uncredited-forever (same rule as the webhook)."""
+    key = _new_key("agentic-release")
+    calls = {"n": 0}
+    real_credit = billing_mod.onboarding.wallet_credit
+
+    def flaky_credit(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("simulated transient DB failure")
+        return real_credit(*args, **kwargs)
+
+    monkeypatch.setattr(billing_mod.onboarding, "wallet_credit", flaky_credit)
+    # Same idempotency key on both calls → the retry hits the SAME intent id,
+    # so the release-then-reclaim path is exercised (not a fresh id).
+    with pytest.raises(RuntimeError, match="simulated transient"):
+        billing_mod.agentic_topup(
+            api_key=key, amount_cents=200, payment_token="spt_release",
+            idempotency_key="req_release")
+    assert wallet_available(key)["funded_millicents"] == 0
+
+    out = billing_mod.agentic_topup(
+        api_key=key, amount_cents=200, payment_token="spt_release",
+        idempotency_key="req_release")
+    assert out.get("duplicate") is False
+    assert wallet_available(key)["funded_millicents"] == 200_000

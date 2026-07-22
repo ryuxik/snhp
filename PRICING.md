@@ -19,6 +19,50 @@ Value sanity check (so we never price off cost): SNHP's measured edge captures r
 **$16 / $160 / $1,600** of value on a **$1k / $10k / $100k** deal. Every Tier-1 and
 Tier-2 rate above is a small fraction of that.
 
+## The store (agent convenience counter)
+
+A prepaid wallet (millicents; 1000 per cent) and a shelf of slots, over two doors
+(MCP tools + `/v1/store/*` and `/v1/fetch`). The pricing discipline is **wholesale
+passthrough**: a commodity call settles at the backend's *exact* cost, no per-call
+markup, and only **on delivery** — a mechanical predicate must pass, so you cannot
+pay for nothing. The store earns **one published fee (5%) on wallet top-ups**, not on
+calls. Every new key gets a one-time **50¢ starter credit** (unconditional, no card).
+
+- **Fetch slot** — one clean read of a stubborn page → markdown, failover across
+  backends, 2¢ admission cap (a call typically costs well under it). Charged only on
+  a predicate-passing read; a blank/block-page is an uncharged outcome. The receipt is
+  signed and states the exact price (`price_millicents` + a 5-decimal exact `price_usd`),
+  the wallet delta, and any absorbed tail.
+- **Funded credit is prepaid and non-refundable** — no cashout path. Size top-ups to
+  usage; the **$2 custom minimum** exists so an agent can buy exactly what it needs.
+
+### NEXTMOVE — the $2 negotiation session (anchor SKU)
+
+**$2 once covers an entire negotiation** (every move, cap 10, 7-day window),
+category-tuned, deterministic (fixed rollout budget + seed → bit-identical advice),
+and receipted (Ed25519-signed, replayable via `context_hash`). Anchor SKUs charge
+their full price up front — no eaten tail — so an underfunded wallet gets a 402 with
+top-up options, never a discount.
+
+**Free-sibling boundary (stated honestly):** the generic `negotiate_turn` /
+`negotiate_bundle` tools (Tier 0 above) are **free** — but generic, unreceipted, no
+category tuning, wall-clock (non-deterministic) compute. Pay the $2 when you want the
+tuned, auditable, replayable version with the drafted message and the signed receipt.
+
+**What "validated" means here — two SEPARATE experiments, each labelled so no number
+is silently swapped for another:**
+
+- *Recommender head-to-head (T1 LLM tournament):* the single-issue negotiation
+  recommender is **~12% better head-to-head** — **n=20** paired LLM negotiations,
+  95% CI **+6.5–17.4%**, **p<0.0001** (one Sonnet+SNHP vs a vanilla-Sonnet
+  counterparty). This is the edge the $2 session's per-move advice draws on.
+- *Certificate gauntlet (held-out, `snhp-gauntlet/1`):* a certified agent's mean
+  surplus beats a **split-the-difference** baseline by **+0.1086** — **n=360** seeded
+  negotiations (60 scenarios × 2 roles × 3 fixed scripted opponents), **p=0.0001**,
+  on a held-out set with the design registered in advance. This is a *different*
+  measurement (gauntlet vs a scripted baseline), not the recommender's LLM head-to-head
+  number; the two are never interchangeable.
+
 ## Abuse resistance (can't be milked for cheap LLMs)
 
 The thing people fear — "someone uses my endpoint as a cheap LLM proxy or burns my
