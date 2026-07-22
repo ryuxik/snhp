@@ -157,6 +157,57 @@ class Workspace:
                             timed_out, out[-4000:])
 
 
+    # -- v35 CO2-A: run tests in an ISOLATED throwaway dir --------------------
+    def run_isolated(self, files: dict, test_files: list[str],
+                     timeout: float = REVIEW_TIMEOUT_S) -> ReviewResult:
+        """Run `test_files` against `files` in a FRESH temp dir the git workspace
+        never sees (the neutral hidden-test run for the trust-boundary experiment,
+        fraud.py). The buyer's hidden tests live outside the supplier's workspace;
+        this copies the supplier's delivered `files` + the buyer's hidden test
+        files into a throwaway dir and runs pytest there, so the hidden test never
+        touches the tracked repo and never leaks into any rendered View. Same
+        pytest machinery as run_acceptance; the pass/fail verdict is the receipt."""
+        import os as _os
+        import tempfile
+        import time
+        tmp = tempfile.mkdtemp(prefix="co2a_hidden_")
+        try:
+            for relpath, content in files.items():
+                if ".." in Path(relpath).parts:
+                    raise ValueError(f"unsafe path {relpath!r}")
+                dest = Path(tmp) / relpath
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_text(content, encoding="utf-8")
+            targets = list(test_files) if test_files else ["."]
+            cmd = [sys.executable, "-m", "pytest", "-q",
+                   "-p", "no:cacheprovider", "--no-header", *targets]
+            env = dict(_os.environ)
+            env["PYTHONDONTWRITEBYTECODE"] = "1"
+            t0 = time.monotonic()
+            timed_out = False
+            try:
+                proc = subprocess.run(cmd, cwd=tmp, capture_output=True,
+                                      text=True, timeout=timeout, env=env)
+                rc = proc.returncode
+                out = (proc.stdout or "") + (proc.stderr or "")
+            except subprocess.TimeoutExpired as exc:
+                timed_out = True
+                rc = -1
+                out = ((exc.stdout or "") + (exc.stderr or "")
+                       if isinstance(exc.stdout, str) else "TIMEOUT")
+            duration = round(time.monotonic() - t0, 4)
+            passed = (rc == 0) and not timed_out
+            n_pass, n_fail = _parse_counts(out)
+            if not passed and n_fail == 0:
+                n_fail = max(1, n_fail)
+            digest = hashlib.sha256(out.encode("utf-8")).hexdigest()
+            return ReviewResult(passed, rc, n_pass, n_fail, digest, duration,
+                                timed_out, out[-4000:])
+        finally:
+            import shutil
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
 def _parse_counts(output: str) -> tuple[int, int]:
     """Best-effort parse of pytest's summary (e.g. '2 passed', '1 failed')."""
     import re

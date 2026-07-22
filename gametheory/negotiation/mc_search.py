@@ -18,13 +18,23 @@ The rollout model here is deliberately simple (a conceder opponent with an unkno
 reservation, expressed in OUR utility frame) — the value is the anytime mechanism
 and the in-model improvement guarantee, not a claim that the heuristic belief is exact.
 
-IMPORTANT — VALIDATED, NO REALIZED EDGE. mc_validation.py played this tier against
-the SHIPPED closed-form recommender in realized negotiations (n=400, opponents drawn
-outside the rollout's assumed model): MC − closed form = -0.002, 95% CI
-[-0.043, +0.038], 98% ties. It beats a myopic strawman (mc_prototype: +66%) but does
-NOT beat the production recommender, which is already strong. So `compute_ms` ships
-OFF BY DEFAULT and EXPERIMENTAL — do not present it as a quality edge. The harness is
-kept so a better belief can be re-measured against the same bar.
+IMPORTANT — RE-VALIDATED, REALIZED-NEGATIVE (vend/RESULTS.md P11, 2026-07-22). The
+prior figure (MC − closed = -0.002, 98% ties, "no edge") was measured on the
+PRE-P7 engine, whose accept-collapse forced both arms into early capitulation and
+CRUSHED MC's action window (98% ties = MC almost never reached a counter node it
+could refine). The P7 total-horizon fix (plain_terms.py:144) opened that window,
+and mc_validation.py — re-run deterministically (compute_samples path, seed=0,
+n=600, opponents drawn outside the rollout's model) — now finds MC's counter-price
+refinement is realized-NEGATIVE: MC − closed form = **-0.82 (-2.67%), 95% CI
+[-1.22, -0.42]** at the shipped 400k-sample budget, CI excluding 0 BELOW, and FLAT
+across 180k/400k/720k (more compute does not help ⇒ belief mis-specification, not
+sampling noise). Mechanism: the rollout's firmness residual counters too firm for
+the out-of-model population, dropping the deal rate 75.7%→71.5% (-4.2pp). It still
+beats a myopic strawman (mc_prototype: +66%) but LOSES to the production
+recommender. So single-issue `compute_ms`/`compute_samples` refinement ships OFF
+BY DEFAULT — now a REQUIREMENT, not a harmless tie: shipping it ON would COST
+surplus. The harness is kept (it now has teeth) so a corrected belief
+(reservation-aware / discount-fixed) can be re-measured against a real signed bar.
 """
 from __future__ import annotations
 
@@ -36,7 +46,7 @@ import numpy as np
 
 from gametheory.negotiation.plain_terms import (
     negotiate_turn as _closed_form_turn,
-    _seller_frame, _buyer_frame, _clamp01, _draft,
+    _seller_frame, _buyer_frame, _clamp01, _draft, _rationale,
 )
 
 # rollout hyper-parameters (the conceder model)
@@ -161,34 +171,58 @@ def _single_issue_model(side, walk_away, target, counterparty_offers, rounds_lef
 
 def negotiate_turn_mc(*, side, walk_away, target, counterparty_offers=None,
                       my_previous_offers=None, rounds_left=8, item="this",
-                      compute_ms=0, seed=0):
+                      compute_ms=0, compute_samples=0, seed=0):
     """Tier 1: the closed-form turn, optionally refined by an anytime MC search of
     the counter price. Returns the same dict as negotiate_turn plus a ``compute``
     block. Falls back to the closed form when there's no budget or no counter to
-    optimise (accept / walk / one-shot)."""
+    optimise (accept / walk / one-shot).
+
+    The accept short-circuit here (accept ⇒ return closed form, 0 rollouts) is
+    DELIBERATE and was re-confirmed by vend/RESULTS.md P9: a paid MC accept-
+    VERIFICATION was implemented and evaluated (override accept→counter when the
+    best-counter rollout EV beats the certain accept-now EV past a margin), and
+    KILLED — on every genuine post-P7 accept node the engine's OWN conceder-rollout
+    belief values the best counter BELOW the certain accept (gap −0.05 to −0.31),
+    so the override never fires at any pre-registered margin {0.05,0.10,0.15}. The
+    verification is a pure no-op on realized surplus under BOTH termination models;
+    it was reverted. See the P9 guards in tests/test_accept_battery.py.
+
+    Budgets: ``compute_ms`` is a wall-clock budget (anytime, NOT strictly
+    deterministic across runs — sample count depends on the machine's speed).
+    ``compute_samples`` is a fixed rollout budget: same seed + same inputs ⇒
+    identical result on any machine. Paid/auditable paths (NEXTMOVE) must use
+    ``compute_samples``. If both are given, the sample budget wins."""
     base = _closed_form_turn(
         side=side, walk_away=walk_away, target=target,
         counterparty_offers=counterparty_offers, my_previous_offers=my_previous_offers,
         rounds_left=rounds_left, item=item)
-    if compute_ms <= 0 or base["action"] != "counter":
+    if (compute_ms <= 0 and compute_samples <= 0) or base["action"] != "counter":
         return base
 
     actions, base_index, u_lo, to_price = _single_issue_model(
         side, walk_away, target, counterparty_offers, rounds_left, base["recommended_price"])
     rng = np.random.default_rng(seed)
-    res = anytime_search(
-        actions,
-        lambda nb: _conceder_payoffs(actions, u_lo, rounds_left, rng, nb),
-        deadline_s=compute_ms / 1000.0, base_index=base_index)
+    payoffs = lambda nb: _conceder_payoffs(actions, u_lo, rounds_left, rng, nb)
+    if compute_samples > 0:      # deterministic: fixed rollouts, no clock
+        res = anytime_search(actions, payoffs, deadline_s=float("inf"),
+                             base_index=base_index, max_samples=int(compute_samples))
+    else:                        # anytime: wall-clock budget
+        res = anytime_search(actions, payoffs, deadline_s=compute_ms / 1000.0,
+                             base_index=base_index)
 
     if res.improved:
         new_price = round(float(to_price(res.action)), 2)
         base["recommended_price"] = new_price
         base["message"] = _draft(side, "counter", new_price, item)
-        base["rationale"] = (base.get("rationale", "") +
-                             f" (Monte-Carlo refined over {res.samples:,} rollouts.)")
+        their_last = counterparty_offers[-1] if counterparty_offers else None
+        base["rationale"] = (
+            _rationale(side, "counter", new_price, their_last,
+                       base.get("expected_settlement")) +
+            f" (Monte-Carlo refined over {res.samples:,} rollouts.)")
     base["compute"] = {
-        "budget_ms": compute_ms, "samples": res.samples, "converged": res.converged,
+        "budget_ms": compute_ms, "budget_samples": int(compute_samples),
+        "deterministic": compute_samples > 0,
+        "samples": res.samples, "converged": res.converged,
         "improved": res.improved, "value": round(res.value, 4),
         "ci95": round(res.ci, 4), "vs_closed_form": round(res.value - res.base_value, 4),
     }

@@ -1,0 +1,1285 @@
+{
+ "meta": {
+  "preset_seed": 1,
+  "wildcard_label": "the karaoke machine",
+  "engine": "divorce/* on gametheory+preflearn+notary; every event below is a recorded engine output"
+ },
+ "cast": {
+  "a": {
+   "name": "Riley",
+   "archetype": "sentimental_hoarder",
+   "sliders": {
+    "pettiness": 0.95,
+    "spite": 0.3,
+    "patience": 1.0
+   },
+   "hill": "dog",
+   "fight_cost": 6400,
+   "court_confidence_pct": 74,
+   "seal": "sha256:e29791a67ee7422c8a989b4a6d4b9c2633fdac3afbad585d2b8ee54a32de0792"
+  },
+  "b": {
+   "name": "Jordan",
+   "archetype": "ledger",
+   "sliders": {
+    "pettiness": 0.95,
+    "spite": 0.35,
+    "patience": 1.0
+   },
+   "hill": "dog",
+   "fight_cost": 6400,
+   "court_confidence_pct": 76,
+   "seal": "sha256:900f9922f2432cac087be4842d08f40900956076dacc0b609f54e87ea3804c76"
+  }
+ },
+ "act1": {
+  "exchange_log": [
+   {
+    "asset": "espresso",
+    "proposer": "A",
+    "share_a": 1.0,
+    "transfer": 0.0,
+    "accepted": true
+   },
+   {
+    "asset": "vinyl",
+    "proposer": "A",
+    "share_a": 1.0,
+    "transfer": 0.0,
+    "accepted": false
+   },
+   {
+    "asset": "vinyl",
+    "proposer": "B",
+    "share_a": 0.0,
+    "transfer": 0.0,
+    "accepted": false
+   },
+   {
+    "asset": "vinyl",
+    "proposer": "A",
+    "share_a": 1.0,
+    "transfer": 500.0,
+    "accepted": false
+   },
+   {
+    "asset": "vinyl",
+    "proposer": "B",
+    "share_a": 0.0,
+    "transfer": 500.0,
+    "accepted": false
+   },
+   {
+    "asset": "vinyl",
+    "proposer": "A",
+    "share_a": 0.0,
+    "transfer": -5000.0,
+    "accepted": false
+   },
+   {
+    "asset": "vinyl",
+    "proposer": "B",
+    "share_a": 1.0,
+    "transfer": -4000.0,
+    "accepted": false
+   },
+   {
+    "asset": "vinyl",
+    "proposer": "A",
+    "share_a": 1.0,
+    "transfer": 1000.0,
+    "accepted": false
+   },
+   {
+    "asset": "vinyl",
+    "proposer": "B",
+    "share_a": 1.0,
+    "transfer": -4000.0,
+    "accepted": false
+   },
+   {
+    "asset": "vinyl",
+    "proposer": "A",
+    "share_a": 0.0,
+    "transfer": -4500.0,
+    "accepted": false
+   },
+   {
+    "asset": "vinyl",
+    "proposer": "B",
+    "share_a": 0.0,
+    "transfer": 1000.0,
+    "accepted": false
+   },
+   {
+    "asset": "vinyl",
+    "proposer": "A",
+    "share_a": 0.0,
+    "transfer": -4500.0,
+    "accepted": false
+   },
+   {
+    "asset": "vinyl",
+    "proposer": "B",
+    "share_a": 0.0,
+    "transfer": 1000.0,
+    "accepted": false
+   },
+   {
+    "asset": "vinyl",
+    "proposer": "A",
+    "share_a": 0.0,
+    "transfer": -4500.0,
+    "accepted": false
+   },
+   {
+    "asset": "vinyl",
+    "proposer": "B",
+    "share_a": 0.0,
+    "transfer": 1000.0,
+    "accepted": false
+   },
+   {
+    "asset": "dog",
+    "proposer": "A",
+    "share_a": 0.5,
+    "transfer": -3500.0,
+    "accepted": false
+   },
+   {
+    "asset": "dog",
+    "proposer": "B",
+    "share_a": 0.5,
+    "transfer": -3000.0,
+    "accepted": false
+   },
+   {
+    "asset": "dog",
+    "proposer": "A",
+    "share_a": 0.5,
+    "transfer": -3000.0,
+    "accepted": false
+   },
+   {
+    "asset": "dog",
+    "proposer": "B",
+    "share_a": 0.5,
+    "transfer": -2500.0,
+    "accepted": false
+   },
+   {
+    "asset": "dog",
+    "proposer": "A",
+    "share_a": 0.5,
+    "transfer": -2500.0,
+    "accepted": false
+   },
+   {
+    "asset": "dog",
+    "proposer": "B",
+    "share_a": 0.0,
+    "transfer": 1000.0,
+    "accepted": false
+   },
+   {
+    "asset": "dog",
+    "proposer": "A",
+    "share_a": 0.0,
+    "transfer": -6000.0,
+    "accepted": false
+   },
+   {
+    "asset": "dog",
+    "proposer": "B",
+    "share_a": 0.5,
+    "transfer": -2000.0,
+    "accepted": false
+   },
+   {
+    "asset": "dog",
+    "proposer": "A",
+    "share_a": 0.5,
+    "transfer": -2000.0,
+    "accepted": false
+   },
+   {
+    "asset": "dog",
+    "proposer": "B",
+    "share_a": 1.0,
+    "transfer": -5000.0,
+    "accepted": false
+   },
+   {
+    "asset": "dog",
+    "proposer": "A",
+    "share_a": 0.5,
+    "transfer": -2000.0,
+    "accepted": false
+   },
+   {
+    "asset": "dog",
+    "proposer": "B",
+    "share_a": 1.0,
+    "transfer": -5000.0,
+    "accepted": false
+   },
+   {
+    "asset": "dog",
+    "proposer": "A",
+    "share_a": 0.5,
+    "transfer": -2000.0,
+    "accepted": false
+   },
+   {
+    "asset": "dog",
+    "proposer": "B",
+    "share_a": 0.0,
+    "transfer": 1500.0,
+    "accepted": false
+   },
+   {
+    "asset": "lake_weeks",
+    "proposer": "B",
+    "share_a": 0.25,
+    "transfer": -2000.0,
+    "accepted": false
+   },
+   {
+    "asset": "lake_weeks",
+    "proposer": "A",
+    "share_a": 0.0,
+    "transfer": -6000.0,
+    "accepted": false
+   },
+   {
+    "asset": "lake_weeks",
+    "proposer": "B",
+    "share_a": 0.5,
+    "transfer": -3500.0,
+    "accepted": false
+   },
+   {
+    "asset": "lake_weeks",
+    "proposer": "A",
+    "share_a": 0.0,
+    "transfer": -5500.0,
+    "accepted": false
+   },
+   {
+    "asset": "lake_weeks",
+    "proposer": "B",
+    "share_a": 0.5,
+    "transfer": -3000.0,
+    "accepted": false
+   },
+   {
+    "asset": "lake_weeks",
+    "proposer": "A",
+    "share_a": 1.0,
+    "transfer": 1000.0,
+    "accepted": false
+   },
+   {
+    "asset": "lake_weeks",
+    "proposer": "B",
+    "share_a": 0.75,
+    "transfer": -5000.0,
+    "accepted": false
+   },
+   {
+    "asset": "lake_weeks",
+    "proposer": "A",
+    "share_a": 0.0,
+    "transfer": -5000.0,
+    "accepted": false
+   },
+   {
+    "asset": "lake_weeks",
+    "proposer": "B",
+    "share_a": 1.0,
+    "transfer": -7000.0,
+    "accepted": false
+   }
+  ],
+  "per_item_exchanges": {
+   "wallet": 2,
+   "espresso": 1,
+   "vinyl": 14,
+   "dog": 14,
+   "lake_weeks": 9,
+   "wildcard": 0
+  },
+  "unsettled": [
+   "dog",
+   "lake_weeks",
+   "vinyl",
+   "wildcard"
+  ],
+  "settled_fraction": 0.3333333333333333
+ },
+ "act2": {
+  "trace_a": [
+   {
+    "step": 0,
+    "kind": "linear",
+    "weights": {
+     "vinyl": 1.0,
+     "wildcard": -1.0
+    },
+    "sweetener": 0.0,
+    "answer": false,
+    "bands": {
+     "dog": [
+      1140.97,
+      1911.48,
+      3392.17,
+      6016.5,
+      10082.79
+     ],
+     "lake_weeks": [
+      2636.01,
+      3829.25,
+      5798.7,
+      8778.51,
+      12754.45
+     ],
+     "vinyl": [
+      950.93,
+      1467.99,
+      2217.16,
+      3033.52,
+      3681.96
+     ],
+     "espresso": [
+      333.17,
+      476.94,
+      710.55,
+      1058.3,
+      1515.21
+     ],
+     "wildcard": [
+      4494.05,
+      5511.63,
+      7616.84,
+      11685.92,
+      18189.29
+     ]
+    }
+   },
+   {
+    "step": 1,
+    "kind": "linear",
+    "weights": {
+     "dog": 1.0,
+     "wildcard": -1.0
+    },
+    "sweetener": 4224.67,
+    "answer": false,
+    "bands": {
+     "dog": [
+      809.95,
+      1231.71,
+      1862.44,
+      2633.53,
+      3408.81
+     ],
+     "lake_weeks": [
+      2636.01,
+      3829.25,
+      5798.7,
+      8778.51,
+      12754.45
+     ],
+     "vinyl": [
+      950.93,
+      1467.99,
+      2217.16,
+      3033.52,
+      3681.96
+     ],
+     "espresso": [
+      333.17,
+      476.94,
+      710.55,
+      1058.3,
+      1515.21
+     ],
+     "wildcard": [
+      7054.58,
+      8462.15,
+      10942.38,
+      15581.37,
+      23028.38
+     ]
+    }
+   },
+   {
+    "step": 2,
+    "kind": "linear",
+    "weights": {
+     "lake_weeks": 1.0,
+     "wildcard": -1.0
+    },
+    "sweetener": 5143.69,
+    "answer": false,
+    "bands": {
+     "dog": [
+      809.95,
+      1231.71,
+      1862.44,
+      2633.53,
+      3408.81
+     ],
+     "lake_weeks": [
+      2061.6,
+      2797.5,
+      3790.38,
+      4921.5,
+      6008.15
+     ],
+     "vinyl": [
+      950.93,
+      1467.99,
+      2217.16,
+      3033.52,
+      3681.96
+     ],
+     "espresso": [
+      333.17,
+      476.94,
+      710.55,
+      1058.3,
+      1515.21
+     ],
+     "wildcard": [
+      9894.15,
+      11646.72,
+      14614.94,
+      19897.56,
+      28420.03
+     ]
+    }
+   },
+   {
+    "step": 3,
+    "kind": "linear",
+    "weights": {
+     "espresso": 1.0,
+     "dog": -1.0
+    },
+    "sweetener": 1151.89,
+    "answer": false,
+    "bands": {
+     "dog": [
+      1785.16,
+      2088.72,
+      2544.96,
+      3155.7,
+      3850.26
+     ],
+     "lake_weeks": [
+      2061.6,
+      2797.5,
+      3790.38,
+      4921.5,
+      6008.15
+     ],
+     "vinyl": [
+      950.93,
+      1467.99,
+      2217.16,
+      3033.52,
+      3681.96
+     ],
+     "espresso": [
+      265.62,
+      358.65,
+      487.53,
+      642.2,
+      800.01
+     ],
+     "wildcard": [
+      9894.15,
+      11646.72,
+      14614.94,
+      19897.56,
+      28420.03
+     ]
+    }
+   },
+   {
+    "step": 4,
+    "kind": "linear",
+    "weights": {
+     "wildcard": 1.0
+    },
+    "sweetener": -19897.56,
+    "answer": false,
+    "bands": {
+     "dog": [
+      1785.16,
+      2088.72,
+      2544.96,
+      3155.7,
+      3850.26
+     ],
+     "lake_weeks": [
+      2061.6,
+      2797.5,
+      3790.38,
+      4921.5,
+      6008.15
+     ],
+     "vinyl": [
+      950.93,
+      1467.99,
+      2217.16,
+      3033.52,
+      3681.96
+     ],
+     "espresso": [
+      265.62,
+      358.65,
+      487.53,
+      642.2,
+      800.01
+     ],
+     "wildcard": [
+      9473.59,
+      10834.56,
+      12694.21,
+      15013.23,
+      17278.96
+     ]
+    }
+   },
+   {
+    "step": 5,
+    "kind": "linear",
+    "weights": {
+     "vinyl": 1.0,
+     "lake_weeks": -1.0
+    },
+    "sweetener": 1573.22,
+    "answer": false,
+    "bands": {
+     "dog": [
+      1785.16,
+      2088.72,
+      2544.96,
+      3155.7,
+      3850.26
+     ],
+     "lake_weeks": [
+      3566.12,
+      4084.79,
+      4793.26,
+      5682.23,
+      6623.69
+     ],
+     "vinyl": [
+      697.81,
+      1015.72,
+      1439.07,
+      1893.57,
+      2317.78
+     ],
+     "espresso": [
+      265.62,
+      358.65,
+      487.53,
+      642.2,
+      800.01
+     ],
+     "wildcard": [
+      9473.59,
+      10834.56,
+      12694.21,
+      15013.23,
+      17278.96
+     ]
+    }
+   },
+   {
+    "step": 6,
+    "kind": "linear",
+    "weights": {
+     "vinyl": 1.0,
+     "espresso": -1.0
+    },
+    "sweetener": -951.54,
+    "answer": true,
+    "bands": {
+     "dog": [
+      1785.16,
+      2088.72,
+      2544.96,
+      3155.7,
+      3850.26
+     ],
+     "lake_weeks": [
+      3566.12,
+      4084.79,
+      4793.26,
+      5682.23,
+      6623.69
+     ],
+     "vinyl": [
+      1353.03,
+      1556.93,
+      1836.17,
+      2175.22,
+      2518.59
+     ],
+     "espresso": [
+      221.65,
+      290.72,
+      381.81,
+      485.88,
+      590.71
+     ],
+     "wildcard": [
+      9473.59,
+      10834.56,
+      12694.21,
+      15013.23,
+      17278.96
+     ]
+    }
+   },
+   {
+    "step": 7,
+    "kind": "linear",
+    "weights": {
+     "dog": 1.0,
+     "vinyl": -1.0
+    },
+    "sweetener": -708.79,
+    "answer": true,
+    "bands": {
+     "dog": [
+      2284.18,
+      2594.8,
+      3020.37,
+      3559.66,
+      4206.65
+     ],
+     "lake_weeks": [
+      3566.12,
+      4084.79,
+      4793.26,
+      5682.23,
+      6623.69
+     ],
+     "vinyl": [
+      1214.15,
+      1379.01,
+      1567.61,
+      1771.6,
+      1954.36
+     ],
+     "espresso": [
+      221.65,
+      290.72,
+      381.81,
+      485.88,
+      590.71
+     ],
+     "wildcard": [
+      9473.59,
+      10834.56,
+      12694.21,
+      15013.23,
+      17278.96
+     ]
+    }
+   },
+   {
+    "step": 8,
+    "kind": "linear",
+    "weights": {
+     "espresso": 1.0
+    },
+    "sweetener": -381.81,
+    "answer": true,
+    "bands": {
+     "dog": [
+      2284.18,
+      2594.8,
+      3020.37,
+      3559.66,
+      4206.65
+     ],
+     "lake_weeks": [
+      3566.12,
+      4084.79,
+      4793.26,
+      5682.23,
+      6623.69
+     ],
+     "vinyl": [
+      1214.15,
+      1379.01,
+      1567.61,
+      1771.6,
+      1954.36
+     ],
+     "espresso": [
+      341.25,
+      398.49,
+      470.73,
+      557.48,
+      650.17
+     ],
+     "wildcard": [
+      9473.59,
+      10834.56,
+      12694.21,
+      15013.23,
+      17278.96
+     ]
+    }
+   },
+   {
+    "step": 9,
+    "kind": "linear",
+    "weights": {
+     "dog": 1.0,
+     "lake_weeks": -1.0
+    },
+    "sweetener": 1772.89,
+    "answer": true,
+    "bands": {
+     "dog": [
+      2579.11,
+      2912.84,
+      3361.72,
+      3917.54,
+      4516.86
+     ],
+     "lake_weeks": [
+      3214.25,
+      3627.96,
+      4068.26,
+      4534.17,
+      4982.68
+     ],
+     "vinyl": [
+      1214.15,
+      1379.01,
+      1567.61,
+      1771.6,
+      1954.36
+     ],
+     "espresso": [
+      341.25,
+      398.49,
+      470.73,
+      557.48,
+      650.17
+     ],
+     "wildcard": [
+      9473.59,
+      10834.56,
+      12694.21,
+      15013.23,
+      17278.96
+     ]
+    }
+   }
+  ],
+  "trace_b": [
+   {
+    "step": 0,
+    "kind": "linear",
+    "weights": {
+     "vinyl": 1.0,
+     "wildcard": -1.0
+    },
+    "sweetener": 0.0,
+    "answer": false,
+    "bands": {
+     "dog": [
+      1140.97,
+      1911.48,
+      3392.17,
+      6016.5,
+      10082.79
+     ],
+     "lake_weeks": [
+      2636.01,
+      3829.25,
+      5798.7,
+      8778.51,
+      12754.45
+     ],
+     "vinyl": [
+      950.93,
+      1467.99,
+      2217.16,
+      3033.52,
+      3681.96
+     ],
+     "espresso": [
+      333.17,
+      476.94,
+      710.55,
+      1058.3,
+      1515.21
+     ],
+     "wildcard": [
+      4494.05,
+      5511.63,
+      7616.84,
+      11685.92,
+      18189.29
+     ]
+    }
+   },
+   {
+    "step": 1,
+    "kind": "linear",
+    "weights": {
+     "dog": 1.0,
+     "wildcard": -1.0
+    },
+    "sweetener": 4224.67,
+    "answer": false,
+    "bands": {
+     "dog": [
+      809.95,
+      1231.71,
+      1862.44,
+      2633.53,
+      3408.81
+     ],
+     "lake_weeks": [
+      2636.01,
+      3829.25,
+      5798.7,
+      8778.51,
+      12754.45
+     ],
+     "vinyl": [
+      950.93,
+      1467.99,
+      2217.16,
+      3033.52,
+      3681.96
+     ],
+     "espresso": [
+      333.17,
+      476.94,
+      710.55,
+      1058.3,
+      1515.21
+     ],
+     "wildcard": [
+      7054.58,
+      8462.15,
+      10942.38,
+      15581.37,
+      23028.38
+     ]
+    }
+   },
+   {
+    "step": 2,
+    "kind": "linear",
+    "weights": {
+     "lake_weeks": 1.0,
+     "wildcard": -1.0
+    },
+    "sweetener": 5143.69,
+    "answer": true,
+    "bands": {
+     "dog": [
+      809.95,
+      1231.71,
+      1862.44,
+      2633.53,
+      3408.81
+     ],
+     "lake_weeks": [
+      4903.86,
+      6312.85,
+      8332.78,
+      11361.27,
+      15491.59
+     ],
+     "vinyl": [
+      950.93,
+      1467.99,
+      2217.16,
+      3033.52,
+      3681.96
+     ],
+     "espresso": [
+      333.17,
+      476.94,
+      710.55,
+      1058.3,
+      1515.21
+     ],
+     "wildcard": [
+      6230.09,
+      7162.74,
+      8231.89,
+      9383.68,
+      10549.62
+     ]
+    }
+   },
+   {
+    "step": 3,
+    "kind": "linear",
+    "weights": {
+     "espresso": 1.0,
+     "dog": -1.0
+    },
+    "sweetener": 1151.89,
+    "answer": false,
+    "bands": {
+     "dog": [
+      1785.16,
+      2088.72,
+      2544.96,
+      3155.7,
+      3850.26
+     ],
+     "lake_weeks": [
+      4903.86,
+      6312.85,
+      8332.78,
+      11361.27,
+      15491.59
+     ],
+     "vinyl": [
+      950.93,
+      1467.99,
+      2217.16,
+      3033.52,
+      3681.96
+     ],
+     "espresso": [
+      265.62,
+      358.65,
+      487.53,
+      642.2,
+      800.01
+     ],
+     "wildcard": [
+      6230.09,
+      7162.74,
+      8231.89,
+      9383.68,
+      10549.62
+     ]
+    }
+   },
+   {
+    "step": 4,
+    "kind": "linear",
+    "weights": {
+     "vinyl": 1.0,
+     "lake_weeks": -1.0
+    },
+    "sweetener": 6115.61,
+    "answer": true,
+    "bands": {
+     "dog": [
+      1785.16,
+      2088.72,
+      2544.96,
+      3155.7,
+      3850.26
+     ],
+     "lake_weeks": [
+      4050.47,
+      5070.44,
+      6171.52,
+      7234.68,
+      8211.76
+     ],
+     "vinyl": [
+      1484.44,
+      2078.3,
+      2776.22,
+      3447.64,
+      4015.64
+     ],
+     "espresso": [
+      265.62,
+      358.65,
+      487.53,
+      642.2,
+      800.01
+     ],
+     "wildcard": [
+      6230.09,
+      7162.74,
+      8231.89,
+      9383.68,
+      10549.62
+     ]
+    }
+   },
+   {
+    "step": 5,
+    "kind": "linear",
+    "weights": {
+     "dog": 1.0,
+     "vinyl": -1.0
+    },
+    "sweetener": 0.0,
+    "answer": true,
+    "bands": {
+     "dog": [
+      2406.38,
+      2734.09,
+      3156.38,
+      3703.15,
+      4336.94
+     ],
+     "lake_weeks": [
+      4050.47,
+      5070.44,
+      6171.52,
+      7234.68,
+      8211.76
+     ],
+     "vinyl": [
+      1050.69,
+      1439.46,
+      1870.13,
+      2260.46,
+      2591.3
+     ],
+     "espresso": [
+      265.62,
+      358.65,
+      487.53,
+      642.2,
+      800.01
+     ],
+     "wildcard": [
+      6230.09,
+      7162.74,
+      8231.89,
+      9383.68,
+      10549.62
+     ]
+    }
+   },
+   {
+    "step": 6,
+    "kind": "linear",
+    "weights": {
+     "espresso": 1.0
+    },
+    "sweetener": -487.53,
+    "answer": true,
+    "bands": {
+     "dog": [
+      2406.38,
+      2734.09,
+      3156.38,
+      3703.15,
+      4336.94
+     ],
+     "lake_weeks": [
+      4050.47,
+      5070.44,
+      6171.52,
+      7234.68,
+      8211.76
+     ],
+     "vinyl": [
+      1050.69,
+      1439.46,
+      1870.13,
+      2260.46,
+      2591.3
+     ],
+     "espresso": [
+      457.53,
+      527.98,
+      623.98,
+      751.35,
+      895.63
+     ],
+     "wildcard": [
+      6230.09,
+      7162.74,
+      8231.89,
+      9383.68,
+      10549.62
+     ]
+    }
+   },
+   {
+    "step": 7,
+    "kind": "linear",
+    "weights": {
+     "espresso": 1.0,
+     "vinyl": -1.0
+    },
+    "sweetener": 1246.15,
+    "answer": false,
+    "bands": {
+     "dog": [
+      2406.38,
+      2734.09,
+      3156.38,
+      3703.15,
+      4336.94
+     ],
+     "lake_weeks": [
+      4050.47,
+      5070.44,
+      6171.52,
+      7234.68,
+      8211.76
+     ],
+     "vinyl": [
+      1730.36,
+      1942.78,
+      2192.94,
+      2473.32,
+      2768.77
+     ],
+     "espresso": [
+      425.68,
+      488.12,
+      562.89,
+      654.88,
+      752.73
+     ],
+     "wildcard": [
+      6230.09,
+      7162.74,
+      8231.89,
+      9383.68,
+      10549.62
+     ]
+    }
+   },
+   {
+    "step": 8,
+    "kind": "linear",
+    "weights": {
+     "lake_weeks": 1.0,
+     "dog": -1.0
+    },
+    "sweetener": -3015.13,
+    "answer": false,
+    "bands": {
+     "dog": [
+      2656.4,
+      3001.09,
+      3456.76,
+      4007.52,
+      4628.25
+     ],
+     "lake_weeks": [
+      3377.46,
+      4183.83,
+      5016.36,
+      5779.22,
+      6431.9
+     ],
+     "vinyl": [
+      1730.36,
+      1942.78,
+      2192.94,
+      2473.32,
+      2768.77
+     ],
+     "espresso": [
+      425.68,
+      488.12,
+      562.89,
+      654.88,
+      752.73
+     ],
+     "wildcard": [
+      6230.09,
+      7162.74,
+      8231.89,
+      9383.68,
+      10549.62
+     ]
+    }
+   },
+   {
+    "step": 9,
+    "kind": "linear",
+    "weights": {
+     "lake_weeks": 1.0,
+     "dog": -1.0
+    },
+    "sweetener": -1559.6,
+    "answer": true,
+    "bands": {
+     "dog": [
+      2472.06,
+      2727.65,
+      3052.25,
+      3419.53,
+      3787.28
+     ],
+     "lake_weeks": [
+      4591.82,
+      5089.59,
+      5627.11,
+      6208.49,
+      6765.75
+     ],
+     "vinyl": [
+      1730.36,
+      1942.78,
+      2192.94,
+      2473.32,
+      2768.77
+     ],
+     "espresso": [
+      425.68,
+      488.12,
+      562.89,
+      654.88,
+      752.73
+     ],
+     "wildcard": [
+      6230.09,
+      7162.74,
+      8231.89,
+      9383.68,
+      10549.62
+     ]
+    }
+   }
+  ],
+  "n_questions": 20
+ },
+ "act3": {
+  "drafts": []
+ },
+ "decree": {
+  "no_decree": true,
+  "no_zopa": true,
+  "mediator_abstained": false
+ },
+ "scorecard": null,
+ "flip": {
+  "a": {
+   "payload": "{\"lam\":0.3,\"values\":{\"dog\":7492.04,\"espresso\":1326.0,\"lake_weeks\":6120.27,\"vinyl\":5989.71,\"wallet\":18000.0,\"wildcard\":14264.78},\"walk\":28699.72}",
+   "seal": "sha256:e29791a67ee7422c8a989b4a6d4b9c2633fdac3afbad585d2b8ee54a32de0792",
+   "walk_away": 28700
+  },
+  "b": {
+   "payload": "{\"lam\":0.35,\"values\":{\"dog\":6303.69,\"espresso\":1190.0,\"lake_weeks\":8743.25,\"vinyl\":4764.54,\"wallet\":18000.0,\"wildcard\":12383.9},\"walk\":28021.95}",
+   "seal": "sha256:900f9922f2432cac087be4842d08f40900956076dacc0b609f54e87ea3804c76",
+   "walk_away": 28022
+  }
+ }
+}

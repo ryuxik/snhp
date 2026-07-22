@@ -16,12 +16,15 @@ Endpoints:
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 from typing import Literal, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from gametheory.server.middleware import bearer_api_key as _bearer_api_key
 from gametheory.negotiation.sell import sell_next_offer as _sell_next_offer
 from gametheory.negotiation.buy import buy_next_offer as _buy_next_offer
 from gametheory.negotiation.plain_terms import (
@@ -40,6 +43,25 @@ from gametheory.server import settlement as _settlement
 router = APIRouter()
 
 SNHP_A2A_EXTENSION_URI = "https://snhp.dev/a2a/negotiation/v1"
+
+# The paid/free boundary, stated as DATA on the free turn (not a nag): one
+# honest sentence naming what the $2 NEXTMOVE session adds and what free lacks.
+_PAID_ALTERNATIVE_NOTE = (
+    "This free turn is unreceipted and non-deterministic; the $2 NEXTMOVE "
+    "session adds deterministic replay, signed receipts, and persistent "
+    "session state."
+)
+
+
+def _log_free_taste(api_key: str | None) -> None:
+    """Best-effort funnel telemetry for the free turn (keyed free usage is the
+    top of free->paid conversion). vend is optional (not in the PyPI wheel), so
+    the import is lazy and any failure is swallowed — never break the request."""
+    try:
+        from vend import telemetry as _vt
+        _vt.log_free_taste(api_key, "http")
+    except Exception:
+        pass
 
 
 # Public base URL the deployed server is reachable at — registries and remote
@@ -212,19 +234,31 @@ class NegotiateTurnRequest(BaseModel):
 
 @router.post("/v1/negotiate/turn", tags=["negotiation"],
              summary="Plain-terms negotiation: dollars in, a dollar counter + message out")
-def negotiate_turn_endpoint(req: NegotiateTurnRequest) -> dict:
+def negotiate_turn_endpoint(req: NegotiateTurnRequest, request: Request) -> dict:
     """Get the math-optimal next move in a price negotiation, entirely in dollars —
     no game theory required. Example: selling a contract, floor $4,000, hope $6,000,
     the buyer has bid $4,200 then $4,500 → returns a ~$5,387 counter with a
-    ready-to-send message, and tells you when to accept or walk."""
+    ready-to-send message, and tells you when to accept or walk.
+
+    FREE. Rate limits: keyless callers share the 60/min-per-IP floor; send your
+    key in `Authorization: Bearer gt_*` (or `X-API-Key: gt_*`) to get the
+    600/min-per-key lane. A key in the request BODY does not raise the limit —
+    the limiter only reads headers. The response carries a `paid_alternative`
+    note: this free turn is unreceipted and non-deterministic (see the $2
+    NEXTMOVE session for deterministic replay + signed receipts + session state)."""
     try:
-        return _negotiate_turn(
+        result = _negotiate_turn(
             side=req.side, walk_away=req.walk_away, target=req.target,
             counterparty_offers=req.counterparty_offers,
             my_previous_offers=req.my_previous_offers,
             rounds_left=req.rounds_left, item=req.item)
     except _NegInputError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    # Top of the free->paid funnel: log the taste (keyed usage is measurable),
+    # and hand the caller the honest paid/free boundary as data, not a nag.
+    _log_free_taste(_bearer_api_key(request))
+    result["paid_alternative"] = _PAID_ALTERNATIVE_NOTE
+    return result
 
 
 # ─── Flagship (multi-issue): logrolling over several linked issues ───────────
@@ -247,6 +281,19 @@ class NegotiateBundleRequest(BaseModel):
         description="Optional {issue_name: weight} — how much each issue matters to you")
     my_batna: float = Field(default=0.40, ge=0.0, le=1.0)
     their_batna_estimate: float = Field(default=0.40, ge=0.0, le=1.0)
+    rounds_left: Optional[int] = Field(default=None, ge=1,
+        description="Optional bargaining rounds remaining. On the LAST round (<=1) a "
+                    "standing offer that clears your BATNA is accepted rather than "
+                    "countered into no-deal. Omit for timeless behavior.")
+
+
+def _bundle_seed(*parts) -> int:
+    """Deterministic seed from the bundle call's inputs — identical requests map to
+    the identical seed, so identical calls return identical advice. Passed
+    STRUCTURALLY as negotiate_bundle(seed=...), never mutating the global RNG, so
+    concurrent requests can't perturb each other's inference (P10 Fix 2)."""
+    blob = json.dumps(parts, sort_keys=True, default=str).encode()
+    return int.from_bytes(hashlib.blake2b(blob, digest_size=8).digest(), "big") & 0x7FFFFFFF
 
 
 @router.post("/v1/negotiate/bundle", tags=["negotiation"],
@@ -256,14 +303,21 @@ def negotiate_bundle_endpoint(req: NegotiateBundleRequest) -> dict:
     about less (and the other side cares about more) to win the ones you care about
     most. Infers the counterparty's per-issue priorities from their offers. Example: a
     SaaS contract over price/seats/term/SLA → proposes a full package and explains the
-    trade. Use gt.negotiate.turn instead when there's only ONE issue (a price)."""
+    trade. Use gt.negotiate.turn instead when there's only ONE issue (a price).
+
+    Deterministic: identical requests return identical advice (the inference cloud is
+    seeded from the inputs, not global RNG)."""
+    issues = [i.model_dump() for i in req.issues]
     try:
         return _negotiate_bundle(
-            issues=[i.model_dump() for i in req.issues],
+            issues=issues,
             their_offers=req.their_offers,
             my_priorities=req.my_priorities,
             my_batna=req.my_batna,
             their_batna_estimate=req.their_batna_estimate,
+            rounds_left=req.rounds_left,
+            seed=_bundle_seed(issues, req.their_offers, req.my_priorities,
+                              req.my_batna, req.their_batna_estimate),
         )
     except _BundleInputError as e:
         raise HTTPException(status_code=400, detail=str(e))

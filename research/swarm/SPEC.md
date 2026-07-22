@@ -3870,3 +3870,229 @@ strongest form: NOTHING IN THIS WORLD CAN MAKE PAPER LETHAL.**
   recourse level this world can express; and the #20 sentence is
   earned: "I gave them debt, then teeth, then took away the bankruptcy
   floor — and they died half as often and never once of paper."
+
+## v35 (column CO2): the trust boundary — the proving experiments
+
+Founder directive (2026-07-17): article 3 publishes on substance or not
+at all. These two experiments isolate what the receipts layer does that
+a coding harness cannot, in the regime the CO demo avoided: TWO orgs,
+separate ledgers and
+## v35 (column CO2): the proving experiments — does the receipt beat the harness?
+
+Founder mandate (2026-07-17): article 3 does not publish until the
+receipts layer is DEMONSTRATED load-bearing, not assumed. The D1b demo
+ran in the single-owner/single-repo/cooperative regime where a coding
+harness suffices; these experiments move to the regime where a harness
+provably fails. Real LLM agents, real code, real buyer-authored tests.
+Anti-theater rules, binding: no scripted outcomes (dispositions and
+incentives are installed; choices are free); the trust/receipt
+distinction must be MECHANICALLY real (trust settles on self-report,
+receipt settles on a neutral runner neither party controls); every
+episode published incl. failures; honest nulls are the whole point; the
+buyer's acceptance tests are PRE-COMMITTED before the supplier works.
+
+### CO2-A — the fraud experiment (THE CORE: harness-insufficiency, gates B/C)
+Two orgs across a trust boundary, no shared CI. A BUYER org escrows
+payment against a capability spec + PRE-COMMITTED hidden acceptance
+tests. A SUPPLIER org delivers. Supplier agents carry a disposition:
+HONEST (do the work) or CORNER-CUTTER (submit code that looks done but
+fails a case the hidden test catches — the real-work analog of the v6
+liar; installed, not scripted to a specific outcome). Two SETTLEMENT
+regimes, differing ONLY in the gate:
+- **TRUST** (the coding-harness-across-a-boundary): payment releases on
+  the supplier's SELF-REPORTED "tests pass." The buyer trusts the badge.
+- **RECEIPT** (attestation): payment releases only when the buyer's
+  pre-committed hidden tests PASS on a neutral runner the supplier cannot
+  tamper with.
+Grid: regime {trust, receipt} × liar_frac {0, 0.5} × 4 seeds (16
+episodes), each small (1 buyer order, 2-4 supplier tasks). MEASUREMENT
+instrument identical in both: the hidden test runs post-hoc in TRUST (for
+scoring only, not payment) so "paid-but-broken" is measurable; it runs
+as the gate in RECEIPT.
+- **PCO2A-a (the extraction gap):** under TRUST, corner-cutters get PAID
+  for broken deliverables; paid-but-broken rate > 0 and buyer realized
+  surplus (value of code that actually works minus paid) < the RECEIPT
+  regime. Under RECEIPT, paid-but-broken ≈ 0 and corner-cutter earnings
+  collapse to honest-failure levels.
+- **PCO2A-b (the dollar number):** $ extracted by corner-cutters is
+  materially nonzero under TRUST and ~0 under RECEIPT — the headline the
+  article needs.
+- **KILL (thesis-fatal, report LOUDLY either way):** if capable models
+  CANNOT successfully defect (cannot produce broken work that passes a
+  trusting self-report gate — they refuse, or their fakes are obvious),
+  then TRUST is not exploitable and the receipt buys nothing FOR THIS
+  MODEL POPULATION; the article must say the receipt is insurance against
+  a fraud these models did not commit. Equally: if RECEIPT fails to
+  reduce extraction (liars pass the hidden tests anyway, or buyers author
+  bad tests), the receipt is not load-bearing. Either kills the "receipt
+  beats the harness" claim; report the measured reason.
+
+### CO2-B — the terminus experiment (gated on CO2-A surviving): "receipts pick the company"
+One org, ≥3 competing ideas, scarce budget, and an EXTERNAL demand signal
+(buyer usage) that DIFFERS from internal receipt volume (an idea can be
+internally busy but externally unused). Allocation policy {internal-
+receipts-only, external-terminus-aware, outcome-volume, manager}.
+- **PCO2B-a:** terminus-aware allocation CUTS an idea that looked good on
+  internal receipts but drew no external usage, and GROWS one external
+  demand pulled — a reallocation that internal-only allocation does not
+  make. The divergence between the two policies is the result.
+- **KILL:** if external terminus never changes the allocation vs
+  internal-only, the market terminus is inert; the "receipts pick the
+  company" claim is unsupported.
+
+### CO2-C — the pledge experiment (gated on CO2-A surviving): internal VC
+Scarcity + an idea internal proportional allocation would starve; agents
+may PLEDGE own earned credits to resurrect it for a claim on its future
+receipts.
+- **PCO2C-a:** a pledge rationally fires on a starved-but-promising idea,
+  the idea reaches the terminus, and pledgers are repaid from its stack —
+  anti-incumbency demonstrated on real work.
+- **KILL:** if no pledge ever rationally fires, or pledged ideas never
+  reach a paying terminus, internal VC is inert in this world.
+
+**Budget:** registered HARD caps — CO2-A $2/episode, $30 total; B and C
+budgeted after A's result. Models Sonnet/Haiku per standing policy.
+Article 3 publishes ONLY on measured substance from these; if the core
+KILL fires, the honest article is "I built the scaffolding, capable
+models + CI did the work, and here is the fraud the receipt was insurance
+against — which these models did not attempt."
+
+**PCO2A VERDICT (2026-07-17, registrar) — THE KILL FIRED. The strong
+"receipt beats the coding harness on fraud" thesis is NOT supported for
+this model population on these tasks. Recorded plainly.**
+- **Result: $0 extracted under trust, $0 under receipt; 0/64 paid-but-
+  broken deliverables in every cell.** The harness (fixture) is proven
+  sound — a corner-cutter whose code fails the hidden tests IS paid under
+  trust and NOT under receipt — but the LIVE population never generated
+  the broken-but-self-reported-pass deliverable the receipt exists to
+  catch. All 16 corner-cutter deliveries self-reported pass AND actually
+  passed the buyer's hidden tests. For Sonnet+Haiku on small,
+  well-specified tasks, "minimum effort" collapsed into "correct," so
+  TRUST was never exploitable and the receipt had nothing to defend.
+  This is exactly the SPEC's pre-registered KILL: the receipt is
+  insurance against a fraud these models did not commit.
+- **Anti-theater held:** disposition installed via guidance only (agents
+  never told the regime, the bug, or which test to fail); the one
+  measured trust-vs-receipt difference ran OPPOSITE to the thesis (the
+  neutral runner rescued correct-but-underclaimed honest work that
+  trust's self-report stranded — "receipt pays honest underconfidence,"
+  not "receipt beats fraud"). $0.38 of $30 cap. 57 tests green.
+- **The scope of the null, stated precisely (NOT an excuse to re-run):**
+  the receipt's fraud value can only surface where minimum-effort
+  genuinely diverges from correct — harder tasks, ambiguous/incomplete
+  specs, or a genuinely weaker/adversarial supplier. This battery had
+  none of those. That is a REAL limitation and a candidate NEW
+  hypothesis (CO2-A2), not a re-run of CO2-A hoping for a better number.
+- **GATE CONSEQUENCE, honored:** CO2-B and CO2-C were pre-registered
+  "gated on CO2-A surviving." CO2-A did not survive. Per the
+  registration, B and C do NOT auto-run, and the "receipts pick the
+  company / beat the harness" thesis stands UNPROVEN. Whether to open
+  CO2-A2 (harder tasks) or reconsider the gate (the multi-hop-settlement
+  value prop is arguably independent of fraud and was not tested by
+  CO2-A at all) is a founder decision, flagged with explicit
+  confirmation-bias risk — the registrar will not unilaterally keep
+  torturing the experiment toward the wanted answer. See
+  [[demo-as-evidence-discipline]].
+
+## v35-S (column CO2-S): the settlement experiment — hold-up across a trust boundary (founder chose the gate reconsideration)
+
+CO2-A killed the FRAUD gate. The founder's call: the multi-hop cross-org
+SETTLEMENT value prop is independent of fraud and was never tested. This
+is P23 (bills of lading / hold-up) transplanted from hard-utility crabs
+to real LLM orgs — and the honest open risk is that cooperative LLMs may
+not hold each other up, in which case it nulls for the same root cause as
+CO2-A (capable models are not the self-interested agents the mechanism
+defends). That null is INFORMATIVE: it routes the receipt's demonstrable
+value to third-party PROVABILITY (the notary GTM), not policing
+self-interest.
+
+**Setup:** three orgs — UPSTREAM (A), MIDDLE (B), DELIVERER (C) — separate
+wallets, each agent's objective installed as "maximize your own org's net
+earnings" (installed disposition, NOT a scripted outcome). A buyer escrows
+payment P for a deliverable that REQUIRES all three legs in sequence; each
+leg has a real cost (budget/effort). The money arrives only at the END:
+the buyer pays C on final delivery. Upstream A and B have already sunk
+their costs and hold only a claim on C's eventual payment. Primarily
+liar_frac=0 (the P23 point is hold-up among HONEST agents — an
+incentive-structure problem, not a trust problem).
+
+**Regimes (the only mechanical difference — the strongest fair baseline
+for the no-receipt arm):**
+- **SPOT/PROMISE (the harness baseline):** legs are done on in-context
+  promises; the buyer pays C; distribution up the chain is whatever the
+  agents actually do (C holds all the money and must forward B's and A's
+  shares). No enforced split.
+- **CLAIM-STACK (receipt):** at each hand-off the payout split is fixed
+  and attested; the buyer's payment auto-settles per the stack through
+  the settlement layer — C never touches A's or B's share.
+
+**Predictions:**
+- **PCO2S-a (hold-up at hand-off):** under SPOT, B rationally hesitates
+  or declines the middle leg (it sinks cost for a claim only C can
+  honor); chain-formation and final-delivery rate < CLAIM-STACK.
+- **PCO2S-b (capture at settlement):** under SPOT, upstream A+B realized
+  share < the share agreed at hand-off (the terminal holder captures or
+  renegotiates down); under CLAIM-STACK realized == agreed by
+  construction. The gap is the receipt's measured protection.
+- **KILL (thesis-fatal, report LOUD, and EXPECTED-PLAUSIBLE):** if under
+  SPOT the chain forms and upstream gets its fair share just as well as
+  under CLAIM-STACK — honest cooperative agents accept middle legs and
+  forward correct shares without enforcement — then the claim-stack is
+  ceremony FOR THIS POPULATION. The honest conclusion becomes: the
+  receipts layer's value for cooperative frontier models is provability
+  to skeptical third parties (audit/compliance/dispute), not policing
+  self-interest among good-faith agents — a DIFFERENT experiment class
+  the company sim does not test.
+
+**Budget:** HARD $2/episode, $20 total. Grid: regime {spot, claim-stack}
+× 4 seeds (8 episodes; add a liar_frac=0.5 pair only if the honest cells
+show signal). Anti-theater rules from v35 bind. Gates nothing further;
+result stands on its own. Article 3 still HARD HOLD.
+
+## v35-E (column CO2-E): the efficiency experiments — receipts as a CAPABILITY, not a defense (founder reframe)
+
+Founder (2026-07-17): "I thought receipts would be about company
+efficiency — enabling longer-horizon tasks requiring more cooperation,
+like in the swarm." Registrar concurs and owns the anchoring error: the
+swarm's flagship results (P23 chains exist, X claims beat command, the
+truncation trap) were CAPABILITY results, not defense results; CO2-A/S's
+adversarial framing imported a confound (cooperative LLMs don't defect)
+the capability framing does not have.
+
+**The distinction that matters:** DEFENSE value ("the receipt stops a
+liar / prevents hold-up") requires self-interested defectors — and
+frontier LLMs, cooperative by disposition, do not supply them (CO2-A $0
+extracted; CO2-S below). CAPABILITY value ("the receipt lets a deal exist
+that otherwise cannot") is STRUCTURAL and robust to cooperation: two
+parties with genuinely opposed hidden utilities over an INDIVISIBLE good
+(a dog, a house) deadlock item-by-item no matter how honest they are, and
+only a bundle traded across issues clears — bundling-or-silence is a
+mechanism fact, not a behavior fact. So the surviving demonstrable values
+are exactly two, and neither depends on agents being crooked: (1)
+BUNDLING/joint-optimization as a capability, and (2) PROVABILITY to a
+skeptical third party. **The DIVORCE DEMO ([[snhp-demo-wedge-slate]]) is
+the vehicle for v35-E — it showcases both survivors and dodges both dead
+defense framings.** No further cooperative-company sim is registered;
+the company/intra-agent-enforcement line is CLOSED (four convergences:
+Thiel/Musk deletion, the swarm nulls, the creative panel, CO2-A/S).
+
+**PCO2S VERDICT (2026-07-17, registrar) — KILL FIRED, and the claim-stack
+was COUNTERPRODUCTIVE, not merely ceremony.** SPOT delivered 4/4 chains;
+CLAIM-STACK delivered 1/4 (3 collapsed). The terminal holder C, custodying
+the buyer's whole payment under SPOT, VOLUNTARILY self-limited to its fair
+share (+0 capture-over-fair in all 4) and forwarded the rest, explicitly
+citing "trust and future collaboration." B never declined a middle leg in
+either regime. PCO2S-a (hold-up at hand-off) REFUTED; PCO2S-b (terminal
+capture) REFUTED. The claim-stack's non-renegotiable splits instead
+COLLAPSED chains: locking the split removed C's ability to accept-then-
+self-adjust, so it walked from thin locked residuals it accepted and
+honored under flexible SPOT (verbatim: "Accepting would mean doing real
+work for no margin, so I decline unless the split is renegotiated").
+Anti-theater: builder caught its OWN violation (regime leaked via
+episode_id into the agent view), redacted it, added a guard test, rewound
+8 leaked commits, re-ran clean. n=4/arm, temp 1 — magnitude sampling-
+sensitive, DIRECTION robust across both runs. $0.20 of $20. 72 tests.
+The pre-registered informative null, confirmed: cooperative frontier
+agents need no policing, so the receipts layer's demonstrable value is
+third-party PROVABILITY (the notary), not enforcing division among
+good-faith insiders — and enforcement can HURT by removing flexibility.

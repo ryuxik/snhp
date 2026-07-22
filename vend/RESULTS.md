@@ -1253,3 +1253,1189 @@ at 30 days). §5a control:
 `results.json` reproducibility is pinned by
 `test_default_config_reproduces_committed_artifact` (reads the horizon from the
 artifact, so 90-day reproduces cleanly). Full vend suite: 70 passing.
+
+## P4 (pre-registered 2026-07-21; Phase-A listing date: ______) — NEXTMOVE demand referendum
+
+Listing 3 categories (resale, supply, retail-discount) at **$2 per
+negotiation session** (all moves of one negotiation, cap 10, 7-day TTL)
+via the MCP door only (`nextmove_open`/`nextmove_advise`; no human door —
+humans send their agents), prepaid Stripe credit packs, deterministic
+400k-rollout advice with commit-auditable context_hash. The generic
+engine (`gt_negotiate_turn`) stays free on the same server — P4 measures
+willingness to pay for the TUNED + AUDITABLE session specifically, with
+the free substitute one tool away and honestly labeled. Sixty days from public announcement,
+preceded by a ~1-week quiet soak (registry listing live, no publicity)
+for production burn-in. Organic traffic during the soak is reported as
+a descriptive note in the launch post, not a hypothesis — the clean
+organic-discovery experiment is reproducible any time with a fresh
+unannounced endpoint, so no measurement is being burned by announcing.
+
+Per-category gates (set before listing, published before the first
+sale): d1 total paid sessions ≥ 30; d2 distinct repeat_keys ≥ 10;
+d3 buyers with ≥2 sessions ≥ 3; d4 refund rate ≤ 2%. Pricing may move
+between pre-registered week-long posted-price epochs ($1/$2/$5 ladder,
+schedule published in advance); gates are evaluated on sessions, with
+per-epoch conversion reported alongside.
+
+Hypotheses: D1 — at $2, ≥1 category clears all gates in 60 days.
+D2 — repeat purchase exists somewhere (d3 > 0 in any category).
+D3 — ≥1 unlisted category out-requests a listed one via the
+null-query log (`nextmove_request`).
+
+Kill rule: all categories miss d1+d2 → machine goes to maintenance
+(standing telemetry only) and build-hours reallocate; the negative
+result is the deliverable and publishes here like every other P.
+
+Results publish either way, gate by gate, in this file.
+
+**SUPERSEDED before Phase A (2026-07-21).** Never listed; the clock never
+started. The store referendum (P6) replaces these single-SKU gates — see
+vend/STORE.md §6. Kept as the record of the single-product framing.
+
+## P5 (2026-07-21) — NEXTMOVE-as-product: the panel verdict, and the pivot
+
+Panel critique of NEXTMOVE as a standalone product: a lone $2 negotiation
+SKU competes with its own free tier and reaches the wrong buyer;
+population uninterpretable, retail-repeat gate unpassable. Verdict
+absorbed rather than transcribed: the useful finding (wrong unit — a
+product, not a position) became vend/STORE.md; the two-seat refinement +
+founder amendments that followed are recorded in STORE.md §10. This entry
+marks the pivot point: NEXTMOVE demoted from product to anchor tenant.
+
+## P6 (pre-registered 2026-07-21; clock start date: ______) — THE STORE referendum
+
+**PROPOSED numbers below await founder confirmation before listing; the
+block is binding once the clock-start date is filled in.**
+
+The question: **do agents come back to the counter?** Shelf at clock
+start: fetch/extract (passthrough + settlement-on-delivery) alongside the
+negotiation anchor SKUs ($2 session, unchanged) — two unrelated snacks,
+one wallet. Commodity pricing is wholesale passthrough (exact cost basis
+on every receipt); the store's take is a published ~5% counter fee on
+top-ups; settlement debits only when the slot's machine-checkable
+predicate passes — non-delivery is never charged.
+
+**The clock:** the 60-day window starts at the first distribution event —
+the MCP door listed/default in ≥1 third-party tool config or registry
+with observed traffic — NOT at deploy. Quiet production soak before that
+is burn-in, reported descriptively, per P4's convention.
+
+**The starter credit:** every new key gets a one-time 50¢ starter credit,
+unconditional, no card. Starter-credit usage is excluded from every gate;
+all gates below are measured on SELF-FUNDED wallets (wallets that topped
+up with their own money) only.
+
+Gates, evaluated at day 60 from clock start:
+
+| Gate | Meaning | Threshold (PROPOSED) |
+|---|---|---|
+| R0 conversion | wallets that used starter credit AND subsequently self-funded | ≥ 10 |
+| R1 return | self-funded wallets purchasing across ≥2 distinct sessions ≥24h apart | ≥ 5 |
+| R2 breadth | self-funded wallets buying from ≥2 different slots | observational — reported, never kill-relevant; ≥5 arms the STORE.md §9 marketplace trigger |
+| R3 demand pull | distinct unstocked capabilities with a commodity backend surfaced via catalog.request, each by ≥2 distinct repeat_keys | ≥ 3 |
+
+Deliberately low — this measures whether the return-visit habit EXISTS,
+not whether it's a business. R1 is the load-bearing gate (tourist-proof).
+
+**Delist rule (the shelf exhales):** any commodity slot with < 10 paid
+calls from < 2 distinct self-funded wallets over a rolling 4 weeks is
+delisted at the weekly restock ritual; its slot goes to the top
+catalog.request write-in with a commodity backend. A slot's first 4 weeks
+are exempt (stocking grace).
+
+**Published-losses carry-over:** alongside the gates we report settled-call
+rate, predicate-failure rate (uncharged non-deliveries), and cumulative
+settlement shortfall eaten by the store — the store's losses publish like
+everything else.
+
+Kill rule: R0 AND R1 both miss at day 60 → the store goes to maintenance
+(standing telemetry only, shelf frozen), build-hours reallocate to the
+notary roadmap; the negative result is the deliverable and publishes here
+like every other P.
+
+Results publish either way, gate by gate, in this file.
+
+## P7 (pre-registered 2026-07-22) — the engine's accept-collapse: is the recommender leaving surplus on the table?
+
+**This block was written BEFORE any engine source was touched.** The
+pre-registration (hypothesis, probes, metrics, kill conditions, and the
+one fix that ships iff H1 confirms) is fixed below; the RESULTS subsection
+at the bottom is filled after the battery runs, either way.
+
+**The observed anomaly.** For the seller node `side=sell, walk_away=170,
+target=210, counterparty_offers=[150,165,175], my_previous_offers=[215,195],
+rounds_left≈3`, the shipped engine returns **accept $175** — it takes the
+buyer's standing $175 rather than countering. The buyer has been climbing
+(150→165→175) with three rounds still on the clock. Accepting the floor of
+a rising offer, with time left, looks like surplus left on the table.
+
+**H1 (the bug hypothesis).** The accept is EV-dominated: the engine's own
+rollout machinery values *holding and countering* strictly above accepting,
+and the accept is produced not by a value comparison but by a saturated
+concession schedule. Two mechanism claims, cited to source:
+ - `plain_terms.py:164` — accept fires iff `their_util_raw >= recommended_util`
+   (a pure threshold against the engine's OWN next counter; there is no EV
+   comparison; `expected_settlement` is display-only, overwritten at
+   `plain_terms.py:177-178`).
+ - `sell.py:119-120` computes `rounds_used = len(my_offer_history) +
+   len(opponent_offer_history)` (CUMULATIVE, both sides) and
+   `time_fraction = rounds_used / deadline_rounds`, but `plain_terms.py:138`
+   passes `deadline_rounds = rounds_left` (REMAINING). cumulative ≥ remaining
+   ⇒ `time_fraction` clamps to 1.0 ⇒ aspiration collapses to the floor ⇒ the
+   next-counter utility collapses to the schelling buffer ⇒ almost any
+   standing offer clears the accept threshold. Buy-side is symmetric
+   (`buy.py:208-209`; `plain_terms.py:143`). Rationale prints "round 5/3".
+
+**Battery (permanent artifact, `gametheory/tests/test_accept_battery.py`).**
+seed=0 everywhere, no LLM anywhere. Six probes:
+ - P1 — the reported node, rounds_left ∈ {2,3,5,8}.
+ - P2 — trajectory controls at rounds_left=3, final offer ≈$175 held fixed:
+   climbing [150,165,175], barely-moving [174,174,175], flat [165,165,165],
+   steep [150,170,178].
+ - P3 — history controls at rounds_left=3, same cp:
+   mine ∈ {[], [215], [215,195], [215,205,195]}.
+ - P4 — buy-side mirror: WA210/T170, seller descending, deep history,
+   rounds_left=3.
+ - P5 — deadline scaling: fixed history, rounds_left 2..12, record
+   accept-threshold($).
+ - P6 — out-of-model control arm: full engine plays to termination against
+   {rollout-conceder, boulware, mirror, random, anomalous-below-floor}
+   opponents; realized seller surplus, shipped policy vs a
+   hold-to-rollout-optimal-counter policy.
+
+**Metrics.**
+ - PRIMARY EV_gap = V_rollout(best counter) − V(recommended), with a 95% CI,
+   using the engine's OWN rollouts (`_conceder_payoffs`, 400k, seed=0).
+ - SECONDARY realized-surplus delta (P6): hold-to-counter − shipped.
+ - TERTIARY monotonicity: d(accept-threshold $)/d(rounds_left) ≥ 0, and
+   threshold(flat) ≥ threshold(climbing).
+
+**H1 CONFIRMED** iff EV_gap > 2·CI in ≥4/6 probes AND hold-to-counter beats
+shipped by >1 SE vs the conceder AND mirror families AND the tertiary
+monotonicity is violated. **H1 KILLED** iff EV_gap ≤ 2·CI in ≥4/6 probes OR
+shipped ≥ hold-to-counter (within 1 SE) across ALL families. If KILLED: NO
+fix is applied, the vindication is recorded here, and that is a fully
+successful outcome.
+
+**The fix that ships iff H1 confirms (and ONLY this).** At the adapter
+boundary in `plain_terms.py` (both the sell call at :136-139 and the buy
+call at :141-144), the concession schedule must see the TOTAL horizon, not
+the remaining count: pass `deadline_rounds = len(counterparty_offers) +
+len(my_previous_offers) + rounds_left`. Equivalently, the internal
+`time_fraction = rounds_used / (rounds_used + rounds_left)` no longer
+saturates. NOTHING else changes: not `_VALIDATED_KNOB`, not any tuned
+`_config` parameter, not the conceder/schelling branch (`sell.py:171-179`),
+not the MC accept short-circuit (`mc_search.py:179-180`). Corrective
+counterfactual prediction to verify post-fix: rounds_left=3 → counter ≈ $196.9.
+
+Flagged-but-out-of-scope (recorded here, not fixed under this block; each
+becomes a follow-up only if the POST-fix battery still shows the pathology):
+ - conceder/schelling branch trajectory-perversity (a *conceding* buyer
+   routed to the schelling floor can be accepted LOWER than a flat one);
+ - `mc_search.py:179-180` accept short-circuit — MC never runs on accept
+   nodes, so a receipt can present an EV-dominated accept as "optimal" (a
+   receipts-honesty fix for the display already shipped in a parallel lane).
+
+Results publish either way, gate by gate, below.
+
+### P7 RESULTS (2026-07-22) — H1 CONFIRMED pre-fix, fix applied, bug resolved post-fix
+
+Battery: `gametheory/tests/test_accept_battery.py` (seed=0, 400k rollouts, no LLM;
+runnable as `python -m gametheory.tests.test_accept_battery`). Pre/post transcripts
+archived in the engine_fix scratchpad.
+
+**Gate-by-gate verdict on the CURRENT (pre-fix) engine — all three legs fire:**
+
+| Gate | Rule | Pre-fix result | Fires? |
+|---|---|---|---|
+| PRIMARY (EV_gap) | EV_gap > 2·CI in ≥4/6 probes | P1,P2,P3,P4 all EV-dominated (4/4 EV-probes); reported node EV_gap **0.155** vs 2·CI **0.001** (~135×) | ✅ |
+| SECONDARY (P6) | hold-to-counter beats shipped >1 SE vs conceder AND mirror | conceder **+8.94 ± 1.31** SE, mirror **+12.79 ± 1.67** SE, random +12.32 ± 1.03 (boulware/below-floor tie, correct) | ✅ |
+| TERTIARY (P5) | accept-threshold saturation / monotonicity violated | threshold **flat at $172** across rounds_left ∈ {2,3,4,5} (schedule saturated) | ✅ |
+
+⇒ **H1 CONFIRMED.** The accept-$175 is not a value judgment — it is a saturated
+concession schedule. 12/13 probe-nodes were EV-dominated; the invariance across
+P3 (my-own-offer history [] → [215,205,195], all accept $175, identical EV_gap
+0.155) proves the mechanism is `rounds_used/deadline_rounds` saturation, not the
+buyer's trajectory.
+
+**The fix (exactly the pre-registered one, nothing else).** `plain_terms.py`
+adapter boundary: the `deadline_rounds` handed to `sell_next_offer` /
+`buy_next_offer` changed from `rounds_left` (remaining) to
+`total_horizon = len(counterparty_offers) + len(my_previous_offers) + rounds_left`,
+so the engine's `time_fraction = rounds_used / (rounds_used + rounds_left)` no
+longer saturates. Untouched, as pre-committed: `_VALIDATED_KNOB`, every `_config`
+parameter, the conceder/schelling branch, and the MC accept short-circuit. A
+convention comment was pinned at `dispute_copilot.py:coach_round` (audited:
+it already passes a fixed TOTAL — round derived from history — so it was never
+affected; comment prevents a future regression). `dispute_sim.py` and `_sim.py`
+likewise already pass totals. plain_terms was the sole mis-passer.
+
+**Post-fix battery — the conjunction is now FALSE (bug resolved):**
+
+| Probe | Pre-fix | Post-fix |
+|---|---|---|
+| Reported node (rl=3) | **accept $175**, EV_gap 0.155 | **counter $196.91**, EV_gap 0.002 |
+| P1 rl=2 / rl=5 / rl=8 | accept $175 / accept $175 / counter $196.91 | counter $192.63 / $201.15 / $203.58 |
+| P2 climbing / steep / flat | accept $175 / accept $178 / counter $190.32 | counter $196.91 / $196.91 / $196.91 |
+| P3 (all 4 histories) | accept $175 (all) | counter $195–$201 (all) |
+| P4 buy-mirror | accept $205 | counter $183.79 |
+| P5 threshold (rl 2→12) | **$172,172,172,172**,185,…,203 (saturated) | **$192.63,196.91,199.50,201.15**,…,204.70 (strictly rising) |
+| P6 ensemble Δ (hold−shipped) | conceder +8.94, mirror +12.79, random +12.32 | conceder **+1.02**, mirror **+1.19**, random **+0.50** |
+
+Post-fix verdict: 2/4 EV-probes fire, P5 saturation **False**, ⇒ **H1 no longer
+confirmed** = success. No probe node accepts anymore.
+
+**$196.9 prediction check:** predicted counter ≈ $196.9 at rounds_left=3;
+observed **$196.91**. Independently reproduced by the orchestrator's read-only
+seed=0 replay against the in-flight fixed tree: **$196.91**. ✔
+
+**Honest residual (not the bug, not actionable).** Post-fix a few nodes still
+show small positive EV_gaps under the *conceder rollout belief* (≤0.024; one
+short-horizon rl=2 node at 0.085) — the engine now counters marginally FIRMER
+than the myopic conceder-optimum. This is the KNOWN, validated closed-form-vs-MC
+null (MC ties, does not beat, the closed form in realized play: MC−closed =
+−0.002, `mc_search.py` docstring). The realized-surplus arm (P6, the better
+ground truth) confirms the fix captured the surplus for the shipped policy — the
+hold-to-counter advantage collapsed by ~90% on every ZOPA family. The residual
+is firmness, the opposite failure mode from accept-collapse; it is not closed and
+is not meant to be by this fix.
+
+**Engine tests + goldens.** Full `gametheory/tests/` = **348 pass** (346 non-slow
++ 2 slow battery), **0 broken** by the fix. No engine test asserted a now-changed
+specific recommendation, so no expectation edits were needed. **No byte-exact
+golden broke** — no `gametheory/tests` fixture compares live engine output to a
+pinned negotiation trace; the static demo traces under `server/static/` are
+generated by server-lane `http.py` and are not asserted against the engine here,
+and `gametheory/evals/*.json` are tuning artifacts, not goldens. Nothing to
+re-pin.
+
+**Vend tests likely to shift (orchestrator's lane — NOT touched here).** All are
+resale/single-issue paths that route through `negotiate_turn`; the fix raises
+mid-ZOPA counters (holds firmer) and eliminates the early accept:
+- `vend/tests/test_advice.py` — `_RESALE` (sell WA170/T210, their=[150,165],
+  mine=[215], rl=4). Only asserts determinism + conditional bounds (no pinned
+  move/price) ⇒ should still PASS, but the receipt's counter OFFER value rises.
+- `vend/tests/test_receipt_signing.py` — `test_move_receipt_counter_is_mc`
+  (below-floor ⇒ counter) and `test_move_receipt_accept_is_closed_form`
+  (above-target ⇒ accept) sit at the robust extremes ⇒ moves unchanged, PASS;
+  but a refined counter PRICE inside any pinned receipt shifts.
+- Any vend fixture byte-pinning a mid-ZOPA resale counter price will shift upward.
+
+**Flagged follow-ups (evidence status; deliberately NOT fixed under this block):**
+1. **Conceder/schelling-branch trajectory-perversity** (`sell.py:171-179`,
+   `buy.py:238-245`). PRE-FIX proof: at the reported node a *conceding* (climbing)
+   buyer routed to the schelling floor ($172) while a *flat* buyer got the
+   Rubinstein floor ($190.32) — the conceding buyer was accepted LOWER. POST-FIX
+   it is MASKED (aspiration $196.91 now dominates both floors, so P2 climbing =
+   flat = steep = $196.91); the branch still routes conceders to the lower floor
+   and will RESURFACE once aspiration < Rubinstein floor (late rounds / low-knob).
+   The battery's P2 nodes are permanent and will catch it if it does.
+2. **MC accept short-circuit** (`mc_search.py:179-180`). MC runs zero rollouts on
+   accept nodes, so a receipt can present an EV-dominated accept as "optimal."
+   PRE-FIX this compounded the bug (the $175 accept shipped 0 rollouts while the
+   engine's own rollouts valued countering at 0.28). POST-FIX the accept-collapse
+   no longer manufactures such accepts here (they are counters now, which DO get
+   MC-refined), but the structural honesty gap persists for any genuine future
+   accept. A receipts-honesty fix for the display already shipped in a parallel
+   lane; the search short-circuit itself is left as flagged.
+
+## P8 (pre-registered 2026-07-22) — the conceder/schelling branch: value-positive, or strictly dominated?
+
+**This block was written BEFORE any engine source was touched.** Follow-up A
+to P7 (P7 flagged #1). The hypotheses, probes, metrics, kill conditions, and
+the one fix that ships iff H1 confirms are fixed below; the RESULTS subsection
+is filled after the battery runs, either way.
+
+**The branch under test.** `sell.py:175-178` (buy.py:242-245 mirrors it, with
+a HARDCODED `0.05` where sell reads `get_param("opp_concession_threshold")`):
+
+```
+opp_concession = opponent_offer_history[-1] - opponent_offer_history[0]   # utility
+if opp_concession > 0.05:                     # opponent is visibly conceding
+    recommended = max(aspiration, schelling_floor)   # DOWNGRADE to the schelling floor
+else:
+    recommended = max(aspiration, rubinstein_floor)  # hold at the SPE floor
+```
+
+With the adapter's `my_reservation=0` (plain_terms.py:147), `schelling_floor =
+0 + min(0.05, 0.5·1) = 0.05` (sell.py:114-116) while `rubinstein_floor =
+surplus·freelancer_share` (sell.py:168) ≈ 0.48-0.51 at the P7 frame. So a
+visibly-conceding opponent is routed to `max(aspiration, 0.05)` = **aspiration**
+(aspiration ≫ 0.05), whereas a stonewaller is routed to `max(aspiration,
+rubinstein_floor)`. The two branches DIFFER iff `aspiration < rubinstein_floor`
+(otherwise `max()` masks the floor). Pre-P7 this was proven perverse (a climbing
+buyer accepted at $172 while a flat buyer was countered at $190). Post-P7-fix it
+is MASKED at the P7 probe nodes (aspiration $196.91 dominates both floors) and
+RESURFACES wherever aspiration decays below the Rubinstein floor.
+
+**Where the branch binds post-fix (verified empirically, seed=0, knob=1.0,
+frame WA170/T210).** `aspiration = 0.89·(1 − time_fraction³)` (sell.py:123),
+`time_fraction = rounds_used/(rounds_used+rounds_left)` (post-P7-fix). Binding =
+late rounds with deep histories = the ENDGAME of any multi-round negotiation:
+ - `cp=[155,170,185,193], mine=[215,205,198], rounds_left=2` → aspiration
+   **0.471 < rubinstein 0.508** → binds; band = [$188.8, $190.3].
+ - one offer deeper (`cp=5, mine=4`) → aspiration **0.403 < 0.508** → band widens.
+ - at the r=7 endgame of a horizon-8 rollout → aspiration ≈ **0.285 ≪ 0.508** →
+   band ≈ [$181, $190] (the divergence GROWS as aspiration decays).
+ - at rounds_left ≥ 3 with short histories the branch is masked (aspiration
+   dominates) — exactly the P7 probe nodes, which the fix must leave unchanged.
+
+**H1 (dominated).** The conceder→schelling downgrade is strictly dominated:
+routing everyone to `max(aspiration, rubinstein_floor)` (arm B) yields ≥ realized
+surplus per opportunity than the shipped branch (arm A) everywhere the branch
+binds, and buys no deal-rate that pays for its surplus cost.
+
+**H0 (deal-existence, the steelman).** The branch buys deal-existence near the
+deadline: against a conceder, the lower floor closes deals that a Rubinstein
+floor loses to timeout/withdrawal, and that deal-rate gain pays for the lower
+surplus-per-deal. Surplus-per-deal is not the only metric.
+
+**Battery (extends `gametheory/tests/test_accept_battery.py`; seed=0; no LLM).**
+ - ARMS, applied by monkeypatching `sell.get_param("opp_concession_threshold")`
+   in the harness only (production untouched during the eval): **A** = shipped
+   (threshold 0.05); **B** = always-Rubinstein (threshold→+∞ ⇒ the `else` branch
+   for all opponents = the proposed fix); **C** = always-schelling (threshold→−∞,
+   symmetry control). Faithfulness: arm-A passthrough reproduces the unpatched
+   recommender byte-for-byte (verified in-harness on conceder and flat nodes).
+ - BINDINGNESS PROBE: sweep (rounds_left, history depth) on both sell and buy;
+   record aspiration vs rubinstein_floor and the arm-A/arm-B recommended-util
+   gap. Confirms the regime the arms are measured in is actually binding.
+ - REALIZED-SURPLUS ARM: the P7 out-of-model willingness ensemble
+   {rollout-conceder (t^0.5), boulware (t³), mirror (t), random, anomalous-
+   below-floor (m<WA)} played to termination under the SHIPPED accept-on-
+   threshold policy (negotiate_turn verbatim), under each arm, over a grid
+   (m, b0, horizon). TWO termination models, because the P7 buzzer (grab the
+   buyer's last standing offer if > WA) makes deal-existence STRUCTURALLY
+   impossible to lose on a ZOPA family (deal rate ≡ 100%), which would rig H1:
+     · STANDING (P7 buzzer): isolates the surplus effect; deal-rate not at risk.
+     · WITHDRAWING (buzzer ⇒ no deal): the H0 steelman — holding firm to the
+       Rubinstein counter at the buzzer can now TIME OUT to no-deal, so arm A's
+       earlier accept can save a deal arm B loses. The m-grid is widened into the
+       sensitive band {188,189,190,191,196,204} so the deal-existence tradeoff is
+       actually exercised (a Rubinstein counter ≈ $190 straddles it).
+ - EV-PROBE (engine's own conceder rollouts, `_conceder_payoffs`, 400k, seed=0):
+   at binding nodes, V(arm-B rec) − V(arm-A rec) — does the engine's OWN belief
+   value holding to the Rubinstein floor over the schelling downgrade?
+
+**Metrics (per family × termination model × arm).**
+ - PRIMARY: realized surplus per opportunity = mean over the grid of
+   (deal_price − WA), counting no-deal as 0, with SE across grid points; the
+   arm contrast is the paired B−A (identical buyer trajectories).
+ - SECONDARY: deal rate (fraction of grid points that close).
+ - TERTIARY: surplus per closed deal.
+
+**Deal-rate-loss bound (pre-declared): 10 percentage points absolute.**
+Justification: the shipped product already reveals a firmness-over-deal-rate
+preference (plain_terms.py:36-37, `_VALIDATED_KNOB=1.0`: "walks away from
+below-floor counterparties rather than capitulating — the correct call"). Below
+10pp the surplus win is effectively free and the branch is pure dead-weight;
+above 10pp the branch is genuinely purchasing deals that the surplus metric does
+not fully price (relationship / optionality), and H0's defense stands.
+
+**Kill conditions (declared numerically BEFORE running).**
+ - H1 CONFIRMED iff, in the binding regime: arm B beats arm A on the PRIMARY by
+   > 2·SE on the conceder AND mirror families under BOTH termination models,
+   AND arm B's deal-rate loss vs arm A is < 10pp on those families.
+ - H1 KILLED iff EITHER arm A ≥ arm B within 1·SE on the PRIMARY on any
+   binding-regime family (the branch is not costing surplus), OR arm B's
+   deal-rate loss vs arm A exceeds 10pp on the conceder or mirror family (the
+   branch genuinely buys deal-existence). If KILLED: NO fix is applied; the
+   branch's deal-existence defense is recorded here and the P7 trajectory-
+   perversity is reclassified as the price of deal-existence, published honestly.
+
+**The fix that ships iff H1 confirms (and ONLY this).** Remove the conceder
+downgrade: replace the `opp_concession` branch at `sell.py:171-179` and
+`buy.py:238-245` with `recommended = max(aspiration, rubinstein_floor)` for ALL
+opponents (symmetric; identical to arm B). NOTHING else changes: not
+`_VALIDATED_KNOB`, not any `_config` parameter, not the P7 adapter fix, not the
+MC accept short-circuit. Because aspiration dominates the Rubinstein floor at
+every P7 probe/P5 node, the fix leaves the entire P7 post-fix battery
+byte-identical (verified: the branch only diverges where aspiration <
+rubinstein_floor, which no P7 node reaches) — so P7 must not regress. Post-fix:
+re-run the FULL P7+P8 battery and extend `test_accept_battery.py` with permanent
+P8 nodes (fast subset + `-m slow` full).
+
+Results publish either way, gate by gate, below.
+
+### P8 RESULTS (2026-07-22) — H1 KILLED: the branch is a deal-existence HEDGE, not dead-weight; NO fix shipped
+
+Battery: the P8 section of `gametheory/tests/test_accept_battery.py` (seed=0, no
+LLM; arms applied by an in-harness monkeypatch of
+`sell.get_param('opp_concession_threshold')` — production untouched during the
+eval). Transcripts archived in the `conceder_eval` scratchpad.
+
+**Where the branch binds post-fix (verified).** The conceder route diverges from
+the non-conceder route only where `aspiration < rubinstein_floor` — the endgame
+of a long negotiation. Sell frame WA170/T210, climbing conceder, rounds_left=2:
+| history | aspiration | rubinstein_floor | binds? | band |
+|---|---|---|---|---|
+| cp=2, mine=1 | 0.698 | 0.508 | no (masked) | — |
+| cp=3, mine=2 | 0.566 | 0.508 | no (masked) | — |
+| **cp=4, mine=3** | **0.471** | **0.508** | **yes** | [$188.8, $190.3] |
+| **cp=5, mine=4** | **0.403** | **0.508** | **yes** | [$186.1, $190.3] |
+At the r=7 endgame of a horizon-8 rollout aspiration decays to ≈0.285, so the
+band widens to ≈[$181,$190] — the divergence GROWS as the deadline nears. Buy-side
+is the same code, but its second-mover-corrected Rubinstein floor is lower (≈0.29
+vs 0.51 sell), so buy binds only at an even deeper endgame and the overshoot it
+risks is smaller; the perversity is symmetric in FORM, milder in buy-side MAGNITUDE.
+
+**Gate-by-gate verdict.** Realized surplus per opportunity ($ over WA), paired
+arms A=shipped / B=always-Rubinstein (the fix H1 would have shipped) / C=always-
+schelling, over a grid m∈{188,189,190,191,196,204}×b0∈{150,158}×horizon∈{6,8,10}
+(random ×3 seeds). Two termination models bracket reality — the P6 buzzer makes
+deal-existence impossible to lose on a ZOPA family, so it alone would rig H1:
+
+| gate | rule | result | fires? |
+|---|---|---|---|
+| PRIMARY, STANDING (buyer stands pat at buzzer) | B beats A on $/opp by >2·SE | conceder **+2.10 ± 0.25**, mirror **+3.37 ± 0.29**, boulware +5.76, random +2.46; deal rate tied at 100% | ✅ B>A |
+| PRIMARY, WITHDRAWING (buzzer ⇒ no deal — the H0 steelman) | B beats A on $/opp by >2·SE | conceder **−7.40 ± 1.46**, mirror **−6.13 ± 1.51**, random −6.52, boulware −2.72 | ❌ **A ≫ B** |
+| SECONDARY, WITHDRAWING | B's deal-rate loss vs A < 10pp bound | conceder & mirror & random **50pp**, boulware 44pp — all ≫ 10pp | ❌ **kill** |
+| TERTIARY (surplus per closed deal) | — | B closes HIGHER when it closes: conceder A18.2/B21.6, mirror A16.5/B20.7 | (genuine deal-rate↔$/deal trade) |
+| CONTROL (anomalous below-floor, m<WA) | no arm closes | 0 surplus, 0 deal rate on A, B, C | ✅ clean |
+
+**⇒ H1 KILLED.** The pre-registered kill fired under the mandated steelman: with a
+withdrawing counterparty, always-Rubinstein (arm B) is ≤ shipped (arm A) on the
+primary on every ZOPA family, AND its deal-rate loss (44–50pp) blows through the
+10pp bound. H1 ("strictly dominated") is decisively rejected; H0 (deal-existence)
+is upheld. Per the pre-registration, **no fix is applied** — `sell.py:171-179` and
+`buy.py:238-245` are UNTOUCHED, so the entire P7 post-fix battery is byte-identical
+(re-run green: `test_full_battery_h1_no_longer_confirmed`, `test_p6_*` both pass).
+
+**Mechanism (why the branch earns its keep).** Arm B holds every counter at the
+Rubinstein floor (≈$190.3 at the endgame). That floor is an ESTIMATE built from
+`opp_rv_estimate = clip(0.40 − 0.20·weight, .1, .6)` (sell.py:159-162); when the
+buyer's true max `m` lands below it, arm B counters above the ZOPA and — against a
+buyer who won't stand pat — TIMES OUT to no-deal. The diagnostic is crisp and NOT
+a horizon artifact: arm B closes iff **m ≥ $191** (uniformly at horizons 4–12);
+for m∈{186,188,189,190} it never closes. Where both close (m clears the floor) B
+banks +$1.47/deal; where only A closes (m below the floor) A banks ~$15.6 and B
+banks **$0**. So the branch is a deal-existence HEDGE against Rubinstein-floor
+overshoot, with a real PREMIUM: under a stand-pat buyer it concedes $2–6/opp it
+did not need to. Its value = P(counterparty walks near the deadline) ×
+P(our SPE floor overshoots their true max); the eval prices both regimes but does
+not pin those probabilities.
+
+**The engine's own belief agrees with H1 — and that is the point.** The EV-probe
+(engine's `_conceder_payoffs`, 400k, seed=0) values arm B's higher counter over
+arm A's at both binding nodes (V_B−V_A = +0.008 and +0.058, both > CI). But that
+rollout belief structurally excludes withdrawal (opponent max ~ Uniform[u_lo,1] ≥
+every revealed offer). So the branch is dominated INSIDE the model and vindicated
+only by the out-of-model deal-existence risk the model omits — the mirror image of
+P7, where hold-to-counter beat shipped out-of-model with NO compensating benefit.
+
+**P7 flag #1 reclassified.** The trajectory-perversity (a climbing buyer accepted
+LOWER than a stonewaller) is not a bug to remove — it is the visible face of the
+deal-existence hedge: routing a conceder to the lower floor is what closes the
+deal when our Rubinstein estimate overshoots and the counterparty won't wait. It
+stays, now with a permanent regression guard (`test_p8_*`) so a future
+"simplification" to always-Rubinstein can't silently regress deal-existence.
+
+**Left flagged (NOT fixed — new hypothesis, out of this lane).** The branch's
+TRIGGER is `opp_concession > 0.05` (conceding ⇒ hedge). But the deal-existence
+rationale is about the opponent's RESERVATION being below our estimate, which is
+orthogonal to whether they are visibly conceding — arguably a stonewaller (whose
+max we know less about) needs the hedge more. This eval only tested conceders (the
+P6 families all climb), so it establishes the hedge is value-positive FOR
+conceders; whether the concession trigger is the RIGHT selector for it is a
+separate, untested question (a P9 candidate), not a defect this block condemns.
+
+**Engine tests.** Full `gametheory/tests/` non-slow = **349 pass** (346 prior +
+3 new P8 fast guards), 3 slow deselected; `test_accept_battery.py -m slow` = **3
+pass** (2 P7 regression + 1 P8 verdict). No production source edited; no golden
+touched; vend tests not run (out of lane).
+
+## P9 (pre-registered 2026-07-22) — should the PAID MC layer VERIFY accepts, not short-circuit them?
+
+**This block was written BEFORE any engine source was touched.** The hypotheses,
+probes, metrics, the margin ladder, the kill conditions, and the one change that
+ships iff H1 confirms are fixed below; the RESULTS subsection is filled after the
+battery runs, either way.
+
+**The gap under test.** `mc_search.py:179-180` short-circuits: when the closed
+form recommends anything other than `counter`, `negotiate_turn_mc` returns
+immediately and ZERO rollouts run. So on an ACCEPT node the paid MC layer spends
+nothing and can never catch a premature capitulation — "the $2 session can stop a
+bad accept; the free tool can't" is, today, an empty claim on accept nodes. P7
+fixed the accept-COLLAPSE (saturated schedule ⇒ accept a rising floor); its
+residual note flagged that a few post-fix nodes still show tiny in-model EV_gaps
+(≤0.024; one short-horizon rl=2 node at 0.085). This block asks whether a paid
+MC accept-VERIFICATION — run rollouts on accept nodes and OVERRIDE accept→counter
+when countering dominates beyond a pre-declared margin — recovers realized
+surplus the short-circuit leaves on the table, honestly and without lighting a
+deal-existence fire.
+
+**CARRY-FORWARD FROM P8 (mandatory framing).** An accept→counter override is a
+deal-existence gamble of exactly the P8 shape: the offer on the table is CERTAIN,
+a counter risks WITHDRAWAL. P8 proved this structure cuts both ways — the
+in-model-dominant always-Rubinstein "fix" was KILLED because a withdrawing buyer
+punished it by ~50pp of deals. Therefore (a) the eval runs BOTH P8 termination
+models — STANDING (opponent stands pat; the buzzer grabs their last standing
+offer if > WA) and WITHDRAWING (a rejected final offer vanishes ⇒ no deal); and
+(b) the override rule is CONSERVATIVE BY CONSTRUCTION: it overrides only when the
+rollout EV of the best counter exceeds the CERTAIN accept-now EV by more than a
+pre-declared margin M that prices withdrawal risk. M is pre-registered below and
+is NOT tuned after seeing results.
+
+**The override rule (evaluated; ships iff H1 confirms).** On an accept node with a
+compute budget:
+ - `V_accept_now` = the CERTAIN utility of taking their standing offer now
+   (`their_util_raw`, at t=0, undiscounted) — identical to the P7 battery's
+   accept-value convention (`ev_probe`, test_accept_battery.py:132).
+ - `V_best_counter` = max over the single-issue rollout grid of `_conceder_payoffs`
+   discounted EV (the engine's OWN belief), at the fixed deterministic
+   `compute_samples` budget (seed=0), with its 95% CI.
+ - OVERRIDE accept→counter (at the rollout-best price) iff
+   `V_best_counter − V_accept_now > M` AND the gap clears its 95% CI (noise alone
+   can't trigger it). Otherwise the accept STANDS. The result carries a `compute`
+   block (`samples`, `override` true/false, `margin`) so the receipt honesty lane
+   shows REAL rollout numbers on accept nodes instead of a short-circuit.
+ - Free path unchanged: compute budget 0 ⇒ closed-form accept stands, byte-for-byte.
+
+**Margin ladder (pre-declared; anchored to P7 landmarks, NOT to results).** All
+three are utility-frame [0,1] thresholds tied to empirical P7 magnitudes:
+ - **M_aggressive = 0.05** — just above the post-P7 honest-residual firmness band
+   (≤0.024 typical, 0.085 rl=2 outlier). Overrides whenever the in-model counter
+   beats accept by more than residual-firmness noise. Least conservative — the
+   "does verification ever help" probe.
+ - **M_moderate = 0.10** — the battery's gross-EV-domination flag
+   (`test_full_battery_h1_no_longer_confirmed` uses EV_gap ≥ 0.10). Overrides only
+   at gaps as large as the pre-fix bug's lower fringe.
+ - **M_conservative = 0.15** — the bottom of the pre-fix accept-collapse range
+   (0.15–0.28). Overrides ONLY when the in-model surplus of holding is as large as
+   the original accept-collapse bug; maximally conservative, prices heavy
+   withdrawal risk.
+
+**Selection rule (pre-declared).** SHIPPED M = the SMALLEST M in {0.05,0.10,0.15}
+that satisfies ALL gates under BOTH termination models (smaller M = more overrides
+= more paid-tier value-add, so among SAFE margins we prefer the one that does the
+most work; safety is the hard gate). If no M satisfies the gates, H1 is KILLED and
+nothing ships.
+
+**Probes (permanent, extend `test_accept_battery.py`; seed=0; no LLM).**
+ - ACCEPT-REGIME nodes — the point of this eval: nodes where the post-P7 closed
+   form GENUINELY accepts (their standing offer at/above the engine's accept
+   threshold), at varied horizons incl. the rl=2 short-horizon regime where the
+   P7 residual was largest — marginal accepts (just above threshold) and generous
+   accepts (well above). Each asserted to actually `accept` (an eval of
+   accept-verification that never visits genuine accept nodes proves nothing).
+ - The P7/P8 node families, unchanged, as the regression backdrop.
+ - REALIZED-SURPLUS ARM — the P7/P8 out-of-model willingness ensemble
+   {conceder t^0.5, boulware t³, mirror t, random, anomalous-below-floor m<WA}
+   played to termination under two seller ARMS: **short_circuit** (shipped: accept
+   on the engine's threshold) vs **verify** (accept-verification at margin M), over
+   a grid whose buyer max WTP m spans ABOVE the post-P7 accept thresholds so
+   climbing offers cross into the accept regime (coverage requirement, verified
+   in-harness that accept opportunities occur). BOTH termination models.
+
+**Metrics (per family × termination model × arm).**
+ - PRIMARY: realized surplus per opportunity = mean over the grid of
+   (deal_price − WA), no-deal = 0, paired arms (identical buyer trajectories), SE.
+ - SECONDARY: deal rate (fraction of grid points that close).
+ - TERTIARY: override frequency (fraction of accept opportunities the verify arm
+   overrode) + override-was-right rate (of the overrides, the fraction whose
+   verify-arm realized surplus BEAT what accepting would have banked).
+
+**Deal-rate-loss bound (pre-declared): 10 percentage points absolute**, the SAME
+bound P8 used, for the same reason: the shipped product already reveals a
+firmness-over-deal-rate preference (`plain_terms.py:36-37`, `_VALIDATED_KNOB=1.0`),
+so below 10pp a deal-rate cost is priced by that preference; above it, the override
+is destroying deal-existence value the surplus metric can't fully capture. (A paid
+capitulation-stopper arguably warrants a TIGHTER bound; 10pp is the established
+precedent and is NOT tightened post-hoc to force a verdict.)
+
+**H1 (verification pays).** For at least one pre-registered M, a conservative
+accept-verification improves realized surplus per opportunity vs the shipped
+short-circuit on the out-of-model ensemble, under BOTH termination models, without
+violating the 10pp deal-rate bound. **H0 (verification adds nothing).** Post-P7
+accepts are already EV-consistent: on genuine accept nodes the engine's own
+rollout belief does not value the best counter above the certain accept, so the
+override never fires (surplus tie under both models); or it fires only to take a
+withdrawal-risk-shaped loss (surplus down / deal-rate loss > bound under
+WITHDRAWING).
+
+**Kill conditions (numeric, declared BEFORE running), evaluated per M:**
+ - G-UPSIDE (STANDING): verify surplus/opp > short_circuit surplus/opp by > 1·SE
+   on conceder OR mirror. [If this fails for every M — no upside exists — H0.]
+ - G-NO-DOWNSIDE (WITHDRAWING, surplus): verify surplus/opp ≥ short_circuit
+   surplus/opp − 1·SE on conceder AND mirror. [If it fails — H0: withdrawal loss.]
+ - G-DEAL (WITHDRAWING, deal rate): short_circuit deal_rate − verify deal_rate <
+   0.10 on conceder AND mirror AND boulware AND random. [If it fails — H0.]
+ - G-CONTROL: anomalous-below-floor (m<WA) closes 0 deals on both arms (no
+   spurious deal creation), both models.
+ H1 CONFIRMED at M iff G-UPSIDE ∧ G-NO-DOWNSIDE ∧ G-DEAL ∧ G-CONTROL all hold at
+ M; shipped M = smallest confirming M. H1 KILLED iff no M confirms.
+
+**The change that ships iff H1 confirms (and ONLY this).** In `mc_search.py`,
+replace the unconditional short-circuit at :179-180 with: budget 0 ⇒ closed form
+stands (unchanged); accept node + budget ⇒ run the override rule above at the
+shipped M and return the (possibly overridden) turn with an honest `compute` block
+(`samples`, `override`, `margin`); counter node ⇒ the existing anytime search;
+walk / negotiate_directly ⇒ closed form. NOTHING else changes: not
+`_VALIDATED_KNOB`, not `_config`, not the P7 adapter fix, not the P8 conceder
+branch. If H1 KILLS: `mc_search.py:179-180` is REVERTED byte-for-byte to the
+shipped short-circuit, the implementation is preserved in the p9_mc_accept
+scratchpad for the record, and this block states plainly that the paid tier's
+accept-node value-add remains zero-rollouts honesty only. Either way,
+`test_accept_battery.py` gains permanent P9 guards (fast + slow) and the full
+P7+P8 suites must stay green.
+
+Results publish either way, gate by gate, below.
+
+### P9 RESULTS (2026-07-22) — H1 KILLED: the override NEVER fires; verification is a no-op; REVERTED
+
+Battery: the P9 section of `gametheory/tests/test_accept_battery.py` (seed=0,
+deterministic `compute_samples`, no LLM). The verification was implemented in
+`mc_search.py` and RUN against the real code path (`_accept_override` /
+`_verify_accept`), then reverted; the implemented file is archived at
+`scratchpad/p9_mc_accept/mc_search_WITH_P9_verification.py` and the run transcript
+at `scratchpad/p9_mc_accept/battery_transcript.txt`.
+
+**The decisive finding — structural, not marginal.** On EVERY genuine post-P7
+accept node the engine's OWN conceder-rollout belief values the best counter
+*below* the certain accept-now EV. `V_best_counter − V_accept_now` is NEGATIVE
+everywhere, so the override never fires at any margin — not even the most
+aggressive 0.05:
+
+| accept node (sell WA170/T210) | their offer | V_accept | V_best_counter | gap | override @{.05,.10,.15} |
+|---|---|---|---|---|---|
+| rl=2 marginal (just above thr $195.05) | $195.55 | 0.639 | 0.588 | **−0.051** | False/False/False |
+| rl=2 generous | $206.00 | 0.900 | 0.828 | **−0.072** | False/False/False |
+| rl=3 marginal (thr $198.96) | $199.46 | 0.737 | 0.664 | **−0.073** | False/False/False |
+| rl=3 generous | $208.00 | 0.950 | 0.762 | **−0.188** | False/False/False |
+| rl=5 marginal (thr $202.48) | $202.98 | 0.825 | 0.648 | **−0.177** | False/False/False |
+| rl=8 marginal (thr $204.28) | $204.78 | 0.870 | 0.557 | **−0.313** | False/False/False |
+
+WHY (mechanism): the closed form accepts precisely when their standing offer
+meets/beats our next counter (`plain_terms.py:174`), so the offer we could bank is
+already at/above what we'd ask. The rollout belief cannot value holding above that
+because (i) it discounts every future close (`_DELTA=0.92`), and (ii) it gates the
+opponent's FIRST-round acceptance at `c(0)=C0=0.5` (`_conceder_payoffs`,
+mc_search.py:118-130) and has NO "grab their standing offer now" action — so a
+certain, undiscounted accept of an at-or-above-ask offer strictly dominates any
+discounted counter IN-MODEL. The verification is therefore CONSERVATIVE by
+construction to the point of never acting: it prices the deal-existence risk P8
+measured so heavily that the engine's own belief already refuses the gamble.
+
+**Gate-by-gate verdict (realized arms: short_circuit vs verify, both termination
+models, out-of-model ensemble; surplus/opp in $ over WA, paired):**
+
+| gate | rule | result | fires? |
+|---|---|---|---|
+| G-UPSIDE (STANDING) | verify surplus/opp > short_circuit by >1·SE on conceder OR mirror | Δ = **+0.000** on ALL families (conceder/boulware/mirror/random), both models — override never fired | ❌ **no upside** |
+| G-NO-DOWNSIDE (WITHDRAWING, surplus) | verify ≥ short_circuit − 1·SE on conceder AND mirror | Δ = **0.000** (holds trivially — nothing changed) | ✅ (moot) |
+| G-DEAL (WITHDRAWING, deal rate) | short_circuit − verify deal-rate < 10pp | Δ = **0pp** on every family | ✅ (moot) |
+| G-CONTROL (below-floor m<WA) | 0 deals both arms | 0 surplus, 0 deal rate, both models | ✅ clean |
+| override frequency | — | **0 / 57 accept opportunities** at M∈{.05,.10,.15}, both models | — |
+| override-was-right rate | — | undefined (no overrides) | — |
+
+Coverage confirmed: the realized ensemble visited real accept nodes (conceder 9,
+boulware 8, mirror 9, random 31 accept opportunities; below-floor 0) — the eval
+did NOT skip the accept regime.
+
+**⇒ H1 KILLED (H0 confirmed).** G-UPSIDE fails at every pre-registered margin: the
+override never fires, so the verify arm equals the shipped short-circuit
+byte-for-byte on realized surplus AND deal rate under BOTH termination models. The
+two-model bracket (STANDING/WITHDRAWING) that killed the P8 fix has nothing to
+punish OR reward here, because no deal-existence gamble is ever taken. This is the
+cleanest possible null: post-P7 the accept regime holds no premature capitulations
+for MC to catch — the P7 adapter fix already turned the genuine "hold" nodes into
+counters (which the MC layer DOES refine), leaving behind only accepts that the
+engine's own rollouts agree are correct.
+
+**No fix ships.** `mc_search.py:179-180` is REVERTED byte-for-byte to the shipped
+short-circuit (only a docstring note pointing here was added, behavior identical;
+verified: an accept node with a compute budget again returns 0 rollouts / no
+`compute` block, a counter node still MC-refines). The implemented verification is
+preserved in the scratchpad for the record.
+
+**What this means for the paid-vs-free differentiator.** The claim "the $2 session
+can stop a premature capitulation; the free tool can't" is FALSE on accept nodes:
+there is nothing to stop — the paid tier's accept-node value-add remains
+zero-rollouts honesty only (the receipt truthfully says the accept is closed-form,
+0 rollouts, per the parallel receipt-honesty fix). A weaker "verification-as-proof"
+differentiator (spend the rollouts anyway and PROVE `override=false`) is technically
+available but was NOT validated here as surplus-positive and, by the pre-registered
+rule, is not shipped. The paid tier's real, measured edge stays where P-series
+found it: MC-refinement of COUNTER prices (the +9% multi-issue timing lever), not
+accept-node overrides.
+
+**P8's flagged P9-candidate, addressed in passing.** P8 left open whether the
+concession trigger is the right selector for its deal-existence hedge; that is a
+distinct question about the conceder BRANCH and is untouched here. This P9 answered
+a different flagged item (the `mc_search.py:179-180` accept short-circuit, P7 flag
+#2): the short-circuit is not a latent honesty gap that verification would close —
+it is the correct behavior, because verification would be inert.
+
+**Engine tests.** Full `gametheory/tests/` non-slow = **350 pass** (349 prior + 1
+new P9 fast guard `test_p9_genuine_accept_node_is_ev_consistent_fast`), 4 slow
+deselected; `test_accept_battery.py -m slow` = **4 pass** (2 P7 + 1 P8 + 1 new P9
+`test_p9_accept_verification_is_a_noop`). The P7 short-circuit-contract test
+(`test_mc_search.py::test_accept_branch_is_untouched_by_compute`) still passes
+post-revert. No production behavior changed; no golden touched; vend tests not run
+(out of lane).
+
+## P10 (pre-registered 2026-07-22) — the BUNDLE tier: an accept-floor leak, a determinism leak, and a time-blind endgame
+
+**This block was written BEFORE any bundle source was touched.** The three
+defects, the exact fix for each, and the bidirectional numeric gates that
+decide whether each fix ships are fixed below; the RESULTS subsection is filled
+after the battery runs, either way. A completed read-only audit (36k instances)
+already VINDICATED the skyline Pareto filter and Bayesian-Nash selection
+(`snhp/nash_solver.py`, zero divergence vs first-principles brute force across 9
+adversarial instance kinds) — that code is NOT touched. This block is only the
+multi-issue *decision + plumbing* around that verified core.
+
+**Scope note (concurrent-lane honesty).** The single-issue accept/schedule work
+(P7), the conceder branch (P8), and the paid MC accept short-circuit (P9) are
+DONE and out of this lane. P10 is the multi-issue analog surface:
+`gametheory/negotiation/bundle.py`, `snhp/bayesian_agent.py` (additive only),
+`vend/advice.py::advise_bundle`, and the two bundle server seams
+(`server/mcp_server.py::gt_negotiate_bundle`, `server/a2a_routes.py` bundle
+endpoint). `mc_search.py` (P9's lane) is untouched.
+
+### The three defects (verified pre-fix; each cite-checked)
+
+**Defect 1 — accept BELOW my walk-away (BUG, bounded ≤ 0.02).**
+`bundle.py:345` fires `accept` iff `u_latest >= rec_u_self - 0.02`. The COUNTER
+utility `rec_u_self` is guarded above `my_batna` (the walk check at
+`bundle.py:312`), but the accept threshold subtracts 0.02 from it, so a standing
+offer worth up to 0.02 BELOW the user's stated BATNA is accepted. Compounding it,
+`bundle.py:361` reports the COUNTER's utility (`rec_u_self`) on an accept, so
+`vend/advice.py:334-337`'s `AdviceInvariantError` ("package utility below your
+BATNA") is fed the wrong quantity and can NEVER fire on the leak it is meant to
+catch. Repro (audit t2 test B, instance-gen seed=0, per-trial `np.random.seed(t)`
+to pin the particle cloud): **222 / 40000** trials accept an offer strictly below
+`my_batna`; minimal at `np.random.seed(118)` — `u_latest=0.666402`,
+`my_batna=0.671402` (offer 0.005 below floor), engine returns `accept`, reports
+`my_utility=0.675` (the counter's, not the accepted 0.666).
+
+**Defect 2 — paid-path non-determinism (BUG).** `bayesian_agent.py:13` draws the
+cold-start particle cloud from the UNSEEDED global `np.random.rand`;
+`bayesian_agent.py:17` the warm-start cloud from unseeded `np.random.normal`.
+`negotiate_bundle` builds the filter at `bundle.py:185-188` with no rng. So when
+`their_offers` is non-empty (the inference path runs), the inferred priorities —
+and therefore the selected package — are a function of global RNG state. The paid
+`advise_bundle(..., seed=0)` param (`vend/advice.py:302-370`) is captured ONLY in
+the `context_hash` and is a NO-OP on compute; `gt_negotiate_bundle`
+(`server/mcp_server.py:145`) and the a2a bundle endpoint (`a2a_routes.py:286`)
+seed nothing either. (The FREE advisor `gametheory/negotiation/mcp_server.py:41-46`
+`_seed_from_args` DOES seed the global RNG right before the call, so that one path
+is already deterministic and is NOT in this lane.) Repro: **30 identical
+`negotiate_bundle` calls with `their_offers` non-empty → 2 distinct packages**,
+inferred-priority spread up to 0.06/issue, `my_utility ∈ {0.5, 0.533}`. The
+`advise_bundle` docstring's "Deterministic by construction … no theater possible"
+is, on the inference path, currently FALSE.
+
+**Defect 3 — time-blindness (DESIGN-GAP, not a bug in existing behavior).**
+`negotiate_bundle` (`bundle.py:244-253`) takes no `rounds_left`. A standing offer
+with clear positive surplus over BATNA is countered identically at round 1 and
+the final round — where countering means walking away from a certain deal.
+Concrete probe (seed=0): issues `price` [lo/mid/hi] my `[1,.6,0]` their `[0,.5,1]`,
+`term` [1yr/2yr/3yr] my `[0,.5,1]` their `[1,.4,0]`, `sla` [basic/gold] my `[0,1]`
+their `[1,0]`; standing offer `{price:hi, term:2yr, sla:gold}` → `u_latest=0.500`;
+`my_batna=0.400` (surplus **+0.100**). Pre-fix engine returns `counter`
+(`rec_u_self=0.667`), correct at rounds 1..k-1, a self-inflicted no-deal at the
+buzzer.
+
+### The three fixes (each ships only if its gate passes)
+
+**Fix 1 (Defect 1).** Guard the accept branch: `accept` iff
+`u_latest >= max(rec_u_self - 0.02, my_batna)` — i.e. add `u_latest >= my_batna`.
+On an accept, the response describes the ACCEPTED standing package
+(`recommended_offer`, `my_utility`, `their_expected_utility` all reflect their
+latest offer), so `my_utility` is the number that actually clears the floor and
+the `AdviceInvariantError` guards the right quantity. Nothing else in the
+selection math changes.
+
+**Fix 2 (Defect 2) — structural, not a global-seed shotgun.**
+`BayesianParticleFilter.__init__` gains an optional `rng` (a `numpy.random.
+Generator`); `rng=None` (default) preserves the EXACT current global-RNG draws
+byte-for-byte, so the ~14 other constructors (`sell.py`, `buy.py`, `sdk.py`,
+`benchmark.py`, `research/*`) are unaffected. `negotiate_bundle` /`_build_model`
+gain an optional `seed`; when set, they build `np.random.default_rng(seed)` and
+thread it to the filter. `advise_bundle`'s existing `seed` becomes REAL (threaded
+through; `context_hash` meaning unchanged). `gt_negotiate_bundle` and the a2a
+bundle endpoint derive a deterministic seed from their inputs (the same
+input-derived determinism the free advisor gets from `_seed_from_args`, but via
+the structural `seed=` param — no global mutation) and pass it on the closed-form
+path. The `advise_bundle` docstring claim becomes true, now earned. NOTE for the
+record (NOT fixed here — P9-adjacent): `mc_search.py`'s separate bundle rollout
+cloud (`negotiate_bundle_mc`, reached from `gt_negotiate_bundle` only when
+`compute_ms>0`) is also unseeded; left to the mc_search lane.
+
+**Fix 3 (Defect 3) — additive + gated.** `negotiate_bundle` (and the callers that
+already hold rounds context: `gt_negotiate_bundle`, the a2a endpoint) gain an
+optional `rounds_left` (default `None` = exactly current behavior everywhere).
+When `rounds_left <= 1` AND a standing counterparty offer clears `my_batna`
+(`u_latest >= my_batna`), accept it — the certain positive-surplus endgame. Never
+accepts below floor. Ships ONLY if G3 passes.
+
+### Gates (bidirectional, declared numerically BEFORE running; seed=0)
+
+**G1 — accept-floor (Fix 1).** Over N=40000 seeded random instances (audit t2
+generator: instance-gen `default_rng(0)`, per-trial `np.random.seed(t)`), with
+`rounds_left` unset:
+ - `count(action=="accept" AND u_latest < my_batna - 1e-9) == 0`  (leak closed), AND
+ - `count(action=="counter" AND u_latest >= max(rec_u_self - 0.02, my_batna) + 1e-9) == 0`
+   (NO dominating in-floor offer is rejected — the fix must not OVERCORRECT into
+   refusing offers it should take).
+ Both directions must hold. Fix 1 ships iff G1 passes; the pre-fix run is recorded
+ showing the first clause FAILS (222 leaks) to prove the gate has teeth.
+
+**G2 — determinism (Fix 2).** 100 repeated identical `advise_bundle` calls with
+`their_offers` non-empty and `seed=0` collapse to exactly **1** distinct tuple of
+`(recommended_offer, inferred_their_priorities, my_utility, their_expected_utility,
+context_hash)`. Pre-fix (same harness, the no-op seed) yields ≥ 2. Also asserted:
+two DIFFERENT seeds may differ (the seed is real, not ignored), and `seed=None`
+on `negotiate_bundle` reproduces the legacy global-RNG path (additivity check).
+
+**G3 — time-blindness (Fix 3), with a byte-identity guard and a surplus sanity
+arm.** Fix 3 ships ONLY if ALL three hold:
+ - (a) BYTE-IDENTITY: with `rounds_left=None` OR `rounds_left>=2`, output is
+   byte-identical to the pre-fix engine across the full G1 instance set AND the
+   probe (the fix touches nothing off the final round).
+ - (b) THE FLIP: at `rounds_left=1` the pre-registered probe flips `counter →
+   accept` with `my_utility==0.500` (the standing offer's true utility), and
+   ACROSS the G1 set no instance with `u_latest < my_batna` flips to accept at
+   `rounds_left=1` (the endgame never accepts a loss).
+ - (c) SURPLUS/DEAL-RATE SANITY (both directions, reusing the audit harness):
+   over the G1 instances at `rounds_left=1`, the endgame rule must (i) ADD accepts
+   ONLY on offers with `u_latest >= my_batna` — `count(new-accept AND u_latest <
+   my_batna) == 0` (no over-acceptance / no manufactured losing deal), AND (ii)
+   leave NO in-floor final-round standing offer as a no-deal — `count(u_latest >=
+   my_batna AND rounds_left==1 AND action != "accept") == 0` (no under-serving).
+   Mean reported `my_utility` on the added accepts is reported for the record.
+
+If G3(a) fails, Fix 3 does NOT ship (it would be perturbing non-endgame play). If
+G3(b)/(c) fail in the over-acceptance direction, Fix 3 does NOT ship. Both
+directions are pinned above so the endgame rule cannot silently over- or
+under-accept.
+
+### Fixed-if-KILLED disposition
+Each fix is independent. A gate that fails means THAT fix is reverted byte-for-byte
+and the vindication (or the reason the change was unsafe) is recorded here; the
+other fixes are unaffected. The skyline/Nash core stays untouched regardless.
+
+**Permanent battery:** `gametheory/tests/test_bundle_battery.py` — fast: a
+skyline-vs-brute subset (from audit t1), a G1 accept-floor sample, a G2
+determinism check (small n), a full-pipeline label-swap symmetry sample, the G3
+probe + byte-identity spot; slow (`-m slow`): the full 36k skyline-vs-brute and
+40k G1/G3 versions. `test_accept_battery.py` (P7-P9 lane) is NOT modified.
+
+House rules honored: seed=0 in every check; file:line citations above; no LLM; no
+new deps; the two corrected docstring claims are quoted before/after in RESULTS.
+
+Results publish either way, gate by gate, below.
+
+### P10 RESULTS (2026-07-22) — all three gates PASS; all three fixes ship
+
+Gate harness `p10_gates.py` (seed=0, no LLM) + the permanent battery
+`gametheory/tests/test_bundle_battery.py`. The audit's skyline/Nash core stayed
+untouched and its guard is folded into the battery.
+
+**Gate-by-gate verdict — all three PASS, both directions:**
+
+| Gate | Rule (declared before running) | Pre-fix | Post-fix | Verdict |
+|---|---|---|---|---|
+| G1a (leak) | count(accept ∧ u_latest < my_batna), t2-B config, N=40k | **222** | **0** | ✅ closed |
+| G1b clause1 | count(accept ∧ u_latest < my_batna), mixed-batna sweep N=40k | — | **0** | ✅ |
+| G1b clause2 | count(counter ∧ u_latest ≥ max(rec−0.02, my_batna)), N=40k | — | **0** | ✅ no over-correction |
+| G2 | distinct (pkg, priorities, utils, ctx_hash) over 100 identical advise_bundle(seed=0) | ≥2 (30-call→**2**) | **1** | ✅ deterministic |
+| G2 (seed real) | seed=0 vs seed=1 may differ | — | differ | ✅ not ignored |
+| G2 (additivity) | rng=None reproduces legacy global np.random.rand draw byte-for-byte | — | **True** | ✅ |
+| G3(a) | rounds_left=None ≡ rounds_left=5 across N=40k (Fix 3 inert off final round) | — | **0** mismatches | ✅ |
+| G3(b) | probe flips counter→accept ONLY at rounds_left≤1, my_utility==0.500 | counter@all | counter@{None,9,5,2}; **accept@1, u=0.500** | ✅ |
+| G3(c-i) | count(endgame below-floor accept), N=40k | — | **0** | ✅ no over-accept |
+| G3(c-ii) | count(in-floor final-round offer left un-accepted), N=40k | — | **0** | ✅ no under-serve |
+
+⇒ **G1 ∧ G2 ∧ G3 all PASS.** All three fixes ship. The endgame rule ADDED 18415
+accepts across the G3 sweep (mean accepted `my_utility` = **0.4991**, every one
+≥ its instance's `my_batna` — no manufactured losing deal). The audit's
+skyline-vs-brute vindication reproduced clean in the battery (0 divergences at
+40 and 4000 instances/kind).
+
+**Fixes applied (exactly the pre-registered three, nothing else).**
+ - **Fix 1 — accept-floor** (`bundle.py:406`): accept now requires
+   `u_latest >= my_batna AND u_latest >= rec_u_self − 0.02`; on an accept the
+   response describes the ACCEPTED standing package (`recommended_offer`,
+   `my_utility=reported_u_self`, `their_expected_utility`), so `my_utility`
+   (`bundle.py:410`) is the number that clears the floor.
+ - **Fix 2 — structural determinism.** `bayesian_agent.py:4` gains `rng=None`
+   (`:25` `rng.random(...)`, `:29` `draw.normal(...)`); `rng=None` = legacy global
+   draw byte-for-byte (verified). `bundle.py:146` `_build_model(rng=...)`,
+   `bundle.py:255/318` `negotiate_bundle(seed=...)` builds a LOCAL
+   `default_rng(seed)`. `advice.py:339` threads the real seed;
+   `mcp_server.py:146/224` and `a2a_routes.py:290/318-319` derive an input-hash
+   seed and pass it STRUCTURALLY (no global mutation). `session_advise_bundle`
+   already forwards the session seed, so the paid session path is now deterministic
+   with no edit to `vend/session.py`.
+ - **Fix 3 — gated final-round endgame** (`bundle.py:344`): `rounds_left`
+   (`bundle.py:256`, `advice.py`, `mcp_server.py`, `a2a_routes.py`, all optional,
+   default None). When `rounds_left ≤ 1` and a standing offer clears `my_batna`,
+   accept it; dominates the walk branch. None/≥2 leaves every path byte-identical
+   (G3(a) = 0). `mc_search.py`'s separate bundle rollout cloud is left unseeded on
+   purpose (P9-adjacent) and flagged in-code at `mcp_server.py` and here.
+
+**Invariant now fires (proof).** Pre-fix, an accept reported the COUNTER's utility
+(`rec_u_self`, guarded above BATNA), so `vend/advice.py:334-337`'s
+`AdviceInvariantError` saw a value that could never be below floor and never
+fired. Post-fix, an accept reports the accepted offer's utility. Feeding
+`advise_bundle` a synthetic accept with `my_utility = my_batna − 0.05` now raises:
+`AdviceInvariantError: package utility 0.45 below your BATNA 0.5`. A REAL post-fix
+accept (`my_utility=1.0 ≥ batna 0.40`) leaves it silent. Guard:
+`test_advice_invariant_fires_on_below_floor_accept`.
+
+**Determinism proof.** 100 identical `advise_bundle(seed=0)` calls with non-empty
+`their_offers` → **1** distinct `(package, inferred_priorities, utilities,
+context_hash)`; pre-fix, 30 identical calls gave **2** packages
+(`my_utility ∈ {0.5, 0.533}`, priority spread up to 0.06/issue). Seed is real
+(seed 0 vs 1 differ); `rng=None` reproduces the legacy global draw exactly.
+
+**Time-blindness disposition.** The pre-registered probe (standing offer
+`{price:hi, term:2yr, sla:gold}`, `u_latest=0.500`, `my_batna=0.400`, surplus
++0.100) is countered at `rounds_left ∈ {None,9,5,2}` (`my_utility=0.667`) and, at
+`rounds_left=1`, flips to **accept** at its true `my_utility=0.500`. The fix
+touches nothing off the last round (G3(a) byte-identity, 0/40k) and never accepts
+below floor (G3(c-i), 0/40k).
+
+**The two corrected docstring claims (before → after).**
+ 1. `advise_bundle` (`vend/advice.py`): BEFORE — "Deterministic by construction:
+    the closed-form bundle engine is a pure function — no rollouts needed, no
+    theater possible" (FALSE on the inference path: the particle cloud was
+    unseeded global RNG). AFTER — "…a pure function **and the priority-inference
+    particle cloud is now drawn from a seeded RNG (the `seed` below is threaded
+    into the engine, not just the receipt)** — same context + seed => byte-identical
+    advice, no theater possible." Now earned (G2).
+ 2. `advise_bundle` / `session_advise_bundle` (`mcp_server.py`): "the recommended
+    package must clear YOUR stated BATNA, enforced here, not promised" /
+    "guaranteed to clear YOUR stated BATNA (enforced, not promised)". TEXT
+    UNCHANGED but was FALSE pre-fix (accepts up to 0.02 below floor); Fix 1 makes
+    it TRUE (G1a: 222→0). The claim is now honored by the engine, not just asserted.
+
+**Battery + test counts.** New `gametheory/tests/test_bundle_battery.py`: 9 fast
+(skyline-vs-brute subset, G1 both clauses, G2 determinism + seed-real + additivity,
+G3 probe flip + never-below-floor + inert/sanity, symmetry, invariant-fires) +
+4 slow (36k skyline-vs-brute, 40k G1, 40k G3, 5k symmetry). `test_accept_battery.py`
+NOT modified. Full `python -m pytest gametheory/tests/ vend/tests/ -q -m "not slow"`
+= **542 pass, 8 deselected** (baseline 532 + 9 new P10 fast + 1 concurrent P9 fast
+guard); slow P10 battery = **4 pass**. No golden touched; no commit.
+
+**Out-of-lane observations (NOT touched).** (1) `mc_search.py`'s
+`negotiate_bundle_mc` bundle rollout cloud is separately unseeded — reachable from
+`gt_negotiate_bundle` only when `compute_ms>0`; left to the mc_search/P9 lane,
+noted in-code. (2) The concurrent P9 worker appended a P9 RESULTS block and a P11
+worker a P11 pre-registration to this file; both are outside this lane and were
+not modified. No failures observed outside this lane.
+
+## P11 (pre-registered 2026-07-22) — compute-moat RE-VALIDATION: does MC's counter-price refinement pay on the FIXED engine?
+
+**This block was written BEFORE any measurement was taken.** The claim under
+re-test, why it is suspect, the paired design, the deterministic budgets, the n
+rule, the per-family breakdown, and the pre-declared bidirectional decision rule
+are fixed below; the RESULTS subsection is filled after the harness runs, in
+whichever direction it lands. This is a RE-MEASUREMENT of a PUBLISHED null on the
+corrected engine — direction unknown, published either way.
+
+**The published claim under re-test.** `mc_search.py`'s module docstring and team
+memory both record: *"MC − closed form = −0.002, 95% CI [−0.043, +0.038], 98%
+ties → no realized edge; compute tier ships OFF BY DEFAULT and EXPERIMENTAL."*
+That number is what put the paid compute tier off by default.
+
+**Why the number is SUSPECT (biased toward the null).** It was measured by
+`gametheory/negotiation/mc_validation.py` on the **PRE-P7 engine**. Pre-P7,
+`plain_terms.py` passed `deadline_rounds = rounds_left` (remaining) into a
+schedule that computes `time_fraction = rounds_used/deadline_rounds` with
+`rounds_used` CUMULATIVE across both sides, so cumulative ≥ remaining ⇒
+`time_fraction` clamped to 1.0 ⇒ the concession schedule SATURATED ⇒ the engine
+accepted a rising counterparty's floor with rounds still on the clock (the P7
+accept-collapse, CONFIRMED and fixed above). In `mc_validation.py`'s realized
+play BOTH arms route their decision through this same collapsing closed form
+(the MC arm only *refines the counter price* on nodes where the closed form
+counters; on accept/walk it short-circuits, `mc_search.py:189`). So pre-fix, both
+arms capitulated early and identically, and MC's action window — the counter
+nodes where its rollout can move the price — was CRUSHED. The blast-radius audit
+classified this harness AFFECTED-material: a null measured where the mechanism
+can barely act is biased TOWARD "no edge." **The P7 fix has landed**
+(`plain_terms.py:144`, `total_horizon = len(cp)+len(mine)+rounds_left`; the
+engine now counters through the mid-game instead of collapsing), so MC's
+counter-refinement window is open for the first time in this harness.
+
+**What P11 measures, and what it does NOT.** P9 already established (KILLED, H0
+confirmed) that MC is STRUCTURALLY INERT on ACCEPT nodes post-P7: on every
+genuine accept node the engine's own rollout belief values the best counter
+BELOW the certain accept, so an accept-verification override never fires. P11
+therefore measures the ONLY channel where MC can still add realized value — its
+refinement of the COUNTER price on counter nodes — now that the P7 fix has opened
+that window. Delta = realized discounted seller surplus (MC arm) − (closed-form
+arm), paired.
+
+**The paired design (preserved from `mc_validation.py`, de-circularised).**
+Seller frame WALK=100 / TARGET=200, ROUNDS=8, realized-surplus discount
+DELTA=0.95. A population of conceder buyers whose HIDDEN parameters are drawn
+OUTSIDE the rollout's assumed model (`mc_search.py` belief fixes `_C0=0.50`,
+`_E_OPP=2.5`): reservation `b ~ U(115,200)`, concession exponent `e ~ U(1.3,4.0)`,
+initial-concession fraction `c0 ~ U(0.30,0.60)`; `willingness(t,b,e,c0)` rises
+from `c0·b` toward `b` by the deadline. SAME (b,e,c0) draws face BOTH arms
+(paired). seed=0 for the population draw AND for every MC call.
+
+**Deterministic budgets (the one harness change: wall-clock → sample count).** The
+original harness used `compute_ms ∈ {50,200}` — a WALL-CLOCK budget whose realized
+sample count depends on machine speed (non-deterministic across runs/machines).
+P11 converts the harness to the deterministic `compute_samples` path added for
+bit-identical paid advice (`mc_search.py:196-198`; `anytime_search` runs a fixed
+sample budget with `deadline_s=inf`). Sample counts are pinned from the shipped
+provenance calibration `719k rollouts / 200ms` (`vend/NEXTMOVE.md:191`) ⇒ ≈3.6k
+samples/ms on the author's machine ⇒ **50ms ≈ 180k, 200ms ≈ 720k**; the shipped
+paid default is **400k** (`vend/advice.py:33 _DEFAULT_COMPUTE_SAMPLES`). Three
+tiers are run:
+ - **180k** samples — the low bracket (≈ the original 50ms budget);
+ - **400k** samples — the SHIPPED paid default, the **PRIMARY** decision tier;
+ - **720k** samples — the high bracket (≈ the original 200ms budget).
+(All three are named round numbers derived from the NEXTMOVE provenance; they are
+NOT tuned to any result.)
+
+**n rule (pre-declared, BEFORE running).** n = 600 paired negotiations per tier
+(≥ the original n=400 floor; larger for tighter CIs, runtime-permitting at the
+measured ~28 min for all three tiers). n is FIXED at 600 for this run and is never
+reduced below 400; it is not adjusted after seeing any delta.
+
+**Per-family breakdown (pre-declared).** The rollout belief holds the opponent's
+concession exponent FIXED at `_E_OPP=2.5` (`mc_search.py:46`), so realized MC
+value should track how far the true `e` deviates from that belief. Report the
+paired delta + 95% CI + tie-rate stratified into three families by hidden `e`:
+ - **FAST** conceder: `e ∈ [1.3,2.0)` (concedes earlier than belief);
+ - **MATCHED**: `e ∈ [2.0,3.0)` (near belief 2.5);
+ - **SLOW / Boulware**: `e ∈ [3.0,4.0]` (concedes later than belief).
+Aggregate and per-family tie-rate both reported (tie = |d| ≤ 1e-6, the harness's
+existing win/tie/lose convention).
+
+**The pre-declared decision rule (bidirectional; applied to the aggregate paired
+delta `d = surplus_MC − surplus_closed`, 95% CI = mean(d) ± 1.96·SE, at the
+PRIMARY 400k tier; the 180k/720k brackets are reported alongside and any
+disagreement across tiers is itself recorded as the finding):**
+ - **CI EXCLUDES 0 in favour of MC** (mean−1.96·SE > 0) ⇒ the off-by-default
+   **NULL FLIPS**: MC's counter-refinement has realized value on the fixed engine.
+   The compute tier's ship posture gets RE-DECIDED by the founder.
+ - **CI INCLUDES 0** ⇒ the **NULL is RE-CONFIRMED on the fixed engine** and now
+   becomes TRUSTWORTHY (the original was biased toward it; a re-confirmation with
+   the window open is real). Off-by-default stands.
+ - **CI EXCLUDES 0 BELOW** (mean+1.96·SE < 0) ⇒ MC is **significantly NEGATIVE**:
+   the rollout belief mis-models post-fix play (it counters too firm / at the
+   wrong price for the realized population). Recorded as such.
+
+**The one docstring touch (post-results only).** Per the P11 lane rule, the SOLE
+permitted edit to `mc_search.py` is its module-docstring stale-number line: if the
+null flips or the number changes materially it is updated to the new measurement
+with a P11 citation; if re-confirmed it is updated to cite P11's re-confirmation
+on the FIXED engine. No `mc_search.py` behavior changes. No production source is
+edited by this block. `mc_validation.py` is converted to the deterministic path
+(this block's only code change) and re-run; the P7/P8/P9 batteries are untouched.
+
+House rules honored: seed=0 everywhere; deterministic `compute_samples` budgets
+only (no wall-clock, no LLM); file:line citations above; no commit.
+
+Results publish either way, gate by gate, below.
+
+### P11 RESULTS (2026-07-22) — VERDICT: the published null does NOT reproduce; MC is significantly NEGATIVE on the fixed engine (third branch fired)
+
+Harness: `gametheory/negotiation/mc_validation.py`, converted to the deterministic
+`compute_samples` path (seed=0, n=600 paired negotiations per tier, out-of-model
+conceder population `b~U(115,200)`, `e~U(1.3,4.0)`, `c0~U(0.30,0.60)`). Fully
+reproducible: `python -m gametheory.negotiation.mc_validation`. Artifact +
+transcript archived at `scratchpad/p11_compute_moat/p11_results.json` and
+`run.log`. Determinism verified (identical output across repeat runs).
+
+**The aggregate re-measurement — MC is realized-NEGATIVE at every budget, and more
+compute does not help** (discounted seller surplus $/negotiation, paired, n=600):
+
+| budget (samples) | ≈ old ms | closed $/neg | MC $/neg | **MC − closed** | 95% CI | rel % | deal rate C→MC | win/tie/lose | verdict |
+|---|---|---:|---:|---:|---|---:|---|---|---|
+| 180k | ≈50ms | 30.738 | 29.924 | **−0.814** | [−1.214, −0.414] | −2.65% | 75.7%→71.5% | 12.7 / 74.5 / 12.8 | MC NEGATIVE |
+| **400k (SHIPPED, primary)** | ≈110ms | 30.738 | 29.916 | **−0.822** | **[−1.222, −0.422]** | −2.67% | 75.7%→71.5% | 12.3 / 74.7 / 13.0 | **MC NEGATIVE** |
+| 720k | ≈200ms | 30.738 | 29.918 | **−0.820** | [−1.220, −0.420] | −2.67% | 75.7%→71.5% | 12.5 / 74.3 / 13.2 | MC NEGATIVE |
+
+(Closed-form surplus is byte-identical across tiers — it spends no compute — a
+clean sanity check on the paired design.)
+
+**Gate-by-gate against the pre-declared decision rule (evaluated at the PRIMARY
+400k tier; the brackets corroborate):**
+
+| branch (pre-registered) | condition | 400k result | fires? |
+|---|---|---|---|
+| NULL FLIPS (MC edge) | CI excludes 0 ABOVE (lo > 0) | lo = **−1.222** < 0 | ❌ no |
+| NULL RE-CONFIRMED | CI includes 0 | CI = [−1.222, −0.422] excludes 0 | ❌ no |
+| **MC NEGATIVE** | CI excludes 0 BELOW (hi < 0) | hi = **−0.422** < 0 | ✅ **YES** |
+
+⇒ **The third branch fires: MC is significantly NEGATIVE.** The CI excludes 0
+below at ALL THREE budgets, and the three brackets are statistically
+indistinguishable from one another (−0.814 / −0.822 / −0.820) — the harm does not
+shrink with more rollouts, so it is **belief mis-specification, not Monte-Carlo
+sampling noise.**
+
+**Old vs new — the number moved materially, and its SIGN flipped:**
+
+| | engine | budget | n | MC − closed | 95% CI | tie rate |
+|---|---|---|---|---|---|---|
+| PUBLISHED (stale) | PRE-P7 (accept-collapse) | wall-clock 50/200ms | 400 | −0.002 | [−0.043, +0.038] | 98% |
+| **P11 (this block)** | **P7-FIXED** | **deterministic 400k** | **600** | **−0.822** | **[−1.222, −0.422]** | **74.7%** |
+
+**Per-family breakdown (by the buyer's HIDDEN concession exponent e; the rollout
+belief fixes `_E_OPP=2.5`, `mc_search.py:46`), at the SHIPPED 400k tier:**
+
+| family | e range | n | MC − closed | 95% CI | tie rate | significant? |
+|---|---|---:|---:|---|---:|---|
+| FAST | [1.3, 2.0) | 155 | −0.682 | [−1.522, +0.159] | 72.9% | no (CI spans 0; small n, high variance) |
+| **MATCHED** | [2.0, 3.0) | 220 | **−1.102** | [−1.848, −0.357] | 72.7% | **yes, negative** |
+| SLOW / Boulware | [3.0, 4.0] | 225 | −0.645 | [−1.166, −0.124] | 77.8% | yes, negative |
+
+Note the pre-registered hypothesis (MC value tracks deviation of true `e` from the
+belief) is REFUTED: the MATCHED family — where the belief's concession exponent is
+CORRECT — is the MOST harmed (−1.102). The harm is therefore NOT "belief wrong
+about the concession speed"; it is the rollout's structural over-firmness (the
+`_DELTA=0.92` discount + the `Uniform[u_lo,1]` reservation model + the Boulware
+continuation, `_conceder_payoffs`, mc_search.py:114-141), which bites hardest
+exactly where the closed-form counter was already near the realized optimum and
+any refinement can only push it off.
+
+**Mechanism (why the pre-fix null was an artifact, and what the fix exposed).**
+Pre-P7 the accept-collapse made BOTH arms capitulate early and identically — MC
+almost never reached a counter node it could act on (98% ties = the action window
+was crushed, exactly the AFFECTED-material bias the pre-registration named). The
+P7 total-horizon fix (`plain_terms.py:144`) opens that window: MC now moves the
+price on ~25% of negotiations (tie 98%→75%). When it acts, it applies the P7-
+documented "honest firmness residual" — its conceder rollout values holding firmer
+than the realized out-of-model population rewards — so it counters at prices that
+push more buyers into timeout: **MC deal rate 71.5% vs closed 75.7% (−4.2pp)**.
+The lost deals (surplus counted as 0) plus the firmer-but-fewer closes net
+**−$0.82/negotiation (−2.67%)**. Win-frequency (12.3%) and lose-frequency (13.0%)
+are nearly balanced, but the losses are larger in magnitude and the deal-rate
+leak is the dominant driver. This is the realized-play face of P7's residual note
+("the residual is firmness, the opposite failure mode from accept-collapse") — now
+quantified: acting on it COSTS surplus.
+
+**What the founder should re-decide.** Off-by-default is no longer a "harmless tie
+kept for optionality" (the old null's rationale) — it is now a **REQUIREMENT with
+the current belief**. Shipping single-issue `compute_ms`/`compute_samples` refinement
+ON, as built, would cost ≈2.67% of realized seller surplus and ≈4pp of deals
+against an out-of-model population. The paid tier's real edge is NOT single-issue
+counter-refinement (P11) and NOT accept verification (P9, inert); it remains the
+separate multi-issue timing lever (the +9% bundle claim, out of this lane) plus
+zero-rollout receipt honesty. The `mc_validation.py` harness now has TEETH — it
+detects harm the pre-fix engine masked — so any future belief improvement (e.g. a
+reservation-aware or discount-corrected rollout) can be gated against a real,
+signed bar before the tier is ever promoted.
+
+**Docstring updated (the ONE permitted `mc_search.py` touch).** The stale
+"−0.002, 98% ties, no realized edge" line in `mc_search.py`'s module docstring is
+replaced with the P11 measurement (−0.82 / −2.67% / CI excludes 0 below, fixed
+engine, deterministic, n=600) and a note that off-by-default is now required. No
+`mc_search.py` behavior changed; no other production source edited.
+
+**Engine tests.** Full `gametheory/tests/` non-slow = **377 pass, 0 fail**, 8 slow
+deselected (350 was the P9 baseline; the surplus over it is the concurrent P10
+lane's growing bundle-battery fast guards — a moving target while P10 runs, all
+green when observed). No test imports `mc_validation.py`, so the harness conversion
+touches no assertion; the `mc_search.py` edit is docstring-only (verified: module
+still imports, no behavior change). No golden touched; vend tests not run (out of
+lane).
+

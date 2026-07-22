@@ -1,0 +1,284 @@
+/* science.html — "Measured, not vibed." The research register.
+   Same three inks as the demo (ink #141310, cream #f4f1ea, one red #b3382c),
+   inverted: this page is print. Straight prose, ~68ch measure, Georgia.
+   Red is reserved for fired kills and one data point per chart. No clerk. */
+
+:root {
+  --ink: #141310;
+  --ink-80: rgba(20, 19, 16, 0.8);
+  --ink-60: rgba(20, 19, 16, 0.6);
+  --ink-40: rgba(20, 19, 16, 0.4);
+  --ink-25: rgba(20, 19, 16, 0.25);
+  --ink-12: rgba(20, 19, 16, 0.12);
+  --paper: #f4f1ea;
+  --paper-2: #ece7db;
+  --red: #b3382c;
+  --red-soft: rgba(179, 56, 44, 0.07);
+  --serif: Georgia, 'Times New Roman', Times, serif;
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.68;
+}
+
+.wrap { max-width: 68ch; margin: 0 auto; padding: 0 1.35rem; }
+
+a { color: var(--ink); text-underline-offset: 3px; text-decoration-color: var(--ink-40); }
+a:hover { text-decoration-color: var(--ink); }
+.mono { font-family: var(--mono); }
+
+/* ---------- header ---------- */
+
+header { padding-top: 2.4rem; }
+
+#backlink { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.06em; margin: 0; }
+#backlink a { color: var(--ink-60); text-decoration: none; }
+#backlink a:hover { color: var(--ink); text-decoration: underline; }
+
+h1 {
+  font-size: clamp(2.4rem, 7vw, 3.6rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  margin: 1.1rem 0 0.7rem;
+}
+
+#subtitle {
+  font-style: italic;
+  font-size: 1.06rem;
+  color: var(--ink-60);
+  margin: 0 0 1.5rem;
+}
+
+#mechanism-note { font-size: 0.95rem; color: var(--ink-80); margin: 0 0 1.1rem; }
+
+#kill-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0 0 0.45rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+}
+.ks {
+  border: 1px solid var(--ink-25);
+  border-radius: 3px;
+  padding: 0.18rem 0.55rem;
+  color: var(--ink-60);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.ks b { font-weight: 700; letter-spacing: 0.08em; color: var(--ink); }
+.ks-fired { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+.ks-fired b { color: var(--red); }
+#kill-strip-note {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-40);
+  margin: 0 0 0.5rem;
+}
+
+/* ---------- sections ---------- */
+
+section { margin: 3.1rem 0; }
+
+.kicker {
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 0.68rem;
+  color: var(--ink-40);
+  margin: 0 0 0.45rem;
+}
+
+h2 { font-size: 1.55rem; line-height: 1.22; margin: 0 0 1rem; }
+
+p { margin: 0 0 1.05rem; }
+
+.smallnote { font-size: 0.88rem; color: var(--ink-60); }
+
+/* the verbatim scope statement */
+.scope {
+  border: 1px solid var(--ink);
+  background: var(--paper-2);
+  padding: 1.05rem 1.25rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  font-size: 1.02rem;
+}
+
+/* registration boxes — frozen text, quoted verbatim */
+.reg {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  line-height: 1.7;
+  background: var(--paper-2);
+  border-left: 3px solid var(--ink);
+  padding: 0.85rem 1.05rem;
+  margin: 1.3rem 0;
+  color: var(--ink-80);
+  overflow-wrap: break-word;
+}
+.reg .reg-label {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.63rem;
+  color: var(--ink-40);
+  margin-bottom: 0.5rem;
+}
+.reg b { color: var(--ink); }
+.reg p { margin: 0 0 0.45rem; }
+.reg p:last-child { margin-bottom: 0; }
+
+/* claims — the kill-conditional blocks */
+.claim { font-size: 1.3rem; line-height: 1.42; margin: 1.5rem 0 1.05rem; }
+
+.claim.fired,
+div.fired {
+  border: 2px solid var(--red);
+  background: var(--red-soft);
+  color: var(--red);
+  padding: 0.95rem 1.15rem;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  margin: 1.4rem 0;
+}
+
+.duty {
+  border: 1px dashed var(--red);
+  color: var(--red);
+  padding: 0.7rem 1rem;
+  font-size: 0.92rem;
+  margin: 1rem 0;
+}
+
+.thesis { font-size: 1.24rem; font-style: italic; line-height: 1.45; margin: 1.5rem 0; }
+
+/* ---------- pending state ---------- */
+
+.pending {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--ink-60);
+  border: 1px dashed var(--ink-25);
+  background: var(--paper-2);
+  padding: 0.9rem 1.1rem;
+  margin: 1.2rem 0;
+}
+#pending-banner {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--ink-80);
+  border: 1px dashed var(--ink-40);
+  background: var(--paper-2);
+  padding: 0.95rem 1.15rem;
+  margin: 1.4rem 0;
+}
+
+/* ---------- charts ---------- */
+
+figure { margin: 1.8rem 0; }
+figure svg { display: block; width: 100%; height: auto; }
+figcaption {
+  font-size: 0.82rem;
+  color: var(--ink-60);
+  line-height: 1.55;
+  margin-top: 0.5rem;
+}
+
+svg .grid { stroke: var(--ink-12); stroke-width: 1; }
+svg .axis { stroke: var(--ink-25); stroke-width: 1; }
+svg .tick { font-family: var(--mono); font-size: 11px; fill: var(--ink-60); }
+svg .axlabel { font-family: var(--mono); font-size: 11.5px; fill: var(--ink-60); letter-spacing: 0.05em; }
+svg .val { font-family: var(--mono); font-size: 12px; fill: var(--ink); }
+svg .val-red { fill: var(--red); }
+svg .anno { font-family: var(--mono); font-size: 10.5px; fill: var(--ink-40); }
+svg .line { fill: none; stroke: var(--ink); stroke-width: 2; }
+svg .dot { fill: var(--ink); stroke: var(--paper); stroke-width: 2; }
+svg .dot-red { fill: var(--red); }
+svg .bar { fill: var(--ink); opacity: 0.82; }
+svg .bar-red { fill: var(--red); opacity: 1; }
+svg .medline { stroke: var(--red); stroke-width: 1.5; stroke-dasharray: 4 3; }
+svg .medlabel { font-family: var(--mono); font-size: 11.5px; fill: var(--red); }
+
+/* the 16.5% = 16.5% display */
+.agg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.3rem;
+  flex-wrap: wrap;
+  text-align: center;
+  margin: 1.7rem 0;
+}
+.agg-num { font-family: var(--mono); font-size: clamp(2rem, 6vw, 2.9rem); line-height: 1.1; }
+.agg-label { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-60); margin-top: 0.2rem; letter-spacing: 0.05em; }
+.agg-eq { font-size: 2.1rem; color: var(--ink-40); }
+
+/* ---------- tables ---------- */
+
+table.mini { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: 0.92rem; }
+table.mini th {
+  text-align: left;
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-40);
+  padding: 0.4rem 0.8rem 0.4rem 0;
+  border-bottom: 1px solid var(--ink-25);
+}
+table.mini td {
+  padding: 0.5rem 0.8rem 0.5rem 0;
+  border-bottom: 1px solid var(--ink-12);
+  vertical-align: top;
+}
+table.mini td.num { font-family: var(--mono); white-space: nowrap; }
+
+/* ---------- repro block ---------- */
+
+pre.cmd {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 1.9;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 1rem 1.2rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.3rem 0;
+}
+
+/* ---------- guards list ---------- */
+
+ul.guards { padding-left: 1.2rem; margin: 1rem 0; }
+ul.guards li { margin-bottom: 0.75rem; }
+
+/* ---------- footer ---------- */
+
+footer {
+  border-top: 1px solid var(--ink-25);
+  margin-top: 3.6rem;
+  padding: 1.4rem 0 3rem;
+  font-size: 0.9rem;
+  color: var(--ink-60);
+}
+footer p { margin: 0 0 0.5rem; }
+
+@media print {
+  pre.cmd { background: none; color: var(--ink); border: 1px solid var(--ink-25); }
+  #backlink, footer nav { display: none; }
+  a { text-decoration: none; }
+  section { break-inside: avoid-page; }
+}

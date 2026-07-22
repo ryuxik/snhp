@@ -23,12 +23,35 @@ import pytest
 _tmp_dir = tempfile.mkdtemp()
 os.environ["GT_KEYS_DB"] = os.path.join(_tmp_dir, "test_integration.db")
 os.environ["TELEMETRY_PEPPER"] = "test_pepper_integration_DO_NOT_USE_x" * 2
+# Isolate vend's NEXTMOVE telemetry (throttle / free_taste lines) to a temp
+# file so the middleware/endpoint tests can read what got logged and we don't
+# pollute the repo CWD.
+os.environ["NEXTMOVE_TELEMETRY_PATH"] = os.path.join(_tmp_dir, "nextmove_telemetry.jsonl")
+
+import json  # noqa: E402
 
 from fastapi.testclient import TestClient  # noqa: E402
 
 from gametheory.server.http import app  # noqa: E402
 from gametheory.server import middleware as _mw  # noqa: E402
 from gametheory.server import telemetry as _telemetry  # noqa: E402
+
+
+def _read_nextmove_records(kind: str | None = None) -> list[dict]:
+    """All NEXTMOVE telemetry records written so far (optionally one kind)."""
+    path = os.environ["NEXTMOVE_TELEMETRY_PATH"]
+    if not os.path.exists(path):
+        return []
+    out = []
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            rec = json.loads(line)
+            if kind is None or rec.get("kind") == kind:
+                out.append(rec)
+    return out
 
 
 @pytest.fixture
@@ -256,6 +279,253 @@ def test_first_strike_per_ip_rate_limit(client):
             saw_429 = True
             break
     assert saw_429, "first-strike per-IP cap must trigger within 31 attempts"
+
+
+# ─── Middleware: the keyed / keyless two-lane rate limiter (GAUNTLET.md #3) ──
+
+_BID_BODY = {
+    "auction_format": "second_price_vickrey",
+    "my_valuation": 0.5,
+    "n_competing_bidders": 2,
+    "competitor_value_prior": {"family": "uniform",
+                               "params": {"low": 0.0, "high": 1.0}},
+}
+
+
+def test_keyed_traffic_bypasses_the_per_ip_free_floor(client):
+    """The core GAUNTLET.md #3 fix: a request presenting a key credential is
+    limited on the 600/min per-key bucket ONLY — it must NOT be throttled by
+    the 60/min per-IP free floor that keyless traffic shares. So 120 keyed
+    calls (2x the per-IP floor) all succeed."""
+    hdr = {"Authorization": "Bearer gt_keyed_lane_probe"}
+    codes = [client.post("/v1/auction/bidder/optimal_bid",
+                         json=_BID_BODY, headers=hdr).status_code
+             for _ in range(120)]
+    assert all(c == 200 for c in codes), \
+        "keyed traffic must not hit the 60/min per-IP floor"
+
+
+def test_x_api_key_header_gets_the_same_keyed_lane(client):
+    """Wave 1 shipped X-API-Key on /balance; it must buy the keyed lane
+    everywhere too. 120 calls carrying X-API-Key (2x the per-IP floor) all
+    succeed."""
+    hdr = {"X-API-Key": "gt_xapikey_lane_probe"}
+    codes = [client.post("/v1/auction/bidder/optimal_bid",
+                         json=_BID_BODY, headers=hdr).status_code
+             for _ in range(120)]
+    assert all(c == 200 for c in codes), \
+        "X-API-Key must be honored as a key credential for rate limiting"
+
+
+def test_keyless_traffic_is_still_floored_at_60_per_ip(client):
+    """The free floor stays real: keyless callers 429 by the 61st hit, and the
+    429 detail names the math_per_ip scope (not the per-key scope)."""
+    saw = None
+    for _ in range(80):
+        r = client.post("/v1/auction/bidder/optimal_bid", json=_BID_BODY)
+        if r.status_code == 429:
+            saw = r
+            break
+    assert saw is not None, "keyless per-IP floor must trigger within 80 hits"
+    assert "math_per_ip" in saw.json()["detail"]
+
+
+def test_body_only_key_does_not_escape_the_per_ip_floor(client):
+    """A key sent only in the JSON body is invisible to the header-only
+    limiter, so such callers stay on the per-IP floor (documented behavior —
+    header required for the keyed lane). They 429 like keyless traffic."""
+    body = {**_BID_BODY, "api_key": "gt_body_only_key"}
+    saw_429 = False
+    for _ in range(80):
+        r = client.post("/v1/auction/bidder/optimal_bid", json=body)
+        if r.status_code == 429:
+            saw_429 = True
+            break
+    assert saw_429, "a body-only key must not lift the per-IP floor"
+
+
+def test_fake_key_fanout_bounded_by_per_ip_backstop(client):
+    """REGRESSION (per-IP floor bypass): bearer_api_key is shape-only, so a UNIQUE
+    fake gt_ token per request used to mint an endless supply of fresh, full 600/min
+    lanes and fan out UNBOUNDED from one IP — evading every per-IP cap. Now a per-IP
+    BACKSTOP (math_keyed_per_ip) bounds total keyed volume per IP. Pre-drain that
+    shared backstop to prove the bound cheaply: two DISTINCT fake keys, and the
+    second 429s on the backstop even though its OWN per-key lane is fresh."""
+    ip = "testclient"  # the client host Starlette's TestClient presents (_client_ip)
+    _mw._bucket_for("math_keyed_per_ip", ip).tokens = 1.0  # room for one more keyed req
+    r1 = client.post("/v1/auction/bidder/optimal_bid", json=_BID_BODY,
+                     headers={"Authorization": "Bearer gt_fanout_a"})
+    r2 = client.post("/v1/auction/bidder/optimal_bid", json=_BID_BODY,
+                     headers={"Authorization": "Bearer gt_fanout_b"})
+    assert r1.status_code == 200, "first keyed req consumes the last backstop token"
+    assert r2.status_code == 429, "a distinct fake key can't mint an unbounded lane"
+    assert "math_keyed_per_ip" in r2.json()["detail"]
+
+
+def test_per_ip_keyed_backstop_sits_above_one_key_lane(client):
+    """The backstop must never throttle a single real key: its per-IP cap sits well
+    above one key's 600/min lane (GAUNTLET.md #3 — paid traffic isn't floored). A
+    burst on ONE key stays 200, and the backstop cap strictly exceeds the per-key
+    cap so a full-rate single key can't reach it."""
+    assert _mw._LIMITS["math_keyed_per_ip"][0] > _mw._LIMITS["math_per_key"][0]
+    hdr = {"Authorization": "Bearer gt_single_real_key"}
+    codes = [client.post("/v1/auction/bidder/optimal_bid",
+                         json=_BID_BODY, headers=hdr).status_code
+             for _ in range(150)]  # 150 < 600 per-key and < 3000 backstop
+    assert all(c == 200 for c in codes), "one real key must not hit the backstop"
+
+
+def test_keyed_lane_429_carries_retry_after(client):
+    """When the per-key 600/min bucket IS exhausted, the 429 still carries a
+    sane Retry-After. Drain the bucket deterministically (600 sequential
+    TestClient calls refill faster than they drain) then make one keyed call."""
+    key = "gt_drain_probe"
+    bucket = _mw._bucket_for("math_per_key", key)
+    bucket.tokens = 0.0  # force the next take() to fail
+    r = client.post("/v1/auction/bidder/optimal_bid", json=_BID_BODY,
+                    headers={"Authorization": f"Bearer {key}"})
+    assert r.status_code == 429
+    assert "math_per_key" in r.json()["detail"]
+    ra = r.headers.get("Retry-After")
+    assert ra is not None, "the persona was wrong: Retry-After IS present"
+    assert ra.isdigit() and int(ra) >= 1
+
+
+def test_retry_after_present_and_honest_on_per_ip_429(client):
+    """Settle the persona claim that Retry-After was missing: the per-IP 429
+    carries an integer Retry-After >= 1 (whole seconds until a token frees)."""
+    ra = None
+    for _ in range(80):
+        r = client.post("/v1/auction/bidder/optimal_bid", json=_BID_BODY)
+        if r.status_code == 429:
+            ra = r.headers.get("Retry-After")
+            break
+    assert ra is not None, "per-IP 429 must carry Retry-After"
+    assert ra.isdigit() and int(ra) >= 1
+
+
+def test_retry_after_scales_with_the_refill_rate(client):
+    """Honesty check: a slow-refilling bucket (issuance, 10/hour) must report a
+    much larger Retry-After than the 1s per-IP math floor — not a constant."""
+    body = {"agent_id": "retry_after_probe",
+            "contact_email": "ra@test.invalid",
+            "intended_use_summary": "retry-after honesty test"}
+    ra = None
+    for _ in range(12):
+        r = client.post("/v1/keys", json=body)
+        if r.status_code == 429:
+            ra = int(r.headers["Retry-After"])
+            break
+    assert ra is not None, "issuance cap must trigger within 12 hits"
+    # 10 tokens / 3600s => ~360s to refill one. Must be far above the 1s floor.
+    assert ra > 60, f"slow bucket Retry-After should be large, got {ra}"
+
+
+def test_throttle_telemetry_written_on_429(client):
+    """A 429 emits one NEXTMOVE throttle line so demand the rate limiter drops
+    is countable by the R-gate instruments (GAUNTLET.md #3 instrument gap).
+    The keyless case records had_key=False and no repeat_key."""
+    before = len(_read_nextmove_records("throttle"))
+    for _ in range(80):
+        if client.post("/v1/auction/bidder/optimal_bid",
+                       json=_BID_BODY).status_code == 429:
+            break
+    recs = _read_nextmove_records("throttle")
+    assert len(recs) > before, "a 429 must write a throttle telemetry line"
+    last = recs[-1]
+    assert last["scope"] == "math_per_ip"
+    assert last["had_key"] is False
+    assert last["repeat_key"] is None
+    assert last["path"] == "/v1/auction/bidder/optimal_bid"
+
+
+def test_throttle_telemetry_hashes_key_never_raw(client):
+    """When a key was presented, the throttle line carries had_key=True and a
+    repeat_key HASH — never the raw token."""
+    key = "gt_throttle_hash_probe"
+    _mw._bucket_for("math_per_key", key).tokens = 0.0
+    client.post("/v1/auction/bidder/optimal_bid", json=_BID_BODY,
+                headers={"Authorization": f"Bearer {key}"})
+    recs = _read_nextmove_records("throttle")
+    keyed = [r for r in recs if r["scope"] == "math_per_key"]
+    assert keyed, "a keyed 429 must write a throttle line"
+    last = keyed[-1]
+    assert last["had_key"] is True
+    assert last["repeat_key"] and last["repeat_key"] != key
+    # No record anywhere may contain the raw key string.
+    assert all(key not in json.dumps(r) for r in recs)
+
+
+# ─── The free negotiate/turn taste: paid_alternative note + funnel telemetry ─
+
+
+def test_free_turn_carries_paid_alternative_note(client):
+    """The free /v1/negotiate/turn response includes a static `paid_alternative`
+    note (data, not a nag) naming what free lacks and what the $2 session adds."""
+    r = client.post("/v1/negotiate/turn", json={
+        "side": "sell", "walk_away": 4000, "target": 6000,
+        "counterparty_offers": [4200, 4500], "rounds_left": 6})
+    assert r.status_code == 200
+    note = r.json().get("paid_alternative")
+    assert note and "NEXTMOVE" in note
+    assert "deterministic" in note and "receipt" in note
+
+
+def test_free_turn_logs_free_taste_with_hashed_key(client):
+    """Keyed free usage is the top of the free->paid funnel and must be
+    measurable: the free turn logs a free_taste line; a presented key is stored
+    only as its repeat_key hash, never raw."""
+    key = "gt_free_taste_probe"
+    before = len(_read_nextmove_records("free_taste"))
+    r = client.post("/v1/negotiate/turn",
+                    headers={"Authorization": f"Bearer {key}"},
+                    json={"side": "sell", "walk_away": 4000, "target": 6000,
+                          "counterparty_offers": [4200], "rounds_left": 6})
+    assert r.status_code == 200
+    recs = _read_nextmove_records("free_taste")
+    assert len(recs) > before, "the free turn must log a free_taste line"
+    last = recs[-1]
+    assert last["door"] == "http"
+    assert last["repeat_key"] and last["repeat_key"] != key
+    assert all(key not in json.dumps(r) for r in recs)
+
+
+# ─── MCP door: DNS-rebinding host validation (GAUNTLET.md #7) ───────────────
+
+_MCP_INIT = {"jsonrpc": "2.0", "id": 1, "method": "initialize",
+             "params": {"protocolVersion": "2025-03-26", "capabilities": {},
+                        "clientInfo": {"name": "t", "version": "1"}}}
+_MCP_HDR = {"content-type": "application/json",
+            "accept": "application/json, text/event-stream"}
+
+
+def test_mcp_host_validation_accepts_legit_hosts_rejects_foreign():
+    """GAUNTLET.md #7: the MCP door 421'd on a truthful Host. Covered in ONE
+    test because the streamable-HTTP session manager can be run only once per
+    process (its lifespan can be entered a single time) — so all Host-header
+    assertions share one `with TestClient(app)` block.
+
+      * 127.0.0.1:<port> (Host header carries the port) — the reported bug,
+        must now pass validation (was a 421).
+      * the real prod hostnames + bare localhost — all accepted.
+      * a foreign Host — still 421 (DNS-rebinding protection stays ON), but the
+        body now NAMES the accepted hosts instead of a bare 'Invalid Host
+        header'.
+    """
+    _mw._BUCKETS.clear()
+    with TestClient(app) as c:
+        for host in ("127.0.0.1:8787", "api.snhp.dev", "snhp.fly.dev",
+                     "localhost", "snhp.dev"):
+            r = c.post("/mcp/", json=_MCP_INIT,
+                       headers={**_MCP_HDR, "Host": host})
+            assert r.status_code != 421, f"{host} must be an accepted Host"
+
+        bad = c.post("/mcp/", json=_MCP_INIT,
+                     headers={**_MCP_HDR, "Host": "evil.example.com"})
+    assert bad.status_code == 421
+    body = bad.text
+    assert "api.snhp.dev" in body and "127.0.0.1" in body
+    assert "localhost" in body
 
 
 # ─── Middleware: body size + security headers ──────────────────────────────

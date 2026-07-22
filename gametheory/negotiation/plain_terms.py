@@ -42,6 +42,31 @@ class NegotiationInputError(ValueError):
     """Bad real-world inputs (e.g. a seller target below their walk-away)."""
 
 
+def validate_terms(*, side: str, walk_away: float, target: float,
+                   rounds_left: Optional[int] = None) -> None:
+    """The single source of truth for "are these real-world bounds coherent?".
+
+    Raises NegotiationInputError on a bad side, a non-positive reservation/target,
+    an inverted target/walk_away for the side, or (when supplied) rounds_left < 1.
+    negotiate_turn calls this, and the paid-session layer (vend.session) calls it
+    too — so a degenerate session is refused IDENTICALLY, and in the paid path
+    BEFORE any charge (never sell an unusable session then 500 on the first move).
+    rounds_left=None skips the per-move horizon check: a session OPEN carries no
+    rounds_left (it is a per-move input), so open-time validation omits it."""
+    if side not in ("sell", "buy"):
+        raise NegotiationInputError("side must be 'sell' or 'buy'")
+    if walk_away <= 0 or target <= 0:
+        raise NegotiationInputError("walk_away and target must be positive dollar amounts")
+    if rounds_left is not None and rounds_left < 1:
+        raise NegotiationInputError("rounds_left must be >= 1")
+    if side == "sell" and target <= walk_away:
+        raise NegotiationInputError(
+            "for a seller, target (your aspiration) must be ABOVE walk_away (your floor)")
+    if side == "buy" and target >= walk_away:
+        raise NegotiationInputError(
+            "for a buyer, target (your aspiration) must be BELOW walk_away (your ceiling)")
+
+
 def _seller_frame(walk_away: float, target: float):
     span = target - walk_away
     return (lambda p: (p - walk_away) / span,          # dollars -> utility (raw)
@@ -100,18 +125,10 @@ def negotiate_turn(
     """
     counterparty_offers = [float(x) for x in (counterparty_offers or [])]
     my_previous_offers = [float(x) for x in (my_previous_offers or [])]
-    if side not in ("sell", "buy"):
-        raise NegotiationInputError("side must be 'sell' or 'buy'")
-    if walk_away <= 0 or target <= 0:
-        raise NegotiationInputError("walk_away and target must be positive dollar amounts")
-    if rounds_left < 1:
-        raise NegotiationInputError("rounds_left must be >= 1")
-    if side == "sell" and target <= walk_away:
-        raise NegotiationInputError(
-            "for a seller, target (your aspiration) must be ABOVE walk_away (your floor)")
-    if side == "buy" and target >= walk_away:
-        raise NegotiationInputError(
-            "for a buyer, target (your aspiration) must be BELOW walk_away (your ceiling)")
+    # Single source of truth for the bound checks (also called pre-charge by the
+    # paid-session layer so a degenerate session is refused before the $2 lands).
+    validate_terms(side=side, walk_away=walk_away, target=target,
+                   rounds_left=rounds_left)
 
     # ── Fit-check (WS4): is this even the kind of thing we help with? ──────────
     if rounds_left <= 1:
@@ -132,15 +149,25 @@ def negotiate_turn(
     opp_hist = [_clamp01(to_util(p)) for p in counterparty_offers]
     my_hist = [_clamp01(to_util(p)) for p in my_previous_offers]
 
+    # deadline_rounds must be the TOTAL horizon, not the rounds REMAINING.
+    # The recommenders compute time_fraction = rounds_used / deadline_rounds where
+    # rounds_used = len(my_offers) + len(opp_offers) is CUMULATIVE across both sides
+    # (sell.py:119-120, buy.py:208-209). Passing rounds_left (remaining) here made
+    # cumulative >= remaining ⇒ time_fraction clamped to 1.0 ⇒ the concession
+    # schedule saturated ⇒ aspiration collapsed to the floor and the engine accepted
+    # a rising buyer's floor with rounds still on the clock (vend/RESULTS.md P7).
+    # Total horizon = offers already exchanged + rounds still left, so
+    # time_fraction = rounds_used / (rounds_used + rounds_left) never saturates.
+    total_horizon = len(counterparty_offers) + len(my_previous_offers) + rounds_left
     if side == "sell":
         rec = sell_next_offer(
             my_reservation=0.0, opponent_offer_history=opp_hist,
-            my_offer_history=my_hist, deadline_rounds=rounds_left,
+            my_offer_history=my_hist, deadline_rounds=total_horizon,
             pareto_knob=_VALIDATED_KNOB)
     else:
         rec = buy_next_offer(
             my_reservation=0.0, seller_offer_history=opp_hist,
-            my_offer_history=my_hist, deadline_rounds=rounds_left,
+            my_offer_history=my_hist, deadline_rounds=total_horizon,
             pareto_knob=_VALIDATED_KNOB)
 
     recommended_util = float(rec["recommended_offer"])

@@ -16,9 +16,13 @@ SRC = os.path.join(HERE, "viewer.html")
 DST = os.path.normpath(os.path.join(HERE, "..", "..", "arena", "web", "swarm.html"))
 
 PATCHES = [
+    # honesty frame: swarm.html is a research artifact, not the product.
+    # Without this patch a regeneration silently drops the banner.
+    ('<body>',
+     '<body>\n<!-- honesty frame: these pages are experiments, not the product -->\n<p style="margin:0;padding:7px 14px;background:#0b0916;border-bottom:1px solid rgba(167,139,250,.22);color:#9a95b0;font:400 11.5px/1.5 ui-monospace,\'SF Mono\',Menlo,monospace;text-align:center">Research artifact from SNHP\'s experiments — not a product. <a href="https://snhp.dev" rel="noopener" style="color:#ffe08a">→ snhp.dev</a></p>'),
     # (research line, arena line) — each must match exactly once
     ('<div id="badge">replay of a real committed simulation · reproducible from the repo</div>',
-     '<div id="badge"><a href="/leaderboard.html">arena.snhp.dev</a> · replay of a real committed simulation · reproducible from the repo</div>'),
+     '<div id="badge"><a href="/index.html">arena.snhp.dev</a> · replay of a real committed simulation · reproducible from the repo</div>'),
     ('  let urls=[p.get("trace"),p.get("trace2")].filter(Boolean);',
      '  let urls=[p.get("trace"),p.get("trace2")].filter(Boolean);\n'
      '  if(!urls.length) urls=["swarm-traces/trace_v5_snhp%2Bnet_s0.5_seed5.jsonl","swarm-traces/trace_v5_auction_seed5.jsonl"];'),

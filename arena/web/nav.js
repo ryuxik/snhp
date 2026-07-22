@@ -1,6 +1,7 @@
-/* SNHP arena — the one shared chrome. Injects a consistent header (wordmark +
-   Watch / Read / Build) and footer (Archive · science · github · snhp.dev) into
-   every non-archive page, and fires one fire-and-forget analytics beacon.
+/* SNHP arena — the one shared chrome. arena.snhp.dev is the DEMO HOST: the
+   product site is snhp.dev, so the bar is deliberately minimal (SNHP → the
+   product site, Demos → this host's index) plus a small footer. Fires one
+   fire-and-forget analytics beacon.
 
    Dependency-free. Include ONCE per page, synchronously (no defer/async), so
    document.currentScript resolves — that lets a subdir page (company/, workshop/)
@@ -33,18 +34,15 @@
       document.head.appendChild(link);
     }
 
-    // 2) which door is the current page under? (for the gold active state)
+    // 2) the demos index is the only in-host destination, so it is the only
+    //    entry that can be "active" (gold).
     var file = (location.pathname.replace(/\/$/, "/index.html").split("/").pop() || "index.html");
-    var path = location.pathname;
-    var door =
-      /company|workshop|swarm|watch/.test(file + path) ? "watch" :
-      /science|read/.test(file) ? "read" :
-      /benchmark|submit|build/.test(file) ? "build" : "";
+    var onIndex = file === "index.html" && !/\/(company|workshop)\//.test(location.pathname);
 
+    // The wordmark IS the link back to the product site (see below), so the
+    // list holds only this host's own destination — no duplicate "SNHP".
     var DOORS = [
-      { key: "watch", label: "Watch", href: "watch.html" },
-      { key: "read",  label: "Read",  href: "read.html" },
-      { key: "build", label: "Build", href: "build.html" }
+      { key: "demos", label: "Demos", href: "index.html", active: onIndex }
     ];
 
     // 3) header
@@ -52,25 +50,29 @@
     nav.className = "snhp-nav";
     if (body.getAttribute("data-snhp-nav") === "overlay") nav.className += " snhp-nav--overlay";
     nav.setAttribute("aria-label", "SNHP sections");
-    var html = '<a class="snhp-nav__logo" href="' + U("index.html") + '" aria-label="SNHP — home">SNHP</a>'
+    var html = '<a class="snhp-nav__logo" href="https://snhp.dev" rel="noopener"'
+      + ' aria-label="SNHP — the product site">SNHP</a>'
       + '<ul class="snhp-nav__list">';
     DOORS.forEach(function (d) {
-      html += '<li><a href="' + U(d.href) + '"' + (door === d.key
-        ? ' class="is-active" aria-current="page"' : "") + '>' + d.label + '</a></li>';
+      html += '<li><a href="' + (d.ext ? d.href : U(d.href)) + '"'
+        + (d.ext ? ' rel="noopener"' : "")
+        + (d.active ? ' class="is-active" aria-current="page"' : "")
+        + '>' + d.label + '</a></li>';
     });
     html += "</ul>";
     nav.innerHTML = html;
     body.insertBefore(nav, body.firstChild);
 
-    // 4) footer — Archive is muted and lives here only. Skipped on fullscreen
-    // canvas pages (overlay), where a document-flow footer has nowhere to sit.
+    // 4) footer — the honesty frame lives here, on every demo. Skipped on
+    // fullscreen canvas pages (overlay), where a document-flow footer has
+    // nowhere to sit.
     var overlay = body.getAttribute("data-snhp-nav") === "overlay";
     var foot = document.createElement("footer");
     foot.className = "snhp-foot";
     foot.innerHTML =
-      '<a class="snhp-foot__arch" href="' + U("archive.html") + '">Archive — earlier experiments</a>'
+      '<span class="snhp-foot__arch">Research artifacts. Not products.</span>'
       + '<span class="snhp-foot__links">'
-      + '<a href="' + U("science.html") + '">science</a>'
+      + '<a href="' + U("index.html") + '">demos</a>'
       + '<a href="https://github.com/ryuxik/snhp" rel="noopener">github</a>'
       + '<a href="https://snhp.dev" rel="noopener">snhp.dev</a>'
       + "</span>";

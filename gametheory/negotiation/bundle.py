@@ -143,12 +143,13 @@ def _cooperative_solution(pareto_indices, u_self, u_opp, batna_self, batna_opp,
 
 
 def _build_model(issues, their_offers, my_priorities, my_batna, their_batna_estimate,
-                 peer_mode=False, cooperation=None):
+                 peer_mode=False, cooperation=None, rng=None):
     """Build the outcome space, infer their priorities, and pick the package.
     In peer_mode the counterparty is a verified peer: BATNAs are treated as true
     and the cooperative (efficient) point is chosen. `cooperation` overrides the
-    selection tilt (see _resolve_cooperation). Assumes `issues` is validated and
-    has >= 2 issues."""
+    selection tilt (see _resolve_cooperation). `rng` (optional numpy Generator)
+    makes the particle draw deterministic; None keeps the legacy global-RNG draw.
+    Assumes `issues` is validated and has >= 2 issues."""
     n_issues = len(issues)
     names = [iss["name"] for iss in issues]
     options = [list(iss["options"]) for iss in issues]
@@ -185,7 +186,8 @@ def _build_model(issues, their_offers, my_priorities, my_batna, their_batna_esti
     bf = BayesianParticleFilter(
         num_variables=n_issues,
         num_particles=get_int_param("bundle_n_particles"),
-        uncertainty=get_param("bundle_prior_uncertainty"))
+        uncertainty=get_param("bundle_prior_uncertainty"),
+        rng=rng)   # None => legacy global draw; seeded Generator => deterministic
     if their_offers:
         for offer in their_offers:
             missing = [names[i] for i in range(n_issues) if offer.get(names[i]) is None]
@@ -250,6 +252,8 @@ def negotiate_bundle(
     their_batna_estimate: float = 0.40,
     peer_mode: bool = False,
     cooperation: Optional[float] = None,
+    seed: Optional[int] = None,
+    rounds_left: Optional[int] = None,
 ) -> dict:
     """
     Recommend a multi-issue package by logrolling. See module docstring.
@@ -277,6 +281,16 @@ def negotiate_bundle(
         pure Nash. Set it explicitly to dial logrolling generosity — e.g. a market
         that rewards durable relationships over squeezing each deal — without
         asserting a verified peer. Validated: `bundle_validation --cooperation`.
+    seed: optional int. When set, the priority-inference particle cloud is drawn
+        from a LOCAL np.random.default_rng(seed) instead of the global RNG, so
+        identical inputs + seed => byte-identical output (deterministic advice).
+        None (default) preserves the legacy global-RNG behavior exactly.
+    rounds_left: optional int — bargaining rounds remaining. ADDITIVE and gated:
+        None (default) leaves every decision path byte-identical. When
+        rounds_left <= 1 (the final round), a standing counterparty offer that
+        clears YOUR walk-away is a CERTAIN positive surplus — countering or
+        walking then forfeits a deal that is on the table now — so it is
+        accepted. Never accepts an offer below your BATNA.
 
     Returns {action, recommended_offer (issue->option), message, my_utility,
     their_expected_utility, inferred_their_priorities, trade_logic, fit,
@@ -298,8 +312,13 @@ def negotiate_bundle(
             "confidence": 0.0,
             "acceptance_probability": None,
         }
+    # Deterministic inference when a seed is supplied: a LOCAL Generator, never a
+    # global np.random.seed, so concurrent callers don't perturb each other (Fix 2,
+    # P10). seed=None keeps the legacy global-RNG draw byte-for-byte.
+    rng = np.random.default_rng(seed) if seed is not None else None
     m = _build_model(issues, their_offers, my_priorities, my_batna,
-                     their_batna_estimate, peer_mode=peer_mode, cooperation=cooperation)
+                     their_batna_estimate, peer_mode=peer_mode,
+                     cooperation=cooperation, rng=rng)
     names, options = m.names, m.options
     my_w, my_u, their_u = m.my_w, m.my_u, m.their_u
     idx_grid, my_per_dim = m.idx_grid, m.my_per_dim
@@ -308,6 +327,48 @@ def negotiate_bundle(
     pareto_idx, best_idx = m.pareto_idx, m.best_idx
 
     inferred = {names[i]: round(float(their_w[i]), 3) for i in range(n_issues)}
+
+    # Standing-offer utility to ME — computed once, drives BOTH the final-round
+    # endgame rule (Fix 3) and the accept test (Fix 1). None if there is no offer
+    # or it cannot be scored against the current issue set.
+    latest = their_offers[-1] if their_offers else None
+    u_latest = None
+    if latest is not None:
+        try:
+            u_latest = float(sum(
+                my_w[i] * my_u[i][_option_index(options[i], latest.get(names[i]))]
+                for i in range(n_issues)))
+        except BundleInputError:
+            u_latest = None
+
+    # FINAL-ROUND ENDGAME (Fix 3 — gated on rounds_left; additive). rounds_left is
+    # None (default) or >= 2 => this whole block is skipped and every path below is
+    # byte-identical to the pre-fix engine (Fix 3 touches nothing off the last
+    # round). On the LAST round, countering or walking forfeits a deal on the table
+    # now: a standing package clearing MY walk-away is a CERTAIN positive surplus,
+    # so take it. The below-BATNA guard is explicit — the endgame never accepts a
+    # loss, and dominates the walk branch below when the offer clears the floor.
+    if (rounds_left is not None and rounds_left <= 1
+            and u_latest is not None and u_latest >= my_batna):
+        accept_pkg = {names[i]: options[i][_option_index(options[i], latest.get(names[i]))]
+                      for i in range(n_issues)}
+        their_u_latest = float(sum(
+            their_w[i] * their_u[i][_option_index(options[i], latest.get(names[i]))]
+            for i in range(n_issues)))
+        note = (f"Final round — their standing terms are worth ~{u_latest:.2f} to you, "
+                f"clear of your walk-away. Countering now risks no deal; take it.")
+        return {
+            "action": "accept",
+            "recommended_offer": accept_pkg,
+            "message": f"Their offer works — accept it. {note}",
+            "my_utility": round(u_latest, 3),
+            "their_expected_utility": round(their_u_latest, 3),
+            "inferred_their_priorities": inferred,
+            "trade_logic": "Last round — a standing offer above your walk-away is certain surplus.",
+            "fit": _fit(u_latest, my_batna, confidence),
+            "confidence": round(confidence, 3),
+            "acceptance_probability": 0.99,   # they already tabled this offer
+        }
 
     if best_idx is None or u_self[best_idx] <= my_batna:
         return {
@@ -333,33 +394,37 @@ def negotiate_bundle(
     trade = _trade_logic(names, my_w, their_w, idx_grid[best_idx], my_per_dim[best_idx])
     accept_prob = _acceptance_probability(rec_u_opp, their_batna_estimate, confidence)
 
-    # Accept if their latest full offer is already as good for us as our counter.
+    # Accept iff their latest full offer is (a) already as good for us as our own
+    # counter AND (b) clears our walk-away. The COUNTER (rec_u_self) is guarded above
+    # my_batna by the walk check, but `rec_u_self - 0.02` alone would accept an offer
+    # up to 0.02 BELOW the floor (Fix 1, P10) — the `u_latest >= my_batna` clause
+    # closes exactly that gap. On an accept we describe the ACCEPTED standing package
+    # so my_utility is the quantity that clears the floor (and the advice invariant
+    # in vend/advice.py checks the right number instead of the counter's).
     action, accept_note = "counter", ""
-    if their_offers:
-        latest = their_offers[-1]
-        try:
-            u_latest = float(sum(
-                my_w[i] * my_u[i][_option_index(options[i], latest.get(names[i]))]
-                for i in range(n_issues)
-            ))
-            if u_latest >= rec_u_self - 0.02:
-                action = "accept"
-                accept_note = (
-                    f"Their latest terms are already worth ~{u_latest:.2f} to you "
-                    f"(about the same as countering) — take it."
-                )
-        except BundleInputError:
-            pass
+    reported_offer, reported_u_self, reported_u_opp = rec, rec_u_self, rec_u_opp
+    if u_latest is not None and u_latest >= my_batna and u_latest >= rec_u_self - 0.02:
+        action = "accept"
+        reported_offer = {names[i]: options[i][_option_index(options[i], latest.get(names[i]))]
+                          for i in range(n_issues)}
+        reported_u_self = u_latest
+        reported_u_opp = float(sum(
+            their_w[i] * their_u[i][_option_index(options[i], latest.get(names[i]))]
+            for i in range(n_issues)))
+        accept_note = (
+            f"Their latest terms are already worth ~{u_latest:.2f} to you "
+            f"(about the same as countering) — take it."
+        )
 
-    fit = _fit(rec_u_self, my_batna, confidence)
-    msg = _message(rec, trade, action, accept_note)
+    fit = _fit(reported_u_self, my_batna, confidence)
+    msg = _message(reported_offer, trade, action, accept_note)
 
     return {
         "action": action,
-        "recommended_offer": rec,
+        "recommended_offer": reported_offer,
         "message": msg,
-        "my_utility": round(rec_u_self, 3),
-        "their_expected_utility": round(rec_u_opp, 3),
+        "my_utility": round(reported_u_self, 3),
+        "their_expected_utility": round(reported_u_opp, 3),
         "inferred_their_priorities": inferred,
         "trade_logic": trade,
         "fit": fit,

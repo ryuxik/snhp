@@ -18,6 +18,13 @@ from snhp.nash_solver import filter_pareto_frontier, find_nash_bargaining_soluti
 from snhp.core_math.rubinstein import rubinstein_equilibrium, compute_discount_factor
 
 RNG = np.random.default_rng(42)
+# The engine's BayesianParticleFilter (sell.py/buy.py) draws from the GLOBAL
+# NumPy RNG, which this script never seeded — so the Part-2 engine replay
+# (engine_counter_after_75, engine_vs_engine) was NOT reproducible run-to-run.
+# Seed the global RNG once here so both engine seats are deterministic; this is
+# the same precedent as mcp_server._seed_from_args. (Part 3's Monte Carlo uses
+# the local `RNG` Generator above and was already reproducible.)
+np.random.seed(42)
 OUT = {}
 
 # ----------------------------------------------------------------------------

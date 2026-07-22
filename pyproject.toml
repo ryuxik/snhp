@@ -40,9 +40,10 @@ snhp = [
 # LLM calls (extract + draft) — a deliberate departure from the original
 # BYOK pattern, bounded by the $5/day kill switch (gametheory.server._llm_budget).
 # Excludes negmas / optuna / pandas / scikit-learn — tuning-time only.
-# Excludes stripe — billing routes deferred (re-add `stripe>=8.0` when
-# re-wiring paid endpoints).
+# stripe re-added 2026-07-21: billing routes re-wired (billing_routes.py)
+# + the paid NEXTMOVE advice endpoint. v15+ for current API pinning.
 prod = [
+    "stripe>=15.0",
     "psycopg2-binary>=2.9",
     "numba>=0.59",
     "python-dotenv>=1.0",

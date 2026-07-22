@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Who Gets the Dog — snhp</title>
+<meta name="description" content="Two of them. One pile of stuff. A court that can't see how they feel — and still has to decide who gets the dog. The divorce is fake. The math is real.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Who Gets the Dog — the divorce is fake, the math is real">
+<meta property="og:description" content="Two adversarial AIs split the estate. A clerk who trusts neither asks its questions, the sealed valuations flip at the end, and the decree carries a pettiness tax. Every number is recorded engine output — checkable by replay.">
+<meta property="og:site_name" content="snhp arena">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Who Gets the Dog — the divorce is fake, the math is real">
+<meta name="twitter:description" content="Two adversarial AIs split the estate. A clerk who trusts neither asks its questions, the sealed valuations flip at the end, and the decree carries a pettiness tax. Checkable by replay.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%96%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="divorce.css">
+</head>
+<body>
+
+<header id="chrome">
+  <div id="topbar">
+    <div id="brand">WHO GETS THE DOG</div>
+    <!-- The three-case switcher is gone: a menu of demos in a nav bar asks a
+         stranger to choose between things they haven't seen. One ruling on
+         arrival, one button under it. ?preset=spreadsheets|nodecree still
+         resolves for anyone linking a specific archived case. -->
+    <button id="build-btn" title="You name them. We divorce them.">File your own</button>
+    <div id="playctl">
+      <button id="pp" title="Pause / resume autoplay" aria-label="Pause or resume" disabled>&#9208;</button>
+      <button id="speed" title="Playback speed">1&times;</button>
+      <button id="skip" title="who gets the dog?"><span class="wide">skip &rarr; the ending</span><span class="narrow">&rarr; end</span></button>
+    </div>
+  </div>
+</header>
+
+<main id="stage">
+  <div id="error" hidden></div>
+  <section id="scene-build"  class="scene"></section>
+  <section id="scene-cold"   class="scene"></section>
+  <section id="scene-act1"   class="scene"></section>
+  <section id="scene-turn"   class="scene"></section>
+  <section id="scene-act2"   class="scene"></section>
+  <section id="scene-act3"   class="scene"></section>
+  <section id="scene-decree" class="scene"></section>
+</main>
+
+<div id="pause-chip" hidden>paused — click steps · &#9205; resumes</div>
+
+<footer id="foot">
+  <p>Nothing on this page is scripted. Every number was produced by the snhp engine
+     (deadlock, interview, drafts, decree, receipt) and recorded to the trace this page
+     plays back. We checked. Twice. <span id="engine-note" class="mono"></span></p>
+  <p><a href="../index.html">arena</a></p>
+</footer>
+
+<noscript><p style="padding:2rem;font-family:system-ui">This player needs JavaScript to load and play back the engine trace. The clerk declines to mime it.</p></noscript>
+<script src="divorce.js" defer></script>
+</body>
+</html>

@@ -1,180 +1,24 @@
 <!doctype html>
 <html lang="en">
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>SNHP — a game-theory negotiator in your agent, in one line</title>
-<meta name="description" content="Add SNHP to any MCP agent in one line. It computes the move — what to offer, accept, or walk from — in single-price and multi-issue deals. Your agent talks; the engine decides." />
-<meta property="og:title" content="Put a game-theory negotiator in your agent" />
-<meta property="og:description" content="claude mcp add snhp -- uvx snhp — three tools (gt_negotiate_turn, gt_negotiate_bundle, score_deal). On the public leaderboard it takes a model from 75% to 90% of the perfect deal." />
-<link rel="stylesheet" href="nav.css" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Moved → snhp.dev</title>
+<!-- This page's content moved to the product site. Keep this URL alive: refresh
+     to https://snhp.dev/build, and link it for anyone with JS/refresh disabled. -->
+<meta http-equiv="refresh" content="0; url=https://snhp.dev/build" />
+<link rel="canonical" href="https://snhp.dev/build" />
+<meta name="robots" content="noindex" />
+<meta name="theme-color" content="#0b0916" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0916'/%3E%3Crect x='6' y='3' width='4' height='10' fill='%23a78bfa'/%3E%3C/svg%3E" />
 <style>
-  :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
-          --gold:#ffe08a; --green:#7fc48f; --violet:#a78bfa; --blue:#8fd0ff; }
-  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
-               font-family: ui-monospace, Menlo, monospace; }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 40px 20px 80px; }
-  h1 { font-size: 30px; letter-spacing: .01em; margin: 0 0 12px; line-height: 1.25; text-wrap: balance; }
-  h1 b { color: var(--gold); }
-  h2 { font-size: 12px; letter-spacing: .22em; color: var(--violet); margin: 40px 0 12px; text-transform: uppercase; }
-  p, li { color: var(--dim); font-size: 13px; line-height: 1.7; }
-  p b, li b { color: var(--ink); }
-  a { color: var(--blue); }
-  .lede { font-size: 15px; line-height: 1.6; color: var(--ink); max-width: 60ch; }
-  .lede b { color: var(--gold); }
-  .kicker { font-size: 11px; letter-spacing: .18em; color: var(--dim); text-transform: uppercase; margin: 0 0 14px; }
-  ul { padding-left: 20px; }
-  pre { background: #131022; border: 1px solid var(--line); border-radius: 10px;
-        padding: 14px 16px; font-size: 12px; line-height: 1.6; overflow-x: auto;
-        color: #d6d2e6; margin: 0; }
-  pre b { color: var(--gold); font-weight: 700; }
-
-  /* ── hero install: the one thing to DO, made the loudest element ───────── */
-  .install { margin: 20px 0 8px; }
-  .install-box { display: flex; align-items: stretch; gap: 0;
-                 border: 1px solid rgba(127,196,143,.5); border-radius: 12px; overflow: hidden;
-                 box-shadow: 0 0 0 4px rgba(127,196,143,.07); }
-  .install-box pre { flex: 1; border: 0; border-radius: 0; background: #10131a;
-                     font-size: 15px; padding: 18px 18px; display: flex; align-items: center; }
-  .install-box pre .p { color: #807a99; }
-  .copy { flex: 0 0 auto; border: 0; border-left: 1px solid var(--line);
-          background: var(--green); color: #0a0812; font: inherit; font-size: 12px;
-          font-weight: 700; letter-spacing: .06em; padding: 0 20px; cursor: pointer;
-          text-transform: uppercase; transition: background .14s ease; }
-  .copy:hover { background: #9ad6a7; }
-  .copy.ok { background: var(--gold); }
-  .install-sub { font-size: 12px; color: var(--dim); margin: 8px 2px 0; }
-
-  /* ── the three tools your agent gets ───────────────────────────────────── */
-  .tool { border-left: 3px solid rgba(127,196,143,.45); padding: 3px 0 3px 14px; margin: 12px 0; }
-  .tool code { color: var(--green); font-weight: 700; font-size: 12.5px; }
-  .tool p { margin: 4px 0 0; }
-
-  /* ── the ONE proof: what SNHP does to a model, on the public board ──────── */
-  .proof { border: 1px solid var(--line); border-radius: 12px; padding: 20px 20px 16px;
-           background: rgba(167,139,250,.045); margin: 12px 0; }
-  .proof-h { font-size: 13px; color: var(--ink); margin: 0 0 16px; letter-spacing: .01em; }
-  .proof-h b { color: var(--gold); }
-  .row { display: grid; grid-template-columns: 118px 1fr 58px; align-items: center;
-         gap: 12px; margin: 9px 0; }
-  .row .lbl { font-size: 12px; color: var(--dim); text-align: right; }
-  .row .lbl .who { color: var(--ink); }
-  .row .lbl .on { color: var(--green); font-weight: 700; }
-  .track { height: 22px; background: rgba(255,255,255,.05); border-radius: 6px;
-           overflow: hidden; }
-  .track i { display: block; height: 100%; border-radius: 6px; }
-  .track i.lo { width: 75%; background: linear-gradient(90deg, #5a4a63, #8a7a95); }
-  .track i.hi { width: 90%; background: linear-gradient(90deg, #5a8a68, var(--green)); }
-  .row .val { font-size: 14px; font-weight: 700; }
-  .row .val.lo { color: var(--dim); }
-  .row .val.hi { color: var(--green); }
-  .proof-cap { font-size: 12px; margin: 14px 0 0; }
-  .proof-cap b { color: var(--ink); }
-
-  .cta { display:inline-block; padding: 11px 16px; border-radius: 9px; font-size: 13px;
-         font-weight: 700; text-decoration: none; letter-spacing: .05em;
-         background: var(--green); color: #0a0812; }
-  .more { border-top: 1px solid var(--line); margin-top: 44px; padding-top: 22px; }
-  .more p { margin: 8px 0; }
-  .back { font-size: 12px; }
-  a:focus-visible, button:focus-visible, input:focus-visible {
-    outline: 2px solid var(--gold); outline-offset: 2px; }
+  html, body { margin: 0; min-height: 100%; background: #0b0916; color: #9a95b0;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .box { max-width: 520px; margin: 0 auto; padding: 80px 20px; text-align: center; line-height: 1.7; }
+  a { color: #ffe08a; }
 </style>
-
-<nav class="snhp-nav" aria-label="SNHP arena sections">
-  <span class="snhp-nav__logo" aria-hidden="true">SNHP</span>
-  <ul class="snhp-nav__list">
-    <li><a href="hook.html">Try it</a></li>
-    <li><a href="/block/">Live block</a></li>
-    <li><a href="yourmenu.html">Your menu</a></li>
-    <li><a href="science.html">Science</a></li>
-  </ul>
-</nav>
-
-<div class="wrap">
-  <p class="back"><a href="leaderboard.html">← back to the leaderboard</a></p>
-
-  <!-- ═══ REVEAL: what this is, in one glance ═══ -->
-  <p class="kicker">MCP server · on PyPI · zero-install · Apache-2.0</p>
-  <h1>A game-theory negotiator,<br /><b>one line</b> into your agent.</h1>
-  <p class="lede">
-    SNHP computes the <b>move</b> — what to offer, accept, or walk from — in
-    single-price and multi-issue deals. Your agent does the talking; the engine
-    decides. No game theory required from you.
-  </p>
-
-  <!-- ═══ THE CONCRETE THING #1: the one-line install (primary CTA) ═══ -->
-  <div class="install">
-    <div class="install-box">
-      <pre><span class="p">$ </span>claude mcp add snhp -- <b>uvx snhp</b></pre>
-      <button class="copy" id="copy" type="button" aria-label="Copy install command">Copy</button>
-    </div>
-    <p class="install-sub">Runs on demand in Claude Code, Claude Desktop, or any MCP client. Then just say:
-      <b style="color:var(--ink)">"here's the negotiation thread — ask the advisor what to counter."</b></p>
-  </div>
-
-  <!-- ═══ THE CONCRETE THING #2: the tools it exposes ═══ -->
-  <h2>Three tools your agent can call mid-deal</h2>
-  <div class="tool"><code>gt_negotiate_turn</code>
-    <p>One price, many rounds. "Selling a couch, floor $80, they offered $70" → offer,
-       accept, or walk, with a ready-to-send message.</p></div>
-  <div class="tool"><code>gt_negotiate_bundle</code>
-    <p>Multi-issue packages (price × delivery × terms × anything). Returns the
-       logrolled deal that beats splitting every issue down the middle.</p></div>
-  <div class="tool"><code>score_deal</code>
-    <p>The leaderboard's Pareto oracle as a tool. How much money did a settled deal
-       leave on the table?</p></div>
-
-  <!-- ═══ PROOF: one honest before/after, straight from the public board ═══ -->
-  <h2>What it does to a model</h2>
-  <div class="proof">
-    <p class="proof-h">On 60 held-out multi-issue deals, the engine takes a frontier
-      model from <b>below a naive split-the-difference bot</b> to <b>near-optimal</b>:</p>
-    <div class="row">
-      <div class="lbl"><span class="who">Claude Haiku</span> solo</div>
-      <div class="track"><i class="lo"></i></div>
-      <div class="val lo">75%</div>
-    </div>
-    <div class="row">
-      <div class="lbl"><span class="who">Haiku</span> <span class="on">+ SNHP</span></div>
-      <div class="track"><i class="hi"></i></div>
-      <div class="val hi">90%</div>
-    </div>
-    <p class="proof-cap">
-      <b>% of the perfect deal captured</b>, same deals, same model. Solo it leaves
-      <b>$2,494</b> on the table per $10k deal; advised, <b>$993</b>. Every match is a
-      real recorded negotiation — <a href="leaderboard.html">watch them replay →</a>
-    </p>
-  </div>
-  <!-- POLISH: bars are static; a short width transition on load (0→75%/0→90%) would
-       land the before/after. Optional: a faint tick at the naive baseline (~91%). -->
-
-  <!-- ═══ DEMOTED: the other two doors + trust, one contact ═══ -->
-  <div class="more">
-    <p><b>Building A2A commerce, a marketplace, or procurement?</b> Or have a real
-      deal — a car, a contract, rent — you want run through the engine? Pilots are
-      concierge right now.</p>
-    <p><a class="cta" href="https://x.com/ryuxik" target="_blank" rel="noopener">DM @ryuxik</a>
-      &nbsp; or <a href="mailto:ryuxik@gmail.com?subject=SNHP%20pilot">ryuxik@gmail.com</a></p>
-    <p style="margin-top:16px; font-size:12px;">
-      Open method, Apache-2.0 — the oracle, the scoring, and the
-      <a href="submit.html">gauntlet protocol</a> are all documented; agents can read
-      <a href="llms.txt">llms.txt</a>. It's the same engine every agent on the
-      <a href="leaderboard.html">leaderboard</a> faces.</p>
-  </div>
+<div class="box">
+  <p>This moved to <a href="https://snhp.dev/build">build</a> on snhp.dev.</p>
+  <p>Redirecting… if nothing happens, <a href="https://snhp.dev/build">open it here</a>.</p>
 </div>
-
-<script>
-  (function () {
-    var btn = document.getElementById("copy");
-    if (btn && navigator.clipboard) {
-      btn.addEventListener("click", function () {
-        navigator.clipboard.writeText("claude mcp add snhp -- uvx snhp").then(function () {
-          btn.textContent = "Copied ✓"; btn.classList.add("ok");
-          setTimeout(function () { btn.textContent = "Copy"; btn.classList.remove("ok"); }, 1600);
-        });
-      });
-    }
-  })();
-  try { navigator.sendBeacon("/hit", JSON.stringify({ p: "hire" })); } catch (e) {}
-</script>
-<script src="archived.js"></script>
+<script>location.replace("https://snhp.dev/build");</script>
+</html>

@@ -2,88 +2,77 @@
 <html lang="en">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>SNHP — the negotiation & receipts layer for AI agents</title>
-<meta name="description" content="AI agents are about to spend your money. They need the freedom to make a bundled deal and a receipt nobody can fake. SNHP is that negotiation + receipts layer, proven in an open simulation program." />
+<title>SNHP demos — live experiments</title>
+<meta name="description" content="The demo host for SNHP. Working research artifacts: adversarial agents splitting assets, evolved negotiation strategies, a drone economy, and more. The product lives at snhp.dev." />
 <meta name="theme-color" content="#0b0916" />
-<meta property="og:title" content="AI agents are about to spend your money." />
-<meta property="og:description" content="They need two things: the freedom to make a bundled deal, and a receipt nobody can fake. SNHP is the negotiation + receipts layer, proven in an open simulation program." />
+<meta property="og:title" content="SNHP demos" />
+<meta property="og:description" content="Live research artifacts from SNHP's experiments. Not products. The product lives at snhp.dev." />
 <meta property="og:type" content="website" />
 <meta property="og:image" content="https://arena.snhp.dev/og.png" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:image" content="https://arena.snhp.dev/og.png" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230b0916'/%3E%3Crect x='6' y='3' width='4' height='10' fill='%23a78bfa'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="site.css" />
 <link rel="stylesheet" href="nav.css" />
+<style>
+  :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
+          --gold:#ffe08a; --violet:#a78bfa; --blue:#8fd0ff; }
+  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
+               font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 34px 20px 80px; }
+  h1 { font-size: 25px; letter-spacing: .03em; margin: 0 0 10px; line-height: 1.35; }
+  h1 b { color: var(--gold); }
+  .lede { color: var(--dim); font-size: 13.5px; line-height: 1.7; max-width: 62ch; margin: 0 0 8px; }
+  .lede a { color: var(--gold); }
+  a { color: var(--blue); }
+  h2 { font-size: 11px; letter-spacing: .2em; color: var(--violet); margin: 34px 0 12px; }
+  ul.demos { list-style: none; padding: 0; margin: 0; }
+  ul.demos li { border: 1px solid var(--line); border-radius: 10px; background: #131022;
+                padding: 13px 15px; margin: 0 0 10px; }
+  ul.demos a.t { font-size: 14px; font-weight: 700; color: var(--gold); text-decoration: none; }
+  ul.demos a.t:hover { text-decoration: underline; }
+  ul.demos p { color: var(--dim); font-size: 12.5px; line-height: 1.65; margin: 5px 0 0; }
+  .frame { color: #807a99; font-size: 10.5px; letter-spacing: .1em; display: block; margin-top: 6px; }
+  .foot { color: #807a99; font-size: 11.5px; margin-top: 30px; line-height: 1.8; }
+  a:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+</style>
 
 <div class="wrap">
-  <p class="kicker"><span class="live-dot"></span>an open simulation program</p>
-  <h1>AI agents are about to spend your money.<br />
-    They need two things: the <span class="hl">freedom to make a bundled deal</span>,
-    and a <span class="hl">receipt nobody can fake</span>.</h1>
-  <p class="lede">SNHP is the negotiation + receipts layer. It computes the deal —
-    what to offer, accept, or walk from, across many issues at once — and issues a
-    verifiable record of what was agreed. We prove it out in public: seeded
-    simulations, pre-registered predictions, a verdict ledger that keeps our own
-    claims honest.</p>
+  <h1>SNHP <b>demos</b></h1>
+  <p class="lede">This host runs the demos and experiments. The product — what SNHP
+    is and how to use it — lives at <a href="https://snhp.dev" rel="noopener">snhp.dev</a>.</p>
 
-  <!-- HERO: a live embed of the drone economy (lazy-mounted so the page paints fast) -->
-  <div class="embed">
-    <div class="embed__frame">
-      <div class="embed__ph" id="embed-ph">loading the live world…</div>
-      <iframe id="hero-embed" title="The drone economy — the same robots under two economies, live"
-              loading="lazy" data-src="swarm.html" referrerpolicy="no-referrer"></iframe>
-    </div>
-    <div class="embed__cap">
-      <span><b>The drone economy</b> — the same robots under different economics.
-        Watch what a bundled-deal economy does that a one-price economy can't.</span>
-      <a href="swarm.html">open it full-screen ›</a>
-    </div>
-  </div>
+  <h2>LIVE</h2>
+  <ul class="demos">
+    <li>
+      <a class="t" href="divorce/">Who Gets the Dog</a>
+      <p>Two adversarial household AIs split the assets of a marriage, with a receipt a judge can check.</p>
+      <span class="frame">Research artifact. Not a product.</span>
+    </li>
+    <li>
+      <a class="t" href="arena-classic.html">Evolution arena</a>
+      <p>A genetic algorithm breeds negotiation strategies against each other over generations.</p>
+      <span class="frame">Research artifact. Not a product.</span>
+    </li>
+    <li>
+      <a class="t" href="swarm.html">The drone economy</a>
+      <p>The same robots run under two economies — one price per job, or a bundled deal.</p>
+      <span class="frame">Research artifact. Not a product.</span>
+    </li>
+    <li>
+      <a class="t" href="boba.html">Boba</a>
+      <p>A drink shop and its customers negotiate on price, timing, quantity and toppings at once.</p>
+      <span class="frame">Research artifact. Not a product.</span>
+    </li>
+    <li>
+      <a class="t" href="vend.html">Vend</a>
+      <p>A vending machine that haggles — the smallest end-to-end version of the mechanism.</p>
+      <span class="frame">Research artifact. Not a product.</span>
+    </li>
+  </ul>
 
-  <!-- THREE DOORS -->
-  <h2>Three ways in</h2>
-  <div class="doors">
-    <a class="door" href="watch.html">
-      <span class="verb">Watch</span>
-      <h3>See it <span>run</span></h3>
-      <p>Three live exhibits — the drone economy, the regime toggle, and the
-        research pipeline replaying its own history. The mechanism, moving.</p>
-      <span class="go">watch ›</span>
-    </a>
-    <a class="door" href="read.html">
-      <span class="verb">Read</span>
-      <h3>See the <span>method</span></h3>
-      <p>The science room and the public ledger — pre-registered predictions,
-        kill conditions, and the verdicts, wins and nulls alike. Plus the repo.</p>
-      <span class="go">read ›</span>
-    </a>
-    <a class="door" href="build.html">
-      <span class="verb">Build</span>
-      <h3>Use the <span>engine</span></h3>
-      <p>One line adds the negotiator to your agent. Then the benchmark — one
-        number per agent on the same held-out deals — and how to enter yours.</p>
-      <span class="go">build ›</span>
-    </a>
-  </div>
+  <p class="foot"><a href="https://snhp.dev" rel="noopener">snhp.dev</a> ·
+    <a href="https://github.com/ryuxik/snhp" rel="noopener">github</a></p>
 </div>
 
 <script src="nav.js"></script>
-<script>
-  // Lazy-mount the hero embed: only fetch swarm.html once it's near the viewport,
-  // so first paint stays instant. Falls back to an immediate load without IO.
-  (function () {
-    var f = document.getElementById("hero-embed"), ph = document.getElementById("embed-ph");
-    if (!f) return;
-    var mount = function () {
-      if (f.src) return;
-      f.src = f.dataset.src;
-      f.addEventListener("load", function () { if (ph) ph.style.display = "none"; }, { once: true });
-    };
-    if ("IntersectionObserver" in window) {
-      var io = new IntersectionObserver(function (es) {
-        es.forEach(function (e) { if (e.isIntersecting) { mount(); io.disconnect(); } });
-      }, { rootMargin: "200px" });
-      io.observe(f);
-    } else { mount(); }
-  })();
-</script>
+</html>

@@ -48,12 +48,21 @@ EV_BUYER_ESCROW = "buyer_escrow"  # buyer:<id> -> escrow:<task> (order escrowed 
 EV_BUYER_REFUND = "buyer_refund"  # escrow:<task> -> buyer:<id> (unaccepted order returns)
 # v33-D: an agent pledge stakes its own wallet on an idea's exploration fund.
 EV_PLEDGE = "pledge_credit"       # agent:<id> -> idea_fund:<idea>
+# v35-S (column CO2-S): the three-org settlement / hold-up chain. A leg's REAL
+# cost is sunk from the performing org's wallet; the terminal payment reaches C
+# and then either auto-distributes (claim-stack) or is forwarded hop-by-hop up
+# the chain by the holders themselves (spot). These two receipts + escrow_release
+# are the only new money movements; WHERE the money lands is the experiment.
+EV_LEG_COST = "leg_cost"          # agent:<org> -> external:effort (sink cost of a leg)
+EV_FORWARD = "forward"            # agent:<from> -> agent:<to> (voluntary up-chain forward)
+EV_ESCROW_RELEASE = "escrow_release"  # escrow:<task> -> agent:<org> (terminal / attested payout)
 
 # Account name helpers (string keys the Wallets fold sums over).
 ACCT_TREASURY = "treasury"
 ACCT_COMPUTE = "compute_budget"
 ACCT_EXT_CAPITAL = "external:capital"
 ACCT_EXT_COMPUTE = "external:compute"
+ACCT_EXT_EFFORT = "external:effort"   # where sunk leg costs go (real effort spent)
 
 
 def acct_agent(agent_id: str) -> str:
@@ -275,6 +284,37 @@ class Ledger(Chain):
         return self.append(EV_BUYER_REFUND, {
             "debit": acct_escrow(task_id), "credit": acct_buyer(buyer_id),
             "amount": amount, "task": task_id, "idea": idea, "buyer": buyer_id,
+        }, ts=ts)
+
+    # -- v35-S: three-org settlement chain (CO2-S) -------------------------
+    def leg_cost(self, org_id: str, amount: float, *, task_id: str, leg: str,
+                 ts: str) -> Record:
+        """An org sinks the REAL cost of performing its leg (budget/effort). The
+        credits leave the org's wallet for good — this is the sunk cost that makes
+        a hold-up at settlement a real loss to the upstream org."""
+        return self.append(EV_LEG_COST, {
+            "debit": acct_agent(org_id), "credit": ACCT_EXT_EFFORT,
+            "amount": amount, "task": task_id, "org": org_id, "leg": leg,
+        }, ts=ts)
+
+    def escrow_release(self, task_id: str, org_id: str, amount: float, *,
+                       reason: str, ts: str) -> Record:
+        """The buyer's escrow pays an org. In SPOT this fires ONCE, to C (the
+        terminal holder). In CLAIM-STACK it fires per attested share, one release
+        to each org directly (C never custodies A's or B's share)."""
+        return self.append(EV_ESCROW_RELEASE, {
+            "debit": acct_escrow(task_id), "credit": acct_agent(org_id),
+            "amount": amount, "task": task_id, "org": org_id, "reason": reason,
+        }, ts=ts)
+
+    def forward(self, from_org: str, to_org: str, amount: float, *,
+                task_id: str, ts: str) -> Record:
+        """A voluntary up-chain forward (SPOT only): the holder sends part of what
+        it holds to the org above it. What it does not forward, it keeps — the
+        free choice the hold-up experiment measures."""
+        return self.append(EV_FORWARD, {
+            "debit": acct_agent(from_org), "credit": acct_agent(to_org),
+            "amount": amount, "task": task_id, "from": from_org, "to": to_org,
         }, ts=ts)
 
     # -- v33-D: agent pledge (self-investment) -----------------------------

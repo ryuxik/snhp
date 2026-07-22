@@ -1,0 +1,166 @@
+"""W2 handoff: signed receipts surfaced on the advice / nextmove doors.
+
+GAUNTLET #4 asked the store to stop grading its own homework. W2 signed the
+receipts; this pins that every paid move hands one back through BOTH doors, and
+that close returns a signed session-summary receipt alongside the `closed` flag
+(without changing close_session's bool contract). The signatures VERIFY here —
+against the process's ambient notary key — so the handoff is real, not a field
+the store merely wrote about itself.
+"""
+import os
+import tempfile
+import uuid
+
+_tmp = tempfile.mkdtemp()
+os.environ.setdefault("GT_KEYS_DB", os.path.join(_tmp, "test_advice_doors.db"))
+os.environ.setdefault("NEXTMOVE_TELEMETRY_PATH",
+                      os.path.join(_tmp, "telemetry.jsonl"))
+
+from fastapi.testclient import TestClient  # noqa: E402
+
+from gametheory.server import mcp_server  # noqa: E402
+from gametheory.server.http import app  # noqa: E402
+from gametheory.server.onboarding import issue_key, wallet_credit  # noqa: E402
+from vend.receipt_signing import verify_receipt  # noqa: E402
+
+client = TestClient(app)
+
+
+def _key(cents=1000):        # $10 funded — comfortably over a $2 session
+    k = issue_key(agent_id=f"adv-door-{uuid.uuid4().hex[:8]}",
+                  contact_email="t@example.com",
+                  intended_use_summary="advice door tests")["api_key"]
+    if cents:
+        wallet_credit(k, cents * 1000, bucket="funded")
+    return k
+
+
+_OPEN = dict(category="resale", side="sell", walk_away=170, target=210)
+
+
+def test_http_move_and_close_carry_signed_receipts():
+    key = _key()
+    # open with their_offers → the first move rides back WITH a signed receipt
+    r = client.post("/v1/advice/session",
+                    json={"api_key": key, **_OPEN, "their_offers": [150]})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    sid = body["session_id"]
+    assert verify_receipt(body["first_move"]["receipt"])
+    # a subsequent move carries its own signed receipt
+    m = client.post("/v1/advice/move",
+                    json={"api_key": key, "session_id": sid,
+                          "their_offers": [150, 165]})
+    assert m.status_code == 200, m.text
+    assert verify_receipt(m.json()["receipt"])
+    # close returns the bool AND a signed session-summary receipt
+    c = client.post("/v1/advice/close",
+                    json={"api_key": key, "session_id": sid})
+    assert c.status_code == 200, c.text
+    cb = c.json()
+    assert cb["closed"] is True                                   # bool contract kept
+    assert cb["receipt"]["kind"] == "nextmove.session_summary"
+    assert verify_receipt(cb["receipt"])
+
+
+def test_http_bundle_move_carries_receipt():
+    key = _key()
+    sess = client.post("/v1/advice/session",
+                       json={"api_key": key, "category": "supply", "side": "buy",
+                             "walk_away": 5000, "target": 4200}).json()
+    issues = [
+        {"name": "price", "options": ["4800", "5000"],
+         "my_utility": [1.0, 0.5], "their_utility": [0.3, 1.0]},
+        {"name": "delivery", "options": ["2wk", "4wk"],
+         "my_utility": [0.9, 0.4], "their_utility": [0.3, 0.9]},
+    ]
+    b = client.post("/v1/advice/bundle",
+                    json={"api_key": key, "session_id": sess["session_id"],
+                          "issues": issues, "my_batna": 0.4})
+    assert b.status_code == 200, b.text
+    assert verify_receipt(b.json()["receipt"])
+
+
+def test_mcp_advise_and_close_carry_receipts():
+    key = _key()
+    opened = mcp_server.nextmove_open(api_key=key, category="resale", side="sell",
+                                      walk_away=170, target=210,
+                                      their_offers=[150])
+    sid = opened["session_id"]
+    assert verify_receipt(opened["first_move"]["receipt"])
+    adv = mcp_server.nextmove_advise(api_key=key, session_id=sid,
+                                     their_offers=[150, 165])
+    assert verify_receipt(adv["receipt"])
+    closed = mcp_server.nextmove_close(api_key=key, session_id=sid)
+    assert closed["closed"] is True
+    assert closed["receipt"]["kind"] == "nextmove.session_summary"
+    assert verify_receipt(closed["receipt"])
+
+
+def test_close_unknown_session_http_404_mcp_error():
+    key = _key()
+    r = client.post("/v1/advice/close",
+                    json={"api_key": key, "session_id": "ns_never"})
+    assert r.status_code == 404
+    out = mcp_server.nextmove_close(api_key=key, session_id="ns_never")
+    assert out["closed"] is False and "error" in out
+
+
+def test_degenerate_bounds_http_400_uncharged():
+    # FIX #1 (HTTP door): an inverted-but-positive session (seller target below
+    # floor) is caught pre-charge → a clean 400, and nothing is billed.
+    from gametheory.server.onboarding import wallet_available
+    key = _key()
+    before = wallet_available(key)["total_millicents"]
+    r = client.post("/v1/advice/session",
+                    json={"api_key": key, "category": "resale", "side": "sell",
+                          "walk_away": 210, "target": 170})
+    assert r.status_code == 400, r.text
+    assert wallet_available(key)["total_millicents"] == before      # uncharged
+
+
+def test_first_move_error_keeps_paid_session_id(monkeypatch):
+    # FIX #5: a valid session open whose OPTIONAL first move raises must still
+    # return the session_id the caller paid for — the error is a field, not a 500.
+    import vend.session as vs
+    from gametheory.server.onboarding import wallet_available, MILLICENTS_PER_CENT
+    from vend.session import SESSION_PRICE_CENTS
+    key = _key()
+    before = wallet_available(key)["total_millicents"]
+
+    def boom(**kw):
+        raise RuntimeError("engine boom on first move")
+    monkeypatch.setattr(vs, "session_advise", boom)
+    r = client.post("/v1/advice/session",
+                    json={"api_key": key, **_OPEN, "their_offers": [150]})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["session_id"]                       # the paid session survives
+    assert "first_move" not in body
+    assert "first_move_error" in body
+    # the $2 open was still charged (the session is real); the free first move
+    # failed but was never consumed (no extra debit for it)
+    after = wallet_available(key)["total_millicents"]
+    assert after == before - SESSION_PRICE_CENTS * MILLICENTS_PER_CENT
+
+
+def test_mcp_telemetry_failure_keeps_paid_session(monkeypatch):
+    # FIX #4: a telemetry OSError after the $2 charge must not destroy the
+    # response carrying the paid session_id / advice (the MCP door now wraps the
+    # telemetry calls in try/except, matching the HTTP door).
+    import vend.telemetry as tm
+    key = _key()
+
+    def boom(*a, **k):
+        raise OSError("telemetry sink down")
+    monkeypatch.setattr(tm, "log_session_open", boom)
+    monkeypatch.setattr(tm, "log_advice", boom)
+    opened = mcp_server.nextmove_open(api_key=key, category="resale",
+                                      side="sell", walk_away=170, target=210,
+                                      their_offers=[150])
+    assert opened["session_id"]                       # paid id survived
+    assert verify_receipt(opened["first_move"]["receipt"])
+    adv = mcp_server.nextmove_advise(api_key=key,
+                                     session_id=opened["session_id"],
+                                     their_offers=[150, 165])
+    assert adv["move"] and verify_receipt(adv["receipt"])

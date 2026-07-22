@@ -1,0 +1,1646 @@
+/* Who Gets the Dog — trace player chrome. LOUD edition.
+   Palette (unchanged, non-negotiable): ink backdrop, cream paper, ONE red
+   (stamp, tax, REFUSED., HILL chip, the Build CTA). Louder ≠ busier —
+   same three colors, radically bigger everything. */
+
+:root {
+  --ink: #141310;
+  --ink-2: #1d1b16;
+  --ink-3: #26231c;
+  --paper: #f4f1ea;
+  --paper-ink: #1b1a17;
+  --red: #b3382c;
+  --ok-green: #3e6b4f;
+  --cream-90: rgba(244, 241, 234, 0.9);
+  --cream-70: rgba(244, 241, 234, 0.7);
+  --cream-50: rgba(244, 241, 234, 0.5);
+  --cream-30: rgba(244, 241, 234, 0.3);
+  --cream-15: rgba(244, 241, 234, 0.15);
+  --serif: Georgia, 'Times New Roman', Times, serif;
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+
+/* the hidden attribute always wins — several containers are display:flex */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono { font-family: var(--mono); }
+
+button {
+  font: inherit;
+  cursor: pointer;
+  background: none;
+  border: 1px solid var(--cream-30);
+  color: var(--cream-90);
+  border-radius: 4px;
+  padding: 0.3rem 0.7rem;
+}
+button:hover { border-color: var(--cream-70); }
+
+a { color: var(--cream-70); }
+
+.narrow { display: none; }
+
+/* ---------- header: topbar ---------- */
+
+#chrome {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(20, 19, 16, 0.94);
+  border-bottom: 1px solid var(--cream-15);
+  backdrop-filter: blur(4px);
+}
+
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.55rem 1rem;
+}
+
+#brand {
+  font-family: var(--serif);
+  font-size: 0.85rem;
+  letter-spacing: 0.18em;
+  color: var(--cream-70);
+  white-space: nowrap;
+}
+
+/* Build Your Exes: the loudest chrome on the page — the funnel to the magic. */
+#build-btn {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--red);
+  border: 1px solid var(--red);
+  padding: 0.42rem 0.95rem;
+  white-space: nowrap;
+}
+#build-btn:hover { background: #c84436; border-color: #c84436; }
+#build-btn.active {
+  background: var(--paper);
+  color: var(--red);
+  border-color: var(--paper);
+}
+
+#playctl { margin-left: auto; display: flex; gap: 0.4rem; align-items: center; }
+#playctl button { font-size: 0.78rem; white-space: nowrap; }
+#playctl button:disabled { opacity: 0.4; cursor: default; }
+#skip { border-color: var(--cream-50); }
+#pp { min-width: 2.4em; }
+#speed { min-width: 3.2em; }
+
+/* ---------- stage / scenes ---------- */
+
+#stage {
+  max-width: 1200px;
+  margin: 0 auto;
+  /* bottom padding clears the pinned action bar (~120px incl. safe area) so
+     the decree's last line is never hidden behind it */
+  padding: 1.25rem 1.25rem calc(9rem + env(safe-area-inset-bottom, 0px));
+  min-height: 78vh;
+  cursor: pointer;
+}
+
+#error {
+  margin: 3rem auto;
+  max-width: 560px;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--red);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}
+
+.scene { display: none; scroll-margin-top: 96px; }
+.scene.active { display: block; animation: scene-in 0.45s ease both; }
+@keyframes scene-in { from { opacity: 0; } to { opacity: 1; } }
+
+.kicker {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cream-50);
+  margin: 0.25rem 0 1rem;
+}
+
+/* act headings: huge letterspaced slabs — the acts are POSTERS, not slides */
+.act-head { margin: 0.5rem 0 1.4rem; }
+.act-slab {
+  font-family: var(--serif);
+  font-size: clamp(2.4rem, 6.5vw, 4.2rem);
+  letter-spacing: 0.32em;
+  line-height: 1;
+  color: var(--cream-30);
+  text-transform: uppercase;
+}
+.act-sub {
+  margin-top: 0.5rem;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(1rem, 2.2vw, 1.25rem);
+  color: var(--cream-70);
+}
+
+.hint {
+  margin-top: 2rem;
+  font-size: 0.8rem;
+  color: var(--cream-30);
+  text-align: center;
+}
+
+/* the arithmetic-of-optimism beat under the versus poster */
+.conf-note {
+  margin: 1.6rem auto 0;
+  max-width: 34em;
+  text-align: center;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(0.95rem, 2vw, 1.1rem);
+  color: var(--cream-70);
+}
+
+/* paused indicator — pause is a mode, never a mystery */
+#pause-chip {
+  position: fixed;
+  bottom: 1.1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--cream-90);
+  background: var(--ink-2);
+  border: 1px solid var(--cream-30);
+  border-radius: 999px;
+  padding: 0.35rem 0.95rem;
+  pointer-events: none;
+}
+
+/* ---------- cold open: the versus POSTER ---------- */
+
+#scene-cold { position: relative; padding-top: 1.25rem; }
+
+.cold-head { text-align: center; margin-bottom: 2rem; }
+.cold-head h1 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(2rem, 6.5vw, 4rem);
+  letter-spacing: 0.14em;
+  margin: 0;
+  line-height: 1.08;
+}
+.tagline {
+  margin: 0.7rem 0 0;
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--cream-90);
+  font-size: clamp(1.05rem, 2.8vw, 1.45rem);
+}
+
+/* The premise: ONE line. The tagline above it already explains the product;
+   three paragraphs held for 18s was a loading screen made of prose. */
+.premise {
+  max-width: 26em;
+  margin: 1.2rem auto 0;
+  text-align: center;
+  font-family: var(--serif);
+  font-size: clamp(1rem, 2.4vw, 1.2rem);
+  line-height: 1.5;
+  color: var(--cream-70);
+}
+.preset-sub {
+  margin: 1.3rem 0 0;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--cream-50);
+}
+
+.versus {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1.5rem;
+  align-items: stretch;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.portrait {
+  background: var(--ink-2);
+  border: 1px solid var(--cream-15);
+  border-radius: 10px;
+  padding: 1.5rem 1.6rem 1.6rem;
+  opacity: 0;
+}
+.scene.active .portrait { animation: slam 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) forwards; }
+.scene.active .portrait.p-a { animation-delay: 0.15s; }
+.scene.active .portrait.p-b { animation-delay: 0.45s; }
+@keyframes slam {
+  from { opacity: 0; transform: translateY(-70px) rotate(-3deg) scale(1.18); }
+  to   { opacity: 1; transform: none; }
+}
+
+.monogram {
+  font-family: var(--serif);
+  font-size: clamp(3.4rem, 6vw, 5rem);
+  line-height: 1;
+  color: var(--cream-90);
+}
+.portrait .p-name {
+  font-family: var(--serif);
+  font-size: clamp(1.6rem, 3.4vw, 2.4rem);
+  margin: 0.4rem 0 0.5rem;
+  line-height: 1.1;
+}
+.chip {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: 1px solid var(--cream-30);
+  border-radius: 999px;
+  padding: 0.16rem 0.6rem;
+  color: var(--cream-70);
+  margin-bottom: 0.4rem;
+}
+
+.p-epithet {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+  color: var(--cream-70);
+  margin: 0 0 0.9rem;
+}
+
+.meter { margin: 0.55rem 0; }
+.meter .m-label {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cream-50);
+  margin-bottom: 0.2rem;
+}
+.meter .m-track { height: 6px; background: var(--cream-15); border-radius: 3px; }
+.meter .m-fill { height: 100%; background: var(--cream-70); border-radius: 3px; }
+
+.p-fight {
+  margin-top: 1rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--cream-50);
+}
+
+.vs {
+  align-self: center;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(2.6rem, 7vw, 4.6rem);
+  color: var(--cream-70);
+  padding: 0 0.3rem;
+}
+
+.corner-stamp {
+  position: absolute;
+  top: 0.25rem;
+  right: 0;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  color: var(--cream-50);
+  border: 1px dashed var(--cream-30);
+  padding: 0.3rem 0.55rem;
+  transform: rotate(2deg);
+}
+
+/* ---------- act i ---------- */
+
+#ticker-wrap {
+  height: min(52vh, 480px);
+  border: 1px solid var(--cream-15);
+  border-radius: 8px;
+  background: var(--ink-2);
+  padding: 1rem 1.4rem;
+  position: relative;
+}
+#ticker-scroll { height: 100%; overflow: hidden; }
+#ticker {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: clamp(0.95rem, 1.6vw, 1.08rem);
+  color: var(--cream-70);
+}
+#ticker li { padding: 0.18rem 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#ticker li.ok { color: var(--cream-50); }
+
+/* the broken record: repeated offers pile up with a slight overlap stack */
+#ticker li.stall { margin-top: -0.5em; color: var(--cream-50); }
+#ticker li.stall:nth-child(odd)  { transform: translateX(7px) rotate(0.3deg); }
+#ticker li.stall:nth-child(even) { transform: translateX(-3px) rotate(-0.3deg); }
+
+/* clerk interjections at real milestones (settles, third identical offer) */
+#ticker li.clerk-note {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--cream-90);
+  font-size: clamp(1.1rem, 2vw, 1.35rem);
+  padding: 0.45rem 0;
+}
+
+#x-counter {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.9rem;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  color: var(--cream-70);
+  background: var(--ink-2);
+  padding: 0 0.35rem;
+}
+
+#freeze {
+  margin: 1.5rem auto 0;
+  max-width: 780px;
+  border: 3px solid var(--paper);
+  padding: 1.8rem 2rem;
+  text-align: center;
+  animation: freeze-in 0.35s ease both;
+}
+@keyframes freeze-in { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; } }
+#freeze .f-asset {
+  font-family: var(--serif);
+  font-size: clamp(1.8rem, 5.5vw, 3.2rem);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.15;
+}
+#freeze .f-stat {
+  margin-top: 0.7rem;
+  font-family: var(--mono);
+  font-size: clamp(0.95rem, 2vw, 1.15rem);
+  letter-spacing: 0.16em;
+  color: var(--cream-70);
+}
+#freeze .f-cap {
+  margin-top: 0.8rem;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  color: var(--cream-70);
+}
+
+#act1-summary {
+  margin-top: 1.4rem;
+  text-align: center;
+  font-family: var(--serif);
+  font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+  color: var(--cream-90);
+}
+#act1-summary .s-clerk {
+  font-style: italic;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  color: var(--cream-70);
+}
+
+/* ---------- the turn / clerk ---------- */
+
+.clerk-plate {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--paper-ink);
+  background: var(--paper);
+  border-radius: 3px;
+  padding: 0.5rem 1.1rem;
+}
+
+#scene-turn { text-align: center; padding-top: 4rem; }
+#turn-line {
+  margin-top: 2rem;
+  font-family: var(--serif);
+  font-size: clamp(1.6rem, 4.5vw, 2.7rem);
+  color: var(--cream-90);
+  opacity: 0;
+}
+#turn-line.shown { opacity: 1; transition: opacity 0.5s ease; }
+#turn-line2 {
+  margin-top: 0.6rem;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(1.15rem, 3vw, 1.6rem);
+  color: var(--cream-70);
+  opacity: 0;
+}
+#turn-line2.shown { opacity: 1; transition: opacity 0.5s ease; }
+
+/* the mechanism, said once, plainly */
+#turn-mech {
+  margin: 2.4rem auto 0;
+  max-width: 640px;
+  font-family: var(--serif);
+  font-size: clamp(1.15rem, 2.6vw, 1.5rem);
+  color: var(--paper);
+  border-top: 1px solid var(--cream-30);
+  padding-top: 1.4rem;
+  opacity: 0;
+}
+#turn-mech.shown { opacity: 1; transition: opacity 0.5s ease; }
+
+/* ---------- act ii ---------- */
+
+#act2-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.05fr) minmax(360px, 1.25fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+#dialogue-wrap { position: relative; }
+#dialogue {
+  border: 1px solid var(--cream-15);
+  border-radius: 8px;
+  background: var(--ink-2);
+  padding: 1.1rem 1.3rem;
+  height: min(58vh, 560px);
+  overflow-y: auto;
+}
+#dialogue .line { margin: 0.7rem 0; }
+#dialogue .clerk {
+  font-family: var(--serif);
+  color: var(--cream-90);
+  font-size: clamp(1.25rem, 2.4vw, 1.8rem);
+  line-height: 1.3;
+}
+#dialogue .clerk::before {
+  content: 'CLERK';
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  color: var(--cream-30);
+}
+#dialogue .reply {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--cream-70);
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  padding-left: 1.2rem;
+}
+#dialogue .aside {
+  font-family: var(--serif);
+  color: var(--cream-50);
+  font-size: clamp(0.95rem, 1.8vw, 1.15rem);
+}
+
+/* the montage card: the middle questions run at 3x behind this slip */
+#montage-card {
+  position: absolute;
+  inset: 10%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  background: var(--paper);
+  color: var(--paper-ink);
+  font-family: var(--serif);
+  text-align: center;
+  transform: rotate(-1.6deg);
+  border-radius: 4px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+  animation: draft-in 0.4s ease both;
+  padding: 1rem;
+}
+#montage-card .mc-range {
+  font-size: clamp(1.5rem, 3.2vw, 2.2rem);
+  letter-spacing: 0.06em;
+}
+#montage-card .mc-quip {
+  font-style: italic;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  color: rgba(27, 26, 23, 0.75);
+}
+
+/* both spouses' bands, side by side — no silent identity switch */
+#bands {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+#bands-legend {
+  grid-column: 1 / -1;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--cream-50);
+  text-align: center;
+}
+
+.band-panel {
+  border: 1px solid var(--cream-15);
+  border-left: 4px solid var(--cream-30);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  opacity: 0.55;
+  transition: opacity 0.3s ease, border-color 0.3s ease;
+}
+.band-panel[data-side="B"] { border-left-style: double; }
+.band-panel.active {
+  opacity: 1;
+  border-color: var(--cream-50);
+  border-left-color: var(--paper);
+  background: var(--ink-2);
+}
+.band-panel h3 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+  margin: 0 0 0.15rem;
+}
+.band-panel h3.bump { animation: name-bump 0.6s ease; }
+@keyframes name-bump {
+  0% { color: var(--paper); text-shadow: 0 0 12px var(--cream-50); }
+  100% { color: inherit; text-shadow: none; }
+}
+.band-sub {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--cream-50);
+  margin-bottom: 0.8rem;
+}
+
+.band-row { margin: 0.85rem 0; }
+.band-row .b-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: clamp(0.85rem, 1.6vw, 1rem);
+  color: var(--cream-70);
+  margin-bottom: 0.3rem;
+}
+.band-row .b-med { font-family: var(--mono); font-size: clamp(0.8rem, 1.5vw, 0.95rem); color: var(--cream-90); white-space: nowrap; }
+
+.hill-chip {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--red);
+  border: 2px solid var(--red);
+  border-radius: 3px;
+  padding: 0.08rem 0.4rem;
+  cursor: help;
+}
+.hill-chip.flash { animation: hillflash 0.8s ease; }
+@keyframes hillflash {
+  0%, 40% { background: var(--red); color: var(--paper); }
+  100% { background: transparent; color: var(--red); }
+}
+
+.b-track {
+  position: relative;
+  height: 18px;
+  background: var(--cream-15);
+  border-radius: 9px;
+  overflow: hidden;
+}
+.b-outer, .b-inner, .b-tick { position: absolute; top: 0; bottom: 0; }
+.b-outer { background: var(--cream-30); border-radius: 9px; transition: left 0.45s ease, width 0.45s ease; }
+.b-inner { background: var(--cream-70); border-radius: 9px; transition: left 0.45s ease, width 0.45s ease; }
+.b-tick  { width: 3px; background: var(--paper); transition: left 0.45s ease; }
+
+/* ---------- act iii ---------- */
+
+#act3-grid { max-width: 860px; margin: 0 auto; }
+
+.draft {
+  --tilt: -0.45deg;              /* paper slips land at alternating angles */
+  background: var(--paper);
+  color: var(--paper-ink);
+  border-radius: 4px;
+  padding: 1.3rem 1.6rem;
+  margin: 1rem 0;
+  font-family: var(--serif);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+  /* fill-mode backwards: after the slide-in ends the element returns to its
+     natural styles, so the .past dimming can actually take effect */
+  animation: draft-in 0.5s ease backwards;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  transform: rotate(var(--tilt));
+}
+#drafts .draft:nth-child(even) { --tilt: 0.45deg; }
+@keyframes draft-in {
+  from { opacity: 0; transform: translateX(90px) rotate(2.2deg); }
+  to   { opacity: 1; transform: rotate(var(--tilt)); }
+}
+.draft.past { opacity: 0.35; transform: scale(0.97) rotate(var(--tilt)); }
+
+.draft .d-head {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.24em;
+  border-bottom: 1px solid rgba(27, 26, 23, 0.25);
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+.draft .d-line { font-size: clamp(1rem, 1.9vw, 1.15rem); margin: 0.25rem 0; }
+
+.sig-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.sig {
+  border-top: 1px solid rgba(27, 26, 23, 0.5);
+  padding-top: 0.35rem;
+  min-height: 58px;
+  font-size: 0.85rem;
+}
+.sig .s-name { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.14em; color: rgba(27, 26, 23, 0.6); }
+.sig .s-mark { height: 26px; display: flex; align-items: center; }
+.sig svg path {
+  stroke: var(--paper-ink);
+  stroke-width: 1.6;
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 130;
+  stroke-dashoffset: 130;
+  animation: draw 0.6s ease forwards;
+}
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.sig .s-verdict { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em; }
+
+/* REFUSED. — red ink stamp, rotated, slightly over-inked */
+.refused {
+  display: inline-block;
+  color: var(--red);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  border: 2px solid var(--red);
+  border-radius: 3px;
+  padding: 0.1rem 0.45rem;
+  margin-top: 3px;
+  transform: rotate(-6deg);
+  text-shadow: 0 0 1px rgba(179, 56, 44, 0.75);
+  box-shadow: inset 0 0 9px rgba(179, 56, 44, 0.22);
+  animation: refuse-thunk 0.3s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+@keyframes refuse-thunk {
+  from { transform: rotate(-11deg) scale(1.7); opacity: 0; }
+  70%  { transform: rotate(-5deg) scale(0.94); opacity: 1; }
+  to   { transform: rotate(-6deg) scale(1); opacity: 1; }
+}
+
+/* why a refusal happens — the walk-away, glossed once */
+.refuse-cap {
+  display: block;
+  margin-top: 0.35rem;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.85rem;
+  letter-spacing: 0;
+  color: rgba(27, 26, 23, 0.75);
+}
+.refuse-cap .walk-gloss { font-style: italic; color: rgba(27, 26, 23, 0.55); }
+
+#act3-clerk {
+  min-height: 2rem;
+  margin: 1rem 0 0;
+  text-align: center;
+  font-family: var(--serif);
+  font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+  color: var(--cream-90);
+}
+
+/* the flip */
+
+#flip-area { margin-top: 1.6rem; }
+.flip-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+  perspective: 1400px;
+}
+.flipwrap { height: 440px; }
+.flipcard {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.9s cubic-bezier(0.5, 0, 0.3, 1);
+}
+.flipcard.flipped { transform: rotateY(180deg); }
+.flip-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 8px;
+  padding: 1rem 1.1rem;
+  overflow: hidden;
+}
+.flip-front {
+  background: repeating-linear-gradient(45deg, var(--ink-3), var(--ink-3) 8px, var(--ink-2) 8px, var(--ink-2) 16px);
+  border: 1px solid var(--cream-30);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+}
+.flip-front .fd-label {
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  letter-spacing: 0.42em;
+  color: var(--cream-90);
+}
+.flip-front .fd-hash { font-family: var(--mono); font-size: 0.72rem; color: var(--cream-50); }
+.flip-front .fd-name {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+  color: var(--cream-70);
+}
+.flip-back {
+  background: var(--paper);
+  color: var(--paper-ink);
+  transform: rotateY(180deg);
+  font-family: var(--serif);
+}
+.flip-back h4 { margin: 0 0 0.45rem; font-weight: 400; font-size: 1.15rem; }
+.flip-back .fv-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  padding: 0.12rem 0;
+  border-bottom: 1px dotted rgba(27, 26, 23, 0.2);
+}
+.flip-back .fv-row .fv-val { font-family: var(--mono); font-size: 0.88rem; }
+.flip-back .fv-row.fv-strong { border-top: 1px solid rgba(27, 26, 23, 0.5); border-bottom: none; margin-top: 0.4rem; padding-top: 0.35rem; font-weight: 700; }
+.flip-back .fv-gloss { font-weight: 400; font-size: 0.72rem; color: rgba(27, 26, 23, 0.6); }
+.flip-back .fv-seal {
+  margin-top: 0.55rem;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  color: rgba(27, 26, 23, 0.55);
+  word-break: break-all;
+}
+.verify-result { font-family: var(--mono); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.08em; margin-top: 0.35rem; min-height: 1em; }
+.verify-result.v-ok, .v-ok { color: var(--ok-green); }
+.verify-result.v-bad, .v-bad { color: var(--red); }
+
+#flip-cta-row { text-align: center; margin-top: 1.4rem; }
+#flip-cta {
+  font-family: var(--serif);
+  font-size: clamp(1.3rem, 3vw, 1.7rem);
+  background: var(--paper);
+  color: var(--paper-ink);
+  border: none;
+  border-radius: 4px;
+  padding: 0.7rem 2.4rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+  animation: cta-breathe 1.6s ease-in-out infinite;
+}
+#flip-cta:hover { transform: scale(1.03); }
+@keyframes cta-breathe {
+  0%, 100% { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55); }
+  50% { box-shadow: 0 10px 44px rgba(244, 241, 234, 0.18); }
+}
+
+.verify-row { text-align: center; margin-top: 1.1rem; }
+.verify-btn { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.1em; }
+.verify-note { font-family: var(--mono); font-size: 0.66rem; color: var(--cream-50); margin-top: 0.45rem; }
+
+/* ---------- the decree: the poster ---------- */
+
+#scene-decree { text-align: center; }
+
+#decree-card {
+  --pad: 2.4rem;
+  position: relative;
+  width: min(720px, 96vw);
+  min-height: 640px;
+  margin: 0.5rem auto 0;
+  text-align: left;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(255, 255, 255, 0.5), rgba(0, 0, 0, 0) 70%),
+    repeating-linear-gradient(0deg, rgba(27, 26, 23, 0.025) 0 1px, rgba(0, 0, 0, 0) 1px 3px),
+    repeating-linear-gradient(90deg, rgba(27, 26, 23, 0.02) 0 1px, rgba(0, 0, 0, 0) 1px 4px),
+    var(--paper);
+  color: var(--paper-ink);
+  font-family: var(--serif);
+  padding: var(--pad) var(--pad) 1.6rem;
+  border-radius: 3px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.65);
+}
+
+#decree-card .dc-head {
+  text-align: center;
+  border-bottom: 1px solid rgba(27, 26, 23, 0.6);
+  padding-bottom: 1rem;
+  margin-bottom: 1.2rem;
+}
+/* the parties ARE the heading — promoted into the slot the redundant
+   "FINAL DECREE" line used to occupy */
+#decree-card .dc-inre {
+  font-family: var(--serif);
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  color: rgba(27, 26, 23, 0.95);
+}
+
+.ledger { margin: 0.8rem 0; }
+.ledger .lg-row {
+  font-size: clamp(0.98rem, 1.9vw, 1.15rem);
+  padding: 0.32rem 0;
+  border-bottom: 1px dotted rgba(27, 26, 23, 0.25);
+}
+.ledger .lg-asset { text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* THE TAX: a full-width red band. The number wins the eye — even against
+   a dog. (Attention-loop defect D1: mascots must not out-shout the money.) */
+.dc-taxband {
+  margin: 1.5rem calc(-1 * var(--pad)) 0.5rem;
+  padding: 0.9rem var(--pad) 1.05rem;
+  background: var(--red);
+  color: var(--paper);
+}
+.dc-tax-label {
+  font-variant: small-caps;
+  letter-spacing: 0.3em;
+  font-size: clamp(0.85rem, 1.8vw, 1.05rem);
+  opacity: 0.9;
+}
+.dc-tax-num {
+  font-weight: 700;
+  font-size: clamp(2.8rem, 8.5vw, 4.6rem);
+  line-height: 1.02;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
+}
+.dc-tax-sub {
+  font-size: clamp(0.85rem, 1.7vw, 1rem);
+  font-style: italic;
+  color: rgba(27, 26, 23, 0.8);
+  margin-top: 0.5rem;
+}
+
+.dc-nodecree {
+  color: var(--red);
+  font-weight: 700;
+  font-size: clamp(2.6rem, 10vw, 4.2rem);
+  letter-spacing: 0.06em;
+  text-align: center;
+  margin: 1.6rem 0 1.1rem;
+  transform: rotate(-1.5deg);
+  text-shadow: 0 0 1px rgba(179, 56, 44, 0.6);
+}
+.scene.active .dc-nodecree { animation: nod-thunk 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) 0.55s both; }
+@keyframes nod-thunk {
+  from { transform: rotate(-5deg) scale(1.9); opacity: 0; }
+  70%  { transform: rotate(-1deg) scale(0.94); opacity: 1; }
+  to   { transform: rotate(-1.5deg) scale(1); opacity: 1; }
+}
+.dc-lines { font-size: clamp(1rem, 2vw, 1.2rem); text-align: center; }
+.dc-lines p { margin: 0.4rem 0; }
+.dc-lines .dc-why { font-style: italic; color: rgba(27, 26, 23, 0.85); }
+
+.dc-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+/* NOBODY PEEKED — bigger, heavier ink, real overlap; it must land #2.
+   It's a BUTTON: the stamp reopens the flip-and-verify panel, permanently. */
+button.stamp {
+  position: relative;
+  top: -34px;   /* slammed down overlapping the tax band / share line */
+  margin-bottom: -20px;
+  transform: rotate(-8deg);
+  border: 5px double var(--red);
+  color: var(--red);
+  background: radial-gradient(ellipse at 45% 40%, rgba(179, 56, 44, 0.07), rgba(0, 0, 0, 0) 70%);
+  border-radius: 8px;
+  padding: 0.8rem 1.3rem;
+  text-align: center;
+  opacity: 0.95;
+  flex-shrink: 0;
+  cursor: pointer;
+  font-family: inherit;
+  /* paper-crinkle: faint drop + inked bleed inside the frame */
+  box-shadow: 0 3px 5px rgba(27, 26, 23, 0.3), inset 0 0 14px rgba(179, 56, 44, 0.16);
+}
+button.stamp:hover { border-color: var(--red); opacity: 1; transform: rotate(-8deg) scale(1.03); }
+.scene.active .stamp { animation: thunk 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) 0.7s both; }
+@keyframes thunk {
+  from { transform: rotate(-14deg) scale(2.3); opacity: 0; }
+  60%  { transform: rotate(-7deg) scale(0.92); opacity: 0.95; }
+  80%  { transform: rotate(-8.5deg) scale(1.03); opacity: 0.95; }
+  to   { transform: rotate(-8deg) scale(1); opacity: 0.95; }
+}
+
+/* the page takes the hit: one 4px shudder as the stamp lands */
+.scene.active #decree-card { animation: card-shudder 0.28s ease-out 1.02s 1; }
+@keyframes card-shudder {
+  0%   { transform: none; }
+  35%  { transform: translateY(4px); }
+  70%  { transform: translateY(-1px); }
+  100% { transform: none; }
+}
+.stamp .st-top { display: block; font-weight: 700; letter-spacing: 0.14em; font-size: clamp(1.15rem, 2.6vw, 1.5rem); white-space: nowrap; }
+.stamp .st-sub { display: block; font-variant: small-caps; letter-spacing: 0.22em; font-size: 0.72rem; margin-top: 0.2rem; }
+
+.dc-dog { flex-shrink: 0; opacity: 0.8; }
+.dc-dog svg { display: block; }
+
+/* the etched dog idles: a tail flick and an ear twitch, CSS only */
+.dc-dog .dog-tail, .dc-dog .dog-ear { transform-box: fill-box; }
+.dc-dog .dog-tail {
+  transform-origin: 10% 90%;
+  animation: dog-tail 7s linear infinite;
+}
+.dc-dog .dog-ear {
+  transform-origin: 30% 90%;
+  animation: dog-ear 9s linear infinite;
+}
+@keyframes dog-tail {
+  0%, 90%       { transform: none; }
+  92%, 95%      { transform: rotate(9deg); }
+  97%, 100%     { transform: none; }
+}
+@keyframes dog-ear {
+  0%, 55%       { transform: none; }
+  56.5%, 59%    { transform: rotate(-6deg); }
+  60.5%, 100%   { transform: none; }
+}
+
+/* on the NO DECREE card, the dog looks away */
+#decree-card.nodecree .dc-dog svg { transform: scaleX(-1); }
+
+/* the share line — the tweet. A WARM affordance, not cold fine print. */
+.dc-share {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin-top: 0.9rem;
+  border-top: 1px dashed rgba(27, 26, 23, 0.3);
+  padding-top: 0.9rem;
+  /* keep the line clear of the stamp slamming in from below */
+  padding-right: 220px;
+}
+#decree-card.nodecree .dc-share { justify-content: center; }
+.dc-share .share-text {
+  font-style: italic;
+  font-size: clamp(1.1rem, 2.4vw, 1.4rem);
+  line-height: 1.35;
+  color: rgba(27, 26, 23, 0.92);
+  user-select: all;
+  -webkit-user-select: all;
+}
+
+/* letterhead — the card travels alone; it must say what made it */
+.dc-letterhead {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: rgba(27, 26, 23, 0.55);
+  text-align: center;
+  padding-bottom: 0.6rem;
+  margin-bottom: 1.1rem;
+  border-bottom: 1px solid rgba(27, 26, 23, 0.18);
+}
+
+/* the fact worth promoting out of a hex string */
+.dc-signed {
+  margin-top: 1.1rem;
+  text-align: center;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(1rem, 2.1vw, 1.2rem);
+  color: rgba(27, 26, 23, 0.85);
+}
+
+/* what the item-by-item route would have cost — now ON the card, so it is
+   inside the screenshot instead of below it */
+.dc-lawyers {
+  margin-top: 0.6rem;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: clamp(0.68rem, 1.5vw, 0.8rem);
+  letter-spacing: 0.08em;
+  color: rgba(27, 26, 23, 0.7);
+}
+
+/* CASE #N — printed ON the cream; the screenshot carries the door */
+.dc-case {
+  margin-top: 1.3rem;
+  text-align: center;
+  font-variant: small-caps;
+  letter-spacing: 0.16em;
+  font-size: clamp(0.78rem, 1.6vw, 0.92rem);
+  color: rgba(27, 26, 23, 0.85);
+}
+.dc-case-sub {
+  display: block;
+  font-variant: normal;
+  letter-spacing: 0.06em;
+  font-size: 0.72rem;
+  color: rgba(27, 26, 23, 0.55);
+  margin-top: 0.15rem;
+}
+
+/* the proof panel: the flip, reopenable from the stamp — forever */
+#proof-panel { margin: 1.6rem auto 0; max-width: 860px; }
+#proof-panel .pp-head {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--cream-70);
+  margin-bottom: 1rem;
+}
+
+#rare-line, #closing-line {
+  margin: 0.7rem auto 0;
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--cream-70);
+  font-size: 1rem;
+}
+
+#receipt-row { margin-top: 1.2rem; }
+#rc-toggle, #rc-dev { font-family: var(--mono); font-size: 0.75rem; }
+#rc-panel {
+  margin: 1rem auto 0;
+  max-width: 720px;
+  border: 1px solid var(--cream-15);
+  border-radius: 8px;
+  background: var(--ink-2);
+  padding: 1.1rem 1.3rem;
+  text-align: left;
+}
+#rc-panel .rc-line {
+  margin: 0 0 0.8rem;
+  font-family: var(--serif);
+  font-size: 1rem;
+  color: var(--cream-90);
+  line-height: 1.6;
+}
+#rc-panel .rc-settle { border-top: 1px solid var(--cream-15); padding-top: 0.6rem; }
+#rc-panel .rc-settle .lg-row {
+  font-family: var(--serif);
+  font-size: 0.92rem;
+  color: var(--cream-70);
+  padding: 0.18rem 0;
+  border-bottom: 1px dotted var(--cream-15);
+}
+#rc-panel .rc-counts {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--cream-50);
+  margin: 0.7rem 0;
+}
+#rc-json {
+  display: none;
+  margin: 0.8rem 0 0;
+  max-height: 340px;
+  overflow: auto;
+  text-align: left;
+  background: #0f0e0b;
+  border: 1px solid var(--cream-15);
+  border-radius: 6px;
+  padding: 0.9rem 1rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--cream-70);
+  white-space: pre;
+}
+#rc-json.open { display: block; }
+
+/* THE ACTION BAR — pinned, always on screen. The decree runs ~2 screens on a
+   phone; a CTA at the bottom of it is a CTA most visitors never reach. This
+   sits above the fold at all times, and #stage reserves room so it never
+   covers the card's last line. Only rendered inside the decree scene, so it
+   cannot collide with the film's own controls. */
+#post-actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.7rem 1rem calc(0.7rem + env(safe-area-inset-bottom, 0px));
+  background: rgba(20, 19, 16, 0.96);
+  border-top: 1px solid var(--cream-15);
+  backdrop-filter: blur(8px);
+}
+#post-actions .primary {
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  background: var(--paper);
+  color: var(--paper-ink);
+  border-color: var(--paper);
+}
+/* The one CTA. Red, thumb-sized, and unmistakably the thing to press —
+   it competes with nothing, because nothing else on this screen is a button. */
+#post-actions .primary {
+  background: var(--red);
+  color: var(--paper);
+  border-color: var(--red);
+  font-family: var(--mono);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.9rem 1.8rem;
+  min-height: 52px;
+}
+#post-actions .primary:hover { background: #c84436; border-color: #c84436; }
+
+/* the quiet exits — text links, never buttons */
+.dc-small {
+  margin: 0;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--cream-50);
+}
+.dc-small a { color: var(--cream-50); text-decoration: underline; }
+.dc-small a:hover { color: var(--cream-90); }
+#science-link { margin: 1.2rem 0 0; font-size: 0.78rem; text-align: center; }
+#science-link a { color: var(--cream-30); }
+
+/* ---------- build your exes ---------- */
+
+.build-lede {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.1rem;
+  color: var(--cream-70);
+  margin: 0 0 1.1rem;
+}
+
+#rel-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0 0 1.2rem;
+}
+#rel-row .rel-lede {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--cream-50);
+  margin-right: 0.2rem;
+}
+.rel-pill {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  border-radius: 999px;
+}
+.rel-pill.active {
+  background: var(--paper);
+  color: var(--paper-ink);
+  border-color: var(--paper);
+}
+#rel-row .rel-note {
+  flex-basis: 100%;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  color: var(--cream-30);
+}
+
+#build-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.bp-col {
+  background: var(--ink-2);
+  border: 1px solid var(--cream-15);
+  border-radius: 10px;
+  padding: 1rem 1.1rem 1.2rem;
+}
+.bp-col h3 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.2rem;
+  margin: 0 0 0.7rem;
+}
+
+.bfield { display: block; margin: 0.6rem 0; }
+.bfield > span {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cream-50);
+  margin-bottom: 0.28rem;
+}
+.bfield input[type="text"], .bfield select {
+  width: 100%;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--paper);
+  background: var(--ink-3);
+  border: 1px solid var(--cream-30);
+  border-radius: 4px;
+  padding: 0.38rem 0.55rem;
+}
+.bfield input[type="text"]:focus, .bfield select:focus { outline: 1px solid var(--cream-70); }
+
+#wc-count { letter-spacing: 0; text-transform: none; }
+#wc-count.limit { color: var(--red); font-weight: 700; }
+
+/* inline validation — every deficiency at once, at its field */
+.f-err {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.82rem;
+  color: var(--red);
+  margin-top: 0.35rem;
+}
+
+.arch-wrap { margin: 0.7rem 0 0.9rem; }
+.arch-legend {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cream-50);
+  margin-bottom: 0.4rem;
+}
+.arch-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+.arch-card {
+  position: relative;
+  display: block;
+  border: 1px solid var(--cream-15);
+  border-radius: 6px;
+  padding: 0.45rem 0.55rem;
+  cursor: pointer;
+}
+.arch-card:hover { border-color: var(--cream-50); }
+.arch-card input { position: absolute; opacity: 0; pointer-events: none; }
+.arch-card .ac-name {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cream-90);
+}
+.arch-card .ac-epi {
+  display: block;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.74rem;
+  color: var(--cream-50);
+  margin-top: 0.18rem;
+}
+.arch-card:has(input:checked) {
+  border-color: var(--paper);
+  background: rgba(244, 241, 234, 0.07);
+}
+
+.bslider { display: block; margin: 0.55rem 0; }
+.bslider .bs-label {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cream-50);
+  margin-bottom: 0.15rem;
+}
+/* 44px is the smallest reliable thumb target (Apple HIG / Material 48dp).
+   The native control renders ~16px tall, so the extra height is transparent
+   padding around the same track — it reads identically and stops the dials
+   from being a precision-tapping exercise on a phone. */
+.bslider input[type="range"] {
+  width: 100%;
+  accent-color: var(--paper);
+  min-height: 44px;
+  padding: 14px 0;
+  box-sizing: border-box;
+  background: transparent;
+}
+
+/* ---------- THE INTAKE WIZARD: one question per screen ---------- */
+
+/* Every step is sized to FIT — all five options visible at once on a 375x812
+   phone. If you have to scroll to find out an option exists, it may as well
+   not exist. */
+.wz { max-width: 34rem; margin: 0 auto; padding: 0.5rem 0 1rem; }
+
+.wz-dots { display: flex; gap: 0.4rem; justify-content: center; margin-bottom: 1.2rem; }
+.wz-dots i {
+  width: 26px; height: 3px; border-radius: 2px;
+  background: var(--cream-15); transition: background 0.25s;
+}
+.wz-dots i.on { background: var(--red); }
+.wz-dots i.done { background: var(--cream-50); }
+
+.wz-q {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.35rem, 5vw, 2rem);
+  line-height: 1.2;
+  text-align: center;
+  margin: 0 0 1.1rem;
+  color: var(--cream-90);
+}
+.wz-hint {
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cream-50);
+  margin: 0.8rem 0 0.5rem;
+}
+
+/* one big text field, thumb-height, never a tiny input */
+.wz-name {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--serif);
+  font-size: 1.2rem;
+  text-align: center;
+  color: var(--cream-90);
+  background: var(--ink-2);
+  border: 1px solid var(--cream-30);
+  border-radius: 6px;
+  padding: 0.7rem 1rem;
+  min-height: 48px;
+}
+.wz-name:focus { outline: none; border-color: var(--paper); }
+
+.wz-cards { display: grid; gap: 0.45rem; }
+.wz-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--ink-2);
+  border: 1px solid var(--cream-15);
+  border-radius: 8px;
+  padding: 0.62rem 0.9rem;
+  min-height: 48px;                 /* still comfortably tappable */
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.wz-card:hover, .wz-card:focus-visible {
+  border-color: var(--paper);
+  background: #211f1b;
+  outline: none;
+}
+.wz-card .ac-name {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cream-90);
+}
+.wz-card .ac-epi {
+  display: block;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 0.88rem;
+  line-height: 1.3;
+  color: var(--cream-50);
+  margin-top: 0.12rem;
+}
+/* the four relationship buttons: big, centered, no epithet */
+.wz-card.wz-big {
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  color: var(--cream-90);
+  padding: 1.1rem 1rem;
+}
+
+/* the file button uses the same pinned bar as the decree's CTA — one place
+   on the page where the next action always lives */
+.wz-go {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25;
+  padding: 0.7rem 1rem calc(0.7rem + env(safe-area-inset-bottom, 0px));
+  background: rgba(20, 19, 16, 0.96);
+  border-top: 1px solid var(--cream-15);
+  backdrop-filter: blur(8px);
+}
+.wz-go button {
+  display: block;
+  max-width: 34rem;
+  margin: 0 auto;
+  font-family: var(--mono);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--red);
+  border: 1px solid var(--red);
+  padding: 0.85rem 1.6rem;
+  min-height: 52px;
+  width: 100%;
+  cursor: pointer;
+}
+.wz-go button:hover { background: #c84436; }
+
+.wz-back {
+  display: block;
+  margin: 1.4rem auto 0;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--cream-50);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.6rem 1rem;
+}
+.wz-back:hover { color: var(--cream-90); }
+
+.b-shared {
+  max-width: 640px;
+  margin: 1.1rem auto 0;
+}
+.bfronts {
+  border: 1px dashed var(--cream-30);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem 0.75rem;
+  margin: 0 0 0.4rem;
+}
+.bfronts legend {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cream-50);
+  padding: 0 0.4rem;
+}
+.bfront { display: inline-flex; align-items: center; gap: 0.35rem; margin-right: 1.1rem; font-size: 0.88rem; color: var(--cream-90); cursor: pointer; }
+.bfront input { accent-color: var(--paper); }
+.bfront input:disabled + span { color: var(--cream-30); }
+
+.b-actions { text-align: center; margin-top: 1.2rem; }
+#b-file {
+  font-family: var(--serif);
+  font-size: 1.2rem;
+  padding: 0.6rem 1.6rem;
+  color: var(--paper);
+  background: var(--red);
+  border-color: var(--red);
+}
+#b-file:hover { background: #c84436; border-color: #c84436; }
+#b-file:disabled { opacity: 0.5; cursor: default; }
+#b-status {
+  min-height: 1.4rem;
+  margin: 0.8rem 0 0;
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--cream-70);
+}
+#b-status.bad { color: var(--red); font-style: normal; font-family: var(--mono); font-size: 0.85rem; }
+#b-retry { font-family: var(--mono); font-size: 0.75rem; }
+
+/* ---------- footer ---------- */
+
+#foot {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 2.5rem;
+  font-size: 0.74rem;
+  color: var(--cream-50);
+  border-top: 1px solid var(--cream-15);
+}
+#foot .mono { font-size: 0.66rem; color: var(--cream-30); }
+
+/* ---------- motion off ---------- */
+
+body.instant *,
+body.instant *::before,
+body.instant *::after {
+  transition: none !important;
+  animation: none !important;
+}
+body.instant .portrait, body.instant #turn-line, body.instant #turn-line2, body.instant #turn-mech { opacity: 1 !important; }
+body.instant .sig svg path { stroke-dashoffset: 0 !important; }
+
+/* prefers-reduced-motion clamps DECORATIVE motion only. Reading beats keep
+   their full durations in the player (see divorce.js) — a capped film that
+   dumps Act I in one frame is an accessibility inversion, not a courtesy. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+  .portrait { opacity: 1 !important; }        /* their reveal IS the animation */
+  .sig svg path { stroke-dashoffset: 0 !important; }
+  /* #turn-line / #turn-mech keep their timed .shown reveals — those are
+     reading beats; without transitions they simply appear on cue. */
+}
+
+/* ---------- mobile (375px is a first-class target) ---------- */
+
+@media (max-width: 720px) {
+  .wide { display: none; }
+  .narrow { display: inline; }
+
+  /* TWO rows, deliberately. The old single scrollable row pushed 291px of
+     chrome off a 375px screen: BUILD YOUR EXES and the entire playback group
+     — including SKIP, the only escape from a 3-minute film — sat off-viewport
+     with no scroll affordance. Row 1 = the case tabs, which MAY scroll
+     (secondary). Row 2 = the actions, which may never scroll. */
+  #topbar {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.45rem 0.6rem;
+  }
+  #brand { display: none; }
+  #build-btn { font-size: 0.72rem; padding: 0.42rem 0.7rem; }
+  #playctl { margin-left: auto; gap: 0.3rem; }
+  #playctl button { font-size: 0.7rem; padding: 0.34rem 0.5rem; }
+
+  .scene { scroll-margin-top: 84px; }
+
+  .versus { grid-template-columns: 1fr; gap: 0.8rem; }
+  .vs { text-align: center; font-size: 2.2rem; padding: 0; }
+  .corner-stamp { position: static; display: inline-block; margin-bottom: 0.8rem; }
+
+  /* ticker: the NUMBERS never truncate — lines wrap instead */
+  #ticker li { white-space: normal; overflow: visible; text-overflow: clip; }
+  #ticker li.stall { margin-top: -0.2em; }
+  #ticker-wrap { height: min(48vh, 400px); padding: 0.75rem 0.9rem; }
+
+  #act2-grid { grid-template-columns: 1fr; }
+  #dialogue { height: 230px; }
+  #bands { grid-template-columns: 1fr; }
+  .band-panel { padding: 0.7rem 0.8rem; }
+
+  .flip-grid { grid-template-columns: 1fr; }
+  .flipwrap { height: 400px; }
+
+  #decree-card { --pad: 1.2rem; min-height: 0; }
+  button.stamp { top: -18px; margin-bottom: -8px; padding: 0.55rem 0.8rem; }
+  .dc-share { padding-right: 0; }
+
+  #build-grid { grid-template-columns: 1fr; }
+  .arch-cards { grid-template-columns: 1fr; }
+}

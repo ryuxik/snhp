@@ -1,20 +1,32 @@
 import numpy as np
 
 class BayesianParticleFilter:
-    def __init__(self, num_variables, num_particles=50000, historical_prior=None, uncertainty=0.15):
+    def __init__(self, num_variables, num_particles=50000, historical_prior=None, uncertainty=0.15, rng=None):
         """
         Initializes N=50,000 particles, each representing a "virtual opponent" with a different Utility Preference Vector.
+
+        rng: optional numpy.random.Generator. ADDITIVE and default-preserving —
+            when None (the default) the particle cloud is drawn from the GLOBAL
+            np.random exactly as before, so every existing caller is byte-for-byte
+            unchanged. Pass a seeded Generator (e.g. np.random.default_rng(0)) to
+            make the draw deterministic WITHOUT touching global RNG state — the
+            structural fix the bundle tier threads through for reproducible advice.
         """
         self.num_variables = num_variables
         self.num_particles = num_particles
-        
+        draw = np.random if rng is None else rng   # None => legacy global RNG
+
         if historical_prior is None:
-            # Cold Start: Random uninformative prior
-            raw_weights = np.random.rand(num_particles, num_variables)
+            # Cold Start: Random uninformative prior. np.random exposes .rand(*shape);
+            # a Generator exposes .random(shape) — same U[0,1) draw, different spelling.
+            if rng is None:
+                raw_weights = np.random.rand(num_particles, num_variables)
+            else:
+                raw_weights = rng.random((num_particles, num_variables))
         else:
             # Warm Start: Informative Gaussian prior (Seeding Context)
             prior_array = np.array(historical_prior)
-            raw_weights = np.random.normal(loc=prior_array, scale=uncertainty, size=(num_particles, num_variables))
+            raw_weights = draw.normal(loc=prior_array, scale=uncertainty, size=(num_particles, num_variables))
             raw_weights = np.clip(raw_weights, 0.001, 1.0) # Bind mathematically
             
         # Normalize weights so they sum to 1.0 along the variable axis

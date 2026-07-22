@@ -12,7 +12,7 @@ import os
 from typing import Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from arena.config import CONFIG
@@ -363,7 +363,7 @@ def _is_page(path: str) -> bool:
     if path in ("/", "/world"):
         return True
     if path.startswith(("/api", "/arena", "/health", "/hit", "/core",
-                        "/block/live", "/vendor")):
+                        "/block/live", "/vendor", "/v1")):
         return False
     return path.endswith(".html") or path.endswith("/")
 
@@ -499,10 +499,33 @@ if os.environ.get("BLOCK_LIVE") == "1":
 
 # ── site entry: the root serves the thesis home (index.html); the classic
 # evolution arena — the old index — is kept at /world and arena-classic.html.
-# Old URLs all still work (leaderboard.html redirects, hook/boba/etc. are archived).
+# Old marketing URLs are redirect stubs to snhp.dev; hook/boba/etc. are demos.
 @app.get("/")
 def root() -> FileResponse:
     return FileResponse(os.path.join(os.path.dirname(__file__), "web", "index.html"))
+
+
+# Marketing pages moved to the product site (snhp.dev). Real 301s so machine
+# clients — crawlers, llms.txt readers, curl — follow them; the .html files on
+# disk remain as client-side fallbacks for anything that ignores the redirect.
+_MOVED = {
+    "benchmark.html": "/certificate", "submit.html": "/certificate",
+    "certify.html": "/certificate", "nx.html": "/spec",
+    "build.html": "/build", "hire.html": "/build",
+    "read.html": "/results", "science.html": "/results",
+    "archive.html": "/results",
+}
+
+
+def _moved(_page: str, _target: str):
+    def _h() -> RedirectResponse:
+        return RedirectResponse("https://snhp.dev" + _target, status_code=301)
+    return _h
+
+
+for _page, _target in _MOVED.items():
+    app.add_api_route("/" + _page, _moved(_page, _target),
+                      methods=["GET", "HEAD"], include_in_schema=False)
 
 
 @app.get("/world")
@@ -517,6 +540,34 @@ def world() -> FileResponse:
 _CORE_JS = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "js")
 if os.path.isdir(_CORE_JS):
     app.mount("/core/js", StaticFiles(directory=_CORE_JS), name="corejs")
+
+# The divorce demo's live engine — same-origin with its chrome at /divorce/
+# (SPEC.md section 11.3). The case ledger persists on the arena volume via
+# DIVORCE_CASES_PATH so "same number, same divorce" survives deploys.
+from divorce.api import router as _divorce_router  # noqa: E402
+from divorce.api import clerk_voiced_422 as _clerk_422  # noqa: E402
+from fastapi.exceptions import RequestValidationError as _ReqValErr  # noqa: E402
+app.include_router(_divorce_router)
+# include_router does not carry exception handlers; the clerk answers 422s
+# on /v1/divorce/* only (path guard inside the handler).
+app.add_exception_handler(_ReqValErr, _clerk_422)
+
+# Static text assets must revalidate on every load (Cache-Control: no-cache;
+# ETags keep repeats as cheap 304s). Without this, browsers heuristically
+# cache html/css/js and a redeploy can serve a returning visitor a stale/fresh
+# HYBRID (new markup styled by old css — observed live after the premise
+# deploy). no-cache ≠ no-store: content still caches, it just always asks.
+_REVALIDATE_EXTS = (".html", ".css", ".js", ".mjs", ".json")
+
+
+@app.middleware("http")
+async def _static_no_cache(request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path.endswith(_REVALIDATE_EXTS) or path.endswith("/") or "." not in path.rsplit("/", 1)[-1]:
+        response.headers.setdefault("Cache-Control", "no-cache")
+    return response
+
 
 # Serve the renderer SPA same-origin; /arena/* and /health matched first.
 _WEB = os.path.join(os.path.dirname(__file__), "web")

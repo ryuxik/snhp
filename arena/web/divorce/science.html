@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Measured, not vibed — Who Gets the Dog</title>
+<meta name="description" content="Mechanism results from the Who Gets the Dog engine — seeded, committed, re-runnable. Every headline on this page is conditional on a registered kill flag read from the results file.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%96%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="science.css">
+</head>
+<body>
+
+<header class="wrap">
+  <p id="backlink"><a href="index.html">&larr; the demo</a></p>
+  <h1>Measured, not vibed.</h1>
+  <p id="subtitle">Mechanism results from the Who Gets the Dog engine &mdash; seeded, committed, re-runnable.</p>
+  <p id="mechanism-note">This page renders itself from the results file the experiments write
+    (<span class="mono">science-data.json</span>). Every headline below is conditional on a
+    registered kill flag read from that file: if a kill fired, the page prints the kill, not
+    the claim. The write-up cannot outrun the registration.</p>
+  <div id="kill-strip" aria-label="Registered kill status"></div>
+  <p id="kill-strip-note">five registered kills, applied by this page from the data &mdash; a fired kill deletes its claim</p>
+  <div id="pending-banner" hidden>results pending &mdash; the harness is running. This page renders
+    numbers only from <span class="mono">science-data.json</span>, which the aggregate evaluation
+    writes when it finishes. Nothing below is estimated or promised in its absence.</div>
+  <noscript><p class="pending">This page renders its numbers with JavaScript from
+    <span class="mono">science-data.json</span>; the prose, priors, and registration text below
+    are complete without it.</p></noscript>
+</header>
+
+<main class="wrap">
+
+<!-- ================= 1 · the trap check ================= -->
+<section id="trap">
+  <p class="kicker">the lede</p>
+  <h2>The trap check: an agent graded one decision at a time</h2>
+  <p>Before any result of ours gets a headline, the experiment that disciplines how you should
+    read all of them. We rebuilt the item-by-item negotiation arm with a live language model
+    fronting each side&rsquo;s accept/reject decision &mdash; the configuration every
+    &ldquo;AI negotiator&rdquo; demo ships &mdash; and graded every single decision against the
+    committed walk-away rule the model was instructed to implement.</p>
+
+  <div id="trap-results"></div>
+
+  <p class="thesis">You cannot audit an agent by its aggregates; per-decision verification
+    against a committed rule is the only audit that sees this.</p>
+
+  <p>The nearest published rhyme is Bergen &amp; Kraus: sycophantic LLM mediators over-affirm
+    disputants and entrench positions rather than resolve them. Ours is the settlement-table
+    version of the same failure &mdash; caught not by human coders but by a committed rule the
+    model could not talk its way past. It is also why, everywhere in this system, acceptance is
+    decided by the LLM-free rule and never by the dialogue layer.</p>
+</section>
+
+<!-- ================= 2 · the instrument + scope ================= -->
+<section id="instrument">
+  <p class="kicker">the instrument</p>
+  <h2>What the field measured, and what it structurally could not</h2>
+  <p>For forty years the field measured whether people agreed and how they felt about it.
+    Kelly&rsquo;s 2004 review states the success criteria verbatim: &ldquo;settlement rates,
+    satisfaction, efficiencies in time and cost, &hellip; durability.&rdquo; By those instruments
+    mediation earned its standing. What no study measured: surplus captured against the
+    achievable frontier, envy-freeness under true utilities, whether the questions asked were
+    sufficient, or the value destroyed by spite.</p>
+  <p>The gap is structural, not negligent. True utilities are unobservable in a real dispute;
+    stated valuations are provably strategic; and an oracle benchmark exists only in
+    induced-value laboratories &mdash; the Tripp &amp; Sondak (1992) tradition, where the
+    experimenter assigns the utilities and can therefore grade the outcome &mdash; which by
+    construction are not real divorces. That is the instrument this page uses, with the parts
+    the tradition lacked: sealed synthetic utilities, replayable receipts, counterfactual
+    re-runs.</p>
+  <div class="scope">We measure mechanism properties on calibrated synthetic populations in the
+    induced-value tradition. We make no claim about how real divorcing parties feel, decide, or
+    comply &mdash; that needs human subjects we have not run.</div>
+</section>
+
+<!-- ================= 3 · E1 calibrated abstention ================= -->
+<section id="e1">
+  <p class="kicker">experiment one</p>
+  <h2>E1 &middot; Calibrated abstention</h2>
+  <p>The mediator already refuses: when its posterior cannot certify that a bundle clears both
+    true walk-aways, it issues no decree. The question this experiment registers is whether that
+    refusal is <i>calibrated</i> &mdash; Chow&rsquo;s (1970) reject option, through modern
+    selective prediction, ported to mediation &mdash; or merely a threshold with good manners.
+    The machinery is mature in machine learning; mediation ethics has always demanded the other
+    half (self-determination: the mediator must not push). The bridge is the claim, exactly as
+    our survey put it: nobody has ported Chow&rsquo;s rule to the propose/abstain decision with
+    ratification as the predicted label.</p>
+
+  <div class="reg">
+    <span class="reg-label">registered &mdash; frozen by commit before results existed (divorce/science_eval.py)</span>
+    <p><b>certified:</b> &ldquo;ARM-B settled (proposal ratified by both true-IR checks)&rdquo;
+      &middot; <b>selective risk:</b> &ldquo;P(either true walk-away violated | certified)&rdquo;</p>
+    <p><b>KILL_UP:</b> &ldquo;if selective risk &gt; 0.02 at the shipped gate (Q=10) -&gt; retire
+      the word 'calibrated'; it's just a threshold&rdquo;</p>
+    <p><b>KILL_DOWN:</b> &ldquo;if recoverable-abstention rate among abstentions &gt; 0.15 at
+      Q=10 -&gt; the gate is uncalibrated pessimism, not information-limited caution; do not
+      claim calibration&rdquo;</p>
+  </div>
+
+  <div id="e1-results"></div>
+</section>
+
+<!-- ================= 4 · E2 the elicitation-budget curve ================= -->
+<section id="e2">
+  <p class="kicker">experiment two</p>
+  <h2>E2 &middot; The elicitation-budget curve</h2>
+  <p>How much of the frontier can an interview of <i>n</i> questions buy? Elicitation-budget
+    curves are mature machinery &mdash; in AI preference learning (Chajewska &amp; Koller;
+    Boutilier&rsquo;s minimax-regret), in auctions (Sandholm; Nisan &amp; Segal&rsquo;s
+    worst-case bounds), and in automated negotiation, where Baarslag &amp; Kaisers (2017) is the
+    nearest methodological prior. The incentive half is Carson &amp; Groves (2007):
+    consequential binary choice can be incentive-compatible where open-ended valuation provably
+    is not &mdash; which is why every question in the v2 interview is a package choice, cash
+    only ever a rider inside a choice, never the object of a question. Our own survey&rsquo;s
+    guard stands: the method is precedented; claim the application, never the method. The
+    application is the contribution &mdash; no published work elicits divorcing parties&rsquo;
+    package preferences through choice tasks, and no budget curve exists anywhere in family
+    law.</p>
+
+  <div class="reg">
+    <span class="reg-label">registered &mdash; frozen by commit before results existed (divorce/science_eval.py)</span>
+    <p><b>curve:</b> &ldquo;median S_B/S_O vs questions/side, settle rate overlaid, from the
+      SAME runs as E1 (no separate population)&rdquo;</p>
+    <p><b>biased human model:</b> &ldquo;anchoring kappa=0.30 on cash-for-asset trades, 0.10 on
+      cash riders inside package choices; acquiescence drift 0.10 toward accepting cash offers;
+      1.5x comparison noise (frozen constants below)&rdquo;</p>
+    <p><b>KILL:</b> &ldquo;drop the 'human-robust' claim if v2-under-bias median capture &lt;=
+      v1-under-honest median capture at Q=10&rdquo;</p>
+  </div>
+
+  <div id="e2-results"></div>
+</section>
+
+<!-- ================= 5 · E3 the pettiness tax ================= -->
+<section id="e3">
+  <p class="kicker">experiment three</p>
+  <h2>E3 &middot; The pettiness tax</h2>
+  <p>Spite is the first impediment on Mnookin &amp; Kornhauser&rsquo;s 1979 list &mdash;
+    &ldquo;a desire to punish the other spouse&rdquo; &mdash; named for almost fifty years and
+    priced only at the population level: Levine (1998) fit a spite coefficient to experimental
+    play, Zizzo &amp; Oswald (2001) measured willingness to pay to burn other people&rsquo;s
+    money, and Mill &amp; Staebler (2023), the nearest prior, showed spite raises litigation
+    spending in aggregate. None of these produce a per-case number. The engine does: the same
+    pair, the spite term deleted, the oracle settlement re-derived &mdash; this settlement,
+    minus your spite, re-run to the dollar. The difference is the pettiness tax.</p>
+
+  <div class="reg">
+    <span class="reg-label">registered &mdash; frozen by commit before results existed (divorce/science_eval.py)</span>
+    <p><b>headline metric:</b> &ldquo;median over pairs of max(tax_a, tax_b) / S_O&rdquo;</p>
+    <p><b>KILL_DOWN:</b> &ldquo;if the headline median &lt; 0.05 -&gt; the tax is a rounding
+      error at this population; do not headline it&rdquo;</p>
+    <p><b>KILL_UP (stability):</b> &ldquo;if the median absolute tax varies by more than 3x
+      across the three committed seeds -&gt; report ranges, never a single number&rdquo;</p>
+    <p><b>attribution flag:</b> &ldquo;report median count of non-hill assets whose allocation
+      moves &gt; 0.25 share between actual and despiked oracle settlements; if &gt; 2 of 5, the
+      write-up must present the tax as a bundle-level counterfactual, not an item-level one (a
+      labeling duty, not a kill)&rdquo;</p>
+  </div>
+
+  <div id="e3-results"></div>
+</section>
+
+<!-- ================= 6 · reproduce it ================= -->
+<section id="repro">
+  <p class="kicker">the harness</p>
+  <h2>Reproduce it</h2>
+  <p>Everything above regenerates from two commands in the repository:</p>
+  <pre class="cmd">python3 -m divorce.kill_harness --n 100 --seed 7
+python3 -m divorce.science_eval --seed 7 &amp;&amp; python3 -m divorce.science_eval --aggregate</pre>
+  <p>Seeds 7, 11, and 23 are committed; seed 31 is the fresh confirmatory seed, run once, after
+    the thresholds froze. The registration is frozen by commit practice: the thresholds quoted
+    on this page entered the repository in the commit that introduced
+    <span class="mono">divorce/science_eval.py</span>, before any results file existed &mdash;
+    the commit order is the proof, and it asks for no trust. The population is registered
+    verbatim as: &ldquo;the frozen kill-harness population: N=100/seed, seeds 7/11/23
+    (committed) + FRESH confirmatory seed 31; qualified pairs only; v2 all-choices
+    elicitation.&rdquo;</p>
+  <p class="thesis">Hand us a seed and a command and you get our number.</p>
+</section>
+
+<!-- ================= 7 · what we are NOT claiming ================= -->
+<section id="not-claiming">
+  <p class="kicker">overclaim guards</p>
+  <h2>What we are not claiming</h2>
+  <ul class="guards">
+    <li>The budget-curve <i>method</i> is not ours &mdash; it is mature in AI preference
+      learning, auctions, and automated negotiation (Chajewska &amp; Koller; Boutilier;
+      Sandholm; Nisan &amp; Segal; Baarslag &amp; Kaisers 2017). We claim the legal-settlement
+      application and its pairing with choice-based elicitation.</li>
+    <li>Choice-over-valuation elicitation theory is Carson &amp; Groves (2007). We apply it; we
+      did not invent it.</li>
+    <li>Spite has been priced before, at the population level (Levine 1998; Zizzo &amp; Oswald
+      2001; Mill &amp; Staebler 2023). Ours is the per-case, re-runnable counterfactual, not a
+      regression.</li>
+    <li>We do not claim strategy-proofness. The characterization of strategy-proof, efficient,
+      individually rational multi-issue mediation is Kesten &amp; &Ouml;zyurt (2025); our
+      manipulation check covers one registered bluff policy (intensity exaggeration) and
+      nothing more.</li>
+    <li>Adjusted Winner&rsquo;s manipulability is not our discovery &mdash; known since 1996,
+      formalized by Aziz et al. (2015).</li>
+    <li>No human-subjects claims of any kind. Nothing here says real divorcing parties would
+      find these settlements fair, satisfying, or worth complying with &mdash; that literature
+      (Tyler; Leventhal; Lee et al. 2019) needs recruited human subjects we have not run.</li>
+    <li>The demo is about agents, not real couples. Real disputes carry screening duties the
+      literature is unambiguous about &mdash; coercive-control cases must never be mediated,
+      by anyone&rsquo;s mechanism &mdash; and nothing on this page is a recommendation for a
+      real divorce.</li>
+  </ul>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Every number on this page traces to a committed, seeded run. The divorce is fake. The
+      math is real.</p>
+    <nav><p><a href="index.html">&larr; the demo</a> &middot; <a href="../index.html">arena</a></p></nav>
+  </div>
+</footer>
+
+<script src="science.js"></script>
+</body>
+</html>

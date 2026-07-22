@@ -32,6 +32,7 @@ COPY block/ ./block/
 COPY bakeshop/ ./bakeshop/
 COPY boba/ ./boba/
 COPY buyer/ ./buyer/
+COPY divorce/ ./divorce/
 COPY fashion/ ./fashion/
 COPY slots/ ./slots/
 COPY vend/ ./vend/
@@ -67,6 +68,7 @@ COPY --from=builder /build/block ./block
 COPY --from=builder /build/bakeshop ./bakeshop
 COPY --from=builder /build/boba ./boba
 COPY --from=builder /build/buyer ./buyer
+COPY --from=builder /build/divorce ./divorce
 COPY --from=builder /build/fashion ./fashion
 COPY --from=builder /build/slots ./slots
 COPY --from=builder /build/vend ./vend
