@@ -27,6 +27,7 @@ import ipaddress
 import json
 import math
 import os
+import socket
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -208,10 +209,18 @@ def _reject_private_host(host: str | None) -> None:
     low = host.lower()
     if low == "localhost" or low.endswith(".local") or low.endswith(".localhost"):
         raise ValueError(f"refusing local host {host!r}")
+    ip = None
     try:
         ip = ipaddress.ip_address(low)
     except ValueError:
-        return                     # not an IP literal → a public hostname, fine
+        # Not a canonical IP literal. Also screen the exotic IPv4 spellings
+        # (decimal "2130706433", octal "0177.0.0.1", hex, short forms) that
+        # inet_aton accepts but ip_address does not — security-review
+        # hardening; still zero DNS.
+        try:
+            ip = ipaddress.IPv4Address(socket.inet_aton(low))
+        except OSError:
+            return                 # a genuine hostname → vendor's problem
     if (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
             or ip.is_multicast or ip.is_unspecified):
         raise ValueError(f"refusing private/reserved IP-literal host {host!r}")

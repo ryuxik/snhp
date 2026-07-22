@@ -318,7 +318,21 @@ def verify_challenge(ch: dict, secret: Optional[str] = None) -> bool:
         intent=ch.get("intent", ""), request=ch.get("request", {}),
         expires=ch.get("expires", "") or "", digest=ch.get("digest", "") or "",
         opaque=ch.get("opaque", "") or "", secret=secret)
-    return hmac.compare_digest(ch.get("id", ""), expected)
+    if not hmac.compare_digest(ch.get("id", ""), expected):
+        return False
+    # Enforce expiry server-side (security-review hardening): the expires
+    # field is HMAC-covered, so a stale challenge fails here and the route
+    # answers 402 with a fresh one. Settlement idempotency already prevents
+    # double-credit on replay; this closes the window on principle, not need.
+    expires = ch.get("expires") or ""
+    if expires:
+        try:
+            exp = datetime.fromisoformat(expires.replace("Z", "+00:00"))
+        except ValueError:
+            return False
+        if exp <= datetime.now(timezone.utc):
+            return False
+    return True
 
 
 # ─── Credential parsing (mppx src/Credential.ts deserialize) ─────────────────
