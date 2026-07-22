@@ -104,3 +104,63 @@ def test_close_unknown_session_http_404_mcp_error():
     assert r.status_code == 404
     out = mcp_server.nextmove_close(api_key=key, session_id="ns_never")
     assert out["closed"] is False and "error" in out
+
+
+def test_degenerate_bounds_http_400_uncharged():
+    # FIX #1 (HTTP door): an inverted-but-positive session (seller target below
+    # floor) is caught pre-charge → a clean 400, and nothing is billed.
+    from gametheory.server.onboarding import wallet_available
+    key = _key()
+    before = wallet_available(key)["total_millicents"]
+    r = client.post("/v1/advice/session",
+                    json={"api_key": key, "category": "resale", "side": "sell",
+                          "walk_away": 210, "target": 170})
+    assert r.status_code == 400, r.text
+    assert wallet_available(key)["total_millicents"] == before      # uncharged
+
+
+def test_first_move_error_keeps_paid_session_id(monkeypatch):
+    # FIX #5: a valid session open whose OPTIONAL first move raises must still
+    # return the session_id the caller paid for — the error is a field, not a 500.
+    import vend.session as vs
+    from gametheory.server.onboarding import wallet_available, MILLICENTS_PER_CENT
+    from vend.session import SESSION_PRICE_CENTS
+    key = _key()
+    before = wallet_available(key)["total_millicents"]
+
+    def boom(**kw):
+        raise RuntimeError("engine boom on first move")
+    monkeypatch.setattr(vs, "session_advise", boom)
+    r = client.post("/v1/advice/session",
+                    json={"api_key": key, **_OPEN, "their_offers": [150]})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["session_id"]                       # the paid session survives
+    assert "first_move" not in body
+    assert "first_move_error" in body
+    # the $2 open was still charged (the session is real); the free first move
+    # failed but was never consumed (no extra debit for it)
+    after = wallet_available(key)["total_millicents"]
+    assert after == before - SESSION_PRICE_CENTS * MILLICENTS_PER_CENT
+
+
+def test_mcp_telemetry_failure_keeps_paid_session(monkeypatch):
+    # FIX #4: a telemetry OSError after the $2 charge must not destroy the
+    # response carrying the paid session_id / advice (the MCP door now wraps the
+    # telemetry calls in try/except, matching the HTTP door).
+    import vend.telemetry as tm
+    key = _key()
+
+    def boom(*a, **k):
+        raise OSError("telemetry sink down")
+    monkeypatch.setattr(tm, "log_session_open", boom)
+    monkeypatch.setattr(tm, "log_advice", boom)
+    opened = mcp_server.nextmove_open(api_key=key, category="resale",
+                                      side="sell", walk_away=170, target=210,
+                                      their_offers=[150])
+    assert opened["session_id"]                       # paid id survived
+    assert verify_receipt(opened["first_move"]["receipt"])
+    adv = mcp_server.nextmove_advise(api_key=key,
+                                     session_id=opened["session_id"],
+                                     their_offers=[150, 165])
+    assert adv["move"] and verify_receipt(adv["receipt"])

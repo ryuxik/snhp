@@ -171,11 +171,13 @@ class SessionOpenIn(BaseModel):
     api_key: str
     category: str = Field(description="resale | supply | retail")
     side: str = Field(description="buy | sell")
-    walk_away: float
-    target: float
+    # Positivity is defense-in-depth (422 at the boundary); the target-vs-walk_away
+    # ordering is side-dependent and enforced pre-charge by the engine validator.
+    walk_away: float = Field(gt=0, description="your floor (sell) / ceiling (buy)")
+    target: float = Field(gt=0, description="your aspiration")
     their_offers: Optional[list[float]] = None   # pass to get the first move back
     my_offers: Optional[list[float]] = None
-    rounds_left: Optional[int] = None
+    rounds_left: Optional[int] = Field(default=None, ge=1)
     seed: int = 0
 
 
@@ -184,7 +186,7 @@ class SessionMoveIn(BaseModel):
     session_id: str
     their_offers: list[float]
     my_offers: Optional[list[float]] = None
-    rounds_left: Optional[int] = None
+    rounds_left: Optional[int] = Field(default=None, ge=1)
 
 
 def _advice_dict(a, idx):
@@ -209,6 +211,7 @@ def open_advice_session(body: SessionOpenIn):
     except ImportError:
         raise HTTPException(status_code=503,
                             detail="advice module not present in this build")
+    from gametheory.negotiation.plain_terms import NegotiationInputError
     try:
         sess = _vs.open_session_charged(
             api_key=body.api_key, category=body.category, side=body.side,
@@ -217,6 +220,11 @@ def open_advice_session(body: SessionOpenIn):
         raise HTTPException(status_code=402, detail=str(e))
     except billing.UnknownKeyError as e:
         raise HTTPException(status_code=401, detail=str(e))
+    except NegotiationInputError as e:
+        # degenerate bounds (inverted target/walk_away, non-positive) — caught
+        # PRE-CHARGE by the engine validator, so nothing was billed: a clean 400,
+        # never the 500-loop that a paid-but-unusable session used to cause.
+        raise HTTPException(status_code=400, detail=str(e))
     except KeyError as e:
         raise HTTPException(status_code=400, detail=str(e))
     try:
@@ -229,17 +237,27 @@ def open_advice_session(body: SessionOpenIn):
         pass
     out = dict(sess)
     if body.their_offers is not None:
-        a, idx = _vs.session_advise(
-            session_id=sess["session_id"], api_key=body.api_key,
-            their_offers=body.their_offers, my_offers=body.my_offers,
-            rounds_left=body.rounds_left)
+        # The optional first move must NEVER vaporize the paid session_id: the $2
+        # already bought the session, so a first-move engine error is REPORTED as
+        # a field, not raised away as a 500 that loses the id the caller paid for.
+        # (fix #1 catches degenerate bounds pre-charge; this guards a valid-open-
+        # yet-first-move edge.) The move is NOT consumed on failure — session_advise
+        # runs the engine before it increments moves_used.
         try:
-            _tm.log_advice(advice=a, api_key=body.api_key, door="http",
-                           price_cents=0, session_id=sess["session_id"],
-                           move_index=idx)
-        except Exception:
-            pass
-        out["first_move"] = _advice_dict(a, idx)
+            a, idx = _vs.session_advise(
+                session_id=sess["session_id"], api_key=body.api_key,
+                their_offers=body.their_offers, my_offers=body.my_offers,
+                rounds_left=body.rounds_left)
+        except Exception as e:
+            out["first_move_error"] = str(e)
+        else:
+            try:
+                _tm.log_advice(advice=a, api_key=body.api_key, door="http",
+                               price_cents=0, session_id=sess["session_id"],
+                               move_index=idx)
+            except Exception:
+                pass
+            out["first_move"] = _advice_dict(a, idx)
     return out
 
 
@@ -252,6 +270,7 @@ def advice_move(body: SessionMoveIn):
     except ImportError:
         raise HTTPException(status_code=503,
                             detail="advice module not present in this build")
+    from gametheory.negotiation.plain_terms import NegotiationInputError
     try:
         a, idx = _vs.session_advise(
             session_id=body.session_id, api_key=body.api_key,
@@ -259,6 +278,10 @@ def advice_move(body: SessionMoveIn):
             rounds_left=body.rounds_left)
     except _vs.SessionError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except NegotiationInputError as e:
+        # bad per-move input (e.g. rounds_left<1) → 400, not 500. No move is
+        # consumed: session_advise runs the engine before incrementing.
+        raise HTTPException(status_code=400, detail=str(e))
     try:
         _tm.log_advice(advice=a, api_key=body.api_key, door="http",
                        price_cents=0, session_id=body.session_id,
@@ -413,7 +436,12 @@ def store_catalog():
     except ImportError:
         raise HTTPException(status_code=503, detail="store not present in this build")
     _shelf.ensure_shelf()
-    return _store.catalog()
+    cat = _store.catalog()
+    # The blind locker registers via its own readiness (not a call_slot Slot), so
+    # the door merges its shelf card into the catalog (the locker never edits
+    # store.py). See vend/shelf.locker_catalog_entry / STORE.md §2c.
+    cat["slots"].append(_shelf.locker_catalog_entry())
+    return cat
 
 
 @router.get("/store/notary_pubkey", tags=["store"])
@@ -592,3 +620,83 @@ def store_my_requests(request: Request):
     if not api_key or onboarding.lookup_key(api_key) is None:
         raise HTTPException(status_code=401, detail="unknown or missing api_key")
     return {"requests": _demand.my_requests(api_key)}
+
+
+# ─── THE STORE: the blind locker (park & retrieve ciphertext; STORE.md §2c) ──
+# You encrypt BEFORE parking; the store holds only opaque bytes (plus an at-rest
+# layer it controls), keys never transit, contents are never logged — a breach
+# leaks sealed boxes. Park is the paid action (settle-on-durable-store); retrieve
+# is free. A wrong owner is indistinguishable from a missing ticket.
+
+class ParkIn(BaseModel):
+    api_key: Optional[str] = None
+    blob_b64: str = Field(
+        description="your ciphertext as base64 — ENCRYPT BEFORE PARKING; the "
+                    "store holds only opaque bytes and cannot read them")
+    ttl_seconds: Optional[int] = Field(
+        default=None,
+        description="requested lifetime; clamped to [60s, 7d]. The effective "
+                    "expires_at is returned — never a silent surprise.")
+
+
+@router.post("/store/park", tags=["store"])
+def store_park(body: ParkIn, request: Request):
+    """Park an ENCRYPTED blob, get a claim ticket (blind locker, §2c). Charged a
+    thin flat park fee ONLY on durable store; an empty/oversize/unencodable blob
+    is uncharged. Key via `Authorization: Bearer`/`X-API-Key` (header wins) or
+    body `api_key`. The receipt's content_hash is over YOUR ciphertext, so you
+    can prove what you stored without the store ever seeing plaintext."""
+    try:
+        from vend import shelf as _shelf, locker as _locker
+    except ImportError:
+        raise HTTPException(status_code=503, detail="store not present in this build")
+    from gametheory.server.middleware import bearer_api_key
+    api_key = bearer_api_key(request) or body.api_key
+    if not api_key:
+        raise HTTPException(
+            status_code=401,
+            detail="missing api_key (body, Authorization: Bearer, or X-API-Key)")
+    _shelf.ensure_locker()
+    out = _locker.park_b64(api_key, body.blob_b64, body.ttl_seconds, door="http")
+    if out.get("ok"):
+        return out
+    code = out.get("code")
+    if code in ("bad_encoding", "empty_blob"):
+        raise HTTPException(status_code=400, detail=out["reason"])
+    if code == "too_large":
+        raise HTTPException(status_code=413, detail=out["reason"])
+    if code == "unknown_key":
+        raise HTTPException(status_code=401, detail="unknown api_key")
+    if code == "insufficient_balance":
+        raise HTTPException(status_code=402, detail=out["reason"])
+    # charge_failed (rare store-then-unwind race): uncharged, returned 200-shaped.
+    return out
+
+
+@router.get("/store/parcel/{ticket}", tags=["store"])
+def store_retrieve(ticket: str, request: Request):
+    """Retrieve a parked parcel by its claim ticket (blind locker, §2c). Returns
+    {ok, blob_b64, size_bytes, expires_at} — the ciphertext you parked, which
+    only YOU can decrypt. Key via `Authorization: Bearer`/`X-API-Key`. A wrong
+    owner reads as a missing ticket (404). Retrieval is free (the park settled
+    it). An expired TTL is 404; a lost at-rest key is 503."""
+    try:
+        from vend import shelf as _shelf, locker as _locker
+    except ImportError:
+        raise HTTPException(status_code=503, detail="store not present in this build")
+    from gametheory.server.middleware import bearer_api_key
+    api_key = bearer_api_key(request)
+    if not api_key:
+        raise HTTPException(
+            status_code=401,
+            detail="missing api_key (Authorization: Bearer or X-API-Key)")
+    _shelf.ensure_locker()
+    out = _locker.retrieve_b64(api_key, ticket, door="http")
+    if out.get("ok"):
+        return out
+    code = out.get("code")
+    if code in ("not_found", "expired"):
+        raise HTTPException(status_code=404, detail=out["reason"])
+    if code == "at_rest_key_unavailable":
+        raise HTTPException(status_code=503, detail=out["reason"])
+    return out

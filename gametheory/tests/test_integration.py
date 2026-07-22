@@ -344,6 +344,37 @@ def test_body_only_key_does_not_escape_the_per_ip_floor(client):
     assert saw_429, "a body-only key must not lift the per-IP floor"
 
 
+def test_fake_key_fanout_bounded_by_per_ip_backstop(client):
+    """REGRESSION (per-IP floor bypass): bearer_api_key is shape-only, so a UNIQUE
+    fake gt_ token per request used to mint an endless supply of fresh, full 600/min
+    lanes and fan out UNBOUNDED from one IP — evading every per-IP cap. Now a per-IP
+    BACKSTOP (math_keyed_per_ip) bounds total keyed volume per IP. Pre-drain that
+    shared backstop to prove the bound cheaply: two DISTINCT fake keys, and the
+    second 429s on the backstop even though its OWN per-key lane is fresh."""
+    ip = "testclient"  # the client host Starlette's TestClient presents (_client_ip)
+    _mw._bucket_for("math_keyed_per_ip", ip).tokens = 1.0  # room for one more keyed req
+    r1 = client.post("/v1/auction/bidder/optimal_bid", json=_BID_BODY,
+                     headers={"Authorization": "Bearer gt_fanout_a"})
+    r2 = client.post("/v1/auction/bidder/optimal_bid", json=_BID_BODY,
+                     headers={"Authorization": "Bearer gt_fanout_b"})
+    assert r1.status_code == 200, "first keyed req consumes the last backstop token"
+    assert r2.status_code == 429, "a distinct fake key can't mint an unbounded lane"
+    assert "math_keyed_per_ip" in r2.json()["detail"]
+
+
+def test_per_ip_keyed_backstop_sits_above_one_key_lane(client):
+    """The backstop must never throttle a single real key: its per-IP cap sits well
+    above one key's 600/min lane (GAUNTLET.md #3 — paid traffic isn't floored). A
+    burst on ONE key stays 200, and the backstop cap strictly exceeds the per-key
+    cap so a full-rate single key can't reach it."""
+    assert _mw._LIMITS["math_keyed_per_ip"][0] > _mw._LIMITS["math_per_key"][0]
+    hdr = {"Authorization": "Bearer gt_single_real_key"}
+    codes = [client.post("/v1/auction/bidder/optimal_bid",
+                         json=_BID_BODY, headers=hdr).status_code
+             for _ in range(150)]  # 150 < 600 per-key and < 3000 backstop
+    assert all(c == 200 for c in codes), "one real key must not hit the backstop"
+
+
 def test_keyed_lane_429_carries_retry_after(client):
     """When the per-key 600/min bucket IS exhausted, the 429 still carries a
     sane Retry-After. Drain the bucket deterministically (600 sequential

@@ -228,3 +228,116 @@ def test_rotation_of_bare_key_leaves_new_key_eligible():
                                      "funded_millicents": 0,
                                      "total_millicents": 0}
     assert wallet_grant_starter(new) is True       # still eligible
+
+
+# ─── concurrency: the debit lost-update is closed (Fix 1) ────────────────────
+
+
+def test_concurrent_debits_never_lose_a_write():
+    """N parallel debits of one wallet must debit EXACTLY the balance and leave
+    the wallet at zero — no lost update. The old SELECT → compute → absolute
+    UPDATE let racers clobber each other (money left behind, spend over-reported);
+    the atomic compare-and-swap forbids it. This replaces the deleted
+    atomic-deduct concurrency coverage the review flagged."""
+    import threading
+
+    key = _key()                                   # starter 50_000
+    wallet_credit(key, 50_000, bucket="funded")    # + funded 50_000 = 100_000
+    total_start = wallet_available(key)["total_millicents"]
+    assert total_start == 100_000
+
+    n = 8
+    each = 20_000                                  # 8×20_000 demanded > 100_000
+    barrier = threading.Barrier(n)
+    results: list = [None] * n
+
+    def worker(i):
+        barrier.wait()                             # release together — max race
+        results[i] = wallet_debit(key, each)
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(n)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    spent = sum(r["starter_spent"] + r["funded_spent"] for r in results)
+    shortfall = sum(r["shortfall_millicents"] for r in results)
+    assert spent == total_start                    # exactly the balance, no more
+    assert shortfall == n * each - total_start     # the rest is honest shortfall
+    assert wallet_available(key)["total_millicents"] == 0   # nothing lost/left
+
+
+# ─── idempotent credit: atomic claim+credit, replay-safe (Fix 5) ─────────────
+
+
+def test_credit_idempotent_credits_once_per_dedup_key():
+    key = _key()
+    r1 = _ob.wallet_credit_idempotent(key, 5_000, dedup_key="sess_A")
+    r2 = _ob.wallet_credit_idempotent(key, 5_000, dedup_key="sess_A")  # replay
+    assert r1["duplicate"] is False
+    assert r2["duplicate"] is True                 # same purchase → no-op
+    assert wallet_available(key)["funded_millicents"] == 5_000   # ONE credit
+    # a DIFFERENT dedup key is a distinct purchase → credits again
+    _ob.wallet_credit_idempotent(key, 3_000, dedup_key="sess_B")
+    assert wallet_available(key)["funded_millicents"] == 8_000
+
+
+def test_credit_idempotent_atomic_rolls_back_on_failure(monkeypatch):
+    """The dedupe-row claim and the wallet mutation are ONE transaction: a
+    failure in the mutation must roll back the claim too, so a retry credits."""
+    key = _key()
+    dedup = "sess_atomic_1"
+
+    def boom(*a, **k):
+        raise RuntimeError("mutation failed mid-transaction")
+
+    monkeypatch.setattr(_ob, "_apply_wallet_delta", boom)
+    with pytest.raises(RuntimeError, match="mutation failed"):
+        _ob.wallet_credit_idempotent(key, 5_000, dedup_key=dedup)
+    assert wallet_available(key)["funded_millicents"] == 0
+    with _ob._conn() as c:
+        row = c.execute("SELECT 1 FROM wallet_credits WHERE dedup_key = ?",
+                        (dedup,)).fetchone()
+    assert row is None, "a failed credit must not leave a claimed dedupe row"
+
+    monkeypatch.undo()                             # mutation works now
+    r1 = _ob.wallet_credit_idempotent(key, 5_000, dedup_key=dedup)
+    r2 = _ob.wallet_credit_idempotent(key, 5_000, dedup_key=dedup)
+    assert r1["duplicate"] is False and r2["duplicate"] is True
+    assert wallet_available(key)["funded_millicents"] == 5_000
+
+
+def test_credit_idempotent_follows_rotation_chain():
+    a = _key()
+    b = rotate_key(a)["api_key"]
+    _ob.wallet_credit_idempotent(a, 4_000, dedup_key="sess_chain")  # old key
+    assert wallet_available(b)["funded_millicents"] == 4_000        # lands on live
+
+
+# ─── one-time cent-balance backfill (Fix 2) ──────────────────────────────────
+
+
+def test_migrate_cent_balances_backfills_and_is_idempotent():
+    key = _key()                                   # starter granted, funded 0
+    # Simulate a legacy nonzero cent balance ($10 test-mode = 1000 cents).
+    with _ob._conn() as c:
+        c.execute("UPDATE keys SET balance_usd_cents = ? WHERE api_key = ?",
+                  (1000, key))
+        c.commit()
+
+    r1 = _ob.migrate_cent_balances()
+    assert r1["migrated"] == 1
+    assert r1["millicents_moved"] == 1000 * MILLICENTS_PER_CENT
+    a = wallet_available(key)
+    assert a["funded_millicents"] == 1000 * MILLICENTS_PER_CENT     # 1_000_000
+    assert a["starter_millicents"] == STARTER_GRANT_MILLICENTS      # untouched
+    with _ob._conn() as c:
+        v = c.execute("SELECT balance_usd_cents FROM keys WHERE api_key = ?",
+                      (key,)).fetchone()[0]
+    assert v == 0                                  # cent column zeroed
+
+    # idempotent: a second run moves nothing and does NOT double-credit
+    r2 = _ob.migrate_cent_balances()
+    assert r2["migrated"] == 0
+    assert wallet_available(key)["funded_millicents"] == 1000 * MILLICENTS_PER_CENT

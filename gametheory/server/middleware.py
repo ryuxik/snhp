@@ -113,6 +113,15 @@ _LIMITS = {
     # Math endpoints. Per-IP fallback when no key supplied; per-key when key present.
     "math_per_ip":      (60, 60 / 60),      # 60/minute bucket
     "math_per_key":     (600, 600 / 60),    # 600/minute bucket (matches catalog claim)
+    # Per-IP BACKSTOP for KEYED traffic. bearer_api_key is shape-only (no DB), so a
+    # unique fake `gt_` token per request mints a fresh, full 600/min per-key lane
+    # every time — without a per-IP ceiling that fan-out is UNBOUNDED from one IP
+    # (it evaded the 60/min keyless floor entirely). 3000/min is chosen as a hard
+    # per-IP cap on total keyed volume that sits WELL ABOVE any single key's 600/min
+    # lane (5x): one real paying key — or even a handful of real keys behind one NAT
+    # — never trips it (GAUNTLET.md #3: paid traffic must not be floored), yet
+    # unbounded fake-key fan-out from one IP is bounded to 3000/min.
+    "math_keyed_per_ip": (3000, 3000 / 60), # 3000/minute per-IP backstop (keyed)
     # First-strike commit/reveal — moderately rate-limited per IP regardless.
     "first_strike_per_ip": (30, 30 / 60),
 }
@@ -198,15 +207,24 @@ class RateLimit(BaseHTTPMiddleware):
         elif path.startswith("/v1/"):
             key = bearer_api_key(request)
             if key is not None:
-                # Keyed lane: the 600/min per-key bucket ONLY. A real credential
-                # buys its own lane and MUST NOT be throttled by the shared
-                # per-IP free floor — that floor-throttling of paid traffic was
-                # GAUNTLET.md #3. Bucketed on the token STRING (no DB hit; see
-                # bearer_api_key's hot-path contract).
+                # Keyed lane: the 600/min per-key bucket. A real credential buys its
+                # own lane and MUST NOT be throttled by the shared 60/min per-IP FREE
+                # floor — that floor-throttling of paid traffic was GAUNTLET.md #3.
+                # Bucketed on the token STRING (no DB hit; see bearer_api_key's
+                # hot-path contract).
                 b = _bucket_for("math_per_key", key)
                 if not b.take():
                     _log_throttle("math_per_key", had_key=True, path=path, key=key)
                     return _ratelimit_response("math_per_key", b)
+                # AND a much higher per-IP BACKSTOP. bearer_api_key is shape-only, so
+                # a unique fake `gt_` token per request would otherwise mint unlimited
+                # fresh 600/min lanes and fan out unbounded from one IP (bypassing the
+                # keyless floor). The 3000/min backstop bounds total keyed volume per
+                # IP without touching a single real key's 600/min lane (3000 >> 600).
+                ipb = _bucket_for("math_keyed_per_ip", ip)
+                if not ipb.take():
+                    _log_throttle("math_keyed_per_ip", had_key=True, path=path, key=key)
+                    return _ratelimit_response("math_keyed_per_ip", ipb)
             else:
                 # Keyless lane: the 60/min per-IP free floor. Body-only keys land
                 # here too (middleware can't see them) — documented per-endpoint.

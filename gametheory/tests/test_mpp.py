@@ -210,6 +210,46 @@ def test_malformed_credential_returns_fresh_402_not_500(client, percall_on):
     assert resp.headers.get("www-authenticate", "").startswith("Payment ")
 
 
+def _credential_with_challenge_overrides(overrides: dict, spt: str = "spt_test_x") -> str:
+    """Build a wire `Authorization: Payment <b64>` value whose challenge carries
+    attacker-typed field overrides (bypassing serialize_credential's typing). Used to
+    prove type-hardening: numeric/typed-wrong fields must be rejected, not 500."""
+    frame = mpp.paid_resource_frame(base_cents=mpp.NEGOTIATE_BASE_CENTS, what="turn")
+    ch = mpp.build_challenge(realm="api.snhp.dev", request=frame["request"])
+    wire_ch = {**{k: v for k, v in ch.items() if k != "request"},
+               "request": mpp.serialize_payment_request(ch["request"])}
+    wire_ch.update(overrides)  # inject the attacker-controlled typed-wrong fields
+    wire = {"challenge": wire_ch, "payload": {"spt": spt}}
+    return f"Payment {mpp._b64url_encode(json.dumps(wire).encode('utf-8'))}"
+
+
+@pytest.mark.parametrize("overrides", [
+    {"id": 123},          # numeric id  -> hmac.compare_digest TypeError pre-fix
+    {"realm": 456},       # numeric realm -> '|'.join TypeError pre-fix
+    {"expires": 789},     # numeric expires -> '|'.join TypeError pre-fix
+    {"method": 1},        # numeric method
+    {"request": "MTIz"},  # base64url of "123" -> request decodes to int, not a dict
+])
+def test_typed_wrong_challenge_fields_yield_402_not_500(client, percall_on, overrides):
+    # REGRESSION: attacker-typed JSON in the credential's challenge must be rejected
+    # as a CredentialError (-> 402 with a fresh challenge), never crash as HTTP 500
+    # (the mppx validator asserts 'malformed credential -> 402, never 500').
+    auth = _credential_with_challenge_overrides(overrides)
+    resp = client.post("/v1/mpp/negotiate/turn",
+                       headers={"Authorization": auth}, json={})
+    assert resp.status_code == 402, f"{overrides} -> {resp.status_code}"
+    assert resp.headers.get("www-authenticate", "").startswith("Payment ")
+
+
+def test_parse_credential_rejects_typed_wrong_fields_directly():
+    # Unit-level: parse_credential is the trust boundary and must raise
+    # CredentialError (not TypeError/AttributeError) on any typed-wrong field.
+    for overrides in ({"id": 123}, {"realm": 456}, {"expires": 789},
+                      {"method": 1}, {"request": "MTIz"}):
+        with pytest.raises(mpp.CredentialError):
+            mpp.parse_credential(_credential_with_challenge_overrides(overrides))
+
+
 # ─── HTTP: full paid roundtrip (monkeypatched Stripe) ────────────────────────
 
 
@@ -280,12 +320,26 @@ def test_topup_credits_wallet_and_dedupes(client, fake_stripe, monkeypatch):
     assert wallet_available(key)["total_millicents"] == after   # unchanged
 
 
-def test_topup_unknown_key_is_paid_but_not_credited(client, fake_stripe):
+def test_topup_unknown_key_rejected_before_charge(client, fake_stripe, monkeypatch):
+    # REGRESSION (charge-before-credit): an unknown/typo'd api_key must be a free
+    # 4xx returned BEFORE any SPT settlement — the card is never charged for a key
+    # that names no wallet (the old bug charged, then reported "not credited").
+    # Spy on settle_spt to prove it is never reached.
+    called = {"settle": False}
+    real_settle = mpp.settle_spt
+
+    def _spy(*a, **k):
+        called["settle"] = True
+        return real_settle(*a, **k)
+
+    monkeypatch.setattr(mpp, "settle_spt", _spy)
+
     resp = _pay(client, "/v1/mpp/topup", {"api_key": "gt_does_not_exist"})
-    assert resp.status_code == 200
+    assert resp.status_code == 400
+    assert called["settle"] is False, "must NOT settle (charge) an unknown wallet"
+    assert resp.headers.get("payment-receipt") is None   # nothing paid -> no receipt
     body = resp.json()
-    assert body["credited"] is False and "error" in body
-    assert resp.headers.get("payment-receipt")           # still proof of payment
+    assert body["status"] == 400 and "api_key" in body["detail"]
 
 
 def test_settlement_declined_returns_402(client, monkeypatch, percall_on):

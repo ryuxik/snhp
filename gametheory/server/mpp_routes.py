@@ -122,6 +122,25 @@ def _has_payment_credential(request: Request) -> bool:
     return mpp.SCHEME.lower() in auth.lower() if auth else False
 
 
+def _unknown_wallet_response(frame: dict) -> JSONResponse:
+    """400 for a topup whose body `api_key` names no wallet — returned BEFORE any
+    SPT settlement so an unknown/typo'd key is NEVER charged (charge-before-credit
+    fix). A clean 4xx (never a 500); the SPT is untouched, so the caller retries
+    with a correct api_key at zero cost."""
+    return JSONResponse(
+        status_code=400,
+        media_type="application/problem+json",
+        content={
+            "type": mpp.PROBLEM_TYPE_NOT_FOUND,
+            "title": "Bad Request",
+            "status": 400,
+            "detail": ("api_key names no wallet; no payment was taken. Supply a "
+                       "valid gt_ api_key in the request body to fund the top-up."),
+            "price_cents": frame["price_cents"],
+        },
+    )
+
+
 # ─── Resource 1: pay-per-call negotiation (no api_key, no wallet) ─────────────
 
 
@@ -262,6 +281,17 @@ async def mpp_topup(request: Request):
 
     # The wallet to credit travels in the body on BOTH requests (client resends it).
     api_key = await _read_api_key(request)
+
+    # CHARGE-BEFORE-CREDIT FIX: settlement (settle_spt, inside _verify_and_settle)
+    # TAKES THE CARD. If the api_key names no wallet — a typo/unknown key — that
+    # money is charged and can never be credited, with no recovery path. So confirm
+    # the wallet EXISTS before ANY settlement: an unknown/missing key is a free 4xx
+    # here (never a charge). Scoped to /v1/mpp/topup — the per-call negotiate
+    # resource has no wallet, so it never runs this pre-check. Still a 4xx, never a
+    # 500, so the MPP wire contract holds.
+    if not api_key or onboarding.lookup_key(api_key) is None:
+        return _unknown_wallet_response(frame)
+
     try:
         settled = _verify_and_settle(request, frame, kind="mpp_topup", api_key=api_key)
     except mpp.CredentialError:
@@ -295,6 +325,122 @@ async def _read_api_key(request: Request) -> Optional[str]:
         return body.get("api_key") if isinstance(body, dict) else None
     except Exception:
         return None
+
+
+# ─── Acceptance manifest: machine-readable "how to pay this store" ────────────
+#
+# GET /v1/mpp/manifest — a PURE READ (no charge, no auth) an agent's payment
+# tooling reads to learn how to pay us WITHOUT a human: the paid resources + their
+# price frames, the accepted method (stripe / SPT ONLY — no crypto, per the
+# stablecoin lock in AGENTIC_PAYMENTS.md), the counter-fee structure (from the
+# billing constants, never a hardcoded string), the SPT minimum, the settlement
+# preview API version, and the 402 -> authorize-with-SPT -> retry -> receipt flow.
+#
+# This route is the FIRST PRODUCTION caller of mpp.paid_resource_frame() (it was
+# test-only before) — so the price the manifest advertises is computed by the SAME
+# function the 402 challenge uses and can never drift from the charged price.
+#
+# The keyless per-call resource is OMITTED while MPP_PERCALL_ENABLED is off
+# (mpp.percall_enabled()), mirroring its absence from /openapi.json. If networkId
+# is still the placeholder, live_ready is False WITH the reason, so a caller
+# minting a REAL SPT is not misled into thinking we can settle it live yet.
+
+
+def _resource_descriptor(*, path: str, base_cents: int, what: str) -> dict:
+    """One manifest resource entry, built from the SAME mpp.paid_resource_frame the
+    402 challenge is built from — the manifest price and the charged price share a
+    single source, so they cannot silently disagree."""
+    frame = mpp.paid_resource_frame(base_cents=base_cents, what=what)
+    return {
+        "path": path,
+        "method": "POST",
+        "what": what,
+        "base_cents": frame["base_cents"],
+        "fee_cents": frame["fee_cents"],
+        "price_cents": frame["price_cents"],
+        "currency": frame["currency"],
+        "description": frame["description"],
+        # The exact stripe/charge `request` object the 402 challenge will carry.
+        "challenge_request": frame["request"],
+    }
+
+
+@router.get("/v1/mpp/manifest", tags=["mpp"])
+async def mpp_manifest(request: Request):
+    """The acceptance manifest: everything an agent's payment tooling needs to pay
+    this store over MPP with a Shared Payment Token, WITHOUT a human. Pure read —
+    no charge, no auth. Reuses mpp.paid_resource_frame() for every price (so the
+    advertised price is the charged price) and mpp.percall_enabled() /
+    mpp.live_ready() so the manifest reflects live server state honestly."""
+    ready = mpp.live_ready()
+    # /v1/mpp/topup is ALWAYS advertised (keyed, countable callers).
+    resources = [_resource_descriptor(
+        path="/v1/mpp/topup", base_cents=mpp.TOPUP_CREDIT_CENTS,
+        what=f"SNHP wallet top-up ({mpp.TOPUP_CREDIT_CENTS}c credit)")]
+    # The keyless pay-per-call resource appears ONLY when its fence is open,
+    # matching its /openapi.json visibility (mpp.percall_enabled()).
+    if mpp.percall_enabled():
+        resources.insert(0, _resource_descriptor(
+            path="/v1/mpp/negotiate/turn", base_cents=mpp.NEGOTIATE_BASE_CENTS,
+            what="SNHP negotiation turn (pay-per-call)"))
+
+    manifest = {
+        "protocol": "mpp",
+        "protocol_docs": "https://mpp.dev",
+        "spec": "https://docs.stripe.com/payments/machine/mpp",
+        "realm": _realm(request),
+        # We accept exactly one rail: fiat SPT on Stripe. Crypto/Tempo is DECLINED
+        # (stablecoin lock, AGENTIC_PAYMENTS.md §5) — a crypto-only caller cannot pay.
+        "accepted_method": {
+            "method": mpp.METHOD_STRIPE,
+            "rail": "fiat",
+            "credential": "shared_payment_token",
+            "payment_method_types": mpp.STRIPE_PAYMENT_METHOD_TYPES,
+            "crypto_accepted": False,
+        },
+        "accept_payment_header": ", ".join(mpp.SUPPORTED_METHODS),
+        # Fee STRUCTURE from the billing constants — never a hardcoded string.
+        "fee": {
+            "model": "counter_fee",
+            "percent": mpp.billing.COUNTER_FEE_PCT,
+            "fixed_cents": mpp.billing.COUNTER_FEE_FIXED_CENTS,
+            "applies_to": "every resource price = base + counter fee (5% + fixed 30c)",
+        },
+        "spt_minimum_cents": mpp.SPT_MIN_CENTS,
+        "currency": "usd",
+        "settlement_api_version": mpp.STRIPE_SPT_PREVIEW_VERSION,
+        "api_version_status": "preview",
+        "flow": [
+            "POST the resource with no credential -> 402 with a signed "
+            "WWW-Authenticate: Payment challenge",
+            "authorize the challenge with a Shared Payment Token you minted, "
+            "scoped to this store",
+            "retry with Authorization: Payment <credential carrying the SPT>",
+            "receive the resource + a Payment-Receipt header",
+        ],
+        "resources": resources,
+        "discovery": {
+            "openapi": "/openapi.json",
+            "x_payment_info": ("each paid path carries an x-payment-info block in "
+                               "/openapi.json (npx mppx validate reads it)"),
+        },
+        "reference_client": "vend/mpp_client.py",
+        "human_onramp": ("POST /v1/billing/checkout_session — human-clickable Stripe "
+                         "Checkout top-up for agents that cannot yet mint an SPT"),
+        # The buyer mints the SPT on their platform; we never see their card. We
+        # only redeem a token the buyer scoped to us.
+        "minting": "buyer-side; the store never sees the card, only redeems a scoped token",
+        "live_ready": ready,
+        "network_id": mpp.network_id(),
+    }
+    if not ready:
+        manifest["live_ready_reason"] = (
+            f"networkId is the placeholder {mpp.NETWORK_ID_PLACEHOLDER!r} — no "
+            "Stripe Business Network profile is set. Test-mode settlement works; "
+            "live SPT redemption does not until STRIPE_MPP_NETWORK_ID is a real "
+            "profile_… id (docs 'Before you begin').")
+    return JSONResponse(status_code=200, content=manifest,
+                        headers={"Cache-Control": "no-store"})
 
 
 def _credit_wallet(api_key: Optional[str], credit_cents: int, reference: str):

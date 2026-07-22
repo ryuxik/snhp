@@ -222,6 +222,38 @@ def test_all_backends_fail_uncharged(fake_fetch, telemetry_file):
     assert wallet_available(key)["total_millicents"] == STARTER_GRANT_MILLICENTS
 
 
+def test_httpexception_from_backend_cascades_not_500(fake_fetch, telemetry_file,
+                                                     monkeypatch):
+    # FIX 3a end-to-end: a REAL backend hitting an http.client.HTTPException
+    # (IncompleteRead here — neither OSError nor URLError) must NOT 500. It
+    # normalizes to a BackendError and CASCADES to the next backend, and the call
+    # still writes exactly one telemetry line. Uses the real backends (not the
+    # FakeBackend) so their transport catch is what's exercised.
+    import http.client
+    import vend.fetch_backends as fb
+    monkeypatch.setenv("JINA_API_KEY", "k")
+    monkeypatch.setenv("FIRECRAWL_API_KEY", "k")
+    fake_fetch(fb.JinaReaderBackend(), fb.FirecrawlBackend())   # restored on teardown
+    fc_body = json.dumps({"success": True,
+                          "data": {"markdown": "# ok\n\nbody", "metadata": {}}})
+
+    def transport(**kw):
+        if kw["method"] == "GET":              # Jina → an HTTPException-family error
+            raise http.client.IncompleteRead(b"partial")
+        return fb._HttpResponse(status=200, headers={}, text=fc_body)  # Firecrawl serves
+
+    monkeypatch.setattr(fb, "_http_request", transport)
+    key = _key()
+    r = client.post("/v1/fetch", json={"api_key": key,
+                                       "url": "https://example.com/z"})
+    assert r.status_code == 200, r.text        # NOT a 500 — HTTPException was normalized
+    out = r.json()
+    assert out["ok"] is True
+    assert out["receipt"]["backend_id"] == "firecrawl"   # cascaded past Jina's HTTPException
+    calls = _slot_calls(telemetry_file)
+    assert len(calls) == 1 and calls[0]["settled"] is True   # exactly one line
+
+
 # ─── the money edges: 402 broke, 401 unknown ─────────────────────────────────
 
 
@@ -242,7 +274,8 @@ def test_unknown_key_401(fake_fetch):
     assert r.status_code == 401, r.text
 
 
-def test_malformed_url_is_a_client_error_not_a_settlement(monkeypatch):
+def test_malformed_url_is_a_client_error_not_a_settlement(monkeypatch,
+                                                          telemetry_file):
     # real backends validate the url before any network call (bad scheme → no
     # network at all); a 400 over HTTP and an error dict over MCP — never a
     # charged outcome. Env keys only make the real backends "available" so the
@@ -257,6 +290,12 @@ def test_malformed_url_is_a_client_error_not_a_settlement(monkeypatch):
     out = mcp_server.store_fetch(api_key=key, url="ftp://example.com/x")
     assert out["ok"] is False and out["charged"] is False
     assert wallet_available(key)["funded_millicents"] == 5_000   # nothing spent
+    # FIX 3b: the client-error path still writes ONE telemetry line PER call — a
+    # malformed request is no longer a silent hole in the telemetry contract.
+    calls = _slot_calls(telemetry_file)
+    assert len(calls) == 2                            # one HTTP + one MCP call
+    assert all(c["settled"] is False and c["reason"] == "invalid_request"
+               for c in calls)
 
 
 # ─── the catalog leaks nothing, over either door ─────────────────────────────

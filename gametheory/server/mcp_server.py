@@ -939,20 +939,36 @@ try:
                     "how_to_pay": "see nextmove_catalog"}
         except KeyError as e:
             return {"error": str(e)}
-        _tm.log_session_open(api_key=api_key, door="mcp",
-                             category=category, side=side,
-                             stake=abs(target - walk_away),
-                             price_cents=_NM_PRICE,
-                             session_id=sess["session_id"])
+        # Telemetry must NEVER break the paid response (mirrors the HTTP door): a
+        # telemetry OSError after the $2 charge must not destroy the session_id.
+        try:
+            _tm.log_session_open(api_key=api_key, door="mcp",
+                                 category=category, side=side,
+                                 stake=abs(target - walk_away),
+                                 price_cents=_NM_PRICE,
+                                 session_id=sess["session_id"])
+        except Exception:
+            pass
         out = dict(sess)
         if their_offers is not None:
-            a, idx = _vs.session_advise(
-                session_id=sess["session_id"], api_key=api_key,
-                their_offers=their_offers, my_offers=my_offers,
-                rounds_left=rounds_left)
-            _tm.log_advice(advice=a, api_key=api_key, door="mcp",
-                           price_cents=0, session_id=sess["session_id"],
-                           move_index=idx)
+            # The optional first move must not vaporize the paid session_id: a
+            # first-move engine error is REPORTED as a field, not raised away
+            # (the $2 already bought the session). Not consumed on failure —
+            # session_advise runs the engine before incrementing moves_used.
+            try:
+                a, idx = _vs.session_advise(
+                    session_id=sess["session_id"], api_key=api_key,
+                    their_offers=their_offers, my_offers=my_offers,
+                    rounds_left=rounds_left)
+            except Exception as e:
+                out["first_move_error"] = str(e)
+                return out
+            try:
+                _tm.log_advice(advice=a, api_key=api_key, door="mcp",
+                               price_cents=0, session_id=sess["session_id"],
+                               move_index=idx)
+            except Exception:
+                pass
             out["first_move"] = {
                 "move": a.move, "offer": a.offer, "message": a.message,
                 "why": a.why, "confidence_note": a.confidence_note,
@@ -979,8 +995,12 @@ try:
                 rounds_left=rounds_left)
         except _vs.SessionError as e:
             return {"error": str(e)}
-        _tm.log_advice(advice=a, api_key=api_key, door="mcp",
-                       price_cents=0, session_id=session_id, move_index=idx)
+        # Telemetry must never break the paid response (mirrors the HTTP door).
+        try:
+            _tm.log_advice(advice=a, api_key=api_key, door="mcp",
+                           price_cents=0, session_id=session_id, move_index=idx)
+        except Exception:
+            pass
         return {"move": a.move, "offer": a.offer, "message": a.message,
                 "why": a.why, "confidence_note": a.confidence_note,
                 "context_hash": a.context_hash, "policy_id": a.policy_id,
@@ -1018,8 +1038,12 @@ try:
             return {"error": str(e)}
         except Exception as e:
             return {"error": f"invalid issues spec: {e}"}
-        _tm.log_advice(advice=a, api_key=api_key, door="mcp",
-                       price_cents=0, session_id=session_id, move_index=idx)
+        # Telemetry must never break the paid response (mirrors the HTTP door).
+        try:
+            _tm.log_advice(advice=a, api_key=api_key, door="mcp",
+                           price_cents=0, session_id=session_id, move_index=idx)
+        except Exception:
+            pass
         return {"move": a.move, "package": a.engine.get("package"),
                 "message": a.message, "why": a.why,
                 "confidence_note": a.confidence_note,
@@ -1082,6 +1106,7 @@ try:
     from vend import shelf as _store_shelf  # noqa: E402
     from vend import store as _store  # noqa: E402
     from vend import demand as _store_demand  # noqa: E402
+    from vend import locker as _store_locker  # noqa: E402
 
     @mcp.tool()
     def store_catalog() -> dict:
@@ -1104,7 +1129,36 @@ try:
         serving-backend ids}, the anchor SKUs, and the two pricing facts. Never
         returns key material."""
         _store_shelf.ensure_shelf()
-        return _store.catalog()
+        cat = _store.catalog()
+        # Merge the blind-locker shelf card (it registers via its own readiness,
+        # not a call_slot Slot, and never edits store.py — the door merges).
+        cat["slots"].append(_store_shelf.locker_catalog_entry())
+        return cat
+
+    @mcp.tool()
+    def store_park(api_key: str, blob_b64: str,
+                   ttl_seconds: Optional[int] = None) -> dict:
+        """Blind locker (STORE.md §2c): park an ENCRYPTED blob across sessions,
+        get a claim ticket. You encrypt BEFORE parking — the store holds only
+        opaque ciphertext (plus an at-rest layer it controls), keys never
+        transit, contents are never logged; a breach leaks sealed boxes. `blob_b64`
+        is your ciphertext as base64. Charged a thin flat park fee ONLY on durable
+        store (empty/oversize/unencodable is uncharged); retrieval is free.
+        ttl_seconds is clamped to [60s, 7d] and the effective expires_at is
+        returned. The receipt's content_hash is over YOUR ciphertext, so you can
+        prove what you stored without the store seeing plaintext."""
+        _store_shelf.ensure_locker()
+        return _store_locker.park_b64(api_key, blob_b64, ttl_seconds, door="mcp")
+
+    @mcp.tool()
+    def store_retrieve(api_key: str, ticket: str) -> dict:
+        """Blind locker: retrieve a parked parcel by its claim `ticket`. Returns
+        {ok, blob_b64, size_bytes, expires_at} — the ciphertext you parked, which
+        only YOU can decrypt. A wrong owner reads as a missing ticket; an expired
+        TTL is `expired`; a lost at-rest key is `at_rest_key_unavailable`.
+        Retrieval is free (the park settled it)."""
+        _store_shelf.ensure_locker()
+        return _store_locker.retrieve_b64(api_key, ticket, door="mcp")
 
     @mcp.tool()
     def store_fetch(api_key: str, url: str) -> dict:

@@ -23,6 +23,7 @@ never logged, echoed, or placed in a result; comments state constraints.
 """
 from __future__ import annotations
 
+import http.client
 import ipaddress
 import json
 import math
@@ -299,8 +300,13 @@ class JinaReaderBackend:
         try:
             resp = _http_request(method="GET", url=self._ENDPOINT + url,
                                  headers=headers)
-        except (urllib.error.URLError, OSError) as e:
+        except (urllib.error.URLError, http.client.HTTPException, OSError) as e:
             # Transport failure: reason names the error TYPE, never the key.
+            # http.client.HTTPException (InvalidURL / IncompleteRead /
+            # BadStatusLine …) is NEITHER OSError NOR URLError, so without it these
+            # escaped this catch, escaped call_slot's `except BackendError`, and
+            # 500'd with no failover — normalize them to a BackendError so they
+            # cascade like any other non-delivery.
             raise BackendError(
                 f"jina-reader transport error: {type(e).__name__}") from e
         if not (200 <= resp.status < 300):
@@ -373,7 +379,11 @@ class FirecrawlBackend:
         try:
             resp = _http_request(method="POST", url=self._ENDPOINT,
                                  headers=headers, body=body)
-        except (urllib.error.URLError, OSError) as e:
+        except (urllib.error.URLError, http.client.HTTPException, OSError) as e:
+            # http.client.HTTPException (InvalidURL / IncompleteRead /
+            # BadStatusLine …) is neither OSError nor URLError; catch it here so an
+            # HTTP-protocol transport error normalizes to a BackendError and
+            # cascades instead of escaping call_slot as an uncaught 500.
             raise BackendError(
                 f"firecrawl transport error: {type(e).__name__}") from e
         if not (200 <= resp.status < 300):

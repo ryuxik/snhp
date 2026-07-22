@@ -9,7 +9,7 @@ store identity beyond a slot's own config (STORE.md §2d.1).
 """
 from __future__ import annotations
 
-from vend import store, telemetry
+from vend import locker, store, telemetry
 from vend.fetch_backends import (
     PREDICATE_ID_V2, FirecrawlBackend, JinaReaderBackend, fetch_predicate_v2,
 )
@@ -61,3 +61,30 @@ def ensure_shelf() -> None:
     # integrator's lane). Every call — uncharged failures included — flows
     # through it, so non-delivery is recorded, not lost.
     store.set_telemetry_sink(telemetry.log_slot_call)
+    # Stock the blind locker too (STORE.md §2c). It is NOT a call_slot-style Slot
+    # (no backends/predicate — its own park/retrieve settlement), so it registers
+    # via its own readiness rather than store.register_slot.
+    ensure_locker()
+
+
+def ensure_locker() -> None:
+    """Make the blind locker ready and discoverable (STORE.md §2c). Idempotent:
+    eagerly creates the `locker` table (schema init is cached per backend by
+    gametheory._db, so repeat calls skip the DDL) and binds the locker's own
+    telemetry to the same JSONL sink the store uses, so a park/retrieve line
+    lands beside every slot_call line. Safe to call on every request from every
+    door. The locker never edits store.py: doors read its shelf card from
+    `locker_catalog_entry()` and merge it into the catalog themselves."""
+    from gametheory._db import db_conn
+    with db_conn(locker._LOCKER_SCHEMA):
+        pass
+    # Bind the locker's telemetry to the shared JSONL writer (its default sink
+    # already writes there; this makes the binding explicit and swap-safe).
+    locker.set_telemetry_sink(locker._default_sink)
+
+
+def locker_catalog_entry() -> dict:
+    """The blind-locker shelf card, for a door to merge into the store catalog
+    (the locker does not touch store.catalog(), which is another worker's file).
+    States the TTL, size cap, price, and the blind-custody guarantee."""
+    return locker.catalog_entry()

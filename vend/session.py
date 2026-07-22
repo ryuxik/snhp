@@ -69,6 +69,31 @@ class SessionError(ValueError):
     """Unknown/expired/exhausted session or key mismatch — HTTP 4xx."""
 
 
+def _authorized(session_key: str, caller_key: str) -> bool:
+    """Authorize a session call under key ROTATION.
+
+    A raw `session_key == caller_key` compare orphans a paid session the moment
+    its key rotates: the rotated-TO (new, live) key could not drive its own paid
+    session, while the OLD (now-revoked) key still could — the exact inversion of
+    rotate_key's guarantees ("balance carries" + "old key dies at once").
+
+    Fix: resolve the session's stored key to its LIVE rotation descendant and
+    require the caller to be presenting exactly that key. onboarding.resolve_live_key
+    walks the replaced_by chain to the one key that is present in `keys` AND absent
+    from `revoked_keys` (or None on a dead/cyclic/over-long/unknown chain), so:
+      - no rotation: resolve_live_key(K) == K, caller must present K.
+      - after rotation: the old stored key resolves FORWARD to the new key, so
+        the new key drives the session and the old (revoked) key — which no longer
+        equals that forward descendant — is rejected at once.
+    Because resolve_live_key only ever returns a live, non-revoked key, requiring
+    caller_key == that descendant also proves the caller's key is itself live
+    (equivalent to `resolve_live_key(caller_key) == resolve_live_key(session_key)`
+    AND caller_key live, but with one lookup). A dead chain (None) fails closed."""
+    from gametheory.server import onboarding
+    live = onboarding.resolve_live_key(session_key)
+    return live is not None and live == caller_key
+
+
 def _append_move_hash(session_id: str, context_hash: str) -> None:
     """Append one move's context_hash to the session's move-hash log. The close
     summary hands these to a principal as the per-move replay anchors; they are
@@ -113,6 +138,14 @@ def open_session_charged(*, api_key: str, category: str, side: str,
                        f"valid: {sorted(CATEGORIES)}")
     if side not in ("buy", "sell"):
         raise KeyError(f"side must be 'buy' or 'sell', got {side!r}")
+    # Validate the negotiation bounds with the ENGINE's OWN validator BEFORE any
+    # charge: an unusable session (target below/above walk_away for the side, a
+    # non-positive bound) must be refused uncharged, not sold then 500'd when the
+    # first move finally runs the engine. rounds_left is a per-move input, so it
+    # is checked at move time, not here. Reused, not reinvented — one source of
+    # truth (plain_terms.validate_terms), raising NegotiationInputError → 4xx.
+    from gametheory.negotiation.plain_terms import validate_terms
+    validate_terms(side=side, walk_away=float(walk_away), target=float(target))
     from gametheory.server import billing, onboarding
     # Charge the ONE wallet (starter bucket applies to the anchor too). The
     # returned split lets an insert failure refund the EXACT buckets it spent.
@@ -178,18 +211,31 @@ def session_advise(*, session_id: str, api_key: str,
                       moves_used, created_at, closed
                FROM advice_sessions WHERE session_id = ?""",
             (session_id,)).fetchone()
-        if row is None or row[0] != api_key:
+        if row is None or not _authorized(row[0], api_key):
             # key mismatch reported identically to unknown: a session id
-            # must not be probeable with someone else's key
+            # must not be probeable with someone else's key. _authorized
+            # follows key rotation (rotated-to key OK, revoked old key not).
             raise SessionError("unknown session (or key mismatch)")
         _, category, side, walk_away, target, seed, used, created, closed = row
         if closed:
             raise SessionError("session closed")
         if now > created + SESSION_TTL_S:
             raise SessionError("session expired")
+        # Enforce the cap BEFORE running the engine so an over-cap call is
+        # rejected without consuming a move (and without paying — moves are free).
         if used >= SESSION_MAX_MOVES:
             raise SessionError(
                 f"move cap reached ({SESSION_MAX_MOVES}); open a new session")
+    # Run the engine FIRST: a failed move (NegotiationInputError/AdviceInvariant
+    # Error) must NOT burn a paid move. Only after advise() succeeds do we claim
+    # the move index via the guarded compare-and-swap below. Two racing callers
+    # may both compute here, but the CAS lets exactly one commit the increment;
+    # the loser sees rowcount 0 and retries (no move consumed on either the
+    # engine failure or the lost race).
+    a = advise(category=category, side=side, walk_away=walk_away,
+               target=target, their_offers=their_offers,
+               my_offers=my_offers, rounds_left=rounds_left, seed=seed)
+    with _conn() as c:
         cur = c.execute(
             """UPDATE advice_sessions SET moves_used = moves_used + 1
                WHERE session_id = ? AND moves_used = ? AND closed = 0""",
@@ -197,9 +243,6 @@ def session_advise(*, session_id: str, api_key: str,
         if cur.rowcount != 1:      # concurrent move raced us; caller retries
             raise SessionError("concurrent move in flight; retry")
         c.commit()
-    a = advise(category=category, side=side, walk_away=walk_away,
-               target=target, their_offers=their_offers,
-               my_offers=my_offers, rounds_left=rounds_left, seed=seed)
     return _finalize_move(a, session_id, used + 1, kind="nextmove.move"), used + 1
 
 
@@ -208,10 +251,18 @@ def close_session(*, session_id: str, api_key: str) -> bool:
     sessions also die by TTL/cap — but closing is good hygiene and good
     telemetry (it timestamps the negotiation's end)."""
     with _conn() as c:
+        row = c.execute(
+            "SELECT api_key FROM advice_sessions WHERE session_id = ?",
+            (session_id,)).fetchone()
+        # Rotation-aware auth (matches session_advise): the rotated-to key can
+        # close its carried session, the revoked old key cannot. Unknown/mismatch
+        # both return False, indistinguishably — a session id can't be probed.
+        if row is None or not _authorized(row[0], api_key):
+            return False
         cur = c.execute(
             """UPDATE advice_sessions SET closed = 1
-               WHERE session_id = ? AND api_key = ? AND closed = 0""",
-            (session_id, api_key))
+               WHERE session_id = ? AND closed = 0""",
+            (session_id,))
         c.commit()
         return cur.rowcount == 1
 
@@ -230,7 +281,10 @@ def session_summary_receipt(*, session_id: str, api_key: str) -> dict:
             """SELECT api_key, category, side, moves_used, created_at, closed,
                       move_hashes FROM advice_sessions WHERE session_id = ?""",
             (session_id,)).fetchone()
-    if row is None or row[0] != api_key:
+    # Rotation-aware auth (matches session_advise): rotated-to key OK, revoked
+    # old key rejected; unknown/mismatch indistinguishable so a session id can't
+    # be probed with someone else's key.
+    if row is None or not _authorized(row[0], api_key):
         raise SessionError("unknown session (or key mismatch)")
     _, category, side, used, created, closed, move_hashes = row
     hashes = json.loads(move_hashes or "[]")
@@ -268,16 +322,26 @@ def session_advise_bundle(*, session_id: str, api_key: str,
             """SELECT api_key, category, seed, moves_used, created_at, closed
                FROM advice_sessions WHERE session_id = ?""",
             (session_id,)).fetchone()
-        if row is None or row[0] != api_key:
+        if row is None or not _authorized(row[0], api_key):
+            # rotation-aware auth: rotated-to key drives it, revoked old key not.
             raise SessionError("unknown session (or key mismatch)")
         _, category, seed, used, created, closed = row
         if closed:
             raise SessionError("session closed")
         if now > created + SESSION_TTL_S:
             raise SessionError("session expired")
+        # Cap enforced BEFORE the engine runs — over-cap is rejected uncharged.
         if used >= SESSION_MAX_MOVES:
             raise SessionError(
                 f"move cap reached ({SESSION_MAX_MOVES}); open a new session")
+    # Engine FIRST, increment only on success (see session_advise): a failed
+    # bundle move must not burn a paid move; the CAS below claims the index.
+    a = advise_bundle(category=category, issues=issues,
+                      their_offers=their_offers, my_priorities=my_priorities,
+                      my_batna=my_batna,
+                      their_batna_estimate=their_batna_estimate,
+                      cooperation=cooperation, seed=seed)
+    with _conn() as c:
         cur = c.execute(
             """UPDATE advice_sessions SET moves_used = moves_used + 1
                WHERE session_id = ? AND moves_used = ? AND closed = 0""",
@@ -285,10 +349,5 @@ def session_advise_bundle(*, session_id: str, api_key: str,
         if cur.rowcount != 1:
             raise SessionError("concurrent move in flight; retry")
         c.commit()
-    a = advise_bundle(category=category, issues=issues,
-                      their_offers=their_offers, my_priorities=my_priorities,
-                      my_batna=my_batna,
-                      their_batna_estimate=their_batna_estimate,
-                      cooperation=cooperation, seed=seed)
     return _finalize_move(a, session_id, used + 1,
                           kind="nextmove.bundle_move"), used + 1

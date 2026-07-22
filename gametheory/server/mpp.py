@@ -142,6 +142,34 @@ STRIPE_PAYMENT_METHOD_TYPES = ["card", "link"]
 NEGOTIATE_BASE_CENTS = 100   # $1.00 per pay-per-call negotiation turn (no account)
 TOPUP_CREDIT_CENTS = 200     # $2.00 wallet credit, the published anchor (STORE.md)
 
+# Stripe's fiat-SPT floor: the smallest chargeable amount on the SPT rail is
+# 0.50 USD (docs.stripe.com/payments/machine/mpp, vend/AGENTIC_PAYMENTS.md §2b).
+# Both bases above clear it; the acceptance manifest publishes it so a caller
+# knows the minimum a token must authorize. Integer cents, no float.
+SPT_MIN_CENTS = 50
+
+# The Business Network profile id placeholder. Test mode TOLERATES it; a LIVE SPT
+# redeem REQUIRES a real profile_… id (docs "Before you begin"). Single source of
+# both the wire default (_stripe_request) and the manifest's live-readiness gate.
+NETWORK_ID_PLACEHOLDER = "profile_test_UNSET"
+
+
+def network_id() -> str:
+    """The Stripe Business Network profile id sent as methodDetails.networkId.
+    Real `profile_…` from STRIPE_MPP_NETWORK_ID when set, else NETWORK_ID_PLACEHOLDER
+    (which test mode accepts but live rejects). Sourced from env so live enrollment
+    is a config change, not a code change."""
+    return os.environ.get("STRIPE_MPP_NETWORK_ID", "").strip() or NETWORK_ID_PLACEHOLDER
+
+
+def live_ready() -> bool:
+    """True iff the server is configured to SETTLE a real (non-test) SPT: a real
+    Business Network profile id is set (network_id() != placeholder). The wire
+    protocol + test-mode settlement work regardless; this is the honest gate the
+    acceptance manifest reports so a caller minting a LIVE SPT is not misled into
+    expecting a settlement we cannot yet complete."""
+    return network_id() != NETWORK_ID_PLACEHOLDER
+
 
 # ─── base64url + JCS (RFC 8785) — match mppx `ox` Base64/Json.canonicalize ───
 
@@ -348,6 +376,17 @@ def verify_challenge(ch: dict, secret: Optional[str] = None) -> bool:
     """Recompute the HMAC id from the challenge's own fields and constant-time compare
     to the presented id. True iff we minted this challenge and nobody altered its terms.
     `ch['request']` is the DECODED request dict (as carried inside the credential)."""
+    # Fail CLOSED on any typed-wrong field rather than raise. Every field below
+    # feeds '|'.join / hmac.compare_digest, which raise TypeError on a non-str;
+    # this function must stay TOTAL (return False, never throw) so a caller that
+    # reached here with un-vetted input (parse_credential is the primary guard)
+    # still yields 'not verified' -> 402, never a 500.
+    for _f in ("id", "realm", "method", "intent", "expires", "digest", "opaque"):
+        v = ch.get(_f)
+        if v is not None and not isinstance(v, str):
+            return False
+    if not isinstance(ch.get("request", {}), dict):
+        return False
     expected = compute_challenge_id(
         realm=ch.get("realm", ""), method=ch.get("method", ""),
         intent=ch.get("intent", ""), request=ch.get("request", {}),
@@ -402,6 +441,24 @@ def parse_credential(auth_header: str) -> dict:
         parsed = json.loads(raw.decode("utf-8"))
         challenge = dict(parsed["challenge"])
         challenge["request"] = deserialize_payment_request(challenge["request"])
+        # Type-harden every attacker-controlled challenge field HERE (the trust
+        # boundary — this JSON came straight off the wire). Each of these strings
+        # later feeds compute_challenge_id's '|'.join and verify_challenge's
+        # hmac.compare_digest, BOTH of which raise TypeError on a non-str. A
+        # TypeError is NOT a CredentialError, so it would escape as HTTP 500 —
+        # violating the documented 'malformed credential -> 402 with a fresh
+        # challenge, never 500' contract the mppx validator checks. Reject any
+        # typed-wrong field as a CredentialError (-> retryable 402) instead.
+        for _field in ("id", "realm", "method", "intent", "expires", "digest",
+                       "opaque"):
+            if _field in challenge and not isinstance(challenge[_field], str):
+                raise CredentialError(
+                    f"challenge field {_field!r} must be a string")
+        # `request` must decode to a JSON object; a bare number/array/string would
+        # make the downstream amount/currency checks (req.get(...)) raise
+        # AttributeError -> 500 as well.
+        if not isinstance(challenge["request"], dict):
+            raise CredentialError("challenge request must be a JSON object")
         # `opaque` is a base64url string on the wire; leave it as-is (we don't use it).
         payload = parsed.get("payload")
         out = {"challenge": challenge, "payload": payload}
@@ -465,10 +522,10 @@ def _stripe_request(price_cents: int, currency: str) -> dict:
             # The Stripe Business Network profile id (profile_test_… / profile_…).
             # Any non-empty value passes the validator's "Has networkId" check, but a
             # REAL profile is required to mint/settle an SPT — a founder/live gate
-            # (docs.stripe.com/payments/machine/mpp "Before you begin"). Sourced from
-            # env so live enrollment is a config change, not a code change.
-            "networkId": os.environ.get("STRIPE_MPP_NETWORK_ID", "").strip()
-                          or "profile_test_UNSET",
+            # (docs.stripe.com/payments/machine/mpp "Before you begin"). network_id()
+            # resolves env STRIPE_MPP_NETWORK_ID -> the placeholder; the manifest's
+            # live_ready() reads the same source, so wire + manifest never disagree.
+            "networkId": network_id(),
             "paymentMethodTypes": STRIPE_PAYMENT_METHOD_TYPES,
         },
     }

@@ -216,7 +216,7 @@ def test_predicate_fail_cascades_to_next_backend_and_charges_the_pass():
     sid = f"cascade-{uuid.uuid4().hex[:6]}"
     b1 = FakeBackend("b1", payload={"markdown": "   "})       # blank → predicate fail
     b2 = FakeBackend("b2", payload={"markdown": "# served"}, wholesale=1_300)
-    _slot(sid, [b1, b2])
+    _slot(sid, [b1, b2], max_price=2_000)                     # cap above the wholesale
     key = _key()
     out = store.call_slot(sid, key, {"url": "http://x"}, "test")
     assert out["ok"] is True
@@ -322,7 +322,7 @@ def test_failover_order_serves_from_second_backend():
     sid = f"fo-{uuid.uuid4().hex[:6]}"
     b1 = FakeBackend("b1", fail=True)
     b2 = FakeBackend("b2", payload={"markdown": "# served"}, wholesale=1_200)
-    _slot(sid, [b1, b2])
+    _slot(sid, [b1, b2], max_price=2_000)                    # cap above the wholesale
     key = _key()
     out = store.call_slot(sid, key, {}, "test")
     assert out["ok"] is True
@@ -346,6 +346,91 @@ def test_passthrough_price_equals_wholesale():
             + r["funding"]["funded_millicents"]) == 1_234
     # balance_after mirrors the live wallet
     assert r["balance_after"]["total_millicents"] == after
+
+
+def test_settlement_clamps_charge_to_slot_max_price():
+    # FIX 1: a backend whose wholesale exceeds the slot's published ceiling must
+    # NOT bill above the cap — max_price_millicents is 'the ceiling a single call
+    # can cost', and the guaranteed_calls_remaining floor + 'bounded tail' claim
+    # depend on it. The charge is clamped to the cap (store eats the overage), but
+    # the receipt still reports the TRUE wholesale for reconciliation.
+    sid = f"clamp-{uuid.uuid4().hex[:6]}"
+    _slot(sid, [FakeBackend("b1", wholesale=5_000)], max_price=2_000)  # wholesale > cap
+    key = _key()
+    before = wallet_available(key)["total_millicents"]
+    out = store.call_slot(sid, key, {"url": "http://x"}, "test")
+    assert out["ok"] is True
+    r = out["receipt"]
+    assert r["price_millicents"] == 2_000                 # charged exactly the cap
+    assert r["wholesale_millicents"] == 5_000             # TRUE wholesale, uncapped
+    assert r["price_usd"] == store._exact_usd(2_000)      # the exact CHARGE, not wholesale
+    # exactly the cap left the wallet; the 3_000 overage is the store's loss
+    after = wallet_available(key)["total_millicents"]
+    assert before - after == 2_000
+    assert (r["funding"]["starter_millicents"]
+            + r["funding"]["funded_millicents"]) == 2_000
+    # the accounting identity still holds against the CLAMPED price
+    assert r["price_millicents"] == \
+        r["wallet_delta_millicents"] + r["absorbed_tail_millicents"]
+
+
+def test_settlement_at_cap_boundary_is_not_clamped():
+    # exactly-at-cap is a normal passthrough (min(cap, cap) == cap): price ==
+    # wholesale, no store overage — the clamp only bites strictly above the cap.
+    sid = f"atcap-{uuid.uuid4().hex[:6]}"
+    _slot(sid, [FakeBackend("b1", wholesale=2_000)], max_price=2_000)
+    key = _key()
+    r = store.call_slot(sid, key, {"url": "http://x"}, "test")["receipt"]
+    assert r["price_millicents"] == 2_000 == r["wholesale_millicents"]
+
+
+def test_settled_call_survives_signing_import_failure(monkeypatch):
+    # FIX 2: safe_sign is bound at MODULE TOP, never re-imported after the debit.
+    # Simulate the vend-present/core-absent build by poisoning the signing module
+    # so ANY fresh `import vend.receipt_signing` would raise ImportError — the OLD
+    # code imported it AFTER wallet_debit, so this would 500 and lose the paid-for
+    # fetch. The fix must still return payload+receipt and keep the charge.
+    import sys
+    monkeypatch.setitem(sys.modules, "vend.receipt_signing", None)  # → ImportError on import
+    sid = f"sign-{uuid.uuid4().hex[:6]}"
+    _slot(sid, [FakeBackend("b1", wholesale=1_000)], max_price=2_000)
+    key = _key()
+    out = store.call_slot(sid, key, {"url": "http://x"}, "test")
+    assert out["ok"] is True                              # not an uncaught ImportError
+    assert out["payload"]                                 # the delivered good survived
+    assert "receipt" in out
+    # the charge landed exactly once — it was NOT lost to a post-debit import
+    assert wallet_available(key)["total_millicents"] == \
+        STARTER_GRANT_MILLICENTS - 1_000
+
+
+def test_malformed_request_valueerror_one_telemetry_line_no_cascade_no_charge():
+    # FIX 3b: a backend's pre-network validate_fetch_request raises ValueError for
+    # a malformed request (bad url scheme). That is a CLIENT error, not a backend
+    # non-delivery: it must emit EXACTLY ONE telemetry line, must NOT cascade to
+    # the next backend (same bad request), must NOT charge, and must surface as a
+    # clean client error (the doors map the ValueError to a 4xx) — never a 500.
+    events = []
+    store.set_telemetry_sink(lambda **f: events.append(f))
+    sid = f"badreq-{uuid.uuid4().hex[:6]}"
+
+    class BadRequestBackend(FakeBackend):
+        def call(self, request):
+            self.calls += 1
+            raise ValueError("url scheme must be one of ('http', 'https')")
+
+    b1 = BadRequestBackend("b1")
+    b2 = FakeBackend("b2", payload={"markdown": "# would-serve"})
+    _slot(sid, [b1, b2])
+    key = _key()
+    with pytest.raises(ValueError):                       # propagates → door 4xx
+        store.call_slot(sid, key, {"url": "ftp://x"}, "test")
+    assert b1.calls == 1 and b2.calls == 0                # NO cascade with the same bad url
+    assert len(events) == 1                               # exactly one telemetry line
+    assert events[0]["settled"] is False
+    assert events[0]["reason"] == "invalid_request"
+    # nothing was charged — the whole starter grant is still there
+    assert wallet_available(key)["total_millicents"] == STARTER_GRANT_MILLICENTS
 
 
 def test_receipt_fields_complete():

@@ -191,10 +191,24 @@ noted so a later async top‑up isn't a surprise.
 
 ## 5. What unblocks live SPT (the watch list)
 
-1. **Preview access + services terms.** Accept *Stripe Agentic Commerce Seller
-   Services (preview)*; confirm the account is enrolled for the
-   `2026-04-22.preview` API version. Until then live redeems 400 on the unknown
-   parameter.
+1. **Profile + preview version (corrected 2026-07-22 from live docs
+   docs.stripe.com/payments/machine/mpp + /agentic-commerce/concepts/shared-payment-tokens).**
+   The current "Before you begin" for the fiat SPT leg is lighter than the
+   earlier read: (a) **create a Stripe business Profile in the Dashboard and
+   store its `profile_…` ID** — this is the `networkId` our server MUST send
+   (we currently emit the placeholder `profile_test_UNSET`, which test mode
+   tolerates but live rejects); (b) use the **`2026-03-04.preview`** API
+   version — NOTE our code pins stale previews (`2026-02-25.preview` in
+   mpp.py, `2026-04-22.preview` in billing) and must be reconciled to the
+   current one before live. The current doc's before-you-begin lists only
+   profile + US-entity + version — I could NOT confirm a separate
+   "accept services terms" click in it (it may be folded into profile
+   creation, or the preview has widened); the founder should watch for any
+   terms gate during profile setup. **NO STABLECOIN (founder decision
+   2026-07-22): the Tempo/Solana/x402 crypto rails are permanently declined —
+   New York is carved out of stablecoin availability and we will not take
+   custody. SPT (fiat, card) is therefore our SOLE agent-native self-pay
+   rail, and it is US-legal-entity-only (hard gate — see item 3).**
 2. **Key hygiene before live.** Standard pre-live rotation applies (tracked in
    the private ops checklist); agentic work must not assume a live key exists.
    No live SPT redeem until a fresh restricted key is in `fly secrets`.

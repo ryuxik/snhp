@@ -7,7 +7,9 @@ the whole spec hangs on lives in `call_slot`:
 
     the wallet is debited only when a machine-checkable predicate passes; a
     backend failure or a predicate failure NEVER debits, and a delivered call
-    settles at wholesale PASSTHROUGH — never more (§2d.4, §2d.5).
+    settles at wholesale PASSTHROUGH, clamped to the slot's published max_price
+    ceiling — never more (§2d.4, §2d.5). The store eats any wholesale above the
+    cap, so a call never bills above the published ceiling.
 
 Settlement is optimistic (no holds): a concurrent-race shortfall is the
 STORE's loss, logged, never the agent's — the "cannot pay for nothing"
@@ -28,6 +30,23 @@ from dataclasses import asdict, dataclass
 from typing import Callable, Protocol, runtime_checkable
 
 MILLICENTS_PER_CENT = 1000
+
+
+# Receipt signing is bound at MODULE TOP, never re-imported after a charge.
+# safe_sign reaches into core.notary (the Ed25519 machinery); doing that import
+# INSIDE call_slot — after wallet_debit — meant a vend-present/core-absent build
+# would debit the wallet, then raise ImportError on the import, and lose the very
+# fetch the customer just paid for. Guarded the same way the doors guard `from
+# vend import ...`: if the signer can't be imported, degrade to a helper that
+# stamps a VISIBLY-unsigned receipt (signature=None + signing_error) — the exact
+# 'never eat a delivered good' contract safe_sign itself honors — rather than let
+# an import fail on the post-charge path. store.py stays importable without core.
+try:
+    from vend.receipt_signing import safe_sign
+except ImportError:  # core (or its crypto dep) absent — degrade, never crash post-charge
+    def safe_sign(receipt: dict) -> dict:
+        return {**receipt, "pubkey_fingerprint": None, "key_source": None,
+                "signing_error": "signing_unavailable", "signature": None}
 
 
 class BackendError(Exception):
@@ -64,9 +83,12 @@ class Backend(Protocol):
 class Receipt:
     """The Quote discipline applied to a fetch: price, exact cost basis,
     serving backend, and a content hash a third party can check against the
-    payload it received. price_millicents is the passthrough price (==
-    wholesale); the funding split records which buckets actually paid it, and
-    balance_after is what the one wallet holds once the debit lands.
+    payload it received. price_millicents is the passthrough price CLAMPED to the
+    slot's published max_price ceiling (== min(wholesale, cap)) — the store eats
+    any wholesale above the cap so a call never bills above the published ceiling,
+    and wholesale_millicents still reports the TRUE cost basis for reconciliation;
+    the funding split records which buckets actually paid it, and balance_after is
+    what the one wallet holds once the debit lands.
 
     ACCOUNTING (rerun P5): the price a caller OWED and the money that actually
     LEFT the wallet can differ by exactly one thing — the eaten tail at the
@@ -101,9 +123,9 @@ class Receipt:
     the content_hash and the signature is published in catalog()['receipts']."""
     slot_id: str
     backend_id: str
-    price_millicents: int         # what was owed/charged (== wholesale)
+    price_millicents: int         # what was charged (== min(wholesale, slot cap))
     price_usd: str                # exact dollar string, e.g. "$0.49687" (no rounding)
-    wholesale_millicents: int
+    wholesale_millicents: int     # TRUE cost basis (uncapped) — for reconciliation
     wholesale_estimated: bool
     wallet_delta_millicents: int  # what actually left the wallet (starter+funded spent)
     absorbed_tail_millicents: int # tail the store ate (0 except the depletion boundary)
@@ -256,10 +278,16 @@ def call_slot(slot_id: str, api_key: str, request: dict, door: str) -> dict:
     4. Cascade exhausted with no pass → ONE uncharged failure envelope naming
        every attempt (backends_tried: [{id, reason}]) and the empty remainder
        (backends_untried), NEVER debited.
-    5. First pass → debit the PASSTHROUGH price (== wholesale, never more) —
-       capped at the balance, the shortfall the store's loss — build the receipt
-       (which states the wallet delta and any absorbed tail from wallet_debit so
-       the books reconcile exactly), return the goods.
+    5. First pass → debit the PASSTHROUGH price, clamped to the slot's published
+       max_price ceiling (== min(wholesale, cap), never more; the store eats any
+       wholesale over the cap) and further capped at the balance, the shortfall
+       the store's loss — build the receipt (which reports the TRUE wholesale for
+       reconciliation and states the wallet delta and any absorbed tail from
+       wallet_debit so the books reconcile exactly), return the goods.
+    6. A malformed/invalid REQUEST (backend validation raises ValueError before
+       any network) is a CLIENT error, not a backend non-delivery: it emits ONE
+       telemetry line, does NOT cascade or charge, and re-raises so the doors map
+       it to a clean 4xx — never a 500.
 
     Every uncharged outcome is the normalized envelope {ok:false, charged:false,
     reason:<stable string>, code:<machine enum>} (rerun P5: one client code path)
@@ -342,6 +370,24 @@ def call_slot(slot_id: str, api_key: str, request: dict, door: str) -> dict:
             # material (fetch_backends names error TYPES / statuses only).
             backends_tried.append({"id": backend.id, "reason": str(e)})
             continue
+        except ValueError as e:
+            # A malformed/invalid REQUEST (e.g. a bad url scheme) — the backend's
+            # pre-network validate_fetch_request raised before any network call.
+            # This is a CLIENT error, not a backend non-delivery: it is uncharged,
+            # and it must NOT cascade — every backend would reject the SAME bad
+            # request identically, so trying the next one is pointless. Emit the
+            # ONE telemetry line the contract owes every call_slot exit, then
+            # re-raise: the doors map this ValueError to a clean 4xx (HTTP 400 /
+            # MCP error dict), which is the right 'client error' shape. Nothing was
+            # debited, so there is nothing to lose — and it never becomes a 500.
+            _emit(api_key=api_key, door=door, slot_id=slot_id,
+                  backend_id=backend.id, ok=False, settled=False,
+                  price_millicents=0, wholesale_millicents=0,
+                  wholesale_estimated=False, funding=None,
+                  shortfall_millicents=0, predicate=slot.predicate_id,
+                  reason="invalid_request", content_hash=None,
+                  request_hash=req_hash)
+            raise
         ok, reason = slot.predicate(r.payload)
         if ok:
             result = r
@@ -389,8 +435,17 @@ def call_slot(slot_id: str, api_key: str, request: dict, door: str) -> dict:
                 "backend_id": last_delivered.backend_id,
                 "backends_tried": backends_tried, "backends_untried": []}
 
-    # Predicate passed: settle at PASSTHROUGH (price == wholesale, never more).
-    price = int(result.wholesale_millicents)
+    # Predicate passed: settle at PASSTHROUGH (price == wholesale, never more),
+    # CLAMPED to the slot's published ceiling. max_price_millicents is documented
+    # in the catalog as 'the ceiling a single call can cost'; the balance's
+    # guaranteed_calls_remaining floor (total // max_price) and the 'bounded tail
+    # = rounding cost' admission claim both DEPEND on no call ever billing above
+    # it. So the CHARGE is min(true_wholesale, cap) and the store eats any
+    # wholesale over the cap — consistent with 'the store eats the tail'. The
+    # receipt still reports the TRUE wholesale (for reconciliation) and
+    # wholesale_estimated stays truthful; only price_millicents is capped.
+    true_wholesale = int(result.wholesale_millicents)
+    price = min(true_wholesale, slot.max_price_millicents)
     debit = onboarding.wallet_debit(api_key, price)
     funding = {"starter_millicents": debit["starter_spent"],
                "funded_millicents": debit["funded_spent"]}
@@ -414,7 +469,7 @@ def call_slot(slot_id: str, api_key: str, request: dict, door: str) -> dict:
     receipt = Receipt(
         slot_id=slot.id, backend_id=result.backend_id,
         price_millicents=price, price_usd=_exact_usd(price),
-        wholesale_millicents=int(result.wholesale_millicents),
+        wholesale_millicents=true_wholesale,  # TRUE cost basis, not the capped charge
         wholesale_estimated=bool(result.wholesale_estimated),
         wallet_delta_millicents=wallet_delta,
         absorbed_tail_millicents=absorbed_tail,
@@ -426,7 +481,7 @@ def call_slot(slot_id: str, api_key: str, request: dict, door: str) -> dict:
     _emit(api_key=api_key, door=door, slot_id=slot.id,
           backend_id=result.backend_id, ok=True, settled=True,
           price_millicents=price,
-          wholesale_millicents=int(result.wholesale_millicents),
+          wholesale_millicents=true_wholesale,
           wholesale_estimated=bool(result.wholesale_estimated),
           funding=funding,
           shortfall_millicents=debit["shortfall_millicents"],
@@ -434,9 +489,10 @@ def call_slot(slot_id: str, api_key: str, request: dict, door: str) -> dict:
           request_hash=req_hash)
     # Sign the receipt (GAUNTLET #4): "price == wholesale" was two fields the
     # store wrote about itself; the notary signature makes it third-party-
-    # checkable. safe_sign never eats a delivered good — a signing hiccup yields
-    # signature=None (visibly unsigned), not a lost fetch the wallet already paid.
-    from vend.receipt_signing import safe_sign
+    # checkable. safe_sign is bound at MODULE TOP (see the guarded import there):
+    # the money has already moved, so a signing import must NEVER be able to fail
+    # here — a signing hiccup yields signature=None (visibly unsigned), not a lost
+    # fetch the wallet already paid for.
     return {"ok": True, "payload": result.payload,
             "receipt": safe_sign(asdict(receipt))}
 

@@ -17,11 +17,33 @@ import pytest
 _tmp = tempfile.mkdtemp()
 os.environ.setdefault("GT_KEYS_DB", os.path.join(_tmp, "test_rotation.db"))
 
+import gametheory.server.onboarding as _ob  # noqa: E402
 from gametheory.server.onboarding import (  # noqa: E402
     STARTER_GRANT_MILLICENTS, admin_rotate_by_identity, issue_key, lookup_key,
-    rotate_key, wallet_available, wallet_credit,
+    resolve_live_key, rotate_key, wallet_available, wallet_credit,
 )
 from gametheory.server.billing import charge_or_raise, UnknownKeyError  # noqa: E402
+
+
+def _insert_key(api_key: str) -> None:
+    """Insert a bare `keys` row (no wallet) — for building synthetic chains."""
+    with _ob._conn() as c:
+        c.execute(
+            """INSERT INTO keys (api_key, agent_id, contact_email,
+                                  intended_use_summary, tier,
+                                  rate_limit_per_minute, created_at,
+                                  telemetry_consent)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (api_key, "chain", "o@example.com", "synthetic chain", "standard",
+             600, 1, 0))
+        c.commit()
+
+
+def _revoke_to(api_key: str, replaced_by: str) -> None:
+    with _ob._conn() as c:
+        c.execute("""INSERT INTO revoked_keys (api_key, revoked_at, replaced_by)
+                     VALUES (?, ?, ?)""", (api_key, 1, replaced_by))
+        c.commit()
 
 
 def _key(fund_cents: int = 0) -> tuple[str, str]:
@@ -72,6 +94,45 @@ def test_inflight_credit_follows_rotation_chain():
     wallet_credit(a, 1_000_000, bucket="funded")   # webhook fires with old key
     assert wallet_available(c)["funded_millicents"] == 1_000_000
     assert lookup_key(a) is None and lookup_key(b) is None
+
+
+def test_resolve_live_key_normal_chain_and_unknown():
+    a, _ = _key()
+    b = rotate_key(a)["api_key"]
+    c = rotate_key(b)["api_key"]
+    assert resolve_live_key(a) == c                # walks A->B->C
+    assert resolve_live_key(b) == c
+    assert resolve_live_key(c) == c                # already live
+    assert resolve_live_key("gt_never_issued") is None
+
+
+def test_credit_refuses_dead_end_chain():
+    """replaced_by points to a key that exists NOWHERE: the walk dead-ends, so
+    resolve returns None and the credit is refused — money never lands on a
+    revoked key (the old walk credited whatever it landed on)."""
+    dead = "gt_dead_" + uuid.uuid4().hex
+    ghost = "gt_ghost_" + uuid.uuid4().hex         # never inserted anywhere
+    _insert_key(dead)
+    _revoke_to(dead, ghost)
+    assert resolve_live_key(dead) is None
+    with pytest.raises(ValueError, match="unknown api_key"):
+        wallet_credit(dead, 1000)
+
+
+def test_credit_refuses_chain_over_hop_cap():
+    """A revoked chain longer than the 16-hop cap must NOT credit the (still
+    revoked) key the walk stalls on — resolve returns None past the cap."""
+    chain = ["gt_hop_%d_%s" % (i, uuid.uuid4().hex) for i in range(18)]
+    for k in chain:
+        _insert_key(k)
+    for i in range(17):                            # k0..k16 revoked → next
+        _revoke_to(chain[i], chain[i + 1])         # k17 stays live
+    # 17 hops from k0 exceeds the cap → refuse.
+    assert resolve_live_key(chain[0]) is None
+    with pytest.raises(ValueError, match="unknown api_key"):
+        wallet_credit(chain[0], 1000)
+    # exactly-16 hops from k1 still resolves to the live tail k17.
+    assert resolve_live_key(chain[1]) == chain[17]
 
 
 def test_admin_recovery_requires_both_identifiers():

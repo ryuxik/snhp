@@ -109,3 +109,4 @@ observatory/
 divorce/results-*.json
 arena/gauntlet/certs/*.json
 companysim/episodes/
+nextmove_telemetry.jsonl

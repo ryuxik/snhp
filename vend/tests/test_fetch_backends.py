@@ -99,6 +99,46 @@ def test_jina_transport_error_raises(monkeypatch):
         JinaReaderBackend().call({"url": "https://example.com"})
 
 
+# The http.client.HTTPException family (InvalidURL / IncompleteRead /
+# BadStatusLine) is NEITHER OSError NOR urllib.error.URLError, so before the fix
+# it escaped the backend's transport catch, escaped call_slot's `except
+# BackendError`, and 500'd with no failover. Each must now normalize to a
+# BackendError so it cascades like any other transport non-delivery.
+import http.client  # noqa: E402
+
+
+def _httpexc_cases():
+    return [
+        http.client.InvalidURL("bad host"),
+        http.client.IncompleteRead(b"partial"),
+        http.client.BadStatusLine("garbage line"),
+    ]
+
+
+@pytest.mark.parametrize("exc", _httpexc_cases())
+def test_jina_httpexception_normalized_to_backend_error(monkeypatch, exc):
+    monkeypatch.setenv("JINA_API_KEY", "k")
+
+    def boom(**kw):
+        raise exc
+
+    _patch_http(monkeypatch, boom)
+    with pytest.raises(BackendError, match="transport"):
+        JinaReaderBackend().call({"url": "https://example.com"})
+
+
+@pytest.mark.parametrize("exc", _httpexc_cases())
+def test_firecrawl_httpexception_normalized_to_backend_error(monkeypatch, exc):
+    monkeypatch.setenv("FIRECRAWL_API_KEY", "k")
+
+    def boom(**kw):
+        raise exc
+
+    _patch_http(monkeypatch, boom)
+    with pytest.raises(BackendError, match="transport"):
+        FirecrawlBackend().call({"url": "https://example.com"})
+
+
 def test_jina_available_requires_nonempty_key(monkeypatch):
     monkeypatch.delenv("JINA_API_KEY", raising=False)
     assert JinaReaderBackend().available() is False

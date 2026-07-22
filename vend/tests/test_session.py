@@ -111,6 +111,85 @@ def test_moves_deterministic_within_session():
     assert (a1.offer, a1.context_hash) == (a2.offer, a2.context_hash)
 
 
+def test_degenerate_bounds_rejected_uncharged():
+    # FIX #1: the engine's own validator refuses an unusable session (seller
+    # target below floor) BEFORE the $2 charge — no paid-but-unusable session,
+    # no 500-loop when the first move finally runs the engine.
+    from gametheory.server.onboarding import wallet_available
+    from gametheory.negotiation.plain_terms import NegotiationInputError
+    key = _key(500)
+    before = wallet_available(key)["total_millicents"]
+    with pytest.raises(NegotiationInputError):
+        open_session_charged(api_key=key, category="resale", side="sell",
+                             walk_away=210, target=170)   # target below floor
+    assert wallet_available(key)["total_millicents"] == before   # uncharged
+    # a valid session still opens and works
+    sess = open_session_charged(api_key=key, **_ARGS)
+    a, idx = session_advise(session_id=sess["session_id"], api_key=key,
+                            their_offers=[150])
+    assert idx == 1 and a.move
+
+
+def test_failed_move_does_not_consume_but_success_does():
+    # FIX #2: a move whose engine call raises (rounds_left<1 →
+    # NegotiationInputError) must NOT burn a paid move; a successful move
+    # consumes exactly one; the cap still blocks the 11th.
+    from gametheory.negotiation.plain_terms import NegotiationInputError
+    key = _key(500)
+    sess = open_session_charged(api_key=key, **_ARGS)
+    sid = sess["session_id"]
+    with pytest.raises(NegotiationInputError):
+        session_advise(session_id=sid, api_key=key, their_offers=[150],
+                       rounds_left=0)
+    # the failed move consumed nothing: ten good moves are indexed 1..10
+    for i in range(SESSION_MAX_MOVES):
+        _, idx = session_advise(session_id=sid, api_key=key,
+                                their_offers=[150 + i])
+        assert idx == i + 1
+    with pytest.raises(SessionError, match="move cap"):
+        session_advise(session_id=sid, api_key=key, their_offers=[199])
+
+
+def test_failed_bundle_move_does_not_consume():
+    # FIX #2 (bundle path): a bundle move whose engine raises consumes no move.
+    from vend.session import session_advise_bundle
+    key = _key(500)
+    sess = open_session_charged(api_key=key, category="supply", side="buy",
+                                walk_away=5000, target=4200)
+    sid = sess["session_id"]
+    with pytest.raises(Exception):
+        session_advise_bundle(session_id=sid, api_key=key, issues=[{"bad": 1}])
+    issues = [
+        {"name": "price", "options": ["4800", "5000"],
+         "my_utility": [1.0, 0.5], "their_utility": [0.3, 1.0]},
+        {"name": "delivery", "options": ["2wk", "4wk"],
+         "my_utility": [0.9, 0.4], "their_utility": [0.3, 0.9]},
+    ]
+    _, idx = session_advise_bundle(session_id=sid, api_key=key, issues=issues,
+                                   my_batna=0.4)
+    assert idx == 1                       # the failed move never counted
+
+
+def test_rotation_carries_session_and_kills_old_key():
+    # FIX #3: rotation carries the paid session to the new key AND kills the old
+    # key's access — matching rotate_key's "balance carries" + "old key dies at
+    # once" guarantees.
+    from gametheory.server.onboarding import rotate_key
+    key = _key(500)
+    sess = open_session_charged(api_key=key, **_ARGS)
+    sid = sess["session_id"]
+    new_key = rotate_key(key)["api_key"]
+    # (a) the rotated-TO key can drive its paid session
+    a, idx = session_advise(session_id=sid, api_key=new_key, their_offers=[150])
+    assert idx == 1 and a.move
+    # (b) the OLD (now revoked) key cannot — indistinguishable from unknown
+    with pytest.raises(SessionError, match="unknown session"):
+        session_advise(session_id=sid, api_key=key, their_offers=[150])
+    # close honors rotation too: old key can't close, new key can
+    assert close_session(session_id=sid, api_key=key) is False
+    assert close_session(session_id=sid, api_key=new_key) is True
+
+
 def test_bundle_move_in_session():
     from vend.session import session_advise_bundle
     key = _key(500)

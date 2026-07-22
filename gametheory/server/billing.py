@@ -6,9 +6,13 @@ Flow:
      We create a Stripe Checkout session for the pack price and return
      the hosted URL the human owner of the agent clicks to pay.
   2. Stripe handles the payment UI, then calls our webhook with
-     `checkout.session.completed`. We verify the signature, dedupe via
-     `processed_stripe_events` (INSERT-first, see handle_webhook), and
-     credit the api_key's balance.
+     `checkout.session.completed`. We verify the signature and credit the
+     api_key's wallet EXACTLY ONCE per checkout *session* id — the credit and
+     its dedupe marker commit in one transaction (onboarding.
+     wallet_credit_idempotent), so a "Resend" or a completed+async pair (two
+     event ids, one purchase) credits once, and a crash mid-credit never
+     strands a paid-but-uncredited purchase. Non-crediting events are still
+     acked+deduped on event id via `processed_stripe_events`.
   3. Each call to a paid endpoint (e.g. draft_message) deducts cost cents
      from the balance via `charge_or_raise`.
 
@@ -180,7 +184,21 @@ class PaymentDeclinedError(BillingError):
     """An agentic (SPT) charge failed at Stripe — declined card, an expired or
     over-limit shared payment token, or the preview not being enabled on the
     account. Wraps the Stripe error so the HTTP layer answers 402 (payment
-    failed), never a 500. Carries no card data — only Stripe's message."""
+    failed), never a 500. Carries no card data — only Stripe's message.
+
+    Semantics: an UNAMBIGUOUS failure — NO charge landed — so a fresh retry is
+    safe. Transport/timeout errors, where the charge MAY have gone through, are
+    ChargeAmbiguousError instead (never a clean 402 decline)."""
+
+
+class ChargeAmbiguousError(Exception):
+    """A transport/timeout error while creating+confirming the PaymentIntent:
+    the charge MAY have succeeded at Stripe (unknown state). Deliberately NOT a
+    BillingError, so the HTTP layer does NOT translate it to a 402 "declined"
+    (which would invite the client to retry as a brand-new charge and possibly
+    double-charge). It surfaces as a generic 5xx instead — retryable, but only
+    safely so with the SAME idempotency key (which agentic_topup now always
+    sets), so Stripe dedupes the retry onto the same PaymentIntent."""
 
 
 # ─── Storage: dedupe table ──────────────────────────────────────────────────
@@ -398,56 +416,81 @@ def handle_webhook(*, payload: bytes, signature: Optional[str]) -> dict:
     event_id = event["id"]
     event_type = event["type"]
 
-    # Claim the event id BEFORE any side effects. If we lose the race, we
-    # know the prior winner already credited (or no-op'd); return early
-    # without crediting again.
-    if not _claim_event(event_id, event_type):
-        return {"processed": True, "event_id": event_id,
-                "event_type": event_type, "duplicate": True}
-
     if event_type not in _CREDITING_EVENTS:
+        # Non-crediting event: ack + dedupe on the event id (INSERT-first) so
+        # Stripe stops retrying. No money moves, so event-id dedupe suffices.
+        _claim_event(event_id, event_type)
         return {"processed": True, "event_id": event_id,
                 "event_type": event_type, "handled": False}
 
-    # Any failure past this point releases the claim so Stripe's retry can
-    # reprocess — a claimed-but-uncredited event is a paid customer with no
-    # credits, and it must never be silent (see _release_event).
-    try:
-        session = event["data"]["object"]
-        meta = _obj_get(session, "metadata", {})
-        api_key = _obj_get(meta, "api_key")
-        credits_cents_str = _obj_get(meta, "credits_cents")
-        if not api_key or not credits_cents_str:
-            raise ValueError(
-                f"checkout.session.completed missing metadata.api_key or "
-                f"metadata.credits_cents (event {event_id})"
-            )
-        if (event_type == EVENT_CHECKOUT_COMPLETED
-                and _obj_get(session, "payment_status") not in (None, "paid")):
-            # Async method: completed but unpaid. Ack (claimed) without
-            # crediting; the async_payment_succeeded event credits later.
-            return {"processed": True, "event_id": event_id,
-                    "event_type": event_type, "handled": True,
-                    "awaiting_payment": True, "duplicate": False}
-        credits_cents = int(credits_cents_str)
-        # Top-up lands in the FUNDED bucket: cents from Stripe metadata × 1000
-        # (STORE.md §2d.4 — own money, distinct from the starter grant).
-        new_balance_millicents = onboarding.wallet_credit(
-            api_key=api_key,
-            millicents=credits_cents * onboarding.MILLICENTS_PER_CENT,
-            bucket="funded",
+    session = event["data"]["object"]
+    meta = _obj_get(session, "metadata", {})
+    api_key = _obj_get(meta, "api_key")
+    credits_cents_str = _obj_get(meta, "credits_cents")
+    if not api_key or not credits_cents_str:
+        raise ValueError(
+            f"checkout.session.completed missing metadata.api_key or "
+            f"metadata.credits_cents (event {event_id})"
         )
-    except Exception:
-        _release_event(event_id)
-        raise
+    if (event_type == EVENT_CHECKOUT_COMPLETED
+            and _obj_get(session, "payment_status") not in (None, "paid")):
+        # Async method: completed but unpaid. Ack WITHOUT claiming the session
+        # (so the later async_payment_succeeded event for the same session is
+        # free to credit) and without crediting. Idempotent to re-deliver.
+        return {"processed": True, "event_id": event_id,
+                "event_type": event_type, "handled": True,
+                "awaiting_payment": True, "duplicate": False}
+
+    # Dedupe the CREDIT on the checkout *session* id, NOT the event id: a
+    # dashboard "Resend" (new event id) or a completed + async_payment_succeeded
+    # pair are DIFFERENT events for the SAME purchase and must credit once. The
+    # session id is stable across both. wallet_credit_idempotent claims that key
+    # and moves the money in ONE transaction, so a process death between claim
+    # and credit can't strand a paid purchase (Fix: the old two-transaction
+    # claim → credit → release dance could).
+    session_id = _obj_get(session, "id")
+    if not session_id:
+        raise ValueError(
+            f"{event_type} missing data.object.id (session id) "
+            f"— cannot dedupe the credit (event {event_id})")
+    credits_cents = int(credits_cents_str)
+    # Top-up lands in the FUNDED bucket: cents from Stripe metadata × 1000
+    # (STORE.md §2d.4 — own money, distinct from the starter grant).
+    result = onboarding.wallet_credit_idempotent(
+        api_key=api_key,
+        millicents=credits_cents * onboarding.MILLICENTS_PER_CENT,
+        dedup_key=session_id,
+        bucket="funded",
+    )
     return {
         "processed": True, "event_id": event_id, "event_type": event_type,
         "api_key": api_key, "credits_cents": credits_cents,
-        "new_balance_millicents": new_balance_millicents, "duplicate": False,
+        "new_balance_millicents": result["total_millicents"],
+        "duplicate": result["duplicate"],
     }
 
 
 # ─── Agentic top-up: redeem a Shared Payment Token (PREVIEW) ────────────────
+
+
+# Stripe error CLASS NAMES that leave the charge in an UNKNOWN state (the
+# request may have reached Stripe and charged before the failure surfaced).
+# Matched by name so this works whether or not the stripe SDK is importable
+# (test fakes inject a stand-in). Everything NOT in this set — card declines,
+# invalid-request, auth — is an unambiguous "no charge landed" and maps to a
+# clean 402 decline. APIConnectionError = network/timeout; APIError = a Stripe
+# 5xx where the outcome is unknown.
+_AMBIGUOUS_STRIPE_ERROR_NAMES = ("APIConnectionError", "APIError")
+
+
+def _is_ambiguous_charge_error(exc: BaseException) -> bool:
+    """True iff `exc` is a Stripe transport/timeout/5xx error — the charge may
+    have gone through, so it must NOT be reported to the client as a clean
+    decline. Walks the class MRO so SDK subclasses match too."""
+    for cls in type(exc).__mro__:
+        if cls.__name__ in _AMBIGUOUS_STRIPE_ERROR_NAMES:
+            return True
+    return False
 
 
 def agentic_topup(*, api_key: str, amount_cents: int, payment_token: str,
@@ -488,9 +531,16 @@ def agentic_topup(*, api_key: str, amount_cents: int, payment_token: str,
     stripe = _stripe()
     # Per-request preview version pin (NOT stripe.api_version = …) so the GA
     # Checkout path stays on the SDK's default version.
-    opts = {"stripe_version": AGENTIC_PREVIEW_API_VERSION}
-    if idempotency_key:
-        opts["idempotency_key"] = idempotency_key
+    #
+    # ALWAYS carry a Stripe idempotency key, even when the HTTP layer passed
+    # none (no x-request-id). A create+confirm that times out AFTER Stripe
+    # charged the SPT would otherwise be retried as a brand-new PaymentIntent —
+    # a double charge. Absent an explicit key we DERIVE one from the token +
+    # amount, mirroring settle_spt's `mppx_<challenge>_<spt>`, so Stripe dedupes
+    # the retry onto the same PaymentIntent. (A deliberate second top-up of the
+    # same size with the same single-use SPT is not a real flow.)
+    idem = idempotency_key or f"agentic_{amount_cents}_{payment_token}"
+    opts = {"stripe_version": AGENTIC_PREVIEW_API_VERSION, "idempotency_key": idem}
     try:
         intent = stripe.PaymentIntent.create(
             amount=price_cents,
@@ -506,7 +556,14 @@ def agentic_topup(*, api_key: str, amount_cents: int, payment_token: str,
             },
             **opts,
         )
-    except Exception as e:  # stripe.error.* — a redeem failure, never a 500
+    except Exception as e:
+        # Distinguish an UNAMBIGUOUS decline (no charge landed → clean 402, a
+        # fresh retry is safe) from a TRANSPORT/timeout error (the charge may
+        # have gone through). Reporting the latter as "declined" would invite a
+        # double-charging retry; surface it as ChargeAmbiguousError (→ 5xx). The
+        # always-set idempotency key above makes a same-key retry safe.
+        if _is_ambiguous_charge_error(e):
+            raise ChargeAmbiguousError(str(e)) from e
         raise PaymentDeclinedError(str(e)) from e
 
     # Attribute access (not _obj_get's subscript): a stripe-python PaymentIntent
@@ -532,21 +589,19 @@ def agentic_topup(*, api_key: str, amount_cents: int, payment_token: str,
         # Succeeded but no id to dedupe on — refuse rather than credit blindly.
         raise PaymentDeclinedError("PaymentIntent succeeded without an id")
 
-    # Dedupe the wallet credit on the PaymentIntent id (claim-first). A retry
-    # that returns the same succeeded intent is a no-op, not a double credit.
-    if not _claim_event(intent_id, "agentic_topup"):
-        return {**base, "credited": True, "duplicate": True}
-    try:
-        new_balance = onboarding.wallet_credit(
-            api_key=api_key,
-            millicents=amount_cents * onboarding.MILLICENTS_PER_CENT,
-            bucket="funded",
-        )
-    except Exception:
-        _release_event(intent_id)
-        raise
-    return {**base, "credited": True, "duplicate": False,
-            "new_balance_millicents": new_balance}
+    # Credit the wallet EXACTLY ONCE per PaymentIntent id. The credit and its
+    # dedupe marker commit in one transaction (wallet_credit_idempotent), so a
+    # crash between "charged" and "credited" can't strand a paid redeem: a retry
+    # that returns the same succeeded intent re-credits cleanly if nothing
+    # committed, or is a no-op if it did.
+    result = onboarding.wallet_credit_idempotent(
+        api_key=api_key,
+        millicents=amount_cents * onboarding.MILLICENTS_PER_CENT,
+        dedup_key=intent_id,
+        bucket="funded",
+    )
+    return {**base, "credited": True, "duplicate": result["duplicate"],
+            "new_balance_millicents": result["total_millicents"]}
 
 
 # ─── Charge (called by paid endpoints) ──────────────────────────────────────

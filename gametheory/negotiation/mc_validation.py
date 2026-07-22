@@ -30,6 +30,7 @@ TWO harness constraints, per the P11 lane:
 Run: python -m gametheory.negotiation.mc_validation
 """
 import json
+import os
 import numpy as np
 
 from gametheory.negotiation.plain_terms import negotiate_turn
@@ -182,9 +183,10 @@ if __name__ == "__main__":
     for cs in TIERS:
         r = experiment(n=N, seed=0, compute_samples=cs)
         out["tiers"][str(cs)] = r
-    # artifact for the RESULTS append (deterministic; re-runnable byte-for-byte)
-    with open("/private/tmp/claude-501/-Users-ryuxik-Desktop-snhp/"
-              "d80e004f-cc0e-4011-a063-84d12b0195d8/scratchpad/p11_compute_moat/"
-              "p11_results.json", "w") as fh:
+    # artifact for the RESULTS append (deterministic; re-runnable byte-for-byte).
+    # Path is env-overridable and defaults to CWD, so the documented `python -m`
+    # run works on any machine (was a hardcoded session scratchpad path).
+    dest = os.environ.get("P11_RESULTS_PATH", "p11_results.json")
+    with open(dest, "w") as fh:
         json.dump(out, fh, indent=2)
-    print("\n[artifact written to scratchpad/p11_compute_moat/p11_results.json]")
+    print(f"\n[artifact written to {dest}]")
