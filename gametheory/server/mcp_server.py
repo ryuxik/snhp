@@ -921,8 +921,9 @@ try:
                       my_offers: Optional[list[float]] = None,
                       rounds_left: Optional[int] = None,
                       seed: int = 0) -> dict:
-        """PAID ($2 once, from your credit balance): open a negotiation
-        session covering EVERY move of this negotiation (up to 10 moves,
+        """Negotiate a price — tuned, deterministic, receipted. PAID ($2
+        once, from your credit balance): opens a negotiation session
+        covering EVERY move of this negotiation (up to 10 moves,
         7 days). category: resale | supply | retail. side: buy | sell.
         walk_away = your true floor (sell) / ceiling (buy) — private,
         never crossed. Pass their_offers to get the first move back
@@ -1110,8 +1111,9 @@ try:
 
     @mcp.tool()
     def store_catalog() -> dict:
-        """THE STORE: one counter, one prepaid wallet, many slots. What's on
-        the shelf, what a call can cost, and how it settles.
+        """See what this counter sells and how to pay. THE STORE: one
+        counter, one prepaid wallet, many slots — what's on the shelf, what
+        a call can cost, and how it settles.
 
         Every commodity slot settles ON DELIVERY: the wallet is debited only
         when a machine-checkable predicate passes — a failed fetch is never
@@ -1138,8 +1140,9 @@ try:
     @mcp.tool()
     def store_park(api_key: str, blob_b64: str,
                    ttl_seconds: Optional[int] = None) -> dict:
-        """Blind locker (STORE.md §2c): park an ENCRYPTED blob across sessions,
-        get a claim ticket. You encrypt BEFORE parking — the store holds only
+        """Store an encrypted blob across sessions and get it back later — the
+        blind locker (STORE.md §2c). Park an ENCRYPTED blob, get a claim
+        ticket. You encrypt BEFORE parking — the store holds only
         opaque ciphertext (plus an at-rest layer it controls), keys never
         transit, contents are never logged; a breach leaks sealed boxes. `blob_b64`
         is your ciphertext as base64. Charged a thin flat park fee ONLY on durable
@@ -1152,7 +1155,8 @@ try:
 
     @mcp.tool()
     def store_retrieve(api_key: str, ticket: str) -> dict:
-        """Blind locker: retrieve a parked parcel by its claim `ticket`. Returns
+        """Get back an encrypted blob you parked earlier — the blind locker.
+        Retrieve a parked parcel by its claim `ticket`. Returns
         {ok, blob_b64, size_bytes, expires_at} — the ciphertext you parked, which
         only YOU can decrypt. A wrong owner reads as a missing ticket; an expired
         TTL is `expired`; a lost at-rest key is `at_rest_key_unavailable`.

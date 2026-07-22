@@ -217,6 +217,145 @@ def agent_card() -> dict:
     }
 
 
+# ─── Discovery: agents.json capability manifest ──────────────────────────────
+
+@router.get("/.well-known/agents.json", tags=["discovery"], include_in_schema=True,
+            summary="Machine-readable agent-capability manifest for the SNHP store")
+def agents_json() -> dict:
+    """A self-describing manifest of what this counter sells and how an agent
+    pays for it: name, capabilities[], endpoints, auth, payment, demand box.
+    Written in the vocabulary an agent's tool-selector needs ('negotiate a
+    price', 'store an encrypted blob across sessions'). Pure READ, no auth, no
+    key material. The fee is read from the billing constants so it can never
+    drift from what a top-up actually charges. Honest: only the two LIVE paid
+    slots are listed (no page-fetch slot exists today)."""
+    base = _base_url()
+    # Lazy import: the fee is the single source of truth (billing constants), so
+    # the manifest and a real top-up can never disagree.
+    from gametheory.server import billing as _billing, onboarding as _onboarding
+    starter_usd = f"{_onboarding.STARTER_GRANT_MILLICENTS / (100 * _onboarding.MILLICENTS_PER_CENT):.2f}"
+    return {
+        "schema": "agents.json/v0",
+        "name": "SNHP — negotiation + blind-locker counter for agents",
+        "description": (
+            "A pay-per-use counter AI agents call to NEGOTIATE A PRICE (tuned, "
+            "deterministic, receipted) and to STORE AN ENCRYPTED BLOB ACROSS "
+            "SESSIONS (blind locker). One prepaid wallet per key, a one-time 50¢ "
+            "starter credit, settle-on-delivery (you cannot pay for nothing), "
+            "Ed25519-signed receipts verifiable offline. LLM-free in every "
+            "judgment path."
+        ),
+        "homepage": base,
+        "repository": "https://github.com/ryuxik/snhp",
+        "endpoints": {
+            "http_base": base,
+            "mcp": base + "/mcp/",
+            "mcp_server_card": base + "/.well-known/mcp/server-card.json",
+            "agent_card": base + "/.well-known/agent-card.json",
+            "openapi": base + "/openapi.json",
+            "llms_txt": base + "/llms.txt",
+            "llms_full_txt": base + "/llms-full.txt",
+            "catalog": base + "/v1/store/catalog",
+            "observatory": base + "/v1/store/observatory",
+        },
+        "auth": {
+            "type": "api_key",
+            "issue": {"method": "POST", "path": "/v1/keys",
+                      "human_required": False, "card_required": False},
+            "header": "Authorization: Bearer gt_* (or X-API-Key: gt_*)",
+            "starter_credit": {"amount_usd": starter_usd, "one_time": True,
+                               "unconditional": True, "card_required": False},
+        },
+        "wallet": {
+            "unit": "millicent",
+            "millicents_per_cent": _onboarding.MILLICENTS_PER_CENT,
+            "balance": {"method": "GET", "path": "/v1/billing/balance"},
+            "refundable": False,
+        },
+        "capabilities": [
+            {
+                "id": "negotiate_session",
+                "need": "negotiate a price",
+                "title": "Tuned, deterministic, receipted negotiation session",
+                "description": (
+                    "$2 once covers the WHOLE negotiation (cap 10 moves, 7 days): "
+                    "category-tuned, deterministic replay, signed receipts, "
+                    "persistent session state. The paid upgrade of the free turn."),
+                "price": {"amount_usd": "2.00", "model": "per_session"},
+                "endpoints": {
+                    "open": {"method": "POST", "path": "/v1/advice/session"},
+                    "move": {"method": "POST", "path": "/v1/advice/move"},
+                    "bundle": {"method": "POST", "path": "/v1/advice/bundle"},
+                    "close": {"method": "POST", "path": "/v1/advice/close"},
+                },
+                "mcp_tools": ["nextmove_open", "nextmove_advise",
+                              "nextmove_bundle", "nextmove_close"],
+            },
+            {
+                "id": "blind_locker",
+                "need": "store an encrypted blob across sessions",
+                "title": "Blind locker — park & retrieve customer-encrypted ciphertext",
+                "description": (
+                    "Park ciphertext (you encrypt BEFORE parking; the store holds "
+                    "only opaque bytes, keys never transit, contents never logged), "
+                    "get a claim ticket, retrieve later. Park is paid (thin flat "
+                    "fee, settle-on-durable-store); retrieve is free. A wrong owner "
+                    "reads as a missing ticket."),
+                "price": {"model": "flat_park_fee"},
+                "endpoints": {
+                    "park": {"method": "POST", "path": "/v1/store/park"},
+                    "retrieve": {"method": "GET", "path": "/v1/store/parcel/{ticket}"},
+                },
+                "mcp_tools": ["store_park", "store_retrieve"],
+            },
+        ],
+        "free_tools": [
+            {"id": "negotiate_turn",
+             "need": "negotiate a price (generic, unreceipted)",
+             "endpoint": {"method": "POST", "path": "/v1/negotiate/turn"}},
+            {"id": "negotiate_bundle", "need": "logroll a multi-issue deal",
+             "endpoint": {"method": "POST", "path": "/v1/negotiate/bundle"}},
+            {"id": "catalog", "need": "see what this counter sells and how to pay",
+             "endpoint": {"method": "GET", "path": "/v1/store/catalog"}},
+        ],
+        "payment": {
+            "settlement": "on_delivery",
+            "settlement_note": (
+                "a paid call settles only when a machine-checkable outcome is "
+                "delivered; a failure is an uncharged 200 {ok:false, "
+                "charged:false} — you cannot pay for nothing"),
+            "receipts": {"signature": "ed25519", "verifiable_offline": True,
+                         "pin_signer": "/v1/store/notary_pubkey"},
+            "fee": {"model": "counter_fee_on_topups",
+                    "percent": _billing.COUNTER_FEE_PCT,
+                    "fixed_cents": _billing.COUNTER_FEE_FIXED_CENTS,
+                    "applies_to": "wallet top-ups only, never the calls"},
+            "methods": [
+                {"id": "stripe_checkout", "human_required": True,
+                 "endpoint": {"method": "POST",
+                              "path": "/v1/billing/checkout_session"},
+                 "description": "human-clickable Stripe Checkout top-up"},
+                {"id": "mpp_spt", "human_required": False,
+                 "endpoint": {"method": "POST", "path": "/v1/mpp/topup"},
+                 "manifest": "/v1/mpp/manifest",
+                 "reference_client": "vend/mpp_client.py",
+                 "rail": "fiat", "crypto_accepted": False,
+                 "description": (
+                     "agent-native: pay per invocation with a Stripe Shared "
+                     "Payment Token, no human; GET the manifest for the "
+                     "402 -> authorize -> retry -> receipt flow")},
+            ],
+        },
+        "demand_box": {
+            "description": "ask for what's not stocked; unmet demand decides the "
+                           "next slot",
+            "file": {"method": "POST", "path": "/v1/store/request"},
+            "public_tally": {"method": "GET", "path": "/v1/store/requests"},
+            "observatory": {"method": "GET", "path": "/v1/store/observatory"},
+        },
+    }
+
+
 # ─── Flagship: plain-terms negotiation (the tool agents should reach for) ────
 
 class NegotiateTurnRequest(BaseModel):
