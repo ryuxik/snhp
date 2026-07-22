@@ -51,11 +51,24 @@ def build_fetch_slot() -> store.Slot:
     )
 
 
+# The vendor-backed fetch slot is FENCED OFF AT LAUNCH (2026-07-22, founder
+# call): reselling Jina/Firecrawl's fetched output through a metered API is
+# commercial use their ToS does not expressly authorize (Firecrawl clause 1 +
+# the "distribute/derivative works based on the Services" ban; Jina §4.5(iii)
+# competing-service). We do NOT build the store on a ToS we can't stand behind.
+# Fetch becomes the first INSOURCE candidate (STORE.md "resell to probe,
+# insource to earn"): if the demand tally shows agents asking for it, we build
+# an in-house fetcher (readability + html→markdown, no vendor). Flip to True
+# ONLY when a launchable backend exists (in-house, or a vendor with written
+# resale authorization). build_fetch_slot() is retained, unregistered.
+FETCH_SLOT_ENABLED = False
+
+
 def ensure_shelf() -> None:
-    """Register the commodity slots and bind the telemetry sink. Idempotent:
+    """Register the launch slots and bind the telemetry sink. Idempotent:
     the id-keyed check preserves any test-swapped backends, and rebinding the
     same sink is harmless — safe to call on every request from every door."""
-    if "fetch" not in store.SLOTS:
+    if FETCH_SLOT_ENABLED and "fetch" not in store.SLOTS:
         store.register_slot(build_fetch_slot())
     # The engine ships with a no-op sink; wire the real JSONL logger here (the
     # integrator's lane). Every call — uncharged failures included — flows

@@ -99,8 +99,16 @@ def _no_cwd_telemetry(tmp_path, monkeypatch):
 def fake_fetch():
     """Wire the shelf, then swap the fetch slot's backends for a controllable
     fake; restore afterwards. The id-keyed ensure_shelf() the doors call keeps
-    the swap intact for the duration of the request."""
+    the swap intact for the duration of the request.
+
+    The vendor-backed fetch slot is FENCED OFF the launch shelf (shelf.
+    FETCH_SLOT_ENABLED False — vendor-ToS resale, insource candidate), so these
+    tests register the slot machinery themselves to exercise the settlement
+    engine. This proves the slot works when we re-enable it via an in-house
+    backend; it does NOT stock the vendor slot in prod."""
     shelf.ensure_shelf()
+    if "fetch" not in store.SLOTS:
+        store.register_slot(shelf.build_fetch_slot())
     slot = store.SLOTS["fetch"]
     saved_backends, saved_cap = slot.backends, slot.max_price_millicents
 
