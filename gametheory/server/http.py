@@ -598,7 +598,31 @@ app.include_router(_billing_router)
 # deferred). A SECOND rail beside the prepaid wallet. Self-contained protocol logic
 # in gametheory/server/mpp.py; boots fine without Stripe keys (lazy settlement).
 from gametheory.server.mpp_routes import router as _mpp_router  # noqa: E402
+from gametheory.server import mpp as _mpp  # noqa: E402
 app.include_router(_mpp_router)
+
+
+# Discovery fence for the keyless MPP per-call resource. When MPP_PERCALL_ENABLED
+# is unset (default), /v1/mpp/negotiate/turn 404s (see mpp_routes) AND must be
+# ABSENT from /openapi.json — otherwise its x-payment-info would advertise a door
+# the demand referendum can't see. The flag is read at REQUEST time so both states
+# are testable; /v1/mpp/topup is never touched. FastAPI builds + caches the full
+# schema once; we return a filtered shallow copy (never mutating the cache) when
+# fenced, so flipping the flag flips discovery with no rebuild.
+_orig_openapi = app.openapi
+
+
+def _fenced_openapi():
+    schema = _orig_openapi()
+    if _mpp.percall_enabled():
+        return schema
+    fenced = dict(schema)
+    fenced["paths"] = {p: v for p, v in schema.get("paths", {}).items()
+                       if p != "/v1/mpp/negotiate/turn"}
+    return fenced
+
+
+app.openapi = _fenced_openapi
 
 # ─── VEND: snhp-price/1 — the price-link demo (quote/settle/machine) ─────────
 # The price a buyer sees is computed at request time (never above list,
@@ -1631,8 +1655,11 @@ One counter, one prepaid wallet (millicents; 1000 per cent), many slots. The
 value: you cannot pay for nothing — a call settles ONLY when a mechanical
 predicate passes, at wholesale PASSTHROUGH (price == the backend's exact cost,
 no per-call markup); the counter earns ONE published fee on wallet top-ups, not
-on calls. Two doors, one wallet: the MCP tools (store_catalog, store_fetch,
-store_request*) and these HTTP routes are the same engine.
+on calls: 5% + a fixed 30¢ per transaction. The fixed 30¢ is the card rail's own
+per-transaction toll, passed through — at $2.10 the old flat-5% fee collected 10¢
+against ~36¢ of processing cost, so the store was paying to be paid. Two doors,
+one wallet: the MCP tools (store_catalog, store_fetch, store_request*) and these
+HTTP routes are the same engine.
 
 - POST /v1/keys — issue a key; the one-time 50¢ starter credit attaches to it
   (unconditional, no card). Fund more via /v1/billing/checkout_session.
@@ -1647,6 +1674,9 @@ store_request*) and these HTTP routes are the same engine.
   reason, code}. The receipt is Ed25519-signed and states the exact price
   (price_millicents + price_usd), the wallet delta, any absorbed tail, and a
   content hash. Verify the signer out-of-band: GET /v1/store/notary_pubkey.
+  Request privacy: we record a keyed hash of each request — no browsable history
+  exists, and matching requires already knowing the exact URL (used to attribute
+  vendor abuse reports to a wallet).
 - GET  /v1/store/notary_pubkey — the receipt-signing notary's public key
   {pubkey_pem, fingerprint, key_source} to pin (distinct from the first-strike
   and AP2 settlement keys). key_source is visible: 'ephemeral' proves only

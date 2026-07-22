@@ -199,6 +199,27 @@ def _content_hash(payload: dict) -> str:
     return hashlib.blake2b(blob, digest_size=16).hexdigest()
 
 
+def _request_hash(request: dict) -> str:
+    """KEYED blake2b (16-byte) over the canonical request — the abuse-forensics
+    anchor written to telemetry INSTEAD of the raw URL (founder-approved privacy
+    posture change).
+
+    Same canonicalization as _content_hash (sort_keys + compact separators +
+    default=str), but KEYED with the telemetry pepper (vend.telemetry._pepper —
+    the SAME pepper discipline that keys the repeat_key pseudonym). Property: the
+    log holds only this digest, so we can NEVER enumerate what anyone fetched;
+    but given an EXACT url from a vendor abuse report we can recompute
+    blake2b(json.dumps({"url": url}, ...), key=pepper) and match it to a wallet's
+    lines. Because it is keyed, an offline dump of the telemetry file cannot be
+    dictionary-attacked back to a URL without the pepper (the deploy carries
+    TELEMETRY_PEPPER; when it is unset the key is empty and the hash is still a
+    stable, non-browsable digest)."""
+    from vend.telemetry import _pepper
+    blob = json.dumps(request, sort_keys=True, separators=(",", ":"),
+                      default=str).encode()
+    return hashlib.blake2b(blob, key=_pepper(), digest_size=16).hexdigest()
+
+
 # 1 dollar == 100 cents == 100_000 millicents, so a millicent is $0.00001 — five
 # decimal places express it EXACTLY. Built by integer arithmetic (no float
 # rounding): 49_687 millicents → "$0.49687". This is the exact-display rule
@@ -249,13 +270,20 @@ def call_slot(slot_id: str, api_key: str, request: dict, door: str) -> dict:
     """
     from gametheory.server import onboarding
 
+    # Abuse-forensics anchor (founder-approved privacy posture): the KEYED hash
+    # of THIS request travels on every telemetry line — settled AND uncharged —
+    # so a vendor abuse report naming an exact URL can be matched to a wallet,
+    # while the raw URL never touches the log. Computed here (not in
+    # log_slot_call) so the raw request never crosses into the telemetry module.
+    req_hash = _request_hash(request)
+
     slot = SLOTS.get(slot_id)
     if slot is None:
         _emit(api_key=api_key, door=door, slot_id=slot_id, backend_id=None,
               ok=False, settled=False, price_millicents=0,
               wholesale_millicents=0, wholesale_estimated=False, funding=None,
               shortfall_millicents=0, predicate=None, reason="unknown_slot",
-              content_hash=None)
+              content_hash=None, request_hash=req_hash)
         # Normalized failure envelope (rerun P5); `error` kept as a legacy alias.
         return {"ok": False, "charged": False, "reason": "unknown_slot",
                 "code": "unknown_slot", "error": "unknown_slot"}
@@ -266,7 +294,7 @@ def call_slot(slot_id: str, api_key: str, request: dict, door: str) -> dict:
               ok=False, settled=False, price_millicents=0,
               wholesale_millicents=0, wholesale_estimated=False, funding=None,
               shortfall_millicents=0, predicate=slot.predicate_id,
-              reason="slot_unavailable", content_hash=None)
+              reason="slot_unavailable", content_hash=None, request_hash=req_hash)
         return {"ok": False, "charged": False, "reason": "slot_unavailable",
                 "code": "slot_unavailable", "error": "slot_unavailable"}
 
@@ -289,7 +317,8 @@ def call_slot(slot_id: str, api_key: str, request: dict, door: str) -> dict:
               ok=False, settled=False, price_millicents=0,
               wholesale_millicents=0, wholesale_estimated=False, funding=None,
               shortfall_millicents=0, predicate=slot.predicate_id,
-              reason="insufficient_balance", content_hash=None)
+              reason="insufficient_balance", content_hash=None,
+              request_hash=req_hash)
         return {"ok": False, "charged": False, "reason": "insufficient_balance",
                 "code": "insufficient_balance", "error": "insufficient_balance",
                 "needed_millicents": 1, "available_millicents": spendable}
@@ -335,7 +364,8 @@ def call_slot(slot_id: str, api_key: str, request: dict, door: str) -> dict:
                   ok=False, settled=False, price_millicents=0,
                   wholesale_millicents=0, wholesale_estimated=False, funding=None,
                   shortfall_millicents=0, predicate=slot.predicate_id,
-                  reason="all_backends_failed", content_hash=None)
+                  reason="all_backends_failed", content_hash=None,
+                  request_hash=req_hash)
             return {"ok": False, "charged": False,
                     "reason": "all_backends_failed",
                     "code": "all_backends_failed",
@@ -352,7 +382,8 @@ def call_slot(slot_id: str, api_key: str, request: dict, door: str) -> dict:
               wholesale_millicents=last_delivered.wholesale_millicents,
               wholesale_estimated=last_delivered.wholesale_estimated, funding=None,
               shortfall_millicents=0, predicate=slot.predicate_id,
-              reason=last_predicate_reason, content_hash=None)
+              reason=last_predicate_reason, content_hash=None,
+              request_hash=req_hash)
         return {"ok": False, "charged": False, "reason": last_predicate_reason,
                 "code": "predicate_failed",
                 "backend_id": last_delivered.backend_id,
@@ -399,7 +430,8 @@ def call_slot(slot_id: str, api_key: str, request: dict, door: str) -> dict:
           wholesale_estimated=bool(result.wholesale_estimated),
           funding=funding,
           shortfall_millicents=debit["shortfall_millicents"],
-          predicate=slot.predicate_id, reason=None, content_hash=content_hash)
+          predicate=slot.predicate_id, reason=None, content_hash=content_hash,
+          request_hash=req_hash)
     # Sign the receipt (GAUNTLET #4): "price == wholesale" was two fields the
     # store wrote about itself; the notary signature makes it third-party-
     # checkable. safe_sign never eats a delivered good — a signing hiccup yields
@@ -444,7 +476,8 @@ def catalog() -> dict:
     # negotiation engine) and the counter fee in billing — neither is needed
     # to run a commodity slot, so keep store.py light at import time.
     from vend.advice import ADVISE_COST_CENTS
-    from gametheory.server.billing import COUNTER_FEE_PCT
+    from gametheory.server.billing import (
+        COUNTER_FEE_FIXED_CENTS, COUNTER_FEE_PCT)
 
     anchor_milli = ADVISE_COST_CENTS * MILLICENTS_PER_CENT
     anchors = [
@@ -461,7 +494,25 @@ def catalog() -> dict:
     return {
         "unit": "millicents",
         "millicents_per_cent": MILLICENTS_PER_CENT,
+        # The counter fee is published as its STRUCTURE: a 5% percentage plus a
+        # fixed per-transaction cents toll. The fixed 30¢ is the card rail's own
+        # flat per-transaction cost, passed through — without it the smallest
+        # top-up collected less fee than the rail charged to collect it.
+        "counter_fee": {
+            "pct": COUNTER_FEE_PCT,
+            "fixed_cents": COUNTER_FEE_FIXED_CENTS,
+            "note": "the fixed 30¢ is the card rail's per-transaction toll, "
+                    "passed through",
+        },
+        # Deprecated alias: the percentage alone, kept for surfaces/tests that
+        # pin the pre-structure field. Prefer `counter_fee` (pct + fixed_cents).
         "counter_fee_pct": COUNTER_FEE_PCT,
+        # Request privacy (founder-approved abuse-forensics posture): the slot
+        # telemetry records a KEYED hash of each request, never the URL itself.
+        "request_privacy": (
+            "we record a keyed hash of each request — no browsable history "
+            "exists, and matching requires already knowing the exact URL (used "
+            "to attribute vendor abuse reports to a wallet)"),
         "keys": {
             "issue": "POST /v1/keys",
             "note": "the one-time starter credit attaches to the issued key",

@@ -14,8 +14,9 @@ Flow:
 
 Top-up shapes:
   - Named pack (small/medium/large) OR a custom `amount_cents` (min 200) — the
-    custom path prices at credits + the 5% counter fee, so an agent buys exactly
-    what it needs ($2 → $2.10) instead of over-shooting to the smallest pack.
+    custom path prices at credits + the counter fee (5% + a fixed 30¢), so an
+    agent buys exactly what it needs ($2 → $2.40) instead of over-shooting to
+    the smallest pack.
   - Agentic (`agentic_topup`): redeem a Shared Payment Token the agent carries,
     with no human at a Checkout URL. PREVIEW — see vend/AGENTIC_PAYMENTS.md.
 
@@ -41,24 +42,34 @@ PackName = Literal["small", "medium", "large"]
 # The store's till (STORE.md §2d.4): commodity slot calls settle at wholesale
 # passthrough (zero per-call markup — don't tax the referendum instrument), and
 # the store earns ONE published fee, here, on wallet top-ups.
+#
+# The fee is TWO published components: a 5% percentage PLUS a fixed 30¢ per
+# transaction. The 30¢ exists because the card rail's own per-transaction toll
+# (~2.9% + 30¢) is FIXED, not proportional: at the $2 anchor the old flat-5% fee
+# collected ~10¢ against ~36¢ of processing cost, so the store paid to be paid.
+# Passing the 30¢ through makes the smallest top-up self-covering. Both numbers
+# are published everywhere the fee appears (catalog, checkout line, MPP 402
+# frame, PRICING.md, llms.txt) so the receipt can never misstate the structure.
 COUNTER_FEE_PCT = 5
+COUNTER_FEE_FIXED_CENTS = 30
 
-# Pack price → credit cents. price_cents = credits_cents + the 5% counter fee,
-# split explicitly so both the receipt and the checkout line item can name the
-# fee. credits_cents is what lands in the balance; the difference is the fee.
-# All values in USD cents. Keys MUST match the PackName Literal, and each pack's
-# price MUST equal credits + counter_fee_cents(credits) — both enforced by an
-# assert at module load, so the packs and the published fee can never silently
-# disagree. Do NOT change these values (STORE.md — the anchor is fixed).
+# Pack price → credit cents. price_cents = credits_cents + the counter fee
+# (5% + 30¢), split explicitly so both the receipt and the checkout line item
+# can name the fee. credits_cents is what lands in the balance; the difference
+# is the fee. All values in USD cents. Keys MUST match the PackName Literal, and
+# each pack's price MUST equal credits + counter_fee_cents(credits) — both
+# enforced by an assert at module load, so the packs and the published fee can
+# never silently disagree. Do NOT change these values (STORE.md — the anchor is
+# fixed).
 CREDIT_PACKS: dict[PackName, dict] = {
-    "small":  {"price_cents": 1_050,  "credits_cents": 1_000},
-    "medium": {"price_cents": 5_250,  "credits_cents": 5_000},
-    "large":  {"price_cents": 21_000, "credits_cents": 20_000},
+    "small":  {"price_cents": 1_080,  "credits_cents": 1_000},
+    "medium": {"price_cents": 5_280,  "credits_cents": 5_000},
+    "large":  {"price_cents": 21_030, "credits_cents": 20_000},
 }
 
-# Custom top-up floor (GAUNTLET #2): the smallest pack was $10.50 — a 5.25×
+# Custom top-up floor (GAUNTLET #2): the smallest pack is $10.80 — a 5.4×
 # overshoot to reach the $2 anchor session. A custom top-up lets an agent buy
-# EXACTLY what it needs (a $2 need → $2.10, never $10.50). 200¢ = $2.00 is the
+# EXACTLY what it needs (a $2 credit → $2.40, never $10.80). 200¢ = $2.00 is the
 # floor: it clears the $2 anchor and sits 4× above Stripe's 0.50 USD SPT floor,
 # so one published minimum serves both the Checkout and the SPT rail.
 CUSTOM_MIN_CENTS = 200
@@ -70,19 +81,23 @@ DRAFT_MESSAGE_COST_CENTS = 1     # matches the existing $0.005 / call pricing
 
 def counter_fee_cents(credits_cents: int) -> int:
     """The published counter fee (STORE.md §2d.4) on a top-up that credits
-    `credits_cents` of wallet money: COUNTER_FEE_PCT %, rounded half-up to the
-    cent. Integer-exact — no float, so the fee never drifts by a rounding ULP.
+    `credits_cents` of wallet money: COUNTER_FEE_PCT % rounded half-up to the
+    cent, PLUS the fixed COUNTER_FEE_FIXED_CENTS (the card rail's per-transaction
+    toll, passed through). Integer-exact — no float, so the fee never drifts by a
+    rounding ULP.
 
     price = credits_cents + counter_fee_cents(credits_cents); fee is what the
     store keeps, credits is what lands in the wallet. This one function is the
     single source of the fee for BOTH the custom Checkout top-up and the SPT
-    agentic top-up (and it reproduces every CREDIT_PACKS price exactly — see the
-    module-load assert)."""
+    agentic top-up, and the MPP frames inherit it (and it reproduces every
+    CREDIT_PACKS price exactly — see the module-load assert)."""
     if credits_cents < 0:
         raise ValueError("credits_cents must be non-negative")
-    # round-half-up in integer arithmetic: floor((x*105 + 50) / 100)
+    # round-half-up in integer arithmetic: floor((x*105 + 50) / 100). Then add
+    # the fixed per-transaction toll — the fixed component is why the smallest
+    # top-up finally covers the card rail's own flat 30¢.
     price = (credits_cents * (100 + COUNTER_FEE_PCT) + 50) // 100
-    return price - credits_cents
+    return (price - credits_cents) + COUNTER_FEE_FIXED_CENTS
 
 
 # Fail loudly at import if a pack key drifts from the PackName Literal, or if a
@@ -153,9 +168,11 @@ class InsufficientCreditsError(BillingError):
             f"Insufficient credits ({available_millicents} millicents "
             f"available, {required_millicents} required). Top up: POST "
             f"/v1/billing/checkout_session with a custom {{amount_cents}} "
-            f"(minimum {CUSTOM_MIN_CENTS}¢ = ${CUSTOM_MIN_CENTS / 100:.2f}) or a "
-            f"named pack (small $10.50 | medium $52.50 | large $210); agentic "
-            f"top-up: POST /v1/billing/agentic_topup."
+            f"(minimum {CUSTOM_MIN_CENTS}¢ credit = ${CUSTOM_MIN_CENTS / 100:.2f}, "
+            f"you pay ${( CUSTOM_MIN_CENTS + counter_fee_cents(CUSTOM_MIN_CENTS)) / 100:.2f} "
+            f"incl. the {COUNTER_FEE_PCT}% + {COUNTER_FEE_FIXED_CENTS}¢ counter fee) "
+            f"or a named pack (small $10.80 | medium $52.80 | large $210.30); "
+            f"agentic top-up: POST /v1/billing/agentic_topup."
         )
 
 
@@ -291,7 +308,7 @@ def create_checkout_session(*, api_key: str, pack: Optional[PackName] = None,
     Creates a Stripe Checkout session for EITHER a named pack OR a custom
     `amount_cents` (min CUSTOM_MIN_CENTS). Returns {checkout_url, session_id,
     pack, price_cents, credits_cents, fee_cents} — fee_cents always names the
-    5% counter fee explicitly. For a custom top-up `pack` is "custom".
+    counter fee (5% + 30¢) explicitly. For a custom top-up `pack` is "custom".
 
     The api_key is stored in `metadata.api_key` so the webhook handler knows
     which balance to credit; `metadata.credits_cents` is what lands in the
@@ -318,8 +335,9 @@ def create_checkout_session(*, api_key: str, pack: Optional[PackName] = None,
             "price_data": {
                 "currency": "usd",
                 "product_data": {
-                "name": f"SNHP credits ({t['label']}) — includes "
-                        f"{COUNTER_FEE_PCT}% counter fee",
+                "name": f"SNHP credits ({t['label']}) — includes the "
+                        f"{COUNTER_FEE_PCT}% + "
+                        f"${COUNTER_FEE_FIXED_CENTS / 100:.2f} counter fee",
                 # Managed Payments requires an eligible tax code.
                 # txcd_10103001 = "Software as a service (SaaS) - business
                 # use" (docs.stripe.com/tax/tax-codes) — API credits for
@@ -438,7 +456,7 @@ def agentic_topup(*, api_key: str, amount_cents: int, payment_token: str,
     — the agent-initiated path that needs no human at a Checkout URL.
 
     Same fee arithmetic as the custom Checkout top-up: credits = amount_cents,
-    price = amount_cents + the 5% counter fee. We create + confirm a PaymentIntent
+    price = amount_cents + the counter fee (5% + 30¢). We create + confirm a PaymentIntent
     carrying the SPT, and on `succeeded` credit amount_cents×1000 millicents to
     the funded bucket. Replay-safe: a client retry (same idempotency_key →
     Stripe idempotency) can't double-charge the SPT, and we dedupe the wallet

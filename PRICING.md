@@ -25,8 +25,11 @@ A prepaid wallet (millicents; 1000 per cent) and a shelf of slots, over two door
 (MCP tools + `/v1/store/*` and `/v1/fetch`). The pricing discipline is **wholesale
 passthrough**: a commodity call settles at the backend's *exact* cost, no per-call
 markup, and only **on delivery** — a mechanical predicate must pass, so you cannot
-pay for nothing. The store earns **one published fee (5%) on wallet top-ups**, not on
-calls. Every new key gets a one-time **50¢ starter credit** (unconditional, no card).
+pay for nothing. The store earns **one published fee on wallet top-ups** (not on
+calls): **5% + a fixed 30¢** per transaction. The fixed 30¢ is the card rail's own
+per-transaction toll, passed through — at $2.10 the old 5% fee collected 10¢ against
+~36¢ of processing cost, so the store was paying to be paid. Every new key gets a
+one-time **50¢ starter credit** (unconditional, no card).
 
 - **Fetch slot** — one clean read of a stubborn page → markdown, failover across
   backends, 2¢ admission cap (a call typically costs well under it). Charged only on

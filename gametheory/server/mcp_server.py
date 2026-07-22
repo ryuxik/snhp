@@ -1093,7 +1093,8 @@ try:
         charged, because here you cannot pay for nothing. Each receipt names
         the backend that served and its EXACT wholesale cost (passthrough, no
         per-call markup); the counter's cut is a published fee on wallet
-        top-ups, not on the calls.
+        top-ups, not on the calls — 5% + a fixed 30¢ per transaction (the 30¢
+        is the card rail's own per-transaction toll, passed through).
 
         Every new key gets a one-time 50¢ starter credit — unconditional, no
         card — enough to taste the shelf before funding it. Don't see the
@@ -1125,7 +1126,11 @@ try:
         the exact price (price_millicents + exact price_usd), the wallet delta
         and any absorbed tail, a content hash you can check against the markdown,
         and (when the vendor reported one) an upstream_ref. A fresh key's first
-        call auto-grants the 50¢ starter credit, so it just works."""
+        call auto-grants the 50¢ starter credit, so it just works.
+
+        Request privacy: we record a keyed hash of each request — no browsable
+        history exists, and matching requires already knowing the exact URL
+        (used to attribute vendor abuse reports to a wallet)."""
         _store_shelf.ensure_shelf()
         try:
             return _store.call_slot("fetch", api_key, {"url": url}, "mcp")

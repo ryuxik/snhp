@@ -139,10 +139,10 @@ def test_create_checkout_session_returns_url(stub_stripe):
     assert out["checkout_url"].startswith("https://checkout.stripe.com/")
     assert out["session_id"].startswith("cs_")
     assert out["pack"] == "small"
-    # price = credits + the 5% counter fee (STORE.md §2d.4)
-    assert out["price_cents"] == 1050
+    # price = credits + the counter fee (5% + 30¢) (STORE.md §2d.4)
+    assert out["price_cents"] == 1080
     assert out["credits_cents"] == 1000
-    assert out["fee_cents"] == 50
+    assert out["fee_cents"] == 80          # 5% of 1000 (=50) + fixed 30
 
 
 def test_create_checkout_session_rejects_unknown_pack(stub_stripe):
@@ -177,15 +177,18 @@ def test_counter_fee_matches_every_pack():
 
 
 def test_counter_fee_rounds_half_up():
-    # 250¢ credit → 5% = 12.5¢ → rounds half-up to 13¢ (not banker's-even 12¢)
-    assert billing_mod.counter_fee_cents(250) == 13
-    # the $2 anchor need: 200¢ → 10¢ fee → $2.10 total (GAUNTLET #2)
-    assert billing_mod.counter_fee_cents(200) == 10
-    assert billing_mod.counter_fee_cents(0) == 0
+    # 250¢ credit → 5% = 12.5¢ → rounds half-up to 13¢ (not banker's-even 12¢),
+    # PLUS the fixed 30¢ toll = 43¢
+    assert billing_mod.counter_fee_cents(250) == 13 + 30
+    # the $2 anchor need: 200¢ → 10¢ pct + 30¢ fixed = 40¢ → $2.40 total
+    assert billing_mod.counter_fee_cents(200) == 10 + 30
+    # even a zero-credit transaction owes the fixed per-transaction toll
+    assert billing_mod.counter_fee_cents(0) == 30
+    assert billing_mod.COUNTER_FEE_FIXED_CENTS == 30
 
 
 def test_custom_topup_checkout_arithmetic(stub_stripe):
-    """A $2 need costs $2.10, never $10.50."""
+    """A $2 credit costs $2.40 (5% + 30¢), never $10.80."""
     key = _new_key("custom-1")
     out = billing_mod.create_checkout_session(
         api_key=key, amount_cents=200,
@@ -193,8 +196,8 @@ def test_custom_topup_checkout_arithmetic(stub_stripe):
     )
     assert out["pack"] == "custom"
     assert out["credits_cents"] == 200
-    assert out["price_cents"] == 210
-    assert out["fee_cents"] == 10
+    assert out["price_cents"] == 240
+    assert out["fee_cents"] == 40
 
 
 def test_custom_topup_enforces_minimum(stub_stripe):
@@ -443,10 +446,10 @@ def test_agentic_topup_credits_and_names_fee(stub_stripe):
     assert out["credited"] is True
     assert out["duplicate"] is False
     assert out["status"] == "succeeded"
-    # same fee math as the custom Checkout top-up: $2 → $2.10
+    # same fee math as the custom Checkout top-up: $2 credit → $2.40 (5% + 30¢)
     assert out["credits_cents"] == 200
-    assert out["price_cents"] == 210
-    assert out["fee_cents"] == 10
+    assert out["price_cents"] == 240
+    assert out["fee_cents"] == 40
     assert out["new_balance_millicents"] == STARTER_GRANT_MILLICENTS + 200_000
     assert wallet_available(key)["funded_millicents"] == 200_000
 
@@ -466,7 +469,7 @@ def test_agentic_topup_charges_price_not_credits(stub_stripe, monkeypatch):
     billing_mod.agentic_topup(
         api_key=key, amount_cents=1000, payment_token="spt_abc",
         idempotency_key="req_xyz")
-    assert seen["amount"] == 1050                     # price = 1000 + 5% fee
+    assert seen["amount"] == 1080                     # price = 1000 + (5% + 30¢) fee
     assert seen["currency"] == "usd"
     assert seen["confirm"] is True
     assert seen["payment_method_data"] == {

@@ -33,13 +33,13 @@ class CheckoutIn(BaseModel):
     api_key: str
     # EITHER a named pack OR a custom amount_cents (min 200 = $2.00). Exactly one;
     # the billing module enforces it. Custom lets an agent buy exactly what it
-    # needs ($2 → $2.10) instead of over-shooting to the smallest pack.
+    # needs ($2 credit → $2.40) instead of over-shooting to the smallest pack.
     pack: Optional[str] = Field(
-        default=None, description="small ($10.50) | medium ($52.50) | large ($210)")
+        default=None, description="small ($10.80) | medium ($52.80) | large ($210.30)")
     amount_cents: Optional[int] = Field(
         default=None,
         description="custom top-up: cents of wallet credit (min 200); "
-                    "you pay this + the 5% counter fee")
+                    "you pay this + the counter fee (5% + 30¢)")
     success_url: str = "https://snhp.dev/paid"
     cancel_url: str = "https://snhp.dev/cancel"
 
@@ -64,7 +64,7 @@ class AgenticTopupIn(BaseModel):
     api_key: str
     amount_cents: int = Field(
         description="cents of wallet credit to buy (min 200); you pay this + "
-                    "the 5% counter fee")
+                    "the counter fee (5% + 30¢)")
     payment_token: str = Field(
         description="a Stripe Shared Payment Token (spt_…) the agent carries")
 
@@ -72,8 +72,8 @@ class AgenticTopupIn(BaseModel):
 @router.post("/billing/agentic_topup")
 def agentic_topup(body: AgenticTopupIn, request: Request):
     """Fund the wallet by redeeming an agent-carried Shared Payment Token — no
-    human at a hosted Checkout URL. Same 5% counter fee as every top-up; the
-    fee is printed in the response as fee_cents.
+    human at a hosted Checkout URL. Same counter fee (5% + 30¢) as every top-up;
+    the fee is printed in the response as fee_cents.
 
     PREVIEW: Stripe's SPT flow is a versioned preview and needs preview
     services-terms acceptance + a US legal entity + a rotated key before live

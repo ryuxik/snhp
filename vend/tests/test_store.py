@@ -10,6 +10,7 @@ lane). Under test (STORE.md §2b, §2d.4, §2d.5):
   - tier is COMPUTED from live backend availability
   - the starter credit (granted at issuance) funds a fresh key's first call
 """
+import json
 import os
 import tempfile
 import uuid
@@ -478,7 +479,12 @@ def test_catalog_exposes_no_key_material():
     cat = store.catalog()
     assert cat["unit"] == "millicents"
     assert cat["millicents_per_cent"] == 1000
-    assert cat["counter_fee_pct"] == 5
+    assert cat["counter_fee_pct"] == 5                # deprecated pct-only alias
+    # the fee is published as its STRUCTURE: 5% + a fixed 30¢ per transaction
+    assert cat["counter_fee"] == {
+        "pct": 5, "fixed_cents": 30,
+        "note": "the fixed 30¢ is the card rail's per-transaction toll, "
+                "passed through"}
     assert cat["starter_credit"]["millicents"] == STARTER_GRANT_MILLICENTS
     slots = {s["id"]: s for s in cat["slots"]}
     entry = slots["c1"]
@@ -512,3 +518,53 @@ def test_telemetry_logged_for_charged_and_uncharged():
     # the charged line carries the millicent price field
     ok_line = next(e for e in events if e["slot_id"] == ok_sid)
     assert ok_line["price_millicents"] == 300
+
+
+# ─── request_hash: keyed abuse-forensics anchor, no browsable fetch history ───
+
+
+def test_request_hash_present_on_settled_and_uncharged_lines():
+    # founder-approved privacy posture: EVERY telemetry line (settled AND
+    # uncharged) carries the keyed hash of the request, never the raw url.
+    events = []
+    store.set_telemetry_sink(lambda **f: events.append(f))
+    ok_sid = f"rh-ok-{uuid.uuid4().hex[:6]}"
+    bad_sid = f"rh-bad-{uuid.uuid4().hex[:6]}"
+    _slot(ok_sid, [FakeBackend("b1", wholesale=300)])
+    _slot(bad_sid, [FakeBackend("b1", payload={"markdown": ""})])   # predicate fail
+    key = _key()
+    store.call_slot(ok_sid, key, {"url": "http://x/settled"}, "test")
+    store.call_slot(bad_sid, key, {"url": "http://x/uncharged"}, "test")
+    by_slot = {e["slot_id"]: e for e in events}
+    assert by_slot[ok_sid]["settled"] is True
+    assert by_slot[bad_sid]["settled"] is False
+    # the keyed request hash rides on BOTH lines and matches a recompute
+    assert by_slot[ok_sid]["request_hash"] == \
+        store._request_hash({"url": "http://x/settled"})
+    assert by_slot[bad_sid]["request_hash"] == \
+        store._request_hash({"url": "http://x/uncharged"})
+    # no raw url anywhere in the emitted telemetry — no browsable history exists
+    blob = json.dumps(events)
+    assert "http://x/settled" not in blob and "http://x/uncharged" not in blob
+
+
+def test_request_hash_is_deterministic_and_16_bytes():
+    # same request -> same hash (a vendor abuse report naming the EXACT url can
+    # be re-hashed and matched); 16-byte digest == 32 hex chars.
+    a = store._request_hash({"url": "https://example.com/a"})
+    b = store._request_hash({"url": "https://example.com/a"})
+    assert a == b and len(a) == 32
+    assert store._request_hash({"url": "https://example.com/b"}) != a
+
+
+def test_request_hash_different_pepper_different_hash(monkeypatch):
+    # KEYED: without the pepper an offline dump can't be dictionary-attacked back
+    # to a url — a different pepper yields a different digest for the same request.
+    req = {"url": "https://example.com/a"}
+    monkeypatch.setenv("TELEMETRY_PEPPER", "pepper-A")
+    ha = store._request_hash(req)
+    monkeypatch.setenv("TELEMETRY_PEPPER", "pepper-B")
+    hb = store._request_hash(req)
+    assert ha != hb
+    # under a fixed pepper the exact url reproduces the digest (the match path)
+    assert store._request_hash({"url": "https://example.com/a"}) == hb

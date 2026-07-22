@@ -88,16 +88,26 @@ def client():
     return TestClient(app)
 
 
+@pytest.fixture()
+def percall_on(monkeypatch):
+    """Open the keyless pay-per-call fence for tests that exercise the paid
+    /v1/mpp/negotiate/turn flow. The flag is read at request time, so setting it
+    here (auto-reverted) flips both the 404 gate and the openapi discovery."""
+    monkeypatch.setenv("MPP_PERCALL_ENABLED", "1")
+
+
 # ─── Protocol unit tests ─────────────────────────────────────────────────────
 
 
 def test_fee_is_the_published_counter_fee():
     p = mpp.price_with_fee(mpp.NEGOTIATE_BASE_CENTS)
-    assert p == {"base_cents": 100, "fee_cents": 5, "price_cents": 105}
+    # base $1.00 + (5% of 100 = 5) + fixed 30 = fee 35, price 135
+    assert p == {"base_cents": 100, "fee_cents": 35, "price_cents": 135}
     # The frame's fee equals billing's one counter-fee function — one fee, every rail.
     assert p["fee_cents"] == billing.counter_fee_cents(100)
     frame = mpp.paid_resource_frame(base_cents=200, what="x")
-    assert "5% counter fee" in frame["description"]
+    # the 402 frame names the fee STRUCTURE (5% + the fixed $0.30), ASCII-safe
+    assert "5% + $0.30 counter fee" in frame["description"]
     assert f"{mpp.billing.COUNTER_FEE_PCT}" in frame["description"]
 
 
@@ -112,7 +122,7 @@ def test_challenge_build_serialize_deserialize_roundtrip():
     assert back["id"] == ch["id"]
     assert back["realm"] == "api.snhp.dev"
     assert back["request"] == frame["request"]         # request decoded to dict
-    assert back["request"]["amount"] == "105"
+    assert back["request"]["amount"] == "135"          # 100 base + 5% + 30¢
     assert back["request"]["methodDetails"]["paymentMethodTypes"] == ["card", "link"]
 
 
@@ -170,11 +180,11 @@ def test_settle_spt_maps_stripe_failure_to_declined(monkeypatch):
 # ─── HTTP: challenge phase ───────────────────────────────────────────────────
 
 
-@pytest.mark.parametrize("path,price", [
-    ("/v1/mpp/negotiate/turn", 105),
-    ("/v1/mpp/topup", 210),
+@pytest.mark.parametrize("path,price,base", [
+    ("/v1/mpp/negotiate/turn", 135, 100),
+    ("/v1/mpp/topup", 240, 200),
 ])
-def test_unpaid_request_returns_402_challenge(client, path, price):
+def test_unpaid_request_returns_402_challenge(client, percall_on, path, price, base):
     resp = client.post(path, json={})
     assert resp.status_code == 402
     www = resp.headers.get("www-authenticate", "")
@@ -189,10 +199,10 @@ def test_unpaid_request_returns_402_challenge(client, path, price):
     body = resp.json()
     assert body["status"] == 402 and body["challengeId"] == ch["id"]
     assert body["price_cents"] == price
-    assert body["fee_cents"] == price - (100 if price == 105 else 200)
+    assert body["fee_cents"] == price - base           # 5% of base + fixed 30¢
 
 
-def test_malformed_credential_returns_fresh_402_not_500(client):
+def test_malformed_credential_returns_fresh_402_not_500(client, percall_on):
     # Validator error-handling probe: Authorization: Payment <garbage>, no body.
     resp = client.post("/v1/mpp/negotiate/turn",
                        headers={"Authorization": "Payment dGhpcyBpcyBnYXJiYWdl"})
@@ -213,7 +223,7 @@ def _pay(client, path, extra_body=None):
     return client.post(path, headers={"Authorization": auth}, json=extra_body or {})
 
 
-def test_negotiate_paid_roundtrip_returns_receipt_and_result(client, fake_stripe):
+def test_negotiate_paid_roundtrip_returns_receipt_and_result(client, fake_stripe, percall_on):
     resp = _pay(client, "/v1/mpp/negotiate/turn",
                 {"side": "sell", "walk_away": 4000, "target": 6000,
                  "counterparty_offers": [4200, 4500], "rounds_left": 6})
@@ -226,10 +236,10 @@ def test_negotiate_paid_roundtrip_returns_receipt_and_result(client, fake_stripe
     body = resp.json()
     assert body["paid"] is True and body["ok"] is True
     assert body["result"]["action"] in ("counter", "accept", "walk", "negotiate_directly")
-    assert body["fee_cents"] == 5 and body["price_cents"] == 105
+    assert body["fee_cents"] == 35 and body["price_cents"] == 135
 
 
-def test_negotiate_paid_with_bad_body_still_returns_receipt(client, fake_stripe):
+def test_negotiate_paid_with_bad_body_still_returns_receipt(client, fake_stripe, percall_on):
     # Pay-per-call: inputs are validated AFTER payment; a bad body is a reported
     # outcome (the buyer keeps their receipt), never a 500.
     resp = _pay(client, "/v1/mpp/negotiate/turn", {"side": "sideways"})
@@ -259,7 +269,7 @@ def test_topup_credits_wallet_and_dedupes(client, fake_stripe, monkeypatch):
     assert resp.status_code == 200
     body = resp.json()
     assert body["credited"] is True and body["duplicate"] is False
-    assert body["credits_cents"] == 200 and body["price_cents"] == 210
+    assert body["credits_cents"] == 200 and body["price_cents"] == 240
     after = wallet_available(key)["total_millicents"]
     assert after == before + 200 * onboarding.MILLICENTS_PER_CENT
 
@@ -278,7 +288,7 @@ def test_topup_unknown_key_is_paid_but_not_credited(client, fake_stripe):
     assert resp.headers.get("payment-receipt")           # still proof of payment
 
 
-def test_settlement_declined_returns_402(client, monkeypatch):
+def test_settlement_declined_returns_402(client, monkeypatch, percall_on):
     monkeypatch.setattr(billing, "_stripe", lambda: _DecliningStripe)
     first = client.post("/v1/mpp/negotiate/turn", json={})
     ch = mpp.deserialize_challenge(first.headers["www-authenticate"])
@@ -288,7 +298,7 @@ def test_settlement_declined_returns_402(client, monkeypatch):
     assert resp.headers.get("www-authenticate", "").startswith("Payment ")
 
 
-def test_credential_with_wrong_method_rejected(client, fake_stripe):
+def test_credential_with_wrong_method_rejected(client, fake_stripe, percall_on):
     first = client.post("/v1/mpp/negotiate/turn", json={})
     ch = mpp.deserialize_challenge(first.headers["www-authenticate"])
     ch["method"] = "tempo"                               # rail we don't accept
@@ -300,11 +310,48 @@ def test_credential_with_wrong_method_rejected(client, fake_stripe):
 # ─── HTTP: discovery (x-payment-info in /openapi.json) ───────────────────────
 
 
-def test_openapi_advertises_paid_endpoints_with_x_payment_info(client):
+def test_openapi_advertises_topup_with_x_payment_info(client):
+    # /v1/mpp/topup is ALWAYS advertised (keyed callers, countable). Fenced or
+    # not, the validator must find it in /openapi.json with x-payment-info.
     doc = client.get("/openapi.json").json()
-    for path, amt in (("/v1/mpp/negotiate/turn", "105"), ("/v1/mpp/topup", "210")):
-        op = doc["paths"][path]["post"]
-        xpi = op["x-payment-info"]
-        assert xpi["amount"] == amt and xpi["method"] == "stripe"
-        assert xpi["intent"] == "charge" and xpi["currency"] == "usd"
-        assert "402" in op["responses"]                  # required by the validator
+    op = doc["paths"]["/v1/mpp/topup"]["post"]
+    xpi = op["x-payment-info"]
+    assert xpi["amount"] == "240" and xpi["method"] == "stripe"
+    assert xpi["intent"] == "charge" and xpi["currency"] == "usd"
+    assert "402" in op["responses"]                      # required by the validator
+
+
+def test_openapi_advertises_percall_only_when_enabled(client, percall_on):
+    # With the fence OPEN, the keyless per-call resource appears with its own
+    # x-payment-info at the new $1.35 price.
+    doc = client.get("/openapi.json").json()
+    op = doc["paths"]["/v1/mpp/negotiate/turn"]["post"]
+    xpi = op["x-payment-info"]
+    assert xpi["amount"] == "135" and xpi["method"] == "stripe"
+    assert "402" in op["responses"]
+
+
+# ─── HTTP: the keyless per-call fence (referendum-population protection) ──────
+
+
+def test_percall_fenced_by_default_returns_404_and_absent_from_discovery(client):
+    # DEFAULT (MPP_PERCALL_ENABLED unset): the keyless per-call endpoint 404s with
+    # a problem+json body naming the reason, and is ABSENT from /openapi.json.
+    resp = client.post("/v1/mpp/negotiate/turn", json={})
+    assert resp.status_code == 404
+    assert resp.headers.get("content-type", "").startswith("application/problem+json")
+    body = resp.json()
+    assert body["status"] == 404
+    assert "referendum" in body["detail"] and "/v1/mpp/topup" in body["detail"]
+    # absent from the discovery surface while fenced
+    doc = client.get("/openapi.json").json()
+    assert "/v1/mpp/negotiate/turn" not in doc["paths"]
+    # but /v1/mpp/topup is still advertised
+    assert "/v1/mpp/topup" in doc["paths"]
+
+
+def test_percall_enabled_opens_the_402_challenge(client, percall_on):
+    # With the flag set, the same endpoint serves the 402 challenge again.
+    resp = client.post("/v1/mpp/negotiate/turn", json={})
+    assert resp.status_code == 402
+    assert resp.headers.get("www-authenticate", "").startswith("Payment ")

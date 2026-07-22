@@ -151,7 +151,13 @@ def test_http_fresh_key_fetch_settles_from_starter(fake_fetch, telemetry_file):
     assert line["door"] == "http" and line["settled"] is True
     assert line["price_millicents"] == 1_000
     assert line["repeat_key"] == telemetry._repeat_key(key)
-    assert key not in telemetry_file.read_text()      # raw key never on disk
+    # the keyed request hash is on the line; the raw url NEVER touches the file
+    # (no browsable fetch history), but the exact url re-hashes to a match
+    assert line["request_hash"] == store._request_hash(
+        {"url": "https://example.com/a"})
+    disk = telemetry_file.read_text()
+    assert key not in disk                            # raw key never on disk
+    assert "https://example.com/a" not in disk        # raw url never on disk
 
 
 def test_mcp_fresh_key_fetch_settles_from_starter(fake_fetch, telemetry_file):

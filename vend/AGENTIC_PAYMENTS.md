@@ -22,9 +22,10 @@ Link/ACP capability most callers don't have yet.
 
 So the split we shipped:
 
-- **Custom top‑up (unconditional, GA rails):** ships now. Kills the 5.25×
-  overshoot the gauntlet found (GAUNTLET #2). A $2 need costs **$2.10**, not
-  $10.50. Pure GA Checkout + our existing webhook. No preview anything.
+- **Custom top‑up (unconditional, GA rails):** ships now. Kills the 5.4×
+  overshoot the gauntlet found (GAUNTLET #2). A $2 credit costs **$2.40** (the
+  counter fee is 5% + a fixed 30¢), not $10.80. Pure GA Checkout + our existing
+  webhook. No preview anything.
 - **Agentic SPT top‑up (preview rails):** implemented as a real, test‑mode‑working
   endpoint (`POST /v1/billing/agentic_topup`) against the **documented** SPT flow,
   hermetically tested (Stripe layer monkeypatched, never networked). It is
@@ -284,7 +285,7 @@ client auto‑discovers them (a SECOND rail beside the prepaid wallet):
 ```
 WWW-Authenticate: Payment id="<hmac>", realm="<host>", method="stripe",
   intent="charge", request="<base64url(JCS(json))>",
-  description="…$1.00 + $0.05 (5% counter fee) = $1.05", expires="<ISO8601 .fffZ>"
+  description="…$1.00 + $0.35 (5% + $0.30 counter fee) = $1.35", expires="<ISO8601 .fffZ>"
 Accept-Payment: stripe
 Cache-Control: no-store
 Content-Type: application/problem+json
@@ -315,9 +316,10 @@ paymentMethodTypes:["card","link"]}}` (mppx `stripe/Methods.ts` post‑transform
 - **Receipt** (`Payment-Receipt: <base64url(JSON)>`): `{method:"stripe", reference:"pi_…",
   status:"success", timestamp:"<ISO8601>"}`.
 
-### 8c. Fee treatment (published wherever money moves — same 5%, visible)
-The buyer pays the challenge `amount` = base + the **5% counter fee** computed by the
-SAME `billing.counter_fee_cents` used for wallet top‑ups (one fee function, every rail).
+### 8c. Fee treatment (published wherever money moves — 5% + 30¢, visible)
+The buyer pays the challenge `amount` = base + the **counter fee (5% + a fixed 30¢)**
+computed by the SAME `billing.counter_fee_cents` used for wallet top‑ups (one fee
+function, every rail).
 The fee is named THREE ways in the 402 frame before the buyer pays: the challenge
 `description` string, the problem+json body (`base_cents`/`fee_cents`/`price_cents`/
 `counter_fee_pct`), and the discovery `x-payment-info.description`. It is echoed again in

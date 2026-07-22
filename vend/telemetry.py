@@ -9,6 +9,9 @@ Hygiene rules (NEXTMOVE.md §5/§7):
     without credential-in-log risk).
   - free-text requests are size-capped at ingestion and stored as data;
     nothing downstream may render them raw or treat them as instructions.
+  - store slot calls record a KEYED hash of the request (never the URL): no
+    browsable fetch history, but an exact URL from a vendor abuse report can be
+    re-hashed and matched to a wallet (see _repeat_key's pepper discipline).
 """
 from __future__ import annotations
 
@@ -27,10 +30,28 @@ def _path() -> str:
                           os.path.join(os.getcwd(), "nextmove_telemetry.jsonl"))
 
 
+def _pepper() -> bytes:
+    """The telemetry pepper: TELEMETRY_PEPPER — the SAME server secret the
+    outcome-telemetry module keys on, carried by the deploy (a Fly secret, never
+    in the repo). It KEYS the repeat_key pseudonym and the store request_hash so
+    an offline dump of the telemetry file cannot be dictionary-attacked back to a
+    raw api_key or a fetched URL without also holding the pepper.
+
+    Absent (dev/test): the empty key, which blake2b treats as UNKEYED — so the
+    hashes are byte-identical to the pre-pepper values and nothing breaks when
+    the pepper isn't set; production sets it and the hashes become keyed. We do
+    NOT raise on absence (unlike the outcome module): these lines are operational
+    telemetry, not a consent-gated privacy promise."""
+    return os.environ.get("TELEMETRY_PEPPER", "").strip().encode()
+
+
 def _repeat_key(api_key: str) -> str:
-    """Stable pseudonym for repeat measurement; never the key itself."""
+    """Stable pseudonym for repeat measurement; never the key itself. Keyed with
+    the telemetry pepper (see _pepper) so the pseudonym is not dictionary-
+    attackable offline; when the pepper is unset the key is empty (blake2b
+    unkeyed) and the value is unchanged from before the pepper was introduced."""
     return hashlib.blake2b(api_key.encode(), digest_size=8,
-                           person=b"nextmove").hexdigest()
+                           person=b"nextmove", key=_pepper()).hexdigest()
 
 
 def _append(record: dict) -> None:
@@ -80,12 +101,18 @@ def log_slot_call(*, api_key: str | None, door: str, slot_id, backend_id,
                   ok: bool, settled: bool, price_millicents: int,
                   wholesale_millicents: int, wholesale_estimated: bool,
                   funding, shortfall_millicents: int, predicate, reason,
-                  content_hash) -> None:
+                  content_hash, request_hash=None) -> None:
     """One line per store slot call — INCLUDING uncharged failures, since a
     non-delivery is itself telemetry (the null-query log's paid twin). The
     settlement engine hands `api_key` RAW; it is stored ONLY as the keyed
     blake2b repeat_key, never as the key itself. Payload contents are never
-    logged — only content_hash, the receipt's checkable anchor."""
+    logged — only content_hash, the receipt's checkable anchor.
+
+    `request_hash` is the settlement engine's KEYED hash of the request (e.g.
+    {"url": ...}) — the raw URL is NEVER passed here or written, so there is no
+    browsable fetch history; but a vendor abuse report naming an exact URL can be
+    re-hashed (with the pepper) and matched to this line's wallet. Computed in
+    vend.store.call_slot so the raw request never reaches this module."""
     _append({
         "kind": "slot_call",
         "ts": time.time(),
@@ -103,6 +130,7 @@ def log_slot_call(*, api_key: str | None, door: str, slot_id, backend_id,
         "predicate": predicate,
         "reason": reason,
         "content_hash": content_hash,
+        "request_hash": request_hash,
     })
 
 

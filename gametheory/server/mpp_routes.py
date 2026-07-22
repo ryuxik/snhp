@@ -1,14 +1,19 @@
 """
 MPP over HTTP — the 402 challenge/response payment surface (see gametheory/server/mpp.py).
 
-Two paid resources, both advertised in /openapi.json via `x-payment-info` so an MPP
-client (and `npx mppx validate`) auto-discovers them:
+Two paid resources:
 
   POST /v1/mpp/negotiate/turn   Pay-per-call negotiation, NO api_key, NO wallet — MPP's
                                 headline "pay per invocation instead of an API key" shape.
+                                FENCED by default (MPP_PERCALL_ENABLED, see mpp.py): while
+                                fenced it 404s and is ABSENT from discovery, because a
+                                keyless per-call caller is invisible to the demand
+                                referendum's return-visit gates.
   POST /v1/mpp/topup            MPP-framed wallet top-up: SPT settlement credits the
                                 caller's wallet (onboarding.wallet_credit) — the bridge
-                                to the prepaid-wallet primary model.
+                                to the prepaid-wallet primary model. ALWAYS live +
+                                advertised in /openapi.json via `x-payment-info` so an MPP
+                                client (and `npx mppx validate`) auto-discovers it.
 
 Both share one flow (mpp.py): an unpaid request gets a signed 402 `WWW-Authenticate:
 Payment` challenge; a request carrying an `Authorization: Payment` SPT credential is
@@ -33,7 +38,8 @@ from gametheory.negotiation import plain_terms
 router = APIRouter(tags=["mpp"])
 
 
-# Fixed per-resource pricing, resolved once at import (base + 5% counter fee).
+# Fixed per-resource pricing, resolved once at import (base + the counter fee,
+# 5% + a fixed 30¢).
 _NEGOTIATE = mpp.price_with_fee(mpp.NEGOTIATE_BASE_CENTS)
 _TOPUP = mpp.price_with_fee(mpp.TOPUP_CREDIT_CENTS)
 
@@ -147,10 +153,25 @@ _NEGOTIATE_XPI = {
 @router.post("/v1/mpp/negotiate/turn", openapi_extra=_NEGOTIATE_XPI)
 async def mpp_negotiate_turn(request: Request):
     """MPP pay-per-call negotiation. First (unpaid) call -> 402 with a signed
-    challenge for $1.00 + 5% counter fee. Retry with an `Authorization: Payment`
-    SPT credential -> the deterministic plain-terms recommendation + a receipt.
-    No SNHP api_key and no wallet: this IS MPP's 'pay per invocation instead of an
-    API key' model. The free, unmetered version is POST /v1/negotiate/turn."""
+    challenge for $1.00 + the counter fee (5% + 30¢). Retry with an
+    `Authorization: Payment` SPT credential -> the deterministic plain-terms
+    recommendation + a receipt. No SNHP api_key and no wallet: this IS MPP's 'pay
+    per invocation instead of an API key' model. The free, unmetered version is
+    POST /v1/negotiate/turn.
+
+    FENCED by default: while MPP_PERCALL_ENABLED is unset this 404s (keyless
+    per-call callers are invisible to the demand referendum's return-visit gates;
+    use the wallet + /v1/mpp/topup). See mpp.percall_enabled()."""
+    if not mpp.percall_enabled():
+        # Fenced: 404 with a problem+json body naming the reason. The path is also
+        # stripped from /openapi.json (see http.py's openapi override), so it is
+        # absent from every discovery surface while fenced.
+        return JSONResponse(
+            status_code=404,
+            media_type="application/problem+json",
+            content={"type": mpp.PROBLEM_TYPE_NOT_FOUND, "title": "Not Found",
+                     "status": 404, "detail": mpp.PERCALL_FENCED_REASON},
+        )
     frame = {**_NEGOTIATE, "currency": "usd",
              "request": mpp._stripe_request(_NEGOTIATE["price_cents"], "usd"),
              "description": mpp._fee_description(
@@ -226,11 +247,12 @@ _TOPUP_XPI = {
 
 @router.post("/v1/mpp/topup", openapi_extra=_TOPUP_XPI)
 async def mpp_topup(request: Request):
-    """MPP-framed wallet top-up: pay $2.00 + 5% counter fee via SPT and we credit
-    $2.00 to the wallet named by `api_key` in the body. This is the SECOND rail
-    beside the prepaid wallet — MPP settlement that FUNDS the wallet (contrast the
-    per-call resource above, which funds nothing). Same 5% counter fee, same
-    settlement plumbing as billing.agentic_topup, but MPP-shaped (402 challenge)."""
+    """MPP-framed wallet top-up: pay $2.00 + the counter fee (5% + 30¢) = $2.40
+    via SPT and we credit $2.00 to the wallet named by `api_key` in the body. This
+    is the SECOND rail beside the prepaid wallet — MPP settlement that FUNDS the
+    wallet (contrast the per-call resource above, which funds nothing). Same
+    counter fee, same settlement plumbing as billing.agentic_topup, but MPP-shaped
+    (402 challenge)."""
     frame = {**_TOPUP, "currency": "usd",
              "request": mpp._stripe_request(_TOPUP["price_cents"], "usd"),
              "description": mpp._fee_description(

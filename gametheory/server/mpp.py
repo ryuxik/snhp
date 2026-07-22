@@ -31,19 +31,24 @@ WHAT THIS MODULE IMPLEMENTS:
     - Stripe SPT challenge request shape ............ mppx `src/stripe/Methods.ts`
     - Stripe SPT PaymentIntent settlement ........... mppx `src/stripe/server/Charge.ts`
 
-FEE TREATMENT (published wherever money moves — STORE.md counter fee, same 5%):
-  The buyer pays the challenge `amount`, which is base + the 5% counter fee (reusing
-  billing.counter_fee_cents — the SAME fee function as the wallet top-ups). The fee
-  is printed VISIBLY in the challenge `description` frame and echoed in the response
-  body, so the 402 frame itself names the fee before the buyer pays.
+FEE TREATMENT (published wherever money moves — STORE.md counter fee, 5% + 30¢):
+  The buyer pays the challenge `amount`, which is base + the counter fee (reusing
+  billing.counter_fee_cents — the SAME fee function as the wallet top-ups, so the
+  MPP frames inherit the 5% + fixed 30¢ structure). The fee STRUCTURE is printed
+  VISIBLY in the challenge `description` frame and echoed in the response body, so
+  the 402 frame itself names the fee before the buyer pays.
 
 COEXISTENCE WITH THE WALLET (MPP is a SECOND rail beside the prepaid wallet):
-  Two paid endpoints, both discoverable via `x-payment-info` in /openapi.json:
+  Two paid endpoints:
     - POST /v1/mpp/negotiate/turn  — pure MPP: pay-per-call, NO api_key, NO wallet.
       This is MPP's headline shape ("pay per invocation instead of an API key").
+      FENCED by default (MPP_PERCALL_ENABLED): keyless per-call callers are invisible
+      to the demand referendum's return-visit gates, so while fenced it 404s and is
+      ABSENT from discovery (x-payment-info / openapi). See percall_enabled().
     - POST /v1/mpp/topup           — MPP-framed wallet top-up: on SPT settlement we
       credit the caller's wallet via onboarding.wallet_credit (settlement funds the
       wallet). This is the bridge between MPP and the prepaid-wallet primary model.
+      ALWAYS live + advertised (its callers are keyed, hence countable).
 
 NO LLM anywhere in this payment path (house rule). The negotiate resource behind the
 per-call door is the deterministic plain-terms engine.
@@ -86,6 +91,36 @@ SUPPORTED_METHODS = (METHOD_STRIPE,)
 # RFC 7807 problem type MPP uses for the 402 body (docs.stripe.com/payments/machine/mpp
 # "Test manually" — the application/problem+json shape).
 PROBLEM_TYPE = "https://paymentauth.org/problems/payment-required"
+# RFC 7807 default type for the fenced-per-call 404 (a plain not-found, not a
+# payment challenge).
+PROBLEM_TYPE_NOT_FOUND = "about:blank"
+
+
+# ─── Per-call fence (referendum-population protection) ───────────────────────
+#
+# The keyless pay-per-call resource (POST /v1/mpp/negotiate/turn) is FENCED by
+# default. Rationale (comment, per founder): the demand referendum's return-
+# visit gates (R0/R1) can only see callers that carry a key/wallet; a keyless
+# per-call buyer is invisible to them, so admitting keyless per-call traffic
+# would pollute the referendum population with uncountable callers. /v1/mpp/topup
+# is UNAFFECTED — it credits a wallet, so its callers ARE keyed and countable.
+#
+# The gate is an env flag read at REQUEST time (not import) so it flips without a
+# redeploy and BOTH states are testable in one process. When fenced the endpoint
+# 404s AND is absent from every discovery surface (x-payment-info / openapi).
+PERCALL_ENV_FLAG = "MPP_PERCALL_ENABLED"
+PERCALL_FENCED_REASON = (
+    "per-call endpoint disabled during the demand referendum — keyless callers "
+    "are invisible to its return-visit gates; use the wallet + /v1/mpp/topup")
+
+
+def percall_enabled() -> bool:
+    """True iff the keyless pay-per-call MPP resource is open (MPP_PERCALL_ENABLED
+    set truthy). DEFAULT OFF/fenced — see the block comment above (R0/R1 can't see
+    keyless callers). Read at request time so both states are live-togglable and
+    testable."""
+    return os.environ.get(PERCALL_ENV_FLAG, "").strip().lower() in (
+        "1", "true", "yes", "on")
 
 # Stripe SPT preview API version (mppx src/stripe/internal/constants.ts). Distinct
 # from billing.AGENTIC_PREVIEW_API_VERSION (2026-04-22.preview): the bespoke
@@ -490,19 +525,24 @@ def settle_spt(*, spt: str, amount_cents: int, currency: str, challenge_id: str,
 
 
 def price_with_fee(base_cents: int) -> dict:
-    """base -> {base_cents, fee_cents, price_cents}. price = base + the 5% counter
-    fee (billing.counter_fee_cents, round-half-up, integer-exact). The buyer pays
-    price; the fee is the store's published counter fee, named in the frame."""
+    """base -> {base_cents, fee_cents, price_cents}. price = base + the counter
+    fee (billing.counter_fee_cents: 5% + a fixed 30¢, round-half-up, integer-
+    exact). The buyer pays price; the fee is the store's published counter fee,
+    named in the frame."""
     fee = billing.counter_fee_cents(base_cents)
     return {"base_cents": base_cents, "fee_cents": fee, "price_cents": base_cents + fee}
 
 
 def _fee_description(*, base_cents: int, fee_cents: int, price_cents: int,
                      what: str) -> str:
-    """Human-readable fee breakdown for the challenge `description` frame, so the 402
-    itself names the counter fee before the buyer authorizes payment."""
+    """Human-readable fee breakdown for the challenge `description` frame, so the
+    402 itself names the counter fee STRUCTURE (5% + the fixed 30¢) before the
+    buyer authorizes payment. ASCII-only ('$0.30', not '30¢') because this string
+    also rides in the WWW-Authenticate HTTP header."""
     return (f"{what}: ${base_cents / 100:.2f} + ${fee_cents / 100:.2f} "
-            f"({billing.COUNTER_FEE_PCT}% counter fee) = ${price_cents / 100:.2f}")
+            f"({billing.COUNTER_FEE_PCT}% + "
+            f"${billing.COUNTER_FEE_FIXED_CENTS / 100:.2f} counter fee) "
+            f"= ${price_cents / 100:.2f}")
 
 
 def paid_resource_frame(*, base_cents: int, what: str, currency: str = "usd") -> dict:
