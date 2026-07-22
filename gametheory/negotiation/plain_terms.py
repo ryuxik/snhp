@@ -132,15 +132,25 @@ def negotiate_turn(
     opp_hist = [_clamp01(to_util(p)) for p in counterparty_offers]
     my_hist = [_clamp01(to_util(p)) for p in my_previous_offers]
 
+    # deadline_rounds must be the TOTAL horizon, not the rounds REMAINING.
+    # The recommenders compute time_fraction = rounds_used / deadline_rounds where
+    # rounds_used = len(my_offers) + len(opp_offers) is CUMULATIVE across both sides
+    # (sell.py:119-120, buy.py:208-209). Passing rounds_left (remaining) here made
+    # cumulative >= remaining ⇒ time_fraction clamped to 1.0 ⇒ the concession
+    # schedule saturated ⇒ aspiration collapsed to the floor and the engine accepted
+    # a rising buyer's floor with rounds still on the clock (vend/RESULTS.md P7).
+    # Total horizon = offers already exchanged + rounds still left, so
+    # time_fraction = rounds_used / (rounds_used + rounds_left) never saturates.
+    total_horizon = len(counterparty_offers) + len(my_previous_offers) + rounds_left
     if side == "sell":
         rec = sell_next_offer(
             my_reservation=0.0, opponent_offer_history=opp_hist,
-            my_offer_history=my_hist, deadline_rounds=rounds_left,
+            my_offer_history=my_hist, deadline_rounds=total_horizon,
             pareto_knob=_VALIDATED_KNOB)
     else:
         rec = buy_next_offer(
             my_reservation=0.0, seller_offer_history=opp_hist,
-            my_offer_history=my_hist, deadline_rounds=rounds_left,
+            my_offer_history=my_hist, deadline_rounds=total_horizon,
             pareto_knob=_VALIDATED_KNOB)
 
     recommended_util = float(rec["recommended_offer"])

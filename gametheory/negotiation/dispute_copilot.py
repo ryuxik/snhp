@@ -260,6 +260,14 @@ def coach_round(*, dispute: dict, customer_floor: float,
 
     seller_hist = [u_c(o) for o in platform_offers]
     my_hist = [u_c(d) for d in customer_demands]
+    # CONVENTION (pinned): deadline_rounds here is the TOTAL horizon, not rounds
+    # remaining. buy_next_offer computes time_fraction = rounds_used/deadline_rounds
+    # with rounds_used = cumulative offers exchanged (buy.py:208-209); this caller
+    # honors that contract — the current round is derived from history length
+    # (see `round` below) and deadline_rounds is a fixed total (default 10, never
+    # decremented per turn). Do NOT pass a decrementing rounds-remaining value here:
+    # that is exactly the accept-collapse bug that was fixed at the plain_terms
+    # adapter boundary (vend/RESULTS.md P7). Callers must keep this a fixed total.
     adv = buy_next_offer(
         my_reservation=0.0, seller_offer_history=seller_hist,
         my_offer_history=my_hist, deadline_rounds=deadline_rounds, pareto_knob=0.9)

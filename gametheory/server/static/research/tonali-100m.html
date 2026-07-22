@@ -211,8 +211,8 @@
     </div>
     <div class="tile">
       <div class="label">Engine-vs-engine settlement, single-issue replay</div>
-      <div class="value">£90.6m</div>
-      <div class="note">flat fee — Newcastle's real terms beat it by ~£7m EV</div>
+      <div class="value">£92.54m</div>
+      <div class="note">flat fee — essentially the £92.5m Newcastle actually got; the edge is in the add-on</div>
     </div>
   </div>
 </header>
@@ -286,19 +286,19 @@
 </div>
 
 <figure>
-  <p class="fig-title">Two equally-patient negotiators settle at £90.6m — Newcastle beat that by ~£7m</p>
+  <p class="fig-title">Two equally-patient negotiators settle at £92.54m — almost exactly the real fee</p>
   <p class="fig-sub">Alternating offers on the guaranteed fee, £m; both seats played by the SNHP engine</p>
   <div class="chart-box" id="c2"></div>
   <div class="legend">
     <span class="key"><span class="sw line" style="background:var(--s-frontier)"></span>Newcastle counters</span>
     <span class="key"><span class="sw line" style="background:var(--s-actual)"></span>Tottenham offers</span>
   </div>
-  <figcaption>From the real £75m opener, two engines settle at £90.6m flat. The actual terms — £92.5m guaranteed plus the add-on, worth ≈£97.8m in expected value to Newcastle — beat the symmetric equilibrium by about £7m.</figcaption>
+  <figcaption>From the real £75m opener, two engines trade twelve offers and settle at £92.54m flat — within £0.04m of the £92.5m Newcastle banked in guarantees. Read it honestly: one seeded replay landing on the real fee is a consistency check on the machinery, not a claim that the model predicts deals. The seller's real edge is the part a flat replay can't price — the add-on, worth ≈£5m more in expected value, which lifts Newcastle's haul to ≈£97.8m, about £5m over the symmetric price. On the guarantee alone the gap is essentially zero.</figcaption>
 </figure>
 
 <div class="prose">
-<p>Two symmetric, equally-patient negotiators land at <strong>£90.6m flat</strong>. Newcastle actually banked £92.5m guaranteed plus an add-on the model says they value near £5m — <strong>the model puts their haul at £97.8m of expected value, roughly £7m above the symmetric equilibrium</strong>. Across the Monte Carlo, Newcastle's median share of the realized joint surplus is 61%. The seller won, and not by a rounding error.</p>
-<p>Why? Patience — and look at where it actually came from. Not primarily Manchester City: Tonali wanted De Zerbi, which quietly hollows a rival bid as a threat. Newcastle's patience was the <strong>contract to 2029</strong> — a seller who doesn't have to sell discounts the future slowly, and rejecting ~£90m mid-window is what that looks like in the wild. Spurs, rebuilding off a 17th-place finish, discount it fast. In bargaining terms, Newcastle at δ ≈ 0.93 per round, Spurs at δ ≈ 0.76 — and in the Rubinstein equilibrium (the standard model of offer-counteroffer bargaining, in which the more patient side simply gets more), that patience gap alone hands the seller <strong>roughly three-quarters of the £24m bargaining zone</strong> (76.5% with Spurs proposing first, as they did), implying a total around £100.4m. One more real-world force the model books silently under "ceiling": Newcastle were selling inside the league, to a direct competitor — and Premier League clubs charge rivals a premium a foreign buyer wouldn't pay. The actual deal sits between the symmetric replay (£90.6m) and the full patience-asymmetry solution (~£100.4m) — which is where you'd expect it, since City's interest was real but reportedly never reached a formal bid. One reported detail lands eerily close: Newcastle reportedly turned down an intermediate ~£90m bid — almost exactly what a symmetric negotiation is worth. They refused the equal-leverage price, and got paid for the difference.</p>
+<p>Two symmetric, equally-patient negotiators trade twelve offers and land at <strong>£92.54m flat</strong> — within £0.04m of the £92.5m guarantee Newcastle actually banked. That near-coincidence is worth stating carefully. One seeded replay landing on the real-world fee is a consistency check on the machinery, not proof the engine predicts deals: fed only the £75m opener and equal leverage, it reconstructs the headline number, which says the reported fee is roughly what equal-patience bargaining from that opener produces — not that the model called it in advance. So on the flat guarantee, Newcastle got the equal-leverage price and no more. <strong>Their edge lives in the parts the single-issue replay can't see</strong>: the add-on the model values near £5m, which lifts their haul to ≈£97.8m of expected value — about £5m over the symmetric price — and the split, where Newcastle's median share of the realized joint surplus is 61%. The seller won through the structure, not by muscling the headline fee.</p>
+<p>Why? Patience — and look at where it actually came from. Not primarily Manchester City: Tonali wanted De Zerbi, which quietly hollows a rival bid as a threat. Newcastle's patience was the <strong>contract to 2029</strong> — a seller who doesn't have to sell discounts the future slowly, and rejecting ~£90m mid-window is what that looks like in the wild. Spurs, rebuilding off a 17th-place finish, discount it fast. In bargaining terms, Newcastle at δ ≈ 0.93 per round, Spurs at δ ≈ 0.76 — and in the Rubinstein equilibrium (the standard model of offer-counteroffer bargaining, in which the more patient side simply gets more), that patience gap alone hands the seller <strong>roughly three-quarters of the £24m bargaining zone</strong> (76.5% with Spurs proposing first, as they did), implying a total around £100.4m. One more real-world force the model books silently under "ceiling": Newcastle were selling inside the league, to a direct competitor — and Premier League clubs charge rivals a premium a foreign buyer wouldn't pay. So there are two prices in play. The guaranteed fee landed at the symmetric one — £92.5m paid, £92.54m in the equal-leverage replay — meaning the patience gap didn't move the headline number. The total package did move: the guarantee plus the ≈£5m add-on is ≈£97.8m in expected value, sitting between the symmetric replay and the full patience-asymmetry ceiling (~£100.4m), which is where you'd expect it, since City's interest was real but reportedly never reached a formal bid. And the intermediate ~£90m bid Newcastle reportedly rejected sits just below that equal-leverage price — a seller refusing to settle beneath the symmetric number, then taking it in guarantees with the add-on on top.</p>
 </div>
 
 <figure>
@@ -307,6 +307,10 @@
   <div class="chart-box" id="c4"></div>
   <figcaption>Every step of buyer urgency moves millions across the table before a single offer is made. At Spurs' modeled urgency (0.75), Newcastle's equilibrium share is 77–82% depending on who proposes first.</figcaption>
 </figure>
+
+<div class="callout">
+<p><strong>Correction (2026-07-22).</strong> An earlier version of this section reported the engine-vs-engine replay settling at £90.6m in six plies, and read that as Newcastle beating the symmetric price by about £7m. A rounds-accounting bug in the replay engine made it concede early. The bug was caught by an adversarial audit, fixed under a pre-registered test battery, and the replay re-run with a fixed seed: the corrected settlement is £92.54m over twelve plies — essentially the £92.5m Newcastle actually banked in guarantees. The correction moved the result closer to the real fee, not further from it; corrections that help us are still corrections, and we publish both kinds.</p>
+</div>
 
 <div class="eyebrow">§ 5 — Stress test</div>
 <div class="prose">
@@ -406,11 +410,14 @@
     actual: { x: 15.75, y: 10.5, label: "Actual deal" },
     nash:   { x: 16.0,  y: 13.0, label: "Nash package" },
     ladder: [
-      { who: "THFC", ply: 1, v: 75.0 }, { who: "NUFC", ply: 2, v: 102.43 },
-      { who: "THFC", ply: 3, v: 82.1 }, { who: "NUFC", ply: 4, v: 100.86 },
-      { who: "THFC", ply: 5, v: 86.25 }, { who: "NUFC", ply: 6, v: 90.62 }
+      { who: "THFC", ply: 1, v: 75.0 }, { who: "NUFC", ply: 2, v: 102.44 },
+      { who: "THFC", ply: 3, v: 81.92 }, { who: "NUFC", ply: 4, v: 101.92 },
+      { who: "THFC", ply: 5, v: 82.89 }, { who: "NUFC", ply: 6, v: 100.55 },
+      { who: "THFC", ply: 7, v: 84.76 }, { who: "NUFC", ply: 8, v: 98.41 },
+      { who: "THFC", ply: 9, v: 87.38 }, { who: "NUFC", ply: 10, v: 95.68 },
+      { who: "THFC", ply: 11, v: 90.57 }, { who: "NUFC", ply: 12, v: 92.54 }
     ],
-    settle: { ply: 6, v: 90.62 },
+    settle: { ply: 12, v: 92.54 },
     hist: [
       { bin: "0–0.5", pct: 6.6 }, { bin: "0.5–1", pct: 10.0 }, { bin: "1–2", pct: 29.7 },
       { bin: "2–3", pct: 29.0 }, { bin: "3–4", pct: 17.7 }, { bin: "4–5", pct: 6.0 },
@@ -503,7 +510,7 @@
     const W = 780, H = 340, M = { l: 52, r: 130, t: 16, b: 44 };
     const svg = makeSVG(box, W, H);
     const ymin = 70, ymax = 106;
-    const X = ply => M.l + ((ply - 1) / 5.6) * (W - M.l - M.r);
+    const X = ply => M.l + ((ply - 1) / 12.32) * (W - M.l - M.r);
     const Y = v => H - M.b - ((v - ymin) / (ymax - ymin)) * (H - M.t - M.b);
     for (let g = 70; g <= 105; g += 5) {
       el("line", { x1: M.l, x2: W - M.r, y1: Y(g), y2: Y(g), stroke: "var(--grid)", "stroke-width": 1 }, svg);
@@ -526,7 +533,7 @@
     }
     const st = DATA.settle;
     el("circle", { cx: X(st.ply), cy: Y(st.v), r: 9, fill: "none", stroke: "var(--ink)", "stroke-width": 1.5 }, svg);
-    el("text", { x: X(st.ply) + 14, y: Y(st.v) + 4, class: "dlabel" }, svg).textContent = "THFC accepts £90.6m";
+    el("text", { x: X(st.ply) + 14, y: Y(st.v) + 4, class: "dlabel" }, svg).textContent = "THFC accepts £92.54m";
     el("text", { x: (M.l + W - M.r) / 2, y: H - 8, "text-anchor": "middle", class: "axis-label" }, svg)
       .textContent = "offer sequence →";
   })();
