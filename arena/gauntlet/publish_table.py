@@ -32,6 +32,9 @@ from arena.gauntlet.pool_experiment import (
     HELDOUT_SEED, PUBLIC_SEED, REFERENCE_CP, REFERENCE_PREDICTION, N_SCENARIOS,
     ALPHA, primary_stat, require_prereg, run_candidate, run_reference, _subset,
 )
+from arena.gauntlet.llm_tier import (
+    CACHE as _LLM_CACHE, TIER_MODELS, TIER_PREDICTION, SETS as _LLM_SETS,
+)
 
 _CERTS = pathlib.Path(__file__).with_name("certs")
 _MATCHES_JSON = pathlib.Path(__file__).resolve().parents[1] / "web" / "gauntlet-matches.json"
@@ -54,6 +57,125 @@ def _capture_delta(cand: dict, base: dict, seed: int) -> tuple:
     d = c - b
     return (len(keys), float(c.mean()), float(b.mean()), float(d.mean()),
             paired_permutation_pvalue(d, seed))
+
+
+_LLM_EXPECTED = N_SCENARIOS * 2 * len(POOL_MEMBERS)   # 360 matches per model/set
+
+
+def _load_llm_cache() -> dict | None:
+    if not _LLM_CACHE.exists():
+        return None
+    try:
+        return json.loads(_LLM_CACHE.read_text())
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _llm_tier_section(runs: dict, sets: tuple, n: int) -> list:
+    """Section 3: the registered frontier models measured on the SAME
+    own-utility instrument as section 1 (Amendment 2). Read-only from the
+    cached paid run; calls NO LLM. Renders a model×set cell only when its full
+    360-match set is present — a partial (interrupted / out-of-credits) run is
+    labelled as such, never scored as if complete."""
+    L = ["---\n",
+         "## 3. MEASURED FRONTIER MODELS — reported on the certified metric, "
+         "NOT certified\n",
+         "> Registered in `PREREG-pool.md` Amendment 2 and run UNAIDED against "
+         "the frozen three, scored on the **same pooled own-utility vs naive** "
+         "statistic as section 1 — so the `own-u` column here IS comparable to "
+         "section 1. They are reported, not certified: like the reference tier, "
+         "they never enter the engine−naive verdict and are never signed by "
+         "`certify.py`. This replaces the retired-`capture` footnote (now "
+         "section 4) with a comparable number.\n",
+         f"**Registered prediction (stated before the run):** {TIER_PREDICTION}\n"]
+
+    cache = _load_llm_cache()
+    if cache is None or not cache.get("matches"):
+        L.append("_(no run yet — `python -m arena.gauntlet.llm_tier` populates "
+                 "`certs/llm-tier-matches.json`; `--provider scripted-naive` "
+                 "does a free offline dry run.)_\n")
+        L.append("Regenerate: `python -m arena.gauntlet.llm_tier` "
+                 "(paid; checkpointed + resumable) then "
+                 "`python -m arena.gauntlet.publish_table`.\n")
+        return L
+
+    seed_to_label = {seed: label for label, seed in cache.get("sets", {}).items()}
+    matches = cache["matches"]
+    if cache.get("incomplete"):
+        note = cache.get("stopped_reason")
+        L.append("> ⚠ The cached run is marked **incomplete**"
+                 + (f" (stopped: {note})" if note else "")
+                 + ". Cells below with fewer than "
+                 f"{_LLM_EXPECTED} matches are shown as partial and are NOT a "
+                 "measurement — re-run `llm_tier` to finish them.\n")
+
+    L.append("| model | condition | set | n | own-u | naive own-u | delta | "
+             "perm p | separates UPWARD? (delta>0 & p<0.01) | direction |")
+    L.append("|---|---|---|---|---|---|---|---|---|---|")
+    up = {m: {} for m in TIER_MODELS}      # model -> {label: passes} for complete cells
+    for model in TIER_MODELS:
+        for label, seed in sets:
+            base = runs.get((label, "naive"))
+            cache_label = seed_to_label.get(seed)
+            recs = [m for m in matches if m.get("candidate") == model
+                    and m.get("set_label") == cache_label]
+            if not recs:
+                L.append(f"| {model} | solo | {label} | 0 | — | — | — | — | "
+                         f"— | not run |")
+                continue
+            if len(recs) < _LLM_EXPECTED or base is None:
+                L.append(f"| {model} | solo | {label} | {len(recs)} | — | — | "
+                         f"— | — | — | **partial ({len(recs)}/{_LLM_EXPECTED}) "
+                         f"— did not finish** |")
+                continue
+            s = primary_stat(recs, base, seed)
+            up[model][label] = s["passes"]
+            if s["delta"] < 0 and s["p_value"] < ALPHA:
+                direction = "**significantly BELOW naive**"
+            elif s["p_value"] >= ALPHA:
+                direction = "indistinguishable from naive"
+            else:
+                direction = "above naive"
+            L.append(f"| {model} | solo | {label} | {s['n_pairs']} | "
+                     f"{s['engine_mean']:.4f} | {s['naive_mean']:.4f} | "
+                     f"{s['delta']:+.4f} | {s['p_value']:.4f} | "
+                     f"{'YES' if s['passes'] else 'no'} | {direction} |")
+    L.append("")
+
+    # Mechanical verdict — only when EVERY registered cell is complete, so a
+    # partial run never gets a verdict. Prediction (Amendment 2): NEITHER model
+    # separates upward. Contradicted iff any model separates upward on BOTH sets.
+    if up and all(len(v) == len(sets) for v in up.values()):
+        sep_both = [m for m, v in up.items() if all(v.values())]
+        if sep_both:
+            names = " and ".join(sep_both)
+            L.append(f"**Prediction verdict: CONTRADICTED.** The registered "
+                     f"prediction was that NEITHER model separates upward. "
+                     f"{names} separate(s) upward from the naive baseline on "
+                     f"BOTH sets (delta>0, p<{ALPHA}) — a surprising result: an "
+                     f"unaided frontier model beats split-the-difference against "
+                     f"the pool, with a margin comparable to the certified "
+                     f"engine's (section 1). Reported straight, as registered; "
+                     f"it does not enter the certified claim and is not signed. "
+                     f"Caveat: Sonnet 5 was measured with adaptive thinking ON "
+                     f"(the API default at run time; since disabled in the seat) "
+                     f"while Haiku 4.5 does not think by default — the two rows "
+                     f"are not under identical inference config.\n")
+        else:
+            L.append("**Prediction verdict: HELD.** No model separates upward "
+                     "from the naive baseline on both sets, as predicted — the "
+                     "pool is a floor/ranking-null test for raw models.\n")
+
+    L.append("Read `separates UPWARD?` (delta>0 AND p<0.01), the same registered "
+             "criterion as the reference tier — a small p with a negative delta "
+             "is a significant result in the WRONG direction, not a win. Every "
+             "own-u here shares units and instrument with section 1's own-u "
+             "column, which is the whole point of this tier.\n")
+    L.append("Regenerate: `python -m arena.gauntlet.llm_tier` (paid; "
+             "checkpointed + resumable — completed matches are cached to "
+             "`certs/llm-tier-matches.json` and a re-run charges only the gaps) "
+             "then `python -m arena.gauntlet.publish_table` (read-only, no LLM).\n")
+    return L
 
 
 def build(n: int = N_SCENARIOS) -> str:
@@ -192,7 +314,7 @@ def build(n: int = N_SCENARIOS) -> str:
     L.append(f"**Prediction verdict: {outcome.upper()}.** "
              + ("The reference tier does not separate competent from adequate "
                 "on both sets, as predicted: it is a FLOOR test (it catches "
-                "weakness — see section 3) and cannot RANK strength. It stays "
+                "weakness — see sections 3-4) and cannot RANK strength. It stays "
                 "out of the certified statistic permanently."
                 if outcome == "held" else
                 "The tier separated on both sets, contradicting the prior "
@@ -202,10 +324,13 @@ def build(n: int = N_SCENARIOS) -> str:
     L.append("Regenerate: `python -m arena.gauntlet.pool_experiment` "
              "(writes `certs/reference-tier.json`).\n")
 
-    # ── section 3: historical, clearly fenced ──────────────────────────────
+    # ── section 3: measured frontier models (comparable metric) ─────────────
+    L += _llm_tier_section(runs, sets, n)
+
+    # ── section 4: historical, clearly fenced ──────────────────────────────
     L.append("---\n")
-    L.append("## 3. HISTORICAL — recorded LLM runs (NOT pool-certified, "
-             "NOT comparable to sections 1-2)\n")
+    L.append("## 4. HISTORICAL — recorded LLM runs on the RETIRED metric "
+             "(NOT pool-certified, NOT comparable to sections 1-3)\n")
     L.append("> **These agents never played the pool.** They played the "
              "ORIGINAL protocol (SNHP EngineSeat as the only counterparty) and "
              "are scored on **capture**, a joint/pair efficiency metric that a "
@@ -248,7 +373,10 @@ def build(n: int = N_SCENARIOS) -> str:
                  "at p<0.01 — weak agents are detectable. What it does NOT "
                  "support: any ranking of these models against each other or "
                  "against section 1, and any claim that an above-baseline "
-                 "capture number indicates skill.\n")
+                 "capture number indicates skill. For Sonnet and Haiku, section "
+                 "3 now supersedes this with a comparable own-utility number on "
+                 "the pool; these capture rows are kept as the honest record of "
+                 "what was measured before the metric was retired.\n")
     else:
         L.append("_(no recorded historical matches found at "
                  "`arena/web/gauntlet-matches.json`)_\n")
