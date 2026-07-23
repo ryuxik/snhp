@@ -1,17 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.ryuxik/snhp-negotiation",
-  "title": "Negotiation Copilot for Agents (SNHP)",
-  "description": "Math-optimal negotiation moves for AI agents, in plain dollars (single + multi-issue).",
+  "name": "io.github.ryuxik/snhp",
+  "title": "SNHP — negotiation + blind-locker counter for agents",
+  "description": "Pay-per-use counter for AI agents: negotiate a price, and store an encrypted blob across sessions.",
   "repository": {
     "url": "https://github.com/ryuxik/snhp",
     "source": "github"
   },
-  "version": "0.2.0",
+  "version": "0.3.0",
+  "websiteUrl": "https://snhp.dev",
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://snhp.dev/mcp"
+      "url": "https://api.snhp.dev/mcp/"
     }
   ]
 }
