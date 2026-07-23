@@ -19,7 +19,9 @@ import time
 from typing import Callable, Literal, Optional
 
 from fastapi import FastAPI, HTTPException, Request, Response
-from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import (
+    FileResponse, HTMLResponse, PlainTextResponse, RedirectResponse,
+)
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -2374,6 +2376,78 @@ def mechanism_posted_price_optimal(req: PostedPriceRequest):
 
 
 # ─── Health ──────────────────────────────────────────────────────────────────
+
+
+# ─── Stripe Checkout return pages ───────────────────────────────────────────
+# The billing checkout's success_url / cancel_url land here. Before this they
+# 404'd — a paid customer hit a "not found" the moment they paid. Simple,
+# self-contained (CSP-safe, no external assets), honest pages: the credit is
+# already applied by the webhook, so /paid just confirms and points at the
+# balance endpoint. Both are theme-neutral and tiny.
+
+_PAID_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Payment received — SNHP</title>
+<style>
+:root{color-scheme:light dark}
+body{margin:0;min-height:100vh;display:grid;place-items:center;
+font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+background:#0b0b0c;color:#e8e8ea}
+@media(prefers-color-scheme:light){body{background:#fafafa;color:#18181b}}
+.card{max-width:30rem;padding:2.5rem;text-align:center}
+.tick{font-size:3rem;line-height:1}
+h1{font-size:1.35rem;margin:.75rem 0 .5rem}
+p{margin:.5rem 0;opacity:.85}
+code{background:rgba(128,128,128,.18);padding:.15em .4em;border-radius:.3em;
+font-size:.9em}
+a{color:#e07a3f;text-decoration:none}
+</style></head><body><div class="card">
+<div class="tick">&#10003;</div>
+<h1>Payment received</h1>
+<p>Your wallet has been credited. The counter settled it the moment
+Stripe confirmed — nothing else to do here.</p>
+<p>Check your balance any time:<br><code>GET /v1/billing/balance</code>
+(header <code>X-API-Key: gt_&hellip;</code>)</p>
+<p style="margin-top:1.5rem"><a href="https://snhp.dev">&larr; back to snhp.dev</a></p>
+</div></body></html>"""
+
+_CANCEL_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkout canceled — SNHP</title>
+<style>
+:root{color-scheme:light dark}
+body{margin:0;min-height:100vh;display:grid;place-items:center;
+font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+background:#0b0b0c;color:#e8e8ea}
+@media(prefers-color-scheme:light){body{background:#fafafa;color:#18181b}}
+.card{max-width:30rem;padding:2.5rem;text-align:center}
+.mark{font-size:3rem;line-height:1;opacity:.6}
+h1{font-size:1.35rem;margin:.75rem 0 .5rem}
+p{margin:.5rem 0;opacity:.85}
+a{color:#e07a3f;text-decoration:none}
+</style></head><body><div class="card">
+<div class="mark">&times;</div>
+<h1>Checkout canceled</h1>
+<p>No charge was made. Your wallet is unchanged &mdash; top up any time
+from <code>POST /v1/billing/checkout_session</code>.</p>
+<p style="margin-top:1.5rem"><a href="https://snhp.dev">&larr; back to snhp.dev</a></p>
+</div></body></html>"""
+
+
+@app.get("/paid", tags=["discovery"], response_class=HTMLResponse,
+         include_in_schema=False, summary="Stripe Checkout success return")
+def paid():
+    """Where a completed top-up's Checkout lands (billing success_url). The
+    credit is applied by the signed webhook, not by this page — so it only
+    confirms. Static, self-contained, no external assets."""
+    return HTMLResponse(_PAID_PAGE)
+
+
+@app.get("/cancel", tags=["discovery"], response_class=HTMLResponse,
+         include_in_schema=False, summary="Stripe Checkout cancel return")
+def cancel():
+    """Where an abandoned Checkout lands (billing cancel_url). No charge."""
+    return HTMLResponse(_CANCEL_PAGE)
 
 
 @app.get("/health", tags=["discovery"], summary="Liveness check")
