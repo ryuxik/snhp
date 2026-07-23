@@ -335,7 +335,8 @@ class LLMSeat:
 
     def __init__(self, provider: str, model: str, *, base_url: str | None = None,
                  api_key_env: str | None = None, temperature: float | None = None,
-                 max_retries: int = 2, transport_retries: int = 8):
+                 max_retries: int = 2, transport_retries: int = 8,
+                 thinking_disabled: bool = True):
         # temperature defaults to None (provider default): newer Anthropic
         # models reject the param outright ("deprecated for this model")
         self.provider = provider
@@ -345,6 +346,10 @@ class LLMSeat:
         self.temperature = temperature
         self.max_retries = max_retries          # format (unparseable-reply) retries
         self.transport_retries = transport_retries
+        # anthropic only: send thinking={"type":"disabled"} (see _complete for
+        # why — default adaptive thinking on Sonnet 5+ silently burns the
+        # max_tokens budget). Set False only for a model that requires thinking.
+        self.thinking_disabled = thinking_disabled
         self.name = model
         self.format_failures = 0
         self._naive = NaiveSeat()
@@ -359,6 +364,16 @@ class LLMSeat:
                 import anthropic
                 self._client = anthropic.Anthropic()  # ANTHROPIC_API_KEY from env
             kwargs = {} if self.temperature is None else {"temperature": self.temperature}
+            # Disable adaptive thinking. On Sonnet 5+ (and Opus 4.8) thinking is
+            # ON by default when the field is omitted, and max_tokens caps
+            # thinking+response TOGETHER — so a 500-token cap gets spent on
+            # billed thinking ($15/M on Sonnet) and truncates the JSON, forcing
+            # unparseable-reply retries (each a fresh billed generation). This
+            # seat only needs a one-line JSON offer; thinking is pure cost here.
+            # Accepted on Sonnet 5 / Haiku 4.5 / Opus 4.8; Fable 5 would 400
+            # (it is always-on) — not a model we seat.
+            if self.thinking_disabled:
+                kwargs["thinking"] = {"type": "disabled"}
             resp = self._client.messages.create(
                 model=self.model, max_tokens=500, system=system,
                 messages=[{"role": "user", "content": user}], **kwargs)

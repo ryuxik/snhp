@@ -192,13 +192,21 @@ python -m arena.gauntlet.certify --run engine</pre>
   <div class="entry plain" id="models">
     <div class="hd"><span class="tag">MEASURED — NOT CERTIFIED</span><span class="when">JUL 2026</span>
       <div class="ti">One honest note on language models</div></div>
-    <p>Unaided frontier models have been measured here, but on an <b>earlier and
-      different protocol</b>, scored with a metric a later kill showed cannot
-      rank skill. On that older setup the weaker models scored <b>below</b> the
-      split-the-difference baseline, and wiring them to the engine pulled them
-      back toward it.</p>
-    <p>Those runs are <b>not certified and not comparable</b> to the certificate
-      table. We keep them because they are the honest record. Detail:
+    <p>We put two unaided frontier models — <b>Claude Sonnet 5</b> and
+      <b>Haiku 4.5</b> — through the <b>same frozen pool</b> the engine is
+      certified against, scored on the <b>same own-utility metric</b>. We wrote
+      the prediction down first: that neither would beat split-the-difference.
+      <b>It was wrong.</b> Both separate upward on both scenario sets — Sonnet
+      <b>+0.095 / +0.072</b>, Haiku <b>+0.059 / +0.060</b>, every p=0.0001 —
+      a margin near the engine's own certified edge (<b>+0.107 / +0.109</b>).</p>
+    <p>So a raw model, just handed the scoresheet, does most of what the engine
+      does against these scripted opponents. That is a real, pre-registered miss
+      on our part, and we report it straight. It does <b>not</b> touch the
+      certified claim — the engine still separates (section 1) — and these rows
+      are reported, never signed. One caveat we log rather than bury: Sonnet was
+      measured with the API's default thinking on and Haiku without, so the two
+      are not under identical inference config. The older runs on the retired
+      <code>capture</code> metric are kept as the honest record. Detail:
       <code>arena/gauntlet/certs/CERTIFIED-TABLE.md</code>, section 3.</p>
   </div>
 

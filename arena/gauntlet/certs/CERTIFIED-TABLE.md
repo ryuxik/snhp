@@ -38,20 +38,41 @@ Regenerate: `python -m arena.gauntlet.pool_experiment` (verdict + full tables) �
 |---|---|---|---|---|---|---|---|---|
 | engine | PUBLIC | 120 | 0.6611 | 0.6595 | +0.0016 | 0.9158 | no | indistinguishable from naive |
 | engine | HELD-OUT | 120 | 0.6620 | 0.6881 | -0.0260 | 0.0881 | no | indistinguishable from naive |
-| champion | PUBLIC | 120 | 0.5872 | 0.6595 | -0.0723 | 0.0001 | no | **significantly BELOW naive** |
-| champion | HELD-OUT | 120 | 0.5957 | 0.6881 | -0.0923 | 0.0001 | no | **significantly BELOW naive** |
+| champion | PUBLIC | 120 | 0.6108 | 0.6595 | -0.0487 | 0.0040 | no | **significantly BELOW naive** |
+| champion | HELD-OUT | 120 | 0.6229 | 0.6881 | -0.0651 | 0.0004 | no | **significantly BELOW naive** |
 
 Read the `direction` column, not the p-value alone: a small p with a NEGATIVE delta is a significant result in the wrong direction, not a separation. `separates UPWARD?` is the registered criterion (delta>0 AND p<0.01).
 
 Note: the evolved champion lands significantly BELOW the naive baseline against the SNHP engine counterparty, while separating clearly ABOVE it on the certified pool (section 1). That is not a contradiction — it is the same carried-counterparty effect that killed capture: against an engine that concedes efficiently, an agent that concedes less can close fewer deals and score lower, which says nothing about its skill versus varied opponents. It is a further reason the reference tier is not a ranking instrument.
 
-**Prediction verdict: HELD.** The reference tier does not separate competent from adequate on both sets, as predicted: it is a FLOOR test (it catches weakness — see section 3) and cannot RANK strength. It stays out of the certified statistic permanently.
+**Prediction verdict: HELD.** The reference tier does not separate competent from adequate on both sets, as predicted: it is a FLOOR test (it catches weakness — see sections 3-4) and cannot RANK strength. It stays out of the certified statistic permanently.
 
 Regenerate: `python -m arena.gauntlet.pool_experiment` (writes `certs/reference-tier.json`).
 
 ---
 
-## 3. HISTORICAL — recorded LLM runs (NOT pool-certified, NOT comparable to sections 1-2)
+## 3. MEASURED FRONTIER MODELS — reported on the certified metric, NOT certified
+
+> Registered in `PREREG-pool.md` Amendment 2 and run UNAIDED against the frozen three, scored on the **same pooled own-utility vs naive** statistic as section 1 — so the `own-u` column here IS comparable to section 1. They are reported, not certified: like the reference tier, they never enter the engine−naive verdict and are never signed by `certify.py`. This replaces the retired-`capture` footnote (now section 4) with a comparable number.
+
+**Registered prediction (stated before the run):** Registered before running (PREREG-pool.md Amendment 2): we predict NEITHER claude-sonnet-5 nor claude-haiku-4-5-20251001, unaided, separates UPWARD from the naive split-the-difference baseline against the pool (delta>0 AND p<0.01 is FALSE on at least one set, expected delta at or below zero). Rationale: the engine's certified edge is systematic frontier search a JSON-emitting model does not reliably reproduce, and prior capture-metric runs put both below naive (solo Sonnet -0.093, Haiku -0.161). The pool is a FLOOR / ranking-null test for raw models.
+
+| model | condition | set | n | own-u | naive own-u | delta | perm p | separates UPWARD? (delta>0 & p<0.01) | direction |
+|---|---|---|---|---|---|---|---|---|---|
+| claude-sonnet-5 | solo | PUBLIC | 360 | 0.5473 | 0.4524 | +0.0949 | 0.0001 | YES | above naive |
+| claude-sonnet-5 | solo | HELD-OUT | 360 | 0.5286 | 0.4566 | +0.0720 | 0.0001 | YES | above naive |
+| claude-haiku-4-5-20251001 | solo | PUBLIC | 360 | 0.5110 | 0.4524 | +0.0586 | 0.0001 | YES | above naive |
+| claude-haiku-4-5-20251001 | solo | HELD-OUT | 360 | 0.5167 | 0.4566 | +0.0601 | 0.0001 | YES | above naive |
+
+**Prediction verdict: CONTRADICTED.** The registered prediction was that NEITHER model separates upward. claude-sonnet-5 and claude-haiku-4-5-20251001 separate(s) upward from the naive baseline on BOTH sets (delta>0, p<0.01) — a surprising result: an unaided frontier model beats split-the-difference against the pool, with a margin comparable to the certified engine's (section 1). Reported straight, as registered; it does not enter the certified claim and is not signed. Caveat: Sonnet 5 was measured with adaptive thinking ON (the API default at run time; since disabled in the seat) while Haiku 4.5 does not think by default — the two rows are not under identical inference config.
+
+Read `separates UPWARD?` (delta>0 AND p<0.01), the same registered criterion as the reference tier — a small p with a negative delta is a significant result in the WRONG direction, not a win. Every own-u here shares units and instrument with section 1's own-u column, which is the whole point of this tier.
+
+Regenerate: `python -m arena.gauntlet.llm_tier` (paid; checkpointed + resumable — completed matches are cached to `certs/llm-tier-matches.json` and a re-run charges only the gaps) then `python -m arena.gauntlet.publish_table` (read-only, no LLM).
+
+---
+
+## 4. HISTORICAL — recorded LLM runs on the RETIRED metric (NOT pool-certified, NOT comparable to sections 1-3)
 
 > **These agents never played the pool.** They played the ORIGINAL protocol (SNHP EngineSeat as the only counterparty) and are scored on **capture**, a joint/pair efficiency metric that a pre-registered kill showed cannot rank strength (`certs/SEPARATION.md` section 1). They therefore have **no certified number**, and no row here may be ranked against a row in section 1. Read verbatim from `arena/web/gauntlet-matches.json`; no LLM was called to produce this page.
 
@@ -64,7 +85,7 @@ Regenerate: `python -m arena.gauntlet.pool_experiment` (writes `certs/reference-
 | claude-haiku-4-5-20251001 | solo | 120 | 0.7506 | 0.9118 | -0.1612 | 0.0001 | below baseline (floor test fires) |
 | claude-haiku-4-5-20251001 | advised | 120 | 0.9007 | 0.9118 | -0.0111 | 0.4577 | indistinguishable from baseline |
 
-What this section legitimately supports: the FLOOR claim. Solo Sonnet and Haiku sit measurably below the naive baseline at p<0.01 — weak agents are detectable. What it does NOT support: any ranking of these models against each other or against section 1, and any claim that an above-baseline capture number indicates skill.
+What this section legitimately supports: the FLOOR claim. Solo Sonnet and Haiku sit measurably below the naive baseline at p<0.01 — weak agents are detectable. What it does NOT support: any ranking of these models against each other or against section 1, and any claim that an above-baseline capture number indicates skill. For Sonnet and Haiku, section 3 now supersedes this with a comparable own-utility number on the pool; these capture rows are kept as the honest record of what was measured before the metric was retired.
 
 Regenerate: read-only from `arena/web/gauntlet-matches.json` (produced historically by `python -m arena.gauntlet.run --candidate anthropic:MODEL --eval`; re-running costs API calls and is NOT required to reproduce this page).
 

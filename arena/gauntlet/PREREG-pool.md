@@ -92,3 +92,60 @@ functions as a FLOOR test (catches incompetence) and not a RANKING test.
 Cert placement: a `reference_tier` block alongside the primary, with the
 prediction and outcome recorded inside the signed content, and an explicit
 `not_attested` line stating the tier is context, not the certified claim.
+
+---
+
+## Amendment 2 (2026-07-23) — the MEASURED FRONTIER-MODEL tier
+*(registered after the 3-member verdict SURVIVED, before any LLM has played the
+pool. Motivation: the only frontier-model numbers on this page were scored on
+`capture` — the metric the SEPARATION.md kill retired — against the EngineSeat
+counterparty only, so they are NOT comparable to the certified section-1 column.
+This amendment gives named models a number on the SAME instrument.)*
+
+**The certified claim does NOT change.** The primary statistic remains pooled
+own-utility of EngineSeat vs NaiveSeat against the FROZEN three, on both seed
+sets. The frontier models are ADDITIONAL, SEPARATELY REPORTED candidates,
+measured with the identical procedure and NEVER merged into the engine−naive
+verdict or signed by `certify.py`. They receive a reported number, not a
+certified one — exactly the standing of the Amendment-1 reference tier.
+
+**Candidates (frozen here):** `anthropic:claude-sonnet-5` and
+`anthropic:claude-haiku-4-5-20251001`, each UNAIDED (solo — no engine advisor),
+playing as the pool candidate against naive, hardball and conceder. Same
+360-match design per model per set (60 scenarios × 2 roles × 3 counterparties),
+same pairing by (scenario_id, role, counterparty), same two-sided sign-flip
+permutation (n_perm = 10,000, RNG from the set seed), same α = 0.01, on BOTH
+the PUBLIC (20260709) and HELD-OUT-NEW (20260718) sets. The naive baseline it is
+paired against is the same scripted NaiveSeat run used in section 1 (recomputed
+locally, no API). The reported statistic per model per set: own-utility delta
+vs naive and whether it **separates UPWARD** (delta > 0 AND p < 0.01) — the same
+column the reference tier reports.
+
+**Prior expectation, stated BEFORE running (so neither outcome can be spun):**
+we predict that NEITHER model, unaided, separates UPWARD from the naive baseline
+on the pool — i.e. `delta > 0 AND p < 0.01` is FALSE for both models on at least
+one set, and we expect delta at or below zero. Rationale: the engine's certified
+edge reflects systematic frontier search that a JSON-emitting model does not
+reliably reproduce turn to turn, and the prior `capture`-metric runs put both
+models below the naive baseline against the engine (solo Sonnet −0.093, Haiku
+−0.161). This makes the pool a FLOOR/ranking-null test for raw models, matching
+its role for the reference tier.
+
+- **If the prediction holds:** reported as "an unaided frontier model does not
+  beat split-the-difference against a varied pool," replacing the retired
+  `capture` footnote with a comparable own-utility number, and the models stay
+  out of the certified statistic.
+- **If a model unexpectedly separates UPWARD on BOTH sets:** that is a NEW,
+  surprising finding (a raw model matching the engine's instrument) and is
+  reported as exactly that; it still does not enter the certified claim without
+  its own fresh registration.
+
+**Operational honesty (paid, interruptible run).** The models cost real API
+calls, so the run is checkpointed: every completed match is persisted
+immediately and a re-run resumes from the cache, spending only on the missing
+matches. A permanent API failure (exhausted credits, auth, bad config) stops the
+run cleanly, keeps every completed match, and marks the cache incomplete — it
+NEVER fabricates a model's play (the `transport_retry` integrity rule). The
+publication renders a model×set cell ONLY when all 360 of its matches are
+present; an unfinished cell is shown as "partial (k/360) — did not finish," so a
+half-paid run can never masquerade as a completed measurement.
