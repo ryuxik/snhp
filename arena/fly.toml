@@ -8,8 +8,15 @@
 #   fly certs add arena.snhp.dev -a snhp-arena
 #   fly deploy -c arena/fly.toml
 #
-# The world is ALWAYS ON (one persistent arena everyone watches), so unlike par
-# it does not idle to zero: min_machines_running = 1, auto_stop = off.
+# Idles when idle: auto_stop = "suspend" + min_machines_running = 0. Suspend (not
+# "stop") snapshots memory so the machine resumes in ~ms with numba already warm —
+# avoiding the cold-start 502 that a full stop reintroduces (the 40s JIT warmup in
+# the healthcheck grace below). The live twin-street world + divorce ledger loop
+# pause while suspended and resume on the next request; day-records stay reproducible
+# (seed/season/day) and persist to the volume, so a wall-clock gap is harmless.
+#
+# Also hosts the PAR daily game at /par/ (par.api.router, chrome in arena/web/par/);
+# its state is SQLite on this volume via GT_KEYS_DB below — no separate Postgres.
 
 app = "snhp-arena"
 primary_region = "sjc"
@@ -31,13 +38,16 @@ primary_region = "sjc"
   BLOCK_LIVE_SECS_PER_DAY = "120"
   # Divorce case ledger on the persistent volume (same number, same divorce)
   DIVORCE_CASES_PATH = "/data/divorce-cases.jsonl"
+  # PAR game state (scoreboard/streaks/plays/waitlist/funnel/advice) — SQLite on the
+  # volume via gametheory._db. No DATABASE_URL set, so par uses this file, not Postgres.
+  GT_KEYS_DB = "/data/par.db"
 
 [http_service]
   internal_port = 8080
   force_https = true
   auto_start_machines = true
-  auto_stop_machines = "off"          # always-on world
-  min_machines_running = 1
+  auto_stop_machines = "suspend"      # idle → suspend (warm resume, no 502); not always-on
+  min_machines_running = 0
   processes = ["app"]
 
   [[http_service.checks]]

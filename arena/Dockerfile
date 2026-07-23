@@ -37,6 +37,9 @@ COPY fashion/ ./fashion/
 COPY slots/ ./slots/
 COPY vend/ ./vend/
 COPY vintage/ ./vintage/
+# The PAR daily game, now served same-origin at /par/ (par.api.router is included by
+# arena.api). Package-only: its SPA chrome lives in arena/web/par/, not here.
+COPY par/ ./par/
 
 RUN python -m venv /venv \
  && /venv/bin/pip install --upgrade pip \
@@ -73,6 +76,7 @@ COPY --from=builder /build/fashion ./fashion
 COPY --from=builder /build/slots ./slots
 COPY --from=builder /build/vend ./vend
 COPY --from=builder /build/vintage ./vintage
+COPY --from=builder /build/par ./par
 COPY --from=builder /build/pyproject.toml ./pyproject.toml
 
 RUN mkdir -p /data && chown -R arena:arena /app /data

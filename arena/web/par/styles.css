@@ -1,0 +1,119 @@
+:root{
+  --bg:#0E0F12; --ink:#E8E8E3; --ink-dim:#9A9A93; --muted:#7C7C77; --faint:#4A4B52;
+  --violet:#A78BFA; --violet-bright:#BBA6FF; --violet-deep:#16102C; --violet-dim:#9385D6;
+  --line:#24252A; --card:#16171C; --card-line:#3A3B42;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink);font-family:var(--mono);-webkit-font-smoothing:antialiased;height:100%}
+body{display:flex;align-items:center;justify-content:center;padding:20px}
+#app{width:100%;max-width:640px}
+.screen{display:none}
+.screen.on{display:block}
+.card{background:var(--bg);border:0.5px solid var(--line);border-radius:14px;padding:26px 30px 22px}
+
+.row{display:flex;justify-content:space-between;align-items:baseline}
+.wm{font-size:20px;letter-spacing:0.16em}
+.sub{font-size:12px;color:var(--muted)}
+svg{display:block;width:100%}
+
+/* landing */
+.land{text-align:center;display:flex;flex-direction:column;align-items:center;padding:36px 30px 30px}
+.land .big{font-size:52px;letter-spacing:0.2em;font-weight:500;margin-top:30px}
+.land .tag{font-size:15px;color:var(--ink-dim);margin-top:12px}
+.land svg{width:188px;margin:30px auto 0}
+.land .hook{font-size:17px;color:#C9C9C4;margin-top:30px}
+.land .soc{font-size:12px;color:var(--faint);margin-top:18px}
+
+button{font-family:inherit;cursor:pointer;border-radius:9px;border:0.5px solid var(--card-line);background:var(--card);color:var(--ink);font-size:14px;padding:11px 16px;transition:background .12s}
+button:hover{background:#21222A}
+button.go{background:var(--violet);color:var(--violet-deep);border:none;font-weight:500;font-size:18px;padding:16px 38px;border-radius:12px;letter-spacing:0.02em;margin-top:28px}
+button.go:hover{background:var(--violet-bright)}
+button.pri{background:#191427;border-color:#463A78;color:var(--violet-bright)}
+button.pri:hover{background:#221B3A}
+
+input[type=range]{accent-color:var(--violet);height:4px;width:100%}
+.house{display:flex;align-items:baseline;gap:12px;margin:8px 2px 14px;min-height:30px;font-size:15px}
+.house .l{color:var(--muted);font-size:13px}.house .a{font-size:21px}.house .q{color:var(--ink-dim);font-size:14px}
+.ctrl{margin-top:6px}
+.ctrl .lab{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.ctrl .lab span:first-child{font-size:12px;color:var(--muted)}
+.askv{font-size:17px;color:var(--violet-bright);min-width:56px;text-align:right}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.cap{text-align:center;font-size:13px;color:var(--muted);margin-top:8px}
+.hint{text-align:center;font-size:14px;color:var(--violet);margin-top:4px}
+
+/* share overlay — the iconic, screenshot-ready result card */
+.ov{display:none;position:fixed;inset:0;background:rgba(8,9,11,0.86);align-items:center;justify-content:center;padding:20px;z-index:50}
+.ov.on{display:flex}
+.ov-card{width:100%;max-width:440px;background:var(--bg);border:0.5px solid var(--card-line);border-radius:16px;padding:14px 14px 16px}
+#share-cv{display:block;width:100%;border-radius:10px;background:var(--bg)}
+.ov-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:0 4px}
+.ov-note{font-size:13px;color:var(--violet-bright)}
+#share-close{font-size:13px;padding:9px 18px}
+
+/* reveal scoreboard — streak, percentile, the "where everyone landed" distribution */
+.board{margin-top:16px;border-top:0.5px solid var(--line);padding-top:14px}
+.brow{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-dim);margin-bottom:11px}
+.brow b{color:var(--violet-bright);font-weight:600}
+.dist{display:flex;flex-direction:column;gap:5px}
+/* the crowd is faint context; YOU are the only inked bar (the eye snaps to it) */
+.drow{display:flex;align-items:center;gap:8px;min-height:15px}
+.dl{width:32px;color:var(--faint);text-align:right;font-size:11px}
+.drow.me .dl{color:var(--violet-bright)}
+.dbar{height:5px;min-width:8px;border-radius:2px;background:#2C2D34;font-size:0;padding:0;transition:width .4s}
+.dbar.me{height:auto;min-width:24px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:3px;background:var(--violet);color:var(--violet-deep);text-align:right}
+
+/* the trophy-case expander — the histogram/friends live one tap away from the reveal */
+.bexp{display:block;background:none;border:none;padding:2px 0 10px;font-size:12px;color:var(--muted);text-align:left;cursor:pointer}
+.bexp:hover{background:none;color:var(--ink-dim)}
+
+/* everyone | friends tabs + the friends leaderboard (the spread loop) */
+.tabs{display:flex;gap:8px;margin:2px 0 13px}
+.tab{font-size:12px;padding:5px 13px;border-radius:7px;background:transparent;border:0.5px solid var(--line);color:var(--muted)}
+.tab.on{background:#191427;border-color:#463A78;color:var(--violet-bright)}
+/* the conversion CTA on the reveal (rides the "$X on the table" regret) + the pitch overlay */
+.cta{margin-top:16px;border-top:0.5px solid var(--line);padding-top:15px;display:flex;flex-direction:column;gap:10px}
+.cta .hook{font-size:14px;color:var(--ink-dim)}
+.cta .hook b{color:var(--violet-bright);font-weight:600}
+button.cta-go{align-self:flex-start;background:var(--violet);color:var(--violet-deep);border:none;font-weight:500;font-size:14px;padding:11px 18px;border-radius:9px}
+button.cta-go:hover{background:var(--violet-bright)}
+/* one accent, one destination: violet lives ONLY on the CTA. everything else whispers,
+   so the eye falls from the loss straight to the button. */
+.agent-card{max-width:420px;padding:24px 24px 20px}
+.ag-h{font-size:24px;color:var(--ink);letter-spacing:0.01em}
+.ag-lede{font-size:14px;color:var(--ink-dim);margin-top:12px;line-height:1.5}
+.ag-lede b{color:var(--ink);font-weight:700}             /* the wound: bold, not violet */
+.ag-how{margin:16px 0;display:flex;flex-direction:column;gap:9px}
+.ag-step{display:flex;gap:10px;align-items:baseline;font-size:12.5px;color:var(--muted)}
+.ag-n{flex:none;width:12px;color:var(--faint);font-size:12px;text-align:right}   /* flat gray, no violet */
+.ag-fee{font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:2px}    /* plain, no box */
+.ag-fee b{color:var(--ink-dim);font-weight:600}
+button.ag-cta{width:100%;font-size:16px;padding:15px;margin-top:16px;border-radius:11px;letter-spacing:0}
+button.ag-not{display:block;width:100%;background:none;border:none;color:var(--muted);font-size:13px;padding:9px;margin-top:5px}
+button.ag-not:hover{background:none;color:var(--ink-dim)}
+.fname{width:100%;background:#16171C;border:0.5px solid var(--card-line);border-radius:7px;color:var(--ink);font-family:inherit;font-size:12px;padding:7px 10px;margin-bottom:10px}
+.fname:focus{outline:none;border-color:#463A78}
+.fname::placeholder{color:var(--faint)}
+.flist{display:flex;flex-direction:column;gap:2px}
+.frow{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--ink-dim);padding:4px 6px;border-radius:5px}
+.frow.me{color:var(--violet-bright);background:#191427}
+.fr-rank{width:18px;color:var(--faint);text-align:right}
+.frow.me .fr-rank{color:var(--violet)}
+.fr-name{flex:1}
+.fr-pct{font-variant-numeric:tabular-nums;color:var(--ink-dim)}
+.frow.me .fr-pct{color:var(--violet-bright);font-weight:600}
+
+/* mobile pass — reclaim width from padding so the reveal + play don't cramp at ~390px */
+@media (max-width:440px){
+  body{padding:12px}
+  .card{padding:20px 15px 16px}
+  .land{padding:30px 16px 24px}
+  .land .big{font-size:44px}
+  .land .hook{font-size:15px}
+  .land svg{width:160px}
+  .row .sub{font-size:11px}
+  .house{gap:8px}.house .a{font-size:18px}.house .q{font-size:13px}
+  .btns{gap:8px}.btns button{font-size:13px;padding:10px 12px}
+  .agent-card{padding:20px 18px 16px}.ag-h{font-size:21px}
+}

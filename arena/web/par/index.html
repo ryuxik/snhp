@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PAR — out-negotiate a perfect AI, daily</title>
+<meta name="description" content="one deal a day against a perfect negotiator. get graded against par — and see exactly what you left on the table.">
+<meta name="theme-color" content="#0E0F12">
+<!-- the twitter/social card: every pasted link (incl. ?g= challenge links) unfurls branded -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://arena.snhp.dev/par/">
+<meta property="og:title" content="PAR — out-negotiate a perfect AI, daily">
+<meta property="og:description" content="one deal a day against a perfect negotiator. see what you left on the table.">
+<meta property="og:image" content="https://arena.snhp.dev/par/og.png">
+<meta property="og:image:width" content="2400">
+<meta property="og:image:height" content="1260">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PAR — out-negotiate a perfect AI, daily">
+<meta name="twitter:description" content="one deal a day against a perfect negotiator. see what you left on the table.">
+<meta name="twitter:image" content="https://arena.snhp.dev/par/og.png">
+<!-- bump ?v= together with any asset change — busts browser caches on deploy -->
+<link rel="stylesheet" href="styles.css?v=4">
+</head>
+<body>
+<div id="app">
+
+  <!-- LANDING -->
+  <section id="s-landing" class="screen on">
+    <div class="card land">
+      <div class="sub" style="align-self:flex-end" id="land-daily">no. 214 · the salary talk · 5h left</div>
+      <div class="big">PAR</div>
+      <div class="tag">out-negotiate a perfect AI · daily</div>
+      <svg id="land-canyon" viewBox="0 0 540 220"></svg>
+      <div class="hook">close the gap. see what you left on the table.</div>
+      <button class="go" id="land-play">play today's deal →</button>
+      <div class="soc" id="land-soc">nobody has hit par yet today</div>
+    </div>
+  </section>
+
+  <!-- ONBOARDING (first play) -->
+  <section id="s-onboard" class="screen">
+    <div class="card" style="text-align:center">
+      <div class="wm" style="text-align:left">PAR</div>
+      <svg id="onb-canyon" viewBox="0 0 540 280" style="margin:10px 0 2px"></svg>
+      <input type="range" id="onb-drag" min="0" max="100" value="0" style="height:46px">
+      <div class="hint" id="onb-hint">drag to close the gap →</div>
+    </div>
+  </section>
+
+  <!-- PLAY -->
+  <section id="s-play" class="screen">
+    <div class="card">
+      <div class="row">
+        <span class="wm">PAR</span>
+        <span class="sub" id="play-sub">no. 214 · the salary talk</span>
+        <span class="sub" id="play-rnd">round 1 / 5</span>
+      </div>
+      <svg id="play-cv" viewBox="0 0 540 240" style="margin:12px 0 2px"></svg>
+      <div class="house" id="play-house"></div>
+      <div class="ctrl" id="play-ctrl">
+        <div class="lab"><span>your counter</span>
+          <input type="range" id="play-ask" min="90" max="130" step="1" value="130">
+          <span class="askv" id="play-askv">$130k</span>
+        </div>
+        <div class="btns">
+          <button class="pri" id="play-counter">counter at <span id="play-cv-amt">$130k</span></button>
+          <button id="play-accept">accept their <span id="play-acc-amt">$95k</span></button>
+          <button id="play-walk">walk away</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REVEAL -->
+  <section id="s-reveal" class="screen">
+    <div class="card">
+      <div class="row"><span class="wm">PAR</span><span class="sub" id="rev-sub">no. 214 · the salary talk · result</span></div>
+      <svg id="rev-cv" viewBox="0 0 620 250" style="margin:10px 0 2px"></svg>
+      <div id="rev-body"></div>
+    </div>
+  </section>
+
+  <!-- SHARE OVERLAY (the iconic result card) -->
+  <div id="share-ov" class="ov">
+    <div class="ov-card">
+      <svg id="share-cv" viewBox="0 0 540 540"></svg>
+      <div class="ov-foot"><span class="ov-note" id="share-note">copied — paste it anywhere</span><button id="share-close">done</button></div>
+    </div>
+  </div>
+
+  <!-- AGENT OVERLAY (the conversion bridge to the A2A-commerce product) -->
+  <div id="agent-ov" class="ov">
+    <div class="ov-card agent-card">
+      <div class="ag-h">stop leaving it on the table.</div>
+      <div class="ag-lede" id="ag-lede"></div>
+      <div class="ag-how">
+        <div class="ag-step"><span class="ag-n">1</span><span>tell it the deal + your floor — it never crosses it.</span></div>
+        <div class="ag-step"><span class="ag-n">2</span><span>it coaches you move by move; you send every word.</span></div>
+        <div class="ag-step"><span class="ag-n">3</span><span>when you trust it, let it negotiate agent-to-agent.</span></div>
+      </div>
+      <div class="ag-fee" id="ag-fee"></div>
+      <input id="ag-email" class="fname" type="email" maxlength="128" style="margin:14px 0 0"
+             placeholder="your email — so we can actually reach you">
+      <button class="go ag-cta" id="ag-join">notify me when it's live</button>
+      <button class="ag-not" id="agent-close">not now</button>
+    </div>
+  </div>
+
+</div>
+<script src="par.js?v=4"></script>
+</body>
+</html>
