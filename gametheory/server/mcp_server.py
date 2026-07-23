@@ -38,12 +38,16 @@ from __future__ import annotations
 
 import functools
 import hashlib
+import inspect
 import json
 import sys
-from typing import Literal, Optional
+from typing import Annotated, Any, Literal, Optional, TypedDict
+
+from pydantic import Field
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
+from mcp.types import Icon, ToolAnnotations
 
 from gametheory.negotiation.sell import sell_next_offer
 from gametheory.negotiation.buy import buy_next_offer, detect_anchor_attack
@@ -80,16 +84,37 @@ except Exception:                                            # pragma: no cover
     _telemetry_door = None                                   # type: ignore[assignment]
 
 
+# ─── Server metadata (Smithery/registry quality: description + homepage + icon)─
+# The homepage + icon flow into the live `initialize` result's serverInfo
+# (Implementation.websiteUrl / Implementation.icons per the MCP icons SEP) AND
+# into the static server card (a2a_routes.mcp_server_card), so a registry that
+# reads either surface finds them. The human description is the door
+# `instructions` (initialize's `instructions` field) plus the card `description`.
+SERVER_WEBSITE_URL = "https://snhp.dev"
+# Live favicon served by the FastAPI app (http.py /favicon.svg + /favicon.ico).
+# Two entries — vector first (preferred), raster fallback — so a scanner that
+# wants a raster still has one.
+SERVER_ICONS = [
+    Icon(src="https://snhp.dev/favicon.svg", mimeType="image/svg+xml", sizes=["any"]),
+    Icon(src="https://snhp.dev/favicon.ico", mimeType="image/x-icon", sizes=["48x48", "32x32", "16x16"]),
+]
+
+
 # ─── The two doors (identical transport settings; different tool sets) ────────
 
 def _make_door(name: str, instructions: str) -> FastMCP:
     """A FastMCP door with the shared production transport settings. The CORE
     door (`mcp`) and the PRO door (`mcp_pro`) use IDENTICAL stateless-HTTP +
-    DNS-rebinding host allow-list config — ONLY their tool set, ordering, and
-    instructions differ. stdio ignores these HTTP-only settings."""
+    DNS-rebinding host allow-list config + identical homepage/icon metadata —
+    ONLY their tool set, ordering, and instructions differ. stdio ignores the
+    HTTP-only settings but still carries the metadata over initialize."""
     return FastMCP(
         name,
         instructions=instructions,
+        # Homepage + icon → serverInfo (Implementation.websiteUrl / .icons) on the
+        # initialize result, the spec-blessed location registries read.
+        website_url=SERVER_WEBSITE_URL,
+        icons=SERVER_ICONS,
         # Hosted streamable-HTTP transport (mounted by the FastAPI app). Stateless
         # so it works behind Fly's proxy + auto-stop; the host allow-list is
         # DNS-rebinding protection scoped to our real domains. stdio (the
@@ -1341,13 +1366,38 @@ except ImportError:
 
 
 def _tool(door: FastMCP, fn, *, name: str, variant: str,
-          description: Optional[str] = None) -> None:
+          description: Optional[str] = None,
+          params: Optional[dict[str, str]] = None,
+          output_type: Optional[type] = None,
+          title: Optional[str] = None,
+          annotations: Optional[ToolAnnotations] = None) -> None:
     """Register `fn` on `door` under `name`, tagging the door VARIANT ('core' or
     'pro') around every call so vend.telemetry can attribute an MCP telemetry line
     to the door it arrived through (observatory §6). functools.wraps preserves
     fn's signature + annotations, so FastMCP derives the SAME schema as the bare
-    function (verified). `description` overrides the docstring — used for
-    score_deal's cross-module lede and for the pro-door aliases."""
+    function. `description` overrides the docstring — used for score_deal's
+    cross-module lede and for the pro-door aliases.
+
+    Smithery-quality metadata (added WITHOUT changing input types/required-ness):
+      params      {param_name: description} — each is injected as
+                  Annotated[<orig type>, Field(description=...)] so FastMCP emits a
+                  per-parameter `description` in the input schema. Types and
+                  defaults are untouched, so the input schema is byte-identical
+                  apart from the added `description` keys (guarded in tests).
+      output_type a TypedDict/BaseModel matching what `fn` ACTUALLY returns → FastMCP
+                  emits `outputSchema` + `structuredContent`. Output fields are all
+                  Optional so a real return is never rejected (accuracy over
+                  strictness): extra keys drop from structuredContent (still present
+                  in the text content), absent/None keys validate cleanly.
+      title       human display name (Tool.title + ToolAnnotations.title).
+      annotations honest MCP behaviour hints (readOnlyHint / destructiveHint / …).
+
+    The metadata is applied by giving `_wrapped` an explicit `__signature__`
+    (resolved param annotations + Field descriptions + the return type). inspect
+    honours `__signature__` directly, so this reproduces fn's exact input schema
+    while adding the output schema — WITHOUT mutating the shared `fn` object (its
+    __annotations__ stay pristine, so the HTTP binding / direct callers are
+    unaffected)."""
     @functools.wraps(fn)
     def _wrapped(*args, **kwargs):
         token = _telemetry_door.set(variant) if _telemetry_door is not None else None
@@ -1356,7 +1406,32 @@ def _tool(door: FastMCP, fn, *, name: str, variant: str,
         finally:
             if token is not None:
                 _telemetry_door.reset(token)
-    door.add_tool(_wrapped, name=name, description=description)
+
+    if params or output_type is not None:
+        base_sig = inspect.signature(fn, eval_str=True)
+        new_params = []
+        for p in base_sig.parameters.values():
+            if params and p.name in params:
+                ann = p.annotation if p.annotation is not inspect.Parameter.empty else Any
+                new_params.append(p.replace(
+                    annotation=Annotated[ann, Field(description=params[p.name])]))
+            else:
+                new_params.append(p)
+        ret_ann = output_type if output_type is not None else base_sig.return_annotation
+        _wrapped.__signature__ = base_sig.replace(
+            parameters=new_params, return_annotation=ret_ann)
+
+    # Fold the human title into the annotations block too (spec allows a title on
+    # ToolAnnotations); keep an explicit annotations.title if one was given.
+    if annotations is not None and title is not None and annotations.title is None:
+        annotations = annotations.model_copy(update={"title": title})
+
+    door.add_tool(
+        _wrapped, name=name, title=title, description=description,
+        annotations=annotations,
+        # Force the output schema when we declared a return type (fail loudly at
+        # import if a schema can't be built), else leave FastMCP's auto-detect.
+        structured_output=True if output_type is not None else None)
 
 
 def _alias(door: FastMCP, fn, *, old: str, canonical: str,
@@ -1377,51 +1452,453 @@ _SCORE_DEAL_DESC = (
     "key needed.\n\n" + (_score_deal.__doc__ or ""))
 
 
+# ── Structured output schemas for the 15 core tools (RESHAPE §2) ──────────────
+# One TypedDict per tool, matching what the implementation ACTUALLY returns
+# (probed against the live functions). Registered via `output_type=` on `_tool`,
+# so FastMCP emits `outputSchema` + `structuredContent`. Every field is Optional
+# and sub-objects are permissive (dict[str, Any] / list / Any) DELIBERATELY: the
+# SDK validates each real return against this schema at call time, so accuracy
+# beats strictness — extra keys drop from structuredContent (still present in the
+# text content), and absent-or-None keys must never be rejected. total=False +
+# Optional guarantees no real return is ever turned into a runtime error.
+
+class NegotiateOut(TypedDict, total=False):
+    action: Optional[str]                       # "counter" | "accept" | "walk"
+    recommended_price: Optional[float]          # the dollar counter to send
+    message: Optional[str]                       # ready-to-send phrasing
+    rationale: Optional[str]
+    fit: Optional[dict[str, Any]]
+    expected_settlement: Optional[float]
+    confidence: Optional[float]
+    compute: Optional[dict[str, Any]]           # present when compute_ms > 0
+    error: Optional[str]
+
+
+class NegotiateBundleOut(TypedDict, total=False):
+    action: Optional[str]
+    recommended_offer: Optional[dict[str, Any]]  # issue name -> chosen option
+    message: Optional[str]
+    my_utility: Optional[float]
+    their_expected_utility: Optional[float]
+    inferred_their_priorities: Optional[dict[str, Any]]
+    trade_logic: Optional[str]
+    fit: Optional[dict[str, Any]]
+    confidence: Optional[float]
+    acceptance_probability: Optional[float]
+    compute: Optional[dict[str, Any]]
+    error: Optional[str]
+
+
+class ScoreDealOut(TypedDict, total=False):
+    my_utility: Optional[float]
+    their_utility: Optional[float]
+    joint_welfare: Optional[float]
+    frontier_best: Optional[float]
+    naive_split: Optional[float]
+    frontier_capture: Optional[float]
+    logroll_capture: Optional[float]            # None when a single-issue deal
+    dollars_left_on_table: Optional[float]
+    error: Optional[str]
+
+
+class AuctionBidOut(TypedDict, total=False):
+    optimal_bid: Optional[float]
+    expected_surplus: Optional[float]
+    win_probability: Optional[float]
+    dominant_strategy: Optional[bool]
+    rationale: Optional[str]
+    error: Optional[str]
+
+
+class AuctionReserveOut(TypedDict, total=False):
+    reserve_price: Optional[float]
+    expected_revenue: Optional[float]
+    expected_revenue_no_reserve: Optional[float]
+    expected_efficiency_loss: Optional[float]
+    rationale: Optional[str]
+    error: Optional[str]
+
+
+class ClearancePriceOut(TypedDict, total=False):
+    static_price: Optional[float]
+    static_expected_revenue: Optional[float]
+    static_simulated_revenue: Optional[float]
+    dynamic_schedule: Optional[list[dict[str, Any]]]  # markdown waypoints
+    dynamic_value_estimate: Optional[float]
+    sellthrough_rate: Optional[float]
+    rationale: Optional[str]
+    error: Optional[str]
+
+
+class StableMatchOut(TypedDict, total=False):
+    matching: Optional[dict[str, Any]]          # proposer id -> receiver id
+    unmatched_proposers: Optional[list[Any]]
+    blocking_pairs: Optional[list[Any]]         # [] == provably stable
+    n_proposals: Optional[int]
+    error: Optional[str]
+
+
+class MemorySaveOut(TypedDict, total=False):
+    ok: Optional[bool]
+    ticket: Optional[str]                       # claim ticket for memory_load
+    ticket_hash: Optional[str]
+    size_bytes: Optional[int]
+    expires_at: Optional[int]                   # epoch seconds
+    price_millicents: Optional[int]
+    receipt: Optional[dict[str, Any]]           # signed park receipt
+    charged: Optional[bool]                     # on the uncharged-failure envelope
+    code: Optional[str]
+    reason: Optional[str]
+    error: Optional[str]
+
+
+class MemoryLoadOut(TypedDict, total=False):
+    ok: Optional[bool]
+    blob_b64: Optional[str]                     # your ciphertext, base64
+    size_bytes: Optional[int]
+    expires_at: Optional[int]
+    charged: Optional[bool]
+    code: Optional[str]                         # not_found | expired | at_rest_key_unavailable
+    reason: Optional[str]
+    error: Optional[str]
+
+
+class SessionOpenOut(TypedDict, total=False):
+    session_id: Optional[str]
+    category: Optional[str]
+    side: Optional[str]
+    price_cents: Optional[int]
+    price_millicents: Optional[int]
+    max_moves: Optional[int]
+    expires_at: Optional[int]
+    funding: Any
+    balance_after: Any
+    context_hash: Optional[str]
+    receipt: Optional[dict[str, Any]]
+    first_move: Optional[dict[str, Any]]        # when their_offers was passed
+    first_move_error: Optional[str]
+    error: Optional[str]                        # e.g. insufficient balance
+    how_to_pay: Optional[str]
+
+
+class SessionAdviseOut(TypedDict, total=False):
+    move: Optional[str]
+    offer: Optional[float]
+    message: Optional[str]
+    why: Optional[list[Any]]
+    confidence_note: Optional[str]
+    context_hash: Optional[str]
+    policy_id: Optional[str]
+    move_index: Optional[int]
+    compute: Optional[dict[str, Any]]
+    receipt: Optional[dict[str, Any]]
+    error: Optional[str]
+
+
+class SessionBundleOut(TypedDict, total=False):
+    move: Optional[str]
+    package: Optional[dict[str, Any]]
+    message: Optional[str]
+    why: Optional[list[Any]]
+    confidence_note: Optional[str]
+    context_hash: Optional[str]
+    move_index: Optional[int]
+    their_expected_utility: Optional[float]
+    acceptance_probability: Optional[float]
+    receipt: Optional[dict[str, Any]]
+    error: Optional[str]
+
+
+class SessionCloseOut(TypedDict, total=False):
+    closed: Optional[bool]
+    receipt: Optional[dict[str, Any]]           # signed session-summary receipt
+    error: Optional[str]
+
+
+class StoreCatalogOut(TypedDict, total=False):
+    unit: Optional[str]                         # "millicents"
+    millicents_per_cent: Optional[int]
+    counter_fee: Optional[dict[str, Any]]
+    counter_fee_pct: Optional[float]
+    request_privacy: Optional[str]
+    keys: Optional[dict[str, Any]]
+    starter_credit: Optional[dict[str, Any]]
+    admission: Optional[str]
+    slots: Optional[list[dict[str, Any]]]
+    paid_session: Optional[dict[str, Any]]      # the receipted-session SKU card
+    error: Optional[str]
+
+
+class StoreRequestOut(TypedDict, total=False):
+    request_id: Optional[str]
+    status: Optional[str]
+    watch: Optional[bool]
+    check: Optional[str]
+    found: Optional[bool]                       # on the request_id re-query path
+    status_note: Optional[str]
+    filed_at: Any
+    door: Optional[str]
+    text: Optional[str]
+    same_ask_count: Optional[int]
+    error: Optional[str]
+
+
+# ── Behaviour-hint annotations (honest MCP ToolAnnotations) ───────────────────
+# openWorldHint=False everywhere: the 15 core tools call NO open web (the fetch
+# slot is fenced off the core door). destructive/idempotent are only set on the
+# write tools (spec: those hints are meaningful only when readOnlyHint is False).
+def _ann_read() -> ToolAnnotations:
+    """Pure-math tools and free reads — no side effects, no wallet touch."""
+    return ToolAnnotations(readOnlyHint=True, openWorldHint=False)
+
+
+def _ann_write(*, idempotent: bool) -> ToolAnnotations:
+    """State-changing / wallet-touching tools. None of them DELETE data, so
+    destructiveHint is False; idempotency is stated honestly per tool."""
+    return ToolAnnotations(readOnlyHint=False, destructiveHint=False,
+                           idempotentHint=idempotent, openWorldHint=False)
+
+
+# ── Per-tool Smithery-quality metadata (title + param descriptions + output
+#    schema + annotations), keyed by canonical name. Holds NO function refs, so
+#    it is safe to define even in a no-vend build; the registration block below
+#    (already guarded by _HAVE_STORE / _HAVE_ADVICE) binds the functions.
+_META: dict[str, dict] = {
+    "negotiate": dict(
+        title="Negotiate — your optimal next move",
+        output_type=NegotiateOut, annotations=_ann_read(),
+        params={
+            "side": "Which side you are: 'sell' or 'buy'.",
+            "walk_away": "Your reservation price in dollars — the worst you'd accept "
+                         "(seller: your floor/minimum; buyer: your ceiling/maximum).",
+            "target": "Your aspiration price in dollars (seller: high; buyer: low).",
+            "counterparty_offers": "The other side's offers so far, in dollars, oldest "
+                                   "first. Omit if they haven't offered yet.",
+            "my_previous_offers": "Your own offers so far, in dollars, oldest first "
+                                  "(optional context).",
+            "rounds_left": "Roughly how many back-and-forth rounds remain before the "
+                           "deadline (default 8).",
+            "item": "Short label for what's being negotiated (used only in the drafted "
+                    "message).",
+            "compute_ms": "EXPERIMENTAL. Milliseconds of Monte-Carlo rollouts to spend "
+                          "refining the move; 0 = instant closed form (validated to show "
+                          "no realized edge, off by default).",
+        }),
+    "negotiate_bundle": dict(
+        title="Negotiate a bundle — logroll linked issues",
+        output_type=NegotiateBundleOut, annotations=_ann_read(),
+        params={
+            "issues": "One dict per issue: {name, options (the choices), my_utility "
+                      "(value of each option to YOU), their_utility (value to THEM)} — "
+                      "utilities are one number per option, any scale.",
+            "their_offers": "Packages the other side has tabled, oldest first, each as "
+                            "{issue_name: chosen_option} — lets it infer their priorities.",
+            "my_priorities": "{issue_name: weight} — how much each issue matters to you "
+                             "(any scale). Optional.",
+            "my_batna": "Your best alternative to no deal, as a utility fraction in "
+                        "[0,1] (default 0.40); the returned package is guaranteed to beat it.",
+            "their_batna_estimate": "Your estimate of the other side's BATNA, [0,1] "
+                                    "(default 0.40).",
+            "rounds_left": "Bargaining rounds remaining (used with compute_ms for the "
+                           "timing tier; default 8).",
+            "compute_ms": "EXPERIMENTAL. Milliseconds of rollouts to choose WHICH package "
+                          "to hold as they concede; 0 = instant closed-form package.",
+        }),
+    "score_deal": dict(
+        title="Score a deal against the Pareto frontier",
+        description=_SCORE_DEAL_DESC,
+        output_type=ScoreDealOut, annotations=_ann_read(),
+        params={
+            "issues": "One dict per issue: {name, options, my_utility, their_utility} — "
+                      "both sides' TRUE per-option values (one number per option).",
+            "my_weights": "{issue_name: weight} — your true priorities (any scale).",
+            "their_weights": "{issue_name: weight} — their true priorities (any scale).",
+            "package": "The settled deal as {issue_name: chosen_option_label}.",
+            "notional": "Deal size in dollars, used for the 'dollars left on the table' "
+                        "framing (default 10000).",
+        }),
+    "auction_bid": dict(
+        title="Optimal auction bid",
+        output_type=AuctionBidOut, annotations=_ann_read(),
+        params={
+            "auction_format": "'first_price' (sealed), 'second_price_vickrey', or "
+                              "'english_ascending'.",
+            "my_valuation": "What the item is worth to YOU, in dollars.",
+            "n_competing_bidders": "How many OTHER bidders there are (not counting you).",
+            "competitor_value_prior": "Rough model of what rivals will pay, e.g. "
+                                      "{family:'uniform', params:{low:0, high:6000}} or "
+                                      "{family:'lognorm', params:{mu:8.5, sigma:0.4}}.",
+            "reserve_price": "The auction's reserve/minimum bid in dollars, if any "
+                             "(optional).",
+            "risk_aversion": "Your risk aversion; 1.0 = risk-neutral (default 1.0).",
+        }),
+    "auction_reserve": dict(
+        title="Revenue-optimal reserve price",
+        output_type=AuctionReserveOut, annotations=_ann_read(),
+        params={
+            "bidder_value_prior": "Rough model of what bidders will pay, e.g. "
+                                  "{family:'uniform', params:{low:2000, high:8000}}.",
+            "n_bidders": "How many bidders you expect.",
+            "seller_valuation": "What the item is worth to YOU, in dollars (your floor).",
+        }),
+    "clearance_price": dict(
+        title="Clearance price & markdown schedule",
+        output_type=ClearancePriceOut, annotations=_ann_read(),
+        params={
+            "buyer_arrival_prior": "Rough model of buyer willingness-to-pay, e.g. "
+                                   "{family:'uniform', params:{low:40, high:150}}.",
+            "arrival_rate_per_second": "Expected shoppers per SECOND (= expected total "
+                                       "shoppers / horizon_seconds).",
+            "inventory": "Number of units you must sell before the cutoff.",
+            "horizon_seconds": "Selling window in SECONDS (14 days = 14*24*3600 = 1209600).",
+            "n_simulations": "Monte-Carlo sample count for the estimate (default 2000).",
+            "seed": "RNG seed for reproducibility (default 42).",
+        }),
+    "stable_match": dict(
+        title="Stable matching (Gale–Shapley)",
+        output_type=StableMatchOut, annotations=_ann_read(),
+        params={
+            "proposers": "List of {id, preferences:[ids of the OTHER side, most-wanted "
+                         "first]}. The result is PROPOSER-optimal — put the side you want "
+                         "to favor here.",
+            "receivers": "List of {id, preferences:[...], capacity (optional, default 1)}.",
+        }),
+    "memory_save": dict(
+        title="Save agent memory (blind locker)",
+        output_type=MemorySaveOut, annotations=_ann_write(idempotent=False),
+        params={
+            "api_key": "Your SNHP API key (a new key's 50c starter credit covers first saves).",
+            "blob_b64": "YOUR ciphertext as base64 — encrypt BEFORE saving; the store holds "
+                        "only the sealed box and cannot read it.",
+            "ttl_seconds": "How long to keep it, clamped to [60s, 7 days]; the effective "
+                           "expiry is returned (optional).",
+        }),
+    "memory_load": dict(
+        title="Load agent memory",
+        output_type=MemoryLoadOut, annotations=_ann_read(),
+        params={
+            "api_key": "The same SNHP API key you saved under (a different owner reads as "
+                       "a missing ticket).",
+            "ticket": "The claim ticket returned by memory_save.",
+        }),
+    "session_open": dict(
+        title="Open a $2 receipted session",
+        output_type=SessionOpenOut, annotations=_ann_write(idempotent=False),
+        params={
+            "api_key": "Your SNHP API key; $2 is debited from its credit balance (covers "
+                       "every move of this one negotiation).",
+            "category": "Negotiation category for tuning: 'resale' | 'supply' | 'retail'.",
+            "side": "Which side you're on: 'buy' or 'sell'.",
+            "walk_away": "Your true reservation in dollars — floor (sell) / ceiling (buy); "
+                         "private, never crossed.",
+            "target": "Your aspiration price in dollars.",
+            "their_offers": "The other side's offers so far, in dollars, oldest first — "
+                            "pass to get the first move back with the session (optional).",
+            "my_offers": "Your own offers so far, in dollars, oldest first (optional).",
+            "rounds_left": "Bargaining rounds remaining for this move (optional; overrides "
+                           "the category default).",
+            "seed": "RNG seed for the deterministic engine (default 0).",
+        }),
+    "session_advise": dict(
+        title="Session move — next single-price offer",
+        output_type=SessionAdviseOut, annotations=_ann_write(idempotent=False),
+        params={
+            "api_key": "The API key that opened the session.",
+            "session_id": "The session_id returned by session_open.",
+            "their_offers": "The FULL counterparty offer history, in dollars, oldest first.",
+            "my_offers": "Your own offer history, in dollars, oldest first (optional).",
+            "rounds_left": "Bargaining rounds remaining (optional).",
+        }),
+    "session_bundle": dict(
+        title="Session move — multi-issue bundle",
+        output_type=SessionBundleOut, annotations=_ann_write(idempotent=False),
+        params={
+            "api_key": "The API key that opened the session.",
+            "session_id": "The session_id returned by session_open.",
+            "issues": "One dict per issue: {name, options, my_utility (per option), "
+                      "their_utility (your read of their direction)}.",
+            "their_offers": "Packages they've tabled, oldest first, each {issue_name: "
+                            "option} (optional).",
+            "my_priorities": "{issue_name: weight} — how much each issue matters to you "
+                             "(optional).",
+            "my_batna": "Your BATNA as a utility fraction in [0,1] (default 0.40); the "
+                        "package is guaranteed to clear it.",
+            "their_batna_estimate": "Your estimate of their BATNA, [0,1] (default 0.40).",
+            "cooperation": "Optional cooperation dial in [0,1] biasing toward joint surplus.",
+        }),
+    "session_close": dict(
+        title="Close session & get the signed receipt",
+        output_type=SessionCloseOut, annotations=_ann_write(idempotent=True),
+        params={
+            "api_key": "The API key that opened the session.",
+            "session_id": "The session_id to close.",
+        }),
+    "store_catalog": dict(
+        title="Store catalog & wallet balance",
+        output_type=StoreCatalogOut, annotations=_ann_read()),
+    "store_request": dict(
+        title="Request a capability / check a filing",
+        output_type=StoreRequestOut, annotations=_ann_write(idempotent=False),
+        params={
+            "text": "What capability you want that we don't stock yet (free-text). "
+                    "Omit when re-querying with request_id.",
+            "api_key": "Your SNHP API key (optional; required only if you set watch=True).",
+            "watch": "Set True (with an api_key) to flag the ask for a status-flip "
+                     "heads-up; anonymous watches are ignored.",
+            "request_id": "Pass an existing filing id to RE-QUERY its status instead of "
+                          "filing a new request.",
+        }),
+}
+
+
 # ── CORE door — EXACTLY 15 hero-first tools (RESHAPE §2) ──────────────────────
 # 1-7 (free math) are always present; 8-15 need vend (agent memory + receipted
 # sessions + the shelf) — a no-vend wheel build registers only 1-7.
-_tool(mcp, gt_negotiate_turn, name="negotiate", variant="core")                       # 1
-_tool(mcp, gt_negotiate_bundle, name="negotiate_bundle", variant="core")              # 2
-_tool(mcp, _score_deal, name="score_deal", variant="core", description=_SCORE_DEAL_DESC)  # 3
-_tool(mcp, gt_auction_optimal_bid, name="auction_bid", variant="core")                # 4
-_tool(mcp, gt_auction_optimal_reserve, name="auction_reserve", variant="core")        # 5
-_tool(mcp, gt_mechanism_posted_price_optimal, name="clearance_price", variant="core")  # 6
-_tool(mcp, gt_mechanism_gale_shapley, name="stable_match", variant="core")            # 7
+# Each canonical tool carries its full Smithery-quality metadata (title + param
+# descriptions + output schema + annotations) from _META, applied identically on
+# both doors so the shared function's schema is consistent core↔pro.
+_tool(mcp, gt_negotiate_turn, name="negotiate", variant="core", **_META["negotiate"])              # 1
+_tool(mcp, gt_negotiate_bundle, name="negotiate_bundle", variant="core", **_META["negotiate_bundle"])  # 2
+_tool(mcp, _score_deal, name="score_deal", variant="core", **_META["score_deal"])                  # 3
+_tool(mcp, gt_auction_optimal_bid, name="auction_bid", variant="core", **_META["auction_bid"])     # 4
+_tool(mcp, gt_auction_optimal_reserve, name="auction_reserve", variant="core", **_META["auction_reserve"])  # 5
+_tool(mcp, gt_mechanism_posted_price_optimal, name="clearance_price", variant="core", **_META["clearance_price"])  # 6
+_tool(mcp, gt_mechanism_gale_shapley, name="stable_match", variant="core", **_META["stable_match"])  # 7
 if _HAVE_STORE:
-    _tool(mcp, store_park, name="memory_save", variant="core")                        # 8
-    _tool(mcp, store_retrieve, name="memory_load", variant="core")                    # 9
+    _tool(mcp, store_park, name="memory_save", variant="core", **_META["memory_save"])             # 8
+    _tool(mcp, store_retrieve, name="memory_load", variant="core", **_META["memory_load"])         # 9
 if _HAVE_ADVICE:
-    _tool(mcp, nextmove_open, name="session_open", variant="core")                    # 10
-    _tool(mcp, nextmove_advise, name="session_advise", variant="core")                # 11
-    _tool(mcp, nextmove_bundle, name="session_bundle", variant="core")                # 12
-    _tool(mcp, nextmove_close, name="session_close", variant="core")                  # 13
+    _tool(mcp, nextmove_open, name="session_open", variant="core", **_META["session_open"])        # 10
+    _tool(mcp, nextmove_advise, name="session_advise", variant="core", **_META["session_advise"])  # 11
+    _tool(mcp, nextmove_bundle, name="session_bundle", variant="core", **_META["session_bundle"])  # 12
+    _tool(mcp, nextmove_close, name="session_close", variant="core", **_META["session_close"])     # 13
 if _HAVE_STORE:
-    _tool(mcp, store_catalog, name="store_catalog", variant="core")                   # 14
-    _tool(mcp, store_request, name="store_request", variant="core")                   # 15
+    _tool(mcp, store_catalog, name="store_catalog", variant="core", **_META["store_catalog"])      # 14
+    _tool(mcp, store_request, name="store_request", variant="core", **_META["store_request"])      # 15
 
 
 # ── PRO door — everything (RESHAPE §3): 15 canonical + leaving families +
 #    old-name aliases + the fenced fetch slot when vend/shelf opens it ─────────
 
 # (a) the 15 canonical tools, hero order first (pro leads with the heroes too)
-_tool(mcp_pro, gt_negotiate_turn, name="negotiate", variant="pro")
-_tool(mcp_pro, gt_negotiate_bundle, name="negotiate_bundle", variant="pro")
-_tool(mcp_pro, _score_deal, name="score_deal", variant="pro", description=_SCORE_DEAL_DESC)
-_tool(mcp_pro, gt_auction_optimal_bid, name="auction_bid", variant="pro")
-_tool(mcp_pro, gt_auction_optimal_reserve, name="auction_reserve", variant="pro")
-_tool(mcp_pro, gt_mechanism_posted_price_optimal, name="clearance_price", variant="pro")
-_tool(mcp_pro, gt_mechanism_gale_shapley, name="stable_match", variant="pro")
+_tool(mcp_pro, gt_negotiate_turn, name="negotiate", variant="pro", **_META["negotiate"])
+_tool(mcp_pro, gt_negotiate_bundle, name="negotiate_bundle", variant="pro", **_META["negotiate_bundle"])
+_tool(mcp_pro, _score_deal, name="score_deal", variant="pro", **_META["score_deal"])
+_tool(mcp_pro, gt_auction_optimal_bid, name="auction_bid", variant="pro", **_META["auction_bid"])
+_tool(mcp_pro, gt_auction_optimal_reserve, name="auction_reserve", variant="pro", **_META["auction_reserve"])
+_tool(mcp_pro, gt_mechanism_posted_price_optimal, name="clearance_price", variant="pro", **_META["clearance_price"])
+_tool(mcp_pro, gt_mechanism_gale_shapley, name="stable_match", variant="pro", **_META["stable_match"])
 if _HAVE_STORE:
-    _tool(mcp_pro, store_park, name="memory_save", variant="pro")
-    _tool(mcp_pro, store_retrieve, name="memory_load", variant="pro")
+    _tool(mcp_pro, store_park, name="memory_save", variant="pro", **_META["memory_save"])
+    _tool(mcp_pro, store_retrieve, name="memory_load", variant="pro", **_META["memory_load"])
 if _HAVE_ADVICE:
-    _tool(mcp_pro, nextmove_open, name="session_open", variant="pro")
-    _tool(mcp_pro, nextmove_advise, name="session_advise", variant="pro")
-    _tool(mcp_pro, nextmove_bundle, name="session_bundle", variant="pro")
-    _tool(mcp_pro, nextmove_close, name="session_close", variant="pro")
+    _tool(mcp_pro, nextmove_open, name="session_open", variant="pro", **_META["session_open"])
+    _tool(mcp_pro, nextmove_advise, name="session_advise", variant="pro", **_META["session_advise"])
+    _tool(mcp_pro, nextmove_bundle, name="session_bundle", variant="pro", **_META["session_bundle"])
+    _tool(mcp_pro, nextmove_close, name="session_close", variant="pro", **_META["session_close"])
 if _HAVE_STORE:
-    _tool(mcp_pro, store_catalog, name="store_catalog", variant="pro")
-    _tool(mcp_pro, store_request, name="store_request", variant="pro")
+    _tool(mcp_pro, store_catalog, name="store_catalog", variant="pro", **_META["store_catalog"])
+    _tool(mcp_pro, store_request, name="store_request", variant="pro", **_META["store_request"])
 
 # (b) advanced / legacy families that leave the core door (canonical names)
 _tool(mcp_pro, gt_negotiation_sell_next_offer, name="gt_negotiation_sell_next_offer", variant="pro")
