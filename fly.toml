@@ -48,9 +48,15 @@ primary_region = "sjc"
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "stop"      # spin down when idle
+  # Keep ONE machine warm: this is a public MCP endpoint that agents,
+  # registries (Smithery), and scanners connect to. With min=0 the machine
+  # auto-stopped when idle and the first connection hit a cold-boot 502
+  # (numba JIT import makes the cold start slow enough that fly-proxy gives
+  # up) — that 502 is what failed the Smithery scan. One always-on
+  # shared-cpu-1x (~$2/mo) removes the cold-start 502 for every caller.
+  auto_stop_machines = "stop"      # extra machines still stop when idle
   auto_start_machines = true       # spin up on first request
-  min_machines_running = 0         # zero-cost when no traffic
+  min_machines_running = 1         # one always warm — no cold-start 502
   processes = ["app"]
 
   [[http_service.checks]]
