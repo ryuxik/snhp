@@ -72,9 +72,12 @@ def _base_url() -> str:
 
 # ─── Discovery: MCP server card (SEP-1649) ───────────────────────────────────
 def _mcp_tools_for_card() -> list[dict]:
-    """Full tool definitions (name, description, inputSchema) — the same shape an
-    MCP tools/list returns — so a registry can skip the live scan and still get the
-    real toolset. Lazy import + defensive: a card is better than a 500."""
+    """Full tool definitions (name, title, description, inputSchema, outputSchema,
+    annotations) — the same shape an MCP tools/list returns — so a registry can
+    skip the live scan and still get the real toolset AND its quality metadata
+    (per-parameter descriptions in inputSchema, the structured outputSchema, and
+    the behaviour-hint annotations). Lazy import + defensive: a card is better
+    than a 500."""
     try:
         from gametheory.server.mcp_server import mcp as _mcp
         out = []
@@ -82,9 +85,17 @@ def _mcp_tools_for_card() -> list[dict]:
             schema = getattr(t, "parameters", None) or {"type": "object", "properties": {}}
             if "type" not in schema:
                 schema = {"type": "object", **schema}
-            out.append({"name": t.name,
-                        "description": (t.description or "").strip(),
-                        "inputSchema": schema})
+            entry = {"name": t.name,
+                     "description": (t.description or "").strip(),
+                     "inputSchema": schema}
+            if getattr(t, "title", None):
+                entry["title"] = t.title
+            if getattr(t, "output_schema", None):
+                entry["outputSchema"] = t.output_schema
+            ann = getattr(t, "annotations", None)
+            if ann is not None:
+                entry["annotations"] = ann.model_dump(exclude_none=True)
+            out.append(entry)
         return out
     except Exception:
         return []
@@ -109,26 +120,53 @@ def mcp_server_card() -> dict:
         server_name = getattr(_mcp, "name", None) or "snhp"
     except Exception:
         server_name = "snhp"
+    # The homepage + icon in the SEP/registry-standard spellings. `icons[]` mirrors
+    # the MCP Icon shape (matches the live initialize serverInfo.icons); `iconUrl`
+    # is the single-URL spelling some scanners read. Vector first, raster fallback.
+    website_url = base
+    icon_svg = base + "/favicon.svg"
+    icons = [
+        {"src": icon_svg, "mimeType": "image/svg+xml", "sizes": ["any"]},
+        {"src": base + "/favicon.ico", "mimeType": "image/x-icon",
+         "sizes": ["48x48", "32x32", "16x16"]},
+    ]
+    description = (
+        "Free math-optimal negotiation for AI agents — your next move in any "
+        "price negotiation, plus multi-issue logrolling, auctions and matching; "
+        "no account, no key. When you need it: persistent agent memory (blind "
+        "custody) and $2 receipted negotiation sessions. LLM-free. This card "
+        "lists the CORE door (15 hero-first tools); the full/legacy surface "
+        "(old names, A2A verified-peer flow, first-strike attestation) is at "
+        "/mcp/pro/."
+    )
     return {
-        # SEP-1649 fields Smithery parses:
-        "serverInfo": {"name": server_name, "version": "0.1.0"},
+        # SEP-1649 fields Smithery parses. serverInfo mirrors the live initialize
+        # Implementation (name/title/version + the icons-SEP websiteUrl + icons),
+        # and additively carries the human description so a scanner that reads
+        # metadata off serverInfo finds all three (description/homepage/icon).
+        "serverInfo": {
+            "name": server_name,
+            "title": "SNHP — free negotiation math + agent memory",
+            "version": "0.1.0",
+            "description": description,
+            "websiteUrl": website_url,
+            "icons": icons,
+        },
         "capabilities": {"tools": {"listChanged": False}},
         "authentication": {"required": False, "schemes": []},
         "tools": _mcp_tools_for_card(),
         "resources": [],
         "prompts": [],
-        # Extra human/registry metadata (ignored by the SEP-1649 parser):
+        # Extra human/registry metadata (ignored by the SEP-1649 parser). Both
+        # spellings of homepage (`homepage` + `websiteUrl`) and icon (`iconUrl` +
+        # `icons[]`) are provided — additive JSON keys are harmless and cover
+        # whichever field name the registry reads.
         "name": "io.github.ryuxik/snhp-negotiation",
-        "description": (
-            "Free math-optimal negotiation for AI agents — your next move in any "
-            "price negotiation, plus multi-issue logrolling, auctions and matching; "
-            "no account, no key. When you need it: persistent agent memory (blind "
-            "custody) and $2 receipted negotiation sessions. LLM-free. This card "
-            "lists the CORE door (15 hero-first tools); the full/legacy surface "
-            "(old names, A2A verified-peer flow, first-strike attestation) is at "
-            "/mcp/pro/."
-        ),
+        "description": description,
         "homepage": base,
+        "websiteUrl": website_url,
+        "iconUrl": icon_svg,
+        "icons": icons,
         "repository": "https://github.com/ryuxik/snhp",
         "transport": {"type": "streamable-http", "url": base + "/mcp/"},
         "transport_pro": {

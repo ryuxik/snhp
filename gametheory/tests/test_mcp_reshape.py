@@ -151,9 +151,19 @@ def test_renamed_core_tools_wrap_the_same_underlying_function():
 
 def _call(door, name, args):
     """Invoke a tool through the door and parse the JSON payload (FastMCP returns
-    either (content, structured) or a list of TextContent depending on version)."""
+    either (content, structured) or a list of TextContent depending on version).
+
+    Reads the UNSTRUCTURED text payload — the exact function return — rather than
+    the structured content. Now that the core tools carry an outputSchema, the
+    structured content is the schema-PROJECTED view: it additively fills every
+    declared-but-absent Optional key with null (e.g. `compute`/`error`), so it is
+    a superset of the raw return by design. The text content stays byte-for-byte
+    the function's dict, which is what these alias-equivalence checks compare."""
     res = asyncio.run(door.call_tool(name, args))
     if isinstance(res, tuple):
+        content = res[0]
+        if content and hasattr(content[0], "text"):
+            return json.loads(content[0].text)
         return res[1]
     if isinstance(res, list) and res:
         return json.loads(res[0].text)
