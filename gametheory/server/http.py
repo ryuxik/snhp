@@ -464,7 +464,11 @@ class PostedPriceResponse(BaseModel):
 # lifespan (else /mcp errors with "task group not initialized"). Transport/host
 # config lives on the shared FastMCP instance in mcp_server.py.
 from contextlib import asynccontextmanager as _asynccontextmanager  # noqa: E402
-from gametheory.server.mcp_server import mcp as _mcp  # noqa: E402
+# Two MCP doors, one engine (see store/RESHAPE.md §1-3): `mcp` is the slim CORE
+# door (15 hero-first tools, mounted at /mcp); `mcp_pro` is the PRO door (all 43
+# names incl. the old gt_* aliases, A2A verified-peer flow, first-strike
+# attestation, auction design/sim, pondering sessions), mounted at /mcp/pro.
+from gametheory.server.mcp_server import mcp as _mcp, mcp_pro as _mcp_pro  # noqa: E402
 
 # ── MCP door host fix (GAUNTLET.md #7: "MCP live door 421s on truthful Host") ──
 # mcp_server.py configures an EXACT-match host allow-list for DNS-rebinding
@@ -478,16 +482,28 @@ from gametheory.server.mcp_server import mcp as _mcp  # noqa: E402
 # protection stays ON — a foreign Host (evil.com) is still rejected 421.
 _MCP_ACCEPTED_HOSTS = ("snhp.dev", "www.snhp.dev", "api.snhp.dev",
                        "snhp.fly.dev", "localhost", "127.0.0.1")
-_mcp_sec = _mcp.settings.transport_security
-if _mcp_sec is not None:
-    _widened_hosts = []
-    for _h in _mcp_sec.allowed_hosts:
-        _widened_hosts.append(_h)
-        if ":" not in _h:                       # bare host -> also accept any port
-            _widened_hosts.append(_h + ":*")
-    _mcp_sec.allowed_hosts = _widened_hosts      # session manager reads this live
+
+
+def _widen_mcp_hosts(_instance) -> None:
+    """Accept each legit host both bare and on any port (host:* wildcard).
+    Applied to BOTH doors so the core and pro session managers share the
+    same DNS-rebinding posture (a foreign Host is still rejected 421)."""
+    _sec = _instance.settings.transport_security
+    if _sec is None:
+        return
+    _widened = []
+    for _h in _sec.allowed_hosts:
+        _widened.append(_h)
+        if ":" not in _h:                        # bare host -> also accept any port
+            _widened.append(_h + ":*")
+    _sec.allowed_hosts = _widened                # session manager reads this live
+
+
+_widen_mcp_hosts(_mcp)
+_widen_mcp_hosts(_mcp_pro)
 
 _mcp_app = _mcp.streamable_http_app()
+_mcp_pro_app = _mcp_pro.streamable_http_app()
 
 
 class _McpHostRejectHint:
@@ -535,8 +551,12 @@ class _McpHostRejectHint:
 
 @_asynccontextmanager
 async def _lifespan(_app):
+    # BOTH streamable-HTTP session managers need their lifespan run (else the
+    # mount errors "task group not initialized"). Nest the pro door inside the
+    # core door so a single FastAPI lifespan drives both.
     async with _mcp_app.router.lifespan_context(_mcp_app):
-        yield
+        async with _mcp_pro_app.router.lifespan_context(_mcp_pro_app):
+            yield
 
 
 app = FastAPI(
@@ -659,10 +679,16 @@ try:
 except ImportError:
     pass
 
-# Hosted MCP server (streamable HTTP) at /mcp — same toolkit, MCP-native, so
-# agents/clients that speak MCP over HTTP can connect without installing the
-# stdio package. (Endpoint serves at /mcp/; /mcp 307-redirects to it.) Wrapped
-# so a DNS-rebinding 421 names the accepted hosts (see _McpHostRejectHint).
+# Hosted MCP server (streamable HTTP) — same toolkit, MCP-native, so agents that
+# speak MCP over HTTP can connect without installing the stdio package. TWO doors:
+# the PRO door /mcp/pro (full surface) and the CORE door /mcp (15 hero-first
+# tools). The pro mount MUST be registered BEFORE the core mount: Starlette
+# matches mounts in registration order, and "/mcp" is a prefix of "/mcp/pro", so
+# registering "/mcp" first would swallow every "/mcp/pro/..." request. Each door
+# serves at its trailing-slash path (/mcp/ and /mcp/pro/; the bare path
+# 307-redirects). Both are wrapped so a DNS-rebinding 421 names the accepted
+# hosts (see _McpHostRejectHint).
+app.mount("/mcp/pro", _McpHostRejectHint(_mcp_pro_app, _MCP_ACCEPTED_HOSTS))
 app.mount("/mcp", _McpHostRejectHint(_mcp_app, _MCP_ACCEPTED_HOSTS))
 
 
@@ -885,6 +911,25 @@ def research_short_link(slug: str):
 def robots_txt():
     """Allow all crawlers — link-preview bots included."""
     return PlainTextResponse("User-agent: *\nAllow: /\n")
+
+
+# ─── Favicon ─────────────────────────────────────────────────────────────────
+# snhp.dev previously served NO favicon — /favicon.ico 404'd (which once cost us
+# a directory listing in a crawler). Serve both a crisp SVG (modern browsers)
+# and a small .ico fallback from static/ at the root paths browsers probe.
+
+
+@app.api_route("/favicon.svg", methods=["GET", "HEAD"], include_in_schema=False)
+def favicon_svg():
+    """Vector favicon (site palette). Modern browsers prefer this via the
+    <link rel="icon" type="image/svg+xml"> on the HTML pages."""
+    return _serve_static_page("favicon.svg", media_type="image/svg+xml")
+
+
+@app.api_route("/favicon.ico", methods=["GET", "HEAD"], include_in_schema=False)
+def favicon_ico():
+    """Raster fallback browsers auto-request at the root even without a <link>."""
+    return _serve_static_page("favicon.ico", media_type="image/x-icon")
 
 
 # ─── Tier 1: Negotiation ─────────────────────────────────────────────────────
@@ -1652,56 +1697,68 @@ math endpoints; replicate it in your draft-time code.
 - Auto-execution: never. We return recommendations; your environment
   delivers offers / places bids. No escrow, no settlement.
 
-## THE STORE — pay-per-use counter for agents (one wallet, settle-on-delivery)
-A paid convenience counter for AI agents. Two doors, ONE engine: the MCP tools
-(store_catalog, nextmove_open/advise/close, store_park, store_retrieve,
-store_request) and the HTTP routes below. One prepaid wallet per key holds a
-single balance in millicents (1000 per cent). Every new key gets a one-time 50¢
-STARTER CREDIT — unconditional, no card — so you can taste a slot before you
-fund it.
+## THE STORE — free negotiation math first; a paid counter for the rest
+Free-first, wallet-later. The core is the FREE negotiation / auction / matching
+math — no account, no key. The paid counter is a convenience for the two things
+worth a receipt: remembering state across sessions, and putting a negotiation on
+the record.
 
-The rule that makes it safe to spend: you CANNOT PAY FOR NOTHING. A paid call
-settles only when a machine-checkable outcome is delivered; a failure is an
-uncharged 200 {ok:false, charged:false, reason, code}. Every settled call
-returns an Ed25519-signed receipt stating the exact price and a content hash,
-verifiable OFFLINE with no callback to us (pin the signer at GET
-/v1/store/notary_pubkey). The counter earns ONE published fee, on wallet top-ups
-only — never on the calls: 5% + a fixed 30¢ per transaction (the 30¢ is the card
-rail's own per-transaction toll, passed through). Calls settle at wholesale
-passthrough. Funded credit is prepaid and NON-REFUNDABLE — size top-ups to
-usage; the $2 custom minimum lets you buy small.
+FREE core tools (MCP core door /mcp/, no wallet — one line each):
+- negotiate — your math-optimal next move in any price negotiation, free, no account.
+- negotiate_bundle — negotiate several linked issues at once by logrolling, free.
+- score_deal — score how good a deal is against your floor/target, free.
+- auction_bid — the optimal bid when you're bidding in an auction, free.
+- auction_reserve — the revenue-optimal reserve price when you're selling, free.
+- clearance_price — best price + markdown schedule to clear stock by a deadline, free.
+- stable_match — match two groups by rankings so no pair wants to swap, free.
+The same math is also on HTTP under /v1/ (documented above; e.g. POST
+/v1/negotiate/turn — free, no wallet). The full/legacy surface (all 43 tools
+incl. the old gt_* names, the A2A verified-peer flow, first-strike attestation,
+auction design/sim, pondering sessions) lives on the PRO door /mcp/pro/.
 
-Live paid slots (two, today):
+Then, when you need it — the paid counter (one wallet, settle-on-delivery):
 
-- NEGOTIATE A PRICE, tuned + receipted — the $2 NEXTMOVE session. $2 once covers
-  the WHOLE negotiation (cap 10 moves, 7 days): category-tuned, deterministic
-  (same inputs → same move), signed receipts, persistent session state. The paid
-  upgrade of the free /v1/negotiate/turn below.
-    curl -sX POST https://api.snhp.dev/v1/advice/session \\
-      -H 'content-type: application/json' \\
-      -d '{"api_key":"gt_...","category":"resale","side":"sell",
-           "walk_away":4000,"target":6000,"their_offers":[4200,4500]}'
-    -> {session_id, first_move:{offer, message, receipt}, ...}
-  Next moves: POST /v1/advice/move (no extra charge). MCP: nextmove_open, then
-  nextmove_advise / nextmove_bundle / nextmove_close.
-
-- STORE AN ENCRYPTED BLOB ACROSS SESSIONS — the blind locker. Park customer-
-  encrypted ciphertext, get a claim ticket, retrieve it later; the store holds
-  only opaque bytes (you encrypt BEFORE parking — keys never transit, contents
-  are never logged). Park is the paid action (thin flat fee, settle-on-durable-
-  store); retrieve is free. A wrong owner is indistinguishable from a missing
-  ticket. The receipt's content_hash is over YOUR ciphertext.
+- REMEMBER SOMETHING ACROSS SESSIONS — agent memory (memory_save / memory_load).
+  Persistent memory for your agent across sessions: save now, load in any later
+  session. You encrypt BEFORE saving; we store only ciphertext (blind custody)
+  and sign a receipt over its hash — we cannot read your memory (keys never
+  transit, contents are never logged). Save is the paid action (thin flat fee,
+  settle-on-durable-store; the 50¢ starter credit covers your first saves); load
+  is free. A wrong owner is indistinguishable from a missing ticket. The
+  receipt's content_hash is over YOUR ciphertext.
     curl -sX POST https://api.snhp.dev/v1/store/park \\
       -H "Authorization: Bearer gt_..." -H 'content-type: application/json' \\
       -d '{"blob_b64":"<your ciphertext, base64>","ttl_seconds":86400}'
     -> {ok:true, ticket, expires_at, receipt}
     curl -s https://api.snhp.dev/v1/store/parcel/<ticket> \\
       -H "Authorization: Bearer gt_..."
-  MCP: store_park / store_retrieve.
+  MCP core: memory_save / memory_load (HTTP aliases: /v1/memory/save|load).
 
-- FREE, no wallet: POST /v1/negotiate/turn — a generic single-price counter-offer
-  in plain dollars (documented above). Pay for the $2 session when you want it
-  tuned, deterministic, and receipted.
+- PUT A NEGOTIATION ON THE RECORD — the $2 NEXTMOVE session. $2 once covers the
+  WHOLE negotiation (cap 10 moves, 7 days): category-tuned, deterministic (same
+  inputs → same move), signed receipts, persistent session state. The paid
+  upgrade of the free negotiate tool / /v1/negotiate/turn.
+    curl -sX POST https://api.snhp.dev/v1/advice/session \\
+      -H 'content-type: application/json' \\
+      -d '{"api_key":"gt_...","category":"resale","side":"sell",
+           "walk_away":4000,"target":6000,"their_offers":[4200,4500]}'
+    -> {session_id, first_move:{offer, message, receipt}, ...}
+  Next moves: POST /v1/advice/move (no extra charge). MCP core: session_open,
+  then session_advise / session_bundle / session_close.
+
+Wallet, fee & the safety rule (reference): one prepaid wallet per key holds a
+single balance in millicents (1000 per cent). Every new key gets a one-time 50¢
+STARTER CREDIT — unconditional, no card — so you can taste a slot before you
+fund it. The rule that makes it safe to spend: you CANNOT PAY FOR NOTHING. A paid
+call settles only when a machine-checkable outcome is delivered; a failure is an
+uncharged 200 {ok:false, charged:false, reason, code}. Every settled call returns
+an Ed25519-signed receipt stating the exact price and a content hash, verifiable
+OFFLINE with no callback to us (pin the signer at GET /v1/store/notary_pubkey).
+The counter earns ONE published fee, on wallet top-ups only — never on the calls:
+5% + a fixed 30¢ per transaction (the 30¢ is the card rail's own per-transaction
+toll, passed through). Calls settle at wholesale passthrough. Funded credit is
+prepaid and NON-REFUNDABLE — size top-ups to usage; the $2 custom minimum lets
+you buy small.
 
 Note: there is NO page-fetch / "read a URL" slot today. More slots are decided
 by demand — file the demand box (below); a fetch slot is a possible future
@@ -1804,10 +1861,17 @@ _LLMS_FULL_APPENDIX = """\
 - POST /v1/store/request, GET /v1/store/request/{id}, GET /v1/store/requests,
   GET /v1/store/observatory — the demand box + the public, citable observatory.
 
-### MCP tools (same engine, second door; MCP endpoint /mcp)
-store_catalog, nextmove_open, nextmove_advise, nextmove_bundle, nextmove_close,
-store_park, store_retrieve, store_request, store_request_status, store_requests,
-store_my_requests. Server card: /.well-known/mcp/server-card.json.
+### MCP tools — two doors (same engine)
+CORE door (/mcp/, 15 hero-first tools): negotiate, negotiate_bundle, score_deal,
+auction_bid, auction_reserve, clearance_price, stable_match, memory_save,
+memory_load, session_open, session_advise, session_bundle, session_close,
+store_catalog, store_request.
+PRO door (/mcp/pro/): everything on the core door PLUS the full/legacy surface —
+the old gt_* names as aliases, the A2A verified-peer flow, first-strike
+attestation, auction design/sim, pondering sessions, and the demand-tally
+readers (store_requests, store_my_requests). Old names (store_park/store_retrieve,
+nextmove_open/advise/bundle/close) remain callable here as aliases of the
+canonical core names. Server card (core door): /.well-known/mcp/server-card.json.
 
 ### Pay without a human (MPP / Shared Payment Token)
 1. GET /v1/mpp/manifest — pure read: the accepted method (Stripe SPT, fiat

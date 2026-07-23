@@ -97,7 +97,12 @@ def mcp_server_card() -> dict:
     prompts + authentication) so Smithery/registries index the hosted
     streamable-HTTP server WITHOUT a live initialize scan (which can 502 on a cold
     start, and which some scanners can't complete through the /mcp -> /mcp/
-    redirect). Generated from the live tool definitions so it never drifts."""
+    redirect). Generated from the live tool definitions so it never drifts.
+
+    This card describes the CORE door only: `_mcp_tools_for_card()` enumerates the
+    live `mcp` instance's tool manager, so it auto-slims to the 15 hero-first core
+    tools (no hand-maintained list to drift). The full/legacy surface is pointed
+    at via `transport_pro` (/mcp/pro/)."""
     base = _base_url()
     try:
         from gametheory.server.mcp_server import mcp as _mcp
@@ -115,13 +120,23 @@ def mcp_server_card() -> dict:
         # Extra human/registry metadata (ignored by the SEP-1649 parser):
         "name": "io.github.ryuxik/snhp-negotiation",
         "description": (
-            "Math-optimal negotiation moves for AI agents in plain dollars — "
-            "single-price and multi-issue logrolling, auctions / mechanism design, "
-            "and a signed agent-to-agent (A2A/AP2) settlement flow. LLM-free."
+            "Free math-optimal negotiation for AI agents — your next move in any "
+            "price negotiation, plus multi-issue logrolling, auctions and matching; "
+            "no account, no key. When you need it: persistent agent memory (blind "
+            "custody) and $2 receipted negotiation sessions. LLM-free. This card "
+            "lists the CORE door (15 hero-first tools); the full/legacy surface "
+            "(old names, A2A verified-peer flow, first-strike attestation) is at "
+            "/mcp/pro/."
         ),
         "homepage": base,
         "repository": "https://github.com/ryuxik/snhp",
         "transport": {"type": "streamable-http", "url": base + "/mcp/"},
+        "transport_pro": {
+            "type": "streamable-http", "url": base + "/mcp/pro/",
+            "description": ("Full surface incl. legacy names and advanced flows "
+                            "(A2A verified-peer, first-strike attestation, auction "
+                            "design/sim, pondering sessions)."),
+        },
     }
 
 
@@ -222,13 +237,16 @@ def agent_card() -> dict:
 @router.get("/.well-known/agents.json", tags=["discovery"], include_in_schema=True,
             summary="Machine-readable agent-capability manifest for the SNHP store")
 def agents_json() -> dict:
-    """A self-describing manifest of what this counter sells and how an agent
-    pays for it: name, capabilities[], endpoints, auth, payment, demand box.
-    Written in the vocabulary an agent's tool-selector needs ('negotiate a
-    price', 'store an encrypted blob across sessions'). Pure READ, no auth, no
-    key material. The fee is read from the billing constants so it can never
-    drift from what a top-up actually charges. Honest: only the two LIVE paid
-    slots are listed (no page-fetch slot exists today)."""
+    """A self-describing manifest of what this counter offers and how an agent
+    pays for it: name, free_tools[], capabilities[], endpoints, auth, payment,
+    demand box. Free-first (RESHAPE.md §4): the free negotiation / auction /
+    matching math leads; the paid counter (agent memory, then the $2 receipted
+    session) follows; wallet + fee sit under structured keys, never the headline.
+    Written in the vocabulary an agent's tool-selector needs ('your next move in
+    any price negotiation', 'remember something across sessions'). Pure READ, no
+    auth, no key material. The fee is read from the billing constants so it can
+    never drift from what a top-up actually charges. Honest: only the two LIVE
+    paid slots are listed (no page-fetch slot exists today)."""
     base = _base_url()
     # Lazy import: the fee is the single source of truth (billing constants), so
     # the manifest and a real top-up can never disagree.
@@ -236,20 +254,24 @@ def agents_json() -> dict:
     starter_usd = f"{_onboarding.STARTER_GRANT_MILLICENTS / (100 * _onboarding.MILLICENTS_PER_CENT):.2f}"
     return {
         "schema": "agents.json/v0",
-        "name": "SNHP — negotiation + blind-locker counter for agents",
+        "name": "SNHP — free negotiation math + agent memory",
         "description": (
-            "A pay-per-use counter AI agents call to NEGOTIATE A PRICE (tuned, "
-            "deterministic, receipted) and to STORE AN ENCRYPTED BLOB ACROSS "
-            "SESSIONS (blind locker). One prepaid wallet per key, a one-time 50¢ "
-            "starter credit, settle-on-delivery (you cannot pay for nothing), "
-            "Ed25519-signed receipts verifiable offline. LLM-free in every "
-            "judgment path."
+            "Free math-optimal negotiation for AI agents — your next move in any "
+            "price negotiation, plus multi-issue logrolling, auctions and matching; "
+            "no account, no key. When you need it, a paid counter adds persistent "
+            "AGENT MEMORY (blind custody — you encrypt before saving; we store only "
+            "ciphertext and cannot read it) and a $2 RECEIPTED negotiation SESSION "
+            "(deterministic, replayable, signed). One prepaid wallet per key, a "
+            "one-time 50¢ starter credit, settle-on-delivery (you cannot pay for "
+            "nothing), Ed25519-signed receipts verifiable offline. LLM-free in "
+            "every judgment path."
         ),
         "homepage": base,
         "repository": "https://github.com/ryuxik/snhp",
         "endpoints": {
             "http_base": base,
             "mcp": base + "/mcp/",
+            "mcp_pro": base + "/mcp/pro/",
             "mcp_server_card": base + "/.well-known/mcp/server-card.json",
             "agent_card": base + "/.well-known/agent-card.json",
             "openapi": base + "/openapi.json",
@@ -266,21 +288,77 @@ def agents_json() -> dict:
             "starter_credit": {"amount_usd": starter_usd, "one_time": True,
                                "unconditional": True, "card_required": False},
         },
+        # Free-first: the free core math leads. The full/legacy surface (all 43
+        # tools incl. the old gt_* names, A2A verified-peer flow, first-strike
+        # attestation, auction design/sim) is on the PRO door /mcp/pro/.
+        "free_tools": [
+            {"id": "negotiate", "need": "your next move in any price negotiation",
+             "endpoint": {"method": "POST", "path": "/v1/negotiate/turn"},
+             "mcp_tool": "negotiate"},
+            {"id": "negotiate_bundle", "need": "logroll a multi-issue deal",
+             "endpoint": {"method": "POST", "path": "/v1/negotiate/bundle"},
+             "mcp_tool": "negotiate_bundle"},
+            {"id": "auction_bid", "need": "the optimal bid when bidding in an auction",
+             "endpoint": {"method": "POST", "path": "/v1/auction/bidder/optimal_bid"},
+             "mcp_tool": "auction_bid"},
+            {"id": "auction_reserve", "need": "the revenue-optimal reserve when selling",
+             "endpoint": {"method": "POST", "path": "/v1/auction/seller/optimal_reserve"},
+             "mcp_tool": "auction_reserve"},
+            {"id": "clearance_price", "need": "clear stock by a deadline (price + markdowns)",
+             "endpoint": {"method": "POST", "path": "/v1/mechanism/posted_price_optimal"},
+             "mcp_tool": "clearance_price"},
+            {"id": "stable_match", "need": "match two groups so no pair wants to swap",
+             "endpoint": {"method": "POST", "path": "/v1/mechanism/gale_shapley"},
+             "mcp_tool": "stable_match"},
+            {"id": "score_deal", "need": "score a deal against your floor/target",
+             "mcp_tool": "score_deal"},
+            {"id": "catalog", "need": "see what this counter sells and how to pay",
+             "endpoint": {"method": "GET", "path": "/v1/store/catalog"}},
+        ],
+        "free_tools_door": base + "/mcp/",
+        "pro_door": {
+            "url": base + "/mcp/pro/",
+            "note": ("full/legacy surface: all 43 tools incl. old gt_* names, "
+                     "A2A verified-peer flow, first-strike attestation, auction "
+                     "design/sim, pondering sessions"),
+        },
         "wallet": {
             "unit": "millicent",
             "millicents_per_cent": _onboarding.MILLICENTS_PER_CENT,
             "balance": {"method": "GET", "path": "/v1/billing/balance"},
             "refundable": False,
         },
+        # The two LIVE paid slots, memory first then the receipted session (paid
+        # is always the SECOND thing, never the headline).
         "capabilities": [
+            {
+                "id": "agent_memory",
+                "need": "remember something across sessions",
+                "title": "Agent memory — persistent across sessions (blind custody)",
+                "description": (
+                    "Persistent memory for your agent: save now, load in any later "
+                    "session. You encrypt BEFORE saving; we store only ciphertext "
+                    "(blind custody — keys never transit, contents never logged) "
+                    "and sign a receipt over its hash, so we cannot read your "
+                    "memory. Save is paid (thin flat fee, settle-on-durable-store; "
+                    "the 50¢ starter credit covers your first saves); load is free. "
+                    "A wrong owner reads as a missing ticket."),
+                "price": {"model": "flat_save_fee"},
+                "endpoints": {
+                    "save": {"method": "POST", "path": "/v1/store/park"},
+                    "load": {"method": "GET", "path": "/v1/store/parcel/{ticket}"},
+                },
+                "mcp_tools": ["memory_save", "memory_load"],
+            },
             {
                 "id": "negotiate_session",
                 "need": "negotiate a price",
-                "title": "Tuned, deterministic, receipted negotiation session",
+                "title": "Receipted negotiation session (tuned, deterministic, replayable)",
                 "description": (
                     "$2 once covers the WHOLE negotiation (cap 10 moves, 7 days): "
                     "category-tuned, deterministic replay, signed receipts, "
-                    "persistent session state. The paid upgrade of the free turn."),
+                    "persistent session state. The paid upgrade of the free "
+                    "negotiate tool."),
                 "price": {"amount_usd": "2.00", "model": "per_session"},
                 "endpoints": {
                     "open": {"method": "POST", "path": "/v1/advice/session"},
@@ -288,35 +366,9 @@ def agents_json() -> dict:
                     "bundle": {"method": "POST", "path": "/v1/advice/bundle"},
                     "close": {"method": "POST", "path": "/v1/advice/close"},
                 },
-                "mcp_tools": ["nextmove_open", "nextmove_advise",
-                              "nextmove_bundle", "nextmove_close"],
+                "mcp_tools": ["session_open", "session_advise",
+                              "session_bundle", "session_close"],
             },
-            {
-                "id": "blind_locker",
-                "need": "store an encrypted blob across sessions",
-                "title": "Blind locker — park & retrieve customer-encrypted ciphertext",
-                "description": (
-                    "Park ciphertext (you encrypt BEFORE parking; the store holds "
-                    "only opaque bytes, keys never transit, contents never logged), "
-                    "get a claim ticket, retrieve later. Park is paid (thin flat "
-                    "fee, settle-on-durable-store); retrieve is free. A wrong owner "
-                    "reads as a missing ticket."),
-                "price": {"model": "flat_park_fee"},
-                "endpoints": {
-                    "park": {"method": "POST", "path": "/v1/store/park"},
-                    "retrieve": {"method": "GET", "path": "/v1/store/parcel/{ticket}"},
-                },
-                "mcp_tools": ["store_park", "store_retrieve"],
-            },
-        ],
-        "free_tools": [
-            {"id": "negotiate_turn",
-             "need": "negotiate a price (generic, unreceipted)",
-             "endpoint": {"method": "POST", "path": "/v1/negotiate/turn"}},
-            {"id": "negotiate_bundle", "need": "logroll a multi-issue deal",
-             "endpoint": {"method": "POST", "path": "/v1/negotiate/bundle"}},
-            {"id": "catalog", "need": "see what this counter sells and how to pay",
-             "endpoint": {"method": "GET", "path": "/v1/store/catalog"}},
         ],
         "payment": {
             "settlement": "on_delivery",

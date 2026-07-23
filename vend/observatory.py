@@ -332,6 +332,25 @@ def snapshot(telemetry_path: Optional[str] = None,
     per_door = {d: len(_distinct_keys([r for r in slot_calls if r.get("door") == d]))
                 for d in doors}
 
+    # ── MCP core-door vs pro-door split (RESHAPE §6) ────────────────────────
+    # The reshape put the ~15 hero tools behind the core door (/mcp/) and the full
+    # surface behind the pro door (/mcp/pro/). vend.telemetry stamps an additive
+    # `mcp_door` field ("core"|"pro") on MCP records when the MCP server's per-door
+    # registration wrapper tagged the call; untagged/legacy MCP records (and every
+    # kind that carries door=="mcp") fall to "untagged". Counts EVERY mcp record
+    # kind, not just slot_calls, so the reshape's effect is visible in one line.
+    mcp_records = [r for r in records if r.get("door") == "mcp"]
+
+    def _mcp_variant(r):
+        return r.get("mcp_door") or "untagged"
+
+    mcp_doors = {
+        v: {"calls": len([r for r in mcp_records if _mcp_variant(r) == v]),
+            "distinct_callers": len(_distinct_keys(
+                [r for r in mcp_records if _mcp_variant(r) == v]))}
+        for v in sorted({_mcp_variant(r) for r in mcp_records})
+    }
+
     # ── funnel top: free_taste → paid overlap ───────────────────────────────
     free_tastes = [r for r in records if r.get("kind") == "free_taste"]
     free_keys = {r.get("repeat_key") for r in free_tastes if r.get("repeat_key")}
@@ -426,6 +445,14 @@ def snapshot(telemetry_path: Optional[str] = None,
             "distinct_wallets": len(all_wallets),
             "paying_wallets": len(paying_wallets),
             "per_door": per_door,
+        },
+        "mcp_doors": {
+            "note": ("MCP core door (/mcp/, ~15 hero tools) vs pro door "
+                     "(/mcp/pro/, full surface) — calls + distinct callers, from "
+                     "the additive `mcp_door` telemetry tag (RESHAPE §6). "
+                     "'untagged' = an HTTP/legacy MCP record the reshape tagger "
+                     "did not stamp; the split populates as tagged traffic lands."),
+            "by_door": mcp_doors,
         },
         "funnel": {
             "note": "free_taste is the TOP of the free→paid funnel (STORE.md §6).",
@@ -561,6 +588,10 @@ def _render_md(d: dict) -> str:
     L.append(f"| Paying wallets (≥1 settled call) | {w['paying_wallets']} |")
     for door, n in w["per_door"].items():
         L.append(f"| Distinct wallets via `{door}` | {n} |")
+    md = d.get("mcp_doors", {}).get("by_door", {})
+    for variant, m in md.items():
+        L.append(f"| MCP `{variant}` door | {m['calls']} calls, "
+                 f"{m['distinct_callers']} distinct callers |")
     L.append(f"| free_taste calls | {fu['free_taste_calls']} |")
     L.append(f"| Keyed free wallets | {fu['keyed_free_wallets']} |")
     L.append(f"| Keyed free → paid overlap | {fu['keyed_free_to_paid_overlap']} |")

@@ -321,11 +321,13 @@ def test_mcp_tools_direct_call():
 @pytest.mark.anyio
 async def test_mcp_offer_tools_roundtrip():
     """Full MCP handshake over in-memory streams: the offer tools are listed
-    and callable through the hosted server's own FastMCP instance."""
+    and callable through the hosted server's own FastMCP instance. The offer-graph
+    engine is a PRO-door family after the reshape (RESHAPE §3), so the roundtrip
+    runs against mcp_pro."""
     from mcp.shared.memory import create_connected_server_and_client_session
-    from gametheory.server.mcp_server import mcp
+    from gametheory.server.mcp_server import mcp_pro
     async with create_connected_server_and_client_session(
-            mcp._mcp_server) as session:
+            mcp_pro._mcp_server) as session:
         tools = await session.list_tools()
         names = {t.name for t in tools.tools}
         assert {"offer_profile_menu", "offer_quote"} <= names

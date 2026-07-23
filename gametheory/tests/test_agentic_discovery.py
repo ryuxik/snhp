@@ -56,12 +56,14 @@ def test_agents_json_shape_and_200():
     assert m["auth"]["starter_credit"]["amount_usd"] == "0.50"
 
     # The TWO live paid capabilities, in agent-need vocabulary — and ONLY those.
+    # (RESHAPE.md §4: the blind locker is renamed to agent memory, memory-first;
+    # the route /v1/store/park is unchanged — telemetry/slot-id continuity.)
     caps = {c["id"]: c for c in m["capabilities"]}
-    assert set(caps) == {"negotiate_session", "blind_locker"}
+    assert set(caps) == {"negotiate_session", "agent_memory"}
     assert caps["negotiate_session"]["need"] == "negotiate a price"
     assert caps["negotiate_session"]["endpoints"]["open"]["path"] == "/v1/advice/session"
-    assert caps["blind_locker"]["need"] == "store an encrypted blob across sessions"
-    assert caps["blind_locker"]["endpoints"]["park"]["path"] == "/v1/store/park"
+    assert caps["agent_memory"]["need"] == "remember something across sessions"
+    assert caps["agent_memory"]["endpoints"]["save"]["path"] == "/v1/store/park"
 
     # HONESTY: no fetch/read-a-page capability is advertised anywhere.
     blob = json.dumps(m).lower()

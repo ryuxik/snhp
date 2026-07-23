@@ -1,13 +1,13 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.ryuxik/snhp",
-  "title": "SNHP — negotiation + blind-locker counter for agents",
-  "description": "Pay-per-use counter for AI agents: negotiate a price, and store an encrypted blob across sessions.",
+  "title": "SNHP — free negotiation math + agent memory",
+  "description": "Free game-theory negotiation advisor for agents, plus paid receipted sessions and agent memory.",
   "repository": {
     "url": "https://github.com/ryuxik/snhp",
     "source": "github"
   },
-  "version": "0.3.0",
+  "version": "0.4.0",
   "websiteUrl": "https://snhp.dev",
   "remotes": [
     {

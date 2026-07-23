@@ -1,8 +1,11 @@
 # SNHP
 
-**Math-optimal negotiation moves for AI agents, in plain dollars.** Your agent
-brings the LLM; SNHP brings the game theory — single-price *and* multi-issue,
-LLM-free, runs locally.
+**Free negotiation math for AI agents. One call, no account.** Your agent brings
+the LLM; SNHP brings the game theory — your math-optimal next move in any
+negotiation, single-price *and* multi-issue, LLM-free, runs locally. When you
+need it **on the record**: $2 receipted sessions. When you need it to
+**remember**: agent memory (blind custody — you encrypt before saving; we store
+only ciphertext and cannot read it).
 
 [![PyPI](https://img.shields.io/pypi/v/snhp.svg)](https://pypi.org/project/snhp/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
@@ -39,17 +42,17 @@ Wire it into any MCP client (Claude Desktop, Cursor, Cline, …):
 { "mcpServers": { "snhp": { "command": "uvx", "args": ["snhp"] } } }
 ```
 
-Or call the math directly — plain dollars in, the move out:
+Or call the math directly — plain dollars in, the move out (the `negotiate` tool):
 
 ```python
-from gametheory.server.mcp_server import gt_negotiate_turn
+from gametheory.negotiation.plain_terms import negotiate_turn
 
-gt_negotiate_turn(
+negotiate_turn(
     side="sell", walk_away=4000, target=6000,
     counterparty_offers=[4200, 4500], rounds_left=6,
 )
-# -> {'action': 'counter', 'recommended_price': 5714.0,
-#     'message': 'Thanks for the offer. The best I can do on this is $5,714.00.', ...}
+# -> {'action': 'counter', 'recommended_price': 5752.2,
+#     'message': 'Thanks for the offer. The best I can do on this is $5,752.20.', ...}
 ```
 
 Multi-issue deals logroll automatically — SNHP infers the other side's priorities
@@ -57,9 +60,9 @@ and proposes the package that maximises joint surplus (concede what you value
 least to hold what you value most):
 
 ```python
-from gametheory.server.mcp_server import gt_negotiate_bundle
+from gametheory.negotiation.bundle import negotiate_bundle
 
-gt_negotiate_bundle(
+negotiate_bundle(
     issues=[
         {"name": "price",   "options": [100, 120, 140], "my_utility": [1.0, 0.5, 0.0], "their_utility": [0.0, 0.5, 1.0]},
         {"name": "support", "options": ["basic", "priority"], "my_utility": [1.0, 0.0], "their_utility": [0.0, 1.0]},
