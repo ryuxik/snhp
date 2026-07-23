@@ -18,7 +18,7 @@ import os
 import time
 from collections import defaultdict, deque
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -29,6 +29,12 @@ from gametheory.negotiation.par_game import Scenario, house_move, score, agent_c
 from gametheory.negotiation.bundle import negotiate_bundle
 from gametheory.negotiation.plain_terms import negotiate_turn, NegotiationInputError
 from par import scoreboard, funnel
+
+# The /par/* domain routes live on a router so a host app can mount them same-origin
+# (arena.snhp.dev/par/ — chrome in arena/web/par/, this router under /par/*), exactly like
+# divorce.api.router. The standalone `app` below (used by `uvicorn par.api:app` for local dev
+# and the retired par-game deploy) includes this same router.
+router = APIRouter()
 
 app = FastAPI(title="PAR", description="out-negotiate a perfect AI, daily")
 
@@ -80,7 +86,7 @@ def _seconds_left() -> int:
 
 
 # ── public scenario (House hidden) ────────────────────────────────────────────
-@app.get("/par/today")
+@router.get("/par/today")
 def today(day: Optional[int] = None) -> dict:
     if day is not None and day < 0:
         raise HTTPException(status_code=400, detail="day must be >= 0")
@@ -98,7 +104,7 @@ class MoveReq(BaseModel):
     rounds_left: int
 
 
-@app.post("/par/house_move")
+@router.post("/par/house_move")
 def move(req: MoveReq) -> dict:
     """The House's move this round — played by the SNHP equilibrium. Never leaks the
     House's reservation; returns only its action + offer + message."""
@@ -117,7 +123,7 @@ class GradeReq(BaseModel):
     close: Optional[float] = None       # the agreed price, or None if the player walked
 
 
-@app.post("/par/grade")
+@router.post("/par/grade")
 def grade(req: GradeReq) -> dict:
     """Reveal: par (the number a perfect player reaches) and what was left on the table.
     Only here is the House's reservation surfaced — at the end, never before. Returns the
@@ -168,7 +174,7 @@ def _validate_close(sc: Scenario, req: SubmitReq) -> None:
         raise HTTPException(status_code=400, detail="close not found in the transcript")
 
 
-@app.post("/par/submit")
+@router.post("/par/submit")
 def submit(req: SubmitReq) -> dict:
     """Grade AND record a finished game, then return the reveal payload plus the board:
     streak, percentile vs. everyone today, and the distribution. The score is recomputed
@@ -187,7 +193,7 @@ def submit(req: SubmitReq) -> dict:
     return {**s, **board}
 
 
-@app.get("/par/stats")
+@router.get("/par/stats")
 def stats(day: Optional[int] = None) -> dict:
     """Anonymous day rollup — drives the landing's live social proof ('N hit par today')
     and the empty-state histogram before the player has finished."""
@@ -204,7 +210,7 @@ class JoinReq(BaseModel):
     name: Optional[str] = Field(default=None, max_length=40)
 
 
-@app.post("/par/group/join")
+@router.post("/par/group/join")
 def group_join(req: JoinReq) -> dict:
     """Join a friend group. The group id rides in on a shared link (par.game/?g=<id>);
     opening a friend's link is what seeds the group."""
@@ -212,7 +218,7 @@ def group_join(req: JoinReq) -> dict:
     return {"group": req.group, "ok": True}
 
 
-@app.get("/par/group")
+@router.get("/par/group")
 def group(group: str, day: Optional[int] = None) -> dict:
     """Today's ranked leaderboard for one friend group."""
     if day is not None and day < 0:
@@ -227,7 +233,7 @@ class WaitReq(BaseModel):
     contact: Optional[str] = Field(default=None, max_length=128)   # email/phone — optional
 
 
-@app.post("/par/waitlist")
+@router.post("/par/waitlist")
 def waitlist(req: WaitReq) -> dict:
     """Join the product waitlist (the CTA's real destination). Idempotent per user."""
     size = funnel.join_waitlist(req.user_id, req.scenario, req.contact)
@@ -241,14 +247,14 @@ class EventReq(BaseModel):
     meta: Optional[dict] = None
 
 
-@app.post("/par/event")
+@router.post("/par/event")
 def event(req: EventReq) -> dict:
     """A funnel event. Fire-and-forget from the client so we can see where it leaks."""
     funnel.record_event(req.user_id, req.name, req.meta)
     return {"ok": True}
 
 
-@app.get("/par/funnel")
+@router.get("/par/funnel")
 def funnel_stats() -> dict:
     """The funnel: unique users per step + step-over-step conversion (the k-factor lens)."""
     return funnel.funnel()
@@ -264,7 +270,7 @@ class AdviseReq(BaseModel):
     rounds_left: int = 4
 
 
-@app.post("/par/advise")
+@router.post("/par/advise")
 def advise(req: AdviseReq) -> dict:
     """The agent advising your live negotiation — the SAME SNHP equilibrium the game runs,
     now pointed at a real deal. Advisory MVP (a move at a time) before full agent-to-agent;
@@ -294,7 +300,7 @@ class BundleReq(BaseModel):
     my_priorities: Optional[dict] = None
 
 
-@app.post("/par/bundle_move")
+@router.post("/par/bundle_move")
 def bundle_move(req: BundleReq) -> dict:
     """Multi-issue: the House proposes the SNHP package; par is the Pareto/Nash optimal
     it returns. The front end renders this as the logroll diagonal (see SPEC.md)."""
@@ -314,6 +320,9 @@ def _seed_demo_if_local() -> None:
     for _d in {_day_number(None), 0, 1, 2, 3, 214, 216}:
         scoreboard.seed_demo(_d)
         scoreboard.seed_group_demo("demo", _d)
+
+# Mount the /par/* domain routes onto the standalone app (arena mounts the same `router`).
+app.include_router(router)
 
 # Serve the SPA same-origin so the front end's fetch() calls need no CORS. The /par/*
 # routes above are matched before this catch-all mount. `uvicorn par.api:app` now serves

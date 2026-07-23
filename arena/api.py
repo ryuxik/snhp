@@ -552,6 +552,14 @@ app.include_router(_divorce_router)
 # on /v1/divorce/* only (path guard inside the handler).
 app.add_exception_handler(_ReqValErr, _clerk_422)
 
+# The PAR daily game — same-origin at /par/ (chrome in arena/web/par/, served by the
+# catch-all mount below), API under /par/*. State is a SQLite file on the arena volume
+# (GT_KEYS_DB=/data/par.db in fly.toml); no separate Postgres. Formerly its own app at
+# par.snhp.dev. par.api's rate-limit middleware + demo seeding stay on its standalone app
+# (local dev); only the domain routes ride along here.
+from par.api import router as _par_router  # noqa: E402
+app.include_router(_par_router)
+
 # Static text assets must revalidate on every load (Cache-Control: no-cache;
 # ETags keep repeats as cheap 304s). Without this, browsers heuristically
 # cache html/css/js and a redeploy can serve a returning visitor a stale/fresh

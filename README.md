@@ -1,5 +1,7 @@
 # SNHP
 
+[![smithery badge](https://smithery.ai/badge/ryuxik/snhp)](https://smithery.ai/servers/ryuxik/snhp)
+
 **Free negotiation math for AI agents. One call, no account.** Your agent brings
 the LLM; SNHP brings the game theory — your math-optimal next move in any
 negotiation, single-price *and* multi-issue, LLM-free, runs locally. When you
