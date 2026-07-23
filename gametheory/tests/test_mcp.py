@@ -26,8 +26,11 @@ def event_loop():
 
 
 def test_mcp_lists_all_tier_tools(event_loop):
-    tools = event_loop.run_until_complete(mcp.list_tools())
-    names = {t.name for t in tools}
+    """After the two-door reshape (RESHAPE §3) the legacy tier tool NAMES live on
+    the PRO door (as canonical families + old-name aliases); the CORE door carries
+    only the renamed hero-first 15. Every legacy name stays callable on pro."""
+    from gametheory.server.mcp_server import mcp_pro
+    names = {t.name for t in event_loop.run_until_complete(mcp_pro.list_tools())}
     expected = {
         # Tier 1
         "gt_negotiation_sell_next_offer",
@@ -47,13 +50,16 @@ def test_mcp_lists_all_tier_tools(event_loop):
         "gt_mechanism_posted_price_optimal",
     }
     missing = expected - names
-    assert not missing, f"MCP tool registry missing: {missing}"
+    assert not missing, f"PRO-door tool registry missing: {missing}"
+    # the renamed core hero names are also on the pro door (canonical, hero-first)
+    assert {"negotiate", "auction_bid", "auction_reserve", "clearance_price",
+            "stable_match"} <= names
 
 
 def test_mcp_optimal_bid_call(event_loop):
-    """Vickrey: bid == valuation (smoke test for the tool-call path)."""
+    """Vickrey: bid == valuation (smoke test for the core-door tool-call path)."""
     result = event_loop.run_until_complete(mcp.call_tool(
-        "gt_auction_optimal_bid",
+        "auction_bid",
         {
             "auction_format": "second_price_vickrey",
             "my_valuation": 100.0,
@@ -81,7 +87,7 @@ def test_mcp_optimal_bid_call(event_loop):
 def test_mcp_gale_shapley_call(event_loop):
     """Textbook example via the MCP path."""
     result = event_loop.run_until_complete(mcp.call_tool(
-        "gt_mechanism_gale_shapley",
+        "stable_match",
         {
             "proposers": [
                 {"id": "1", "preferences": ["A", "B"]},

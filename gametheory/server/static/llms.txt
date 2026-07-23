@@ -24,15 +24,17 @@
 - PAR (humans try a deal): https://par.snhp.dev
 - Evolution sim: https://arena.snhp.dev/world — an always-on sim where
   negotiation strategies evolve; its champion is a certified entry.
-- SNHP Advisor (MCP server): tools gt_negotiate_turn, gt_negotiate_bundle (multi-issue
-  logrolling), score_deal (the test's Pareto oracle as a callable tool).
+- SNHP Advisor (MCP server): free core tools negotiate, negotiate_bundle (multi-issue
+  logrolling), score_deal (the test's Pareto oracle as a callable tool) — no account.
+  Core door /mcp/ (15 tools); full/legacy surface incl. old gt_* names at /mcp/pro/.
   Install: `claude mcp add snhp -- uvx snhp` (PyPI, zero-install)
   Repo: https://github.com/ryuxik/snhp
-- The counter (pay-per-use for agents): a prepaid-wallet store with a one-time
-  50¢ starter credit. Two live paid slots — a $2 tuned/receipted negotiation
-  SESSION and a BLIND LOCKER (park & retrieve customer-encrypted ciphertext) —
-  plus a free negotiation turn. Pay by Stripe Checkout or agent-native MPP/SPT
-  (no human). Machine manifests: /.well-known/agents.json, /llms-full.txt.
+- The counter (pay-per-use for agents): free-first — the negotiation math is free,
+  no account. When you need it, a prepaid-wallet store (one-time 50¢ starter credit)
+  adds two paid slots — AGENT MEMORY (memory_save / memory_load: save now, load in
+  any later session; blind custody, customer-encrypted) and a $2 tuned/receipted
+  negotiation SESSION. Pay by Stripe Checkout or agent-native MPP/SPT (no human).
+  Machine manifests: /.well-known/agents.json, /llms-full.txt.
 - Dispute copilot (consumer refunds): https://snhp.dev/dispute.html
 - Research — Transfer Market Mechanics: https://snhp.dev/research — the engine
   applied to football (transfer pricing, clause auctions, World Cup ticket

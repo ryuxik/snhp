@@ -732,3 +732,30 @@ def store_retrieve(ticket: str, request: Request):
     if code == "at_rest_key_unavailable":
         raise HTTPException(status_code=503, detail=out["reason"])
     return out
+
+
+# ─── Memory aliases: the blind locker, positioned as persistent AGENT MEMORY ──
+# Additive free-first surface (RESHAPE §4). These are thin aliases that DELEGATE
+# to the existing store_park / store_retrieve handlers above — same behavior,
+# same settlement, same receipts — under the /v1/memory/* path the reshape leads
+# with. The original /v1/store/park and /v1/store/parcel/{ticket} routes stay
+# untouched, so nothing pre-reshape breaks.
+
+@router.post("/memory/save", tags=["store"])
+def memory_save(body: ParkIn, request: Request):
+    """Save persistent memory for your agent across sessions (alias of
+    POST /v1/store/park — the blind locker). You encrypt before saving; the store
+    holds only ciphertext (blind custody) and signs a receipt over its hash — it
+    cannot read your memory. Saving uses your prepaid wallet (a new key's 50¢
+    starter credit covers first saves); loading it back is free. Same handler and
+    behavior as /v1/store/park."""
+    return store_park(body, request)
+
+
+@router.get("/memory/parcel/{ticket}", tags=["store"])
+def memory_load(ticket: str, request: Request):
+    """Load a memory you saved in an earlier session (alias of
+    GET /v1/store/parcel/{ticket}). Returns the ciphertext you saved, which only
+    YOU can decrypt; retrieval is free. Same handler and behavior as
+    /v1/store/parcel/{ticket}."""
+    return store_retrieve(ticket, request)

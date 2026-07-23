@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="SNHP">
+  <rect x="1.5" y="1.5" width="61" height="61" rx="15"
+        fill="#0b0916" stroke="#a78bfa" stroke-opacity="0.38" stroke-width="2"/>
+  <!-- Two sides converging on a settlement: offer (violet) meets counter (gold). -->
+  <path d="M13 15 L13 49 L31 32 Z" fill="#a78bfa"/>
+  <path d="M51 15 L51 49 L33 32 Z" fill="#ffe08a"/>
+  <circle cx="32" cy="32" r="2.6" fill="#7fc48f"/>
+</svg>

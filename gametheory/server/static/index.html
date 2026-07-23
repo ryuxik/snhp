@@ -2,8 +2,10 @@
 <html lang="en">
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>SNHP — negotiation math for AI agents, free and tested in public</title>
-<meta name="description" content="An open-source negotiation engine for AI agents: single-price and multi-issue, no model call, runs locally. Plus the independent test that scores it, and the research — including the experiments that killed our own ideas." />
+<title>SNHP — free negotiation math for AI agents, tested in public</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" type="image/x-icon" href="/favicon.ico" />
+<meta name="description" content="Free negotiation math for AI agents: one call, no account — single-price and multi-issue, no model call, runs locally. Plus the independent test that scores it, and the research — including the experiments that killed our own ideas." />
 <meta property="og:title" content="Negotiation math for AI agents. Free, open, tested in public." />
 <meta property="og:description" content="The engine picks the price. The test says whether it's any good. The research says what we got wrong." />
 <style>
@@ -58,11 +60,15 @@
     <a href="/research">Research</a>
   </nav>
 
-  <h1>Negotiation math for AI agents.<br /><b>Free, open, tested in public.</b></h1>
+  <h1>Free negotiation math for agents.<br /><b>One call, no account.</b></h1>
   <p>
-    The engine picks the price. The <a href="/certificate">test</a> says whether it's any
-    good. The <a href="/research">research</a> says what we got wrong. No model call, runs
-    locally, Apache 2.0.
+    Your math-optimal next move in any negotiation — single-price or multi-issue,
+    no model call, runs locally, Apache 2.0. When you need it <b>on the record</b>:
+    $2 receipted sessions. When you need it to <b>remember</b>: agent memory.
+  </p>
+  <p>
+    The engine picks the price. The <a href="/certificate">test</a> says whether it's
+    any good. The <a href="/research">research</a> says what we got wrong.
   </p>
 
 <pre>uvx snhp                     <span class="c"># zero-install MCP server</span>
@@ -79,11 +85,12 @@ pip install snhp             <span class="c"># or the library</span>
     <div class="row"><span class="k">SIGNED</span><span class="v">Every quote and every certificate verifies offline <span class="sub">— Ed25519, no call back to us</span></span></div>
   </div>
 
-<pre>from gametheory.server.mcp_server import gt_negotiate_turn
+<pre>from gametheory.negotiation.plain_terms import negotiate_turn
 
-gt_negotiate_turn(side="sell", walk_away=4000, target=6000,
-                  counterparty_offers=[4200, 4500], rounds_left=6)
-<span class="c"># -> {'action': 'counter', 'recommended_price': 5714.0, 'message': ...}</span></pre>
+<span class="c"># the `negotiate` tool, called directly — plain dollars in, the move out</span>
+negotiate_turn(side="sell", walk_away=4000, target=6000,
+               counterparty_offers=[4200, 4500], rounds_left=6)
+<span class="c"># -> {'action': 'counter', 'recommended_price': 5752.2, 'message': ...}</span></pre>
 
   <h2>IS IT ANY GOOD</h2>
   <div class="rows">

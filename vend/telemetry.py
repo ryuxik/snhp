@@ -15,6 +15,7 @@ Hygiene rules (NEXTMOVE.md §5/§7):
 """
 from __future__ import annotations
 
+import contextvars
 import hashlib
 import json
 import os
@@ -23,6 +24,16 @@ import time
 
 _LOCK = threading.Lock()
 _MAX_REQUEST_CHARS = 2_000
+
+# Which MCP door a call arrived through — "core" | "pro" (observatory §6). Set by
+# the MCP server's per-door registration wrapper around each call
+# (gametheory.server.mcp_server._tool) and read here ADDITIVELY: an `mcp_door`
+# field is stamped onto records whose door is "mcp" ONLY when this is set. HTTP
+# calls and untagged/legacy MCP calls leave it None, so their records are
+# byte-identical to before — no telemetry-schema change, no R-gate field touched
+# (the existing `door` value stays "mcp"/"http"). Default None = untagged.
+mcp_door: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "mcp_door", default=None)
 
 
 def _path() -> str:
@@ -55,6 +66,14 @@ def _repeat_key(api_key: str) -> str:
 
 
 def _append(record: dict) -> None:
+    # Additive door-attribution stamp (observatory §6): tag which MCP door served
+    # this call ONLY when the registration wrapper set the contextvar AND this is
+    # an MCP record. Anything else (HTTP, or an untagged/legacy MCP call) is
+    # written unchanged — the existing `door` field is never rewritten, so the
+    # R-gate schema and prior records stay byte-identical.
+    variant = mcp_door.get()
+    if variant is not None and record.get("door") == "mcp":
+        record = {**record, "mcp_door": variant}
     line = json.dumps(record, sort_keys=True, separators=(",", ":"))
     with _LOCK:
         with open(_path(), "a") as f:

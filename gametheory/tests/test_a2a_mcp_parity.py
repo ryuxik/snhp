@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
 from snhp_protocol import generate_node_keypair  # noqa: E402
 
 from gametheory.server.mcp_server import (  # noqa: E402
-    mcp,
+    mcp, mcp_pro,
     gt_a2a_register_operator, gt_a2a_build_peer_proof, gt_a2a_open_session,
     gt_a2a_next_offer, gt_a2a_settle,
     gt_a2a_request_domain_challenge, gt_a2a_verify_domain, gt_negotiate_turn,
@@ -37,7 +37,9 @@ def event_loop():
 
 
 def test_mcp_exposes_a2a_tools(event_loop):
-    names = {t.name for t in event_loop.run_until_complete(mcp.list_tools())}
+    # A2A is a pro-door family after the reshape (RESHAPE §3) — verified-peer flow
+    # is a power-user surface, not one of the 15 core tools.
+    names = {t.name for t in event_loop.run_until_complete(mcp_pro.list_tools())}
     for expected in {
         "gt_a2a_register_operator", "gt_a2a_request_domain_challenge",
         "gt_a2a_verify_domain", "gt_a2a_build_peer_proof", "gt_a2a_open_session",
@@ -75,15 +77,21 @@ def test_mcp_verified_flow_matches_http_behavior():
 
 
 def test_mcp_negotiate_turn_works_and_listed(event_loop):
-    names = {t.name for t in event_loop.run_until_complete(mcp.list_tools())}
-    assert "gt_negotiate_turn" in names
+    # renamed to `negotiate` on the core door (RESHAPE §2 #1); the old
+    # `gt_negotiate_turn` name survives as a pro-door alias.
+    core = {t.name for t in event_loop.run_until_complete(mcp.list_tools())}
+    pro = {t.name for t in event_loop.run_until_complete(mcp_pro.list_tools())}
+    assert "negotiate" in core
+    assert "gt_negotiate_turn" in pro       # old name still callable on pro
     r = gt_negotiate_turn("sell", 4000.0, 6000.0, [4500.0], None, 6)
     assert 4000.0 <= r["recommended_price"] <= 6000.0 and r["action"] in ("counter", "accept")
 
 
 def test_mcp_negotiate_turn_description_is_legible(event_loop):
     tools = {t.name: t for t in event_loop.run_until_complete(mcp.list_tools())}
-    d = tools["gt_negotiate_turn"].description or ""
+    d = tools["negotiate"].description or ""
+    assert d.lower().startswith("your math-optimal next move")  # free-first hero lede
+    assert "free" in d.split(".")[0].lower()               # free in the first sentence
     assert "$" in d and "USE THIS WHEN" in d.upper()       # worked example + when-to-use
     # internal jargon must NOT leak into the agent-facing description
     assert "utility space" not in d.lower() and "pareto_knob" not in d.lower()
