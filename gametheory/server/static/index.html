@@ -94,8 +94,11 @@ negotiate_turn(side="sell", walk_away=4000, target=6000,
 
   <h2>IS IT ANY GOOD</h2>
   <div class="rows">
-    <div class="row heavy"><span class="k">+0.1086</span><span class="v">vs split-the-difference</span></div>
-    <div class="row"><span class="k">MEANING</span><span class="v">Own-utility kept across 360 seeded negotiations against three frozen opponents, p=0.0001 <span class="sub">— on a held-out set never used before. Full method and limits on the certificate page.</span></span></div>
+    <div class="row heavy"><span class="k">43% &rarr; 19%</span><span class="v">blown negotiations, once you wire a model to it</span></div>
+    <div class="row"><span class="k">MEANING</span><span class="v">Unaided, Claude Haiku 4.5 ended <b>43%</b> of 360 seeded negotiations no better than walking away. With SNHP advising each turn: <b>19%</b>. Sonnet 5 goes 29% &rarr; 21%. <span class="sub">Every cell p=0.0001 — and it holds on a held-out set never used before, where Haiku goes 45% &rarr; 16%.</span></span></div>
+    <div class="row"><span class="k">IT CLOSES</span><span class="v">More deals, not just better ones <span class="sub">— against an opponent that never concedes, deal rate goes 28% &rarr; 56%. The model overruled the advice 41% of the time and still gained.</span></span></div>
+    <div class="row"><span class="k">THE ENGINE</span><span class="v">+0.1086 own-utility vs split-the-difference, on its own <span class="sub">— 360 seeded negotiations against three frozen opponents, p=0.0001, held-out. Full method and limits on the certificate page.</span></span></div>
+    <div class="row"><span class="k">THE LIMIT</span><span class="v">It cuts how often you hit the floor, not how bad the floor is <span class="sub">— the worst-decile outcome is unchanged in all four cells. We say so because you can check it.</span></span></div>
   </div>
 
   <h2>THE THREE THINGS HERE</h2>
@@ -107,8 +110,8 @@ negotiate_turn(side="sell", walk_away=4000, target=6000,
     </a>
     <a class="door" href="/research">
       <div class="nm">The research →</div>
-      <p>Five experiments with kill conditions written down first. Four came back against
-        us. Plus the live demos they came from.</p>
+      <p>Six experiments with kill conditions written down first. Four came back against
+        us; the number above is one that didn't. Plus the live demos they came from.</p>
     </a>
     <a class="door" href="https://github.com/ryuxik/snhp">
       <div class="nm">The source →</div>
@@ -118,7 +121,9 @@ negotiate_turn(side="sell", walk_away=4000, target=6000,
   </div>
 
   <p class="foot">
-    We publish the experiments that kill our own ideas; four of the last five did.
+    We publish the experiments that kill our own ideas — four of the last six did.
+    That is exactly why the one above is worth reading: it was registered the same way,
+    with a kill condition that could have fired, and it survived on a held-out set.
     If you're working on agent negotiation, pricing conduct, or want to put an agent
     through the test — <a href="mailto:ryuxik@gmail.com">ryuxik@gmail.com</a>.<br />
     <a href="https://github.com/ryuxik/snhp">github.com/ryuxik/snhp</a> ·

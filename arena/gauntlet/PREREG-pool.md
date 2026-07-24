@@ -140,7 +140,7 @@ its role for the reference tier.
   reported as exactly that; it still does not enter the certified claim without
   its own fresh registration.
 
-**Operational honesty (paid, interruptible run).** The models cost real API
+**Operational honesty (paid, interruptible run) — applies to Amendment 3 too.** The models cost real API
 calls, so the run is checkpointed: every completed match is persisted
 immediately and a re-run resumes from the cache, spending only on the missing
 matches. A permanent API failure (exhausted credits, auth, bad config) stops the
@@ -149,3 +149,79 @@ NEVER fabricates a model's play (the `transport_retry` integrity rule). The
 publication renders a model×set cell ONLY when all 360 of its matches are
 present; an unfinished cell is shown as "partial (k/360) — did not finish," so a
 half-paid run can never masquerade as a completed measurement.
+
+---
+
+## Amendment 3 (2026-07-24) — does the SNHP engine ADVISOR help, and does it protect the DOWNSIDE?
+
+*(registered after Amendment 2 returned its surprising result — raw Sonnet 5 and
+Haiku 4.5 both beat the naive baseline against the pool — and BEFORE any advised
+match has been played. Amendment 2 measured unaided models only; it says nothing
+about whether the engine adds value on top. That is this amendment.)*
+
+**The certified claim does NOT change.** This is a REPORTED tier like Amendments
+1 and 2: never merged into the engine−naive verdict, never signed by `certify.py`.
+
+### Design
+
+Two arms per model, on the identical scenario × pool set:
+
+- **SOLO** — the model unaided (as in Amendment 2).
+- **ADVISED** — on each of the candidate's turns, the SNHP engine's
+  recommendation is injected into its view via `engine_advice(view, seed+7919)`
+  — the same call, and the same `followed_advice` accounting, that
+  `protocol.run_match` uses for the original advised condition. The model may
+  adopt, adjust, or ignore it.
+
+Models: `anthropic:claude-sonnet-5`, `anthropic:claude-haiku-4-5-20251001`.
+Pool, seeds, deadline, and 360-matches-per-model-per-set are unchanged from the
+base registration. Pairing is by **(model, set, scenario_id, role, counterparty)**
+between arms — the same scenario against the same counterparty, advised vs solo.
+
+**Matched inference config (why SOLO is re-run).** Amendment 2's Sonnet solo arm
+was collected with the API's default adaptive thinking ON; the seat now sends
+`thinking={"type":"disabled"}`. Comparing a thinking-off advised arm against a
+thinking-on solo arm would confound the advisor with the inference config, so
+BOTH arms here are re-collected with thinking disabled. Amendment 2's published
+rows stand as they are and are NOT retro-fitted; this amendment's numbers live
+in their own artifact and are only ever compared within themselves.
+
+### Statistics (frozen — no substitution after seeing results)
+
+Per model, per scenario set, paired, two-sided sign-flip permutation
+(n_perm = 10,000, RNG from the set seed), alpha = 0.01:
+
+1. **MEAN (does it help?)** — mean own-utility, advised − solo.
+2. **DOWNSIDE-1, breach rate (the floor claim)** — P(own-utility <= BATNA + 1e-9):
+   the fraction of matches ending at or below walk-away. Paired per-key 0/1
+   difference, advised − solo. Improvement means this goes DOWN.
+3. **DOWNSIDE-2, CVaR@10 (the left tail)** — mean own-utility over the worst 10%
+   of matches WITHIN each arm, advised − solo, with a paired bootstrap CI
+   (10,000 resamples over pairing keys). Improvement means this goes UP. The
+   tail is defined inside each arm, never by selecting on the other arm's
+   outcome — conditioning the tail on solo's result would manufacture
+   regression-to-the-mean.
+
+`followed_advice` (fraction of turns the model adopted the recommendation) is
+reported as context and plays no role in any verdict.
+
+### Predictions, stated BEFORE the run
+
+- **MEAN:** advice helps the weaker model materially and the stronger model
+  barely. Amendment 2 leaves Haiku a gap to the certified engine of +0.048
+  (PUBLIC) / +0.049 (HELD-OUT) but leaves Sonnet only +0.012 / +0.037. We
+  therefore predict **Haiku advised − solo > 0 at p < 0.01 on both sets**, and
+  **Sonnet's mean effect to be small and possibly not separable** at alpha.
+- **DOWNSIDE:** we predict advice **improves both downside statistics for both
+  models on both sets** — breach rate falls, CVaR@10 rises. This is the floor
+  claim, and it is the claim SNHP has actually survived on.
+- **The bidirectional half, stated so it cannot be spun:** advice may *hurt* the
+  mean. The evolved champion already lands significantly BELOW the naive
+  baseline against the engine counterparty (section 2, the carried-counterparty
+  effect), so pushing a competent agent off its own policy can cost it deals. A
+  negative mean delta with an improved downside would be the honest reading
+  "SNHP buys safety, not surplus" — and we commit to reporting it that way.
+- **If the downside does NOT improve** (breach rate flat/up and CVaR@10
+  flat/down), that is a genuine KILL of the floor claim on this instrument, and
+  it gets reported as exactly that — no re-cut, no new tail statistic chosen
+  after the fact.
