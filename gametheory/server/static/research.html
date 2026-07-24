@@ -5,9 +5,9 @@
 <title>Research — SNHP</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-<meta name="description" content="Five experiments, each with its kill condition written down with numbers before the run. Four came back against us. Here they are, with the commands to reproduce them — plus the live demos they came from." />
-<meta property="og:title" content="What we got wrong" />
-<meta property="og:description" content="Kills we registered in advance and then honored: a product we did not build, a spec claim we retracted, two scoring designs we threw away." />
+<meta name="description" content="Six experiments, each with its kill condition written down with numbers before the run. Four came back against us; the advisor result survived on a held-out set. Here they are, with the commands to reproduce them — plus the live demos they came from." />
+<meta property="og:title" content="Six experiments, kill conditions written first" />
+<meta property="og:description" content="Wiring a frontier model to SNHP takes its blown negotiations from 43% to 19%, held-out, p=0.0001. Also here: the four experiments that came back against us, kept in full." />
 <style>
   :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
           --gold:#ffe08a; --green:#7fc48f; --red:#e8734a; --violet:#a78bfa; --blue:#8fd0ff; }
@@ -113,11 +113,15 @@
 
   <h1>Everything we ran, <b>including what killed our own ideas.</b></h1>
   <p class="lede">
-    Five experiments. Each had its kill condition written down, <b>with numbers,
-    before the run</b>. Four came back against us.
+    Six experiments. Each had its kill condition written down, <b>with numbers,
+    before the run</b>. Four came back against us. The one that didn't is at the
+    top — it is also the only thing here we'd call a product claim.
   </p>
 
   <div class="ledger">
+    <a class="lrow" href="#advisor">
+      <span class="what">Wiring a frontier model to SNHP roughly halves its blown negotiations</span>
+      <span class="st green">SURVIVED</span></a>
     <a class="lrow" href="#spendguard">
       <span class="what">The spend guard: agents never overpaid, so there was nothing to sell</span>
       <span class="st red">KILLED</span></a>
@@ -131,11 +135,38 @@
       <span class="what">The third design changed the opponent, not the metric</span>
       <span class="st green">SURVIVED</span></a>
     <a class="lrow" href="#models">
-      <span class="what">Unaided language models, on a protocol a later kill retired</span>
+      <span class="what">Unaided frontier models beat split-the-difference — our prediction said they would not</span>
       <span class="st dim">MEASURED</span></a>
   </div>
 
   <h2>JULY 2026</h2>
+
+  <div class="entry survived" id="advisor">
+    <div class="hd"><span class="tag">SURVIVED ITS KILL CONDITION — ON A HELD-OUT SET</span><span class="when">JUL 2026</span>
+      <div class="ti">Wiring a frontier model to SNHP roughly halves its blown negotiations</div></div>
+    <p>Two frontier models played the frozen three-opponent pool twice: once alone,
+      once with the SNHP engine handing them a recommendation each turn. Same
+      scenarios, same opponents, same inference settings — the only difference is
+      the advice.</p>
+    <p><b>Unaided, Claude Haiku 4.5 ended 43% of 360 negotiations no better than
+      walking away. Advised: 19%.</b> Sonnet 5 went 29% → 21%. Own-utility rose for
+      both (<b>+0.058</b> Haiku, <b>+0.037</b> Sonnet). Every one of those cells is
+      p=0.0001, and all of it repeats on a held-out set never used before, where
+      Haiku goes <b>45% → 16%</b>. It closes more, too: against an opponent that
+      never concedes, deal rate goes <b>28% → 56%</b>.</p>
+    <p><b>What we got wrong, since that is the point of registering.</b> We predicted
+      advice would barely move Sonnet — it moved it clearly. We predicted <em>both</em>
+      registered downside statistics would improve; only one did. The worst-decile
+      outcome (CVaR@10) is unchanged in all four cells. So the honest claim is
+      narrower than the one we wrote down: <b>SNHP cuts how often you fall to the
+      floor. It does not raise the floor.</b></p>
+    <p>Registered in full — statistics, kill condition, and both predictions —
+      before a single advised match ran.
+      <a href="https://github.com/ryuxik/snhp/blob/main/arena/gauntlet/PREREG-pool.md" target="_blank" rel="noopener">PREREG-pool.md</a> Amendment 3 ·
+      <a href="https://github.com/ryuxik/snhp/blob/main/arena/gauntlet/certs/ADVICE-RESULTS.md" target="_blank" rel="noopener">full results</a></p>
+<pre>python -m arena.gauntlet.llm_tier --amendment 3   <span class="c"># the paid run (checkpointed)</span>
+python -m arena.gauntlet.advice_analysis          <span class="c"># the verdict, no LLM</span></pre>
+  </div>
 
   <div class="entry killed" id="spendguard">
     <div class="hd"><span class="tag">KILLED — WE DID NOT BUILD IT</span><span class="when">JUL 2026</span>
@@ -191,7 +222,7 @@ python -m arena.gauntlet.certify --run engine</pre>
 
   <div class="entry plain" id="models">
     <div class="hd"><span class="tag">MEASURED — NOT CERTIFIED</span><span class="when">JUL 2026</span>
-      <div class="ti">One honest note on language models</div></div>
+      <div class="ti">Unaided frontier models beat the baseline — we predicted the opposite</div></div>
     <p>We put two unaided frontier models — <b>Claude Sonnet 5</b> and
       <b>Haiku 4.5</b> — through the <b>same frozen pool</b> the engine is
       certified against, scored on the <b>same own-utility metric</b>. We wrote

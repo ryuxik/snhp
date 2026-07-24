@@ -39,7 +39,7 @@ import numpy as np
 
 from arena.scenarios import BundleScenario, bundle_frontier
 from arena.gauntlet.agents import (
-    Action, BATNA, NaiveSeat, SeatView, _package_utility,
+    Action, BATNA, NaiveSeat, SeatView, _package_utility, engine_advice,
 )
 from arena.gauntlet.protocol import (
     DEADLINE, MatchResult, _issues_for, _true_utility,
@@ -145,11 +145,17 @@ def pool_match_seed(seed: int, sid: int, role: str, cp: str) -> int:
 # ── the pool match runner (run_match semantics, pluggable counterparty) ─────
 def run_pool_match(candidate, counterparty, sc: BundleScenario, w_seller,
                    w_buyer, *, role: str, condition: str, scenario_id: int,
-                   deadline: int = DEADLINE) -> MatchResult:
+                   deadline: int = DEADLINE, advised: bool = False,
+                   advice_seed: int | None = None) -> MatchResult:
     """One candidate-vs-pool-member match, scored against the frontier oracle —
     the exact semantics of protocol.run_match (seller opens, alternating,
     accept adopts the latest opposing package verbatim, deadline -> both take
-    BATNA, TRUE-weight scoring) with the counterparty seat injected."""
+    BATNA, TRUE-weight scoring) with the counterparty seat injected.
+
+    `advised=True` injects the SNHP engine's recommendation into the candidate's
+    view on each of its turns — the same `engine_advice(view, seed)` call and
+    the same `followed_advice` accounting run_match uses, so the advised arm is
+    the pool analogue of the original protocol's advised condition."""
     names = [name for name, _ in sc.issues]
     w_s = {n: float(w) for n, w in zip(names, w_seller)}
     w_b = {n: float(w) for n, w in zip(names, w_buyer)}
@@ -161,6 +167,7 @@ def run_pool_match(candidate, counterparty, sc: BundleScenario, w_seller,
 
     offers = {"seller": [], "buyer": []}
     close_pkg, walked_by = None, None
+    advice_hits, advice_turns = 0, 0
     fmt_before = getattr(candidate, "format_failures", 0)
     transcript = []
 
@@ -176,7 +183,14 @@ def run_pool_match(candidate, counterparty, sc: BundleScenario, w_seller,
             opp_offers=list(offers["seller" if actor_role == "buyer" else "buyer"]),
             turn=turn, deadline=deadline,
         )
+        if is_cand and advised:
+            # same call + seed-offset convention as protocol.run_match
+            view.advisor = engine_advice(view, (advice_seed or 0) + 7919)
         act: Action = (candidate if is_cand else counterparty).act(view)
+        if is_cand and advised:
+            advice_turns += 1
+            if act.meta.get("followed_advice"):
+                advice_hits += 1
         opp_key = "seller" if actor_role == "buyer" else "buyer"
         who = "cand" if is_cand else "pool"
         if act.kind == "accept" and offers[opp_key]:
@@ -221,7 +235,7 @@ def run_pool_match(candidate, counterparty, sc: BundleScenario, w_seller,
         capture=met["capture"],
         logroll=met["logroll"],
         dollars_left=met["dollars_left"],
-        followed_advice=None,
+        followed_advice=(advice_hits / advice_turns) if advice_turns else None,
         format_failures=getattr(candidate, "format_failures", 0) - fmt_before,
         transcript=transcript,
     )

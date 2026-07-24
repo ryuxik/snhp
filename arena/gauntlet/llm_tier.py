@@ -38,7 +38,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from arena.gauntlet.agents import LLMSeat
 from arena.gauntlet.pool import (
-    POOL_MEMBERS, make_pool_seat, run_pool_match,
+    POOL_MEMBERS, make_pool_seat, pool_match_seed, run_pool_match,
 )
 from arena.gauntlet.protocol import DEADLINE, gen_gauntlet_scenarios
 from arena.gauntlet.pool_experiment import (
@@ -71,14 +71,55 @@ TIER_PREDICTION = (
     "a FLOOR / ranking-null test for raw models.")
 
 
-def _match_key(model: str, set_label: str, sid: int, role: str, cp: str) -> str:
-    return f"{model}|{set_label}|{sid}|{role}|{cp}"
+ARMS_A3 = ("solo", "advised")           # Amendment 3, matched inference config
+# Amendment 3 fuel — its own artifact so the Amendment 2 rows (Sonnet solo with
+# thinking ON) are never mixed with this matched-config collection.
+CACHE_A3 = pathlib.Path(__file__).resolve().parents[1] / "web" / "llm-advice-arms.json"
+
+A3_PREDICTION = (
+    "Registered before running (PREREG-pool.md Amendment 3): MEAN — advice helps "
+    "the weaker model materially and the stronger barely; we predict Haiku "
+    "advised-solo > 0 at p<0.01 on both sets and Sonnet's mean effect small and "
+    "possibly not separable (headroom to the engine: Haiku +0.048/+0.049, Sonnet "
+    "+0.012/+0.037). DOWNSIDE — we predict advice improves BOTH downside "
+    "statistics for BOTH models on both sets: breach rate P(u<=BATNA) falls and "
+    "CVaR@10 rises. Stated bidirectionally: advice may HURT the mean (the "
+    "carried-counterparty effect that puts the champion below naive); a negative "
+    "mean with an improved downside reads 'SNHP buys safety, not surplus'. If the "
+    "downside does NOT improve, that is a KILL of the floor claim on this "
+    "instrument, reported as such with no re-cut.")
 
 
-def _load_cache() -> dict:
-    if CACHE.exists():
+# Published per-MTok prices. Cost is computed from the API's own reported token
+# counts (never from assumed sizes). Sonnet 5 carries a lower introductory rate
+# through 2026-08-31; we price at the STANDARD rate so the budget guard is a
+# conservative upper bound and can only stop early, never late.
+PRICES = {                       # model -> (input $/MTok, output $/MTok)
+    "claude-sonnet-5": (3.0, 15.0),
+    "claude-haiku-4-5-20251001": (1.0, 5.0),
+}
+
+
+def match_cost(rec: dict) -> float:
+    """Exact cost of one match from the API's reported token usage."""
+    pin, pout = PRICES.get(rec.get("candidate"), (0.0, 0.0))
+    return (rec.get("usage_in", 0) / 1e6) * pin + (rec.get("usage_out", 0) / 1e6) * pout
+
+
+def cache_cost(cache: dict) -> float:
+    return sum(match_cost(m) for m in cache.get("matches", []))
+
+
+def _match_key(model: str, set_label: str, sid: int, role: str, cp: str,
+               arm: str = "solo") -> str:
+    return f"{model}|{set_label}|{sid}|{role}|{cp}|{arm}"
+
+
+def _load_cache(path: pathlib.Path = None) -> dict:
+    path = path or CACHE
+    if path.exists():
         try:
-            return json.loads(CACHE.read_text())
+            return json.loads(path.read_text())
         except (OSError, json.JSONDecodeError):
             pass
     return {"protocol": PROTOCOL, "registration": REGISTRATION,
@@ -87,16 +128,17 @@ def _load_cache() -> dict:
             "matches": [], "incomplete": True, "stopped_reason": None}
 
 
-def _flush(cache: dict) -> None:
+def _flush(cache: dict, path: pathlib.Path = None) -> None:
     """Atomic write — a crash mid-flush cannot corrupt the cache."""
-    _CERTS.mkdir(parents=True, exist_ok=True)
-    tmp = CACHE.with_suffix(".json.tmp")
+    path = path or CACHE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(cache, indent=2))
-    os.replace(tmp, CACHE)
+    os.replace(tmp, path)
 
 
-def _planned_keys() -> list[tuple]:
-    """Every (model, set_label, seed, sid, role, cp) match the registration
+def _planned_keys(arms=("solo",)) -> list[tuple]:
+    """Every (model, set_label, seed, sid, role, cp, arm) match the registration
     demands — the full work list a resume diffs against."""
     plan = []
     for model in TIER_MODELS:
@@ -104,12 +146,16 @@ def _planned_keys() -> list[tuple]:
             for sid in range(N_SCENARIOS):
                 for role in ("seller", "buyer"):
                     for cp in POOL_MEMBERS:
-                        plan.append((model, set_label, seed, sid, role, cp))
+                        for arm in arms:
+                            plan.append((model, set_label, seed, sid, role,
+                                         cp, arm))
     return plan
 
 
 def run_tier(provider: str = "anthropic", *, models=TIER_MODELS,
              n: int = N_SCENARIOS, deadline: int = DEADLINE, workers: int = 1,
+             arms=("solo",), cache_path: pathlib.Path = None,
+             sets=None, budget_usd: float | None = None,
              prereg: pathlib.Path = PREREG, verbose: bool = True) -> dict:
     """Run (or resume) the registered LLM tier. Returns the cache dict. Spends
     API calls ONLY on matches not already cached. Stops cleanly and returns
@@ -118,10 +164,12 @@ def run_tier(provider: str = "anthropic", *, models=TIER_MODELS,
     Any statistic is unaffected — matches are keyed, so completion order does
     not matter, and a resume reproduces the same pairing set."""
     require_prereg(prereg)
-    cache = _load_cache()
+    cache = _load_cache(cache_path)
     cache["provider"] = provider
+    cache["arms"] = list(arms)
     done = {_match_key(m["candidate"], m["set_label"], m["scenario_id"],
-                       m["role"], m["counterparty"]) for m in cache["matches"]}
+                       m["role"], m["counterparty"], m.get("arm", "solo"))
+            for m in cache["matches"]}
 
     # scenarios are cheap + deterministic — regenerate per (set) on demand.
     scen_cache: dict[int, list] = {}
@@ -131,11 +179,12 @@ def run_tier(provider: str = "anthropic", *, models=TIER_MODELS,
             scen_cache[seed] = gen_gauntlet_scenarios(n, seed)
         return scen_cache[seed]
 
-    def key_of(p):                              # p = (model, set, seed, sid, role, cp)
-        model, set_label, _seed, sid, role, cp = p
-        return _match_key(model, set_label, sid, role, cp)
+    def key_of(p):                    # p = (model, set, seed, sid, role, cp, arm)
+        model, set_label, _seed, sid, role, cp, arm = p
+        return _match_key(model, set_label, sid, role, cp, arm)
 
-    plan = [p for p in _planned_keys() if p[0] in models]
+    plan = [p for p in _planned_keys(arms)
+            if p[0] in models and (sets is None or p[1] in sets)]
     todo = [p for p in plan if key_of(p) not in done]
     if verbose:
         print(f"LLM tier ({provider}, {workers} worker(s)): {len(plan)} "
@@ -150,34 +199,48 @@ def run_tier(provider: str = "anthropic", *, models=TIER_MODELS,
     def run_one(p):
         """One independent match. A FRESH seat per match keeps threads from
         sharing the mutable format_failures counter and the HTTP client."""
-        model, set_label, seed, sid, role, cp = p
+        model, set_label, seed, sid, role, cp, arm = p
         sc, w_s, w_b = scenarios(seed)[sid]
+        seat = LLMSeat(provider, model)      # fresh per match => its usage IS this match's
         r = run_pool_match(
-            LLMSeat(provider, model), make_pool_seat(cp), sc, w_s, w_b,
-            role=role, condition="solo", scenario_id=sid, deadline=deadline)
+            seat, make_pool_seat(cp), sc, w_s, w_b,
+            role=role, condition=arm, scenario_id=sid, deadline=deadline,
+            advised=(arm == "advised"),
+            advice_seed=pool_match_seed(seed, sid, role, cp))
         rec = r.to_dict()
         rec.update({"candidate": model, "set_label": set_label,
-                    "counterparty": cp, "scenario_seed": seed})
+                    "counterparty": cp, "scenario_seed": seed, "arm": arm,
+                    "usage_in": seat.usage_in, "usage_out": seat.usage_out})
         return rec
 
     lock = threading.Lock()
     ran = 0
     stopped_reason = None
 
+    spent = [cache_cost(cache)]            # measured $, carried across resumes
+    over_budget = [False]
+
     def commit(rec, tag: str):
         nonlocal ran
         with lock:                              # serialize only the checkpoint
             cache["matches"].append(rec)
-            _flush(cache)
+            spent[0] += match_cost(rec)
+            _flush(cache, cache_path)
             ran += 1
+            if budget_usd is not None and spent[0] >= budget_usd:
+                over_budget[0] = True
             if verbose and ran % 30 == 0:
-                print(f"  {ran}/{len(todo)} new matches (last: {tag})",
+                print(f"  {ran}/{len(todo)} new matches  ${spent[0]:.2f} spent  (last: {tag})",
                       flush=True)
 
     if workers <= 1:
         try:
             for p in todo:
-                commit(run_one(p), f"{p[0]} {p[1]} s{p[3]} {p[4]} vs {p[5]}")
+                if over_budget[0]:
+                    stopped_reason = (f"budget reached: ${spent[0]:.2f} of "
+                                      f"${budget_usd:.2f} (measured)")
+                    break
+                commit(run_one(p), f"{p[0]} {p[1]} s{p[3]} {p[4]} vs {p[5]} [{p[6]}]")
         except (RuntimeError, KeyboardInterrupt) as e:
             # RuntimeError = permanent API failure (credits/auth/config) from
             # transport_retry; KeyboardInterrupt = operator stop.
@@ -197,7 +260,11 @@ def run_tier(provider: str = "anthropic", *, models=TIER_MODELS,
                 except Exception as e:          # permanent API error or a bug
                     stopped_reason = f"{type(e).__name__}: {e}"
                     break
-                commit(rec, f"{p[0]} {p[1]} s{p[3]} {p[4]} vs {p[5]}")
+                commit(rec, f"{p[0]} {p[1]} s{p[3]} {p[4]} vs {p[5]} [{p[6]}]")
+                if over_budget[0]:
+                    stopped_reason = (f"budget reached: ${spent[0]:.2f} of "
+                                      f"${budget_usd:.2f} (measured)")
+                    break
         except KeyboardInterrupt:
             stopped_reason = "KeyboardInterrupt: operator stop"
         finally:
@@ -208,24 +275,27 @@ def run_tier(provider: str = "anthropic", *, models=TIER_MODELS,
         # the whole point; a resume charges only the missing matches.
         cache["stopped_reason"] = stopped_reason
         cache["incomplete"] = True
-        _flush(cache)
+        _flush(cache, cache_path)
         if verbose:
             print(f"\nSTOPPED after {ran} new matches — {stopped_reason}"
-                  f"\nProgress saved to {CACHE}. Re-run to resume from the cache "
-                  f"(only the missing matches will be charged).", flush=True)
+                  f"\nProgress saved to {cache_path or CACHE}. Re-run to resume "
+                  f"from the cache (only the missing matches are charged).",
+                  flush=True)
         return cache
 
     # completeness: every registered match for the requested models is present.
     have = {_match_key(m["candidate"], m["set_label"], m["scenario_id"],
-                       m["role"], m["counterparty"]) for m in cache["matches"]}
+                       m["role"], m["counterparty"], m.get("arm", "solo"))
+            for m in cache["matches"]}
     need = {key_of(p) for p in plan}
     cache["incomplete"] = not need.issubset(have)
     if not cache["incomplete"]:
         cache["stopped_reason"] = None
-    _flush(cache)
+    _flush(cache, cache_path)
     if verbose:
         state = "COMPLETE" if not cache["incomplete"] else "still incomplete"
-        print(f"done: {ran} new matches, cache {state} ({len(have)} total). "
+        print(f"done: {ran} new matches, ${spent[0]:.2f} measured spend, "
+              f"cache {state} ({len(have)} total). "
               f"Regenerate the table: python -m arena.gauntlet.publish_table",
               flush=True)
     return cache
@@ -267,6 +337,17 @@ def main(argv=None) -> int:
     p.add_argument("--models", nargs="*", default=list(TIER_MODELS),
                    help="subset of the registered models to run/resume.")
     p.add_argument("--n", type=int, default=N_SCENARIOS)
+    p.add_argument("--amendment", type=int, default=2, choices=(2, 3),
+                   help="2 = the solo tier (Amendment 2, published section 3). "
+                        "3 = the paired solo+advised arms at matched inference "
+                        "config (Amendment 3), written to its own artifact.")
+    p.add_argument("--sets", nargs="*", default=None,
+                   choices=[lbl for lbl, _ in SETS],
+                   help="restrict to these scenario sets (default: all).")
+    p.add_argument("--budget-usd", type=float, default=None,
+                   help="HARD ceiling in measured dollars. Cost is computed from "
+                        "the API's own reported token counts; the run stops "
+                        "cleanly (checkpointed) the moment it is reached.")
     p.add_argument("--workers", type=int, default=1,
                    help="concurrent matches (default 1). Each match is "
                         "independent; only the candidate hits the API. Higher "
@@ -287,8 +368,12 @@ def main(argv=None) -> int:
                   "--provider scripted-naive for the free offline pipeline "
                   "check.", file=sys.stderr)
             return 2
+    arms = ARMS_A3 if args.amendment == 3 else ("solo",)
+    cache_path = CACHE_A3 if args.amendment == 3 else CACHE
     cache = run_tier(args.provider, models=args.models, n=args.n,
-                     workers=max(1, args.workers))
+                     workers=max(1, args.workers), arms=arms,
+                     cache_path=cache_path, sets=args.sets,
+                     budget_usd=args.budget_usd)
     return 0 if not cache.get("incomplete") else 1
 
 

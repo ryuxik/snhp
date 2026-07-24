@@ -352,6 +352,11 @@ class LLMSeat:
         self.thinking_disabled = thinking_disabled
         self.name = model
         self.format_failures = 0
+        # EXACT token usage reported by the API, accumulated per seat. Cost is
+        # measured from these, never modelled — discarding resp.usage is what
+        # made every prior cost figure a reconstruction.
+        self.usage_in = 0
+        self.usage_out = 0
         self._naive = NaiveSeat()
         self._client = None  # lazy, reused across calls (connection pooling)
 
@@ -377,6 +382,10 @@ class LLMSeat:
             resp = self._client.messages.create(
                 model=self.model, max_tokens=500, system=system,
                 messages=[{"role": "user", "content": user}], **kwargs)
+            u = getattr(resp, "usage", None)
+            if u is not None:
+                self.usage_in += int(getattr(u, "input_tokens", 0) or 0)
+                self.usage_out += int(getattr(u, "output_tokens", 0) or 0)
             return "".join(b.text for b in resp.content if b.type == "text")
         if self.provider == "openai-compat":
             import httpx
