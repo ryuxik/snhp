@@ -2498,6 +2498,70 @@ from <code>POST /v1/billing/checkout_session</code>.</p>
 </div></body></html>"""
 
 
+# ─── Rent-renewal advisor ────────────────────────────────────────────
+# Free, keyless, no account. The consumer surface for the negotiation
+# engine: four inputs, one honest answer, including "you have no
+# leverage — sign it." Nothing here is stored; the assessment is a pure
+# function of the request (see vend/rent/advisor.py).
+
+class _RentCheckRequest(BaseModel):
+    metro: str = Field(..., description="Metro key, e.g. 'denver'. Unknown "
+                                        "metros degrade to national context.")
+    current_rent: int = Field(..., gt=0, le=100_000,
+                              description="Current monthly rent, USD.")
+    offered_rent: int = Field(..., gt=0, le=100_000,
+                              description="Renewal offer, USD/month.")
+    months_at_address: int = Field(..., ge=0, le=1200,
+                                   description="How long you've lived there.")
+
+
+@app.get("/rent", tags=["discovery"], include_in_schema=False,
+         summary="Rent-renewal advisor (page)")
+def rent_page():
+    return _serve_static_page("rent.html")
+
+
+@app.get("/v1/rent/metros", tags=["rent"],
+         summary="Metros with market data on file")
+def rent_metros():
+    """The metro list backing the advisor. Served from the same table the
+    assessment uses, so the picker can never drift from the data."""
+    from vend.rent import metros as _metros
+
+    return {
+        "as_of": _metros.AS_OF,
+        "source": _metros.SOURCE,
+        "metros": [
+            {"key": key, "name": m.name, "tier": m.tier}
+            for key, m in sorted(_metros.METROS.items(), key=lambda kv: kv[1].name)
+        ],
+    }
+
+
+@app.post("/v1/rent/check", tags=["rent"],
+          summary="Assess a rent-renewal offer (free, no key)")
+def rent_check(body: _RentCheckRequest):
+    """Deterministic assessment of a renewal offer.
+
+    Free and keyless by design: this is the top of the funnel and the
+    thing we want people to share. Returns a verdict (including 'weak —
+    just sign'), the ranked asks, a send-ready message, and — where the
+    metro has regulated stock — how to check legal status. It never
+    asserts what that status is.
+    """
+    from vend.rent import advisor as _advisor
+
+    try:
+        return _advisor.assess(
+            metro=body.metro,
+            current_rent=body.current_rent,
+            offered_rent=body.offered_rent,
+            months_at_address=body.months_at_address,
+        ).to_dict()
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
 @app.get("/paid", tags=["discovery"], response_class=HTMLResponse,
          include_in_schema=False, summary="Stripe Checkout success return")
 def paid():

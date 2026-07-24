@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your rent went up. Should you just sign?</title>
+<meta name="description" content="Four questions, thirty seconds. Free. Find out whether it's worth pushing back on your rent renewal — and exactly what to say.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<style>
+  :root{
+    --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0;
+    --gold:#ffe08a; --green:#7fc48f; --violet:#a78bfa; --blue:#8fd0ff;
+    --line:rgba(154,149,176,.22);
+    --mono:ui-monospace,Menlo,Monaco,"Cascadia Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink); font-family:var(--mono);
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+    padding:clamp(1.5rem,5vw,4rem) clamp(1.2rem,5vw,2rem) 6rem;
+  }
+  main{max-width:38rem;margin:0 auto}
+  /* The form is one screen, not a scroll. Centre it when there's room so
+     the page resolves instead of floating in dead space. */
+  body:has(#form:not([hidden])) main{min-height:calc(100vh - 10rem);display:flex;flex-direction:column;justify-content:center}
+  @media (max-height:760px){body:has(#form) main{min-height:0;display:block}}
+
+  h1{font-size:clamp(1.9rem,6vw,2.6rem);line-height:1.15;margin:0 0 .6rem;letter-spacing:-.02em}
+  .sub{color:var(--dim);margin:0 0 3.2rem;font-size:1rem}
+  .sub b{color:var(--ink);font-weight:400}
+
+  /* ---- the four questions ---- */
+  .q{margin-bottom:1.75rem}
+  label{display:block;font-size:.95rem;margin-bottom:.55rem;color:var(--ink)}
+  .hint{color:var(--dim);font-size:.82rem;margin-top:.4rem}
+  input,select{
+    width:100%; font:inherit; font-size:1.05rem; /* >=16px: no iOS zoom */
+    background:transparent; color:var(--ink);
+    border:0; border-bottom:1px solid var(--line);
+    padding:.6rem .1rem; border-radius:0; appearance:none;
+    transition:border-color .15s;
+  }
+  select{background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);
+    background-position:calc(100% - 14px) 1.15rem,calc(100% - 8px) 1.15rem;
+    background-size:6px 6px,6px 6px;background-repeat:no-repeat;padding-right:1.8rem}
+  input:focus,select:focus{outline:0;border-bottom-color:var(--violet)}
+  input::placeholder{color:rgba(154,149,176,.5)}
+  select option{background:#141127;color:var(--ink)}
+  .money{position:relative}
+  .money input{padding-left:1.1rem}
+  .money::before{content:"$";position:absolute;left:0;top:.62rem;color:var(--dim)}
+
+  button{
+    font:inherit;font-size:1rem;cursor:pointer;
+    background:var(--ink);color:var(--bg);border:0;border-radius:999px;
+    padding:.85rem 2rem;margin-top:1rem;transition:opacity .15s,transform .1s;
+  }
+  button:hover{opacity:.88}
+  button:active{transform:translateY(1px)}
+  button[disabled]{opacity:.45;cursor:default}
+  button.ghost{background:transparent;color:var(--dim);border:1px solid var(--line);padding:.6rem 1.3rem;font-size:.9rem}
+
+  /* ---- the answer ---- */
+  #answer{display:none;animation:rise .45s cubic-bezier(.2,.7,.3,1)}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .verdict{font-size:clamp(1.35rem,4.4vw,1.8rem);line-height:1.32;margin:0 0 1.6rem;letter-spacing:-.01em}
+  .verdict.strong{color:var(--green)}
+  .verdict.moderate{color:var(--gold)}
+  .verdict.weak{color:var(--ink)}
+
+  .facts{display:flex;flex-wrap:wrap;gap:1.8rem;padding:1.2rem 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:2.2rem}
+  .fact .n{font-size:1.5rem;line-height:1.1}
+  .fact .l{color:var(--dim);font-size:.8rem;margin-top:.25rem}
+
+  h2{font-size:.82rem;text-transform:uppercase;letter-spacing:.14em;color:var(--dim);font-weight:400;margin:2.4rem 0 1rem}
+
+  .ask{padding:1rem 0;border-bottom:1px solid var(--line)}
+  .ask:last-of-type{border-bottom:0}
+  .ask .top{display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap}
+  .ask .name{font-size:1rem}
+  .ease{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;padding:.15rem .5rem;border-radius:999px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+  .ease.easiest{color:var(--green);border-color:rgba(127,196,143,.4)}
+  .ease.hardest{color:var(--dim)}
+  .ask .why{color:var(--dim);font-size:.88rem;margin-top:.45rem}
+
+  /* the message is the hero */
+  .msg{background:rgba(167,139,250,.09);border:1px solid rgba(167,139,250,.34);border-radius:.8rem;padding:1.45rem;margin-top:1rem;box-shadow:0 1px 30px rgba(167,139,250,.06)}
+  .msg pre{font-family:var(--sans);font-size:.97rem;line-height:1.62;white-space:pre-wrap;margin:0;color:var(--ink)}
+  .copy{display:flex;align-items:center;gap:.9rem;margin-top:1.1rem;flex-wrap:wrap}
+  #copy{background:var(--violet);color:#12102a;border:0;margin-top:0;font-size:.95rem;padding:.75rem 1.6rem}
+  #copy:hover{opacity:.9}
+  .copied{color:var(--green);font-size:.85rem;opacity:0;transition:opacity .2s}
+  .copied.on{opacity:1}
+
+  .legal{border-left:2px solid var(--gold);padding:.2rem 0 .2rem 1.1rem;margin-top:1rem}
+  .legal li{margin-bottom:.5rem}
+  ul{padding-left:1.1rem;margin:.6rem 0}
+  li{margin-bottom:.35rem}
+  a{color:var(--blue)}
+  .caveats{color:var(--dim);font-size:.82rem;margin-top:2.6rem;padding-top:1.2rem;border-top:1px solid var(--line)}
+  .caveats li{margin-bottom:.45rem}
+  .err{color:var(--gold);margin-top:1rem;font-size:.9rem}
+  footer{max-width:38rem;margin:4rem auto 0;color:var(--dim);font-size:.8rem;border-top:1px solid var(--line);padding-top:1.2rem}
+</style>
+</head>
+<body>
+<main>
+  <section id="form">
+    <h1>Your rent went up.</h1>
+    <p class="sub">Should you just sign? <b>Four questions, thirty seconds.</b> Free, no account.</p>
+
+    <div class="q">
+      <label for="metro">Where do you live?</label>
+      <select id="metro"><option value="">Loading…</option></select>
+    </div>
+
+    <div class="q">
+      <label for="current">What do you pay now?</label>
+      <div class="money"><input id="current" type="number" inputmode="numeric" min="1" placeholder="2,000"></div>
+    </div>
+
+    <div class="q">
+      <label for="offered">What are they asking for?</label>
+      <div class="money"><input id="offered" type="number" inputmode="numeric" min="1" placeholder="2,150"></div>
+    </div>
+
+    <div class="q">
+      <label for="tenure">How long have you lived there?</label>
+      <select id="tenure">
+        <option value="6">Less than a year</option>
+        <option value="18">1–2 years</option>
+        <option value="30" selected>2–3 years</option>
+        <option value="48">3+ years</option>
+      </select>
+      <div class="hint">This matters more than anything else you'll tell us.</div>
+    </div>
+
+    <button id="go">Show me</button>
+    <div class="err" id="err" hidden></div>
+  </section>
+
+  <section id="answer" aria-live="polite"></section>
+</main>
+
+<footer>
+  Free, and we don't keep what you type. Information, not legal advice.
+  Built by <a href="/">SNHP</a>.
+</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => (
+  {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = n => '$' + Number(n).toLocaleString();
+
+// Metro list comes from the server so there is one source of truth.
+fetch('/v1/rent/metros').then(r => r.json()).then(d => {
+  const sel = $('#metro');
+  sel.innerHTML = '<option value="">Choose your city…</option>' +
+    d.metros.map(m => `<option value="${esc(m.key)}">${esc(m.name)}</option>`).join('') +
+    '<option value="__other">Somewhere else</option>';
+}).catch(() => {
+  $('#metro').innerHTML = '<option value="__other">Somewhere else</option>';
+});
+
+// Prefill from the URL if present, e.g. /rent?metro=denver&current=2000&offered=2150&tenure=30
+// Read-only by design: we never write these params ourselves.
+(function prefill(){
+  const p = new URLSearchParams(location.search);
+  if (!p.has('current')) return;
+  const set = (id,k) => { const v=p.get(k); if(v) $(id).value = v; };
+  set('#current','current'); set('#offered','offered'); set('#tenure','tenure');
+  const waitForMetros = setInterval(() => {
+    if ($('#metro').options.length > 1) {
+      clearInterval(waitForMetros);
+      if (p.get('metro')) $('#metro').value = p.get('metro');
+      if (p.get('go') === '1') $('#go').click();
+    }
+  }, 60);
+})();
+
+$('#go').addEventListener('click', async () => {
+  const metro = $('#metro').value;
+  const current = parseInt($('#current').value, 10);
+  const offered = parseInt($('#offered').value, 10);
+  const months = parseInt($('#tenure').value, 10);
+  const err = $('#err');
+  err.hidden = true;
+
+  if (!metro) return fail('Pick your city first.');
+  if (!current || current < 1) return fail('How much do you pay now?');
+  if (!offered || offered < 1) return fail('What are they asking for?');
+
+  $('#go').disabled = true; $('#go').textContent = 'Working…';
+  try {
+    const r = await fetch('/v1/rent/check', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({metro, current_rent:current, offered_rent:offered, months_at_address:months})
+    });
+    if (!r.ok) throw new Error((await r.json()).detail || 'Something went wrong.');
+    render(await r.json());
+  } catch (e) {
+    fail(e.message || 'Something went wrong.');
+  } finally {
+    $('#go').disabled = false; $('#go').textContent = 'Show me';
+  }
+
+  function fail(m){ err.textContent = m; err.hidden = false; }
+});
+
+function render(d){
+  const pct = d.increase.pct;
+  const odds = Math.round(d.odds_if_you_ask * 100);
+  const parts = [];
+
+  parts.push(`<p class="verdict ${esc(d.verdict)}">${esc(d.headline)}</p>`);
+
+  parts.push('<div class="facts">');
+  if (d.increase.monthly > 0) {
+    parts.push(`<div class="fact"><div class="n">+${money(d.increase.monthly)}<span style="font-size:.8rem;color:var(--dim)">/mo</span></div><div class="l">${pct}% increase</div></div>`);
+    parts.push(`<div class="fact"><div class="n">${money(d.increase.annual_cost)}</div><div class="l">over a year</div></div>`);
+  }
+  parts.push(`<div class="fact"><div class="n">${odds}%</div><div class="l">get something when they ask</div></div>`);
+  parts.push('</div>');
+
+  parts.push(`<p style="color:var(--dim);font-size:.9rem;margin-top:-1.2rem">${esc(d.odds_basis)} About ${Math.round(d.share_who_never_ask*100)}% of renters never ask at all.</p>`);
+
+  if (d.asks.length) {
+    parts.push('<h2>What to ask for — easiest first</h2>');
+    for (const a of d.asks) {
+      parts.push(`<div class="ask"><div class="top"><span class="name">${esc(a.ask)}</span><span class="ease ${esc(a.ease)}">${esc(a.ease)}</span></div>
+        <div class="why">${esc(a.detail)} ${esc(a.why)}</div></div>`);
+    }
+  }
+
+  if (d.message) {
+    parts.push('<h2>Send this</h2>');
+    parts.push(`<div class="msg"><pre id="msgtext">${esc(d.message)}</pre></div>
+      <div class="copy"><button id="copy">Copy message</button><span class="copied" id="copied">Copied</span></div>`);
+  }
+
+  parts.push(`<h2>Next</h2><p>${esc(d.next_step)}</p>`);
+
+  if (d.legal && d.legal.may_be_regulated) {
+    parts.push('<h2>Worth checking first</h2><div class="legal">');
+    parts.push(`<p>${esc(d.legal.note)}</p>`);
+    if (d.legal.worth_checking_if) {
+      parts.push('<p style="color:var(--dim);font-size:.88rem">This is worth checking if:</p><ul>');
+      d.legal.worth_checking_if.forEach(x => parts.push(`<li>${esc(x)}</li>`));
+      parts.push('</ul>');
+    }
+    if (d.legal.how_to_verify) {
+      parts.push('<p style="color:var(--dim);font-size:.88rem">How to find out for certain:</p><ul>');
+      d.legal.how_to_verify.forEach(v => parts.push(`<li><b>${esc(v.action)}</b> — ${esc(v.where)}. ${esc(v.note||'')}</li>`));
+      parts.push('</ul>');
+    }
+    if (d.legal.official_rates_status) parts.push(`<p style="color:var(--dim);font-size:.85rem">${esc(d.legal.official_rates_status)}</p>`);
+    parts.push('</div>');
+  }
+
+  parts.push('<div class="caveats"><ul>');
+  (d.caveats||[]).forEach(c => parts.push(`<li>${esc(c)}</li>`));
+  parts.push(`<li>${esc(d.evidence_note)}</li>`);
+  parts.push('</ul><button class="ghost" onclick="location.reload()">Start over</button></div>');
+
+  $('#form').style.display = 'none';
+  const a = $('#answer');
+  a.innerHTML = parts.join('');
+  a.style.display = 'block';
+  window.scrollTo({top:0, behavior:'smooth'});
+
+  const c = document.getElementById('copy');
+  if (c) c.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(document.getElementById('msgtext').textContent);
+    const f = document.getElementById('copied');
+    f.classList.add('on'); setTimeout(()=>f.classList.remove('on'), 1800);
+  });
+}
+</script>
+</body>
+</html>
