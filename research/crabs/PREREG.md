@@ -899,6 +899,17 @@ walk-away *level* (K20 measured only 1.08×). It comes from **shape**: a
 linear clock beats a clock that ends in a wall, and the tenant's wall
 arrives first.
 
+> **CORRECTED 2026-07-25.** Two errors in the sentence above. (1) **1.08× is
+> stale** — the shipped `results_market.json` gives **1.474×**, reproduced
+> exactly on re-run; RESULTS Phase 5 §3's table predates a later change. (2)
+> More seriously, AMENDMENT 10 finds the *sign* of that ratio is not
+> determined: it crosses 1.0 at a physical-move cost of **$1,028–$3,624**
+> depending on the regime and on `RELET_RISK_ON`, an un-ablated hardcoded
+> `True`, and the defensible band for that cost from published sources is
+> **$700–$3,300**. So "the landlord's stronger renewal position" is not
+> established at the level either. What survives of A6a is the claim about
+> **shape**, which does not depend on the level ordering.
+
 In the new-let channel this reverses cleanly: the searching tenant is
 already housed and under no deadline, while the landlord accrues vacancy
 every period.
@@ -1161,3 +1172,223 @@ cannot be built out of the search frictions we can name, and the honest
 position is that we do not know where tenant switching costs come from —
 which, given it is the dominant variable in renewal pricing, is a more
 interesting statement than most of what survived this study.
+
+---
+
+# AMENDMENT 9 — the costly-verifiable-signal arm was built, tested, and never run
+
+*Appended 2026-07-25, before any signal-arm output existed. The kills in
+§A9.4 are fixed here and are stated on OUTPUTS.*
+
+## A9.1 The finding
+
+`market.py` implements a costly verifiable signal — `_signal_proved()`,
+`MarketParams.signal_enabled`, `signal_cost = 0.10` — and
+`test_crabs.py:1027-1069` asserts four properties of it. **No cell in
+`run_market.py` ever sets `signal_enabled`.** The K26 cell (`a6a_secured`)
+runs with the channel OFF. So the arm has unit tests and no results: it is
+absent from `results_market.json` and from RESULTS.md, whose final section
+records K26 as DOES NOT CONFIRM (+$17 against a $480 bar).
+
+Meanwhile `writing/crab-landlord-article.md` leads a section with **"10.2%
+off the offer"**, attributed to this mechanism. That number is traceable to
+no run in this repository. Either it exists somewhere not found, or it is
+unsupported. This amendment settles it.
+
+## A9.2 The mechanism the code actually implements
+
+`market.py:450-468`, verbatim structure:
+
+```
+wa_t_base = (p.move_med + attach(j) + SEARCH_COST) * M_obs
+if proved:              wa_t_exp = wa_t_base            # <-- flat
+elif deadline_shape:    wa_t_exp = <convex clock + cliff>
+else:                   wa_t_exp = wa_t_base            # <-- flat
+```
+
+`proved` and `deadline_shape = False` evaluate to the **same expression**.
+`wa_t_base` is built from the POPULATION `p.move_med` and is identical for
+provers and non-provers. So proving an alternative does not reveal anything
+about *this* tenant's alternative. Its entire direct effect is to move the
+tenant out of the cliff branch.
+
+**Prediction recorded before running** (the SPEC-A2 §A2-2 discipline): the
+direct channel with `deadline_shape = False` is *exactly* zero by
+inspection, so K29 should fire. Any non-zero residual there is
+general-equilibrium spillover — provers pay less, which moves realised
+rents and hence the market statistic everyone is priced against — not a
+second channel. Recording this so that the ablation either confirms it or
+contradicts it, rather than being read off afterwards.
+
+If that is right, the honest headline is **"proving it removes your
+deadline penalty"**, not "proving it reveals your alternative" — and the
+finding is then the same family as artefact #3 ("it's the shape of the
+deadline", which turned out to be 87% level), i.e. K25's cliff measured a
+second time under another name.
+
+## A9.3 What is run
+
+One knob against `a6a_secured` (DESIGN-PRINCIPLES A), drift 0.0, the same
+30 seeds, geometry unchanged:
+
+- `signal_enabled = True` at `signal_cost` ∈ {0.05, 0.10, 0.20, 0.40}
+- each of those crossed with `deadline_shape` ∈ {True, False} — the ablation
+- each of those at `move_med` ∈ {3.6 (calibrated), whatever A8 derives},
+  because `move_med` enters `wa_t_base` directly and is the parameter
+  AMENDMENT 8 is testing
+- confirmation that every previously reported cell is **bit-identical** with
+  the signal off
+
+Reported: offer ÷ market and surplus for proved, unproved, and the
+`a6a_secured` baseline.
+
+## A9.4 Kills, fixed before the first run, both bidirectional
+
+**K28 — the article's headline is unsupported.**
+*FIRES if* the proved-vs-unproved gap in offer ÷ market is **under 2% of
+market** at every `signal_cost`.
+*Consequence if it fires:* "10.2% off the offer" is unsupported by anything
+in this repository and comes out of the article.
+*If it does NOT fire:* the arm supports a real effect, its size is reported
+at each `signal_cost`, and the article's number must be restated as
+whatever the run actually gives — a match to 10.2% would itself need
+explaining, since no run producing it exists.
+
+**K29 — the effect is the clock, not the alternative.**
+*FIRES if* the gap with `deadline_shape = False` is **under 40% of** the gap
+with it on.
+*Consequence if it fires:* the article's stated mechanism is refuted. The
+honest description is that proving an alternative removes the tenant's
+deadline penalty, which is K25's cliff under a second name, and the claim
+that it *reveals an alternative* is withdrawn.
+*If it does NOT fire:* the signal carries information beyond the clock,
+which would be a genuine second channel — and, given §A9.2 says the code
+has no such channel, would mean the code does something we have not
+understood and needs a bug hunt before the result is believed.
+
+## A9.5 Discipline
+
+The signal arm's default stays OFF, so nothing previously reported moves.
+No parameter is tuned to K28 or K29. `signal_cost` is swept because SPEC
+already declared it swept, not because a sweep was needed to find a value
+that works.
+
+---
+
+# AMENDMENT 10 — is the renewal asymmetry real, or is its sign a free parameter?
+
+*Appended 2026-07-25, before any A10 output existed. §A10.2's band was fixed
+from published sources BEFORE the sweep was run. K30 is stated on outputs.*
+
+## A10.1 Why this is the most important open question in the study
+
+`writing/crab-landlord-article.md` opens on the folk arithmetic — "they risk
+five months to gain two, you have leverage and nobody told you" — shows the
+"1-3 months" figure has no source, and then reverses it: you do not have
+leverage, the tenant is the weaker party. **K20 is the spine of the article.**
+
+AMENDMENT 8 found the reversal moves with a circular parameter:
+
+| `move_med` | wa_tenant / wa_landlord | K20 |
+|---|---|---|
+| 3.60 (calibrated to observed elasticity) | 1.474 | FIRES — tenant weaker |
+| 1.48 (derived from search, A8) | 0.892 | does NOT fire — LANDLORD weaker |
+
+So the crossing lies between. The question is whether it lies inside or outside
+the range a careful person could defend for the one input that moves it.
+
+**Full disclosure of what is already known before this amendment runs:** A8's
+existing cells bracket the crossing between `MOVE_PHYSICAL` 1.0 and 3.1. What is
+NOT known, and what §A10.2 fixes from sources without reference to that
+bracket, is the defensible band for `MOVE_PHYSICAL` itself.
+
+## A10.2 The declared band, fixed from sources before the sweep
+
+Evidence base for the physical cost of a local move by a US renter of a 1-2
+bedroom, established 2026-07-25:
+
+| source | figure | type |
+|---|---|---|
+| HireAHelper cost methodology, 2024 data | 2BR local full-service **$984**; labor-only $383 | **completed bookings** (transaction data) |
+| This Old House 2025 Moving Survey (n=1,000) | local moves **$1,489** | consumer survey |
+| Move.org State of Moving (n=2,500, Jan 2025) | 2BR under 400mi **$2,750** | consumer survey, **median** |
+| moveBuddha, Jul 2026 | 2BR apt local **$725**; range $301-$3,512 | quote aggregation |
+| ancillary (supplies, cleaning, utility connection) | $300-$800 | **no survey basis — marketing content** |
+
+Three facts that set the endpoints:
+
+1. **~60% of moves are DIY**, and only 15-38% are full-service (Move.org
+   62/38; AHS 2026 n=1,004: 53% self-pack-and-drive, 15% full-service). A
+   population-average move is weighted toward DIY, which is why survey averages
+   sit far below any full-service quote.
+2. **No government statistic exists.** Census publishes move *rates*, BLS
+   publishes a price *index*. Nobody official publishes the dollar cost.
+3. **The most-cited number in this space is unusable.** "AMSA $2,300" comes
+   from a body absorbed into the ATA in December 2020, appears with three
+   mutually inconsistent values ($1,250 / $1,700 / $2,300), and has no reachable
+   dated primary document.
+
+**DECLARED BAND: `MOVE_PHYSICAL` ∈ [0.35, 1.65] months ($700-$3,300)**, being
+the physical move ($400-$2,500) plus ancillary ($300-$800). **Central
+[0.70, 1.00] months ($1,400-$2,000).** The band is wide because the evidence is
+weak, and it is declared wide *before* the sweep for exactly that reason.
+
+Recorded correction to A8: `BROKER_SHARE = 0.15` is **too high**. Tenant-paid
+broker fees were standard practice in NYC and Boston only, and both were legally
+curtailed in mid-2025 (NYC FARE Act, 11 Jun 2025; Massachusetts, ~1 Aug 2025).
+The national value is ~0. It does not move any median reported here (a 15%
+share cannot), so nothing is re-run; the declared value is corrected and the
+NYC/Boston case becomes an explicit scenario rather than a national average.
+
+## A10.3 What is swept
+
+`wa_tenant / wa_landlord` in the RENEWAL channel, over:
+
+- `MOVE_PHYSICAL` ∈ {0.0, 0.35, 0.5, 0.7, 1.0, 1.25, 1.65, 2.0, 2.5, 3.1},
+  entering as `move_med = 0.48 + MOVE_PHYSICAL` (A8's derivation: spell
+  overhead 0.25 + one viewing 0.08 + one month of search 0.15)
+- `RELET_RISK_ON` ∈ {True, False} — **never previously ablated.** It is a
+  hardcoded `True` in `market.py` and appears in no reported cell as a
+  variable, yet it sits in K20's denominator: `wa_land = turn + vacancy +
+  max(0, 12*(rent - M_relet))`. And `vacancy` is itself CIRCULAR (SPEC §5 sets
+  relet months from the observed 39.7% concession rate), so K20 as shipped is
+  a fitted numerator over a fitted denominator.
+- drift ∈ {0.0, +0.09 (loss-like), −0.06 (gain-like)}
+
+Also carried forward: does A8's **endogenous loss-to-lease** (free-cap offer
+0.990 of market, which A7 said the model could not produce at all) survive the
+same band, and does it live only on one side of the crossing?
+
+## A10.4 K30, fixed before the first run, three-way and bidirectional
+
+**K30 — the sign of the renewal asymmetry is a free parameter.**
+
+*FIRES if* the value of `MOVE_PHYSICAL` at which `wa_tenant/wa_landlord`
+crosses 1.0 falls **inside the declared band [0.35, 1.65]**, in either
+`RELET_RISK_ON` state.
+*Consequence if it fires:* **we cannot tell who is the weaker party at
+renewal, and neither can anyone else**, because the answer turns on a number
+that has no government statistic, whose most-cited source is unusable, and
+whose best two sources disagree by 1.5×. K20's verdict is withdrawn as
+undetermined — not reversed — and the article's reversal must be restated as
+"nobody knows, including the people telling you that you have leverage."
+
+*Does NOT fire, ratio > 1 across the whole band:* **K20 survives derivation.**
+The reversal stands and the article's spine holds.
+
+*Does NOT fire, ratio < 1 across the whole band:* **the reversal was itself the
+artefact.** The tenant is the stronger party at renewal, the folk arithmetic
+was closer to right than we were, and the article is wrong in the direction it
+was most confident about.
+
+**This amendment's author expects K30 to fire, and that is the most publishable
+of the three outcomes, which is exactly why DESIGN-PRINCIPLES E applies with
+full force: if it fires, hunt for the bug before believing it.** Specifically,
+check that the crossing is not an artefact of the `move_med` → `wa_tenant`
+mapping being linear while `wa_land` is nearly constant, which would make the
+crossing a trivial restatement of the two levels rather than a finding.
+
+## A10.5 Discipline
+
+`RELET_RISK_ON` is ablated, not removed. No value in §A10.2 was chosen after
+seeing a ratio. The article is not edited under this amendment.

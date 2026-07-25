@@ -123,7 +123,35 @@ def specs():
              mp=dict(base, deadline_shape=True, tenant_clock_linear=True)),
         dict(cell="a6a_secured", drift=0.0,
              mp=dict(base, deadline_shape=True, secured_share=0.5)),
-    ]
+    ] + amendment9_specs(base)
+
+
+def amendment9_specs(base: dict) -> list:
+    """AMENDMENT 9 — the costly verifiable signal, built and unit-tested in
+    market.py and never once run.
+
+    ONE KNOB against `a6a_secured` (DESIGN-PRINCIPLES A): identical geometry,
+    identical seeds, identical `secured_share`, `signal_enabled` flipped on and
+    `signal_cost` swept over the values SPEC already declared.
+
+    The `noshape` rows are A9.4's K29 ablation. `market.py:452-468` gives a
+    proved tenant `wa_t_exp = wa_t_base` -- the SAME expression the
+    `deadline_shape = False` branch gives everyone -- so with the cliff removed
+    there is nothing left for the proof to delete. If the gap collapses, the
+    proof's effect was the clock and not the alternative."""
+    out = []
+    for cost in (0.05, 0.10, 0.20, 0.40):
+        for shape in (True, False):
+            tag = "" if shape else "_noshape"
+            out.append(dict(cell=f"a9_signal_{cost:g}{tag}", drift=0.0,
+                            mp=dict(base, deadline_shape=shape,
+                                    secured_share=0.5, signal_enabled=True,
+                                    signal_cost=cost)))
+    # the K29 control: signal OFF, cliff off. Isolates the spillover from the
+    # direct channel, so a non-zero `noshape` gap can be attributed correctly.
+    out.append(dict(cell="a9_control_noshape", drift=0.0,
+                    mp=dict(base, deadline_shape=False, secured_share=0.5)))
+    return out
 
 
 def main():

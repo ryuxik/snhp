@@ -20,7 +20,8 @@ for _p in (_RESEARCH, os.path.dirname(_RESEARCH)):
 import numpy as np
 
 from crabs.policies import StationDP
-from crabs.run import EXPLORATORY, MAIN_SEEDS, derive, pilot_prior, _d
+from crabs.run import (EXPLORATORY, MAIN_SEEDS, derive, pilot_prior,
+                       station_key, _d)
 from crabs.world import (ASK_RANKED, Params, new_recorder, regime_params,
                          simulate_station)
 
@@ -29,9 +30,16 @@ _CACHE: dict = {}
 
 
 def _station(base, regime, nodes, w):
-    key = (regime, base.units, base.negotiator)
+    # DEFECT FIXED 2026-07-25 (AMENDMENT 11). The key was
+    # `(regime, units, negotiator)` and omitted every parameter the DP reads --
+    # `StationDP._leave_table` reads `p_exo(p, j)` directly -- so a sweep of any
+    # of them silently reused another cell's solved policy. See
+    # `run.station_key`. Behaviour-preserving for the shipped `specs()`, which
+    # varies only `negotiator` and the two engine selectors.
+    p = regime_params(base, regime)
+    key = station_key(p, nodes, w, 0.0, False)
     if key not in _CACHE:
-        _CACHE[key] = StationDP(regime_params(base, regime), nodes, w)
+        _CACHE[key] = StationDP(p, nodes, w)
     return _CACHE[key]
 
 

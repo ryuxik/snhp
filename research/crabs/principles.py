@@ -290,13 +290,47 @@ def assert_information_budget(fn, allowed=(), depth: int = 4,
 #             labelled INVENTED in code AND in every result table
 #   CALIBRATED  set so the model reproduces an observed fact; that fact may then
 #             never be claimed as a prediction
+#   SCOPED    traceable to a published number, but installed on the OTHER SIDE
+#             of the phenomenon it describes. Legitimate for the claims its own
+#             side supports and circular for the rest, so the entry must say
+#             which is which. Added 2026-07-25 for `ask_frac`, where a flat
+#             relabel either way would have been wrong.
 #   CIRCULAR  its justification IS the phenomenon under study. Always a defect.
-UPSTREAM, DERIVED, INVENTED, CALIBRATED, CIRCULAR = (
-    "UPSTREAM", "DERIVED", "INVENTED", "CALIBRATED", "CIRCULAR")
+UPSTREAM, DERIVED, INVENTED, CALIBRATED, SCOPED, CIRCULAR = (
+    "UPSTREAM", "DERIVED", "INVENTED", "CALIBRATED", "SCOPED", "CIRCULAR")
+
+# AMENDMENT 11, appended to BOTH halves of the counter-rate loop because it is a
+# fact about the pair and not about either one.
+AND_ONE_KNOB = (
+    " AMENDMENT 11: `courage_med` and `belief0` are ONE degree of freedom "
+    "under two names. `world._set_endogenous_askers` asks iff "
+    "belief x ask_scale x ask_frac x 12q > courage, so only the RATIO "
+    "belief0/courage_med enters; holding it fixed and moving both ends over a "
+    "20x range moves the counter rate by 0.7% relative. The ratio spans counter "
+    "rates 0.0003 to 1.0000, so the model does not identify it at all -- which "
+    "means arm F never measured the courage problem, it restated an input. "
+    "K32 FIRED: at the sourced ratio (uninformative prior over one hour of the "
+    "ACS renter wage) the counter rate is 99.96%. Reproducing the observed 39% "
+    "needs the cost of sending one email to be 27-55 hours of that wage. "
+    "See COURAGE_MED_1H and RESULTS-A11 §4.")
 
 
 # Every constant in SPEC.md §4-§7 and SPEC-A2.md §A2-2, with the class its own
 # stated basis earns it. Audited 2026-07-25 under AMENDMENT 7.
+#
+# SECOND PASS, same day, after DESIGN-PRINCIPLES gained Principle G. The first
+# pass had two failure modes and both are closed here:
+#
+#   1. MISCLASSIFICATION. Four entries cited a real published number that is one
+#      of this model's OWN validation targets. Read parameter-by-parameter that
+#      looks like data; read output-by-output it is a loop. `vacancy`,
+#      `p_exo_floor`, `p_exo_extra` and `belief0` move to CIRCULAR; `ask_frac`
+#      moves to SCOPED. See `research/crabs/FREE-OUTPUTS.md` for the
+#      output-by-output view, which is the one that makes these visible.
+#   2. COVERAGE. The table stopped at SPEC §4-§7 and SPEC-A2, so the ~20
+#      module constants and 15 `MarketParams` fields that AMENDMENTS 5/5a/6/6a/8
+#      added -- everything K22 through K27 actually runs on -- were in no table
+#      at all. They are below, under `market.py`.
 PARAM_SOURCES = {
     # --- market process (SPEC §3) ---
     "drift": (UPSTREAM, "2021-22 asking-rent growth +11-15% (loss, we use +9%); "
@@ -304,11 +338,29 @@ PARAM_SOURCES = {
     "sigma_burn": (INVENTED, "no stated source"),
     "sigma_meas": (INVENTED, "no stated source"),
     "burn_years": (INVENTED, "no stated source"),
-    "meas_years": (UPSTREAM, "PREREG §3 requires >=200 station-years"),
+    "meas_years": (UPSTREAM, "PREREG §3 requires >=200 station-years: Params' "
+                             "4 x 60 stations = 240, MarketParams' 10 x 40 "
+                             "= 400. One entry, two dataclasses -- the table is "
+                             "keyed by name and both values answer to the same "
+                             "requirement."),
     "g_long": (UPSTREAM, "underwriting practice: long-run terminal growth"),
     # --- station cost side (SPEC §5) ---
     "turn_cost": (UPSTREAM, "NAA/IREM/BOMA triangulation, 1-2 months"),
-    "vacancy": (UPSTREAM, "39.7% of 2026 listings carried a concession"),
+    "vacancy": (CIRCULAR, "SPEC §5: 'soft markets relet slower; 39.7% of 2026 "
+                          "listings carried a concession vs ~1 in 6 "
+                          "pre-pandemic.' THE CONCESSION RATE IS THE "
+                          "VALIDATION TARGET -- V6 (institutional concession "
+                          "rate 15-35%, RealPage ~2026) and V5, and SPEC-A2 "
+                          "§A2-3 says V6 'is close to the same quantity Phase "
+                          "1's V1 already failed'. And `vacancy` is not "
+                          "incidental to it: it enters `StationDP._turn_val`, "
+                          "the value of LETTING THE CRAB GO, which is the "
+                          "counterfactual every concession is judged against. "
+                          "So the observed concession rate sets the parameter "
+                          "that sets the modelled concession rate. Filed "
+                          "UPSTREAM in the first pass because the cited number "
+                          "is real and published; the source was never the "
+                          "problem. PRINCIPLE G."),
     "q_new": (UPSTREAM, "~1.5% of annual rent, NAA bad-debt expense line"),
     "q_sit_tau": (INVENTED, "decay constant, no stated source"),
     "renewal_cap": (CIRCULAR, "SPEC §5: '2022 renewals averaged +10.7% while "
@@ -326,16 +378,61 @@ PARAM_SOURCES = {
     "nu": (INVENTED, "SPEC §4 gives no basis at all -- the table cell is '--'"),
     "move_med": (CALIBRATED, "SPEC §4/§8 says so explicitly: 'calibrated to "
                              "observed elasticity'. V2 may not be claimed as a "
-                             "prediction, and SPEC §8 says so."),
+                             "prediction, and SPEC §8 says so. What SPEC §8 "
+                             "does NOT say is that `p_exo_*` fits the OTHER "
+                             "half of the same fact, which is what makes V2 an "
+                             "identity rather than a partly-calibrated test. "
+                             "A8 is the fix: derive it from search."),
     "move_sigma": (CALIBRATED, "same distribution as move_med"),
     "move_transient": (INVENTED, "50% redrawn each year, no stated source"),
     "attach_coef": (INVENTED, "0.35; the dollar figures are outputs, not a "
                               "source"),
-    "p_exo_floor": (UPSTREAM, "NAA turnover ~47%, mostly non-rent"),
-    "p_exo_extra": (UPSTREAM, "same"),
+    "p_exo_floor": (CIRCULAR, "SPEC §4: 'NAA turnover ~47% is mostly "
+                              "non-rent.' TURNOVER IS THE VALIDATION TARGET: "
+                              "V2 is retention in 0.45-0.65, i.e. turnover "
+                              "0.35-0.55, and ~47% is the middle of it. The "
+                              "floor+extra give 0.42 at first renewal decaying "
+                              "to 0.26, which IS the non-rent half of the "
+                              "target. Compounds with `move_med`: SPEC §8 "
+                              "calibrates the switching cost to the RENT-driven "
+                              "half of the same fact, so between them V2 is not "
+                              "a weak test, it is an identity -- and nothing in "
+                              "a per-parameter audit says so. PRINCIPLE G "
+                              "rule 1 (two parameters fitted to two halves of "
+                              "one fact fit the whole fact). "
+                              "AMENDMENT 11 SOURCED THE REPLACEMENT and left "
+                              "this default in place, so the class stands: the "
+                              "shipped 0.24 is still justified by the number it "
+                              "reproduces, and every published run used it. See "
+                              "P_EXO_CPS_NONHOUSING (0.0990, CPS ASEC 2023) and "
+                              "RESULTS-A11 -- K31 FIRED, and the fitted value "
+                              "implies 90.4% of moves are non-rent where the "
+                              "Census says 61.2%."),
+    "p_exo_extra": (CIRCULAR, "same source, same target: the other term of "
+                              "p_exo(j) = 0.24 + 0.18*exp(-(j-1)/3). AMENDMENT "
+                              "11: the CPS publishes reason for move by nine "
+                              "characteristics and NOT by length of residence, "
+                              "so the decay this term carries has no source at "
+                              "all -- the form the data supports is a constant. "
+                              "Ablated in RESULTS-A11 §2: the shape is worth "
+                              "under 0.2pp of retention."),
     "p_exo_tau": (INVENTED, "decay constant, no stated source"),
     # --- negotiation (SPEC §7) ---
-    "ask_frac": (UPSTREAM, "RealPage Jun 2026, ~6 weeks = 11% of annual rent"),
+    "ask_frac": (SCOPED, "SPEC §6: 'RealPage Jun 2026, ~6 weeks = 11% of "
+                         "annual rent'. The published number is what landlords "
+                         "GRANT. It is installed as the size of what tenants "
+                         "ASK, and every instrument is then sized to deliver "
+                         "that same crab value -- so Phase 1's largest possible "
+                         "rent concession is 1.0 x 0.11 BY CONSTRUCTION. "
+                         "IN SCOPE: existence and ORDERING claims -- which "
+                         "instrument the station prefers at equal crab value is "
+                         "what SPEC §6 set this up to isolate, and K1 turns on "
+                         "the ordering, not the size. OUT OF SCOPE: any claim "
+                         "about the MAGNITUDE of a concession, or about how "
+                         "much a tenant should ask for. Those read the input "
+                         "back out. Not a flat UPSTREAM (it would license the "
+                         "magnitude claims) and not a flat CIRCULAR (it would "
+                         "void K1, which does not depend on the level)."),
     "fee_cap_frac": (UPSTREAM, "ancillary fees ~4% of annual rent"),
     "term_cap": (INVENTED, "8%, no stated source"),
     "p_continue": (CIRCULAR, "SPEC §7: 'Without this, RANKED nests PRICE and K1 "
@@ -352,9 +449,23 @@ PARAM_SOURCES = {
     "courage_med": (CIRCULAR, "world.py:122 in terms: 'Set so that at the "
                               "pessimistic prior belief the endogenous counter "
                               "rate lands near the observed 39%.' The counter "
-                              "rate is the phenomenon arm F measures."),
+                              "rate is the phenomenon arm F measures. Read the "
+                              "sentence again: 'at the pessimistic prior "
+                              "belief' -- the fit is JOINT with `belief0`, "
+                              "which was fitted to the 61% complement of the "
+                              "same number." + AND_ONE_KNOB),
     "courage_sigma": (INVENTED, "no stated source"),
-    "belief0": (INVENTED, "0.10 -> '61% never try', an output not a source"),
+    "belief0": (CIRCULAR, "world.py:126 in terms: 'prior P(concession | ask): "
+                          "61% never try'. Its own first-pass note already read "
+                          "'an output not a source', which is the DEFINITION of "
+                          "CIRCULAR, not of INVENTED -- INVENTED means no "
+                          "published counterpart, and this one has a "
+                          "counterpart: it is the 39/61 counter-rate split, the "
+                          "phenomenon arm F measures. Second fit to the same "
+                          "fact `courage_med` was already fitted to, so the two "
+                          "together pin the counter rate from both ends "
+                          "(the cost of asking and the perceived odds of "
+                          "winning). PRINCIPLE G rule 1." + AND_ONE_KNOB),
     "learn_rate": (INVENTED, "0.40, no stated source"),
     # --- AMENDMENT 2 §A2-2 primitives ---
     "risk_rho": (UPSTREAM, "upper end of standard CRRA estimates"),
@@ -380,25 +491,292 @@ PARAM_SOURCES = {
     "belief_hi": (INVENTED, "clamp, no stated source"),
     "ask_scale_lo": (INVENTED, "clamp, no stated source"),
     "ask_scale_hi": (INVENTED, "clamp, no stated source"),
+    # --- AMENDMENT 8 (searchcost.py). Two are reused verbatim from market.py's
+    # pre-A8 declarations, two are new and swept. `move_med` stays CALIBRATED
+    # above: A8 does not repair it, it MEASURES what it should have been.
+    "VIEW_COST": (UPSTREAM, "= market.py APP_COST, declared before A8"),
+    "SPELL_COST": (UPSTREAM, "= market.py SEARCH_COST, declared before A8"),
+    "OVERRUN_COST": (UPSTREAM, "= A6a HOLDOVER + EMERGENCY, declared before A8"),
+    "MOVE_PHYSICAL": (UPSTREAM, "US local 1-2BR professional move, commonly "
+                                "quoted $1,000-2,000. Swept {0,0.5,1,1.5,2}; "
+                                "the sweep moves the derived median 0.48-2.48 "
+                                "months, so it is reported as a range"),
+    "TIME_COST": (INVENTED, "ANCHORED wage (ACS renter median already in "
+                            "demographics.py), INVENTED hours (~10/month). "
+                            "Swept."),
+    "BROKER_FEE": (UPSTREAM, "one month's rent where a broker fee is charged"),
+    "BROKER_SHARE": (INVENTED, "0.15, no published counterpart. Swept."),
+    # --- AMENDMENT 9 ---
+    "signal_cost": (INVENTED, "0.10 months to produce the proof; SPEC declared "
+                              "it swept before A9 existed"),
     # --- AMENDMENT 4 heuristics (armk.py, already labelled INVENTED there) ---
     "SATISFICE_FRAC": (INVENTED, "labelled INVENTED in armk.py"),
     "HEUR_ANCHOR": (INVENTED, "sized to match Phase 1's ask"),
     "HEUR_BUDGET_FRAC": (INVENTED, "labelled INVENTED in armk.py"),
     "HEUR_ROUNDS": (INVENTED, "2 rounds; ALSO a Principle A confound -- it is a "
                               "function of tenant_engine in negotiate_matrix"),
+
+    # =========================================================================
+    # market.py -- AMENDMENTS 5 / 5a / 6 / 6a / 8. THE COVERAGE GAP.
+    #
+    # None of the following was in any table until 2026-07-25. K22 (depth vs
+    # days-on-market), K23 (the engine and the deadline), K24 (deadline shape),
+    # K25 (answer early), K26 (secure an alternative) and GATE 3's V8/V9/V10 all
+    # run on these and only these. Two are CIRCULAR, three CALIBRATED, and the
+    # shipped value of one of them contradicts its own module docstring.
+    # =========================================================================
+
+    # --- the bargaining solution (A5) ---
+    "LAMBDA_SPLIT": (INVENTED, "market.py:38 'lambda_split = 0.5 is declared, "
+                               "not fitted' -- true, and not a source: a "
+                               "symmetric Nash split is a solution CONCEPT "
+                               "asserted, not a measured value. Legal because "
+                               "it is the same on both channels, which is what "
+                               "makes A5's channel comparison mean anything. "
+                               "Swept {0.25, 0.5, 0.75}."),
+    "RELET_RISK_ON": (INVENTED, "market.py:294, no stated basis anywhere: a "
+                                "hardcoded True that adds the sitting-vs-relet "
+                                "rent gap to the landlord's renewal walk-away. "
+                                "NEVER ABLATED in any reported cell, and K20's "
+                                "1.08x ratio is measured with it on -- the "
+                                "landlord's walk-away is turn + vacancy + THIS."),
+    "SEARCH_COST": (INVENTED, "market.py:42 '0.25 months ($500) viewings, "
+                              "applications, time'. A8.2 quotes it as one of "
+                              "the two numbers 'describing overlapping things, "
+                              "not speaking' -- no published counterpart."),
+    "APP_COST": (INVENTED, "market.py:43 '0.08 months ($160) switching between "
+                           "listings while already moving -- much smaller than "
+                           "a move'. A relative-size argument, not a source."),
+    "K_VISIBLE": (INVENTED, "market.py:45 '5 listings a searcher can see (local "
+                            "information only)'. No source; sets how much of "
+                            "the market a searcher's next-best option covers."),
+
+    # --- days-on-market (A5a.3) -- both install the relationship K22 tests ---
+    "DOM_LEARN": (CIRCULAR, "market.py:61 in terms: 'the expected remaining "
+                            "wait -- and thus the landlord's walk-away -- grows "
+                            "in days-on-market. THIS IS WHAT MAKES THE "
+                            "LANDLORD'S RESERVATION WEAKEN MONOTONICALLY IN "
+                            "DOM.' A5a.3's model requirement is 'the landlord's "
+                            "reservation must weaken monotonically in it', and "
+                            "K22 tests that requirement's consequence. RESULTS "
+                            "Phase 5 §3 then reports the monotone weakening as "
+                            "one of four VERIFIED unit properties; it is this "
+                            "constant's definition read back out. Magnitude "
+                            "0.35 has no source."),
+    "DOM_CUT": (CIRCULAR, "market.py:154 'a landlord that has sat unlet "
+                          "re-lists lower: 2% off the ask per month on market, "
+                          "capped. Concession DEPTH is then measured off the "
+                          "ORIGINAL listed ask.' K22 fires on 'concession depth "
+                          "rises with days-on-market'. Cutting the ask 2%/month "
+                          "in dom while measuring depth off the pre-cut ask "
+                          "installs exactly that, so the kill could only ever "
+                          "have measured the parameter. A5a.3 half-admits it "
+                          "('close to an accounting identity once vacancy is a "
+                          "flow') -- an identity is not a test. Only K22's "
+                          "UNDECIDED verdict kept this out of the findings. "
+                          "Magnitude 2%/month has no source."),
+    "BASE_LET_MONTHS": (UPSTREAM, "market.py:60 '30-41 day commonly cited let "
+                                  "times' -- a real published range, and NOT a "
+                                  "target of this model. But E[wait] is then a "
+                                  "READOUT of it: Phase 5 §3's 'E[wait] 1.15 -> "
+                                  "3.56 months from dom 0 -> 6' is literally "
+                                  "BASE_LET_MONTHS x (1 + DOM_LEARN x dom)."),
+
+    # --- elastic demand (A6.1) ---
+    "ETA_DEMAND": (UPSTREAM, "market.py:75-81, self-labelled 'ANCHORED range, "
+                             "INVENTED functional form': published headship-"
+                             "rate / household-formation elasticities sit "
+                             "around 0.5-1.5, and 1.0 is the primary with a "
+                             "PRE-DECLARED sweep {0.5,1.0,1.5,2.0}. The "
+                             "magnitude is upstream; the multiplicative form "
+                             "inflow = base x (M_ref/M)^eta is invented."),
+    "M_REF": (DERIVED, "= ANCHOR_RENT, the reference price level for entry"),
+
+    # --- the two clocks (A6a). Every one of these is INVENTED, and K25 is
+    #     measured entirely in the units they define. ---
+    "NOTICE_WINDOW": (INVENTED, "market.py:95 'months between the renewal offer "
+                                "and lease end'. Declared in Phase 8 before "
+                                "running; no published source given, and it "
+                                "equals RESP_DELAY_MAX, so K25's last bucket "
+                                "IS the whole window by construction."),
+    "LEAD_MEDIAN": (INVENTED, "market.py:96-97 self-labelled 'LABEL: INVENTED "
+                              "distribution'"),
+    "LEAD_SIGMA": (INVENTED, "same distribution, same label"),
+    "CLIFF_CONVEX": (INVENTED, "market.py:98 'walk-away rises convexly as "
+                               "usable time runs out'. Shape asserted, "
+                               "magnitude 0.5 unsourced. K24 ABLATED it (linear "
+                               "mean-matched ramp) and found it carries 13% of "
+                               "the effect -- which is the model of how an "
+                               "invented constant should be handled."),
+    "HOLDOVER_MONTHS": (INVENTED, "market.py:99 'penalty-rent differential on a "
+                                  "holdover tenancy'. Real institution, no "
+                                  "cited number."),
+    "EMERGENCY_MONTHS": (INVENTED, "market.py:100 'temporary housing, storage, "
+                                   "emergency-move premium'. Same."),
+    "LAND_LIN_RATE": (INVENTED, "market.py:101 'each month of delay adds 15% to "
+                                "E[vacancy]. The landlord gets NO cliff, per "
+                                "A6a.3.' The no-cliff shape is registered; the "
+                                "15% is not sourced. It is the landlord half of "
+                                "the mechanism K24 found to be LEVEL, so the "
+                                "level in question is this and CLIFF_* only."),
+    "RESP_DELAY_MAX": (INVENTED, "market.py:103 'exogenous tenant response "
+                                 "delay, 0..3 months. Drawn independently of "
+                                 "type so K25 is a causal comparison rather "
+                                 "than the survivorship trap K21 fell into.' "
+                                 "The independence is a design property worth "
+                                 "keeping; the 0-3 range has no source."),
+
+    # --- the ask rule. Where the vacancy rate gets installed. ---
+    "VAC_ADJUST": (CALIBRATED, "RESULTS Phase 5 §5 in terms: 'I tried three "
+                               "calibrations (searcher inflow 0.035-0.25) and a "
+                               "much stronger ask-adjustment (0.6 -> 3.0).' "
+                               "Retuned AFTER seeing the deflation, i.e. fitted "
+                               "to an output. DEFECT TO REPORT, NOT TO FIX "
+                               "HERE: market.py's own module docstring still "
+                               "declares 'vac_adjust 0.6' while line 162 ships "
+                               "3.0, so the declared-before-running value and "
+                               "the run value differ by 5x."),
+    "V_TARGET": (CALIBRATED, "market.py:47 'the vacancy a station prices "
+                             "toward', 0.06 -- the observed ~6% US apartment "
+                             "vacancy that `searcher_inflow` is ALSO explicitly "
+                             "calibrated to. Same fact entered twice, on the "
+                             "supply side and the demand side, so the reported "
+                             "vacancy LEVEL is a readout. The SIGN of the "
+                             "supply response (V8) does not come from it."),
+
+    # --- MarketParams fields ---
+    "exit_share": (INVENTED, "market.py:175 'leavers who exit the market "
+                             "entirely (left the metro), so they do not fill "
+                             "the listing they vacated. This is what creates "
+                             "slack for vacancy to exist.' A mechanism "
+                             "argument for why it is non-zero, not a source "
+                             "for 0.15."),
+    "searcher_inflow": (CALIBRATED, "market.py:179-186 says so itself: "
+                                    "'CALIBRATED so baseline vacancy lands near "
+                                    "the observed ~6% US apartment vacancy. A "
+                                    "level calibration to a published "
+                                    "aggregate, not to any kill.' The second "
+                                    "sentence is the right disclosure and the "
+                                    "consequence still holds: the vacancy level "
+                                    "may not be claimed."),
+    "completions_frac": (INVENTED, "the V8 supply-shock dose (0.30 in the "
+                                   "reported cell). No source; V8 is a "
+                                   "DIRECTIONAL bar, so the dose sets the "
+                                   "magnitude of the response and not its sign."),
+    "completions_year": (INVENTED, "market.py:187 'GATE 3 V8: a supply shock "
+                                   "lands here'. Timing, no source."),
+    "completions_span": (INVENTED, "3 years to deliver the shock, no source"),
+    "precedent": (INVENTED, "A5.3: 'Model it; do not assume its magnitude.' "
+                            "Default 0.0 -- not assumed -- and swept {0.002, "
+                            "0.01}. The honest handling of an unknown."),
+    "signal_cost": (INVENTED, "market.py:210 'months of market rent to produce "
+                              "the proof (forward the offer letter, pay a "
+                              "holding deposit). DECLARED, swept.' 0.10 has no "
+                              "source. Inert in every reported cell: "
+                              "`signal_enabled` is False throughout, which is "
+                              "why K26's null is a property of the setup."),
+    "lambda_split": (DERIVED, "= LAMBDA_SPLIT"),
+    "eta_demand": (DERIVED, "= ETA_DEMAND"),
+
+    # --- world.py module scope (previously covered only via `Params`) ---
+    "ANCHOR_RENT": (INVENTED, "SPEC §1: '$2,000/month converts to dollars for "
+                              "reporting'. Free in world.py, which is "
+                              "scale-free by construction -- but NOT free in "
+                              "market.py, where it is the initial rent level "
+                              "AND M_REF, the price entry responds to."),
+    "ANNUAL_RENT": (DERIVED, "12 x ANCHOR_RENT; the fixed $24,000 denominator "
+                             "for every '% of annual rent' bar in PREREG §5"),
+    "REGIMES": (DERIVED, "the per-regime values of `drift` and `vacancy` and "
+                         "nothing else -- both classified above, and `vacancy` "
+                         "is CIRCULAR. A8.3 is the standing objection to the "
+                         "table existing at all: the regimes are imposed where "
+                         "search frictions should generate them."),
+
+    # --- AMENDMENT 11 (world.py module scope). The sourced replacements for the
+    # two CIRCULAR loops below. Declared here, NOT installed as `Params`
+    # defaults: the defaults are what every published run used, and PREREG-A11
+    # §A11.1 fixes that they do not move, so the before/after tables stay
+    # reproducible and three concurrent workers are not silently invalidated.
+    "CPS_RENTER_MOVER_RATE": (UPSTREAM, "US Census Bureau, Geographic Mobility: "
+                              "2023 (2023 CPS ASEC, released 2024-12-10), "
+                              "Table 1 mig_01_2023_1yr.xlsx, row 'In a "
+                              "renter-occupied housing unit': 16,337 movers / "
+                              "101,024 total = 16.171%/yr. A different survey, "
+                              "producer, unit of analysis and quantity from the "
+                              "NAA/RealPage apartment turnover V2 measures. "
+                              "LIMITATION, declared in PREREG-A11 §A11.2.5: "
+                              "person-weighted, all renters, tenure recorded at "
+                              "the DESTINATION -- so a renter who bought is in "
+                              "the owner row and this UNDERSTATES exit from a "
+                              "rental."),
+    "CPS_NONHOUSING_SHARE": (UPSTREAM, "same package, Table 13 "
+                             "mig_13_2023_1yr.xlsx, same row: (family 3,496 + "
+                             "employment 3,845 + other 2,665) / 16,337 = "
+                             "0.6125. Mapping M1, the literal 'non-housing "
+                             "share' and the conservative one -- it lets every "
+                             "housing-related reason count as a rent response."),
+    "CPS_NONPRICE_SHARE": (UPSTREAM, "same table, same row: 1 - (cheaper "
+                           "housing 1,793 / 16,337) = 0.8902. Mapping M2, the "
+                           "model's own reading -- the endogenous exit is a "
+                           "logit on price against market, and 'cheaper "
+                           "housing' is the Census category that is a price "
+                           "response. Wanting a bigger apartment, a better "
+                           "neighbourhood or to buy are exogenous, which is "
+                           "what world.p_exo's docstring already said."),
+    "P_EXO_CPS_NONHOUSING": (DERIVED, "CPS_RENTER_MOVER_RATE x "
+                             "CPS_NONHOUSING_SHARE = 0.099046/yr. The A11 "
+                             "PRIMARY. Flat in tenure: CPS publishes reason for "
+                             "move by nine characteristics and NOT by length of "
+                             "residence, so the shipped exp(-(j-1)/3) has no "
+                             "source and is demoted to an INVENTED shape and "
+                             "ablated (PREREG-A11 §A11.2.3)."),
+    "P_EXO_CPS_NONPRICE": (DERIVED, "CPS_RENTER_MOVER_RATE x "
+                           "CPS_NONPRICE_SHARE = 0.143966/yr, the M2 secondary"),
+    "COURAGE_WAGE_HOURLY": (UPSTREAM, "demographics.INCOME_MEDIAN $75,000 "
+                            "(ANCHORED, ACS renter median, market-rate segment) "
+                            "/ 2080 h = $36.06/h -- the same conversion "
+                            "searchcost.TIME_COST already declared before A11. "
+                            "A wage is upstream of rent-setting: what a tenant "
+                            "earns is not a function of how hard landlords push "
+                            "at renewal."),
+    "COURAGE_MED_1H": (INVENTED, "COURAGE_WAGE_HOURLY / ANCHOR_RENT = 0.018029 "
+                       "months ($36.06), one hour to read the notice, check two "
+                       "comparable listings and write the email. ANCHORED wage, "
+                       "INVENTED hours -- the label TIME_COST already carries -- "
+                       "and swept over 15 min to 80 h. It replaces a value that "
+                       "was 9.98 hours of the same wage to send one email, "
+                       "which is not a cost but a fitted residual wearing a "
+                       "cost's name. Everything above the time cost (fear of "
+                       "retaliation, conflict aversion) has NO published dollar "
+                       "value, so it is swept rather than fixed."),
 }
 
 
-# Fields of `Params` that are NOT constants and therefore need no source: they
-# select an arm, or they fix the geometry of the run. Kept explicit so that a
-# new constant cannot be smuggled in by not declaring it.
+# Fields of `Params` / `MarketParams` that are NOT constants and therefore need
+# no source: they select an arm, or they fix the geometry of the run. Kept
+# explicit so that a new constant cannot be smuggled in by not declaring it.
 ARM_SELECTORS = frozenset({
     "size_scaled_face", "menu_costs", "ask_mode", "no_concessions",
     "negotiator", "tenant_engine", "landlord_engine", "drop_term",
     "ladder_continues",
+    # --- MarketParams. Each names the kill or amendment it switches. ---
+    "tenant_sees_dom",      # K23: does the tenant negotiator see the timing?
+    "deadline_shape",       # A6a on/off -- the "none" row of K24's table
+    "tenant_clock_linear",  # K24's mean-matched ablation
+    "secured_share",        # K26's treatment share
+    "signal_enabled",       # K26 AUDIT; False in every reported cell
+    "derive_switching",     # A8; separate rng, off in every reported cell
 })
 STRUCTURAL = frozenset({
     "n_stations", "units", "j_max", "comp_nodes", "blanket_grid",
+    # --- module scope: labels, enum indices and rng slot geometry. These name
+    # positions, not quantities, so there is nothing for a source to be.
+    "NEVER_ASK", "ASK_PRICE", "ASK_RANKED",
+    "ONE_TIME", "FEES", "TERM", "RENT", "KIND_NAMES",
+    "U_STRAT", "U_CP", "U_CT", "U_EXO", "U_LOGIT", "U_TEN0", "U_PATIENCE",
+    "U_SUB", "U_LOCKEXO", "U_RESTRAT", "U_TCOST", "U_VAC", "U_COURAGE",
+    "U_MPGRANT", "U_EXODUS", "U_TOOL", "U_DEMO", "N_UNIFORMS",
+    "RENEWAL", "NEW_LET", "MONTHS",
 })
 
 
@@ -414,10 +792,89 @@ def undeclared_parameters(params_cls=None) -> list:
                   and k not in STRUCTURAL)
 
 
+# The modules whose module-level constants must be declared, and the dataclasses
+# whose fields must be. This is the COVERAGE half of Principle C: the first audit
+# classified `Params` exhaustively and never noticed that `market.py` held
+# another twenty-odd constants in no table at all -- the ones K22-K27 and GATE 3
+# run on. A table that covers one module is not a table, it is a sample.
+DECLARED_MODULES = ("crabs.world", "crabs.market")
+DECLARED_DATACLASSES = (("crabs.world", "Params"),
+                        ("crabs.market", "MarketParams"))
+
+
+def module_constants(module_name: str) -> list:
+    """Public names bound by an assignment at MODULE scope in `module_name`'s
+    own source.
+
+    Read off the AST rather than `dir()`, for two reasons: a name imported from
+    elsewhere (`ANCHOR_RENT` inside `market`) belongs to the module that DEFINES
+    it and must not be demanded twice, and a module-level constant added in a
+    branch or a tuple-unpack (`RENEWAL, NEW_LET = 0, 1`) is invisible to a
+    line-oriented grep but not to this."""
+    import importlib
+    mod = importlib.import_module(module_name)
+    try:
+        src = inspect.getsource(mod)
+    except (OSError, TypeError):                          # pragma: no cover
+        return []
+    out = []
+    for node in ast.parse(src).body:
+        targets = []
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, (ast.AnnAssign, ast.AugAssign)):
+            targets = [node.target]
+        for t in targets:
+            for leaf in ([t] if isinstance(t, ast.Name)
+                         else [e for e in getattr(t, "elts", [])
+                               if isinstance(e, ast.Name)]):
+                nm = leaf.id
+                if nm.startswith("_") or nm in out:
+                    continue
+                if callable(getattr(mod, nm, None)):      # a def-by-assignment
+                    continue
+                out.append(nm)
+    return out
+
+
+def dataclass_fields(module_name: str, cls_name: str) -> list:
+    import importlib
+    cls = getattr(importlib.import_module(module_name), cls_name)
+    return sorted(cls().__dict__)
+
+
+def undeclared_symbols() -> dict:
+    """PRINCIPLE C, the coverage half. {where: [symbols]} for every module-level
+    constant and every dataclass field with no entry in `PARAM_SOURCES` and no
+    explicit structural / arm-selector declaration.
+
+    Empty is the only passing value. A non-empty return names exactly what to
+    write down, which is the point: the cost of adding a constant should be one
+    line in the table, paid at write time."""
+    out = {}
+    def missing(names):
+        return sorted(n for n in names if n not in PARAM_SOURCES
+                      and n not in ARM_SELECTORS and n not in STRUCTURAL)
+    for m in DECLARED_MODULES:
+        if (gap := missing(module_constants(m))):
+            out[m] = gap
+    for m, c in DECLARED_DATACLASSES:
+        if (gap := missing(dataclass_fields(m, c))):
+            out[f"{m}.{c}"] = gap
+    return out
+
+
 def circular_parameters() -> dict:
     """Every constant whose stated justification is the phenomenon under study.
     A non-empty return is a standing defect list, not a pass."""
     return {k: v[1] for k, v in PARAM_SOURCES.items() if v[0] == CIRCULAR}
+
+
+def scoped_parameters() -> dict:
+    """Constants that are upstream for some claims and circular for others. The
+    entry itself has to say which, so reading the class alone is never enough --
+    that is the price of not forcing a wrong binary."""
+    return {k: v[1] for k, v in PARAM_SOURCES.items() if v[0] == SCOPED}
 
 
 def unsourced_parameters() -> dict:

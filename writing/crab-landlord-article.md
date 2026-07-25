@@ -44,6 +44,10 @@ The obvious explanation is bureaucracy. Nobody reads your email; a policy gets a
 
 So the interesting question isn't the one the advice industry asks. It isn't *how do I make them move.* It's *why don't they move as often as their own spreadsheet says they should.*
 
+There's a matching question on your side of the table, and it has a sharper answer. Only 39% of renters ever try to negotiate. I went looking for a cost that would explain the other 61%: the time it takes, the awkwardness, the fear of being marked as trouble. No cost works. To make the model produce the observed 39%, sending a single email has to cost the tenant between **27 and 55 hours of their own wages**, roughly $965 to $1,995.
+
+It doesn't cost that. Which means whatever stops people from asking is not a cost, and every piece of advice built on lowering the effort is aimed at the wrong thing.
+
 ## Asking works because of what it tells them
 
 About 22% succeed, and that roughly doubles once you've been somewhere two years. There are two very different reasons that could be true. Either asking *selects* for the people who were leaving anyway, or asking *tells the landlord something it didn't already know*.
@@ -60,9 +64,15 @@ If the value of asking comes from asking being informative, then it comes from m
 
 So I ran adoption from one percent to a hundred. Success falls from about **0.97 to about 0.05.** Monotone, in both a rising and a falling market.
 
-The value of a negotiation tool is an inverted U. It peaks around 30% adoption and goes to nearly nothing at saturation.
+**Success rate is an inverted U in adoption.** It peaks around 30% and goes to nearly nothing at saturation.
 
-I sell negotiation software. This is the shape of my own category, and it says the product is worth most in exactly the window where hardly anyone has it.
+And when I stopped assuming how many people ask and let the model settle it, nearly everyone asked. At that point the aggregate turns negative: roughly $100 moves from landlords to tenants, and roughly $187 of value is destroyed getting it there.
+
+I sell negotiation software, so let me be exact about what that does and doesn't say. It's a result about one kind of value: the kind you get from knowing something the other side doesn't. That kind has a shelf life, and it's the kind everybody sells on.
+
+It says nothing about the other kind. I never measured how long a negotiation takes to resolve, or whether either side walks away believing the process was fair. Both are worth real money, and neither depends on being unusual, so neither should decay the way this does. A tool that gets two parties to the same number in one round instead of five is worth the same at full adoption as at one percent.
+
+So the honest version is narrower than the alarming one. The arbitrage decays. Whether anything else does is a question I haven't run yet.
 
 ## So who actually has leverage
 

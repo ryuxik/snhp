@@ -1,0 +1,264 @@
+"""Molt Season v4 harness — PREREG AMENDMENT 3.
+
+    python3 research/molt/run4.py            # main seeds
+    python3 research/molt/run4.py --quick
+    python3 research/molt/run4.py --confirm
+
+Three changes from v3, all of them A3: a promotion is a 12% level change drawing
+on TWO budgets, it raises the crab's market value (portability), and slots are a
+consumable quota — so **each arm carries its own copy of the season** and depletes
+it. Crabs are processed in the same fixed order in every arm; arms diverge in
+*who* got a slot, which is the treatment and not a confound, but it does mean the
+arms no longer share state. That caveat travels with every v4 number.
+"""
+from __future__ import annotations
+
+import argparse
+import copy
+import json
+import math
+import os
+import sys
+from multiprocessing import Pool
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_RESEARCH = os.path.dirname(_HERE)
+_ROOT = os.path.dirname(_RESEARCH)
+for _p in (_RESEARCH, _ROOT, os.path.join(_ROOT, "snhp")):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+import numpy as np
+
+from molt.arms3 import (REPORTED_ARCHETYPES, arm_sign3, settle3, sitting_crab3,
+                        sitting_works3, slow_archetype3)
+from molt.v2 import draw_crab2
+from molt.v3 import (Package, Params3, Season, p_leave_true3, replacement_cost,
+                     solve_tau3)
+
+N_CRABS = 40
+N_SEASONS = 12
+MAIN_SEEDS = (7, 11, 23, 31)
+CONFIRM_SEED = 101
+PROMO_RAISES = (0.06, 0.12, 0.20)
+
+FIELDS = ("crab", "cash", "works", "days", "exchanges", "concession", "mgr",
+          "distraction", "replacement", "match", "retention_value")
+FLAGS = ("agreed", "left", "walked", "disclosed", "granted_title",
+         "granted_berth", "granted_deep", "granted_pto")
+
+
+def a3(**kw):
+    """The Amendment-3 world."""
+    base = dict(promo_raise=0.12, promo_market_lift=0.05, slot_frac=0.12)
+    base.update(kw)
+    return Params3(**base)
+
+
+def all_archetypes():
+    from b2b_opponents import B2B_OPPONENTS
+    return sorted(B2B_OPPONENTS)
+
+
+def arm_names():
+    n = ["A_sign", "D_sitting_crab", "E_sitting_works"]
+    n += [f"B|{a}|best_first" for a in all_archetypes()]
+    n += [f"B|{a}|{o}" for a in REPORTED_ARCHETYPES
+          for o in ("money_first", "random")]
+    return n
+
+
+def retention_value(p, c, sea):
+    """What a promotion is WORTH as retention for this crab: the replacement cost
+    it protects, times the fall in P(leave) it buys. K20 asks whether the engine
+    aims the scarce slots at the crabs where this is large."""
+    hi = Package(title=True)
+    lo = Package()
+    return replacement_cost(p, c) * (p_leave_true3(p, c, lo)
+                                     - p_leave_true3(p, c, hi))
+
+
+def run_one(args):
+    seed, cred, tau, nc, ns, praise = args
+    p_on = a3(credibility=cred, disclose_tau=tau, clock=True, promo_raise=praise)
+    p_off = a3(credibility=cred, disclose_tau=tau, clock=False, promo_raise=praise)
+    names = arm_names()
+    on = {a: {f: [] for f in FIELDS + FLAGS} for a in names}
+    off = {a: {f: [] for f in FIELDS + FLAGS} for a in names}
+    rng = np.random.default_rng(seed)
+    ordrng = np.random.default_rng(seed + 500_000)
+
+    for season in range(ns):
+        sea0 = Season.draw(p_on, rng, nc)
+        # A3.4: one quota per ARM, depleted independently
+        seas = {a: copy.deepcopy(sea0) for a in names}
+        for i in range(nc):
+            c = draw_crab2(i, p_on, rng)
+            s = int(seed) * 100_000 + season * 100 + i
+            rv = retention_value(p_on, c, sea0)
+            rows = {}
+            rows["A_sign"] = arm_sign3(p_on, c, seas["A_sign"])
+            rows["D_sitting_crab"] = sitting_crab3(p_on, c, seas["D_sitting_crab"], s)
+            rows["E_sitting_works"] = sitting_works3(p_on, c, seas["E_sitting_works"], s)
+            for a in all_archetypes():
+                k = f"B|{a}|best_first"
+                rows[k] = slow_archetype3(p_on, c, seas[k], a, "best_first", ordrng)
+            for a in REPORTED_ARCHETYPES:
+                for o in ("money_first", "random"):
+                    k = f"B|{a}|{o}"
+                    rows[k] = slow_archetype3(p_on, c, seas[k], a, o, ordrng)
+            for name, r in rows.items():
+                if r["pkg"].title and not r["left"]:
+                    seas[name].slots_left -= 1        # the slot is now gone
+                _push(on[name], r, rv)
+                _push(off[name], settle3(p_off, c, seas[name], r["pkg"], 1.0,
+                                         r["meetings"], r["exchanges"],
+                                         r["disclosed"]), rv)
+    return {"on": _arr(on), "off": _arr(off)}
+
+
+def _push(d, r, rv):
+    for f in FIELDS:
+        d[f].append(rv if f == "retention_value" else r[f])
+    for f in FLAGS:
+        d[f].append(1.0 if r[f] else 0.0)
+
+
+def _arr(d):
+    return {a: {f: np.asarray(v, float) for f, v in x.items()}
+            for a, x in d.items()}
+
+
+def merge(cells):
+    out = {}
+    for cond in ("on", "off"):
+        acc = {}
+        for cell in cells:
+            for a, d in cell[cond].items():
+                acc.setdefault(a, {f: [] for f in d})
+                for f, v in d.items():
+                    acc[a][f].append(v)
+        out[cond] = {a: {f: np.concatenate(v) for f, v in d.items()}
+                     for a, d in acc.items()}
+    return out
+
+
+def paired(cell, a, b):
+    o = {}
+    for f in ("crab", "cash", "works", "days", "concession", "left",
+              "granted_title"):
+        d = cell[a][f] - cell[b][f]
+        o[f] = float(np.mean(d))
+        o[f + "_se"] = float(np.std(d, ddof=1) / math.sqrt(len(d)))
+    dj = (cell[a]["crab"] + cell[a]["works"]) - (cell[b]["crab"] + cell[b]["works"])
+    o["joint"] = float(np.mean(dj))
+    o["joint_se"] = float(np.std(dj, ddof=1) / math.sqrt(len(dj)))
+    return o
+
+
+def means(cell):
+    out = {}
+    for a, d in cell.items():
+        out[a] = {f: float(np.mean(v)) for f, v in d.items()}
+        out[a]["joint"] = out[a]["crab"] + out[a]["works"]
+        out[a]["n"] = int(len(d["crab"]))
+    return out
+
+
+def targeting(cell, a):
+    """K20: point-biserial correlation between getting a slot and the retention
+    value that slot buys."""
+    g, rv = cell[a]["granted_title"], cell[a]["retention_value"]
+    if g.std() < 1e-9 or rv.std() < 1e-9:
+        return 0.0
+    return float(np.corrcoef(g, rv)[0, 1])
+
+
+def flight(cell, a):
+    """K21: departure rate among promoted vs unpromoted."""
+    g = cell[a]["granted_title"] == 1.0
+    if g.sum() < 20 or (~g).sum() < 20:
+        return None
+    return {"promoted": float(np.mean(cell[a]["left"][g])),
+            "not": float(np.mean(cell[a]["left"][~g])),
+            "n_promoted": int(g.sum())}
+
+
+def report(cell):
+    m = means(cell)
+    pr = {f"{a}-A_sign": paired(cell, a, "A_sign") for a in cell if a != "A_sign"}
+    for a in [x for x in cell if x.startswith("B|")]:
+        pr[f"D_sitting_crab-{a}"] = paired(cell, "D_sitting_crab", a)
+    tg = {a: targeting(cell, a) for a in cell}
+    fl = {a: flight(cell, a) for a in ("D_sitting_crab", "E_sitting_works")}
+    bs = {}
+    for arch in REPORTED_ARCHETYPES:
+        a = f"B|{arch}|best_first"
+        if a not in cell:
+            continue
+        k = (cell["D_sitting_crab"]["left"] == 0.0) & (cell[a]["left"] == 0.0)
+        if k.sum() < 10:
+            continue
+        bs[arch] = {"n": int(k.sum())}
+        for nm, lab in (("D_sitting_crab", "sitting"), (a, "slow")):
+            bs[arch][lab] = {f: float(np.mean(cell[nm][f][k]))
+                             for f in ("crab", "cash", "concession",
+                                       "granted_title", "granted_pto",
+                                       "granted_berth", "granted_deep")}
+    return {"means": m, "paired": pr, "targeting": tg, "flight": fl,
+            "both_stay": bs}
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--quick", action="store_true")
+    ap.add_argument("--confirm", action="store_true")
+    ap.add_argument("--out", default=None)
+    args = ap.parse_args()
+    if args.quick:
+        seeds, ns, nc, tag = (7,), 1, 20, "quick"
+    elif args.confirm:
+        seeds, ns, nc, tag = (CONFIRM_SEED,), N_SEASONS, N_CRABS, "confirm"
+    else:
+        seeds, ns, nc, tag = MAIN_SEEDS, N_SEASONS, N_CRABS, "main"
+
+    out = {"tag": tag, "seeds": list(seeds), "n_crabs": nc, "n_seasons": ns,
+           "archetypes": all_archetypes(),
+           "reported_archetypes": list(REPORTED_ARCHETYPES),
+           "promo_raise": 0.12, "promo_market_lift": 0.05, "slot_frac": 0.12}
+    sal = []
+    rng = np.random.default_rng(seeds[0])
+    for _ in range(ns):
+        for i in range(nc):
+            sal.append(draw_crab2(i, a3(), rng).salary)
+    out["mean_salary"] = float(np.mean(sal))
+
+    for cred in ("verifiable", "unverifiable"):
+        tau = solve_tau3(a3(credibility=cred))
+        out[f"tau_{cred}"] = tau
+        print(f"[{tag}/{cred}] tau={tau:.4f} ...", flush=True)
+        jobs = [(s, cred, tau, nc, ns, 0.12) for s in seeds]
+        with Pool(min(len(jobs), 4)) as pool:
+            cells = pool.map(run_one, jobs)
+        merged = merge(cells)
+        out[cred] = {"clock_on": report(merged["on"]),
+                     "clock_off": report(merged["off"])}
+
+    if tag == "main":
+        sweep = {}
+        for pr in PROMO_RAISES:
+            print(f"[promo_raise {pr}] ...", flush=True)
+            cells = [run_one((7, "verifiable", out["tau_verifiable"], nc, ns, pr))]
+            merged = merge(cells)
+            sweep[str(pr)] = {"clock_on": report(merged["on"]),
+                              "clock_off": report(merged["off"])}
+        out["promo_sweep"] = sweep
+
+    path = args.out or os.path.join(_HERE, f"results_v4_{tag}.json")
+    with open(path, "w") as fh:
+        json.dump(out, fh, indent=1)
+    print("wrote", path)
+
+
+if __name__ == "__main__":
+    main()

@@ -20,7 +20,8 @@ for _p in (_RESEARCH, os.path.dirname(_RESEARCH)):
 import numpy as np
 
 from crabs.emergent import EmergentDP
-from crabs.run import EXPLORATORY, N_NODES, PILOT_SEEDS, derive, _d
+from crabs.run import (EXPLORATORY, N_NODES, PILOT_SEEDS, derive,
+                       station_key, _d)
 from crabs.world import (ASK_PRICE, ASK_RANKED, Params, new_recorder,
                          regime_params, simulate_station, switching_cost_nodes)
 
@@ -41,14 +42,16 @@ def _base(units, **over):
 
 
 def _dp(base, regime, wc=None):
-    key = (regime, base.units, base.risk_rho, base.comp_sigma0, base.nonpec0,
-           base.raise_cost0, base.turn_scale_beta, base.size_scaled_face,
-           base.agent_bonus, base.menu_costs, base.ask_mode, base.no_concessions,
-           wc is not None)
+    # DEFECT FIXED 2026-07-25 (AMENDMENT 11). The key listed the eleven
+    # parameters this file happens to ablate and omitted the rest -- including
+    # `p_exo_*`, which `_leave_table` reads directly. See `run.station_key`.
+    # Behaviour-preserving for the shipped specs, whose every varied parameter
+    # was already in the old key.
+    nodes, w = _C["prior"]
+    p = regime_params(base, regime)
+    key = station_key(p, nodes, w, 0.0, False) + (wc is not None,)
     if key not in _C:
-        nodes, w = _C["prior"]
-        _C[key] = EmergentDP(regime_params(base, regime), nodes, w,
-                             weights_counter=wc)
+        _C[key] = EmergentDP(p, nodes, w, weights_counter=wc)
     return _C[key]
 
 

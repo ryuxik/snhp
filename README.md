@@ -101,20 +101,36 @@ snhp                                                # stdio MCP server
 
 ## Empirical anchor
 
-### Two different numbers — keep them straight
+### Several different numbers — keep them straight
 
-There are two distinct measurements; conflating them is the easy mistake.
+These are distinct measurements; conflating them is the easy mistake. **They are
+ordered by how much weight they can carry, not by when we ran them.** The first was
+pre-registered and validated on data it had never seen; the rest were not, and are
+reported here with the caveats that implies.
 
-**1. Head-to-head competitive margin (the product-relevant number).** In a
+**1. The certification gauntlet (pre-registered, held-out) — the number to trust.**
+A certified agent's mean own-utility beats a **split-the-difference** baseline by
+**+0.1086** across **n=360** seeded negotiations (60 scenarios × 2 roles × 3 frozen
+scripted opponents: naive, hardball, conceder), **p=0.0001**, separating on both the
+public set *and* a held-out set that had never been used. The counterparty pool and
+the statistic were frozen in `arena/gauntlet/PREREG-pool.md` **before the code
+existed**. It carries the most weight precisely because it could have failed on the
+record — and an earlier cut of this certificate *did* fail (three statistics saturated
+against a fixed counterparty; see `arena/gauntlet/certs/SEPARATION.md`), which is why
+the protocol was re-registered rather than re-tuned. Scope is exactly the declared
+pool and no wider.
+
+**2. Head-to-head competitive margin (not registered in advance).** In a
 SNHP-scaffolded LLM vs a non-SNHP LLM, how much more of the surplus does the SNHP
 side capture? On the committed cross-vendor run (`gametheory/server/static/e6_cross_vendor.json`,
 Sonnet+SNHP vs Haiku, n=20 paired seeds) the pooled margin is **~+12.5%**
-(`mean h3_margin ≈ 0.125`, 29/40 positive signs). This is the number the shipped
-tools cite as "~12% better head-to-head." Caveats: n=20, LLM-vs-LLM, single-issue
-price, and the opponent is a *general* vanilla prompt — see the strong-baseline
-note below.
+(`mean h3_margin ≈ 0.125`, 29/40 positive signs). Some shipped copy still cites this
+as "~12% better head-to-head." Read it with the caveats: n=20, LLM-vs-LLM,
+single-issue price, no pre-registration, and the opponent is a *general* vanilla
+prompt — against a competent one the edge roughly halves (see the strong-baseline test
+below). Where this and (1) disagree, prefer (1).
 
-**2. Joint-welfare lift in self-play (a cooperation metric, NOT the same thing).**
+**3. Joint-welfare lift in self-play (a cooperation metric, NOT the same thing).**
 Two-Sonnet B2B contract negotiation, n=20 paired seeds:
 
 | Condition | Joint welfare (frontier ≈ 1.57, estimated) |
@@ -129,9 +145,9 @@ Lift from both sides adopting the SNHP tool: **+0.186 joint welfare**, sign test
 the frontier was estimated on a coarse grid, so treat these as "at the frontier,"
 not "beyond it.") Cost: $0.025 per matchup at 2026-04 pricing.
 
-### 3. The build-vs-buy test: SNHP vs a STRONG production prompt
+### 4. The build-vs-buy test: SNHP vs a STRONG production prompt
 
-Both numbers above are vs a *general* vanilla prompt. The sharper question — "why not
+Numbers (2) and (3) above are vs a *general* vanilla prompt. The sharper question — "why not
 just prompt the LLM well?" — is answered by running SNHP against a strong production
 prompt (`snhp/llm_strong_baseline.py`, whose system prompt even includes logrolling
 advice). On the 4-issue contract, Haiku+SNHP-tool vs Haiku+strong-prompt, n=12 paired

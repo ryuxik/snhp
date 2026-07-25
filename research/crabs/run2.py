@@ -27,7 +27,8 @@ import numpy as np
 from crabs.landlords import (INSTITUTIONAL, MEDIUM, MOM_AND_POP, TYPE_GEOMETRY,
                              make_landlord)
 from crabs.policies import StationDP
-from crabs.run import EXPLORATORY, MAIN_SEEDS, N_NODES, derive, pilot_prior, _d
+from crabs.run import (EXPLORATORY, MAIN_SEEDS, N_NODES, derive, pilot_prior,
+                       station_key, _d)
 from crabs.world import (ASK_PRICE, ASK_RANKED, Params, Shock, new_recorder,
                          regime_params, simulate_station)
 
@@ -152,19 +153,25 @@ def p_meas_regime(spec):
 
 
 def _get(base, ltype, regime, nodes, w, share, adaptive):
-    key = (ltype, regime, round(share, 4), bool(adaptive), base.units,
-           base.face_premium, base.sigma_turn)
+    # DEFECT FIXED 2026-07-25 (AMENDMENT 11). The key was
+    # `(ltype, regime, share, adaptive, units, face_premium, sigma_turn)` and
+    # omitted every other parameter the landlord's DP reads, so a sweep of
+    # `p_exo_*`, `courage_med`'s DP-visible neighbours, `move_med` or
+    # `renewal_cap` silently reused another cell's solved policy. Same fix as
+    # `run.station_key`: key on the whole frozen `Params` plus a fingerprint of
+    # the prior. See that docstring.
+    p = regime_params(base, regime)
+    key = (ltype,) + station_key(p, nodes, w, share, adaptive)
     if key not in _CACHE:
-        p = regime_params(base, regime)
         _CACHE[key] = make_landlord(ltype, p, nodes, w, share=share,
                                     adaptive=adaptive)
     return _CACHE[key]
 
 
 def _mom_variant(base, regime, nodes, w, hold):
-    key = ("momv", regime, bool(hold), base.units, base.sigma_turn)
+    p = regime_params(base, regime)
+    key = ("momv", bool(hold)) + station_key(p, nodes, w, 0.0, False)
     if key not in _CACHE:
-        p = regime_params(base, regime)
         ll = make_landlord(MOM_AND_POP, p, nodes, w)
         ll.no_increase = hold
         _CACHE[key] = ll

@@ -1123,6 +1123,8 @@ def test_the_engine_matrix_arms_the_two_sides_with_different_weapons():
 # record is not updated, or when a new one is added.
 # =============================================================================
 
+import inspect                                                     # noqa: E402
+
 from crabs import principles as PR                                # noqa: E402
 
 
@@ -1147,7 +1149,6 @@ def test_information_scan_follows_calls_instead_of_only_the_local_source():
     opener` never writes `ten.w`; it calls `welfare_premium(ten, d)`, which
     does. A source-level grep -- which is what the hand-written renewal-offer
     test was -- misses that entirely."""
-    import inspect
     from crabs import armk
     src = inspect.getsource(armk.landlord_opener)
     assert "ten.w" not in src                       # invisible to a grep
@@ -1330,27 +1331,184 @@ def test_every_free_parameter_declares_a_source():
     assert PR.undeclared_parameters() == []
 
 
+def test_every_module_constant_and_dataclass_field_is_classified():
+    """PRINCIPLE C, the COVERAGE half, and the reason this test exists at all.
+
+    The first audit classified `Params` exhaustively and passed. It was still
+    blind to about half the study: `market.py` held ~20 module constants and
+    `MarketParams` 15 more fields, in no table anywhere -- and K22 through K27
+    and all of GATE 3 run on those and nothing else. A table that covers one
+    module is a sample, not a table.
+
+    `undeclared_parameters` cannot catch that: it only ever looked at `Params`.
+    This looks at every module and dataclass named in `DECLARED_MODULES` /
+    `DECLARED_DATACLASSES`, so adding a constant to either module -- or a whole
+    new amendment's worth of them -- fails here until it is written down."""
+    missing = PR.undeclared_symbols()
+    assert missing == {}, (
+        "unclassified constants (add each to PARAM_SOURCES with its ACTUAL "
+        "stated basis quoted, or to STRUCTURAL / ARM_SELECTORS if it names a "
+        "position or selects an arm):\n"
+        + "\n".join(f"  {where}: {', '.join(names)}"
+                    for where, names in sorted(missing.items())))
+    # and the scan really is reading the modules, not returning an empty set:
+    # every symbol it finds must be reachable, and it must find the ones the
+    # coverage gap was made of
+    found = set(PR.module_constants("crabs.market"))
+    assert {"DOM_CUT", "VAC_ADJUST", "V_TARGET", "LAND_LIN_RATE",
+            "RESP_DELAY_MAX", "K_VISIBLE"} <= found
+    # a tuple-unpack at module scope is invisible to a line-oriented grep
+    assert {"RENEWAL", "NEW_LET"} <= found
+    # a name market.py IMPORTS is charged to the module that defines it, once
+    assert "ANCHOR_RENT" not in found
+    assert "ANCHOR_RENT" in set(PR.module_constants("crabs.world"))
+
+
 def test_the_circular_parameter_list_is_exactly_what_the_audit_found():
     """PRINCIPLE C rule 1. A constant whose justification IS the phenomenon
     under study is circular and the result is unpublishable however it comes
-    out. Three of them, pinned so the list cannot quietly grow."""
+    out. Pinned so the list cannot quietly grow -- or quietly shrink.
+
+    NINE, after the 2026-07-25 second pass. The first pass found three; the
+    other six were invisible to it for two different reasons.
+
+    PRINCIPLE G (four of them). `vacancy`, `p_exo_floor`, `p_exo_extra` and
+    `belief0` each cite a real published number that is one of this model's own
+    VALIDATION TARGETS -- the concession rate (V5/V6), turnover (V2), and the
+    39/61 counter split. Parameter-by-parameter that reads as data, which is
+    why the first pass filed three of them UPSTREAM. Output-by-output it is a
+    loop, and `research/crabs/FREE-OUTPUTS.md` is the output-by-output view.
+
+    COVERAGE (two of them). `DOM_LEARN` and `DOM_CUT` were in no table at all,
+    so no pass could have found them. Both install the monotone relationship
+    K22 was registered to test."""
     assert set(PR.circular_parameters()) == {
+        # --- found by the first pass, parameter-by-parameter ---
         "renewal_cap",      # justified by the +10.7% average it explains
         "p_continue",       # justified by letting K1 fire
         "courage_med",      # justified by landing on the observed 39%
+        # --- found output-by-output, under PRINCIPLE G ---
+        "vacancy",          # cites the concession rate; V5/V6 measure it
+        "p_exo_floor",      # cites NAA turnover ~47%; V2 measures it
+        "p_exo_extra",      # the other half of the same p_exo(j)
+        "belief0",          # cites '61% never try', the counter rate's complement
+        # --- found by closing the market.py coverage gap ---
+        "DOM_LEARN",        # "makes the reservation weaken monotonically in dom"
+        "DOM_CUT",          # cuts the ask in dom; K22 asks if depth rises in dom
     }
     for name, basis in PR.circular_parameters().items():
         assert len(basis) > 40, name          # the basis is quoted, not asserted
 
 
+def test_two_parameters_fitted_to_two_halves_of_one_fact_fit_the_whole_fact():
+    """PRINCIPLE G rule 1, which is the part a per-parameter audit cannot see.
+
+    `move_med` is CALIBRATED to observed elasticity -- the RENT-driven half of
+    turnover -- and SPEC §8 correctly forbids claiming V2 off it. `p_exo_*` is
+    fitted to NAA's ~47%, the NON-RENT half. Neither disclosure mentions the
+    other, and between them the retention gate is not a weak test but an
+    identity. The pairing is asserted here so it cannot be split back apart by
+    fixing one and leaving the other."""
+    assert PR.PARAM_SOURCES["move_med"][0] == PR.CALIBRATED
+    assert PR.PARAM_SOURCES["p_exo_floor"][0] == PR.CIRCULAR
+    for k in ("move_med", "p_exo_floor"):
+        assert "half" in PR.PARAM_SOURCES[k][1]      # each entry names the other
+    # the same shape in arm F: cost of asking and perceived odds of winning,
+    # fitted to the two sides of one 39/61 split
+    assert PR.PARAM_SOURCES["courage_med"][0] == PR.CIRCULAR
+    assert PR.PARAM_SOURCES["belief0"][0] == PR.CIRCULAR
+
+
+def test_ask_frac_is_scoped_rather_than_relabelled_in_either_direction():
+    """The case that does not fit the binary, kept from being forced into it.
+
+    `ask_frac = 0.11` cites RealPage on what landlords GRANT and is installed as
+    the size of what tenants ASK, with every instrument sized to deliver that
+    same crab value -- so Phase 1's largest possible rent concession is
+    1.0 x 0.11 by construction. Flat UPSTREAM licenses magnitude claims it
+    cannot support; flat CIRCULAR voids K1, which turns on which instrument the
+    station prefers at EQUAL crab value and not on the level. So the class says
+    'scoped' and the entry has to say which claims are in scope."""
+    assert PR.PARAM_SOURCES["ask_frac"][0] == PR.SCOPED
+    basis = PR.scoped_parameters()["ask_frac"]
+    assert "IN SCOPE" in basis and "OUT OF SCOPE" in basis
+    assert PR.SCOPED not in (PR.circular_parameters(),
+                             PR.unsourced_parameters())
+    # and it really is load-bearing on the size: the rent rung is exactly it
+    assert BASE.ask_frac == 0.11
+
+
 def test_invented_parameters_are_labelled_and_numerous():
     """Rule 1's other half: where no upstream source exists, label it INVENTED.
-    Legal, but it must be visible -- and there are a lot of them."""
+    Legal, but it must be visible -- and there are a lot of them.
+
+    The market layer roughly doubled the count: every constant of the two
+    clocks K25 is measured in (`CLIFF_CONVEX`, `HOLDOVER_MONTHS`,
+    `EMERGENCY_MONTHS`, `LAND_LIN_RATE`, `LEAD_*`, `NOTICE_WINDOW`,
+    `RESP_DELAY_MAX`) is invented. K25 is not circular -- nothing was fitted to
+    an observed clock-decay fact, so the finding stands -- but its MAGNITUDE is
+    a readout of nine unsourced numbers and should be reported that way."""
     inv = PR.unsourced_parameters()
-    assert len(inv) >= 25
+    assert len(inv) >= 45
     assert "nu" in inv and "lambda_ref" in inv and "kappa_crab" in inv
+    for k in ("CLIFF_CONVEX", "HOLDOVER_MONTHS", "EMERGENCY_MONTHS",
+              "LAND_LIN_RATE", "LEAD_MEDIAN", "LEAD_SIGMA", "NOTICE_WINDOW",
+              "RESP_DELAY_MAX"):
+        assert k in inv, k
     # calibration is its own class and may never be claimed as a prediction
     assert PR.PARAM_SOURCES["move_med"][0] == PR.CALIBRATED
+    # three of them, and two describe the same ~6% vacancy from opposite sides
+    assert {k for k, v in PR.PARAM_SOURCES.items() if v[0] == PR.CALIBRATED} == {
+        "move_med", "move_sigma", "searcher_inflow", "V_TARGET", "VAC_ADJUST"}
+
+
+def test_the_shipped_ask_adjustment_is_declared_at_one_value_shipped_at_another_and_inert():
+    """Three defects in one constant, pinned together.
+
+    (1) `market.py`'s DECLARED-BEFORE-RUNNING docstring says `vac_adjust 0.6`;
+        the module ships 3.0, retuned after seeing deflation (RESULTS Phase 5
+        §5). So it is CALIBRATED presented as pre-declared.
+    (2) It is INERT. One use is multiplied by a literal zero; the other sits in
+        a block guarded by `h.crab is None` at the annual boundary, where
+        `vacant_years == 0` because the monthly matching loop fills every
+        habitat first. The block sets no ask in 10,000 habitat-years.
+    (3) Therefore `mean_ask` is 0/0 = NaN in every shipped market cell, and the
+        "stations post asking rents against their own observed vacancy"
+        mechanism advertised at the top of the module does not run.
+
+    This replaces the earlier pin, which asserted only the docstring/code
+    contradiction. Restoring the declared 0.6 would change nothing -- asserted
+    here rather than argued -- so the contradiction was never the real defect."""
+    from crabs import market
+    assert market.VAC_ADJUST == 3.0
+    assert "vac_adjust     0.6" in market.__doc__      # still declared at 0.6
+    assert "INERT" in market.__doc__                    # and now labelled dead
+    assert PR.PARAM_SOURCES["VAC_ADJUST"][0] == PR.CALIBRATED
+    assert "0.6 -> 3.0" in PR.PARAM_SOURCES["VAC_ADJUST"][1]
+
+    # (2) the dead-code proof: one use is multiplied by zero
+    src = inspect.getsource(market.simulate_market)
+    assert "VAC_ADJUST * 0.0" in src
+
+    # and the whole constant is inert: bit-identical output across four values
+    p = regime_params(BASE, "burn")
+    mp = market.MarketParams(n_stations=8, units=15, meas_years=4)
+    def _run(v):
+        market.VAC_ADJUST = v
+        r = market.simulate_market(p, mp, 1000, drift=0.0)
+        return {k: x for k, x in r.items() if not k.startswith("_")}
+    try:
+        base = _run(3.0)
+        for v in (0.0, 0.6, 100.0):
+            assert _run(v) == base, v
+    finally:
+        market.VAC_ADJUST = 3.0
+    # (3) the branch never fires, so the ask statistic does not exist
+    assert base["ask_n"] == 0.0
+    assert base["vacant_years"] == 0.0
+    from crabs.run_market import derive_market
+    import math
+    assert math.isnan(derive_market(base)["mean_ask"])
 
 
 def test_the_renewal_ceiling_is_derivable_and_the_shipped_cap_bound_hard():
@@ -1475,3 +1633,331 @@ def test_regime_params_silently_overrides_two_fields_and_they_are_declared():
             continue
         p = Params(**{**BASE.__dict__, f: 0.123})
         assert getattr(regime_params(p, "loss"), f) == 0.123, f
+
+
+# =============================================================================
+# AMENDMENT 8 / 9 -- the principles applied to the things A8 and A9 build.
+# Both amendments add machinery to a module whose results are already shipped,
+# so the first obligation is proving the additions are inert.
+# =============================================================================
+
+def _mkt(**mp_kw):
+    from crabs.market import MarketParams, simulate_market
+    p = regime_params(BASE, "burn")
+    return simulate_market(p, MarketParams(n_stations=8, units=15, meas_years=4,
+                                           **mp_kw), 1000)
+
+
+def test_deriving_switching_cost_cannot_move_a_single_market_number():
+    """AMENDMENT 8's instrumentation draws from `rng_a8`, a stream of its own,
+    precisely so that switching it on cannot perturb the main sequence. Every
+    previously reported market cell must be bit-identical with it on."""
+    off, on = _mkt(), _mkt(derive_switching=True)
+    assert {k: v for k, v in off.items() if not k.startswith("_")} == \
+           {k: v for k, v in on.items() if not k.startswith("_")}
+    assert "_derived" not in off and len(on["_derived"]) > 100
+
+
+def test_the_derived_distribution_includes_searchers_who_gave_up():
+    """PRINCIPLE D, applied to A8's own headline. A searcher that abandons its
+    search has by construction the longest and dearest one; recording only
+    matches would make the derived median a survivorship statistic -- artefact
+    #5's exact shape, which this study has already produced once."""
+    r = _mkt(derive_switching=True)
+    matched = [d for d in r["_derived"] if d["matched"]]
+    gave_up = [d for d in r["_derived"] if not d["matched"]]
+    assert gave_up, "no abandoned searches recorded -- the D guard is inert"
+    assert len(matched) + len(gave_up) == len(r["_derived"])
+    # and the guard is load-bearing: give-ups really are the expensive tail
+    import numpy as np
+    assert (np.mean([d["months"] for d in gave_up])
+            > np.mean([d["months"] for d in matched]))
+
+
+def test_inflow_searchers_are_excluded_from_the_switching_distribution():
+    """A household FORMING is not a household SWITCHING. Counting inflow
+    searchers would put people who never paid a moving cost into the moving-cost
+    distribution."""
+    r = _mkt(derive_switching=True)
+    assert all(d.get("cost") is not None for d in r["_derived"])
+    from crabs import market
+    src = inspect.getsource(market._a8_record)
+    assert "a8_mover" in src and "return" in src
+
+
+def test_the_derived_cost_is_never_shown_to_the_landlord():
+    """PRINCIPLE B on A8's own build. The derived cost is a property of one
+    crab's realised search. It is recorded for reporting and never enters an
+    offer -- the renewal offer still prices off the POPULATION `move_med`."""
+    from crabs import market
+    from crabs import principles as PR
+    assert PR.information_leaks(market.simulate_market,
+                                slice_from="wa_t_base =",
+                                slice_to="offer_annual =") == []
+    off = inspect.getsource(market.simulate_market)
+    off = off[off.index("wa_t_base ="):off.index("offer_annual =")]
+    for forbidden in ("a8_attempts", "a8_months", "a8_broker", "derived_cost"):
+        assert forbidden not in off, forbidden
+
+
+def test_searchcost_constants_are_declared_and_none_targets_the_answer():
+    """PRINCIPLE C on A8's own build. 3.6 is the number A8 is testing, so it may
+    not appear as a constant anywhere in the module that derives it."""
+    from crabs import principles as PR
+    from crabs import searchcost as SC
+    for name in ("VIEW_COST", "SPELL_COST", "TIME_COST", "MOVE_PHYSICAL",
+                 "BROKER_FEE", "BROKER_SHARE", "OVERRUN_COST"):
+        assert name in PR.PARAM_SOURCES, name
+    # no constant IS the answer, checked on values rather than on text
+    consts = {k: v for k, v in vars(SC).items()
+              if k.isupper() and isinstance(v, float)}
+    assert not any(abs(v - 3.6) < 1e-9 for v in consts.values()), consts
+    # and, more to the point, the fixed components ALONE cannot reach K27's
+    # pass band: a pass has to be earned by the search process, not by the
+    # constants A8 chose. (0.25 + 1.00 + 0.15 = 1.40 < 1.8.)
+    fixed = SC.SPELL_COST + SC.MOVE_PHYSICAL + SC.BROKER_SHARE * SC.BROKER_FEE
+    assert fixed < SC.K27_LO, fixed
+    # the two reused ones really are market.py's, not re-typed values
+    from crabs.market import APP_COST, SEARCH_COST
+    assert SC.VIEW_COST is APP_COST and SC.SPELL_COST is SEARCH_COST
+
+
+def test_amendment9_signal_cells_are_one_knob_from_the_k26_baseline():
+    """PRINCIPLE A. The signal arm must differ from `a6a_secured` in
+    `signal_enabled` (plus the swept `signal_cost`) and nothing else, or its
+    effect is not attributable to the signal."""
+    from crabs import principles as PR
+    from crabs.run_market import amendment9_specs, specs
+    base = dict(n_stations=40, units=25)
+    k26 = [s for s in specs() if s["cell"] == "a6a_secured"][0]["mp"]
+    for s in amendment9_specs(base):
+        if not s["mp"].get("signal_enabled"):
+            continue
+        declared = ["signal_enabled", "signal_cost"]
+        if not s["mp"].get("deadline_shape", True):
+            declared.append("deadline_shape")      # the K29 ablation, declared
+        PR.assert_one_knob({f"mp.{k}": v for k, v in k26.items()},
+                           {f"mp.{k}": v for k, v in s["mp"].items()},
+                           [f"mp.{d}" for d in declared], label=s["cell"])
+
+
+def test_a_proved_alternative_and_no_deadline_take_the_identical_branch():
+    """A9.2's structural claim, asserted on the code rather than inferred from
+    the output. `market.py` gives a proved tenant `wa_t_exp = wa_t_base`, which
+    is exactly what the `deadline_shape = False` branch gives everyone. So the
+    proof's only direct effect is to delete the cliff -- it reveals nothing
+    about THIS tenant's alternative, because `wa_t_base` is built from the
+    population `move_med` and is identical for provers and non-provers.
+
+    This is why K29 was predicted to fire before the arm was run."""
+    from crabs import market
+    src = inspect.getsource(market.simulate_market)
+    blk = src[src.index("wa_t_base ="):src.index("rt_pop =")]
+    # exact lines, so the linear-clock branch (`wa_t_base * 1.3055 + ...`)
+    # is not miscounted as a bare assignment
+    flat = [i for i, l in enumerate(blk.split("\n"))
+            if l.strip() == "wa_t_exp = wa_t_base"]
+    assert len(flat) == 2, blk                          # proved, and shape-off
+    assert "p.move_med" in blk                          # population, not a draw
+    i_proved = blk.index("if proved:")
+    i_elif = blk.index("elif mp.deadline_shape:")
+    assert i_proved < i_elif                            # proved SHORT-CIRCUITS
+    assert "wa_t_exp = wa_t_base" in blk[i_proved:i_elif]
+
+
+# ------------- AMENDMENT 9 / 10: the record, pinned in both units ------------
+
+def test_the_signal_gap_is_pinned_in_BOTH_denominators():
+    """AMENDMENT 9's headline is 0.1021 of MARKET rent. As a share of the OFFER
+    it is 0.1021/1.1416 = 8.9%. The article says "10.2% off the offer", which
+    silently swaps the denominator for the flattering one.
+
+    Both numbers are pinned here so no future draft can quote one without the
+    other, and so that a change in either is caught."""
+    import json
+    import os
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "results_amend9.json")
+    if not os.path.exists(path):                       # pragma: no cover
+        pytest.skip("run_amend9.py has not been run")
+    cells = json.load(open(path))["cells"]
+    c = next(x for x in cells if x["cell"] == "a9_signal_0.1"
+             and x["tag"] == "calibrated")
+    of_market = c["unsecured_offer"] - c["secured_offer"]
+    of_offer = of_market / c["unsecured_offer"]
+    assert of_market == pytest.approx(0.1021, abs=5e-4), of_market
+    assert of_offer == pytest.approx(0.0894, abs=5e-4), of_offer
+    # the two differ by more than a rounding step, which is the whole point
+    assert of_market - of_offer > 0.012
+
+
+def test_the_renewal_asymmetry_changes_sign_inside_the_defensible_band():
+    """AMENDMENT 10 / K30, pinned as a property of the model rather than as a
+    number in a document.
+
+    `wa_tenant/wa_landlord` crosses 1.0 at a physical-move cost that lies inside
+    the band declared in PREREG A10.2 from published sources ($700-$3,300), and
+    the crossing MOVES BY A FACTOR OF 3 depending on `RELET_RISK_ON` -- a
+    hardcoded `True` that appears in no reported cell as a variable. So the sign
+    of the renewal asymmetry is not determined by the evidence."""
+    import json
+    import os
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "results_amend10.json")
+    if not os.path.exists(path):                       # pragma: no cover
+        pytest.skip("run_amend10.py has not been run")
+    from crabs.run_amend10 import BAND_HI, BAND_LO, crossing
+    blob = json.load(open(path))
+    cells = blob["cells"]
+    xs = {}
+    for relet in (True, False):
+        rows = [c for c in cells if c["relet"] is relet
+                and c["regime"] == "neutral"]
+        xs[relet] = crossing(rows)
+    # both crossings land inside the declared band -> K30 fires
+    for relet, x in xs.items():
+        assert BAND_LO <= x <= BAND_HI, (relet, x)
+    # and ablating an un-ablated hardcoded True moves it by ~3x
+    assert xs[True] / xs[False] > 2.5, xs
+    # at the CENTRAL declared estimate the two states disagree on the SIGN
+    def at(mp, relet):
+        return next(c["ratio"] for c in cells if c["move_physical"] == mp
+                    and c["relet"] is relet and c["regime"] == "neutral")
+    assert at(1.0, True) < 1.0 < at(1.0, False)
+
+
+def test_the_a10_crossing_is_a_level_comparison_not_a_subtle_nonlinearity():
+    """PREREG A10.4 required this bug hunt before K30 is believed.
+
+    The tenant's walk-away is LINEAR in `move_med` by construction, and with
+    `RELET_RISK_ON` ablated the landlord's is exactly CONSTANT. So the crossing
+    is a straight line meeting a flat one -- mechanically trivial. That does not
+    make K30 wrong (the two levels being within a factor of ~1.5 across the whole
+    defensible band is the finding), but it does mean the crossing point carries
+    no information beyond the two levels, and this test pins that so the result
+    is never dressed up as something subtler."""
+    import json
+    import os
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "results_amend10.json")
+    if not os.path.exists(path):                       # pragma: no cover
+        pytest.skip("run_amend10.py has not been run")
+    cells = json.load(open(path))["cells"]
+    flat = [c for c in cells if c["relet"] is False and c["regime"] == "neutral"]
+    wl = [c["wa_l"] for c in flat]
+    assert max(wl) - min(wl) < 1e-6, wl        # exactly constant
+    wt = sorted([(c["move_physical"], c["wa_t"]) for c in flat])
+    steps = [(b[1] - a[1]) / (b[0] - a[0]) for a, b in zip(wt, wt[1:])]
+    assert max(steps) - min(steps) < 0.02 * abs(steps[0]), steps  # linear
+
+
+def test_the_k20_sign_is_undetermined_across_every_denominator_we_can_justify():
+    """AMENDMENT 10 second half / K30 on the full cross.
+
+    `vacancy` is CIRCULAR (SPEC §5 sets it from the 39.7% concession statistic,
+    which is the model's own target) and sits in K20's denominator. Deriving it
+    from the matching process -- time-to-let is an OUTPUT -- and also running it
+    from the one UPSTREAM source available (`BASE_LET_MONTHS`, 30-41 day let
+    times) gives three denominators, crossed with `RELET_RISK_ON`.
+
+    At the central estimate of the physical-move cost the ratio spans 0.52 to
+    1.37 across those six combinations: from "the landlord has twice the
+    tenant's exposure" to "the tenant has 1.4x the landlord's". The sign is not
+    determined by anything anyone has measured."""
+    import json
+    import os
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "results_amend10_vacancy.json")
+    if not os.path.exists(path):                       # pragma: no cover
+        pytest.skip("run_amend10_vacancy.py has not been run")
+    blob = json.load(open(path))
+    cells = blob["cells"]
+    # the derivation is a genuine fixed point, not one pass read off
+    hist = blob["meta"]["fixed_point"]
+    assert abs(hist[-1] - hist[-2]) < 1e-2, hist
+    # and it is far above the fitted value it replaces
+    assert blob["meta"]["derived_vacancy"] > 3.0
+    # at the central declared estimate, the six combinations disagree on the SIGN
+    at1 = [c["ratio"] for c in cells if c["move_physical"] == 1.0]
+    assert len(at1) == 6
+    assert min(at1) < 0.60 and max(at1) > 1.30, at1
+    assert any(r < 1.0 for r in at1) and any(r > 1.0 for r in at1)
+    # the only NON-CIRCULAR denominator still flips on an un-ablated boolean
+    up = {c["relet"]: c["ratio"] for c in cells
+          if c["vac_mode"] == "upstream" and c["move_physical"] == 1.0}
+    assert up[True] < 1.0 < up[False], up
+
+
+# =============================================================================
+# AMENDMENT 11 — the solved-policy cache key
+# =============================================================================
+
+def test_station_cache_key_covers_every_parameter_the_solve_depends_on():
+    """DEFECT FIXED 2026-07-25, reported by the triage worker.
+
+    `run._station` keyed its solved-policy cache on
+    `(regime, share, adaptive, face_premium, p_substitute, p_continue)` -- the
+    regime label plus exactly the three parameters `run.sens_specs` happens to
+    sweep -- and `run2._get` on a similarly partial tuple. Every other parameter
+    `StationDP` reads was absent, so a sweep of `p_exo_*`, `move_med`,
+    `renewal_cap`, `turn_cost`, `nu` or `kappa_crab` silently returned a policy
+    solved for a DIFFERENT value of the parameter being swept, and reported it
+    as that cell's result.
+
+    The regression bar is total rather than a list of known-relevant fields,
+    because a list is the thing that went stale: **changing ANY field of
+    `Params` must change the key.** Over-keying costs one extra solve;
+    under-keying is a wrong number that looks right."""
+    from dataclasses import replace
+
+    from crabs.run import prior_key, station_key
+
+    nodes = np.linspace(0.5, 12.0, 8)
+    w = np.tile(np.ones(8) / 8.0, (BASE.j_max + 1, 1))
+    base = W.regime_params(BASE, "gain")
+    k0 = station_key(base, nodes, w, 0.39, False)
+
+    def bump(v):
+        if isinstance(v, bool):
+            return not v
+        if isinstance(v, (int, float)):
+            return v + 1 if v != 0 else 1
+        if isinstance(v, str):
+            return v + "_x"
+        if isinstance(v, tuple):
+            return v + (0.0,)
+        raise AssertionError(f"unhandled field type {type(v)}")
+
+    for name, val in base.__dict__.items():
+        other = replace(base, **{name: bump(val)})
+        assert station_key(other, nodes, w, 0.39, False) != k0, name
+
+    # the prior is as much an input to the solve as Params is, and it is a
+    # process-level global in the runner, so it is in the key too
+    w2 = w.copy()
+    w2[3, 0] += 1e-9
+    assert prior_key(nodes, w2) != prior_key(nodes, w)
+    assert station_key(base, nodes, w2, 0.39, False) != k0
+    # and the discriminators that are not Params fields
+    assert station_key(base, nodes, w, 1.0, False) != k0
+    assert station_key(base, nodes, w, 0.39, True) != k0
+
+
+def test_sweeping_p_exo_actually_resolves_the_station_policy():
+    """The end-to-end version of the above, on the parameter AMENDMENT 11
+    sweeps. `StationDP._leave_table` reads `p_exo(p, j)` directly, so two bases
+    differing only in `p_exo_floor` must give different objects AND different
+    offers. Under the old key they were the same object."""
+    from crabs import run as R
+
+    nodes, w = W.switching_cost_nodes(BASE, 8), None
+    nodes = nodes[0]
+    w = np.tile(np.ones(8) / 8.0, (BASE.j_max + 1, 1))
+    R._CACHE.clear()
+    lo = R._station(BASE, "gain", nodes, w, 0.39, False)
+    hi = R._station(W.Params(**{**BASE.__dict__, "p_exo_floor": 0.05}),
+                    "gain", nodes, w, 0.39, False)
+    R._CACHE.clear()
+    assert lo is not hi
+    assert [lo.offer(r, 3) for r in (0.9, 1.0, 1.1)] \
+        != [hi.offer(r, 3) for r in (0.9, 1.0, 1.1)]

@@ -47,6 +47,45 @@ U_TOOL = 21         # noise in the tool's read of the crab's own leverage
 U_DEMO = 22         # 7 slots: income, hh size, job flex, Dirichlet(4)
 N_UNIFORMS = 29
 
+# ------------------------------------------------- AMENDMENT 11: sourced values
+# `p_exo_floor`/`p_exo_extra` were justified by "NAA turnover ~47% is mostly
+# non-rent" -- V2's own calibration target (PREREG §2 prints the words
+# "calibration target" beside it, PREREG §3 makes it V2). The replacement below
+# is sourced from a survey that is NOT a validation target of this model:
+#
+#   U.S. Census Bureau, Geographic Mobility: 2023 (1-year package from the 2023
+#   CPS ASEC), released 2024-12-10.
+#     Table 13  mig_13_2023_1yr.xlsx  reason for move x tenure
+#     Table  1  mig_01_2023_1yr.xlsx  general mobility x tenure
+#   https://www.census.gov/data/tables/2023/demo/geographic-mobility/cps-2023.html
+#
+# Row "In a renter-occupied housing unit", numbers in thousands:
+#   Table 1   total 101,024   nonmovers 84,687   movers 16,337
+#   Table 13  movers 16,337 = family 3,496 + employment 3,845
+#                           + housing 6,330 + other 2,665
+#             of which housing: cheaper housing 1,793
+#
+# CPS publishes reason for move by nine characteristics and NOT by length of
+# residence, so there is no source for a tenure decay. PREREG-A11 §A11.2.3 fixes
+# the consequence before the run: the form the data supports is a CONSTANT, and
+# the shipped exp(-(j-1)/3) is demoted to an INVENTED shape and ablated.
+CPS_RENTER_MOVER_RATE = 16337.0 / 101024.0        # 0.161714 /yr
+CPS_NONHOUSING_SHARE = (3496.0 + 3845.0 + 2665.0) / 16337.0     # M1: 0.612475
+CPS_NONPRICE_SHARE = 1.0 - 1793.0 / 16337.0                     # M2: 0.890249
+P_EXO_CPS_NONHOUSING = CPS_RENTER_MOVER_RATE * CPS_NONHOUSING_SHARE   # 0.099046
+P_EXO_CPS_NONPRICE = CPS_RENTER_MOVER_RATE * CPS_NONPRICE_SHARE       # 0.143966
+
+# `courage_med = 0.18` months ($360) was set so the endogenous counter rate lands
+# near the observed 39%. The only part of the cost of sending the message with an
+# upstream anchor is the sender's TIME, and that anchor already exists in this
+# repo: demographics.INCOME_MEDIAN = $75,000 (ANCHORED, ACS renter median for the
+# market-rate segment), which searchcost.TIME_COST already converts at ~$36/hour
+# full-time-equivalent. One hour -- read the notice, check two comparable
+# listings, write the email -- is $36.06, and the shipped $360 is 9.98 hours to
+# send one email. LABEL: ANCHORED wage, INVENTED hours, swept (PREREG-A11 §A11.3.2).
+COURAGE_WAGE_HOURLY = 75_000.0 / 2080.0           # $36.06/h
+COURAGE_MED_1H = COURAGE_WAGE_HOURLY / ANCHOR_RENT      # 0.018029 months
+
 
 @dataclass(frozen=True)
 class Params:
@@ -427,6 +466,15 @@ def new_recorder() -> dict:
         concession_value=z, rounds=z,
         pred_leave=z, real_leave=z,
         offer_ratio_sum=z, push_sum=z, push_n=z,
+        # AMENDMENT 11: the model's own reason-for-move composition, so it can be
+        # read against the CPS composition p_exo is now sourced from. `leave` is
+        # `exo or endo`, so the two overlap and only `left_exo` /
+        # `left_endo_only` partition the leavers. Numerators over `left` and
+        # `renewals`, both already declared denominators; nothing conditions on
+        # an outcome that `left` does not already condition on. A shock exodus
+        # sets leave without either draw firing, so in shock runs the two do not
+        # sum to `left` -- that gap is the exodus and is reported as such.
+        left_exo=z, left_endo=z, left_endo_only=z,
     )
     for k in KIND_NAMES:
         rec[f"grant_{k}"] = z
@@ -746,6 +794,12 @@ def _year(p: Params, st, crabs, uu, M, g_obs, share, asker_strategy, t, rec,
         if leave:
             if rec is not None:
                 rec["left"] += 1.0
+                if exo:
+                    rec["left_exo"] += 1.0
+                if endo:
+                    rec["left_endo"] += 1.0
+                    if not exo:
+                        rec["left_endo_only"] += 1.0
                 rec[f"ten{j}_left"] += 1.0
                 rec[f"left_{'asker' if crab.strategy != NEVER_ASK else 'nonasker'}"] += 1.0
                 _count_crab_year(rec, crab)

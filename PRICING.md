@@ -1,23 +1,30 @@
 # Pricing & service posture
 
 Honest, value-based, agent-native. The principle: **the deterministic math is free
-(it costs ~nothing to serve and drives adoption); we charge for the LLM work that
-costs real money and for the verified-settlement moat where the value actually is.**
+(it costs ~nothing to serve and drives adoption); we charge for the artifact — a
+signed, replayable receipt that proves how a number was formed — and for the LLM work
+that costs real money.**
 
-These are the current posture and illustrative rates, not a locked rate card — Tier 2
-in particular is priced with the first settlement customer.
+These are the current posture and illustrative rates, not a locked rate card.
 
 ## Tiers
 
 | Tier | What | Price | Why |
 |---|---|---|---|
 | **0 — Core math** | `negotiate_turn`, `negotiate_bundle`, all `auction.*` and `mechanism.*` tools | **Free**, no key | Pure CPU, COGS ≈ $0.000005/call. This is the adoption wedge — the whole agent-facing surface. |
-| **1 — LLM extras** | Natural-language drafting / dispute coaching (`/v1/dispute/*`) — anything that calls an LLM under the hood | **Off by default**; usage-based when enabled | These are the *only* endpoints that cost real API money. See "Abuse resistance" — they're opt-in, hard-capped, and meant to be key-gated (caller pays) in production. Optional anyway: an agent can draft with its own LLM provider. |
-| **2 — Verified commerce (the moat)** | A2A verified peering + AP2 settlement (`/v1/a2a/*`) | **0.1–0.5% of settled value**, or a flat operator seat | This is where the value is: a verified, settleable deal. On a $10k deal SNHP's edge captures ~$160 of value; a 0.1–0.5% fee is $10–50. Priced per the first settlement partner. |
+| **1 — On the record** | The $2 NEXTMOVE session (below); `snhp-gauntlet/1` certification runs; notarized quote receipts | **Per session / per run** | The durable thing. A receipt anyone can verify offline against our public key, with the engine version pinned and the conditions that did *not* hold stated in the open. This is what survives when the math is commodity. |
+| **2 — LLM extras** | Natural-language drafting / dispute coaching (`/v1/dispute/*`) — anything that calls an LLM under the hood | **Off by default**; usage-based when enabled | These are the *only* endpoints that cost real API money. See "Abuse resistance" — they're opt-in, hard-capped, and meant to be key-gated (caller pays) in production. Optional anyway: an agent can draft with its own LLM provider. |
 
-Value sanity check (so we never price off cost): SNHP's measured edge captures roughly
-**$16 / $160 / $1,600** of value on a **$1k / $10k / $100k** deal. Every Tier-1 and
-Tier-2 rate above is a small fraction of that.
+**What we deliberately do not price: a percentage of settled value.** An earlier version
+of this file quoted 0.1–0.5% of a settled deal, justified by "SNHP's edge captures ~$160
+on a $10k deal." That justification does not survive our own harness. The claim that
+engine-set prices earn more than a competently-set alternative has now been killed four
+times — `vend` P0 (per-SKU resolving GvR *loses* $1.71–$2.07/day against a profit-optimal
+static price), `research/spendguard` (zero delta across 252 sessions, both regimes),
+`nx` (cheap price-only haggling reaches 94.2% of full-bundle deal formation), and
+`research/crabs` K1 (ranked-ask advice worth $2–58 against a $480 bar). We are not going
+to price a moat on a number our own kill conditions keep firing at. If a settlement
+customer ever appears, the fee gets designed then, against their measured outcome.
 
 ## The store (agent convenience counter)
 
@@ -55,16 +62,22 @@ tuned, auditable, replayable version with the drafted message and the signed rec
 **What "validated" means here — two SEPARATE experiments, each labelled so no number
 is silently swapped for another:**
 
-- *Recommender head-to-head (T1 LLM tournament):* the single-issue negotiation
-  recommender is **~12% better head-to-head** — **n=20** paired LLM negotiations,
-  95% CI **+6.5–17.4%**, **p<0.0001** (one Sonnet+SNHP vs a vanilla-Sonnet
-  counterparty). This is the edge the $2 session's per-move advice draws on.
-- *Certificate gauntlet (held-out, `snhp-gauntlet/1`):* a certified agent's mean
-  surplus beats a **split-the-difference** baseline by **+0.1086** — **n=360** seeded
-  negotiations (60 scenarios × 2 roles × 3 fixed scripted opponents), **p=0.0001**,
-  on a held-out set with the design registered in advance. This is a *different*
-  measurement (gauntlet vs a scripted baseline), not the recommender's LLM head-to-head
-  number; the two are never interchangeable.
+- *Certificate gauntlet (held-out, `snhp-gauntlet/1`) — **the number to trust***: a
+  certified agent's mean surplus beats a **split-the-difference** baseline by
+  **+0.1086** — **n=360** seeded negotiations (60 scenarios × 2 roles × 3 fixed
+  scripted opponents), **p=0.0001**, on a held-out set that had never been used, with
+  the counterparty pool and the statistic **frozen in a pre-registration written before
+  the code existed** (`arena/gauntlet/PREREG-pool.md`). It is the strongest claim here
+  precisely because it is the one that could have failed on the record — and an earlier
+  cut of it *did*, which is why the protocol was re-registered rather than re-tuned.
+- *Recommender head-to-head (T1 LLM tournament) — weaker, and labelled as such*: the
+  single-issue recommender is **~12% better head-to-head** — **n=20** paired LLM
+  negotiations, 95% CI **+6.5–17.4%**, **p<0.0001** (one Sonnet+SNHP vs a
+  vanilla-Sonnet counterparty). Read it with the caveats: small n, single-issue price
+  only, and the opponent is a *general* vanilla prompt rather than a competent one.
+  Against a strong production prompt the same edge roughly halves. Not registered in
+  advance. This is a *different* measurement from the gauntlet number above; the two
+  are never interchangeable, and where they disagree, prefer the registered one.
 
 ## Abuse resistance (can't be milked for cheap LLMs)
 
@@ -114,6 +127,7 @@ redundant infrastructure — not before. Until then: best-effort + self-host.
 ## What's deliberately NOT priced yet
 
 No SDK is sold or needed — agents integrate via **MCP** and the **OpenAPI** spec
-(`/openapi.json`), so a bespoke client library would be redundant. Tier-2 settlement
-fees are not metered until a real settlement customer exists; building billing for a
-moat with no users would be premature.
+(`/openapi.json`), so a bespoke client library would be redundant. Percentage-of-value
+settlement fees are not metered and not quoted — see the tier table above for why;
+building billing for a moat with no users, on an edge our own experiments keep killing,
+would be premature twice over.

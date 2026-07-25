@@ -1,0 +1,221 @@
+{
+ "crab": {
+  "name": "Juno Clawgrave",
+  "spec": "NAV-PILOT",
+  "salary": 132167,
+  "tenure": 1,
+  "perf": 21,
+  "weights": {
+   "base": 0.006,
+   "title": 0.232,
+   "bonus": 0.473,
+   "berth": 0.198,
+   "deepwater": 0.091
+  },
+  "cares_most": "bonus",
+  "has_outside": true,
+  "outside_premium": 14.2,
+  "outside_value": 38868,
+  "offer_expires_day": 10.7,
+  "replacement_cost": 145383,
+  "opening": {
+   "base": "+0%",
+   "title": "hold",
+   "bonus": "none",
+   "berth": "standard",
+   "deepwater": "no"
+  },
+  "issue_values": {
+   "base": 11134,
+   "title": 21212,
+   "bonus": 11014,
+   "berth": 7836,
+   "deepwater": 4201
+  },
+  "issue_costs": {
+   "base": 14474,
+   "title": 11388,
+   "bonus": 11014,
+   "berth": 3965,
+   "deepwater": 3965
+  }
+ },
+ "sign": {
+  "score": {
+   "crab": 38868,
+   "works": -145412,
+   "joint": -106544,
+   "days": 1.0,
+   "meetings": 0,
+   "left": true,
+   "walked": false,
+   "expired": false,
+   "pkg": {
+    "base": "+0%",
+    "title": "hold",
+    "bonus": "none",
+    "berth": "standard",
+    "deepwater": "no"
+   },
+   "concession": 0,
+   "mgr": 0,
+   "distraction": 29,
+   "replacement": 145383,
+   "p_leave": 0.999
+  }
+ },
+ "slow": {
+  "steps": [
+   {
+    "day": 24.7,
+    "issue": "base",
+    "ask": "+12%",
+    "granted": true,
+    "pkg": {
+     "base": "+12%",
+     "title": "hold",
+     "bonus": "none",
+     "berth": "standard",
+     "deepwater": "no"
+    },
+    "crab_value": 44535,
+    "works_cost": 57896
+   },
+   {
+    "day": 21.5,
+    "issue": "bonus",
+    "ask": "2 months",
+    "granted": true,
+    "pkg": {
+     "base": "+12%",
+     "title": "hold",
+     "bonus": "1 month",
+     "berth": "standard",
+     "deepwater": "no"
+    },
+    "crab_value": 55549,
+    "works_cost": 68910
+   }
+  ],
+  "score": {
+   "crab": 38868,
+   "works": -146440,
+   "joint": -107572,
+   "days": 21.5,
+   "meetings": 2,
+   "left": true,
+   "walked": true,
+   "expired": true,
+   "pkg": {
+    "base": "+12%",
+    "title": "hold",
+    "bonus": "1 month",
+    "berth": "standard",
+    "deepwater": "no"
+   },
+   "concession": 0,
+   "mgr": 435,
+   "distraction": 622,
+   "replacement": 145383,
+   "p_leave": 0.06
+  },
+  "agenda": [
+   "base",
+   "bonus",
+   "berth",
+   "title",
+   "deepwater"
+  ]
+ },
+ "fast": {
+  "steps": [
+   {
+    "round": 1,
+    "actor": "crab",
+    "pkg": {
+     "base": "+0%",
+     "title": "molt",
+     "bonus": "2 months",
+     "berth": "standard",
+     "deepwater": "no"
+    },
+    "crab_value": 43240,
+    "works_cost": 33415,
+    "logic": "Give ground on 'base' (you weight it less, they weight it most) to hold firm on 'bonus' (your top priority). That trade is what makes the package beat splitting every issue down the middle.",
+    "inferred": {
+     "base": 0.194,
+     "title": 0.204,
+     "bonus": 0.197,
+     "berth": 0.196,
+     "deepwater": 0.208
+    }
+   },
+   {
+    "round": 1,
+    "actor": "works",
+    "pkg": {
+     "base": "+0%",
+     "title": "molt",
+     "bonus": "2 months",
+     "berth": "flexible",
+     "deepwater": "deepwater"
+    },
+    "crab_value": 55277,
+    "works_cost": 41345
+   }
+  ],
+  "score": {
+   "crab": 55277,
+   "works": -41795,
+   "joint": 13483,
+   "days": 8.0,
+   "meetings": 1,
+   "left": false,
+   "walked": false,
+   "expired": false,
+   "pkg": {
+    "base": "+0%",
+    "title": "molt",
+    "bonus": "2 months",
+    "berth": "flexible",
+    "deepwater": "deepwater"
+   },
+   "concession": 41345,
+   "mgr": 218,
+   "distraction": 232,
+   "replacement": 0,
+   "p_leave": 0.1
+  }
+ },
+ "both": {
+  "score": {
+   "crab": 38868,
+   "works": -145630,
+   "joint": -106761,
+   "days": 1.0,
+   "meetings": 1,
+   "left": true,
+   "walked": false,
+   "expired": false,
+   "pkg": {
+    "base": "+0%",
+    "title": "hold",
+    "bonus": "none",
+    "berth": "standard",
+    "deepwater": "no"
+   },
+   "concession": 0,
+   "mgr": 218,
+   "distraction": 29,
+   "replacement": 145383,
+   "p_leave": 0.999
+  }
+ },
+ "provenance": {
+  "seed": 20,
+  "crab_index": 23,
+  "tag": "works_wins",
+  "params": "molt.world.Params() defaults",
+  "generated_by": "research/molt/trace.py"
+ }
+}

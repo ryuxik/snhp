@@ -43,12 +43,23 @@ model stands behind it.
    It wins by **finding deals that exist** (success 0.166/0.716 vs the ladder's
    0.051/0.199), not by extracting harder. Survived three fairness diagnostics:
    protocol parity, term-issue ablation, and the ladder's stopping rule.
-2. **Whoever holds the engine captures ~90% of the gain — K16 FIRED.** Landlord
-   gain in N/L is **+$2,642 / +$1,981**; tenant gain in T/N is **+$298 / +$236** —
-   about **8.5–8.9×**. Joint surplus rises materially (**+$1,372 / +$1,001**, via
-   deadweight falling), so it is real value creation, of which the landlord takes
-   nine parts in ten. **Our likelier customer is the landlord.** Belongs on
-   snhp.dev/rent, per A4.3.
+2. ~~**Whoever holds the engine captures ~90% of the gain — K16 FIRED.**~~
+   **WITHDRAWN — this is artefact #6.** The 8.5× compared two different tools,
+   not two holders of one tool. Commit `7c82c05` classified it an artefact and
+   `research/DESIGN-PRINCIPLES.md` lists it as #6; this summary went on
+   asserting it for four sessions, which is exactly the failure mode
+   DESIGN-PRINCIPLES F describes. Under AMENDMENT 7's Principle A check, the
+   T/N vs N/L comparison the 8.5× rests on differs in **eight** undeclared
+   dimensions after granting that holding the engine means using it: round
+   count (3 vs 2), the existence of a landlord opener, move order,
+   status-quo rebasing, a rent grid reaching +6% that the tenant can never
+   propose, both `their_batna_estimate` values, and — found later, under
+   Principle B — the landlord-side opener reading the tenant's **private**
+   priority weights (`ten.w`) and job flexibility. See "Corrections to the
+   record" and `test_k16_matrix_cells_differ_in_more_than_who_holds_the_engine`.
+   **No claim about who should hold the engine survives.** The commercial
+   inference drawn from it ("our likelier customer is the landlord") is
+   withdrawn with it.
 3. **Non-askers absorb the cost — K3 and K8 FIRED.** At 75% adoption non-askers
    lose ~**1.2% of annual rent** (positive in all eight estimates, straddling the
    bar). Under broadcast plus an adaptive landlord, askers gain **+$138** while
@@ -57,18 +68,35 @@ model stands behind it.
 4. **K1 fired against our ladder and does not fire against the engine.** Its Phase
    1 verdict stands for what it tested — our own reimplementation — and is
    superseded as a test of the product.
-5. **The renewal asymmetry runs against the tenant, but only slightly — K20 FIRED.**
-   Tenant walk-away **$3,062 ± 7** vs landlord **$2,845 ± 5**: ratio **1.08×**
-   (1.06–1.39× across specifications). See the correction below.
+5. **Who is the weaker party at renewal is UNDETERMINED — K20's verdict is
+   withdrawn, and K30 FIRED.** The shipped figure is tenant **$5,077** vs
+   landlord **$3,444**, ratio **1.474×** (the "1.08×" quoted previously is
+   stale — see Phase 5 §3). But AMENDMENT 10 shows that ratio is a free
+   parameter. It crosses 1.0 at a physical-move cost of **$3,110** as shipped
+   and **$1,028** with `RELET_RISK_ON` ablated — and the band defensible from
+   published sources is **$700–$3,300** ($400–$2,500 move plus $300–$800
+   ancillary). **Both crossings are inside the band.** At the *central*
+   estimate ($1,400–$2,000) the ratio is 0.83–0.89 with relet risk on
+   (landlord weaker) and 1.08–1.20 with it off (tenant weaker). So the answer
+   flips on a hardcoded boolean that appears in no reported cell, at a
+   parameter with no government statistic, whose most-cited source is
+   unusable. **We cannot tell who is the weaker party, and neither can the
+   advice industry.** That is the finding — not the reversal.
 6. **Answer early — K25 CONFIRMED, and it is the strongest piece of product advice
    in the whole study.** A tenant who lets a three-month notice window lapse is
    offered **13.3% more relative to market** and ends **$645/year worse off** than
    an identical tenant who answers immediately. Causal: the delay is drawn
    independently of type.
-7. **Shopping around does not help you negotiate — K26 does not confirm (+$17 vs a
-   $480 bar).** The landlord cannot verify your alternative, so it offers you the
-   same terms either way. Having one lets you *leave*; it does not get you a better
-   deal. Drop any copy implying otherwise.
+7. **Shopping around does not help you negotiate — K26 does not confirm, but the
+   reason has changed.** The +$17 figure was measured with the verification
+   channel switched OFF, i.e. with the landlord structurally unable to respond.
+   **AMENDMENT 9 ran the channel** (it was built, unit-tested, and never once
+   executed by any runner). With it on, a tenant that *proves* an alternative is
+   offered **10.2 percentage points of market rent less — which is 8.9% off the
+   offer**, worth **+$337 to +$478/yr** net of the proof's cost, still under the
+   $480 bar at every signal cost. And **K29 fired**: ablating the deadline cliff
+   collapses the gap to ~0.004%, so the mechanism is *removing your deadline
+   penalty*, not *revealing your alternative*. Copy should say the former.
 8. **A narrow group should move rather than negotiate — K21 did not fire, but the
    structure is the product point.** Only **~1 in 6 of the cheapest-to-move
    quartile** is better off moving; the share is 0.0% in the two dearest quartiles.
@@ -78,13 +106,132 @@ model stands behind it.
    identical population it is **−$244 to −$4**. The gap is pure selection, and the
    guard that caught it was pre-registered.
 
+## AMENDMENT 9 / 10 — added 2026-07-25
+
+**The signal arm existed, was unit-tested, and had never been run.** `market.py`
+implements a costly verifiable signal (`_signal_proved`, `signal_enabled`,
+`signal_cost`) and four tests assert its properties, but no cell in
+`run_market.py` ever switched it on. AMENDMENT 9 ran it.
+
+**State the effect in BOTH units, always.** The gap between a tenant who proves
+an alternative and one who does not is:
+
+| unit | value |
+|---|---|
+| percentage points **of market rent** | **10.2 pp** (0.1021) |
+| share **of the offer** | **8.9%** (0.1021 / 1.1416) |
+
+The article's "10.2% off the offer" uses the first number with the second
+number's denominator. Both are pinned by
+`test_the_signal_gap_is_pinned_in_BOTH_denominators`. Net of the proof's cost
+the tenant gains **+$337 to +$478/yr**, below K26's $480 bar at every swept
+signal cost — so K26 still does not confirm, but now for a real reason rather
+than because the landlord was structurally unable to respond.
+
+**K29 FIRED: the mechanism is the clock, not the alternative.** Ablating the
+deadline cliff collapses the gap from 10.2 pp to **0.004 pp** (ratio 0.000).
+`market.py` gives a proved tenant `wa_t_exp = wa_t_base` — the identical
+expression the `deadline_shape=False` branch gives everyone — and `wa_t_base`
+is built from the population `move_med`, so proving reveals nothing about *this*
+tenant's alternative. The honest description is **"proving it removes your
+deadline penalty"**. That is K25's cliff measured a second time under another
+name, the same family as artefact #3.
+
+**K30 FIRED: the sign of the renewal asymmetry is a free parameter.** Full table
+in `results_amend10.json`. `wa_tenant/wa_landlord` against the physical cost of
+a move, neutral drift:
+
+| MOVE_PHYSICAL | $ | shipped (`RELET_RISK_ON=True`) | ablated (`False`) |
+|---|---|---|---|
+| 0.35 | 700 | 0.747 | 0.933 |
+| **0.70** | **1400** | **0.827** | **1.076** |
+| **1.00** | **2000** | **0.892** | **1.197** |
+| 1.25 | 2500 | 0.942 | 1.299 |
+| 1.65 | 3300 | 1.018 | 1.462 |
+| *crossing* | | **$3,110** | **$1,028** |
+
+Declared band from published sources (PREREG A10.2): **$700–$3,300**, central
+**$1,400–$2,000**. Both crossings are inside it. **At the central estimate the
+two states disagree on the sign.** `RELET_RISK_ON` is a hardcoded `True` that
+had never been ablated and appears in no reported cell as a variable, and it
+sits in K20's denominator alongside `vacancy`, which is itself circular.
+
+**And the denominator is circular too, so the cross was run three ways.**
+`vacancy` (1.2 loss / 1.8 gain) is set in SPEC §5 from "39.7% of 2026 listings
+carried a concession" — the model's own V1/V5/V6 target — and it sits in K20's
+denominator beside `turn_cost` and `RELET_RISK_ON`. `market.py` already runs a
+real matching process and time-to-let is an *output* of it, so it was derived
+the same way A8 derived `move_med`. Three denominators, each crossed with
+`RELET_RISK_ON`:
+
+| `vacancy` | value | class |
+|---|---|---|
+| fitted (shipped) | 1.2 / 1.8 | **CIRCULAR** — the concession statistic |
+| derived | **4.376** (fixed point, 4.377 → 4.376 in one iteration) | endogenous but **contaminated** by the unfixed deflation defect of Phase 5 §5, so an upper bound on the landlord's exposure |
+| upstream | 1.15 (`BASE_LET_MONTHS`, 30–41 day let times) | **the only non-circular one** |
+
+K20 ratio at the central declared estimate ($2,000 physical move):
+
+| | `RELET_RISK_ON=True` | `=False` |
+|---|---|---|
+| vacancy fitted | 0.892 | 1.197 |
+| vacancy derived | 0.577 | 0.583 |
+| vacancy upstream | 0.950 | **1.374** |
+
+Crossing points: fitted $3,110 / $1,028; upstream $2,481 / $396; derived never
+crosses at all inside the swept range. **Three of six combinations cross inside
+the declared band, and the six span 0.52 to 1.37 at the central estimate** —
+from "the landlord has twice the tenant's exposure" to "the tenant has 1.4× the
+landlord's". Even restricting to the *only non-circular* denominator, the sign
+still flips on `RELET_RISK_ON`. Pinned by
+`test_the_k20_sign_is_undetermined_across_every_denominator_we_can_justify`.
+
+Worth stating separately: the model's own realised time-to-let is **4.38
+months** against a fitted 1.2–1.8 and published let times of 1.15–1.35. That
+gap is the deflation defect, not a finding about the world, and it is why the
+derived denominator is reported as a bound rather than as a replacement.
+
+**Bug hunt, required by A10.4 before believing a result this convenient.** The
+crossing is mechanically trivial: `wa_tenant` is linear in `move_med` by
+construction and, with relet risk ablated, `wa_land` is exactly constant
+($2,094 at every point). So this is a straight line meeting a flat one, and the
+crossing point carries no information beyond the two levels. That does not make
+K30 wrong — the finding is that *the two levels sit within a factor of ~1.5 of
+each other across the entire defensible band* — but the result must not be
+dressed up as a subtle nonlinearity. Pinned by
+`test_the_a10_crossing_is_a_level_comparison_not_a_subtle_nonlinearity`.
+
+**Is the tenant-vs-landlord comparison apples-to-apples?** Broadly yes, with one
+caveat that matters more than the arithmetic. The best-sourced landlord figure
+is Zego's **$3,872/turn** (survey, n=630 property managers, 250+ unit
+communities, 2023) and it **includes lost rent and vacancy**, so it is a total
+walk-away comparable to the tenant's move + search + attachment. The model's
+landlord walk-away runs **$2,094–$3,440**, inside the published $2,000–$4,000.
+The derived tenant switching cost is **$2,960**. **The folk claim that the
+landlord risks far more than the tenant is arithmetically dead either way** —
+both sides are low four figures. The caveat: the same dollars are a per-unit
+business expense set against a portfolio for one party and a household budget
+shock for the other, so equal dollars are not equal stakes. That, not the
+ordering, is the defensible statement. (Note also that NAA's widely recycled
+$1,000–$5,000 traces to a 2016 blog post, not research.)
+
+**Endogenous loss-to-lease does not survive the band either.** A7 found the
+model could not produce loss-to-lease at all; on A8-derived costs the free-cap
+station offers **0.990 of market**, below market at last. But across the
+declared band the free-cap offer runs 0.96 (at $700) to 1.037 (at $3,300),
+crossing 1.0 at ≈**$2,700 — also inside the band**. So endogenous loss-to-lease
+exists on one side of a line nobody can locate, and it should be reported that
+way rather than as a finding.
+
 ## Corrections to the record
 
 - **K20's magnitude was overstated by the coordinator and I confirm the corrected
   figure.** The claim of "more than twice as much to lose" compared a ~$7,200 move
   to a ~$3,000 make-ready, dropping the landlord's expected vacancy and re-let rent
-  risk. Against the full landlord walk-away the ratio is **1.08×**. **Any copy
-  implying a large asymmetry is unsupported.**
+  risk. Against the full landlord walk-away the shipped ratio is **1.474×**
+  (the 1.08× quoted previously is stale). **Any copy implying a large asymmetry
+  is unsupported** — and AMENDMENT 10 tests whether copy implying *any*
+  asymmetry is supported.
 - **K19 fired only because of a bug of mine.** The renewal offer was built from each
   tenant's *private* moving cost — price discrimination on unobservable
   information. Corrected, renewal growth goes +1.13% → −0.64% and the result we
@@ -129,7 +276,7 @@ model stands behind it.
 | K17 arms race not value creation | did not fire | joint +$1,372 / +$1,001 |
 | K18 mutual engines destroy value | did not fire | turnover falls |
 | K19 inversion is a BATNA artefact | did not fire (fired only under a bug) | renewal −0.64% |
-| K20 tenant weaker in renewals | **FIRED** | 1.08× |
+| K20 tenant weaker in renewals | **FIRED, under test (A10)** | 1.474× (was 1.08×, stale) |
 | K21 some should move not negotiate | did not fire | +$372 vs $480 |
 | K22 depth rises with days-on-market | **UNDECIDED** (bug signal) | non-monotone |
 | K23 engine exploits the deadline | **UNDECIDED** | not quantifiable in a deflating market |
@@ -847,13 +994,29 @@ vacancy per habitat doubles; retention does not move at all. What triples is
 **concessions**: the success rate on a counter goes 0.24 → 0.72 and stays
 there for the whole collapse, then falls back to 0.39 on recovery.
 
-So the answer to the pre-registered question is: tenant leverage in a demand
-collapse is real but it arrives as *concessions, not as a lower rent of record*
-— which is exactly the shape of the 2026 evidence (39.7% of listings carrying a
-move-in deal while renewal rents stayed positive). It also means a tenant who
-asks "will you lower my rent?" during a bust is asking the one question the
-model says the landlord will refuse, while the thing it will say yes to costs it
-the same cash and preserves its rent roll.
+Two halves of that paragraph, which the audit of 2026-07-25 separated because
+they do not have the same standing.
+
+**Survives.** *The station holds the rent and eats the vacancy.* This is a
+genuine output of the station's dynamic program: `run2.py` imports `StationDP`
+from `policies.py` and `world.py` only, so the flu never touches `market.py`,
+and neither `VAC_ADJUST` nor `V_TARGET` — the two ask-side parameters retuned
+after seeing an output — can reach it. The rent-of-record path (1.104 → 1.133
+while market rent falls 55%) is the DP choosing, not a parameter asserting.
+
+**Withdrawn as corroboration.** The concession half — success 0.24 → 0.72 —
+was previously tied back to *"exactly the shape of the 2026 evidence (39.7% of
+listings carrying a move-in deal)"*. **That tie-back is removed.** 39.7% is the
+exact statistic `vacancy` was set from (SPEC §5: relet months are 1.2 loss /
+1.8 gain because *"39.7% of 2026 listings carried a concession"*), so citing it
+as external support for a concession result is reading the model's own input
+back out as though it were independent evidence. The concession result stands
+as a model output; it corroborates nothing.
+
+The product point is unaffected by either correction: a tenant who asks "will
+you lower my rent?" during a bust is asking the one question the model says the
+landlord will refuse, while the thing it will say yes to costs it the same cash
+and preserves its rent roll.
 
 The other two types behave very differently, and it inverts the "best landlord
 to have" ordering:
@@ -1263,9 +1426,18 @@ was an artefact.**
 
 $/renewal or /match. Levels are deflated (see §5); ratios are the readable part.
 
+> **STALE — CORRECTED 2026-07-25.** The renewal rows below predate a later
+> change and no longer match the shipped `results_market.json`, which gives
+> baseline **tenant 5077 / landlord 3444 / ratio 1.474**, not 3062 / 2845 /
+> 1.08. A re-run of the baseline reproduces the shipped JSON exactly, so **1.474
+> is the current number and 1.08 is history.** Every downstream statement of
+> "1.08×" or "close to parity" in this document and in PREREG §A6a is therefore
+> understated; see AMENDMENT 10, which settles whether the ratio's *sign* means
+> anything at all.
+
 | cell | channel | tenant WA | landlord WA | ratio | zone width |
 |---|---|---|---|---|---|
-| baseline | RENEWAL | 3062 | 2845 | **1.08** | 4800 |
+| baseline | RENEWAL | 3062 → **5077** | 2845 → **3444** | 1.08 → **1.474** | 4800 |
 | baseline | NEW LET | 46 | 6148 | **0.01** | 6195 |
 | +30% supply | RENEWAL | 2935 | 2757 | 1.06 | 4600 |
 | +30% supply | NEW LET | 44 | 6067 | 0.01 | 6168 |
@@ -1358,7 +1530,30 @@ dollar figure in §3 is scaled down with it.
 
 I tried three calibrations (searcher inflow 0.035–0.25) and a much stronger
 ask-adjustment (0.6 → 3.0). Vacancy moved between 12.7% and 17.9% and the
-deflation persisted, so this is not a tuning problem. It is pinned by a test
+deflation persisted, so this is not a tuning problem.
+
+> **CORRECTION (audit 2026-07-25).** The ask-adjustment half of that sentence
+> carries no weight in the shipped code, because **`VAC_ADJUST` is inert**. Its
+> two uses are `M_relet = M_obs * (1.0 - VAC_ADJUST * 0.0)` — multiplied by a
+> literal zero — and an ask-setting block guarded by `h.crab is None` at the
+> annual boundary, where `vacant_years == 0` in every reported cell because the
+> monthly matching loop fills every habitat before the year turns. The block
+> sets no ask in 10,000 habitat-years (`ask_n == 0`). Running the baseline at
+> VAC_ADJUST ∈ {0.0, 0.6, 3.0, 100.0} gives a **bit-identical** recorder.
+> Three consequences: (a) `mean_ask` is 0/0 = **NaN** in every shipped market
+> cell; (b) "stations post asking rents against their own observed vacancy",
+> advertised as a structural feature of AMENDMENT 5, does not happen — asks are
+> set flat at `M_obs` inside the matching loop, and `DOM_CUT` is dead in the
+> same block; (c) the parameter was still a genuine post-hoc retune presented as
+> pre-declared, so it is classed CALIBRATED. Whether the retune had force *when
+> written*, at 12.7–17.9% vacancy, cannot be checked from the current code, and
+> the "not a tuning problem" conclusion is narrowed to what the inflow sweep
+> alone supports. Pinned by
+> `test_the_shipped_ask_adjustment_is_declared_at_one_value_shipped_at_another_and_inert`.
+> The days-on-market effect on the landlord's *reservation* is unaffected and
+> stays live — it runs through `expected_wait_months`, not through this block.
+
+It is pinned by a test
 (`test_market_rent_is_an_output_and_the_deflation_defect_is_pinned`) which
 asserts the *defective* behaviour on purpose, with a note to replace the
 assertion once demand is price-elastic.

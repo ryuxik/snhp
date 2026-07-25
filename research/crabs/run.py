@@ -9,6 +9,7 @@ Phase 1 = PREREG §4 arms A-E x {loss, gain} regimes.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -87,11 +88,41 @@ def pilot_prior(base: Params, n_iter: int = 2):
     return nodes, w
 
 
+def prior_key(nodes, w) -> str:
+    """Exact fingerprint of the station's switching-cost prior. The solved policy
+    is a function of it as much as of `Params`, and it is a process-level global
+    in this runner, so it goes in the cache key rather than being assumed
+    constant."""
+    return hashlib.blake2b(np.ascontiguousarray(nodes, dtype=float).tobytes()
+                           + np.ascontiguousarray(w, dtype=float).tobytes(),
+                           digest_size=8).hexdigest()
+
+
+def station_key(p: Params, nodes, w, share: float, adaptive: bool):
+    """Cache key for a solved station policy.
+
+    DEFECT FIXED 2026-07-25 (AMENDMENT 11, reported by the triage worker).
+    The key used to be `(regime, share, adaptive, face_premium, p_substitute,
+    p_continue)` -- the regime label plus exactly the three parameters
+    `sens_specs` happens to sweep. Every OTHER parameter `StationDP` reads was
+    absent from it, so a sweep of `p_exo_*`, `move_med`, `renewal_cap`,
+    `turn_cost`, `q_new`, `nu` or `kappa_crab` silently reused a policy solved
+    for a DIFFERENT parameter value and reported it as the swept cell's result.
+    Nothing shipped in `RESULTS.md` went through that path -- `phase1_specs`
+    holds `base` fixed and `sens_specs` sweeps only keyed parameters, which is
+    why the defect survived -- but every sweep added later did.
+
+    Keying on the whole frozen `Params` cannot go stale: over-keying costs one
+    extra solve, under-keying is a wrong number that looks right. `regime` is
+    absent because `regime_params` has already written it into `drift` and
+    `vacancy`, which are fields of the key."""
+    return (p, prior_key(nodes, w), round(float(share), 4), bool(adaptive))
+
+
 def _station(base: Params, regime: str, nodes, w, share: float, adaptive: bool):
-    key = (regime, round(share, 4), bool(adaptive), base.face_premium,
-           base.p_substitute, base.p_continue)
+    p = regime_params(base, regime)
+    key = station_key(p, nodes, w, share, adaptive)
     if key not in _CACHE:
-        p = regime_params(base, regime)
         _CACHE[key] = StationDP(p, nodes, w, share=share, adaptive=adaptive)
     return _CACHE[key]
 

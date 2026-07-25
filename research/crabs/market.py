@@ -44,8 +44,47 @@ DECLARED PARAMETERS (fixed before the first run):
                                        moving -- much smaller than a move
     k_visible      5      listings a searcher can see (local information only)
     vac_adjust     0.6    asking-rent response to vacancy deviation
-    v_target       0.06   the vacancy a station prices toward
+                          ** declared 0.6, ships 3.0, and INERT -- note below **
+    v_target       0.06   the vacancy a station prices toward -- same note
     precedent0     0.0    A5.3 commitment asymmetry, swept -- NOT assumed
+
+VAC_ADJUST / V_TARGET: DECLARED 0.6, SHIPPED 3.0, AND DEAD (audit 2026-07-25)
+---------------------------------------------------------------------------
+The list above is the declared-before-running list and it says 0.6. The module
+ships 3.0, retuned after observing deflation (RESULTS Phase 5 §5: "a much
+stronger ask-adjustment (0.6 -> 3.0)"). That much is an honest post-hoc
+calibration mislabelled as pre-declared, recorded as CALIBRATED in
+`principles.PARAM_SOURCES` rather than quietly reconciled.
+
+But the value does not matter, because **neither use of it can fire in the
+shipped configuration**:
+
+  1. `M_relet = M_obs * (1.0 - VAC_ADJUST * 0.0)` -- multiplied by a literal
+     zero, so `M_relet == M_obs` for every renewal ever priced.
+  2. The ask-setting block guarded by `if h.crab is None` runs at the ANNUAL
+     boundary, where `vacant_years == 0` in every reported cell: the monthly
+     matching loop fills every habitat before the year turns. `ask_n == 0` over
+     10,000 habitat-years, so the block sets no ask, ever.
+
+Verified by running the baseline at VAC_ADJUST in {0.0, 0.6, 3.0, 100.0}: the
+recorder is BIT-IDENTICAL at all four. `DOM_CUT` sits in the same dead block, so
+the "a landlord that has sat unlet re-lists lower" ASK channel is also inert --
+though the days-on-market effect on the landlord's RESERVATION is live and
+separately tested, via `expected_wait_months` in `newlet_walkaways`.
+
+Consequences, which belong here and not only in RESULTS.md:
+  - `mean_ask` is 0/0 = **NaN** in every shipped market cell.
+  - "stations post asking rents against their own observed vacancy", stated as a
+    structural feature at the top of this file, does not happen. Asks are set
+    flat at `M_obs` inside the matching loop.
+  - RESULTS Phase 5 §5 argues the deflation "is not a tuning problem" partly
+    because a stronger ask-adjustment did not cure it. In the CURRENT code that
+    argument has no force, because the ask-adjustment does nothing. It may have
+    had force when written, when vacancy ran 12.7-17.9%; that cannot be checked
+    from here, and the claim is narrowed in RESULTS.md accordingly.
+
+The value is left at 3.0 and the dead code is left in place: changing either
+would edit history without changing a number.
 """
 from __future__ import annotations
 
@@ -210,6 +249,13 @@ class MarketParams:
     signal_cost: float = 0.10          # months of market rent to produce the
                                        # proof (forward the offer letter, pay a
                                        # holding deposit). DECLARED, swept.
+    derive_switching: bool = False     # AMENDMENT 8: accumulate each searcher's
+                                       # REALISED search cost, so that switching
+                                       # cost can be an output instead of the
+                                       # calibrated `move_med` input. Default OFF
+                                       # and it draws from a SEPARATE rng, so
+                                       # every previously reported market cell is
+                                       # bit-identical with it on or off.
 
 
 def _rec():
@@ -324,9 +370,14 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
     """One market. `drift` is normally 0: GATE 3 asks whether the 2026 pattern
     emerges WITHOUT an imposed regime, so the default imposes nothing."""
     rng = np.random.default_rng(np.random.SeedSequence([seed, 5150]))
+    # AMENDMENT 8: a SEPARATE stream, so that switching on the derivation cannot
+    # perturb the main sequence and silently move every previously reported cell.
+    rng_a8 = np.random.default_rng(np.random.SeedSequence([seed, 8080]))
     S, U = mp.n_stations, mp.units
     stations = [[Hab() for _ in range(U)] for _ in range(S)]
     rec = _rec()
+    if mp.derive_switching:
+        rec["_derived"] = []
     series = []
 
     # initial population at the anchor rent
@@ -510,6 +561,8 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                         rec["surplus_renew"] += -wa_t - _sigcost
                         rec["surplus_renew_n"] += 1.0
                     if u[7] >= mp.exit_share:
+                        if mp.derive_switching:
+                            _a8_enter(crab, rng_a8, secured)
                         pool.append((int(u[9] * MONTHS), _to_searcher(crab, u)))
                     h.crab = None
                     h.dom = 0.0
@@ -556,7 +609,13 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                 u = rng.random(32)
                 cp = float(np.exp(np.log(p.move_med) + p.move_sigma
                                   * _norm_ppf(u[0])))
-                carry.append(Crab(strategy=0, rent=0.0, tenure=0, c_persist=cp))
+                _nc = Crab(strategy=0, rent=0.0, tenure=0, c_persist=cp)
+                if mp.derive_switching:
+                    # inflow searchers are NOT sitting tenants leaving a habitat,
+                    # so they are marked and excluded from the derived switching
+                    # cost: a household forming is not a household switching.
+                    _a8_enter(_nc, rng_a8, False, mover=False)
+                carry.append(_nc)
             # habitats vacated by this year's renewals are listed now
             for si in range(len(stations)):
                 for h in stations[si]:
@@ -568,8 +627,16 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
             if R is not None:
                 rec["vacancy_lost"] += len(listings) * M_obs
                 rec["vacant_months"] += len(listings)
+            if mp.derive_switching:
+                for _c in carry:
+                    _c.a8_months = getattr(_c, "a8_months", 0.0) + 1.0
             if not listings:
-                carry = [c for c in carry if rng.random() >= 0.25]
+                if mp.derive_switching:
+                    _survive = [c for c in carry if rng.random() >= 0.25]
+                    _a8_giveups(rec, carry, _survive, mp)
+                    carry = _survive
+                else:
+                    carry = [c for c in carry if rng.random() >= 0.25]
                 continue
             tightness = max(len(carry), 1) / len(listings)
             rng.shuffle(carry)
@@ -582,6 +649,14 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                     still.append(crab)
                     continue
                 u = rng.random(32)
+                if mp.derive_switching:
+                    # one listing seriously engaged this month: the viewing, the
+                    # application, the fee. A month that ends without a match is
+                    # a rejection, and it costs another attempt and another month
+                    # next time round -- so rejection is priced by the dynamics.
+                    crab.a8_attempts = getattr(crab, "a8_attempts", 0.0) + 1.0
+                    if getattr(crab, "a8_tight0", None) is None:
+                        crab.a8_tight0 = float(tightness)
                 k = min(K_VISIBLE, len(listings))
                 idx = rng.choice(len(listings), size=k, replace=False)
                 seen = sorted((listings[i] for i in idx),
@@ -654,6 +729,8 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                     rec["surplus_newlet_n"] += 1.0
                     rec["crab_cash"] += 12.0 * signed
                     rec["station_cash"] += 12.0 * signed
+                if mp.derive_switching:
+                    _a8_record(rec, crab, mp, matched=True)
                 h.crab = crab
                 h.dom = 0.0
                 h.ask0 = 0.0
@@ -662,7 +739,12 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                 for h in stations[si]:
                     if h.crab is None:
                         h.dom += 1.0
-            carry = [c for c in still if rng.random() >= 0.25]
+            if mp.derive_switching:
+                _survive = [c for c in still if rng.random() >= 0.25]
+                _a8_giveups(rec, still, _survive, mp)
+                carry = _survive
+            else:
+                carry = [c for c in still if rng.random() >= 0.25]
         if R is not None:
             rec["n_unmatched"] += len(carry)
 
@@ -742,3 +824,58 @@ def _to_searcher(crab, u):
     crab.tenure = 0
     crab.rent = 0.0
     return crab
+
+
+# ------------------------------- AMENDMENT 8: switching cost as an output ----
+# All four helpers are inert unless `MarketParams.derive_switching` is set, and
+# every random draw they make comes from `rng_a8`, a stream of their own. So the
+# derivation cannot move a single previously reported market number -- asserted
+# by a test rather than claimed.
+
+def _a8_enter(crab, rng_a8, secured: bool, mover: bool = True) -> None:
+    """A crab enters the search pool. `mover=False` marks an inflow searcher --
+    a household forming, not a household switching -- which is counted in the
+    matching but excluded from the derived switching-cost distribution."""
+    crab.a8_attempts = 0.0
+    crab.a8_months = 0.0
+    crab.a8_tight0 = None
+    crab.a8_mover = bool(mover)
+    crab.a8_secured = bool(secured)
+    crab.a8_logged = False       # a crab that moved once may move again years
+                                 # later; without this reset only FIRST spells
+                                 # would ever be logged, which would bias the
+                                 # distribution toward whoever moves least
+    # broker-fee market: drawn once per search, from the A8 stream only
+    from crabs.searchcost import BROKER_SHARE
+    crab.a8_broker = bool(rng_a8.random() < BROKER_SHARE)
+
+
+def _a8_record(rec, crab, mp, matched: bool) -> None:
+    if not getattr(crab, "a8_mover", False):
+        return                       # inflow searcher: not a switch
+    if getattr(crab, "a8_logged", False):
+        return                       # a crab may re-enter later; log each spell
+    from crabs.searchcost import derived_cost
+    crab.a8_logged = True
+    c = derived_cost(getattr(crab, "a8_attempts", 0.0),
+                     getattr(crab, "a8_months", 0.0),
+                     getattr(crab, "a8_broker", False))
+    rec["_derived"].append(dict(
+        cost=c, attempts=float(getattr(crab, "a8_attempts", 0.0)),
+        months=float(getattr(crab, "a8_months", 0.0)),
+        broker=bool(getattr(crab, "a8_broker", False)),
+        secured=bool(getattr(crab, "a8_secured", False)),
+        tightness=getattr(crab, "a8_tight0", None),
+        matched=bool(matched)))
+
+
+def _a8_giveups(rec, before, after, mp) -> None:
+    """PRINCIPLE D. A searcher that gives up has, by construction, the longest
+    and most expensive search. Recording only the ones that matched would make
+    the derived median a survivorship statistic -- artefact #5's exact shape,
+    which this study has already made once. So give-ups are logged too, and the
+    unconditional figure is the one A8 reports."""
+    keep = {id(c) for c in after}
+    for c in before:
+        if id(c) not in keep:
+            _a8_record(rec, c, mp, matched=False)

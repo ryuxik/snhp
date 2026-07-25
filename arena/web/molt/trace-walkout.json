@@ -1,0 +1,255 @@
+{
+ "crab": {
+  "name": "Ada Kelpline",
+  "spec": "BRINE-CHEMIST",
+  "salary": 134702,
+  "tenure": 1,
+  "perf": 74,
+  "weights": {
+   "base": 0.135,
+   "title": 0.559,
+   "bonus": 0.045,
+   "berth": 0.138,
+   "deepwater": 0.123
+  },
+  "cares_most": "title",
+  "has_outside": true,
+  "outside_premium": 13.2,
+  "outside_value": 34281,
+  "offer_expires_day": 19.1,
+  "replacement_cost": 107762,
+  "opening": {
+   "base": "+3%",
+   "title": "hold",
+   "bonus": "none",
+   "berth": "standard",
+   "deepwater": "no"
+  },
+  "issue_values": {
+   "base": 11347,
+   "title": 41442,
+   "bonus": 11225,
+   "berth": 5594,
+   "deepwater": 5779
+  },
+  "issue_costs": {
+   "base": 14752,
+   "title": 11606,
+   "bonus": 11225,
+   "berth": 2694,
+   "deepwater": 4041
+  }
+ },
+ "sign": {
+  "score": {
+   "crab": 11347,
+   "works": -14781,
+   "joint": -3434,
+   "days": 1.0,
+   "meetings": 0,
+   "left": false,
+   "walked": false,
+   "expired": false,
+   "pkg": {
+    "base": "+3%",
+    "title": "hold",
+    "bonus": "none",
+    "berth": "standard",
+    "deepwater": "no"
+   },
+   "concession": 14752,
+   "mgr": 0,
+   "distraction": 30,
+   "replacement": 0,
+   "p_leave": 0.987
+  }
+ },
+ "slow": {
+  "steps": [
+   {
+    "day": 22.7,
+    "issue": "base",
+    "ask": "+12%",
+    "granted": true,
+    "pkg": {
+     "base": "+12%",
+     "title": "hold",
+     "bonus": "none",
+     "berth": "standard",
+     "deepwater": "no"
+    },
+    "crab_value": 45390,
+    "works_cost": 59006
+   },
+   {
+    "day": 27.4,
+    "issue": "bonus",
+    "ask": "2 months",
+    "granted": false,
+    "pkg": {
+     "base": "+12%",
+     "title": "hold",
+     "bonus": "none",
+     "berth": "standard",
+     "deepwater": "no"
+    },
+    "crab_value": 45390,
+    "works_cost": 59006
+   }
+  ],
+  "score": {
+   "crab": 34281,
+   "works": -109005,
+   "joint": -74724,
+   "days": 27.4,
+   "meetings": 2,
+   "left": true,
+   "walked": true,
+   "expired": true,
+   "pkg": {
+    "base": "+12%",
+    "title": "hold",
+    "bonus": "none",
+    "berth": "standard",
+    "deepwater": "no"
+   },
+   "concession": 0,
+   "mgr": 435,
+   "distraction": 808,
+   "replacement": 107762,
+   "p_leave": 0.06
+  },
+  "agenda": [
+   "base",
+   "bonus",
+   "berth",
+   "title",
+   "deepwater"
+  ]
+ },
+ "fast": {
+  "steps": [
+   {
+    "round": 1,
+    "actor": "crab",
+    "pkg": {
+     "base": "+0%",
+     "title": "molt",
+     "bonus": "none",
+     "berth": "standard",
+     "deepwater": "no"
+    },
+    "crab_value": 41442,
+    "works_cost": 11606,
+    "logic": "Give ground on 'bonus' (you weight it less, they weight it most) to hold firm on 'title' (your top priority). That trade is what makes the package beat splitting every issue down the middle.",
+    "inferred": {
+     "base": 0.172,
+     "title": 0.201,
+     "bonus": 0.203,
+     "berth": 0.22,
+     "deepwater": 0.204
+    }
+   },
+   {
+    "round": 1,
+    "actor": "works",
+    "pkg": {
+     "base": "+3%",
+     "title": "molt",
+     "bonus": "none",
+     "berth": "standard",
+     "deepwater": "no"
+    },
+    "crab_value": 52789,
+    "works_cost": 26358
+   },
+   {
+    "round": 2,
+    "actor": "crab",
+    "pkg": {
+     "base": "+6%",
+     "title": "molt",
+     "bonus": "none",
+     "berth": "standard",
+     "deepwater": "no"
+    },
+    "crab_value": 64136,
+    "works_cost": 41109,
+    "logic": "Give ground on 'bonus' (you weight it less, they weight it most) to hold firm on 'title' (your top priority). That trade is what makes the package beat splitting every issue down the middle.",
+    "inferred": {
+     "base": 0.158,
+     "title": 0.105,
+     "bonus": 0.259,
+     "berth": 0.234,
+     "deepwater": 0.245
+    }
+   },
+   {
+    "round": 2,
+    "actor": "works",
+    "pkg": {
+     "base": "+3%",
+     "title": "molt",
+     "bonus": "none",
+     "berth": "flexible",
+     "deepwater": "no"
+    },
+    "crab_value": 58383,
+    "works_cost": 29052
+   }
+  ],
+  "score": {
+   "crab": 58383,
+   "works": -29505,
+   "joint": 28878,
+   "days": 8.0,
+   "meetings": 1,
+   "left": false,
+   "walked": false,
+   "expired": false,
+   "pkg": {
+    "base": "+3%",
+    "title": "molt",
+    "bonus": "none",
+    "berth": "flexible",
+    "deepwater": "no"
+   },
+   "concession": 29052,
+   "mgr": 218,
+   "distraction": 236,
+   "replacement": 0,
+   "p_leave": 0.071
+  }
+ },
+ "both": {
+  "score": {
+   "crab": 11347,
+   "works": -14999,
+   "joint": -3651,
+   "days": 1.0,
+   "meetings": 1,
+   "left": false,
+   "walked": false,
+   "expired": false,
+   "pkg": {
+    "base": "+3%",
+    "title": "hold",
+    "bonus": "none",
+    "berth": "standard",
+    "deepwater": "no"
+   },
+   "concession": 14752,
+   "mgr": 218,
+   "distraction": 30,
+   "replacement": 0,
+   "p_leave": 0.987
+  }
+ },
+ "provenance": {
+  "seed": 3,
+  "crab_index": 8,
+  "tag": "walkout",
+  "params": "molt.world.Params() defaults",
+  "generated_by": "research/molt/trace.py"
+ }
+}

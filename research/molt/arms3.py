@@ -20,7 +20,8 @@ from molt.arms2 import WorksSeat, _norm
 from molt.v2 import Crab2, prior, replacement_cost, update
 from molt.v3 import (ISSUE_BUDGET, Package, Params3, Season, crab_cash3,
                      crab_value3, discloses3, feasible, p_leave_true3,
-                     works_best_reply3, works_cost3, works_npv3, works_signs3)
+                     slot_open, works_best_reply3, works_cost3, works_npv3,
+                     works_signs3)
 from molt.world import (BASE_LABELS, BERTH_LABELS, BONUS_LABELS, DEEP_LABELS,
                         ISSUES_V3, PTO_DAYS, PTO_LABELS, TITLE_LABELS,
                         approval_days, clock_costs, expired, opening_offer,
@@ -84,7 +85,7 @@ def crab_issues3(p: Params3, c: Crab2, sea: Season, rate: float | None = None):
          "my_utility": [v(Package(pto=i)) for i in range(3)],
          "their_utility": [2.0, 1.0, 0.0]},
     ]
-    if sea.slot:
+    if slot_open(p, sea):
         out.insert(1, {"name": "title", "options": OPTS["title"],
                        "my_utility": [v(z), v(Package(title=True))],
                        "their_utility": [1.0, 0.0]})
@@ -111,7 +112,7 @@ def works_issues3(p: Params3, c: Crab2, sea: Season):
          "my_utility": [k(Package(pto=i)) for i in range(3)],
          "their_utility": [0.0, 1.0, 2.0]},
     ]
-    if sea.slot:
+    if slot_open(p, sea):
         out.insert(1, {"name": "title", "options": OPTS["title"],
                        "my_utility": [k(z), k(Package(title=True))],
                        "their_utility": [0.0, 1.0]})
@@ -120,7 +121,7 @@ def works_issues3(p: Params3, c: Crab2, sea: Season):
 
 def crab_batna3(p: Params3, c: Crab2, sea: Season) -> float:
     lo = crab_value3(p, c, Package())
-    hi = crab_value3(p, c, Package(4, sea.slot, 2, True, True, 2))
+    hi = crab_value3(p, c, Package(4, slot_open(p, sea), 2, True, True, 2))
     ov = outside_value(p, c)
     return float(np.clip((ov - lo) / (hi - lo), 0.0, 1.0)) if hi > lo else 0.5
 
@@ -128,8 +129,8 @@ def crab_batna3(p: Params3, c: Crab2, sea: Season) -> float:
 # -------------------------------------------------------------- the slow arm
 def _order3(p, c, sea, mode, rng):
     if mode == "money_first":
-        return [i for i in AGENDA3 if sea.slot or i != "title"]
-    live = [i for i in AGENDA3 if sea.slot or i != "title"]
+        return [i for i in AGENDA3 if slot_open(p, sea) or i != "title"]
+    live = [i for i in AGENDA3 if slot_open(p, sea) or i != "title"]
     if mode == "random":
         return list(rng.permutation(live))
     base = Package()
@@ -243,7 +244,7 @@ def sitting_works3(p: Params3, c: Crab2, sea: Season, seed: int,
     prio = {k: v / tot for k, v in cost.items()}
     rate = p.perk_rate * (p.employer_rate_bias if biased else 1.0)
     view = Params3(**{**p.__dict__, "perk_rate": rate})
-    top = Package(4, sea.slot, 2, True, True, 2)
+    top = Package(4, slot_open(p, sea), 2, True, True, 2)
     seen = [top.labels()]
     cur = op
     asp = outside_value(p, c) if c.has_outside else 0.04 * c.salary

@@ -8,9 +8,25 @@ caught. Binding on any future simulation in this repo.*
 
 The crab rent study pre-registered 26 kill conditions, ran three
 validation gates, and was audited adversarially. It still produced **seven
-artefacts**, two of which shipped to users. Pre-registration caught none
-of them — it constrains what you *claim*, not what you *build*. Every one
-was a construction error, found later by inspection or ablation.
+artefacts**.
+
+*Corrected 2026-07-25.* This section previously said pre-registration
+caught none of them. That was wrong, and it contradicted three other
+places in the repo (RESULTS.md line 79, `principles.py`'s docstring,
+`test_crabs.py:1115`, all of which say five of seven survived it).
+Pre-registration caught **roughly two**, and precisely the two it was
+aimed at: the SPEC-A2 §A2-6 guard that caught K11's selection effect, and
+the A6a.4-mandated bug hunt that found the shape/level error.
+
+**Five survived it**, because pre-registration constrains what you
+*claim*, not what you *build*. Each of the five was a construction error
+found later by inspection or ablation. That is the real lesson, and it is
+sharper than the overstatement was: pre-registration works, on exactly the
+failure modes you thought of in advance, and not one step further.
+
+(Separately, two published findings were corrected live after shipping to
+users — K25's dollar figure and K26's reversal. Neither is a member of the
+seven; do not conflate the two counts.)
 
 So the failure mode is not dishonesty about results. It is **building the
 answer into the apparatus and then reading it back out.**
@@ -78,6 +94,8 @@ showed shape contributed 13% and level 87%.
 2. **Every mechanism claim must be ablated.** If you say X causes Y, run
    without X and report the delta. An unablated mechanism claim is a
    hypothesis wearing a finding's clothes.
+3. See **G**, this principle's converse. C is checked parameter-by-parameter
+   and misses loops that are only visible output-by-output.
 
 ## D. Identical populations
 
@@ -92,6 +110,56 @@ the K21 quartiles recorded only tenants who *stayed*, inverting the table.
 comparison beside it, or it is not reported. Any statistic conditioned on
 an outcome (stayed, succeeded, renewed) is labelled as conditional and
 paired with the unconditional version.
+
+## G. The free-outputs register
+
+**Before running, write down which observables are *not* fitted — directly
+or through any parameter. Those are the only outputs that can be findings.
+Everything else is a readout.**
+
+*Would have caught two loops the parameter audit missed entirely.* The
+crab study's `vacancy` cited *"39.7% of 2026 listings carried a
+concession"*; its `p_exo` cited *"NAA turnover ~47%."* Both were filed
+UPSTREAM, because each cites a real published number. The source was never
+the problem. The problem is that each number cited was **one of the model's
+own validation targets.**
+
+Read parameter-by-parameter, that is invisible: `vacancy` cites a
+concession statistic, which looks like data. Read output-by-output, it is
+immediate — the concession rate is on both sides of the ledger. Principle C
+cannot see this, because no single parameter looks circular on its own.
+
+Worse, it compounds. `move_med` was calibrated to observed elasticity and
+`p_exo` to observed turnover — the rent-driven and non-rent halves of the
+same fact, fitted separately. Between them the retention gate was not a
+weak test, it was **an identity**, and nothing in the per-parameter audit
+said so.
+
+The register is a table, filled in before the first run:
+
+| Observable | Fitted? | Through what |
+|---|---|---|
+| concession rate | YES | `vacancy` |
+| turnover / retention | YES | `p_exo_*`, `move_med`, `move_sigma` |
+| counter rate | YES | `courage_med`, `belief0` |
+| renewal increase level | YES | `renewal_cap` (until A7) |
+| *everything else* | NO | free — may be claimed |
+
+**Three rules:**
+1. An observable fitted through *any* parameter is fitted. Indirection is
+   not laundering, and two parameters fitted to two halves of one fact
+   fit the whole fact.
+2. **A validation gate on a fitted observable is not a test.** It is an
+   identity. Reporting it as a gate overstates what was checked. State
+   which gates are free and which are not, in the same table as the gate
+   results.
+3. The register is written *before* the run and published *with* the
+   results, unedited. Amending it afterwards is how a readout becomes a
+   finding.
+
+Track record: of the crab study's three validation gates, at least two were
+on fitted observables. All three failed anyway — which is the only reason
+nothing was overclaimed off them.
 
 ---
 

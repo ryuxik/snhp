@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Molt Season — snhp</title>
+<meta name="description" content="A space crab wants a bigger shell. Two negotiations, same crab, same works: six weeks of meetings, or one sitting. Watch the calendar and the money at the same time. The crabs are fake. The math is real.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Molt Season — six weeks of meetings, or one sitting">
+<meta property="og:description" content="The Works offered her a 12% raise and she left anyway. What she actually wanted cost half as much. Every number is recorded engine output from a pre-registered experiment.">
+<meta property="og:site_name" content="snhp arena">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Molt Season — six weeks of meetings, or one sitting">
+<meta name="twitter:description" content="Salary negotiation, measured in two currencies: money and calendar days. Pre-registered, kills and all.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A6%80%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="molt.css">
+</head>
+<body>
+
+<header id="chrome">
+  <div id="topbar">
+    <div id="brand">MOLT SEASON</div>
+    <div id="sub">the bonus landed. now everybody decides.</div>
+    <div id="playctl">
+      <button id="pp" title="Pause / resume" aria-label="Pause or resume">&#9208;</button>
+      <button id="speed" title="Playback speed">1&times;</button>
+      <button id="skip" title="skip to the ending">skip &rarr; the ending</button>
+    </div>
+  </div>
+</header>
+
+<main id="stage">
+  <div id="error" hidden></div>
+
+  <!-- who -->
+  <section id="scene-crab" class="scene">
+    <div class="card crabcard">
+      <div class="crabhead">
+        <div class="glyph">&#129408;</div>
+        <div>
+          <h1 id="crab-name">—</h1>
+          <div id="crab-line" class="mono dim">—</div>
+        </div>
+      </div>
+      <div id="crab-body"></div>
+    </div>
+  </section>
+
+  <!-- the ledger of what things are worth vs what they cost -->
+  <section id="scene-prices" class="scene">
+    <h2 class="sect">What she wants &mdash; and what it costs the Works</h2>
+    <p class="lede">Every term is two different numbers. That gap is the whole
+       game, and a conversation that takes one term at a time never sees it.</p>
+    <div id="prices"></div>
+  </section>
+
+  <!-- the two negotiations -->
+  <section id="scene-race" class="scene">
+    <div id="clockbar">
+      <div class="daybox"><span class="daynum mono" id="dayclock">0</span><span class="daylab">days elapsed</span></div>
+      <div id="expiry" class="mono" hidden></div>
+    </div>
+    <div id="race">
+      <div class="lane" id="lane-slow">
+        <div class="lanehead">
+          <h3>THE OLD WAY</h3>
+          <div class="lanesub mono">meetings, one issue at a time</div>
+        </div>
+        <div class="feed" id="feed-slow"></div>
+        <div class="laneend" id="end-slow" hidden></div>
+      </div>
+      <div class="lane" id="lane-fast">
+        <div class="lanehead">
+          <h3>ONE SITTING</h3>
+          <div class="lanesub mono">the whole package, on the engine</div>
+        </div>
+        <div class="feed" id="feed-fast"></div>
+        <div class="laneend" id="end-fast" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- the bill -->
+  <section id="scene-bill" class="scene">
+    <h2 class="sect">The bill</h2>
+    <div id="bill"></div>
+    <div id="punch" class="punch"></div>
+  </section>
+
+  <!-- measured -->
+  <section id="scene-science" class="scene">
+    <h2 class="sect">Measured, not vibed</h2>
+    <p class="lede">One crab is an anecdote. Here is the population: the same six
+       protocols over <span id="sci-n" class="mono">—</span> crab-seasons, four
+       pre-registered seeds, confirmed on a held-out fifth.</p>
+    <div id="science"></div>
+    <div id="caveats"></div>
+  </section>
+</main>
+
+<footer id="foot">
+  <p>Nothing on this page is scripted. Every number was produced by the snhp
+     engine and the simulator in <span class="mono">research/molt/</span>, recorded
+     to the trace this page plays back. The kills were written down
+     <em>before</em> the first run, and one of them fired.</p>
+  <p><a href="../index.html">arena</a> &middot; <a href="https://github.com/ryuxik/snhp/blob/main/research/molt/PREREG.md">pre-registration</a> &middot; <a href="https://github.com/ryuxik/snhp/blob/main/research/molt/RESULTS.md">results</a></p>
+</footer>
+
+<noscript><p style="padding:2rem;font-family:system-ui">This player needs JavaScript to load and play back the recorded trace.</p></noscript>
+<script src="molt.js" defer></script>
+</body>
+</html>

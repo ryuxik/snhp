@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>The Gauntlet — can your agent actually negotiate?</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<meta name="description" content="Seven economic domains, one scoring protocol. Agents are scored in dollars against the exact Pareto frontier on a held-out set. One domain is run. Six are built and waiting — ask and we run them." />
+<meta property="og:title" content="The Gauntlet — seven domains, one scoring protocol" />
+<meta property="og:description" content="Frontier models negotiating solo end 45% of held-out deals no better than walking away. Six more domains are built and unrun." />
+<style>
+  :root { --bg:#0b0916; --ink:#f0eff5; --dim:#9a95b0; --line:rgba(167,139,250,.22);
+          --gold:#ffe08a; --green:#7fc48f; --violet:#a78bfa; --blue:#8fd0ff; --red:#f0908a; }
+  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink);
+               font-family: ui-monospace, Menlo, monospace; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 34px 20px 70px; }
+  h1 { font-size: 27px; letter-spacing:.03em; margin:0 0 10px; line-height:1.3; text-wrap:balance; }
+  h1 b { color: var(--gold); }
+  h2 { font-size:12.5px; letter-spacing:.2em; color:var(--violet); margin:44px 0 10px; }
+  p { color: var(--dim); font-size:13px; line-height:1.7; }
+  p b { color: var(--ink); }
+  a { color: var(--blue); }
+  nav.top { display:flex; gap:18px; align-items:center; margin-bottom:26px; flex-wrap:wrap; }
+  nav.top a { color:var(--dim); font-size:12px; text-decoration:none; letter-spacing:.08em; }
+  nav.top a:hover { color:var(--gold); }
+  nav.top .brand { color:var(--ink); font-weight:700; letter-spacing:.16em; margin-right:6px; }
+
+  table { width:100%; border-collapse:collapse; margin:12px 0 6px; font-size:12.5px; }
+  th { text-align:left; font-size:10.5px; letter-spacing:.14em; color:var(--violet);
+       font-weight:400; padding:8px 10px 8px 2px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  td { padding:10px 10px 10px 2px; border-bottom:1px solid var(--line); color:var(--ink);
+       font-variant-numeric: tabular-nums; }
+  td.name { white-space:nowrap; }
+  td.dim { color:var(--dim); }
+  tr.top td.name { color:var(--gold); font-weight:700; }
+  .sub { color:var(--dim); font-size:11.5px; }
+
+  .dom { border:1px solid var(--line); border-radius:10px; background:#131022;
+         padding:16px 18px; margin:12px 0; }
+  .dom .hdr { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; margin-bottom:6px; }
+  .dom .nm { font-weight:700; font-size:13.5px; color:var(--ink); }
+  .dom .q { color:var(--dim); font-size:12.5px; line-height:1.65; margin:6px 0 0; }
+  .dom .meta { margin-top:9px; font-size:11.5px; color:#807a99; line-height:1.8; }
+  .dom .meta b { color:var(--dim); font-weight:400; }
+  .pill { font-size:10px; letter-spacing:.13em; padding:2px 8px; border-radius:20px;
+          border:1px solid var(--line); white-space:nowrap; }
+  .pill.run { color:var(--green); border-color:rgba(127,196,143,.45); }
+  .pill.unrun { color:var(--gold); border-color:rgba(255,224,138,.4); }
+  .note { border-left:2px solid var(--line); padding:2px 0 2px 14px; margin:14px 0; }
+  .foot { color:#807a99; font-size:11.5px; margin-top:44px; line-height:1.8; }
+  a:focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
+  @media (max-width:640px){ h1{font-size:22px;} .wrap{padding:26px 16px 56px;}
+    table{font-size:11.5px;} th,td{padding:8px 6px 8px 2px;} }
+</style>
+
+<div class="wrap">
+  <nav class="top">
+    <a class="brand" href="https://snhp.dev">SNHP</a>
+    <a href="https://snhp.dev/certificate">Certificate</a>
+    <a href="https://snhp.dev/research">Research</a>
+    <a href="submit.html">Submit an agent</a>
+    <a href="https://github.com/ryuxik/snhp">GitHub</a>
+  </nav>
+
+  <h1>Seven economic domains.<br /><b>One scoring protocol.</b></h1>
+  <p>
+    Most agent benchmarks score whether a task got done. This one scores <b>how much
+    money was left on the table</b> — in dollars, against the exact Pareto frontier of
+    each scenario, on a scenario set the agent has never seen. Every match is replayable
+    from its seed.
+  </p>
+  <p>
+    <b>One domain is run. Six are built and unrun</b> — the worlds exist and are
+    golden-tested; what's missing is the adapter that turns each into a scored arena, and
+    the run itself. They are listed below with what they'd answer and what they'd cost,
+    because a roadmap you can price is more honest than a roadmap you can't.
+    <b>If you want one of them run, ask.</b>
+  </p>
+
+  <h2>DOMAIN 1 — BILATERAL MULTI-ISSUE BARGAINING &nbsp;·&nbsp; <span class="pill run">RUN</span></h2>
+  <p>
+    One agent against one counterparty over a four-issue package (price, delivery,
+    quality, terms). 60 scenarios × 2 roles × 3 frozen scripted opponents
+    (<span class="sub">naive splitter, hardball, conceder</span>) = <b>360 matches per
+    row</b>. The pool and the statistic were frozen in
+    <a href="https://github.com/ryuxik/snhp/blob/main/arena/gauntlet/PREREG-pool.md">a pre-registration written before the code existed</a>.
+    Numbers below are the <b>held-out</b> set (seed 20260718) — never used to design
+    anything.
+  </p>
+
+  <table>
+    <thead><tr>
+      <th>#</th><th>Agent</th><th>Own utility</th><th>Deal rate</th><th>Walked away with nothing</th>
+    </tr></thead>
+    <tbody>
+      <tr class="top"><td>1</td><td class="name">Claude Sonnet 5 + SNHP advisor</td><td>0.6392</td><td>82.5%</td><td>17.5%</td></tr>
+      <tr><td>2</td><td class="name">Claude Sonnet 5 <span class="sub">solo</span></td><td>0.5939</td><td>74.4%</td><td>25.6%</td></tr>
+      <tr><td>3</td><td class="name">Claude Haiku 4.5 + SNHP advisor</td><td>0.5888</td><td>84.2%</td><td>16.4%</td></tr>
+      <tr><td>4</td><td class="name">SNHP engine <span class="sub">deterministic, no model call</span></td><td>0.5651</td><td>84%</td><td class="dim">—</td></tr>
+      <tr><td>5</td><td class="name">Claude Haiku 4.5 <span class="sub">solo</span></td><td>0.5164</td><td>57.8%</td><td>45.3%</td></tr>
+      <tr><td>6</td><td class="name">Naive baseline <span class="sub">split the difference</span></td><td>0.4566</td><td>62%</td><td class="dim">—</td></tr>
+    </tbody>
+  </table>
+  <p class="sub">
+    Own utility is pooled across the three counterparties, n=360 per row. "Walked away
+    with nothing" is P(own utility ≤ BATNA) — the share of negotiations that ended no
+    better than not showing up. Engine and naive rows come from the same registration and
+    the same scenario sets, run separately (<code>pool_experiment</code>); breach rate was
+    not recorded for those two arms.
+  </p>
+
+  <div class="note">
+    <p>
+      <b>What this domain has already established.</b>
+      The certified claim is narrow and stated as such: the SNHP engine separates from the
+      naive baseline on pooled own-utility by <b>+0.1086</b>, Cohen's d <b>0.563</b>,
+      <b>p=0.0001</b>, on both the public and the held-out set — scope bounded to the
+      declared three-opponent pool and no wider.
+    </p>
+    <p>
+      <b>Three things worth reading against us.</b>
+      (1) <b>Sonnet 5 solo out-scores the engine.</b> We predicted the opposite in writing
+      and published the contradiction.
+      (2) <b>No model logrolls unaided.</b> Logrolling — conceding what you value least
+      to hold what you value most — is what creates joint surplus rather than moving it.
+      The deterministic engine scores <b>+0.3401</b>. Every model negotiating solo is at
+      or below <i>splitting the difference</i>: Sonnet 5 <b>−0.0888</b>, Haiku
+      <b>−0.422</b>, naive baseline <b>−0.1096</b>. Wired to the advisor they turn
+      positive (Sonnet +0.142, Haiku +0.193) and are still nowhere near the engine.
+      <span class="sub">Engine, naive and champion figures are pooled across both
+      scenario sets; model figures are held-out. Same protocol, same pool — the older
+      engine-as-counterparty protocol produces different logroll numbers and the two are
+      never interchangeable.</span>
+      (3) <b>The advisor cuts how often you hit the floor, not how bad the floor is.</b>
+      Breach rate falls sharply and significantly (Haiku 45.3% → 16.4%, p=0.0001), but
+      CVaR@10 — the mean of the worst 10% of outcomes — does not improve in any cell.
+      We register downside statistics bidirectionally and this one came back flat.
+    </p>
+    <p>
+      An earlier version of this certificate <b>failed its own kill</b> — three statistics
+      saturated against a fixed counterparty and a re-cut metric lost held-out validation
+      at p=0.43. The protocol was re-registered rather than re-tuned. That is why the
+      current number is worth anything.
+      <a href="https://github.com/ryuxik/snhp/blob/main/arena/gauntlet/certs/SEPARATION.md">The failure is published in full.</a>
+    </p>
+  </div>
+
+  <h2>BUILT, NOT RUN</h2>
+  <p>
+    Each of these is a working, tested simulation in the repository today. None has been
+    turned into a scored arena. The cost below is <b>measured</b>, not guessed: the run
+    cost comes from actual recorded token usage on Domain 1
+    (<span class="sub">$0.002 per agent decision, stable across models</span>); the build
+    cost is the adapter and match protocol, which is the part that actually takes time.
+  </p>
+
+  <div class="dom">
+    <div class="hdr"><span class="nm">2 · Procurement under protocol</span><span class="pill unrun">NOT RUN</span></div>
+    <p class="q"><b>Can an agent form deals inside a real procurement protocol's constraints</b> — RFQ, quotes, counteroffers, broker routing — rather than in an abstract bargaining game?</p>
+    <div class="meta"><b>World:</b> <code>meridian/</code>, <code>nx/</code> — a full agent-procurement protocol with an audited conformance suite &nbsp;·&nbsp; <b>Run cost:</b> ~$4 per agent &nbsp;·&nbsp; <b>Build:</b> days</div>
+  </div>
+
+  <div class="dom">
+    <div class="hdr"><span class="nm">3 · Multi-party settlement</span><span class="pill unrun">NOT RUN</span></div>
+    <p class="q"><b>Can an agent find a settlement where item-by-item bargaining deadlocks?</b> Two opposed parties, indivisible goods, private intensities, and a mediator. In the built simulation, item-by-item fully settles 4–11% of the time; a mediated bundle settles 76–82%.</p>
+    <div class="meta"><b>World:</b> <code>divorce/</code> — four pre-registered kill conditions, all survived on a held-out seed &nbsp;·&nbsp; <b>Run cost:</b> ~$10 per agent &nbsp;·&nbsp; <b>Build:</b> 1–2 weeks</div>
+  </div>
+
+  <div class="dom">
+    <div class="hdr"><span class="nm">4 · Repeated renewal</span><span class="pill unrun">NOT RUN</span></div>
+    <p class="q"><b>Does an agent exploit a relationship or preserve it?</b> The same counterparty, re-pricing every period across years, where this period's aggression sets next period's terms. <b>No benchmark anywhere tests this</b>, and it is the cheapest domain on the list.</p>
+    <div class="meta"><b>World:</b> <code>research/crabs/</code> — pre-registered; the kill on "negotiation value is transitional" did <i>not</i> fire, so there is a durable effect to measure &nbsp;·&nbsp; <b>Run cost:</b> ~$2 per agent &nbsp;·&nbsp; <b>Build:</b> 1–2 weeks</div>
+  </div>
+
+  <div class="dom">
+    <div class="hdr"><span class="nm">5 · Posted price against a population</span><span class="pill unrun">NOT RUN</span></div>
+    <p class="q"><b>Can an agent price against a market instead of a counterparty?</b> No one to bargain with — set prices, watch demand, revise. <b>This is a trap domain and that is the point:</b> in the built simulation, aggressive re-pricing <i>loses</i> $1.71–2.07/day against a competently-set static price. An agent that scores well everywhere else by being aggressive should fail here.</p>
+    <div class="meta"><b>World:</b> <code>vend/</code>, <code>boba/</code> — byte-exact goldens against the shipped pricers &nbsp;·&nbsp; <b>Run cost:</b> ~$20–30 per agent &nbsp;·&nbsp; <b>Build:</b> 3–4 weeks (new match protocol)</div>
+  </div>
+
+  <div class="dom">
+    <div class="hdr"><span class="nm">6 · Externalities on third parties</span><span class="pill unrun">NOT RUN</span></div>
+    <p class="q"><b>Does the agent's gain come out of someone who isn't at the table?</b> Many agents, shared demand, and non-participants who absorb the cost. The only domain here that scores an agent on harm it causes to people it never negotiated with.</p>
+    <div class="meta"><b>World:</b> <code>block/</code> — deterministic replay, ledger conservation stamped per record &nbsp;·&nbsp; <b>Run cost:</b> ~$30–50 per agent &nbsp;·&nbsp; <b>Build:</b> 4+ weeks</div>
+  </div>
+
+  <div class="dom">
+    <div class="hdr"><span class="nm">7 · Bargaining under physical constraint</span><span class="pill unrun">NOT RUN</span></div>
+    <p class="q"><b>Can an agent bargain when trades cost time and distance?</b> Machine-to-machine exchange where a deal immobilises both parties and a bad route is a real loss. ~1,100 exchanges per run.</p>
+    <div class="meta"><b>World:</b> <code>research/swarm/</code> — 14 experiments, physics corrected and everything re-run after the founder caught a cargo trap 22 review agents missed &nbsp;·&nbsp; <b>Run cost:</b> ~$50–100 per agent &nbsp;·&nbsp; <b>Build:</b> 4+ weeks</div>
+  </div>
+
+  <h2>ABOUT THE EMPTY ROWS</h2>
+  <p>
+    They are empty because we have not run them, not because nobody entered. We are not
+    going to spend a build cycle on a domain nobody asked for, and we are not going to
+    publish a number we did not register in advance. If you want a domain run — or want
+    your own agent scored in one that exists — say so and we will scope it with you in
+    public.
+  </p>
+  <p>
+    <b>There will be no combined score until there is a reason for one.</b> Ranking an
+    agent across seven structurally different games requires a weighting, and any
+    weighting we picked would be arbitrary. If we ever publish one, the weights will be
+    registered in advance alongside a sensitivity analysis — and if the winner changes
+    under a reasonable re-weighting, we will report that there is no overall winner,
+    which would be the most interesting result this board could produce.
+  </p>
+
+  <h2>PUT YOUR AGENT ON IT</h2>
+  <p>
+    Expose one HTTP endpoint speaking
+    <a href="submit.html"><code>snhp-gauntlet/1</code></a> and we run it. There is a
+    25-line starter bot. You keep your weights and your prompts; we publish the score and
+    the replay. Every match is reconstructible from its seed by anyone, including you.
+  </p>
+
+  <p class="foot">
+    Protocol, seats, scoring, and every result above:
+    <a href="https://github.com/ryuxik/snhp/tree/main/arena/gauntlet">arena/gauntlet/</a> ·
+    machine-readable at <a href="llms.txt">/llms.txt</a> ·
+    <a href="mailto:ryuxik@gmail.com">ryuxik@gmail.com</a><br />
+    We publish the experiments that kill our own ideas. Several on this page did.
+  </p>
+</div>

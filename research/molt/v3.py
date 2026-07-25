@@ -35,6 +35,11 @@ class Params3(Params2):
     lam_capacity: tuple = (0.80, 0.40)
     no_slot_prob: float = 0.25      # no promotion slot in this band this season
 
+    # --- AMENDMENT 3. Defaults reproduce v3 exactly; v4 sets them.
+    promo_raise: float | None = None      # None -> the old 2% title_drift
+    promo_market_lift: float = 0.0        # a promotion raises omega by this
+    slot_frac: float | None = None        # None -> the per-season boolean
+
     # A2.3 PTO
     pto_value: float = 1.00         # worth `days/260 x salary` to a typical crab
 
@@ -46,17 +51,28 @@ class Params3(Params2):
 @dataclass
 class Season:
     """The Works' budget state, drawn once per season and shared by every arm so
-    the comparison stays paired."""
+    the comparison stays paired. Under AMENDMENT 3 `slots_left` is a consumable
+    quota, so each ARM carries its own copy and depletes it."""
     lam: dict
     slot: bool
+    slots_left: int = 10 ** 6
 
     @staticmethod
-    def draw(p: Params3, rng: np.random.Generator) -> "Season":
+    def draw(p: Params3, rng: np.random.Generator, n_crabs: int = 40) -> "Season":
         lam = {}
         for b in BUDGETS:
             med, sig = getattr(p, f"lam_{b}")
             lam[b] = float(med * math.exp(rng.normal(0.0, sig) - 0.5 * sig ** 2))
-        return Season(lam=lam, slot=bool(rng.random() >= p.no_slot_prob))
+        slot = bool(rng.random() >= p.no_slot_prob)
+        left = (10 ** 6 if p.slot_frac is None
+                else int(math.ceil(p.slot_frac * n_crabs)))
+        return Season(lam=lam, slot=slot, slots_left=left)
+
+
+def slot_open(p: Params3, sea: Season) -> bool:
+    """Is a promotion available at all? Under A3 this is a depleting quota; under
+    v3 it is the per-season blackout."""
+    return sea.slots_left > 0 if p.slot_frac is not None else sea.slot
 
 
 # ------------------------------------------------------------ crab valuation
@@ -65,7 +81,7 @@ def crab_cash3(p: Params3, c: Crab2, pk: Package) -> float:
     S = c.salary
     v = S * BASE_PCT[pk.base] * PVF + S / 12.0 * BONUS_MO[pk.bonus]
     if pk.title:
-        v += S * p.title_drift * PVF
+        v += S * (p.title_drift if p.promo_raise is None else p.promo_raise) * PVF
     return v
 
 
@@ -94,7 +110,12 @@ def works_cost3(p: Params3, c: Crab2, sea: Season, pk: Package) -> float:
     cost = lam["comp"] * (S * BASE_PCT[pk.base] * PVF * (1.0 + p.peer_spill)
                           + S / 12.0 * BONUS_MO[pk.bonus])
     if pk.title:
-        cost += lam["band"] * (S * p.title_drift * PVF + S * p.title_admin)
+        if p.promo_raise is None:
+            cost += lam["band"] * (S * p.title_drift * PVF + S * p.title_admin)
+        else:
+            # A3: the raise comes out of comp, the slot out of band. Two pockets.
+            cost += lam["comp"] * S * p.promo_raise * PVF
+            cost += lam["band"] * S * p.title_admin
     if pk.berth:
         cost += lam["coverage"] * S * c.spec.berth_cost
     if pk.deep:
@@ -106,20 +127,23 @@ def works_cost3(p: Params3, c: Crab2, sea: Season, pk: Package) -> float:
 
 def feasible(p: Params3, sea: Season, pk: Package) -> bool:
     """Money cannot buy a promotion slot that does not exist."""
-    return sea.slot or not pk.title
+    return slot_open(p, sea) or not pk.title
 
 
 def p_leave_true3(p: Params3, c: Crab2, pk: Package, expired: bool = False) -> float:
     if not c.has_outside or expired:
         return p.p_exo
-    gap = (outside_value_at(p, c, c.omega) if c.has_outside else -1e9) \
+    # A3: a promotion is portable. It raises what the market will pay you.
+    om = c.omega + (p.promo_market_lift if pk.title else 0.0)
+    gap = (outside_value_at(p, c, om) if c.has_outside else -1e9) \
         - crab_value3(p, c, pk)
     return p.p_exo + (1.0 - p.p_exo) / (1.0 + math.exp(-gap / (p.taste * c.salary)))
 
 
 def p_leave_belief3(p: Params3, c: Crab2, bel: Belief, pk: Package) -> float:
     v = crab_value3(p, c, pk)
-    gaps = np.array([outside_value_at(p, c, om) - v for om in bel.grid])
+    lift = p.promo_market_lift if pk.title else 0.0
+    gaps = np.array([outside_value_at(p, c, om + lift) - v for om in bel.grid])
     lam = 1.0 / (1.0 + np.exp(-gaps / (p.taste * c.salary)))
     return p.p_exo + (1.0 - p.p_exo) * bel.p_has * float((bel.w * lam).sum())
 
@@ -138,7 +162,7 @@ def works_packages3(p: Params3, sea: Season, base_pkg: Package) -> list[Package]
     out = []
     for b in range(base_pkg.base, 4):
         for bo in range(3):
-            for t in ((False,) if not sea.slot else (False, True)):
+            for t in ((False,) if not slot_open(p, sea) else (False, True)):
                 for be in (False, True):
                     for d in (False, True):
                         for pt in range(3):
@@ -146,8 +170,9 @@ def works_packages3(p: Params3, sea: Season, base_pkg: Package) -> list[Package]
     return out
 
 
-def crab_packages3(sea: Season | None = None) -> list[Package]:
-    titles = (False,) if (sea is not None and not sea.slot) else (False, True)
+def crab_packages3(sea: Season | None = None, p: Params3 | None = None) -> list[Package]:
+    titles = (False,) if (sea is not None and p is not None
+                          and not slot_open(p, sea)) else (False, True)
     return [Package(b, t, bo, be, d, pt)
             for b in range(5) for t in titles for bo in range(3)
             for be in (False, True) for d in (False, True) for pt in range(3)]

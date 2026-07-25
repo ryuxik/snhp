@@ -1,0 +1,221 @@
+{
+ "crab": {
+  "name": "Vell Tidewright",
+  "spec": "CARGO-BROKER",
+  "salary": 88383,
+  "tenure": 6,
+  "perf": 91,
+  "weights": {
+   "base": 0.124,
+   "title": 0.338,
+   "bonus": 0.146,
+   "berth": 0.13,
+   "deepwater": 0.263
+  },
+  "cares_most": "title",
+  "has_outside": true,
+  "outside_premium": 14.7,
+  "outside_value": 29518,
+  "offer_expires_day": 8.6,
+  "replacement_cost": 79545,
+  "opening": {
+   "base": "+6%",
+   "title": "hold",
+   "bonus": "none",
+   "berth": "standard",
+   "deepwater": "no"
+  },
+  "issue_values": {
+   "base": 7445,
+   "title": 18412,
+   "bonus": 7365,
+   "berth": 3435,
+   "deepwater": 8136
+  },
+  "issue_costs": {
+   "base": 9679,
+   "title": 7615,
+   "bonus": 7365,
+   "berth": 884,
+   "deepwater": 2651
+  }
+ },
+ "sign": {
+  "score": {
+   "crab": 29518,
+   "works": -79564,
+   "joint": -50046,
+   "days": 1.0,
+   "meetings": 0,
+   "left": true,
+   "walked": false,
+   "expired": false,
+   "pkg": {
+    "base": "+6%",
+    "title": "hold",
+    "bonus": "none",
+    "berth": "standard",
+    "deepwater": "no"
+   },
+   "concession": 0,
+   "mgr": 0,
+   "distraction": 19,
+   "replacement": 79545,
+   "p_leave": 0.985
+  }
+ },
+ "slow": {
+  "steps": [
+   {
+    "day": 14.3,
+    "issue": "base",
+    "ask": "+12%",
+    "granted": true,
+    "pkg": {
+     "base": "+12%",
+     "title": "hold",
+     "bonus": "none",
+     "berth": "standard",
+     "deepwater": "no"
+    },
+    "crab_value": 29782,
+    "works_cost": 38716
+   },
+   {
+    "day": 19.2,
+    "issue": "bonus",
+    "ask": "2 months",
+    "granted": true,
+    "pkg": {
+     "base": "+12%",
+     "title": "hold",
+     "bonus": "1 month",
+     "berth": "standard",
+     "deepwater": "no"
+    },
+    "crab_value": 37147,
+    "works_cost": 46081
+   }
+  ],
+  "score": {
+   "crab": 37147,
+   "works": -46889,
+   "joint": -9742,
+   "days": 19.2,
+   "meetings": 2,
+   "left": false,
+   "walked": false,
+   "expired": true,
+   "pkg": {
+    "base": "+12%",
+    "title": "hold",
+    "bonus": "1 month",
+    "berth": "standard",
+    "deepwater": "no"
+   },
+   "concession": 46081,
+   "mgr": 435,
+   "distraction": 372,
+   "replacement": 0,
+   "p_leave": 0.06
+  },
+  "agenda": [
+   "base",
+   "bonus",
+   "berth",
+   "title",
+   "deepwater"
+  ]
+ },
+ "fast": {
+  "steps": [
+   {
+    "round": 1,
+    "actor": "crab",
+    "pkg": {
+     "base": "+0%",
+     "title": "molt",
+     "bonus": "none",
+     "berth": "standard",
+     "deepwater": "deepwater"
+    },
+    "crab_value": 26548,
+    "works_cost": 10267,
+    "logic": "Give ground on 'bonus' (you weight it less, they weight it most) to hold firm on 'title' (your top priority). That trade is what makes the package beat splitting every issue down the middle.",
+    "inferred": {
+     "base": 0.137,
+     "title": 0.211,
+     "bonus": 0.233,
+     "berth": 0.211,
+     "deepwater": 0.208
+    }
+   },
+   {
+    "round": 1,
+    "actor": "works",
+    "pkg": {
+     "base": "+6%",
+     "title": "molt",
+     "bonus": "none",
+     "berth": "flexible",
+     "deepwater": "deepwater"
+    },
+    "crab_value": 44874,
+    "works_cost": 30508
+   }
+  ],
+  "score": {
+   "crab": 44874,
+   "works": -30881,
+   "joint": 13993,
+   "days": 8.0,
+   "meetings": 1,
+   "left": false,
+   "walked": false,
+   "expired": false,
+   "pkg": {
+    "base": "+6%",
+    "title": "molt",
+    "bonus": "none",
+    "berth": "flexible",
+    "deepwater": "deepwater"
+   },
+   "concession": 30508,
+   "mgr": 218,
+   "distraction": 155,
+   "replacement": 0,
+   "p_leave": 0.072
+  }
+ },
+ "both": {
+  "score": {
+   "crab": 29518,
+   "works": -79781,
+   "joint": -50263,
+   "days": 1.0,
+   "meetings": 1,
+   "left": true,
+   "walked": false,
+   "expired": false,
+   "pkg": {
+    "base": "+6%",
+    "title": "hold",
+    "bonus": "none",
+    "berth": "standard",
+    "deepwater": "no"
+   },
+   "concession": 0,
+   "mgr": 218,
+   "distraction": 19,
+   "replacement": 79545,
+   "p_leave": 0.985
+  }
+ },
+ "provenance": {
+  "seed": 0,
+  "crab_index": 13,
+  "tag": "settled",
+  "params": "molt.world.Params() defaults",
+  "generated_by": "research/molt/trace.py"
+ }
+}
