@@ -1056,3 +1056,108 @@ what it produces.
   interesting story.** Including K3/K8's "the landlord cannot see who
   reads our page", which is supported by a test *asserting* it. The page
   now carries that caveat.
+
+---
+
+# AMENDMENT 8 — switching cost should be an OUTPUT, not an input
+
+*Appended 2026-07-25, after A7. Raised by the founder reading the A7
+ablation table.*
+
+## A8.0 Scope note on the stopping rule
+
+A6.3 stopped *building mechanisms* after Gate 3 failed, and that stands.
+This is a **defect fix**, the same class as A7: a parameter that should
+never have been a parameter. It is explicitly **not** an attempt to pass
+Gate 3. If Gate 3 happens to pass under it, that is a suspicious result
+requiring the full bug hunt before it is believed, not a vindication.
+
+## A8.1 The defect
+
+`world.py:100` sets `move_med = 3.6` months. SPEC §4's stated basis:
+**"calibrated to observed elasticity — see §8."**
+
+The A7 ablation then found switching cost is the *dominant* variable:
+
+| perturbation | Δ mean push |
+|---|---|
+| switching cost 3.6 → 0.36 months | **−5.2pp** |
+| switching cost 3.6 → 12 months | **+13.4pp** |
+| delete the landlord's ENTIRE cost of losing a tenant | +3.2pp |
+| face-rent capitalisation → 0 | −0.4pp |
+
+So: we tuned it to reproduce observed elasticity, discovered it drives the
+push, and reported the push. Circular in the same way as `renewal_cap`,
+and **4× more load-bearing** (13.4pp vs 3.1pp).
+
+It is honestly labelled CALIBRATED in SPEC §8, which correctly forbids
+claiming V2 as a prediction. That is not the problem. **The problem is
+that it is a parameter at all.**
+
+## A8.2 It should fall out of search, and half the machinery exists
+
+`market.py` already prices search and never connects it to switching cost:
+
+```
+search_cost  0.25 months ($500)   viewings, applications, time
+app_cost     0.08 months ($160)   switching between listings
+k_visible    5                    listings a searcher can see
+```
+
+~$660 of modelled search, beside a separately-drawn $7,200 switching cost.
+Two numbers describing overlapping things, not speaking.
+
+**Derive it.** A crab that wants to leave enters the pool, views what it
+can see, applies, may be rejected, and eventually matches. Its switching
+cost is then the *realised* cost of that process:
+
+```
+switching cost = E[viewings until an acceptable match] x viewing cost
+               + P(rejection) x redo cost
+               + physical move (movers, deposits, broker fee)
+               + holding/time cost of the search
+               + attachment (the only genuinely psychological term)
+```
+
+Only the last term stays a free parameter, and it should be small.
+
+## A8.3 The consequence that makes this worth running
+
+**Switching cost becomes endogenous to market tightness.** Tight market →
+few visible listings, more rejections, longer search → leaving is
+expensive → tenants inelastic → the station pushes harder. Soft market →
+the reverse.
+
+That is the regime dependence the study spent three gates trying to
+produce and **imposed as exogenous drift instead** (`REGIMES`). If it
+falls out of search frictions, the loss/gain regimes stop being an input.
+
+It would also unify two findings that are currently bolted on:
+- **K20** (the tenant is the weaker party at renewal) is *entirely* this
+  parameter, so its 1.08× is currently a restatement of `move_med`.
+- **K26** (proving an alternative is worth ~10%) becomes mechanical rather
+  than added: a crab that has *secured* an alternative has already paid
+  the search cost, so its switching cost is genuinely lower, and the
+  signal is credible because it is *costly*, not because we declared it so.
+
+## A8.4 What to report
+
+1. **The derived switching-cost distribution** vs the drawn lognormal
+   (median 3.6 months / $7,200). Does the calibrated value fall out?
+2. **Does it vary with tightness in the right direction, and by how much?**
+3. **Re-run the A7 free-cap push** on derived costs. Does the +13.81%
+   move toward the observed +10.7%?
+4. **Re-check K20 and K26** — both should now be mechanical consequences.
+5. **Gate 3 V8/V9/V10 once more.** Reported, not chased. A pass here is a
+   suspicious result before it is a good one.
+
+## A8.5 Kill
+
+**K27 — search does not generate the calibrated switching cost.**
+*Fires if* the derived median lands outside 1.8–7.2 months (a factor of two
+either side of the calibrated 3.6).
+*Consequence:* published as a negative. It would mean the ~$7,200 figure
+cannot be built out of the search frictions we can name, and the honest
+position is that we do not know where tenant switching costs come from —
+which, given it is the dominant variable in renewal pricing, is a more
+interesting statement than most of what survived this study.
