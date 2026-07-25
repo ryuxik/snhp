@@ -1,0 +1,165 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyperFirstAtBeginDocument{\AtBeginDocument}
+\HyperFirstAtBeginDocument{\ifx\hyper@anchor\@undefined
+\global\let\oldcontentsline\contentsline
+\gdef\contentsline#1#2#3#4{\oldcontentsline{#1}{#2}{#3}}
+\global\let\oldnewlabel\newlabel
+\gdef\newlabel#1#2{\newlabelxx{#1}#2}
+\gdef\newlabelxx#1#2#3#4#5#6{\oldnewlabel{#1}{{#2}{#3}}}
+\AtEndDocument{\ifx\hyper@anchor\@undefined
+\let\contentsline\oldcontentsline
+\let\newlabel\oldnewlabel
+\fi}
+\fi}
+\global\let\hyper@last\relax 
+\gdef\HyperFirstAtBeginDocument#1{#1}
+\providecommand*\HyPL@Entry[1]{}
+\citation{gerkey2002murdoch,gerkey2004taxonomy,dias2006market}
+\citation{baarslag2015anac,aydogan2026anac}
+\citation{sahin2005swarm}
+\citation{gerkey2002murdoch}
+\citation{zlot2006auction}
+\citation{gerkey2004taxonomy}
+\citation{dias2006market}
+\citation{cui2013game}
+\citation{ke2012task}
+\HyPL@Entry{0<</S/D>>}
+\@writefile{toc}{\contentsline {section}{Abstract}{1}{section*.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
+\newlabel{sec:intro}{{1}{1}{Introduction}{section.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{1}{section.2}\protected@file@percent }
+\newlabel{sec:related}{{2}{1}{Related Work}{section.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Market-based multi-robot coordination is single-issue.}{1}{section*.4}\protected@file@percent }
+\citation{sandholm1998contract}
+\citation{andersson1999sequencing}
+\citation{chevaleyre2006mara}
+\citation{endriss2006negotiating}
+\citation{lin2005combinatorial}
+\citation{hamidoglu2025nash}
+\citation{schioler2008trophallaxis}
+\citation{ngo2007randomized}
+\citation{moonjaita2018trophallaxis}
+\citation{schmickl2008trophallaxis}
+\citation{baarslag2015anac}
+\citation{aydogan2026anac}
+\citation{aydogan2022jennifer}
+\citation{godfrey2024marlin}
+\citation{chen2023consensus}
+\citation{liu2026agenticpay}
+\citation{song2026climrs}
+\citation{feng2025embodied}
+\citation{athira2024slr}
+\citation{nash1950bargaining}
+\citation{cui2013game,ke2012task,hamidoglu2025nash,athira2024slr}
+\citation{moonjaita2018trophallaxis}
+\citation{gerkey2002murdoch}
+\citation{koenig2006ssi}
+\@writefile{toc}{\contentsline {paragraph}{Multi-issue IR contracting among self-interested agents is not new.}{2}{section*.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Two terminology traps.}{2}{section*.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Robot-robot energy exchange exists in hardware, but is rule-based.}{2}{section*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The negotiation community never crossed into robot-robot coordination.}{2}{section*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{LLM $\times $ multi-robot work is single-dimension dialogue.}{2}{section*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{What remains unclaimed}{2}{section*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}The Benchmark}{2}{section.3}\protected@file@percent }
+\newlabel{sec:benchmark}{{3}{2}{The Benchmark}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}World}{2}{subsection.3.1}\protected@file@percent }
+\newlabel{sec:world}{{3.1}{2}{World}{subsection.3.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}The arm ladder}{2}{subsection.3.2}\protected@file@percent }
+\newlabel{sec:ladder}{{3.2}{2}{The arm ladder}{subsection.3.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces The arm ladder: one mechanism per rung.\relax }}{3}{table.caption.11}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{tab:ladder}{{1}{3}{The arm ladder: one mechanism per rung.\relax }{table.caption.11}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces The arm ladder: one mechanism per rung, null $\to $ rules $\to $ auction $\to $ auction\_ssi $\to $ snhp $\to $ snhp+net, with team / team[energy] as the cooperative-ceiling rail. \texttt  {[base: x]} tags mark rungs whose base is not the previous rung (auction\_ssi = rules + SSI; snhp = null + bundles).\relax }}{3}{figure.caption.12}\protected@file@percent }
+\newlabel{fig:ladder}{{1}{3}{The arm ladder: one mechanism per rung, null $\to $ rules $\to $ auction $\to $ auction\_ssi $\to $ snhp $\to $ snhp+net, with team / team[energy] as the cooperative-ceiling rail. \texttt {[base: x]} tags mark rungs whose base is not the previous rung (auction\_ssi = rules + SSI; snhp = null + bundles).\relax }{figure.caption.12}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces One executed bundle between two robots: the three issue axes (energy transfer with 25\% loss, cargo, claim rights) and the utility-gain space with the IR region, disagreement point, Pareto frontier, and Nash-product hyperbola. Geometry illustrative; the loss rate and issue space are the spec constants of Sections\nonbreakingspace \ref  {sec:world}--\ref  {sec:ladder}.\relax }}{3}{figure.caption.13}\protected@file@percent }
+\newlabel{fig:bundle}{{2}{3}{One executed bundle between two robots: the three issue axes (energy transfer with 25\% loss, cargo, claim rights) and the utility-gain space with the IR region, disagreement point, Pareto frontier, and Nash-product hyperbola. Geometry illustrative; the loss rate and issue space are the spec constants of Sections~\ref {sec:world}--\ref {sec:ladder}.\relax }{figure.caption.13}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Metrics}{3}{subsection.3.3}\protected@file@percent }
+\newlabel{sec:metrics}{{3.3}{3}{Metrics}{subsection.3.3}{}}
+\citation{koutsoupias1999worstcase}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Registration protocol --- and the v1 failure as method}{4}{subsection.3.4}\protected@file@percent }
+\newlabel{sec:registration}{{3.4}{4}{Registration protocol --- and the v1 failure as method}{subsection.3.4}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Results}{4}{section.4}\protected@file@percent }
+\newlabel{sec:results}{{4}{4}{Results}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}C1 --- bundling is necessary under individual rationality}{4}{subsection.4.1}\protected@file@percent }
+\newlabel{sec:c1}{{4.1}{4}{C1 --- bundling is necessary under individual rationality}{subsection.4.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}C2 --- sufficiency and the coordination gap}{4}{subsection.4.2}\protected@file@percent }
+\newlabel{sec:c2}{{4.2}{4}{C2 --- sufficiency and the coordination gap}{subsection.4.2}{}}
+\@writefile{toc}{\contentsline {paragraph}{Two-geometry replication (R2/column GB: WIN).}{4}{section*.16}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Delivered-at-horizon vs $\sigma $ (mean $\pm $ 95\% CI, 24 seeds/cell) for null, auction, auction\_ssi, snhp, snhp+net, and team on the HEAD-physics v2.1 grid (\texttt  {sweep\_v2.1\_head.json}); the auction\_ssi series is from \texttt  {sweep\_v4\_SSI.json} ($\sigma \in \{0, 0.5, 0.75\}$ only).\relax }}{5}{figure.caption.14}\protected@file@percent }
+\newlabel{fig:delivered}{{3}{5}{Delivered-at-horizon vs $\sigma $ (mean $\pm $ 95\% CI, 24 seeds/cell) for null, auction, auction\_ssi, snhp, snhp+net, and team on the HEAD-physics v2.1 grid (\texttt {sweep\_v2.1\_head.json}); the auction\_ssi series is from \texttt {sweep\_v4\_SSI.json} ($\sigma \in \{0, 0.5, 0.75\}$ only).\relax }{figure.caption.14}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces The coordination gap vs $\sigma $: paired $\Delta $ delivered with 95\% CI bands for \emph  {both} definitions --- team $-$ snhp (the registered gap, formerly ``price of selfishness''; this is the curve the text's $12.0 \to 4.2 \to 5.2 \to 13.9 \to 16.7$ numbers refer to) and team $-$ snhp+net (the survival-form comparison against the safety-netted arm). The two diverge sharply at $\sigma \leq 0.5$, where the rescue floor does most of its work.\relax }}{5}{figure.caption.15}\protected@file@percent }
+\newlabel{fig:gap}{{4}{5}{The coordination gap vs $\sigma $: paired $\Delta $ delivered with 95\% CI bands for \emph {both} definitions --- team $-$ snhp (the registered gap, formerly ``price of selfishness''; this is the curve the text's $12.0 \to 4.2 \to 5.2 \to 13.9 \to 16.7$ numbers refer to) and team $-$ snhp+net (the survival-form comparison against the safety-netted arm). The two diverge sharply at $\sigma \leq 0.5$, where the rescue floor does most of its work.\relax }{figure.caption.15}{}}
+\@writefile{toc}{\contentsline {paragraph}{The strong-market test (R3/column SSI: KILL FIRED).}{5}{section*.17}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}C3 --- heterogeneity scaling}{5}{subsection.4.3}\protected@file@percent }
+\newlabel{sec:c3}{{4.3}{5}{C3 --- heterogeneity scaling}{subsection.4.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Killed claims (reported as registered)}{6}{subsection.4.4}\protected@file@percent }
+\newlabel{sec:kills}{{4.4}{6}{Killed claims (reported as registered)}{subsection.4.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces The v8 hump (single geometry; v5 preset, $\sigma {=}0.5$, 16 seeds/cell): (snhp+net $-$ auction) delivered vs grid side 24/32/48/64, paired $\Delta $ with 95\% CI whiskers ($+4.12$ / $+4.50$ / $+7.31$ / $-2.69$).\relax }}{6}{figure.caption.18}\protected@file@percent }
+\newlabel{fig:hump}{{5}{6}{The v8 hump (single geometry; v5 preset, $\sigma {=}0.5$, 16 seeds/cell): (snhp+net $-$ auction) delivered vs grid side 24/32/48/64, paired $\Delta $ with 95\% CI whiskers ($+4.12$ / $+4.50$ / $+7.31$ / $-2.69$).\relax }{figure.caption.18}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Deception and self-knowledge error: scoping note}{6}{subsection.4.5}\protected@file@percent }
+\newlabel{sec:integrity}{{4.5}{6}{Deception and self-knowledge error: scoping note}{subsection.4.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Column J --- the moving field inverts a headline}{6}{subsection.4.6}\protected@file@percent }
+\newlabel{sec:colj}{{4.6}{6}{Column J --- the moving field inverts a headline}{subsection.4.6}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces The column-J inversion at the 64-seed re-pin (R1c cells of \texttt  {sweep\_v4\_R1.json}; moving + contested + belief-mode, no scouting or map market): arrival-units captured (42.70 vs 33.72, $p_w{=}.022$) and mean map staleness (358.4 vs 262.8 ticks, $p_w{=}.029$), auction vs snhp+net. The arm with fresher maps captures \emph  {less} of the new stock --- freshness $\neq $ discovery.\relax }}{7}{figure.caption.19}\protected@file@percent }
+\newlabel{fig:inversion}{{6}{7}{The column-J inversion at the 64-seed re-pin (R1c cells of \texttt {sweep\_v4\_R1.json}; moving + contested + belief-mode, no scouting or map market): arrival-units captured (42.70 vs 33.72, $p_w{=}.022$) and mean map staleness (358.4 vs 262.8 ticks, $p_w{=}.029$), auction vs snhp+net. The arm with fresher maps captures \emph {less} of the new stock --- freshness $\neq $ discovery.\relax }{figure.caption.19}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7}Column K --- scouting fixes discovery; the map market fixes the books}{7}{subsection.4.7}\protected@file@percent }
+\newlabel{sec:colk}{{4.7}{7}{Column K --- scouting fixes discovery; the map market fixes the books}{subsection.4.7}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Poisoned deals per run (executed at negative true surplus for an honest party) across the program's error sources: v7 gauge noise ($\nu \in \{0, 0.15, 0.3\}$; snhp-hz, no margin, 32 seeds), column I static-field beliefs (16 seeds), column J moving-field beliefs (16 seeds), and column K map market off/on at the 64-seed re-pin (5.00 $\to $ 3.53, $\Delta {=}+1.47$ $[+0.69, +2.24]$, $p_w{=}.0007$). Output stays flat in every condition; only the books move.\relax }}{7}{figure.caption.20}\protected@file@percent }
+\newlabel{fig:poisoned}{{7}{7}{Poisoned deals per run (executed at negative true surplus for an honest party) across the program's error sources: v7 gauge noise ($\nu \in \{0, 0.15, 0.3\}$; snhp-hz, no margin, 32 seeds), column I static-field beliefs (16 seeds), column J moving-field beliefs (16 seeds), and column K map market off/on at the 64-seed re-pin (5.00 $\to $ 3.53, $\Delta {=}+1.47$ $[+0.69, +2.24]$, $p_w{=}.0007$). Output stays flat in every condition; only the books move.\relax }{figure.caption.20}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Discussion}{7}{section.5}\protected@file@percent }
+\newlabel{sec:discussion}{{5}{7}{Discussion}{section.5}{}}
+\citation{sahin2005swarm}
+\citation{jakobi1995noise,jakobi1997radical}
+\citation{koenig2006ssi}
+\citation{brambilla2013swarm}
+\citation{hamann2018swarm}
+\bibstyle{ACM-Reference-Format}
+\bibdata{refs}
+\bibcite{andersson1999sequencing}{{1}{1999}{{Andersson and Sandholm}}{{}}}
+\bibcite{athira2024slr}{{2}{2024}{{{Athira K. A.} et~al\mbox  {.}}}{{}}}
+\bibcite{aydogan2026anac}{{3}{2026}{{Aydo\u {g}an et~al\mbox  {.}}}{{}}}
+\bibcite{aydogan2022jennifer}{{4}{2022}{{Aydo\u {g}an et~al\mbox  {.}}}{{}}}
+\bibcite{baarslag2015anac}{{5}{2015}{{Baarslag et~al\mbox  {.}}}{{}}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Limitations}{8}{section.6}\protected@file@percent }
+\newlabel{sec:limitations}{{6}{8}{Limitations}{section.6}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7}Reproducibility}{8}{section.7}\protected@file@percent }
+\newlabel{sec:repro}{{7}{8}{Reproducibility}{section.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {A}The physics corrections (detail)}{8}{appendix.A}\protected@file@percent }
+\newlabel{app:corrections}{{A}{8}{The physics corrections (detail)}{appendix.A}{}}
+\@writefile{toc}{\contentsline {section}{References}{8}{section*.22}\protected@file@percent }
+\bibcite{brambilla2013swarm}{{6}{2013}{{Brambilla et~al\mbox  {.}}}{{}}}
+\bibcite{chen2023consensus}{{7}{2023}{{Chen et~al\mbox  {.}}}{{}}}
+\bibcite{chevaleyre2006mara}{{8}{2006}{{Chevaleyre et~al\mbox  {.}}}{{}}}
+\bibcite{cui2013game}{{9}{2013}{{Cui et~al\mbox  {.}}}{{}}}
+\bibcite{dias2006market}{{10}{2006}{{Dias et~al\mbox  {.}}}{{}}}
+\bibcite{endriss2006negotiating}{{11}{2006}{{Endriss et~al\mbox  {.}}}{{}}}
+\bibcite{feng2025embodied}{{12}{2025}{{Feng et~al\mbox  {.}}}{{}}}
+\bibcite{gerkey2002murdoch}{{13}{2002}{{Gerkey and Matari\'{c}}}{{}}}
+\bibcite{gerkey2004taxonomy}{{14}{2004}{{Gerkey and Matari\'{c}}}{{}}}
+\bibcite{godfrey2024marlin}{{15}{2024}{{Godfrey et~al\mbox  {.}}}{{}}}
+\bibcite{hamann2018swarm}{{16}{2018}{{Hamann}}{{}}}
+\bibcite{hamidoglu2025nash}{{17}{2025}{{Hamido\u {g}lu et~al\mbox  {.}}}{{}}}
+\bibcite{jakobi1997radical}{{18}{1997}{{Jakobi}}{{}}}
+\bibcite{jakobi1995noise}{{19}{1995}{{Jakobi et~al\mbox  {.}}}{{}}}
+\bibcite{ke2012task}{{20}{2012}{{Ke et~al\mbox  {.}}}{{}}}
+\bibcite{koenig2006ssi}{{21}{2006}{{Koenig et~al\mbox  {.}}}{{}}}
+\bibcite{koutsoupias1999worstcase}{{22}{1999}{{Koutsoupias and Papadimitriou}}{{}}}
+\bibcite{lin2005combinatorial}{{23}{2005}{{Lin and Zheng}}{{}}}
+\bibcite{liu2026agenticpay}{{24}{2026}{{Liu et~al\mbox  {.}}}{{}}}
+\bibcite{moonjaita2018trophallaxis}{{25}{2018}{{Moonjaita et~al\mbox  {.}}}{{}}}
+\bibcite{nash1950bargaining}{{26}{1950}{{Nash}}{{}}}
+\bibcite{ngo2007randomized}{{27}{2007}{{Ngo and Schi{\o }ler}}{{}}}
+\bibcite{sahin2005swarm}{{28}{2005}{{{\c {S}}ahin}}{{}}}
+\bibcite{sandholm1998contract}{{29}{1998}{{Sandholm}}{{}}}
+\bibcite{schioler2008trophallaxis}{{30}{2008}{{Schi{\o }ler and Ngo}}{{}}}
+\bibcite{schmickl2008trophallaxis}{{31}{2008}{{Schmickl and Crailsheim}}{{}}}
+\bibcite{song2026climrs}{{32}{2026}{{Song et~al\mbox  {.}}}{{}}}
+\bibcite{zlot2006auction}{{33}{2006}{{Zlot}}{{}}}
+\newlabel{tocindent-1}{0pt}
+\newlabel{tocindent0}{0pt}
+\newlabel{tocindent1}{6.255pt}
+\newlabel{tocindent2}{10.35pt}
+\newlabel{tocindent3}{0pt}
+\newlabel{TotPages}{{9}{9}{}{page.9}{}}
+\gdef \@abspage@last{9}

@@ -271,6 +271,16 @@ PRESETS = {
     "v3": dict(sources=[(10, 6), (6, 26)],
                refineries=[((26, 6), None)],
                chargers=[((22, 6), None)], companies=1),
+    # SPEC-ADDENDUM-2026-07-23 R2 (column GB): geometry B — the second map the
+    # paper review (M2) demands. Materially different from v3 (geometry A) on
+    # every registered axis: source distances 24/32 instead of 16/40, sources
+    # in OPPOSITE quadrants of the eastern half instead of both west,
+    # refinery mid-west-edge instead of a corner, charger mid-field at 10
+    # from the refinery instead of pad-adjacent at 4. Same stock (60+60),
+    # same fleet draws, same physics — the geometry is the only treatment.
+    "v3b": dict(sources=[(26, 4), (18, 28)],
+                refineries=[((6, 16), None)],
+                chargers=[((14, 14), None)], companies=1),
 }
 
 

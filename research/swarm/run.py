@@ -4216,6 +4216,377 @@ def pm2_report(rows: list[dict]) -> None:
               f"⇒ KILL {'FIRES — receipts do NOT circulate' if fired else 'does NOT fire — claims DO circulate as money'}.")
 
 
+def repin_report(rows: list[dict]) -> None:
+    """SPEC-ADDENDUM-2026-07-23 (columns R1 / GB / SSI): the committed
+    analysis path for the paper-review experiments — the registered
+    contrasts, nothing else. Wilcoxon is the headline test; paired t, 95%
+    CI on the paired delta, and wins/n ride along (house convention).
+    Sections no-op unless the artifact contains their rows."""
+    def pair(sel_hi, sel_lo, field):
+        hi = {r["seed"]: r[field] for r in rows if sel_hi(r)}
+        lo = {r["seed"]: r[field] for r in rows if sel_lo(r)}
+        common = sorted(set(hi) & set(lo))
+        if len(common) < 3:
+            return None
+        a = np.array([hi[s] for s in common], float)
+        b = np.array([lo[s] for s in common], float)
+        d = a - b
+        _, pt = stats.ttest_rel(a, b)
+        try:
+            _, pw = stats.wilcoxon(d) if np.any(d != 0) else (None, 1.0)
+        except ValueError:
+            pw = float("nan")
+        n = len(common)
+        half = (stats.t.ppf(0.975, n - 1) * d.std(ddof=1) / np.sqrt(n)
+                if n > 1 and d.std(ddof=1) > 0 else 0.0)
+        return dict(hi=float(a.mean()), lo=float(b.mean()),
+                    delta=float(d.mean()), ci=(float(d.mean() - half),
+                                               float(d.mean() + half)),
+                    p_t=float(pt), p_w=float(pw),
+                    wins=int((d > 0).sum()), n=n)
+
+    def show(tag, c):
+        if c is None:
+            print(f"    {tag}: <cells missing>")
+            return
+        print(f"    {tag}: {c['hi']:.2f} vs {c['lo']:.2f}  "
+              f"Δ={c['delta']:+.2f} [{c['ci'][0]:+.2f}, {c['ci'][1]:+.2f}]  "
+              f"p_t={c['p_t']:.4f} p_w={c['p_w']:.4f} "
+              f"wins {c['wins']}/{c['n']}")
+
+    moving = ("belief_mode", "dynamic_field", "contested")
+
+    def is_moving(r):
+        return all(bool(r.get(k)) for k in moving)
+
+    def base_arm(name, sigma, preset):
+        def sel(r):
+            return (r.get("preset") == preset and r["sigma"] == sigma
+                    and r["arm"] == name and _cond(r) == _BASE)
+        return sel
+
+    # ── R1a: v3 world σ=0, snhp+net vs team ─────────────────────────────
+    if any(base_arm("team", 0.0, "v3")(r) for r in rows):
+        print("\n[R1a] v3 world σ=0 — safety-netted market vs the hive "
+              "(snhp+net − team). Registered: delivered Δ>0, p_w<.05; "
+              "k5 Δ>0 significant; fewer strandings:")
+        for f in ("delivered", "stranded", "score_k2", "score_k5"):
+            show(f, pair(base_arm("snhp+net", 0.0, "v3"),
+                         base_arm("team", 0.0, "v3"), f))
+
+    # ── R1c: column-J P16b — moving field, NO scouting ───────────────────
+    def j_arm(name):
+        def sel(r):
+            return (r.get("preset") == "v5" and r["sigma"] == 0.5
+                    and r["arm"] == name and is_moving(r)
+                    and not r.get("scouting") and not r.get("map_trading")
+                    and r.get("race_pricing", True))
+        return sel
+    if any(j_arm("auction")(r) for r in rows):
+        print("\n[R1c] column-J P16b re-pin — moving field, no scouting "
+              "(auction − snhp+net). Registered: arrivals_mined Δ>0, "
+              "p_w<.05. delivered is DESCRIPTIVE (post-hoc in J, stays so):")
+        for f in ("arrivals_mined", "delivered", "score_k2", "score_k5"):
+            show(f, pair(j_arm("auction"), j_arm("snhp+net"), f))
+
+    # ── R1b: column-K P17b — map market cuts poisoned deals ──────────────
+    def k_cell(maptr):
+        def sel(r):
+            return (r.get("preset") == "v5" and r["sigma"] == 0.5
+                    and r["arm"] == "snhp+net" and is_moving(r)
+                    and bool(r.get("scouting"))
+                    and bool(r.get("map_trading")) == maptr
+                    and not r.get("prospect_claims"))
+        return sel
+    if any(k_cell(True)(r) for r in rows):
+        print("\n[R1b] column-K P17b re-pin — snhp+net K0 vs K0+K1 "
+              "(no-map − map). Registered: poisoned Δ>0, p_w<.05. "
+              "delivered is descriptive:")
+        for f in ("poisoned", "delivered"):
+            show(f, pair(k_cell(False), k_cell(True), f))
+
+    # ── R2 (column GB): geometry B replication ───────────────────────────
+    gb = [r for r in rows if r.get("preset") == "v3b"]
+    if gb:
+        print("\n[R2/GB] geometry B (preset v3b) — ladder means:")
+        for arm in ("null", "auction", "snhp", "snhp+net", "team"):
+            for sigma in sorted({r["sigma"] for r in gb}):
+                g = [r["delivered"] for r in gb
+                     if r["arm"] == arm and r["sigma"] == sigma]
+                st = [r["stranded"] for r in gb
+                      if r["arm"] == arm and r["sigma"] == sigma]
+                if g:
+                    print(f"    {arm:<9} σ={sigma:<4} delivered "
+                          f"{np.mean(g):6.1f}±{np.std(g):<5.1f} "
+                          f"stranded {np.mean(st):5.2f}")
+        print("  Registered: sign of (snhp+net − auction) on delivered at "
+              "σ≥0.5 replicates geometry A (positive both, p_w<.05 at ≥1, "
+              "no k2 reversal):")
+        for sigma in sorted({r["sigma"] for r in gb}):
+            print(f"  σ={sigma}:")
+            for f in ("delivered", "score_k2", "score_k5"):
+                show(f, pair(base_arm("snhp+net", sigma, "v3b"),
+                             base_arm("auction", sigma, "v3b"), f))
+
+    # ── R3 (column SSI): the broadcast-SSI baseline ──────────────────────
+    ssi = [r for r in rows if r["arm"] == "auction_ssi"]
+    if ssi:
+        print("\n[R3/SSI] v3 world — snhp+net vs auction_ssi. Registered "
+              "R3-P1: delivered Δ>0 at both σ≥0.5, p_w<.05 at ≥1, survives "
+              "k2. σ=0 is a sanity cell (no claim):")
+        sigmas = sorted({r["sigma"] for r in ssi})
+        for sigma in sigmas:
+            print(f"  σ={sigma}: snhp+net − auction_ssi")
+            for f in ("delivered", "score_k2", "score_k5"):
+                show(f, pair(base_arm("snhp+net", sigma, "v3"),
+                             base_arm("auction_ssi", sigma, "v3"), f))
+        print("  R3-P2 (descriptive): auction_ssi − auction "
+              "(is SSI the stronger market?):")
+        for sigma in sigmas:
+            print(f"  σ={sigma}:")
+            for f in ("delivered", "score_k2", "score_k5"):
+                show(f, pair(base_arm("auction_ssi", sigma, "v3"),
+                             base_arm("auction", sigma, "v3"), f))
+        g = [r for r in ssi]
+        print(f"    auction_ssi deals/run: "
+              f"{np.mean([r['deals'] for r in g]):.1f}  "
+              f"xfers/run: {np.mean([r['xfers'] for r in g]):.1f}")
+
+    # ── R4 (columns R4v21/R4v3): C2/C3 provenance re-pin under HEAD ──────
+    # Gate on the σ=0.25 v3-preset cells — unique to the R4 grids, so the
+    # section never fires on the R1/SSI artifacts that share other cells.
+    r4 = [r for r in rows if r.get("preset") == "v3" and _cond(r) == _BASE]
+    if any(r["sigma"] == 0.25 for r in r4):
+        sig5 = sorted({r["sigma"] for r in r4})
+        print("\n[R4] v3-world grids under HEAD physics — ladder means:")
+        arms_here = [a for a in ("null", "rules", "auction", "team",
+                                 "team[energy]", "snhp", "snhp+net",
+                                 "snhp-hz", "snhp+net-hz",
+                                 "snhp[cargo]", "snhp[cargo+energy]")
+                     if any(r["arm"] == a for r in r4)]
+        for arm in arms_here:
+            for sigma in sig5:
+                g = [r for r in r4 if r["arm"] == arm and r["sigma"] == sigma]
+                if not g:
+                    continue
+                dlv = [r["delivered"] for r in g]
+                st = [r["stranded"] for r in g]
+                k5 = [r["score_k5"] for r in g]
+                dl = [r["deals"] for r in g]
+                print(f"    {arm:<20} σ={sigma:<4} delivered "
+                      f"{np.mean(dlv):6.1f}±{np.std(dlv):<5.1f} "
+                      f"stranded {np.mean(st):5.2f}  k5 {np.mean(k5):6.1f} "
+                      f"deals {np.mean(dl):6.1f}")
+
+        def v3arm(name, sigma):
+            def sel(r):
+                return (r.get("preset") == "v3" and r["sigma"] == sigma
+                        and r["arm"] == name and _cond(r) == _BASE)
+            return sel
+        print("  [R4-C2] registered: snhp+net − auction delivered positive "
+              "at every σ, p_w<.05 at σ ∈ {0, .25, .5}:")
+        for sigma in sig5:
+            print(f"  σ={sigma}:")
+            for f in ("delivered", "score_k2", "score_k5"):
+                show(f, pair(v3arm("snhp+net", sigma),
+                             v3arm("auction", sigma), f))
+        print("  [R4-C3] registered: snhp − auction delivered monotone "
+              "non-decreasing over σ 0→0.75, positive+significant at 0.75:")
+        for sigma in sig5:
+            c = pair(v3arm("snhp", sigma), v3arm("auction", sigma),
+                     "delivered")
+            show(f"σ={sigma} delivered", c)
+        print("  [R4 secondary re-pins] (reported, not pinned):")
+        for hi, lo, note in (
+                ("snhp", "null", "bargaining vs nothing"),
+                ("team", "snhp", "price of selfishness"),
+                ("snhp+net", "team", "net vs the hive"),
+                ("snhp", "snhp+net", "net-hurts check (orig. +8.9 at .75)"),
+                ("team", "team[energy]", "bundling beats single-issue coop"),
+                ("snhp-hz", "snhp", "hazard vs plain"),
+                ("snhp-hz", "snhp+net", "regime law (died in Corr. 2)")):
+            if not any(r["arm"] == hi for r in r4) \
+                    or not any(r["arm"] == lo for r in r4):
+                continue
+            print(f"    {hi} − {lo}  [{note}]:")
+            for sigma in sig5:
+                show(f"σ={sigma} delivered",
+                     pair(v3arm(hi, sigma), v3arm(lo, sigma), "delivered"))
+        for ab in ("snhp[cargo]", "snhp[cargo+energy]"):
+            g = [r for r in r4 if r["arm"] == ab]
+            if g:
+                print(f"    C1 ablation {ab}: deals/run "
+                      f"{np.mean([r['deals'] for r in g]):.2f} "
+                      f"(orig: cargo-only ≈0.5 jettison, energy-only 0)")
+
+    # ═══ SPEC-ADDENDUM-P2-2026-07-23 (paper 2 power re-pin) ═══════════════
+    # One-sample liar-advantage test (the committed v6 statistic: within-run
+    # liar − honest mean credit, Wilcoxon headline as everywhere).
+    def adv1(g):
+        adv = [r["liar_credit"] - r["honest_credit"] for r in g
+               if r.get("liar_credit") is not None
+               and r.get("honest_credit") is not None]
+        if len(adv) < 3:
+            return None
+        a = np.array(adv, float)
+        _, pt = stats.ttest_1samp(a, 0.0)
+        try:
+            _, pw = stats.wilcoxon(a) if np.any(a != 0) else (None, 1.0)
+        except ValueError:
+            pw = float("nan")
+        n = len(a)
+        half = (stats.t.ppf(0.975, n - 1) * a.std(ddof=1) / np.sqrt(n)
+                if n > 1 and a.std(ddof=1) > 0 else 0.0)
+        return dict(mean=float(a.mean()),
+                    ci=(float(a.mean() - half), float(a.mean() + half)),
+                    p_t=float(pt), p_w=float(pw),
+                    pos=int((a > 0).sum()), n=n)
+
+    def show1(tag, c, extra=""):
+        if c is None:
+            print(f"    {tag}: <cells missing>")
+            return
+        print(f"    {tag}: adv={c['mean']:+.1f} [{c['ci'][0]:+.1f}, "
+              f"{c['ci'][1]:+.1f}]  p_t={c['p_t']:.4f} p_w={c['p_w']:.4f} "
+              f"pos {c['pos']}/{c['n']}{extra}")
+
+    def v5cell(arm, f, defended):
+        return [r for r in rows
+                if r["arm"] == arm and r.get("preset") == "v5"
+                and r["sigma"] == 0.5
+                and float(r.get("liar_frac") or 0.0) == f
+                and bool(r.get("defended")) == defended
+                and float(r.get("self_noise") or 0.0) == 0.0
+                and not r.get("belief_mode") and not r.get("lineage")]
+
+    # ── P2-R1: v6.0/v6.1 headline cells ──────────────────────────────────
+    if any(r["arm"] == "trust-open-hz" for r in rows) \
+            and any(v5cell("snhp-hz", 0.25, False)):
+        print("\n[P2-R1] v6.0/v6.1 headline re-pin "
+              "(SPEC-ADDENDUM-P2-2026-07-23):")
+        print("  [P2-R1a] trust-open frenzy — registered: liarAdv>0 "
+              "p_w<.05, strip>100/run at both f:")
+        for f in (0.25, 0.5):
+            g = v5cell("trust-open-hz", f, True)
+            if g:
+                strip = np.mean([r["strip_deals"] for r in g])
+                dlv = np.mean([r["delivered"] for r in g])
+                show1(f"open  f={f}", adv1(g),
+                      f"  strip={strip:.1f}/run delivered={dlv:.1f}")
+        print("  [P2-R1b] trust-gated — registered: liarAdv n.s. (KILL if "
+              "significantly POSITIVE), strip == 0.0 exactly:")
+        for f in (0.25, 0.5):
+            g = v5cell("trust-gated-hz", f, True)
+            if g:
+                strip = np.mean([r["strip_deals"] for r in g])
+                dlv = np.mean([r["delivered"] for r in g])
+                show1(f"gated f={f}", adv1(g),
+                      f"  strip={strip:.1f}/run delivered={dlv:.1f}")
+        g0 = v5cell("trust-gated-hz", 0.0, True)
+        if g0:
+            print(f"    gated f=0 anchor: delivered "
+                  f"{np.mean([r['delivered'] for r in g0]):.1f}  stranded "
+                  f"{np.mean([r['stranded'] for r in g0]):.2f}")
+        print("  [P2-R1c] veto tier (column D, UNdefended) — registered: "
+              "liarAdv stays n.s. (KILL if significantly positive):")
+        for arm in ("snhp-hz", "snhp+net"):
+            for f in (0.25, 0.5):
+                g = v5cell(arm, f, False)
+                if g:
+                    dlv = np.mean([r["delivered"] for r in g])
+                    show1(f"{arm:>8} f={f}", adv1(g),
+                          f"  delivered={dlv:.1f}")
+            b = v5cell(arm, 0.0, False)
+            if b:
+                print(f"    {arm:>8} f=0 baseline: delivered "
+                      f"{np.mean([r['delivered'] for r in b]):.1f}")
+
+    # ── P2-R2: v7 gauge-poisoning dose-response ──────────────────────────
+    def fcell(s7):
+        return {r["seed"]: r for r in rows
+                if r["arm"] == "snhp-hz" and r.get("preset") == "v5"
+                and float(r.get("self_noise") or 0.0) == s7
+                and float(r.get("liar_frac") or 0.0) == 0.0
+                and not r.get("self_margin") and r["sigma"] == 0.5}
+
+    def pair_m(mh, ml, getter):
+        common = sorted(set(mh) & set(ml))
+        if len(common) < 3:
+            return None
+        a = np.array([getter(mh[s]) for s in common], float)
+        b = np.array([getter(ml[s]) for s in common], float)
+        d = a - b
+        _, pt = stats.ttest_rel(a, b)
+        try:
+            _, pw = stats.wilcoxon(d) if np.any(d != 0) else (None, 1.0)
+        except ValueError:
+            pw = float("nan")
+        n = len(common)
+        half = (stats.t.ppf(0.975, n - 1) * d.std(ddof=1) / np.sqrt(n)
+                if n > 1 and d.std(ddof=1) > 0 else 0.0)
+        return dict(hi=float(a.mean()), lo=float(b.mean()),
+                    delta=float(d.mean()), ci=(float(d.mean() - half),
+                                               float(d.mean() + half)),
+                    p_t=float(pt), p_w=float(pw),
+                    wins=int((d > 0).sum()), n=n)
+
+    if fcell(0.30) and fcell(0.15):
+        print("\n[P2-R2] v7 gauge dose-response re-pin "
+              "(SPEC-ADDENDUM-P2-2026-07-23). Registered: poisoned "
+              "monotone 0 < s7=0.15 < s7=0.30 (p_w<.05 each step); "
+              "delivered-flat reported two-sided:")
+        for s7 in (0.0, 0.15, 0.30):
+            m = fcell(s7)
+            if m:
+                g = list(m.values())
+                print(f"    s7={s7:<5} poisoned "
+                      f"{np.mean([r['poisoned'] for r in g]):6.2f}  "
+                      f"delivered {np.mean([r['delivered'] for r in g]):6.1f}"
+                      f"±{np.std([r['delivered'] for r in g]):<5.1f} "
+                      f"stranded {np.mean([r['stranded'] for r in g]):5.2f}")
+        steps = [("s7 .15 − 0  ", 0.15, 0.0), ("s7 .30 − .15", 0.30, 0.15),
+                 ("s7 .30 − 0  ", 0.30, 0.0)]
+        for tag, hi, lo in steps:
+            for f in ("poisoned", "delivered", "stranded"):
+                c = pair_m(fcell(hi), fcell(lo), lambda r, f=f: r[f])
+                if c:
+                    show(f"{tag} {f}", c)
+
+    # ── P2-R3: P23a bills headline + P23e dwell moral hazard, N=240 ──────
+    def p23cell(bills):
+        return {r["seed"]: r for r in rows
+                if int(r.get("n_robots") or 24) == 240 and r.get("dwell")
+                and bool(r.get("bills")) == bills
+                and not r.get("bills_contingent")
+                and not r.get("firm_relay") and not r.get("mortality")
+                and not r.get("shock") and not r.get("claims_transferable")}
+    if p23cell(True) and p23cell(False):
+        bl, sp = p23cell(True), p23cell(False)
+        n = len(set(bl) & set(sp))
+        print(f"\n[P2-R3] P23a/P23e N=240 re-pin "
+              f"(SPEC-ADDENDUM-P2-2026-07-23), {n} paired seeds:")
+        print("  [P2-R3a] bills − spot. Registered: Δdfrac>+0.01 p_w<.05; "
+              "Δ(≥2-hop share)>+0.2 p_w<.05; stranding direction reported:")
+
+        def show4(tag, c):
+            if c is None:
+                print(f"    {tag}: <cells missing>")
+                return
+            print(f"    {tag}: {c['hi']:.4f} vs {c['lo']:.4f}  "
+                  f"Δ={c['delta']:+.4f} [{c['ci'][0]:+.4f}, "
+                  f"{c['ci'][1]:+.4f}]  p_t={c['p_t']:.4f} "
+                  f"p_w={c['p_w']:.4f} wins {c['wins']}/{c['n']}")
+        show4("delivered_frac", pair_m(bl, sp, lambda r: r["delivered_frac"]))
+        show4("≥2-hop share  ", pair_m(
+            bl, sp, lambda r: r["lineage_detail"]["hop_shares"][2]))
+        show("stranded      ", pair_m(bl, sp, lambda r: r["stranded"]))
+        show("delivered     ", pair_m(bl, sp, lambda r: r["delivered"]))
+        print("  [P2-R3b] flat − spot dwell inflation (all parcels). "
+              "Registered: Δ>0 p_w<.05:")
+        show("dwell inflation", pair_m(
+            bl, sp, lambda r: r["dwell_detail"]["deliv_inflation"]["mean"]))
+
+
 def build_jobs(column: str, seeds: int, ticks: int):
     jobs = []
     if column in ("A", "all"):
@@ -5026,6 +5397,123 @@ def build_jobs(column: str, seeds: int, ticks: int):
                              claims_transferable=True, ticks=7500,
                              sigma=0.5, tau=0.15, preset="v5",
                              n_robots=24, lineage=True))
+    if column == "R1":                # SPEC-ADDENDUM-2026-07-23 R1: 64-seed
+        # re-pin of the three fragile headlines (review M1). Cells replicate
+        # the ORIGINAL job dicts exactly, seeds 0..63 (superset of 0..15).
+        n64 = max(seeds, 64)
+        # R1a — "safety-netted market beats the hive on its home ground":
+        # v3 preset, σ=0, snhp+net vs team (RESULTS.md Correction 2)
+        for arm in ("snhp+net", "team"):
+            for seed in range(n64):
+                jobs.append(dict(arm_name=arm, sigma=0.0, seed=seed,
+                                 ticks=ticks, preset="v3"))
+        # R1c — column-J P16b arrival-capture inversion (moving field, no
+        # scouting): auction vs snhp+net on arrivals_mined
+        moving = dict(belief_mode=True, dynamic_field=True, contested=True)
+        for arm in ("auction", "snhp+net"):
+            for seed in range(n64):
+                jobs.append(dict(arm_name=arm, sigma=0.5, seed=seed,
+                                 ticks=ticks, tau=0.15, preset="v5", **moving))
+        # R1b — column-K P17b map-market poisoned-deals cut: snhp+net K0 vs
+        # K0+K1 (both scouting; map_trading is the treatment)
+        for maptr in (False, True):
+            for seed in range(n64):
+                jobs.append(dict(arm_name="snhp+net", sigma=0.5, seed=seed,
+                                 ticks=ticks, tau=0.15, preset="v5",
+                                 scouting=True, map_trading=maptr, **moving))
+    if column == "P2R1":              # SPEC-ADDENDUM-P2-2026-07-23 P2-R1:
+        # 64-seed re-pin of the v6.0/v6.1 headline cells (paper 2). Cells
+        # replicate the ORIGINAL column-D/E job dicts exactly, seeds 0..63
+        # (superset of 0..15). No physics or constants ride along.
+        n64 = max(seeds, 64)
+        # v6.0 veto tier (column D): honest baseline + UNdefended liars —
+        # the deception-tolerance cells (liarAdv n.s. at 16 seeds)
+        for arm in ("snhp-hz", "snhp+net"):
+            for seed in range(n64):
+                jobs.append(dict(arm_name=arm, sigma=0.5, seed=seed,
+                                 ticks=ticks, tau=0.15, preset="v5"))
+            for f in (0.25, 0.5):
+                for seed in range(n64):
+                    jobs.append(dict(arm_name=arm, sigma=0.5, seed=seed,
+                                     ticks=ticks, tau=0.15, preset="v5",
+                                     liar_frac=f, defended=False))
+        # v6.1 joint tier (column E): the frenzy (open) and the gate
+        # (gated), plus the f=0 gated anchor (P11c row)
+        for arm, fs in (("trust-open-hz", (0.25, 0.5)),
+                        ("trust-gated-hz", (0.25, 0.5))):
+            for f in fs:
+                for seed in range(n64):
+                    jobs.append(dict(arm_name=arm, sigma=0.5, seed=seed,
+                                     ticks=ticks, tau=0.15, preset="v5",
+                                     liar_frac=f, defended=True))
+        for seed in range(n64):
+            jobs.append(dict(arm_name="trust-gated-hz", sigma=0.5, seed=seed,
+                             ticks=ticks, tau=0.15, preset="v5",
+                             defended=True))
+    if column == "P2R2":              # SPEC-ADDENDUM-P2-2026-07-23 P2-R2:
+        # 64-seed re-pin of the v7 gauge-poisoning dose-response (column F
+        # f=0, margin-off cells, exact job dicts, seeds 0..63).
+        n64 = max(seeds, 64)
+        for s7 in (0.0, 0.15, 0.30):
+            for seed in range(n64):
+                jobs.append(dict(arm_name="snhp-hz", sigma=0.5, seed=seed,
+                                 ticks=ticks, tau=0.15, preset="v5",
+                                 liar_frac=0.0, self_noise=s7,
+                                 self_margin=False))
+    if column == "P2R3":              # SPEC-ADDENDUM-P2-2026-07-23 P2-R3:
+        # P23a bills headline + P23e dwell moral hazard at the registered
+        # seed count (--seeds; addendum states the choice). One grid serves
+        # both: dwell=True is a PINNED pure instrument
+        # (test_p23e_dwell_instrument_is_pure_bookkeeping; P2-vs-P3
+        # artifacts bit-identical 32/32 rows), so these cells replicate the
+        # original sweep_v4_P2/P3 spot+flat trajectories exactly.
+        import math as _math
+        g240 = int(round(32 * _math.sqrt(240 / 24)))
+        for v in (dict(arm_name="snhp+net"),
+                  dict(arm_name="snhp+net", bills=True)):
+            for seed in range(seeds):
+                jobs.append(dict(seed=seed, sigma=0.5, ticks=ticks, tau=0.15,
+                                 preset="v5", n_robots=240, grid=g240,
+                                 lineage=True, dwell=True, **v))
+    if column == "GB":                # SPEC-ADDENDUM-2026-07-23 R2: geometry B
+        for arm in ("null", "auction", "snhp", "snhp+net", "team"):
+            for sigma in (0.0, 0.5, 1.0):
+                for seed in range(seeds):
+                    jobs.append(dict(arm_name=arm, sigma=sigma, seed=seed,
+                                     ticks=ticks, preset="v3b"))
+    if column == "SSI":               # SPEC-ADDENDUM-2026-07-23 R3: the
+        # broadcast-SSI market baseline on C2's home ground (v3 preset).
+        # `auction` rides along as the descriptive bilateral anchor (R3-P2).
+        for arm in ("auction_ssi", "snhp+net", "auction"):
+            for sigma in (0.0, 0.5, 0.75):
+                for seed in range(seeds):
+                    jobs.append(dict(arm_name=arm, sigma=sigma, seed=seed,
+                                     ticks=ticks, preset="v3"))
+    if column == "R4v21":             # SPEC-ADDENDUM-2026-07-23 R4: the v2.1
+        # grid (C2/C3 artifact) regenerated cell-for-cell under HEAD physics.
+        sig5 = (0.0, 0.25, 0.5, 0.75, 1.0)
+        for arm in ("null", "rules", "auction", "team", "snhp", "snhp+net"):
+            for sigma in sig5:
+                for seed in range(seeds):
+                    jobs.append(dict(arm_name=arm, sigma=sigma, seed=seed,
+                                     ticks=ticks, preset="v3"))
+        for sigma in sig5:            # the Φ-informed single-issue baseline
+            for seed in range(seeds):
+                jobs.append(dict(arm_name="team", sigma=sigma, seed=seed,
+                                 ticks=ticks, preset="v3",
+                                 issues=("energy",)))
+        for issues in (("cargo",), ("cargo", "energy")):   # C1 ablations
+            for seed in range(seeds):
+                jobs.append(dict(arm_name="snhp", sigma=1.0, seed=seed,
+                                 ticks=ticks, preset="v3", issues=issues))
+    if column == "R4v3":              # SPEC-ADDENDUM-2026-07-23 R4: the v3
+        # grid (hazard arms) regenerated cell-for-cell under HEAD physics.
+        for arm in ("null", "rules", "auction", "team", "snhp", "snhp+net",
+                    "snhp-hz", "snhp+net-hz"):
+            for sigma in (0.0, 0.25, 0.5, 0.75, 1.0):
+                for seed in range(seeds):
+                    jobs.append(dict(arm_name=arm, sigma=sigma, seed=seed,
+                                     ticks=ticks, preset="v3"))
     if column == "bridge":
         for arm in ("snhp", "auction"):
             for seed in range(8):
@@ -5036,7 +5524,7 @@ def build_jobs(column: str, seeds: int, ticks: int):
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "S", "U", "UH", "V", "V2", "X", "Z", "AA", "AB", "AB2", "AB3", "M2", "all", "bridge"])
+    ap.add_argument("--column", default="A", choices=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "O", "P", "P2", "P3", "Q", "Q2", "S", "U", "UH", "V", "V2", "X", "Z", "AA", "AB", "AB2", "AB3", "M2", "R1", "GB", "SSI", "R4v21", "R4v3", "P2R1", "P2R2", "P2R3", "all", "bridge"])
     ap.add_argument("--seeds", type=int, default=24)
     ap.add_argument("--ticks", type=int, default=2500)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
@@ -5068,6 +5556,7 @@ def main() -> None:
         pab2_report(rows)
         pab3_report(rows)
         pm2_report(rows)
+        repin_report(rows)
         return
 
     jobs = build_jobs(args.column, args.seeds, args.ticks)
@@ -5115,6 +5604,7 @@ def main() -> None:
     pab2_report(rows)
     pab3_report(rows)
     pm2_report(rows)
+    repin_report(rows)
 
 
 if __name__ == "__main__":

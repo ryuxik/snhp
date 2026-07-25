@@ -1,6 +1,6 @@
 # The Works offered her a 12% raise and she left anyway
 
-*I built a shipyard full of space crabs to find out what six weeks of salary meetings actually cost. The answer was not the meetings.*
+*I built a shipyard full of space crabs to find out what six weeks of salary meetings actually cost. Then I rebuilt the whole thing, because four of my design choices were doing the work, and most of my headline died.*
 
 ---
 
@@ -12,162 +12,149 @@ So she does what you're supposed to do. She asks. Day 23 — that's how long it 
 
 Four days later she quits.
 
-Because what Ada actually wanted was the molt — the promotion, the bigger shell — and she puts 56% of her weight on it. It was fourth on the agenda. The conversation never got there.
+Because what Ada actually wanted was the molt — the promotion, the bigger shell — and she puts 56% of her weight on it. Nobody got to it in time.
 
-The Works now pays **$107,762** to replace her, having already agreed to a raise it doesn't have to pay. And the package she signs in the other version of this story — the one where all five terms are on the table in a single sitting — is **+3%, the molt, and a flexible berth**. It costs the Works **$29,052** and she stays.
+The Works now pays **$107,762** to replace her, having already agreed to a raise it doesn't have to pay. The package she signs in the other version of this story — the one where all five terms are on the table in a single sitting — is **+3%, the molt, and a flexible berth**. It costs the Works **$29,052** and she stays.
 
-Same crab. Same works. Same standing offer. The only difference is whether the terms were discussed one at a time or all at once.
-
-That's the demo. This is the experiment behind it, and the parts of it I think you should attack.
+That's the demo. This is the experiment behind it, including the parts where the experiment was wrong.
 
 ---
 
-## The trap this experiment is built to avoid
+## The trap this was built to avoid, and the one it fell into anyway
 
-There is an obvious way to run this study and get a press release out of it. Make slow negotiation expensive — charge for the meetings, charge for the delay, let people quit while they wait — and then announce that fast negotiation is better.
+There's an obvious way to run this study and get a press release out of it. Make slow negotiation expensive — charge for the meetings, charge for the delay, let people quit while they wait — then announce that fast negotiation is better. That isn't a finding, it's an assumption with decimal places.
 
-That isn't a finding. That's an assumption, restated with more decimal places.
+So I registered seven kills before writing any code, plus two structural guards: every result reported twice, once with the calendar running and once with **every delay cost set to exactly zero**; and an instant agreement still needs a signature, so the fast arm gets one approval hop through HR rather than being exempted from bureaucracy.
 
-So before writing any of the code I wrote down seven results that would prove me wrong, and two structural guards.
+Those guards worked. A different problem got past them, in four places at once.
 
-**The first guard**: every result gets reported twice, once with the calendar running and once with **every delay cost set to exactly zero** — no manager hours, no distraction, no attrition, offers that never expire. If the advantage only exists in the first version, then I measured my own assumptions and the honest headline is a sentence about my calibration.
+I showed the first write-up to somebody who reads for a living. He came back with four objections. Three were right, and the fourth was worse than he thought.
 
-**The second guard**: an instant agreement still needs a signature. The fast arm gets *one* approval hop through HR, not zero. The slow arm gets one per instrument, because that's what settling things one at a time actually costs. Any speed advantage has to come from collapsing sign-offs, never from exempting my own software from bureaucracy.
+**"You're ordering the agenda arbitrarily, so of course the sequential arm loses."** My slow negotiation went base pay → bonus → berth → title → deepwater, one issue per meeting, nothing reopened. Ada never reached the molt because I put it fourth. That's a designer's choice wearing a finding's clothes.
 
-There's a third, and it's the one I'd want if I were reading this sceptically. The slow arm runs **twice**: once with a hand-rolled human bargainer, and once with my actual engine put on a leash — restricted to one issue at a time. If the leashed engine matches the unleashed one, then whatever I measured was my own strawman, and I have to say so.
+**"The single-issue bargainer should be a suite of normal corporate strategies — we have those."** We do: nineteen documented archetypes sitting in the repo, on negmas. My slow crab was an anchor-and-concede ladder I wrote myself, which is exactly the mistake I'd caught in an earlier study from the other direction.
 
-The world: 40 crabs, twelve seasons, four pre-registered seeds — 1,920 crab-seasons per protocol, confirmed afterwards on a held-out fifth seed. Five specializations, from hull-welders to shell-smiths, with replacement costs anchored on the published 0.5–2× salary range. Five things on the table: base pay, the molt, a retention bonus, a flexible berth, and the growth assignment. Six protocols, from "just sign it" to "both sides have the engine."
+**"You aren't pricing the skill difference — each employer has its own private valuation of a skillset."** Replacement cost in v1 was a constant per role times salary. No crab was worth unusually much to *this* employer specifically.
 
-The bar for calling anything a result: **2% of salary, $2,268**. Below that it's noise however many stars it has.
+**"How does a public show of an offer not affect a company's internal valuation? That's just false, right?"**
 
-## The headline, and then the part that surprised me
+It's worse than false. I went and read my own code. `p_leave` reads the crab's outside offer directly. **The employer already knew Ada's exact competing offer before anyone opened their mouth.** So my finding that "asking harder is worth nothing" wasn't a finding at all — it was the setup restated. With an omniscient counterparty there is nothing an ask could possibly reveal.
 
-Six weeks of meetings versus one sitting, per crab-season, paired on identical crabs:
+That claim is retracted. It needed no re-run to kill; it needed me to read three lines.
 
-- the crab gains **+$3,898**
-- the Works gains **+$27,915**
-- **38 fewer days**
+The other three needed a rebuild. Here's what the rebuild did to my headline.
 
-And with the entire clock switched off — no meetings costed, nobody quitting, no expiring offers — one sitting still wins by **+$9,597 joint**. So the effect isn't an artifact of how I priced delay. The clock roughly triples it, and that multiple *is* a claim about my calibration, which is the first thing I'd attack if I were you. More on that below.
+## What survived: the clock
 
-Now the part I got wrong.
+The slow arm is now the archetype suite, driven as-is over a negmas mechanism, one issue at a time, under three orderings — my old money-first agenda, random, and **best-first**, where the crab opens on whatever it wants most. Both arms cover all five issues; the difference is real human timelines. An email round trip is 2–5 days. Locking it down is one scheduled meeting, 7–12 days. The slow arm gets **twelve exchanges**; the engine gets three rounds.
 
-I predicted, on the record, that the dominant channel would be **mis-allocated concession** — the Works paying permanent salary where a cheaper package would have worked — and that it would beat manager hours, distraction and attrition combined.
+Against that opponent, with the calendar running:
 
-It's 14.6%. Here's the actual split of the Works' $27,915:
-
-| where the money goes | | |
-|---|---|---|
-| **replacing crabs who left during the talks** | **$22,252** | **79.7%** |
-| paying permanent salary where a cheaper package worked | $4,076 | 14.6% |
-| the crab being distracted for six weeks | $958 | 3.4% |
-| the manager's hours | $629 | 2.3% |
-
-Manager time — the thing everyone complains about when they complain about slow negotiation — is **2.3% of it**.
-
-What slow negotiation costs is not the meetings. It's the thirty-eight extra days during which somebody holding a live outside offer can walk out of the building, and fourteen percent of them do.
-
-## The concession channel is real. It just needs the selection stripped out
-
-That $4,076 is a population average, and population averages here are contaminated: the crabs the Works *keeps* under slow talks are a different set from the ones it keeps under one sitting. Compare them naively and you're comparing different people.
-
-So: restrict to the 1,217 crab-seasons where the Works retains the crab under **both** protocols. Same crabs, same outcome, nobody leaving.
-
-| | the Works pays | she receives | permanent raise | promoted | days |
+| | crab | the Works | joint | days | departures |
 |---|---|---|---|---|---|
-| six weeks of meetings | **$20,547** | $16,499 | 4.41% | 0.3% | 40.3 |
-| one sitting | **$13,439** | $19,492 | 1.50% | 28.4% | 4.0 |
+| just sign it | $14,187 | −$41,097 | −$26,910 | 1.0 | 32.1% |
+| six weeks of email (best archetype) | $16,495 | −$51,433 | −$34,937 | 48.7 | 33.6% |
+| **one sitting** | **$18,779** | **−$26,430** | **−$7,651** | **3.8** | **15.6%** |
 
-The Works pays **$7,108 less** and she gets **$2,993 more**.
+**+$27,286 joint, and 45 fewer days.** That part held up.
 
-The slow protocol buys retention with a 4.4% permanent raise — the single most expensive currency the Works has, because it's forever and the whole pay band re-prices off it. The engine buys the same retention with a promotion and a flexible shift, which cost about a third as much and are worth more to her.
+So did the channel. Roughly four-fifths of the employer's advantage is **replacing crabs who walked out during the talks**. Manager hours are about two percent of it. The meetings are not the cost. The exposure is.
 
-Nobody is being clever here. The trade is sitting in plain sight. Sequential bargaining just can't see it, because by the time anyone mentions the molt, base pay was settled four weeks ago and nobody reopens a closed item.
+## What died: the money, at equal speed
 
-## One of my kills fired, and it fired because my test was wrong
+Here's the number that decides whether any of this is about my calibration.
 
-I registered this: if the bundle's advantage doesn't **halve** when I make every crab want the same things, then logrolling isn't the mechanism and I have to say the mechanism is unidentified.
+With every delay cost zeroed — nobody quits, nobody's distracted, no offer expires, the manager works for free — one sitting beats six weeks of email by:
 
-I turned the dial. The advantage fell by **7%**.
+- **+$3,837 joint** when outside offers can be proved
+- **+$277 joint** when they cannot
 
-Kill fired. And when I went to look at why, the problem was my test, not the result. Textbook logrolling needs the two *sides* to rank the issues differently. It does not need the crabs to differ **from each other**. Every crab in this world faces the same gap — a promotion costs the Works $11,606 and is worth $41,442 to a title-hungry chemist — and that gap survives making all the crabs identical.
+In version one that number was **+$9,597**. It fell sixty percent the moment the opponent stopped being handicapped. I predicted, on the record and before running it, that it would fall by more than half. It did.
 
-So I ran the identification the kill demanded, labelled exploratory because it was built after seeing a result. Two ablations crossed, clock off. Where the equal-speed advantage comes from:
+The second column is a kill firing. My registered K8 said: if the equal-speed advantage over the best archetype drops below 2% of salary, the money story is the clock and every money claim comes out. **In the unverifiable regime it does: $277 against a $2,253 bar.**
 
-- **63%** — the Works' cheap currencies are the crab's dear ones
-- **37%** — deals that simply wouldn't have existed; the bundle keeps a crab the one-issue ladder loses
-- **≈0%** — crabs wanting different things from each other *(−$586, i.e. it got very slightly bigger when I made everyone the same)*
+Then the part that stings. The crab's share of that equal-speed gain:
 
-Which changes what I'm allowed to say. Not "everyone wants something different, so ask what they want." The mechanism is that **a promotion costs an employer less than it's worth to the person getting it, and that's true of almost everyone.**
+- **+$500** in the verifiable regime — below the bar
+- **−$2,592** in the unverifiable regime
+- **−$88** on the held-out seed
 
-## Asking harder is worth nothing. Again.
+> At equal speed, the money story is an employer story. For the employee there is no equal-speed money story at all. What the employee gets is the clock.
 
-The two slow arms — the human bargainer and my engine on a leash — came out **identical to within $126** on every aggregate.
+The selection-free version says the same thing. Restricted to crabs the Works keeps under both protocols, the employer pays **$6,555 less** under one sitting — barely down from v1's $7,108. The crab's gain drops from **+$2,993 to +$624**. Against a competent opponent that opens on what it actually wants, most of what the engine looked like it was winning for the employee turns out to be what a good negotiator wins for itself.
 
-That is not a wiring bug; there's a test pinning it. The engine really does get called, and it really does ask differently on 44 of 60 pilot crabs. It just doesn't matter, because the Works replies from its own arithmetic and its optimum sits *below* every ask, human or engineered.
+## What I got wrong about my own thumb
 
-I found the same thing in the rent study last month: shopping around gets you $17 a year against a $480 bar, because your landlord can't verify your alternative. Two different markets, same answer. **A better ask, against a counterparty doing its own sums, buys you nothing.** What changes the answer is changing *what is on the table* — not how hard you ask for what's already on it.
+I expected the agenda objection to cost me the most. It cost me the least.
 
-## Arming both sides makes it worse
+Across all six reported archetypes, moving from my money-first agenda to best-first changes the concession by **$143–$378** and the crab's outcome by **$258–$650**. The largest ordering effect anywhere in the study is **$650**, against a $2,253 bar. My thumb was worth about four hundred dollars.
 
-The four-cell version, because I've learned to run it: neither side, the crab, the Works, both.
+I registered a prediction that this kill would fire. **Refuted**, and I'd rather record that than quietly enjoy it.
 
-The crab holding the engine: joint **+$31,813** against slow talks. The Works holding it: **+$30,065**. Both sides holding it: **+$22,873** — and with the clock off, both-sides is **worse than slow talks outright**, at −$1,547.
+## The result that only exists because the objection was right
 
-Departures go from 14.3% when one side has it to **24.0%** when both do. A works playing the engine concedes less: 0.82% base and a 13.8% promotion rate, against 1.20% and 20.3%. More crabs leave. The replacement bill eats the efficiency gain.
+Once the employer stops being omniscient, you can ask the question v1 couldn't: what is an offer letter actually worth?
 
-I'll caveat this one myself, because I registered no prediction that would let me discard it and I don't fully trust it: my works's engine infers crab priorities from a fairly coarse sequence of counter-offers. A better-instrumented employer might do better than my version does. But the shape — two optimisers producing more broken deals than one — is not obviously an artifact, and it's the opposite of what I'd have guessed.
+Same crab, forced to show it versus forced to stay quiet:
 
-## And the split, which I did not want and got anyway
+- **the crab gains +$2,851**
+- **the Works gains +$12,993**
+- **departures fall 16 percentage points**
 
-Of everything the engine creates:
+Showing a verifiable offer pays, for both sides. Saying you have one, in the regime where nothing can be checked, is worth **exactly zero** — because claiming is free, so everyone claims, so the claim separates nobody. That's textbook unravelling, and it is now *derived* rather than assumed by handing the employer the answer.
 
-| who holds it | joint gain | crab's share | employer's share |
-|---|---|---|---|
-| the crab | +$31,813 | 12.3% | **87.7%** |
-| the Works | +$30,065 | 12.6% | **87.4%** |
-| both | +$22,873 | 10.3% | **89.7%** |
+Now the inversion. Compare the two worlds rather than the two crabs:
 
-Roughly ninety percent to the employer, in every cell, regardless of who's holding the software.
+| | crab | the Works |
+|---|---|---|
+| a world where offers can be proved, minus one where they can't | **−$6,528** | **+$9,610** |
 
-I found 8.5× in the rent study — landlord versus tenant — and told myself it might be something about housing. It is not something about housing. It's that the party facing this negotiation two hundred times a year, with a budget line for software, is on one side of the table, and the party facing it once every two years is on the other.
+**Being able to prove your offer is worth $2,851 to you. Living in a world where offers can be proved costs you $6,528.**
 
-Notice too that the crab's share barely moves between "the crab has it" and "the Works has it": 12.3% versus 12.6%. Most of what the crab gains comes from **the deal existing at all**, not from being the one who's armed. That's a genuinely good thing about this technology and a genuinely bad thing about the business model.
+When nothing can be verified, an employer has to price everyone as though they might have a good offer, and concedes to everyone. When letters can be shown, silence convicts you of having nothing. Verifiability is an employer-side technology — and I only found that because someone told me my model was false.
 
-## One piece of advice that inverted
+## Two more, from the rebuild
 
-With the clock off, negotiating beats just signing: +$2,708 for the crab, +$10,147 for the Works. Negotiation creates value. Obviously.
+**How you haggle doesn't matter.** Nineteen documented negotiation styles — Anchorer, Silent Hardliner, Split-the-Diff, Deadline Exploiter, Soviet Patience, Tactical Empath, Cialdini, Logroller, the behavioural-bias set — and the engine's advantage over them spans $27,286 to $28,329. A **1.04× spread**. Logroller is built specifically for issue-by-issue trading and lands within four percent of Split-the-Diff. The counterparty's arithmetic dominates the counterparty's manner.
 
-Switch the clock on and the identical protocol goes **$14,883 worse than signing nothing at all**. Slow talks gain the crab $563 and cost the Works $15,445.
+So the replacement for my retracted claim is: **what you reveal is worth $2,851; how you haggle is worth nothing.** That one isn't tautological, because this employer doesn't already know the answer.
 
-So "always negotiate" and "just sign it" are both wrong, and the useful version is duller than either: *negotiate all of it, immediately.* An employer choosing between a six-week negotiation and its own opening offer should pick its own opening offer — which is a genuinely uncomfortable thing for me to have measured, given what I sell.
+**Pricing skill differences changed nothing — and the reason is the interesting bit.** I added a private, firm-specific match value: what a crab is worth to *this* employer versus a generic replacement, drawn independently of its market value. My registered test said: if it doesn't move what the employer pays, the fix was cosmetic. Rank correlation **0.079**. It fired.
+
+But in the unverifiable regime the same correlation is **0.279**.
+
+> When your employer can see your outside offer, it pays for the offer. When it can't, it pays for you.
+
+Verifiability replaces "what are you worth to us" with "what will it take to keep you." Different questions, different answers. The kill fired on its stated test, so I'm not claiming I fixed the skill-pricing gap — but the contrast is on the record.
+
+**And the split held.** Whoever holds the engine, the employer takes **91.6%** of the value it creates. Third independent thing in this study pointing the same way, and the one result that has now survived two studies, two markets, and a rebuild designed to break it.
 
 ---
 
 # Where to attack this
 
-This is the part I actually want argued with. Ranked by how much damage I think each one does.
+Still the part I want argued with. The list is shorter than it was, because four items got promoted into the model.
 
-**1. The attrition hazard is 80% of the effect and it is the number I am least able to defend.** I modelled quitting as a daily hazard while talks are open: 0.9% a day, ×3.1 with a live outside offer. That produces roughly a 24% chance of walking out over a 27-day negotiation for someone holding an offer. I calibrated it against trade-press candidate-withdrawal statistics — the ten-day window in which good candidates stop collecting offers, the ~32% of withdrawals attributed to accepting elsewhere — which are consultancy benchmarks, not studies. Halving it drops the headline to +$24,334; doubling it takes it to +$45,977. The sign never flips, but if you think the real hazard is a fifth of mine, the interesting number becomes the zero-clock +$9,597 and everything else is decoration. **This is the strongest attack available and I don't have a good answer to it.**
+**1. The attrition hazard is still the load-bearing parameter and I still can't defend it.** Roughly four-fifths of the clock-on effect is replacement cost from crabs walking out mid-negotiation, at a hazard of 0.9%/day, ×3.1 with a live offer, calibrated against consultancy candidate-withdrawal benchmarks rather than studies. The rebuild did not touch it. If you think it should be a fifth of what I set, the only number left standing is the equal-speed one — which is now $3,837, or $277, depending on the regime.
 
-**2. My world has 30.6% annual departures, which is high.** 33.6% of crab-seasons have an outside offer in hand, and under "just sign it" 30.6% of crabs leave. Real voluntary quit rates run well below that. This is a world where everyone is in play at once, which inflates every population-level dollar figure — the *per-negotiation* logic is unaffected, but if you want to map my dollars onto a real payroll, deflate them. I swept the replacement *cost* (halving it gives +$19,236) but I did not sweep the departure *rate*, and I should have.
+**2. My world still has ~32% annual departures.** A third of crab-seasons carry an outside offer. That's a world where everyone is in play at once, which inflates every population-level dollar. Per-negotiation logic is unaffected; to map onto a real payroll, deflate.
 
-**3. I swept the wrong parameters.** The cross-side price gap is 63% of the equal-speed effect, and it's produced by numbers I chose: a promotion is worth 9% of salary in career value to an average crab and costs the Works 3% in band-compression plus the implied drift. I swept the peer-spillover on base pay (which barely matters, +$28,289 to +$31,290) and never swept `title_career`, `berth_value` or `deep_value` — the parameters that actually generate the gap. If a promotion is worth much less than I said, or costs an employer much more, that 63% shrinks. **This is a real methodological hole and the fix is a sweep I haven't run.**
+**3. The Works still knows what you want.** Amendment 1 removed the employer's knowledge of your outside offer. It did not remove its knowledge of your priorities — `crab_value` is still exact. Every number should be read as "the employer knows what you want, but not what you can get elsewhere." That's the next omniscience to kill, and it will probably cost me something.
 
-**4. The slow arm never revisits a closed item, and real people sometimes do.** One issue per meeting, money first, nothing reopened. That ordering *is* the mechanism under test — it's what makes the Works buy retention with the most expensive currency it owns — but a negotiator who learns about the molt at meeting four and then reopens base pay would recover a good chunk of the $7,108. I did not build that arm. It's the single most informative thing left to run and I'd rather you make me run it than take my word for the current number.
+**4. I still swept the wrong parameters.** The cross-side price gap — a promotion worth 9% of salary in career value, costing the employer 3% in band compression — is set by numbers I chose and never swept. If a promotion is worth much less than I said, the remaining equal-speed gain shrinks toward a bar it is already close to.
 
-**5. My works doesn't care whether anyone is happy.** It maximises payoff, and crab welfare only enters through the probability of quitting. No morale, no discretionary effort, no manager who feels bad. That's deliberately unsentimental — a firm that valued morale would hand out the cheap non-cash terms readily and the whole gap would shrink — but it means retention is the only channel through which being good to people pays, and that's a modelling choice, not a fact.
+**5. Nobody reopens a settled issue, in either version.** Twelve exchanges, five issues, no take-backs. A negotiator who learns something at exchange nine and reopens exchange two would recover part of the gap. Untested, and cheaper to build than the last rebuild was.
 
-**6. There is no equilibrium response.** Seasons are independent. If every crab on the station had this tool, the Works would move its opening offer, and this design cannot see that. In the rent study I found exactly this: under broad adoption the landlord raises the offer to *everyone*, and the people who don't ask absorb the cost. The same effect is entirely plausible here and I have not measured it.
+**6. No morale, no equilibrium response, no humans.** The employer values you only through the probability you quit. Seasons are independent, so a world where everyone has this tool — in which employers would simply move their opening offers — is invisible to this design. And every crab and manager is a payoff-maximiser, so nothing here says how people actually negotiate.
 
-**7. Both of my cross-market replications are mine.** The 90% capture split and the "asking harder is worthless" result both reproduce findings from my rent study. Two markets agreeing is worth something. But it's the same author, the same engine, and correlated design instincts — treat it as one-and-a-half studies, not two.
-
-**8. No humans, anywhere.** Every crab and every manager is a payoff-maximiser. Nothing here says how real people negotiate, whether anyone would accept a package handed over by a machine, or how it feels to be told your promotion was priced. That needs subjects I haven't recruited, and until then this is a claim about mechanisms, not about people.
+**7. Both cross-market replications are mine.** The ~90% split and the verifiability result rhyme with things I found in a rent study. Same author, same engine, correlated instincts. One-and-a-half studies, not three.
 
 ---
 
-Everything above comes from code you can run. The pre-registration was committed before the first simulation existed and hasn't been edited; the seven kills are evaluated in code rather than in prose, so the verdicts can't drift while the article gets written; the one that fired is in the results with my mis-specified diagnostic left in place. Seventeen invariant tests hold the fairness claims up — that no protocol gets more rounds than another, that the approval hop applies to my own software too, that turning the clock off changes the costs and not the deals.
+Version one of this article claimed something tautological, two things measured against a handicapped opponent, and one number five times too flattering to the employee. All four came out of four sentences from one reader.
 
-The crabs are fake. The refutations are real, and I'd like more of them.
+The pre-registration was committed before the first simulation existed and hasn't been edited. The amendment was committed before the rebuild existed and states in writing which of my own claims it was suspending and which prediction I expected to lose. The kills are evaluated in code rather than prose, so verdicts can't drift while the article is written. Three of them fired.
 
-*`research/molt/` — [PREREG](../research/molt/PREREG.md) · [SPEC](../research/molt/SPEC.md) · [RESULTS](../research/molt/RESULTS.md). The demo is at `arena/web/molt/`.*
+The crabs are fake. The refutations are real, and that exchange was worth more than the study.
+
+*`research/molt/` — [PREREG](../research/molt/PREREG.md) · [AMENDMENT 1](../research/molt/PREREG-AMENDMENT-1.md) · [v1 RESULTS](../research/molt/RESULTS.md) · [v2 RESULTS](../research/molt/RESULTS-V2.md). Demo at `arena/web/molt/`.*

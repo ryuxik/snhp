@@ -1107,3 +1107,371 @@ def test_the_engine_matrix_arms_the_two_sides_with_different_weapons():
     osrc = inspect.getsource(armk.landlord_opener)
     assert "negotiate_bundle" not in osrc
     assert "bundle_npv(" in osrc
+
+
+# =============================================================================
+# research/DESIGN-PRINCIPLES.md -- the parts a machine can check
+#
+# The principles were derived from seven artefacts this study produced. Five
+# survived pre-registration, because pre-registration constrains what you CLAIM,
+# not what you BUILD. These tests are the build-time half.
+#
+# Several of them PIN a known violation rather than forbidding it. That is
+# deliberate: the violations are in shipped results, so a test that merely went
+# red would be deleted or skipped within a week. A test that asserts the exact
+# violation list goes red when the list CHANGES -- when one is fixed and the
+# record is not updated, or when a new one is added.
+# =============================================================================
+
+from crabs import principles as PR                                # noqa: E402
+
+
+# ------------------------------------------ the checks check themselves first
+def test_one_knob_helper_passes_when_only_the_treatment_differs():
+    a = {"x": 1, "y": 2}
+    b = {"x": 1, "y": 3}
+    PR.assert_one_knob(a, b, "y")
+
+
+def test_one_knob_helper_names_every_undeclared_difference():
+    a = {"x": 1, "y": 2, "z": "p"}
+    b = {"x": 9, "y": 3, "z": "q"}
+    with pytest.raises(PR.OneKnobViolation) as e:
+        PR.assert_one_knob(a, b, "y")
+    msg = str(e.value)
+    assert "x" in msg and "z" in msg and "2 undeclared" in msg
+
+
+def test_information_scan_follows_calls_instead_of_only_the_local_source():
+    """The property that makes this reusable rather than a grep. `landlord_
+    opener` never writes `ten.w`; it calls `welfare_premium(ten, d)`, which
+    does. A source-level grep -- which is what the hand-written renewal-offer
+    test was -- misses that entirely."""
+    import inspect
+    from crabs import armk
+    src = inspect.getsource(armk.landlord_opener)
+    assert "ten.w" not in src                       # invisible to a grep
+    assert "welfare_premium() -> ten.w" in PR.information_leaks(
+        armk.landlord_opener)                       # visible to the scan
+
+
+def test_conditional_statistic_parser_sees_f_string_families():
+    """K21's survivorship artefact lived in a statistic built in a loop with an
+    f-string key. A parser that only understood literal keys would not have
+    seen it, so the parser must normalise those to a `{}` pattern."""
+    cs = PR.conditional_statistics()
+    assert "retention_ten{}" in cs
+    assert cs["retention_ten{}"][0] == "ten{}_renewals"
+    assert "grant_share_{}" in cs
+
+
+# --------------------------------------------------------- A. ONE KNOB -------
+def test_phase1_arms_differ_in_exactly_one_declared_knob():
+    """PREREG §4's arms are clean, and this is what clean looks like: A vs B is
+    the asker share alone, B vs C is the ask ladder alone, D vs E is the
+    adaptive station alone."""
+    base = dict(BASE.__dict__)
+    def arm(**runner):
+        return PR.params_descriptor(Params(**base), **runner)
+    A = arm(share=0.39, strategy="price", adaptive=False)
+    B = arm(share=1.0, strategy="price", adaptive=False)
+    C = arm(share=1.0, strategy="ranked", adaptive=False)
+    D = arm(share=1.0, strategy="ranked", adaptive=False)
+    E = arm(share=1.0, strategy="ranked", adaptive=True)
+    PR.assert_one_knob(A, B, "runner.share", label="arm A vs B")
+    PR.assert_one_knob(B, C, "runner.strategy", label="arm B vs C")
+    PR.assert_one_knob(D, E, "runner.adaptive", label="arm D vs E")
+
+
+def test_the_amendment7_cap_sweep_is_a_one_knob_sweep():
+    """AMENDMENT 7's sweep varies the renewal ceiling and nothing else. Asserted
+    rather than trusted, because the sweep is the evidence for the derived
+    ceiling and a confound in it would be the eighth artefact."""
+    from crabs.run_amend7 import CAPS
+    arms = [PR.params_descriptor(Params(**{**BASE.__dict__,
+                                           "renewal_cap": c}),
+                                 share=0.39, strategy="price", adaptive=False)
+            for c in CAPS]
+    for a, b in zip(arms, arms[1:]):
+        PR.assert_one_knob(a, b, "params.renewal_cap", label="cap sweep")
+
+
+def test_k16_matrix_cells_differ_in_more_than_who_holds_the_engine():
+    """PRINCIPLE A, applied where it would have caught the biggest artefact.
+
+    K16 reported 8.5x for "who holds the engine". `Params` says the four cells
+    differ in two booleans. The DERIVED structure says otherwise: T/N vs N/L --
+    the comparison the 8.5x is built on -- differs in eight further dimensions
+    even after granting that holding the engine means using it.
+
+    Pinned, not merely forbidden: the list is the record of what K16 actually
+    varied, and this test goes red if that record stops being true."""
+    d = PR.matrix_arm_descriptor
+    NN, TN, NL = d(False, False), d(True, False), d(False, True)
+    treatment = ("tenant_engine", "landlord_engine",
+                 "tenant_optimiser", "landlord_optimiser")
+
+    with pytest.raises(PR.OneKnobViolation) as e:
+        PR.assert_one_knob(TN, NL, treatment, label="K16 T/N vs N/L")
+    confounds = str(e.value)
+    for expected in ("rounds",                     # 3 vs 2: tenant-engine only
+                     "landlord_opener",            # exists on one side only
+                     "who_moves_first",            # opener vs replier
+                     "resets_status_quo",          # the opener rebases q
+                     "landlord_rent_grid_max_factor",   # +6% vs 0%
+                     "reads_tenant_private_utility",    # and a PRINCIPLE B leak
+                     "tenant_their_batna_estimate",
+                     "landlord_their_batna_estimate"):
+        assert expected in confounds, expected
+
+    # the round count is a confound even in the cleanest cell pair
+    with pytest.raises(PR.OneKnobViolation) as e2:
+        PR.assert_one_knob(NN, TN, ("tenant_engine", "tenant_optimiser"))
+    assert "rounds" in str(e2.value)
+    assert NN["rounds"] == 2 and TN["rounds"] == 3
+
+    # and there is no tenant-side opener in any cell, so move order is never
+    # symmetric: the landlord opens exactly when it holds the engine
+    assert NN["who_moves_first"] == "tenant"
+    assert NL["who_moves_first"] == "landlord"
+
+
+# ------------------------------------------------- B. INFORMATION BUDGET -----
+LANDLORD_DECISION_PATHS_CLEAN = (
+    "StationDP.offer", "StationDP._sweep", "StationDP._variant_val",
+    "StationDP.negotiate", "StationDP._substitute",
+    "EmergentDP.negotiate", "EmergentDP.blanket_push",
+    "armk.heuristic_landlord_reply", "armk.landlord_issues",
+    "engine_bridge.bundle_npv",
+)
+
+
+def _landlord_paths():
+    from crabs import armk, emergent
+    from crabs import engine_bridge as EB
+    return {
+        "StationDP.offer": StationDP.offer,
+        "StationDP._sweep": StationDP._sweep,
+        "StationDP._variant_val": StationDP._variant_val,
+        "StationDP.negotiate": StationDP.negotiate,
+        "StationDP._substitute": StationDP._substitute,
+        "EmergentDP.negotiate": emergent.EmergentDP.negotiate,
+        "EmergentDP.blanket_push": emergent.EmergentDP.blanket_push,
+        "armk.heuristic_landlord_reply": armk.heuristic_landlord_reply,
+        "armk.landlord_issues": armk.landlord_issues,
+        "armk.landlord_opener": armk.landlord_opener,
+        "engine_bridge.bundle_npv": EB.bundle_npv,
+        "engine_bridge.station_counter": EB.station_counter,
+    }
+
+
+def test_every_landlord_decision_path_respects_its_information_budget():
+    """PRINCIPLE B, generalised from `test_renewal_offer_uses_no_private_tenant
+    _draw` and applied to EVERY landlord decision, not only the one that was
+    already known to be broken. A landlord may price off market rent, the rent
+    of record, tenure, payment history, this habitat's own turn exposure, the
+    POPULATION switching-cost distribution, and whatever the tenant has actually
+    asked for. Never a per-tenant private draw."""
+    paths = _landlord_paths()
+    for name in LANDLORD_DECISION_PATHS_CLEAN:
+        PR.assert_information_budget(paths[name], label=name)
+
+
+def test_the_engine_arms_price_off_the_tenants_private_priorities():
+    """The two leaks the generalised check finds, pinned.
+
+    Both screen candidate packages by whether they clear THIS tenant's utility,
+    evaluated with its private Dirichlet priority weights and its private job
+    flexibility. A landlord holding only the population distribution would have
+    to leave slack; these two do not. Same family as artefact #2, and
+    `landlord_opener` sits inside the arm K16's 8.5x is measured on.
+
+    The declared budget is written in `landlord_issues`' own docstring -- "it
+    supplies only the DIRECTION of the tenant's preferences and lets the engine
+    infer the tenant's relative priorities from what the tenant has asked for".
+    `landlord_issues` honours it. Its two neighbours do not."""
+    from crabs import armk
+    from crabs import engine_bridge as EB
+    expected = ["issue_dollars() -> ten.job_flex", "welfare_premium",
+                "welfare_premium() -> ten.w"]
+    assert PR.information_leaks(armk.landlord_opener) == expected
+    assert PR.information_leaks(EB.station_counter) == expected
+    # the declared budget lives in the docstring of the function that keeps it
+    assert "DIRECTION" in armk.landlord_issues.__doc__
+    assert PR.information_leaks(armk.landlord_issues) == []
+    # and it is load-bearing, not decoration: a tenant whose weights are exactly
+    # average gets a premium of zero, so the leak only pays on unusual tenants
+    from crabs.demographics import Tenant
+    avg = Tenant(income=75000.0, hh_size=2, job_flex=0.4, move_cost=7200.0,
+                 w=(0.25, 0.25, 0.25, 0.25), burdened=False)
+    odd = Tenant(income=75000.0, hh_size=2, job_flex=0.4, move_cost=7200.0,
+                 w=(0.10, 0.55, 0.20, 0.15), burdened=False)
+    d = {"rent": 100.0, "term": 900.0, "one_time_credit": 0.0, "fees": 0.0}
+    assert EB.welfare_premium(avg, d) == pytest.approx(0.0)
+    assert EB.welfare_premium(odd, d) > 500.0
+
+
+def test_the_market_renewal_offer_passes_the_generalised_check_too():
+    """The hand-written test that started this (AMENDMENT 6a) asserted the
+    absence of specific strings. The reusable check reaches the same verdict by
+    following the calls, which is what lets it be pointed at anything."""
+    from crabs import market
+    leaks = PR.information_leaks(market.simulate_market,
+                                 slice_from="wa_t_base =",
+                                 slice_to="offer_annual =")
+    assert leaks == [], leaks
+
+
+# ---------------------------- C. NO PARAMETER MAY ENCODE A FINDING -----------
+def test_every_free_parameter_declares_a_source():
+    """The forcing function. A constant added without saying where it came from
+    fails here, so 'where is this number from' is answered at write time rather
+    than by an audit two months later."""
+    assert PR.undeclared_parameters() == []
+
+
+def test_the_circular_parameter_list_is_exactly_what_the_audit_found():
+    """PRINCIPLE C rule 1. A constant whose justification IS the phenomenon
+    under study is circular and the result is unpublishable however it comes
+    out. Three of them, pinned so the list cannot quietly grow."""
+    assert set(PR.circular_parameters()) == {
+        "renewal_cap",      # justified by the +10.7% average it explains
+        "p_continue",       # justified by letting K1 fire
+        "courage_med",      # justified by landing on the observed 39%
+    }
+    for name, basis in PR.circular_parameters().items():
+        assert len(basis) > 40, name          # the basis is quoted, not asserted
+
+
+def test_invented_parameters_are_labelled_and_numerous():
+    """Rule 1's other half: where no upstream source exists, label it INVENTED.
+    Legal, but it must be visible -- and there are a lot of them."""
+    inv = PR.unsourced_parameters()
+    assert len(inv) >= 25
+    assert "nu" in inv and "lambda_ref" in inv and "kappa_crab" in inv
+    # calibration is its own class and may never be claimed as a prediction
+    assert PR.PARAM_SOURCES["move_med"][0] == PR.CALIBRATED
+
+
+def test_the_renewal_ceiling_is_derivable_and_the_shipped_cap_bound_hard():
+    """AMENDMENT 7, as a regression test on the finding rather than on a number
+    in a document.
+
+    Two properties. (1) The ceiling is DERIVABLE: the station's own free choice
+    stops well inside the action grid, so removing the constraint does not send
+    it to the grid edge -- there is a real interior optimum to report. (2) The
+    shipped 12% cap BOUND: the free policy asks for materially more than 12% at
+    states the simulation actually visits, so the +10.7% the study reported was
+    a censored mean, not an elasticity result."""
+    _, free = _dp("loss", renewal_cap=2.0)
+    _, wide = _dp("loss", renewal_cap=0.5)
+    _, ship = _dp("loss", renewal_cap=0.12)
+    pol_free = np.array([[free.offer(float(r), j) for r in RS]
+                         for j in range(1, BASE.j_max + 1)])
+    # (1) interior: nowhere near the top of the action grid
+    assert pol_free.max() < QA[-1] - 0.2, pol_free.max()
+    # a cap of 50% is already non-binding over the states the loss regime
+    # actually visits (realised r runs 0.83-1.12), so the ceiling is BELOW it.
+    # Off that range the 50% mask still clips, which is why the comparison is
+    # made where the simulation lives rather than over the whole grid.
+    live = [r for r in RS if 0.84 <= r <= 1.12]
+    assert np.allclose([[free.offer(float(r), j) for r in live]
+                        for j in range(1, BASE.j_max + 1)],
+                       [[wide.offer(float(r), j) for r in live]
+                        for j in range(1, BASE.j_max + 1)])
+    # (2) the shipped cap bound: at a typical loss-regime state the free station
+    # asks for more than 12%, and the capped one is pinned to the ceiling
+    r0, j0 = 0.95, 2
+    assert free.offer(r0, j0) / r0 - 1.0 > 0.12
+    assert ship.offer(r0, j0) / r0 - 1.0 == pytest.approx(0.12, abs=0.012)
+
+
+# ------------------------------------------- D. IDENTICAL POPULATIONS --------
+def test_no_conditional_statistic_lacks_a_declared_unconditional_pair():
+    """PRINCIPLE D. Pinned rather than forbidden, for the reason at the top of
+    this section. `rent_ratio` is the live one in the arms A-K reporting layer:
+    `rent_ratio_n` is incremented in the stay branch and the term-lock branch of
+    `world._year` and never in the leave branch, so the headline "sitting rents
+    ~12% above market" is measured on the crabs that did not leave -- and the
+    crabs that left are exactly the ones whose ratio was worst."""
+    from crabs.run import derive
+    assert set(PR.unpaired_conditional_statistics(derive)) == {"rent_ratio"}
+
+
+def test_the_market_layer_reports_growth_only_over_renewals_that_signed():
+    """The same check pointed at AMENDMENT 5/6's reporting layer. `renew_growth`
+    is the denominator under V9, K19 and K24: it averages the growth of
+    renewals that were ACCEPTED, so a tenant the offer pushed out is not in the
+    statistic used to detect a rent ratchet."""
+    from crabs.run_market import derive_market
+    unpaired = PR.unpaired_conditional_statistics(derive_market)
+    assert "renew_growth" in unpaired
+    assert "SIGNED" in unpaired["renew_growth"][1]
+    assert {"newlet_growth", "newlet_rent", "renew_rent"} <= set(unpaired)
+
+
+def test_no_reported_ratio_mixes_two_populations():
+    """The sharper half of PRINCIPLE D, and the one that is hardest to see by
+    reading: a mean whose numerator sums over survivors while its denominator
+    counts everyone is neither the conditional figure nor the unconditional
+    one. Five of them, pinned.
+
+    Two carry shipped headlines: `elapsed{}_surp` is K25's "$645/year worse
+    off", and `secured_surp` is K26's "+$17 for securing an alternative". In
+    both, the OFFER column beside them is a clean unconditional statistic, which
+    is why the defect reads as a rounding detail rather than a defect."""
+    from crabs.run import derive
+    from crabs.run_market import derive_market
+    assert set(PR.mismatched_ratios(derive)) == {
+        "grant_share_{}",     # grants to stayers / all counterers
+        "concession_pcy",     # concession value to stayers / all crab-years
+    }
+    assert set(PR.mismatched_ratios(derive_market)) == {
+        "elapsed{}_surp",     # K25's headline column
+        "secured_surp",       # K26's headline column
+        "unsecured_surp",
+    }
+    for stat, (num, den) in PR.mismatched_ratios(derive_market).items():
+        assert num == [PR.STAYERS] and den == [PR.ALL_RENEWALS], stat
+
+
+# ------------------------------------------------------------- determinism ---
+def test_push_collection_is_inert():
+    """AMENDMENT 7 added an opt-in recorder hook. It must not touch any
+    aggregate, or the whole sweep is measuring the instrument."""
+    base = regime_params(BASE, "loss")
+    pb = regime_params(BASE, "burn")
+    stb, stm = StationDP(pb, NODES, FLAT), StationDP(base, NODES, FLAT)
+    off = simulate_station(pb, base, 1000, "loss", stb, stm, 0.39, ASK_PRICE)
+    on = simulate_station(pb, base, 1000, "loss", stb, stm, 0.39, ASK_PRICE,
+                          collect_pushes=True)
+    assert {k: v for k, v in on.items() if not k.startswith("_")} == off
+    assert len(on["_pushes"]) == int(off["renewals"])
+
+
+def test_regime_params_silently_overrides_two_fields_and_they_are_declared():
+    """A PRINCIPLE A hazard found while ablating AMENDMENT 7.
+
+    `regime_params` applies REGIMES *after* any caller override, so a runner
+    that sweeps `vacancy` or `drift` through `Params` produces a sweep in which
+    nothing moves -- a null that looks like a finding. No shipped sweep touches
+    either field (the sensitivity sweeps vary face_premium, p_substitute and
+    p_continue; the Phase 3 ablation varies the six size primitives), so nothing
+    reported is affected. This pins the overridden set so a future sweep over
+    one of them fails here instead of quietly returning zero."""
+    from crabs.world import REGIMES
+    overridden = set().union(*(set(v) for v in REGIMES.values()))
+    assert overridden == {"drift", "vacancy"}
+    asked = Params(**{**BASE.__dict__, "vacancy": 99.0, "drift": 99.0})
+    got = regime_params(asked, "loss")
+    assert got.vacancy == 1.2 and got.drift == 0.09      # the override wins
+    # every field a shipped sweep does vary must survive regime_params
+    from crabs.run import sens_specs
+    import crabs.run3 as R3
+    swept = {"face_premium", "p_substitute", "p_continue"} | set(R3.ABLATE)
+    assert not (swept & overridden), swept & overridden
+    for f in sorted(swept):
+        if isinstance(getattr(BASE, f), bool):
+            continue
+        p = Params(**{**BASE.__dict__, f: 0.123})
+        assert getattr(regime_params(p, "loss"), f) == 0.123, f

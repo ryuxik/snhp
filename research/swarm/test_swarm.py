@@ -4182,6 +4182,62 @@ def test_v30_grouped_eval_equals_perrow():
     assert grouped[2] > 0, "no endorsement fired — vacuous"
 
 
+# ── SPEC-ADDENDUM-2026-07-23 (columns R1/GB/SSI): review-response tests ──
+def test_geometry_b_loads_and_differs():
+    """R2: preset v3b loads, is single-company/single-refinery like v3, and
+    is MATERIALLY different on the registered axes (source distances 24/32
+    vs 16/40; charger decoupled from the pad: 10 vs 4)."""
+    wa = World(sigma=0.5, seed=0, preset="v3")
+    wb = World(sigma=0.5, seed=0, preset="v3b")
+    assert len(wb.refineries) == 1 and wb.ref_owner == [None]
+    assert wb.n_companies == 1 and len(wb.robots) == 24
+    assert wb.total_stock == wa.total_stock == 2 * W.STOCK_PER_SOURCE
+    assert wb.refineries[0] != wa.refineries[0]
+    assert set(wb.sources) != set(wa.sources)
+    da = sorted(manhattan(s, wa.refineries[0]) for s in wa.sources)
+    db = sorted(manhattan(s, wb.refineries[0]) for s in wb.sources)
+    assert da == [16, 40], "geometry A distances moved — v3 must not change"
+    assert db == [24, 32], "geometry B distances are the registered 24/32"
+    assert manhattan(wb.chargers[0], wb.refineries[0]) == 10
+    for r in wb.robots:
+        assert delivery_target(r, wb, sticky=False) == 0
+        assert wb.credit_rate(r.company, 0) == 1.0
+
+
+def test_auction_ssi_strikes_deals_smoke():
+    """R3: the broadcast SSI arm strikes >0 awards and delivers on a smoke
+    world (its evaluated==executed assert runs live on every award)."""
+    w = World(sigma=0.5, seed=1, preset="v3")
+    arm = make_arm("auction_ssi", w)
+    for _ in range(800):
+        arm.tick()
+        if w.tick % 50 == 0:
+            assert w.material_ok(), "material leak"
+            assert w.ledger_accounted(), "ledger leak"
+    assert arm.deals > 0, "auction_ssi struck no awards"
+    assert w.delivered > 0, "auction_ssi delivered nothing"
+
+
+def test_auction_ssi_single_issue_by_construction():
+    """R3: every executed SSI item is a lone issue (exactly one of q/e
+    nonzero) with scalar float bids — the rung structurally cannot
+    logroll."""
+    w = World(sigma=0.5, seed=1, preset="v3")
+    arm = make_arm("auction_ssi", w)
+    for _ in range(800):
+        arm.tick()
+    assert arm.ssi_items, "no awards — vacuous"
+    kinds = set()
+    for kind, q, e, d_g, d_t, m in arm.ssi_items:
+        assert (q != 0) != (e != 0), "SSI item bundled two issues"
+        assert kind in ("cargo", "energy")
+        kinds.add(kind)
+        for x in (d_g, d_t, m):
+            assert isinstance(x, float), "SSI bid is not a scalar"
+        assert d_t > 0 and m > 0, "award cleared without a positive bid"
+    assert "energy" in kinds or "cargo" in kinds
+
+
 def benchmark(ticks=2500):
     """Timing harness (NOT a test): reports seconds for the three reference runs.
     Run with:  python -c 'from swarm.test_swarm import benchmark; benchmark()'"""

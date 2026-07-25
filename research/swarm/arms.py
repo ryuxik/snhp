@@ -7,6 +7,9 @@ The ladder (one mechanism per rung):
   rules       null + threshold trophallaxis (altruistic rescue)
   auction     rules + MURDOCH-style single-issue cargo handoff
   auction-co  auction with company walls (selfless transfers within company)
+  auction_ssi rules + broadcast sequential single-item auction (Koenig SSI
+              lineage; SPEC-ADDENDUM-2026-07-23 R3 — review B2's stronger
+              market baseline; single-issue by construction)
   team        null + cooperative greedy joint-Φ over the bundle space
   team-co     team with company walls (cross-company encounters inert)
   twofirm     within-company joint-Φ; cross-company Nash-IR bargaining
@@ -560,6 +563,145 @@ class AuctionArm(RulesArm):
 class AuctionCoArm(AuctionArm):
     name = "auction-co"
     company_walls = True
+
+
+class AuctionSSIArm(RulesArm):
+    """rules + broadcast SEQUENTIAL SINGLE-ITEM auction (Koenig-style SSI
+    lineage) — the strengthened market baseline the paper review demanded
+    (review/PAPER-REVIEW-2026-07-23.md B2; registered in
+    SPEC-ADDENDUM-2026-07-23.md R3 BEFORE this class was written).
+
+    Each tick, after the pairwise phase (trophallaxis rescue only, via the
+    rules base — the same floor `auction` has), the auction phase runs over
+    every pair the encounter loop attempted THIS tick (so the negotiation
+    cadence and pair cooldowns are exactly the pairwise-arm convention —
+    one attempt per pair per 5/15-tick window, marked by the shared
+    _last_try bookkeeping):
+
+    - ITEMS are single issues BY CONSTRUCTION: a cargo lot (q =
+      min(MAX_CARGO, load, headroom) — the same lot cap every arm uses) or
+      an energy lot (largest feasible e ∈ {8, 4, 2}, the ENERGY_OPTS
+      magnitudes). An item is exactly a (q,0,0) or (0,e,0) bundle; the arm
+      structurally cannot logroll (asserted in _delta).
+    - BROADCAST: all robots within Chebyshev R_COMM bid. Bids are TRUTHFUL
+      SCALARS — the bidder's true marginal Φ delta for taking the other
+      side, evaluated through the SAME physics path every arm uses
+      (apply_bundle on the live robots with log=False + snapshot/restore).
+    - CLEARING: best bid wins; an award executes iff the gaining side's ΔΦ
+      exceeds SSI_HYST=1.1 × the losing side's |ΔΦ| — the same hysteresis
+      factor the MURDOCH rung has always used, so this rung differs from
+      `auction` by exactly {broadcast multi-bidder, energy-as-item,
+      sequential rounds}.
+    - SEQUENTIAL ROUNDS: the globally best clearing item executes, both
+      parties pay DEAL_PAUSE and retire from the phase; remaining cached
+      bids re-award (an award touches no third party's physics, so one
+      evaluation pass per tick is exact); rounds continue until no item
+      clears. Best-bid-wins per announcer emerges from the margin order.
+    - evaluated Φ == executed Φ is asserted on every award; TXN_COST is
+      debited per side inside apply_bundle exactly as for bargained deals;
+      the phase consumes NO RNG (deterministic candidate order and
+      tie-breaks by margin, then rids)."""
+    name = "auction_ssi"
+    SSI_HYST = 1.1                     # == the MURDOCH rung's hysteresis
+    SSI_ENERGY_LOTS = (8.0, 4.0, 2.0)  # largest-first; ENERGY_OPTS magnitudes
+
+    def __init__(self, w: W.World):
+        super().__init__(w)
+        # audit trail: (kind, q, e, Δφ_giver, Δφ_taker, margin) per award —
+        # the single-issue-by-construction test reads this.
+        self.ssi_items: list = []
+
+    def _delta(self, giv, tak, q, e):
+        """True marginal Φ deltas for the single-issue item executed giv→tak
+        through the SHARED physics path. Returns (Δφ_giv, Δφ_tak, φ_giv_post,
+        φ_tak_post) or None if the physics rejects the item."""
+        assert (q == 0) != (e == 0), "SSI item must be single-issue"
+        w = self.w
+        if not _feasible(giv, tak, q, e):
+            return None
+        p0g, p0t = phi(giv, w), phi(tak, w)
+        sg, st = _snap(giv), _snap(tak)
+        apply_bundle(w, giv, tak, q, e, 0, log=False)
+        p1g, p1t = phi(giv, w), phi(tak, w)
+        _restore(giv, sg)
+        _restore(tak, st)
+        return p1g - p0g, p1t - p0t, p1g, p1t
+
+    def _pair_items(self, a, b):
+        """Candidate items for one eligible pair, each as
+        (margin, giver, taker, kind, q, e, φ_giver_post, φ_taker_post,
+        Δφ_giver, Δφ_taker). Gainer = the cargo receiver / energy recipient;
+        clearing requires gainer ΔΦ > 0 and > SSI_HYST × max(0, −loser ΔΦ)."""
+        out = []
+        for giv, tak in ((a, b), (b, a)):
+            # cargo handoff giv→tak (receiver must be operational — the same
+            # rule the MURDOCH rung applies; a stranded giver may jettison)
+            if giv.load > 0 and not tak.stranded:
+                q = min(MAX_CARGO, giv.load, tak.cap - tak.load)
+                if q > 0:
+                    res = self._delta(giv, tak, q, 0.0)
+                    if res is not None:
+                        d_g, d_t, p_g, p_t = res
+                        m = d_t - self.SSI_HYST * max(0.0, -d_g)
+                        if d_t > 0 and m > 0:
+                            out.append((m, giv, tak, "cargo", q, 0.0,
+                                        p_g, p_t, d_g, d_t))
+            # energy lot giv→tak (tak announced a request; giv bids as donor;
+            # priced rescue may compete with the free trophallaxis floor)
+            for e in self.SSI_ENERGY_LOTS:
+                res = self._delta(giv, tak, 0, e)
+                if res is None:
+                    continue                    # infeasible lot — try smaller
+                d_g, d_t, p_g, p_t = res
+                m = d_t - self.SSI_HYST * max(0.0, -d_g)
+                if d_t > 0 and m > 0:
+                    out.append((m, giv, tak, "energy", 0, e,
+                                p_g, p_t, d_g, d_t))
+                break                           # largest feasible lot only
+        return out
+
+    def _order_phase(self) -> None:
+        """The broadcast auction phase, in BaseArm.tick's post-encounter hook
+        (the same tick-phase slot the v23 order book uses; this arm never
+        runs with order_book on). Eligible pairs are exactly the ones the
+        pairwise loop attempted THIS tick without a trophallaxis strike —
+        the shared cooldown machinery already gated those to the standard
+        5/15-tick cadence."""
+        w = self.w
+        rs = [r for r in w.robots if not r.dead and w.tick >= r.busy_until]
+        cands = []
+        for i, a in enumerate(rs):
+            for b in rs[i + 1:]:
+                if (abs(a.pos[0] - b.pos[0]) > W.R_COMM
+                        or abs(a.pos[1] - b.pos[1]) > W.R_COMM):
+                    continue
+                key = (min(a.rid, b.rid), max(a.rid, b.rid))
+                if self._last_try.get(key) != (w.tick, False):
+                    continue        # not this tick's attempt, or trophallaxed
+                cands.extend(self._pair_items(a, b))
+        # greedy sequential awards: margin desc, ties by rids then kind —
+        # deterministic, no RNG. Iterating the sorted list while retiring
+        # awarded parties is exactly the sequential-rounds outcome because an
+        # award never perturbs a third party's physics.
+        cands.sort(key=lambda c: (-c[0], c[1].rid, c[2].rid, c[3]))
+        done: set = set()
+        for m, giv, tak, kind, q, e, p_g, p_t, d_g, d_t in cands:
+            if giv.rid in done or tak.rid in done:
+                continue
+            apply_bundle(w, giv, tak, q, e, 0, log=True)
+            assert abs(phi(giv, w) - p_g) < 1e-9 \
+                and abs(phi(tak, w) - p_t) < 1e-9, \
+                "SSI executed state diverged from evaluated item"
+            pause = self.deal_pause()
+            giv.busy_until = w.tick + pause
+            tak.busy_until = w.tick + pause
+            key = (min(giv.rid, tak.rid), max(giv.rid, tak.rid))
+            self._last_try[key] = (w.tick, True)   # deal cooldown, as everywhere
+            self.deals += 1
+            self.ssi_items.append((kind, int(q), float(e),
+                                   float(d_g), float(d_t), float(m)))
+            done.add(giv.rid)
+            done.add(tak.rid)
 
 
 class SnhpArm(BaseArm):
@@ -1519,8 +1661,8 @@ class TrustArm(SnhpArm):
 def make_arm(name: str, w: W.World, issues=("cargo", "energy", "sector"),
              noise: float = 0.0):
     arms = {"null": NullArm, "rules": RulesArm, "auction": AuctionArm,
-            "auction-co": AuctionCoArm, "team-co": TeamCoArm,
-            "twofirm": TwoFirmArm}
+            "auction-co": AuctionCoArm, "auction_ssi": AuctionSSIArm,
+            "team-co": TeamCoArm, "twofirm": TwoFirmArm}
     if name in arms:
         return arms[name](w)
     if name == "team":

@@ -993,3 +993,66 @@ prose, not the code — which is worth noting as a detection method.
 elasticity plus any explicit regulation, and check whether the observed
 ~10.7% average falls out. That is the honest version of this parameter,
 and it is a real experiment rather than an assumption.
+
+---
+
+# AMENDMENT 7 — RESULT (2026-07-25)
+
+**Elasticity alone gives +13.81%. Observed is +10.7%. It does NOT fall out**
+— the free station overshoots by 3.1pp (29% relative). But it does not run
+to market either: retention falls only 60.1% → 56.1%. **Elasticity generates
+~3/4 of the restraint the world shows; something else supplies the rest.**
+
+- **Derived self-imposed ceiling: ~31%.** Caps of 0.50 and 2.00 are
+  bit-identical; the highest push the free station ever chooses is +30.78%.
+- **In the gain regime the shipped cap never bound** (0.0% at cap).
+  Restraint in a falling market was already fully endogenous.
+- **The cap changed the KIND of policy.** Free, the station targets a
+  *level* (≈1.087× market; sd level 1.75pp / sd push 4.68pp). Capped, that
+  inverts (4.32 / 1.72). The study then read the push back out as a match
+  to +10.7%.
+- **You can have either observed fact, not both.** Capped: push +10.73% ✓,
+  retention 60.1% ✗. Free: push +13.81% ✗, retention 56.1% ✓.
+- **No endogenous loss-to-lease.** Only a 6% cap reproduces renewals
+  pricing *below* a new let. SPEC's "caps are why loss-to-lease persists"
+  is literally true, which is what made it circular.
+- **Ablation: tenant switching cost is the mechanism.** ±elastic moves the
+  push −5.2pp / +13.4pp; deleting the landlord's ENTIRE cost of losing a
+  tenant moves it +3.2pp. **The landlord's turnover cost was never the
+  operative variable** — which retires the article's original premise at
+  the root, not just its arithmetic.
+- Side effect: lifting the cap takes loss-regime counter-success
+  0.04% → 43.3%. Gate 1's "the station concedes to nobody" was partly the
+  cap. (Gain regime unaffected; GATE 2's V5/V6 justification stands.)
+- Welfare: removing the cap moves ~$460/yr tenant → landlord and burns
+  ~$275/yr more in turnover.
+
+## Two more circular parameters (Principle C sweep)
+
+| parameter | its own stated basis |
+|---|---|
+| `p_continue = 0.60` | *"Without this, RANKED nests PRICE and **K1 could not fire**"* |
+| `courage_med = 0.18` | *"Set so the endogenous counter rate lands near the **observed 39%**"* |
+
+`p_continue` is the worst artefact in the study: **a parameter chosen so
+that a kill condition would be capable of firing.** Both are swept, which
+mitigates but does not cure — the headline value was still selected for
+what it produces.
+
+## Also found, and unfixed
+
+- **Two more information leaks**, both landlord-side: `armk.landlord_opener`
+  (inside the arm K16's 8.5× is measured on) and
+  `engine_bridge.station_counter` (K13–K15). Both read the tenant's private
+  Dirichlet weights and job flexibility via `welfare_premium` /
+  `issue_dollars` — first-degree discrimination on unobservables. The
+  declared budget is written in the *neighbouring* function's docstring.
+- **K16's 2×2 differs in 8 undeclared dimensions.** Even N/N vs T/N is
+  confounded: round count is a function of `tenant_engine` (2 vs 3).
+- **Mismatched ratios** — numerator over survivors, denominator over
+  everyone: under K25's $645, K26's $17, `rent_ratio`'s "12% above market",
+  and the denominator of V9/K19/K24.
+- **13 unablated mechanism claims in RESULTS.md; 11 favour a more
+  interesting story.** Including K3/K8's "the landlord cannot see who
+  reads our page", which is supported by a test *asserting* it. The page
+  now carries that caveat.

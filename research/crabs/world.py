@@ -446,7 +446,8 @@ def simulate_station(p_burn: Params, p_meas: Params, station_seed: int,
                      burn_strategy: int = ASK_PRICE,
                      collect: bool = False,
                      learn: bool = False, broadcast: bool = False,
-                     shock=None, series: bool = False) -> dict:
+                     shock=None, series: bool = False,
+                     collect_pushes: bool = False) -> dict:
     """One station over burn-in + measurement. Only the measurement window is
     recorded. The burn-in runs arm A's policy in EVERY arm so all arms inherit
     an identical tenure/rent distribution (SPEC §3).
@@ -469,6 +470,10 @@ def simulate_station(p_burn: Params, p_meas: Params, station_seed: int,
     if collect:
         rec["_csamples"] = []
         rec["_casker"] = []
+    if collect_pushes:
+        # AMENDMENT 7: the DISTRIBUTION of the renewal push, not just its mean.
+        # Opt-in and underscore-prefixed, so no aggregate and no arm changes.
+        rec["_pushes"] = []
 
     # initial population: tenure spread over the buckets, rent at market
     crabs: list[Crab] = []
@@ -714,6 +719,8 @@ def _year(p: Params, st, crabs, uu, M, g_obs, share, asker_strategy, t, rec,
             rec["offer_ratio_sum"] += q
             rec["push_sum"] += q / r - 1.0
             rec["push_n"] += 1.0
+            if "_pushes" in rec:
+                rec["_pushes"].append((r, j, q))
             if q <= r * (1.0 + 1e-9):
                 rec["zero_increase"] += 1.0
             rec["pred_leave"] += st.leave_prob(gb, j)

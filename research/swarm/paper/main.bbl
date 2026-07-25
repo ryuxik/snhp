@@ -1,0 +1,527 @@
+%%% -*-BibTeX-*-
+%%% Do NOT edit. File created by BibTeX with style
+%%% ACM-Reference-Format-Journals [18-Jan-2012].
+
+\begin{thebibliography}{33}
+
+%%% ====================================================================
+%%% NOTE TO THE USER: you can override these defaults by providing
+%%% customized versions of any of these macros before the \bibliography
+%%% command.  Each of them MUST provide its own final punctuation,
+%%% except for \shownote{}, \showDOI{}, and \showURL{}.  The latter two
+%%% do not use final punctuation, in order to avoid confusing it with
+%%% the Web address.
+%%%
+%%% To suppress output of a particular field, define its macro to expand
+%%% to an empty string, or better, \unskip, like this:
+%%%
+%%% \newcommand{\showDOI}[1]{\unskip}   % LaTeX syntax
+%%%
+%%% \def \showDOI #1{\unskip}           % plain TeX syntax
+%%%
+%%% ====================================================================
+
+\ifx \showCODEN    \undefined \def \showCODEN     #1{\unskip}     \fi
+\ifx \showDOI      \undefined \def \showDOI       #1{#1}\fi
+\ifx \showISBNx    \undefined \def \showISBNx     #1{\unskip}     \fi
+\ifx \showISBNxiii \undefined \def \showISBNxiii  #1{\unskip}     \fi
+\ifx \showISSN     \undefined \def \showISSN      #1{\unskip}     \fi
+\ifx \showLCCN     \undefined \def \showLCCN      #1{\unskip}     \fi
+\ifx \shownote     \undefined \def \shownote      #1{#1}          \fi
+\ifx \showarticletitle \undefined \def \showarticletitle #1{#1}   \fi
+\ifx \showURL      \undefined \def \showURL       {\relax}        \fi
+% The following commands are used for tagged output and should be
+% invisible to TeX
+\providecommand\bibfield[2]{#2}
+\providecommand\bibinfo[2]{#2}
+\providecommand\natexlab[1]{#1}
+\providecommand\showeprint[2][]{arXiv:#2}
+
+\bibitem[Andersson and Sandholm(1999)]%
+        {andersson1999sequencing}
+\bibfield{author}{\bibinfo{person}{Martin~R. Andersson} {and}
+  \bibinfo{person}{Tuomas~W. Sandholm}.} \bibinfo{year}{1999}\natexlab{}.
+\newblock \showarticletitle{Sequencing of Contract Types for Anytime Task
+  Reallocation}. In \bibinfo{booktitle}{\emph{Agent Mediated Electronic
+  Commerce (Lecture Notes in Computer Science, Vol. 1571)}}.
+  \bibinfo{publisher}{Springer}, \bibinfo{pages}{54--69}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1007/3-540-48835-9_4}
+\showDOI{\tempurl}
+
+
+\bibitem[{Athira K. A.} et~al\mbox{.}(2024)]%
+        {athira2024slr}
+\bibfield{author}{\bibinfo{person}{{Athira K. A.}}, \bibinfo{person}{{Divya
+  Udayan J.}}, {and} \bibinfo{person}{Umashankar Subramaniam}.}
+  \bibinfo{year}{2024}\natexlab{}.
+\newblock \showarticletitle{A Systematic Literature Review on Multi-Robot Task
+  Allocation}.
+\newblock \bibinfo{journal}{\emph{Comput. Surveys}} \bibinfo{volume}{57},
+  \bibinfo{number}{3} (\bibinfo{date}{Nov.} \bibinfo{year}{2024}).
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1145/3700591}
+\showDOI{\tempurl}
+\newblock
+\shownote{28 pages. Abstract and reference list checked via open mirror; full
+  text paywalled (see Section 2). ACM article number unavailable without
+  authenticated ACM DL access}.
+
+
+\bibitem[Aydo\u{g}an et~al\mbox{.}(2026)]%
+        {aydogan2026anac}
+\bibfield{author}{\bibinfo{person}{Reyhan Aydo\u{g}an}, \bibinfo{person}{Tim
+  Baarslag}, \bibinfo{person}{Tamara C.~P. Florijn}, \bibinfo{person}{Katsuhide
+  Fujita}, \bibinfo{person}{Catholijn~M. Jonker}, {and} \bibinfo{person}{Yasser
+  Mohammad}.} \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{The Automated Negotiating Agents Competition (ANAC)
+  2025 Challenges and Results}.
+\newblock
+\newblock
+\newblock
+\shownote{arXiv:2604.13914}.
+
+
+\bibitem[Aydo\u{g}an et~al\mbox{.}(2022)]%
+        {aydogan2022jennifer}
+\bibfield{author}{\bibinfo{person}{Reyhan Aydo\u{g}an},
+  \bibinfo{person}{Mehmet~Onur Keskin}, {and} \bibinfo{person}{Umut
+  {\c{C}}akan}.} \bibinfo{year}{2022}\natexlab{}.
+\newblock \showarticletitle{Would You Imagine Yourself Negotiating with a
+  Robot, Jennifer? Why Not?}
+\newblock \bibinfo{journal}{\emph{IEEE Transactions on Human-Machine Systems}}
+  \bibinfo{volume}{52}, \bibinfo{number}{1} (\bibinfo{date}{Feb.}
+  \bibinfo{year}{2022}), \bibinfo{pages}{41--51}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1109/THMS.2021.3121664}
+\showDOI{\tempurl}
+
+
+\bibitem[Baarslag et~al\mbox{.}(2015)]%
+        {baarslag2015anac}
+\bibfield{author}{\bibinfo{person}{Tim Baarslag}, \bibinfo{person}{Reyhan
+  Aydo\u{g}an}, \bibinfo{person}{Koen~V. Hindriks}, \bibinfo{person}{Katsuhide
+  Fujita}, \bibinfo{person}{Takayuki Ito}, {and} \bibinfo{person}{Catholijn~M.
+  Jonker}.} \bibinfo{year}{2015}\natexlab{}.
+\newblock \showarticletitle{The Automated Negotiating Agents Competition,
+  2010--2015}.
+\newblock \bibinfo{journal}{\emph{AI Magazine}} \bibinfo{volume}{36},
+  \bibinfo{number}{4} (\bibinfo{date}{Dec.} \bibinfo{year}{2015}),
+  \bibinfo{pages}{115--118}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1609/aimag.v36i4.2609}
+\showDOI{\tempurl}
+
+
+\bibitem[Brambilla et~al\mbox{.}(2013)]%
+        {brambilla2013swarm}
+\bibfield{author}{\bibinfo{person}{Manuele Brambilla}, \bibinfo{person}{Eliseo
+  Ferrante}, \bibinfo{person}{Mauro Birattari}, {and} \bibinfo{person}{Marco
+  Dorigo}.} \bibinfo{year}{2013}\natexlab{}.
+\newblock \showarticletitle{Swarm Robotics: A Review from the Swarm Engineering
+  Perspective}.
+\newblock \bibinfo{journal}{\emph{Swarm Intelligence}} \bibinfo{volume}{7},
+  \bibinfo{number}{1} (\bibinfo{date}{March} \bibinfo{year}{2013}),
+  \bibinfo{pages}{1--41}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1007/s11721-012-0075-2}
+\showDOI{\tempurl}
+
+
+\bibitem[Chen et~al\mbox{.}(2023)]%
+        {chen2023consensus}
+\bibfield{author}{\bibinfo{person}{Huaben Chen}, \bibinfo{person}{Wenkang Ji},
+  \bibinfo{person}{Lufeng Xu}, {and} \bibinfo{person}{Shiyu Zhao}.}
+  \bibinfo{year}{2023}\natexlab{}.
+\newblock \bibinfo{title}{Multi-Agent Consensus Seeking via Large Language
+  Models}.
+\newblock
+\newblock
+\newblock
+\shownote{arXiv:2310.20151}.
+
+
+\bibitem[Chevaleyre et~al\mbox{.}(2006)]%
+        {chevaleyre2006mara}
+\bibfield{author}{\bibinfo{person}{Yann Chevaleyre}, \bibinfo{person}{Paul~E.
+  Dunne}, \bibinfo{person}{Ulle Endriss}, \bibinfo{person}{J\'{e}r\^{o}me
+  Lang}, \bibinfo{person}{Michel Lema\^{i}tre}, \bibinfo{person}{Nicolas
+  Maudet}, \bibinfo{person}{Julian Padget}, \bibinfo{person}{Steve Phelps},
+  \bibinfo{person}{Juan~A. Rodr\'{i}guez-Aguilar}, {and} \bibinfo{person}{Paulo
+  Sousa}.} \bibinfo{year}{2006}\natexlab{}.
+\newblock \showarticletitle{Issues in Multiagent Resource Allocation}.
+\newblock \bibinfo{journal}{\emph{Informatica}} \bibinfo{volume}{30},
+  \bibinfo{number}{1} (\bibinfo{year}{2006}), \bibinfo{pages}{3--31}.
+\newblock
+
+
+\bibitem[Cui et~al\mbox{.}(2013)]%
+        {cui2013game}
+\bibfield{author}{\bibinfo{person}{Rongxin Cui}, \bibinfo{person}{Ji Guo},
+  {and} \bibinfo{person}{Bo Gao}.} \bibinfo{year}{2013}\natexlab{}.
+\newblock \showarticletitle{Game Theory-Based Negotiation for Multiple Robots
+  Task Allocation}.
+\newblock \bibinfo{journal}{\emph{Robotica}} \bibinfo{volume}{31},
+  \bibinfo{number}{6} (\bibinfo{date}{Sept.} \bibinfo{year}{2013}),
+  \bibinfo{pages}{923--934}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1017/S0263574713000192}
+\showDOI{\tempurl}
+\newblock
+\shownote{Abstract-level verification only; full text paywalled (see Section
+  2)}.
+
+
+\bibitem[Dias et~al\mbox{.}(2006)]%
+        {dias2006market}
+\bibfield{author}{\bibinfo{person}{M.~Bernardine Dias}, \bibinfo{person}{Robert
+  Zlot}, \bibinfo{person}{Nidhi Kalra}, {and} \bibinfo{person}{Anthony
+  Stentz}.} \bibinfo{year}{2006}\natexlab{}.
+\newblock \showarticletitle{Market-Based Multirobot Coordination: A Survey and
+  Analysis}.
+\newblock \bibinfo{journal}{\emph{Proc. IEEE}} \bibinfo{volume}{94},
+  \bibinfo{number}{7} (\bibinfo{date}{July} \bibinfo{year}{2006}),
+  \bibinfo{pages}{1257--1270}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1109/JPROC.2006.876939}
+\showDOI{\tempurl}
+
+
+\bibitem[Endriss et~al\mbox{.}(2006)]%
+        {endriss2006negotiating}
+\bibfield{author}{\bibinfo{person}{Ulle Endriss}, \bibinfo{person}{Nicolas
+  Maudet}, \bibinfo{person}{Fariba Sadri}, {and} \bibinfo{person}{Francesca
+  Toni}.} \bibinfo{year}{2006}\natexlab{}.
+\newblock \showarticletitle{Negotiating Socially Optimal Allocations of
+  Resources}.
+\newblock \bibinfo{journal}{\emph{Journal of Artificial Intelligence Research}}
+   \bibinfo{volume}{25} (\bibinfo{year}{2006}), \bibinfo{pages}{315--348}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1613/jair.1870}
+\showDOI{\tempurl}
+
+
+\bibitem[Feng et~al\mbox{.}(2025)]%
+        {feng2025embodied}
+\bibfield{author}{\bibinfo{person}{Zhaohan Feng}, \bibinfo{person}{Ruiqi Xue},
+  \bibinfo{person}{Lei Yuan}, \bibinfo{person}{Yang Yu}, \bibinfo{person}{Ning
+  Ding}, \bibinfo{person}{Meiqin Liu}, \bibinfo{person}{Bingzhao Gao},
+  \bibinfo{person}{Jian Sun}, \bibinfo{person}{Xinhu Zheng}, {and}
+  \bibinfo{person}{Gang Wang}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \bibinfo{title}{Multi-Agent Embodied AI: Advances and Future
+  Directions}.
+\newblock
+\newblock
+\newblock
+\shownote{arXiv:2505.05108}.
+
+
+\bibitem[Gerkey and Matari\'{c}(2002)]%
+        {gerkey2002murdoch}
+\bibfield{author}{\bibinfo{person}{Brian~P. Gerkey} {and}
+  \bibinfo{person}{Maja~J. Matari\'{c}}.} \bibinfo{year}{2002}\natexlab{}.
+\newblock \showarticletitle{Sold!: Auction Methods for Multirobot
+  Coordination}.
+\newblock \bibinfo{journal}{\emph{IEEE Transactions on Robotics and
+  Automation}} \bibinfo{volume}{18}, \bibinfo{number}{5} (\bibinfo{date}{Oct.}
+  \bibinfo{year}{2002}), \bibinfo{pages}{758--768}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1109/TRA.2002.803462}
+\showDOI{\tempurl}
+
+
+\bibitem[Gerkey and Matari\'{c}(2004)]%
+        {gerkey2004taxonomy}
+\bibfield{author}{\bibinfo{person}{Brian~P. Gerkey} {and}
+  \bibinfo{person}{Maja~J. Matari\'{c}}.} \bibinfo{year}{2004}\natexlab{}.
+\newblock \showarticletitle{A Formal Analysis and Taxonomy of Task Allocation
+  in Multi-Robot Systems}.
+\newblock \bibinfo{journal}{\emph{International Journal of Robotics Research}}
+  \bibinfo{volume}{23}, \bibinfo{number}{9} (\bibinfo{date}{Sept.}
+  \bibinfo{year}{2004}), \bibinfo{pages}{939--954}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1177/0278364904045564}
+\showDOI{\tempurl}
+
+
+\bibitem[Godfrey et~al\mbox{.}(2024)]%
+        {godfrey2024marlin}
+\bibfield{author}{\bibinfo{person}{Toby Godfrey}, \bibinfo{person}{William
+  Hunt}, {and} \bibinfo{person}{Mohammad {Divband Soorati}}.}
+  \bibinfo{year}{2024}\natexlab{}.
+\newblock \bibinfo{title}{MARLIN: Multi-Agent Reinforcement Learning Guided by
+  Language-Based Inter-Robot Negotiation}.
+\newblock
+\newblock
+\newblock
+\shownote{arXiv:2410.14383}.
+
+
+\bibitem[Hamann(2018)]%
+        {hamann2018swarm}
+\bibfield{author}{\bibinfo{person}{Heiko Hamann}.}
+  \bibinfo{year}{2018}\natexlab{}.
+\newblock \bibinfo{booktitle}{\emph{Swarm Robotics: A Formal Approach}}.
+\newblock \bibinfo{publisher}{Springer}, \bibinfo{address}{Cham}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1007/978-3-319-74528-2}
+\showDOI{\tempurl}
+
+
+\bibitem[Hamido\u{g}lu et~al\mbox{.}(2025)]%
+        {hamidoglu2025nash}
+\bibfield{author}{\bibinfo{person}{Ali Hamido\u{g}lu},
+  \bibinfo{person}{Omer~Melih Gul}, \bibinfo{person}{Seifedine~Nimer Kadry},
+  \bibinfo{person}{Chiranjibe Jana}, \bibinfo{person}{Ali Elghirani}, {and}
+  \bibinfo{person}{Gokhan~Koray Gultekin}.} \bibinfo{year}{2025}\natexlab{}.
+\newblock \showarticletitle{A Cost-Effective Nash-Based Allocation Method for
+  Task Distribution of Multiple Robots in Distributed Robotic Networks}.
+\newblock \bibinfo{journal}{\emph{Engineering Applications of Artificial
+  Intelligence}}  \bibinfo{volume}{162} (\bibinfo{date}{Dec.}
+  \bibinfo{year}{2025}).
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1016/j.engappai.2025.112548}
+\showDOI{\tempurl}
+\newblock
+\shownote{Article 112548. Abstract-level verification only; full text paywalled
+  (see Section 2)}.
+
+
+\bibitem[Jakobi(1997)]%
+        {jakobi1997radical}
+\bibfield{author}{\bibinfo{person}{Nick Jakobi}.}
+  \bibinfo{year}{1997}\natexlab{}.
+\newblock \showarticletitle{Evolutionary Robotics and the Radical
+  Envelope-of-Noise Hypothesis}.
+\newblock \bibinfo{journal}{\emph{Adaptive Behavior}} \bibinfo{volume}{6},
+  \bibinfo{number}{2} (\bibinfo{year}{1997}), \bibinfo{pages}{325--368}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1177/105971239700600205}
+\showDOI{\tempurl}
+
+
+\bibitem[Jakobi et~al\mbox{.}(1995)]%
+        {jakobi1995noise}
+\bibfield{author}{\bibinfo{person}{Nick Jakobi}, \bibinfo{person}{Phil
+  Husbands}, {and} \bibinfo{person}{Inman Harvey}.}
+  \bibinfo{year}{1995}\natexlab{}.
+\newblock \showarticletitle{Noise and the Reality Gap: The Use of Simulation in
+  Evolutionary Robotics}. In \bibinfo{booktitle}{\emph{Advances in Artificial
+  Life (ECAL 1995) (Lecture Notes in Computer Science, Vol. 929)}}.
+  \bibinfo{publisher}{Springer}, \bibinfo{pages}{704--720}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1007/3-540-59496-5_337}
+\showDOI{\tempurl}
+
+
+\bibitem[Ke et~al\mbox{.}(2012)]%
+        {ke2012task}
+\bibfield{author}{\bibinfo{person}{Wende Ke}, \bibinfo{person}{Zhiping Peng},
+  \bibinfo{person}{Quande Yuan}, \bibinfo{person}{Bingrong Hong},
+  \bibinfo{person}{Ke Chen}, {and} \bibinfo{person}{Zesu Cai}.}
+  \bibinfo{year}{2012}\natexlab{}.
+\newblock \showarticletitle{A Method of Task Allocation and Automated
+  Negotiation for Multi Robots}.
+\newblock \bibinfo{journal}{\emph{Journal of Electronics (China)}}
+  \bibinfo{volume}{29}, \bibinfo{number}{6} (\bibinfo{date}{Nov.}
+  \bibinfo{year}{2012}), \bibinfo{pages}{541--549}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1007/s11767-012-0868-x}
+\showDOI{\tempurl}
+\newblock
+\shownote{Abstract-level verification only; full text paywalled (see Section
+  2)}.
+
+
+\bibitem[Koenig et~al\mbox{.}(2006)]%
+        {koenig2006ssi}
+\bibfield{author}{\bibinfo{person}{Sven Koenig}, \bibinfo{person}{Craig Tovey},
+  \bibinfo{person}{Michail Lagoudakis}, \bibinfo{person}{Evangelos Markakis},
+  \bibinfo{person}{David Kempe}, \bibinfo{person}{Pinar Keskinocak},
+  \bibinfo{person}{Anton Kleywegt}, \bibinfo{person}{Adam Meyerson}, {and}
+  \bibinfo{person}{Sonal Jain}.} \bibinfo{year}{2006}\natexlab{}.
+\newblock \showarticletitle{The Power of Sequential Single-Item Auctions for
+  Agent Coordination}. In \bibinfo{booktitle}{\emph{Proceedings of the 21st
+  National Conference on Artificial Intelligence (AAAI 2006)}}.
+  \bibinfo{publisher}{AAAI Press}, \bibinfo{pages}{1625--1629}.
+\newblock
+
+
+\bibitem[Koutsoupias and Papadimitriou(1999)]%
+        {koutsoupias1999worstcase}
+\bibfield{author}{\bibinfo{person}{Elias Koutsoupias} {and}
+  \bibinfo{person}{Christos Papadimitriou}.} \bibinfo{year}{1999}\natexlab{}.
+\newblock \showarticletitle{Worst-Case Equilibria}. In
+  \bibinfo{booktitle}{\emph{STACS 99 (Lecture Notes in Computer Science, Vol.
+  1563)}}. \bibinfo{publisher}{Springer}, \bibinfo{pages}{404--413}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1007/3-540-49116-3_38}
+\showDOI{\tempurl}
+
+
+\bibitem[Lin and Zheng(2005)]%
+        {lin2005combinatorial}
+\bibfield{author}{\bibinfo{person}{Lin Lin} {and} \bibinfo{person}{Zhiqiang
+  Zheng}.} \bibinfo{year}{2005}\natexlab{}.
+\newblock \showarticletitle{Combinatorial Bids Based Multi-Robot Task
+  Allocation Method}. In \bibinfo{booktitle}{\emph{Proceedings of the 2005 IEEE
+  International Conference on Robotics and Automation (ICRA 2005)}}.
+  \bibinfo{publisher}{IEEE}, \bibinfo{pages}{1145--1150}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1109/ROBOT.2005.1570270}
+\showDOI{\tempurl}
+
+
+\bibitem[Liu et~al\mbox{.}(2026)]%
+        {liu2026agenticpay}
+\bibfield{author}{\bibinfo{person}{Xianyang Liu}, \bibinfo{person}{Shangding
+  Gu}, {and} \bibinfo{person}{Dawn Song}.} \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{AgenticPay: A Multi-Agent LLM Negotiation System for
+  Buyer-Seller Transactions}.
+\newblock
+\newblock
+\newblock
+\shownote{arXiv:2602.06008}.
+
+
+\bibitem[Moonjaita et~al\mbox{.}(2018)]%
+        {moonjaita2018trophallaxis}
+\bibfield{author}{\bibinfo{person}{Choladawan Moonjaita},
+  \bibinfo{person}{Hemma Philamore}, {and} \bibinfo{person}{Fumitoshi
+  Matsuno}.} \bibinfo{year}{2018}\natexlab{}.
+\newblock \showarticletitle{Trophallaxis with Predetermined Energy Threshold
+  for Enhanced Performance in Swarms of Scavenger Robots}.
+\newblock \bibinfo{journal}{\emph{Artificial Life and Robotics}}
+  \bibinfo{volume}{23}, \bibinfo{number}{4} (\bibinfo{date}{Dec.}
+  \bibinfo{year}{2018}), \bibinfo{pages}{609--617}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1007/s10015-018-0497-z}
+\showDOI{\tempurl}
+
+
+\bibitem[Nash(1950)]%
+        {nash1950bargaining}
+\bibfield{author}{\bibinfo{person}{John~F. Nash}.}
+  \bibinfo{year}{1950}\natexlab{}.
+\newblock \showarticletitle{The Bargaining Problem}.
+\newblock \bibinfo{journal}{\emph{Econometrica}} \bibinfo{volume}{18},
+  \bibinfo{number}{2} (\bibinfo{date}{April} \bibinfo{year}{1950}),
+  \bibinfo{pages}{155--162}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.2307/1907266}
+\showDOI{\tempurl}
+
+
+\bibitem[Ngo and Schi{\o}ler(2007)]%
+        {ngo2007randomized}
+\bibfield{author}{\bibinfo{person}{Trung~Dung Ngo} {and}
+  \bibinfo{person}{Henrik Schi{\o}ler}.} \bibinfo{year}{2007}\natexlab{}.
+\newblock \showarticletitle{Randomized Robot Trophallaxis: From Concept to
+  Implementation}. In \bibinfo{booktitle}{\emph{2007 IEEE International
+  Conference on Systems, Man and Cybernetics (SMC 2007)}}.
+  \bibinfo{publisher}{IEEE}, \bibinfo{pages}{208--213}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1109/ICSMC.2007.4414153}
+\showDOI{\tempurl}
+
+
+\bibitem[{\c{S}}ahin(2005)]%
+        {sahin2005swarm}
+\bibfield{author}{\bibinfo{person}{Erol {\c{S}}ahin}.}
+  \bibinfo{year}{2005}\natexlab{}.
+\newblock \showarticletitle{Swarm Robotics: From Sources of Inspiration to
+  Domains of Application}. In \bibinfo{booktitle}{\emph{Swarm Robotics (Lecture
+  Notes in Computer Science, Vol. 3342)}}. \bibinfo{publisher}{Springer},
+  \bibinfo{pages}{10--20}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1007/978-3-540-30552-1_2}
+\showDOI{\tempurl}
+
+
+\bibitem[Sandholm(1998)]%
+        {sandholm1998contract}
+\bibfield{author}{\bibinfo{person}{Tuomas Sandholm}.}
+  \bibinfo{year}{1998}\natexlab{}.
+\newblock \showarticletitle{Contract Types for Satisficing Task Allocation: I.
+  Theoretical Results}. In \bibinfo{booktitle}{\emph{Proceedings of the AAAI
+  Spring Symposium: Satisficing Models}}. \bibinfo{publisher}{AAAI Press},
+  \bibinfo{pages}{68--75}.
+\newblock
+
+
+\bibitem[Schi{\o}ler and Ngo(2008)]%
+        {schioler2008trophallaxis}
+\bibfield{author}{\bibinfo{person}{Henrik Schi{\o}ler} {and}
+  \bibinfo{person}{Trung~Dung Ngo}.} \bibinfo{year}{2008}\natexlab{}.
+\newblock \showarticletitle{Trophallaxis in Robotic Swarms --- Beyond Energy
+  Autonomy}. In \bibinfo{booktitle}{\emph{Proceedings of the 2008 10th
+  International Conference on Control, Automation, Robotics and Vision (ICARCV
+  2008)}}. \bibinfo{publisher}{IEEE}, \bibinfo{pages}{1526--1533}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1109/ICARCV.2008.4795751}
+\showDOI{\tempurl}
+
+
+\bibitem[Schmickl and Crailsheim(2008)]%
+        {schmickl2008trophallaxis}
+\bibfield{author}{\bibinfo{person}{Thomas Schmickl} {and} \bibinfo{person}{Karl
+  Crailsheim}.} \bibinfo{year}{2008}\natexlab{}.
+\newblock \showarticletitle{Trophallaxis within a Robotic Swarm: Bio-Inspired
+  Communication among Robots in a Swarm}.
+\newblock \bibinfo{journal}{\emph{Autonomous Robots}} \bibinfo{volume}{25},
+  \bibinfo{number}{1--2} (\bibinfo{date}{Aug.} \bibinfo{year}{2008}),
+  \bibinfo{pages}{171--188}.
+\newblock
+\urldef\tempurl%
+\url{https://doi.org/10.1007/s10514-007-9073-4}
+\showDOI{\tempurl}
+
+
+\bibitem[Song et~al\mbox{.}(2026)]%
+        {song2026climrs}
+\bibfield{author}{\bibinfo{person}{Siqi Song}, \bibinfo{person}{Xuanbing Xie},
+  \bibinfo{person}{Zonglin Li}, \bibinfo{person}{Yuqiang Li},
+  \bibinfo{person}{Shijie Wang}, {and} \bibinfo{person}{Biqing Qi}.}
+  \bibinfo{year}{2026}\natexlab{}.
+\newblock \bibinfo{title}{Leveraging Adaptive Group Negotiation for
+  Heterogeneous Multi-Robot Collaboration with Large Language Models}.
+\newblock
+\newblock
+\newblock
+\shownote{arXiv:2602.06967. Framework name: CLiMRS}.
+
+
+\bibitem[Zlot(2006)]%
+        {zlot2006auction}
+\bibfield{author}{\bibinfo{person}{Robert~Michael Zlot}.}
+  \bibinfo{year}{2006}\natexlab{}.
+\newblock \emph{\bibinfo{title}{An Auction-Based Approach to Complex Task
+  Allocation for Multirobot Teams}}.
+\newblock \bibinfo{thesistype}{Ph.\,D. Dissertation}. \bibinfo{school}{Carnegie
+  Mellon University}, \bibinfo{address}{Pittsburgh, PA}.
+\newblock
+
+
+\end{thebibliography}

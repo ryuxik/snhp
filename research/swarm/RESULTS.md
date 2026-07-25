@@ -100,6 +100,9 @@ Reproduce: `run.py --column D|E|F` then `run.py --analyze <sweep.json>`.
 
 ## v7: noisy self-knowledge (sweep_v7_F.json, 160 runs) — the fleet survives; the receipts don't
 
+**[SUPERSEDED — see CORRECTION 2; corrected numbers govern (column F re-run,
+`rerun_F.log`: poisoned 0 → 13.2 → 23.4/run); retained for provenance]**
+
 Superseded (livelock-confounded): ~~delivered 238.9 → 193.3 → 128.2~~.
 
 - **P12a REVERSED by the fix:** gauge miscalibration does NOT devastate
@@ -126,6 +129,10 @@ Superseded (livelock-confounded): ~~delivered 238.9 → 193.3 → 128.2~~.
   The scary failure isn't a crash — it's an audit hole. Know thyself.
 
 ## v6.1: attestation gates cooperation (sweep_v6_E.json, 80 runs) — THE THESIS LANDS
+
+**[SUPERSEDED — see CORRECTION 2; corrected numbers govern (column E re-run,
+`rerun_E.log`: frenzy +179/+126, strip 271–326, gate +9.5/−2.2 n.s., strip
+0.0); retained for provenance]**
 
 Re-run 2026-07-15 with the untrusted tier fixed to be the FULL defended
 Nash tier (lies active + distrust tax) — the original ran it lie-free, so
@@ -184,6 +191,9 @@ product.
 
 ## v6.0: strategic lies vs attestation (sweep_v6_D.json, 240 runs) — KILL FIRED
 
+**[SUPERSEDED — see CORRECTION 2; corrected numbers govern (column D re-run,
+`rerun_D.log`); retained for provenance]**
+
 The pre-registered kill condition fired and the headline is the failure,
 as promised: **attestation could not flip the lying incentive in Nash-IR
 bargaining — because there was almost nothing to flip.**
@@ -218,6 +228,10 @@ low-value.
 
 ## v5: imperfect information in a rich ecology (sweep_v5_C.json, 736 runs)
 
+**[SUPERSEDED — see CORRECTION 2; corrected numbers govern (column C re-run,
+`rerun_C.log`: snhp-hz − auction +3.4 p=.005, was +9.6); retained for
+provenance]**
+
 Stage: 10 non-identical mirrored asteroids (240 units), 4 company-owned
 chargers (guest rate 2 vs 4), lean fleets (mean battery 40), τ=0.15.
 Information dial: noisy estimates of the partner's surplus (s ∈ {0, .25,
@@ -245,6 +259,10 @@ engine's attestation machinery.
 
 ## v4.1: price formation (equilibrium_v41.json, 544 runs)
 
+**[SUPERSEDED — see CORRECTION 2; corrected numbers govern; retained for
+provenance. The toll-booth headline survives in its corrected form
+(CORRECTION 2: posted-price revenue −63%)]**
+
 | pred | verdict | evidence |
 |---|---|---|
 | P8a interior τ* | **PASS** | null fleet: τ*=0.200 at both σ, revenue single-peaked (40.2 at peak, collapsing to 5.0 at τ=0.5) — a real monopoly price just above the modal switch point (the monopolist prices into the inelastic straggler tail) |
@@ -260,6 +278,10 @@ null fleet swings; at σ=0 the homogeneous hazard fleet remains boom-or-bust
 ---
 
 ## v4.0: structural ownership + tariffs (sweep_v4_A.json 864 runs, sweep_v4_B.json 1080 runs)
+
+**[SUPERSEDED — see CORRECTION 2; corrected numbers govern (columns A/B
+re-run, `rerun_A.log`/`rerun_B.log`: snhp − auction +14.1 p<.001 on the v4
+preset); retained for provenance]**
 
 **The placebo earned its keep on day one.** First anchor pass: every arm's
 company-ledger difference sat near 0 except team (+19.7/+18.3/+21.0 —
@@ -328,6 +350,12 @@ metric; contract-side risk (rescue IOUs); vouchers as law-of-one-price.
 
 ## v3: hazard-priced risk (sweep_v3.json, 960 runs) — KILLED as stated, regime law found
 
+**[SUPERSEDED — see CORRECTION 2; corrected numbers govern; retained for
+provenance. The "regime law found" headline below DIED under corrected
+physics (Correction 2 bullet 1); HEAD re-pin of this grid:
+`sweep_v3_head.json` (SPEC-ADDENDUM-2026-07-23 R4 — the σ=0.75 delivered
+blip dies on k5, regime law stays dead)]**
+
 P6 predicted smooth forward-looking risk pricing (`P_STRAND·sigmoid(−margin/8)`
 instead of the binary cliff) would fix the pure market everywhere and make
 the safety net redundant. **Both pre-registered kill triggers fired:**
@@ -365,6 +393,13 @@ ceiling still above at high σ (117.5) — the price of selfishness stands.
 ---
 
 # Results v2.1 — verdict against the pre-registration
+
+**[SUPERSEDED — see CORRECTION 2; corrected numbers govern; retained for
+provenance. HEAD re-pin of this grid: `sweep_v2.1_head.json`
+(SPEC-ADDENDUM-2026-07-23 R4): C2 ordering and C3 gradient SURVIVE
+(smaller); "snhp > null everywhere" FLIPPED at σ=0; team − team[energy]
+collapsed to n.s. except σ=0.75; "net hurts at σ=0.75" dissolved. Cite R4
+numbers, not this section]**
 
 *Sweep: `results/sweep_v2.1.json`, 888 runs (7 arm configs × 5 σ × 24 seeds,
 2500-tick horizon), generated after SPEC v2 was pinned. One bug-fix re-run
