@@ -66,6 +66,7 @@ from gametheory.server import telemetry as _telemetry
 # anonymous-by-construction rather than consent-gated, because the
 # helper has no accounts to hang consent on.
 from vend.situations import telemetry as _helper_telemetry
+from vend.situations import intake as _intake
 from gametheory.server import _llm_budget
 from gametheory.server import dispute_analytics as _analytics
 from gametheory.server.middleware import bearer_api_key as _bearer_api_key
@@ -2639,7 +2640,10 @@ def helper_ask(body: _HelperAskRequest, request: Request):
             llm_note = ("Reading free text is off on this deploy, so we've "
                         "matched the situation and will ask you directly.")
         else:
-            allowed, reason = _llm_budget.consume(_client_ip(request))
+            # Book what an intake call actually costs, not the shared
+            # Haiku-calibrated default. See intake.COST_PER_CALL_USD.
+            allowed, reason = _llm_budget.consume(
+                _client_ip(request), est_usd=_intake.cost_per_call())
             if not allowed:
                 # Degrade, don't 429. A consumer surface that refuses to
                 # work is worse than one that asks a few more questions.

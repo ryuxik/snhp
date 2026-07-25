@@ -1,6 +1,6 @@
-# I gave 2,000 space-crabs a landlord to find out why you can't negotiate your rent
+# I gave 3,000 space-crabs a landlord to find out who really has leverage over your rent
 
-*The answer isn't that landlords are greedy. It's that asking only works while almost nobody does it, and I have the receipts on how badly that scales.*
+*Both sides of that question turn on a dollar figure. Neither figure has ever been measured. When I worked them out from scratch, they came out the same size.*
 
 ---
 
@@ -8,98 +8,88 @@ Right now, in most large apartment buildings in America, two things are happenin
 
 The person signing a new lease this week is being offered a deal. Six weeks free, maybe, or a waived fee. Roughly two in five listings have something attached.
 
-And the person who has lived there three years, paid on time every month, and never caused anyone a problem is being asked for more.
+The person who has lived there three years, paid on time every month, and never caused anyone a problem is being asked for more.
 
 This isn't a theory. It's in the earnings filings. MAA, Q1: new leases **−7.0%**, renewals **+5.4%**. Camden, Equity Residential, IRT, Essex: same quarter, same shape, running since 2024. Loyalty is priced as a weakness by every major apartment company in the country, simultaneously, on the record.
 
-The obvious response is: so ask. Surely you just have to ask.
+The obvious response is: so ask. And every article that tells you to ask runs the same arithmetic.
 
-That's what I thought. So I did the arithmetic everyone does.
-
-Your landlord wants $200 more a month, or $2,400 over the year. If you leave, they eat a turnover: vacancy, paint, listing, screening. Every tenant-advice article on the internet puts that at **one to three months of rent**. Five thousand dollars, give or take.
+Your landlord wants $200 more a month, $2,400 over the year. If you leave, they eat a turnover: vacancy, paint, listing, screening. Everyone puts that at one to three months of rent. Five thousand dollars, give or take.
 
 They're risking five to gain two. You have leverage and nobody told you.
 
 I went looking for the source of that "one to three months."
 
-**There isn't one.** It traces to a property-management blog that states it as a national average and cites nothing. Everyone else recycles it, occasionally laundering it through Statista on the way. The best actual survey, covering 4,666 properties and 1.09 million units, puts a turnover at roughly $2,000 to $4,000. Real, and smaller than the number the entire advice industry runs on.
+**There isn't one.** It traces to a property-management blog that states it as a national average and cites nothing. The industry association's endlessly-recycled $1,000 to $5,000 traces to a 2016 blog post. The best actual survey, covering 4,666 properties and 1.09 million units, puts a turnover at roughly $2,000 to $4,000. Real, and smaller than the number the advice industry runs on.
+
+Then I went looking for the other half of the arithmetic, the part about what it costs *you* to move.
+
+That half is worse. **No government statistic exists.** The Census publishes how often people move. The BLS publishes a price index for moving services. Nobody official publishes what a move costs. The most-cited figure in the genre, $2,300, comes from a trade body that was absorbed into another organisation in December 2020, circulates with three mutually inconsistent values attached, and has no reachable primary document behind it. The two credible independent sources, one built from booked transactions and one from a consumer survey, land at $984 and $1,489.
+
+So the sentence "they're risking five to gain two" is assembled from two numbers, and neither of them has been measured.
 
 That bothered me enough to build a world.
 
----
+Three thousand crabs rent habitats from stations. Every year a station makes a renewal offer, and a crab accepts, counters, or leaves. Stations pay to turn a habitat over. Crabs pay to move. Sixty years, seeded so it runs identically every time.
 
-Two thousand crabs rent habitats from stations. Every year a station makes a renewal offer and a crab accepts, counters, or leaves. Stations pay to turn a habitat over. Crabs pay to move. Sixty years, seeded so it runs identically every time.
+## Landlords should be folding twice as often as they do
 
-I expected to spend a week finding out *how much* asking is worth.
+The first result was not the one I went looking for. A station maximising expected value, doing the arithmetic properly with no sentiment in it, **concedes to between 43 and 50 percent of the crabs who ask.**
 
-Instead I spent a week failing to make asking work at all.
+In the real world, about 22% of tenants who push back get something.
 
-## The wall
+That gap runs the wrong way for the folk story. The model isn't saying landlords are tougher than you think. It's saying a landlord who ran the numbers honestly would give in about twice as often as landlords actually do.
 
-Here's what kept happening. I'd build a station that priced its renewals well. Not a cartoon villain. An operator maximising expected value the way real revenue-management software does. Then I'd have a crab counter.
+The obvious explanation is bureaucracy. Nobody reads your email; a policy gets applied to a spreadsheet row; the exception queue is full. I built that, with a real capacity limit, and it doesn't close the gap at any queue size I can give it. Being an unread exception is a smaller effect than it feels like from the outside.
 
-And the station wouldn't move. Not out of stubbornness. Because it had no reason to.
+So the interesting question isn't the one the advice industry asks. It isn't *how do I make them move.* It's *why don't they move as often as their own spreadsheet says they should.*
 
-A station sitting at its own optimum is, by construction, **indifferent at the margin.** It has already balanced the rent it gains against the chance you walk. So when a randomly-chosen crab pushes back, the station learns nothing it didn't already price in, and conceding is a straight loss.
+## Asking works because of what it tells them
 
-I tried this six ways. I gave stations menu costs and an exception queue, the way a real manager with 200 units actually works: apply a policy, handle complaints. I expected countering to pay enormously, because the number you were sent was never about *you*; it's a rule applied to a spreadsheet row. Push back and a human finally reads your file.
+About 22% succeed, and that roughly doubles once you've been somewhere two years. There are two very different reasons that could be true. Either asking *selects* for the people who were leaving anyway, or asking *tells the landlord something it didn't already know*.
 
-It paid *worse*. Queues have a length. Most crabs who counter are never refused. They're **unread**. Being an exception only helps if someone has capacity to process exceptions, and at scale nobody does.
+Those are separable, so I separated them. Selection moves the success rate by 0.002 to 0.072. Information moves it by 0.80 to 0.90.
 
-So then I had to ask the question I'd been avoiding.
+It isn't close. **The ask is not the action. Being informative is the action, and asking is just the delivery mechanism.**
 
-## Why does asking ever work?
+Which reorganises the advice. "I might have to move" is worth approximately nothing, because it's free to say and everyone can say it. Something a landlord can check is a different object entirely.
 
-Because in the real world it does. Not always. About 22% of tenants who push back get something, and that roughly doubles if you've been there two years or more.
+## The part that costs me something to publish
 
-But if a rational landlord has no reason to concede to a random asker, what are those 22% doing?
+If the value of asking comes from asking being informative, then it comes from most people not doing it.
 
-The answer, once I saw it, reorganised everything: **they aren't succeeding because they asked. They're succeeding because of what asking revealed about them.**
+So I ran adoption from one percent to a hundred. Success falls from about **0.97 to about 0.05.** Monotone, in both a rising and a falling market.
 
-An ask is only worth conceding to if it carries information: that this tenant has actually looked, actually has somewhere to go, actually might move. In my crab world, askers were chosen at random. So a counter was pure noise, and a station that ignored noise was correct to.
+The value of a negotiation tool is an inverted U. It peaks around 30% adoption and goes to nearly nothing at saturation.
 
-Which means the thing tenant-advice articles get wrong isn't the arithmetic. It's the object. **"Ask" isn't the action. "Be credible" is the action, and asking is just how you deliver it.**
+I sell negotiation software. This is the shape of my own category, and it says the product is worth most in exactly the window where hardly anyone has it.
 
-So I gave the crabs a way to prove it.
+## So who actually has leverage
 
-Not a claim. Proof. A crab holding a real alternative could demonstrate it, at a cost. A crab without one couldn't fake it.
+Back to the original question, this time with both numbers built up rather than borrowed.
 
-**10.2% off the offer.** One of the largest effects in the entire study, from the same stations that had ignored every unbacked counter I'd thrown at them for a week.
+The crab's cost of leaving, assembled from actually searching for somewhere else: **$2,960.** The station's cost of losing them: **$2,094 to $3,440.** Published landlord figures put a turnover at $2,000 to $4,000, and the best-sourced survey of property managers says $3,872 including lost rent.
 
-That's the finding, and it's uncomfortably specific: *"I might have to move"* is worth approximately nothing, because it's free to say and everyone can say it. *"Here is the unit, here is the rent, here is the date"* is a different object entirely.
+Both sides of the folk arithmetic are low four figures. The five-to-two gap the entire genre is built on is not there.
 
-## The part that should worry anyone building this
+Which side edges it depends on the cost of a physical move, which is the number nobody has measured. I fixed its plausible range in advance at $700 to $3,300, from the best sources that exist. The answer crosses over *inside* that range. At the central estimate, the runs span from "the landlord has twice the tenant's exposure" to "the tenant has 1.4 times the landlord's."
 
-If the value of asking comes from asking being *informative*, then it comes from most people not doing it.
+**Nobody can tell you who the weaker party is.** Not me, and not the person writing the negotiation guide. The measurement doesn't exist.
 
-Sixty-one percent of renters never negotiate. That's not just a sad statistic about people leaving money on the table. **It's load-bearing.** It's why the 39% who do can be told apart from everyone else.
-
-Which puts a tool like the one I built in an awkward position. Work well enough and you dissolve the signal you depend on. And in the runs, that cost doesn't fall on the people using the tool. It falls on everyone else: as more crabs counter, stations raise the *opening* offer for everyone, and the ones who counter recover more than the increase while the quiet ones absorb it.
-
-That result survived every attempt to break it. It's on the page now, in front of the tool, because a person is entitled to know that before they use the thing.
-
-## Then I gave the colony a plague
-
-Demand collapses. Habitats empty out. Rents should fall, and mine did, and I expected the stations to follow them down.
-
-They didn't. The station *held its rent and ate the vacancy*. Rent relative to market actually **rose** while a fifth of its habitats sat empty. What tripled instead was concessions: free months, waived fees, anything that wasn't the number on the lease.
-
-Which is the same lesson as the credible-signal one, arriving from the other direction. **The number on the lease is the one thing a station will not move**, because that number follows the building forever: it sets the comparable for every future tenant, and on a large portfolio it's marked into the asset's value. Everything else is negotiable precisely because it evaporates.
-
-So the advice that falls out isn't "ask for a rent reduction." It's: ask for the thing that doesn't leave a permanent mark, and prove you have somewhere else to be.
+But the dollars were never the interesting part, and this is where the genre goes wrong at a level deeper than sourcing. Three thousand dollars is a per-unit line item against a portfolio for one party and a household budget shock for the other. **Equal dollars are not equal stakes.** You can lose a negotiation where the numbers are symmetric, because only one of you can afford to be wrong.
 
 ## Why a person building agent software spent a week on rent
 
-Everyone is waiting for the moment AI agents start negotiating on our behalf. The interesting debate is what happens when *both* sides have one.
+Everyone is waiting for the moment AI agents start negotiating on our behalf. The interesting question is what happens when both sides have one.
 
-That moment already happened. It happened in rent.
-
-Revenue-management software prices your renewal by estimating *your* elasticity, meaning how likely you personally are to leave, from turnover cost, local comps, your tenure, your payment history. It runs on most large buildings. It updates daily. It is, functionally, an algorithm negotiating against you.
+That already happened. It happened in rent, years ago. Revenue-management software prices your renewal by estimating how likely *you personally* are to leave, from turnover cost, local comps, your tenure, your payment history. It runs on most large buildings. It updates daily.
 
 On your side of that table: a hunch, and a bad feeling about confrontation.
 
-So the asymmetry everyone is bracing for didn't wait for agentic commerce. It shipped years ago, quietly, inside the largest recurring expense most households have, with software on exactly one side. And the reason it works isn't that the software is clever. It's that most people never counter, and the ones who do mostly can't prove anything.
+The thing I wouldn't have guessed before building this is that the software's advantage isn't that it's clever. It's that it *measures*. It has a number for what losing you costs. You have a blog post from 2016.
+
+And the second thing, which is worse for me than for you: a tool that closes that gap for everyone stops working, because what it exploits is being unusual.
 
 ---
 
-*A note on the machinery, since it's the part I'd want if I were reading this. Twenty-six ways this could prove me wrong were written down before any code existed. All three of the simulation's accuracy checks failed. It never did reproduce the rate at which real landlords concede, which is why nothing on my tool's page is quoted from it. Then I had it audited adversarially, on the assumption that every surviving result was an artefact until shown otherwise. Six were. Two of those had already shipped, including one where I'd told people the exact opposite of what the credible-signal result above shows. Both are corrected, and the full audit, covering every failure, every reversal, and the parameters each conclusion hinges on, is published alongside the code.*
+*Twenty-six ways this could prove me wrong were written down before any code existed, then it was audited adversarially. Everything, including the results that died, is published with the code.*

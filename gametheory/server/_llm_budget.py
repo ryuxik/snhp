@@ -69,11 +69,18 @@ def _prune_ip(ip: str, now: float) -> list[float]:
     return hits
 
 
-def consume(ip: str | None) -> tuple[bool, str]:
+def consume(ip: str | None, est_usd: float | None = None) -> tuple[bool, str]:
     """Book one LLM call against the budgets. Returns (allowed, reason).
 
     When not allowed, `reason` is a user-facing message. Call this BEFORE
     making the LLM request; if it returns False, refuse with HTTP 429.
+
+    `est_usd` overrides the default per-call estimate for callers whose
+    real cost differs. This exists because the default was calibrated for
+    a Haiku extract and the helper's intake runs on a frontier model: at
+    a measured $0.0152 per call against a booked $0.004, a "$5/day cap"
+    would have permitted about $19/day of real spend. A cap you have not
+    measured is not a cap.
     """
     now = time.time()
     if ip:
@@ -82,13 +89,15 @@ def consume(ip: str | None) -> tuple[bool, str]:
             return False, ("You've hit the hourly limit for this tool. The free "
                            "demo still works — try the live co-pilot again later.")
 
+    cost = _EST_USD_PER_CALL if est_usd is None else float(est_usd)
+
     usage = _load_usage()
-    if usage["est_usd"] + _EST_USD_PER_CALL > _DAILY_USD_CAP:
+    if usage["est_usd"] + cost > _DAILY_USD_CAP:
         return False, ("The live co-pilot is at capacity for today. The demo "
                        "still works — please check back tomorrow.")
 
     usage["calls"] += 1
-    usage["est_usd"] = round(usage["est_usd"] + _EST_USD_PER_CALL, 4)
+    usage["est_usd"] = round(usage["est_usd"] + cost, 4)
     _save_usage(usage)
     if ip:
         _ip_hits[ip].append(now)

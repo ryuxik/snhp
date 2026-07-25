@@ -174,5 +174,9 @@ def _coerce(f: Field, raw):
         allowed = {v for v, _ in f.options}
         return s if s in allowed else None
     if f.kind == schema.METRO:
-        return str(raw).strip().lower().replace(" ", "_").replace("-", "_")
+        v = str(raw).strip().lower().replace(" ", "_").replace("-", "_")
+        # Unknown values pass through rather than being dropped: every
+        # situation degrades an unrecognised metro to national context
+        # and says so, which is better than silently discarding it.
+        return v
     return str(raw).strip() or None

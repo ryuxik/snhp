@@ -619,7 +619,12 @@ def test_intake_request_constrains_the_output(monkeypatch):
     # the verbatim check possible at all.
     item = fmt["schema"]["properties"]["fields"]["items"]
     assert set(item["required"]) == {"key", "value_text", "quoted_from_user", "confidence"}
-    assert captured["output_config"]["effort"] == intake.EFFORT
+    # `effort` is an Opus-4.5+ parameter — Haiku 4.5 rejects it, so it is
+    # sent only where supported rather than hopefully.
+    if intake._supports_effort(intake.MODEL):
+        assert captured["output_config"]["effort"] == intake.EFFORT
+    else:
+        assert "effort" not in captured["output_config"]
     # Thinking is left at the model default rather than disabled.
     assert "thinking" not in captured
 
@@ -1494,3 +1499,43 @@ def test_the_provenance_legend_is_gone_from_the_page():
     assert 'class="prov-key"' not in html
     assert "prov-stated" not in html and "prov-market" not in html
     assert 'id="said-toggle"' in html, "the quiet line must still be openable"
+
+
+def test_effort_is_only_sent_to_models_that_accept_it():
+    """Haiku 4.5 and Sonnet 4.5 reject `effort` outright. Sending it
+    hopefully would break intake entirely on the model we chose."""
+    assert intake._supports_effort("claude-opus-5")
+    assert intake._supports_effort("claude-sonnet-5")
+    assert not intake._supports_effort("claude-haiku-4-5")
+    assert not intake._supports_effort("claude-sonnet-4-5")
+
+
+def test_the_daily_cap_books_what_a_call_actually_costs():
+    """A cap you have not measured is not a cap.
+
+    The shared default books $0.004 — calibrated for a Haiku extract in
+    the dispute copilot. When intake ran on Opus 5 at a measured $0.0152,
+    a "$5/day cap" would have permitted roughly $19/day of real spend.
+    """
+    assert intake.MODEL in intake.COST_PER_CALL_USD, (
+        "an unmeasured model must not be the default")
+    assert intake.cost_per_call() == intake.COST_PER_CALL_USD[intake.MODEL]
+    # An unknown model books the most expensive measured figure, so an
+    # unmeasured change fails toward spending less.
+    assert intake.FALLBACK_COST_USD >= max(intake.COST_PER_CALL_USD.values())
+
+
+def test_metro_is_a_closed_vocabulary_not_a_recall_task():
+    """Measured: Haiku returned metro "Brooklyn" instead of "New York",
+    which silently degrades an answer to national figures. Fixed by
+    handing the model the table rather than by paying for a model that
+    happens to know it."""
+    for key in registry.SITUATIONS:
+        f = registry.get(key).field("metro")
+        assert f.vocabulary, f"{key}: metro has no closed vocabulary"
+        assert "new_york" in f.vocabulary and "denver" in f.vocabulary
+        assert len(f.vocabulary) >= 50
+
+    menu = intake._field_menu(public=False)
+    assert "MUST be exactly one of these" in menu
+    assert "new_york" in menu

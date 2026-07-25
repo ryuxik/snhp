@@ -92,6 +92,13 @@ class Field:
     unit: str = ""
     # (value, human label) pairs — CHOICE only.
     options: tuple[tuple[str, str], ...] = ()
+    # A closed list of acceptable values, for fields whose vocabulary is
+    # a table we own. Shown to the intake model so it SELECTS rather than
+    # RECALLS: a measured Haiku run returned metro "Brooklyn" instead of
+    # "New York" and silently degraded the answer to national figures.
+    # Opus happened to know the mapping; depending on world knowledge for
+    # a lookup we have on disk is fragile in both cases.
+    vocabulary: tuple[str, ...] = ()
     # Used when the person hasn't supplied one. Always tagged ASSUMED.
     default: Any = None
     # Candidate values for the sensitivity sweep. Empty means "derive

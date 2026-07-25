@@ -150,6 +150,10 @@
   </section>
 
   <section id="answer" aria-live="polite"></section>
+  <p style="text-align:center;margin-top:3rem;font-size:.85rem;color:var(--dim)">
+    Prefer to just describe it? <a href="/helper" style="color:var(--gold)">Tell it what's going on</a>
+    and it works out which questions matter.
+  </p>
 </main>
 
 <footer>
@@ -282,19 +286,29 @@ function render(d){
     <ul>
       <li><b>We got one piece of advice backwards.</b> We told people that
       lining up another apartment wouldn't improve their offer. Our model
-      had made it structurally impossible for it to help, and we reported
-      that as a finding. When we allowed a landlord to respond to an
-      alternative it could actually verify, it became one of the largest
-      effects we measured. <b>If you have a real alternative, say so, and
-      be specific enough that it can be checked.</b></li>
+      had given a landlord no way to check the claim, so that was a
+      property of our setup rather than a fact about renting. We then
+      overcorrected. Having now measured it: proving an alternative is
+      worth roughly $460 a year, against the $480 we set as our own bar
+      for calling something material, and it works by removing the penalty
+      for answering close to your deadline rather than by making you
+      expensive to replace. <b>If you have a real alternative, say so, and
+      be specific enough that it can be checked</b> &mdash; but the clock
+      is what's doing the work, which is why answering early is the
+      stronger advice.</li>
       <li><b>We quoted a dollar figure for answering quickly.</b> It was
       something we had built into the model, not something we found. The
       advice stands &mdash; missing your response deadline can cost you the
       right to renew &mdash; but the number is gone.</li>
-      <li><b>What still stands, with a caveat we owe you:</b> if enough
-      people negotiate, landlords may raise the opening offer for everyone,
-      and the cost lands on the people who don't ask. The direction held up
-      under every attempt to break it. But our model <i>assumed</i> a
+      <li><b>What still stands, and what we have narrowed:</b> if enough
+      people negotiate, landlords raise the opening offer for everyone.
+      That direction survived every attempt to break it, in twenty runs out
+      of twenty, and it collapses when we remove the mechanism, which is
+      the test that matters. We have withdrawn the second half. We used to
+      tell you the cost lands specifically on the people who don't ask;
+      that showed up in twelve of fifteen runs when rents were falling and
+      one of fifteen when they were rising, so who absorbs the increase is
+      not something we can tell you. Our model also <i>assumed</i> a
       landlord can't tell who is asking, and we never built one that could,
       so treat the mechanism as untested rather than shown.</li>
     </ul>

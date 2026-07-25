@@ -33,14 +33,57 @@ from dataclasses import dataclass, field as _field
 from vend.situations import registry
 from vend.situations.schema import INFERRED, STATED, Situation
 
-# Opus 5 at low effort. Adaptive thinking stays on (the default): with
-# thinking disabled this model can write a tool call into visible text
-# and leak reasoning tags, and low effort already gets the cost back.
-# Override for cost with SNHP_INTAKE_MODEL — the deterministic core is
-# unaffected either way, which is the point of keeping the model here.
-MODEL = os.environ.get("SNHP_INTAKE_MODEL", "claude-opus-5")
+# Haiku 4.5, chosen on measurement rather than instinct: 6.9x cheaper
+# than Opus 5 on this task ($0.0022 vs $0.0152 per call, measured below).
+#
+# The job is struct-filling against a strict JSON schema where every
+# value is verified against the person's own words and shown back for
+# confirmation. It is close to the cheapest thing a model can be asked
+# to do, and the framework catches what it gets wrong: a value it cannot
+# quote is INFERRED, and an INFERRED value keeps getting asked about.
+#
+# The one real error Haiku made in the head-to-head was returning metro
+# "Brooklyn" rather than "New York", which silently degrades an answer to
+# national figures. That is fixed at the root instead of by paying for a
+# bigger model: Field.vocabulary now hands the model the metro table so
+# it SELECTS from a list rather than RECALLING a mapping. Opus happened
+# to know it; depending on world knowledge for a lookup we have on disk
+# was the actual bug.
+#
+# Override with SNHP_INTAKE_MODEL. The deterministic core is unaffected
+# either way, which is the whole point of keeping the model up here.
+MODEL = os.environ.get("SNHP_INTAKE_MODEL", "claude-haiku-4-5")
 EFFORT = os.environ.get("SNHP_INTAKE_EFFORT", "low")
+
+# `effort` is an Opus-4.5-and-later parameter; Haiku 4.5 and Sonnet 4.5
+# reject it outright, so it is sent only where it is supported rather
+# than hopefully.
+def _supports_effort(model: str) -> bool:
+    return model.startswith(("claude-opus-", "claude-sonnet-5", "claude-fable-"))
 MAX_TOKENS = 4000
+
+# MEASURED on the deployed machine, 2026-07-25, on a representative
+# lease-break description. Not an estimate: the shared default in
+# _llm_budget.py is $0.004, calibrated for a Haiku extract, and booking
+# that for an Opus call would let a "$5/day cap" pass roughly $19/day.
+#
+#   claude-opus-5  (effort=low)   1626 in / 281 out   $0.01516/call
+#   claude-haiku-4-5              1265 in / 189 out   $0.00221/call
+#
+# Re-measure when the prompt, the model, or the number of live situations
+# changes — the field menu is most of the input tokens.
+COST_PER_CALL_USD = {
+    "claude-opus-5": 0.0152,
+    "claude-haiku-4-5": 0.0022,   # in use
+}
+# Unknown model -> book the most expensive thing we have measured, so an
+# unmeasured change fails toward spending less rather than more.
+FALLBACK_COST_USD = 0.02
+
+
+def cost_per_call() -> float:
+    """What one intake call books against the daily cap."""
+    return COST_PER_CALL_USD.get(MODEL, FALLBACK_COST_USD)
 
 SYSTEM = """You fill in a form. You do not give advice, and nothing you write is shown to the person.
 
@@ -55,7 +98,7 @@ RULES, IN ORDER OF IMPORTANCE:
 2. For every field you return, `quoted_from_user` must be text copied EXACTLY from their message, character for character, that supports the value. If you cannot copy such a span, set `quoted_from_user` to "" — that is fine and expected for anything you worked out rather than read.
 
 3. You may do two things beyond copying:
-   - normalise a place to a metro name (a neighbourhood or borough becomes its metro)
+   - map a place to one of the listed values for that field (a neighbourhood or borough becomes its metro). Where a field lists allowed values you MUST return one of them exactly, or leave the field out — do not invent a value or return the raw place name.
    - arithmetic on dates and durations they gave you (a lease end date and today's date become months remaining)
    Both of these still need `quoted_from_user` set to the span you worked from, and both will be shown back to the person to confirm.
 
@@ -278,7 +321,18 @@ def _field_menu(public: bool = True) -> str:
             if f.options:
                 bits.append(" — one of: " + ", ".join(v for v, _ in f.options))
             lines.append("".join(bits))
+            if f.vocabulary:
+                lines.append(
+                    "      MUST be exactly one of these, or omit the field: "
+                    + ", ".join(f.vocabulary))
     return "\n".join(lines)
+
+
+def _output_config() -> dict:
+    oc: dict = {"format": {"type": "json_schema", "schema": _schema()}}
+    if _supports_effort(MODEL):
+        oc["effort"] = EFFORT
+    return oc
 
 
 def _call(text: str) -> dict:
@@ -289,10 +343,7 @@ def _call(text: str) -> dict:
         model=MODEL,
         max_tokens=MAX_TOKENS,
         system=SYSTEM,
-        output_config={
-            "effort": EFFORT,
-            "format": {"type": "json_schema", "schema": _schema()},
-        },
+        output_config=_output_config(),
         messages=[{
             "role": "user",
             "content": (

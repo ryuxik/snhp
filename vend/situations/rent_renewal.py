@@ -20,12 +20,16 @@ from vend.situations.schema import (
     Field, Outcome, Route, Rule, Situation,
 )
 
+# The metro table, as a closed vocabulary for the intake model.
+_METRO_KEYS = tuple(sorted(_metros.METROS))
+
 FIELDS = (
     Field(
         key="metro",
         label="Where you live",
         kind=METRO,
         required=True,
+        vocabulary=_METRO_KEYS,
         help="Metro area. Somewhere we don't have data for falls back to national figures.",
     ),
     Field(

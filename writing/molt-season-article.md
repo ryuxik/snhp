@@ -1,6 +1,6 @@
 # The Works offered her a 12% raise and she left anyway
 
-*I built a shipyard full of space crabs to find out what six weeks of salary meetings actually cost. Then I rebuilt the whole thing, because four of my design choices were doing the work, and most of my headline died.*
+*I built a shipyard full of space crabs to find out what six weeks of salary meetings actually cost. Then I rebuilt it three times, because my design choices were doing the work. By the third rebuild, an ordinary human negotiator was beating my software.*
 
 ---
 
@@ -129,6 +129,194 @@ Verifiability replaces "what are you worth to us" with "what will it take to kee
 
 **And the split held.** Whoever holds the engine, the employer takes **91.6%** of the value it creates. Third independent thing in this study pointing the same way, and the one result that has now survived two studies, two markets, and a rebuild designed to break it.
 
+## The second rebuild, and the kill I agreed to in advance
+
+One more objection, and it was the sharpest: **the employer had one pocket.**
+
+Everything the Works paid — raise, bonus, promotion, flexible hours, growth
+assignment — came out of a single scalar pot of dollars. So there was exactly one
+trade axis, cash versus non-cash at fixed ratios, and the same trade was optimal
+for every crab alive. I had built a logrolling experiment and given the logroller
+almost nothing to logroll. Real employers have a comp budget, an equity pool, a
+PTO accrual, headcount and band constraints, a coverage roster — different
+pockets, wildly different shadow prices. And PTO, the cleanest example of the
+whole thesis, wasn't even in my issue set.
+
+So: five budgets with independently drawn shadow prices, PTO as a sixth issue, a
+25% chance there is simply no promotion slot in your band this season at any
+price. And before running it, a kill we agreed on: **if budget structure doesn't
+lift the equal-speed gain above $6,090, logrolling has been given a properly
+specified employer and found small — and the product claim goes with it.**
+
+It came in at **+$5,397**. It fires by $693. On the held-out seed, +$5,944
+against a $6,154 threshold — fires by $210.
+
+The structure helped. It moved the equal-speed gain from $3,837 to $5,397, a real
+**+41%**. I predicted it would roughly double, which is why the threshold sat
+where it did. It didn't, twice, in the same direction, and the bar doesn't move
+after the fact.
+
+**So the equal-speed money story is dead.** At the same speed, against a real
+corporate strategy, with an employer that has actual budget structure, multi-issue
+bundling is worth less than 2% of salary over what a competent single-issue
+bargainer already gets. Where outside offers can't be verified it's worth
+**−$630**.
+
+What's left is the clock: **+$31,535 joint with the calendar running**, departures
+cut from 35.7% to 14.5%. The product is worth a great deal. It is not worth it for
+the reason it is sold.
+
+## And the number that now goes first
+
+The second kill fired too, and it's the one that changes how this gets written.
+
+**The engine takes cash out of the employee's pocket.** $3,172 across the
+population; on the selection-free subset — the same crabs, retained either way —
+**$16,065 of cash becomes $9,147. A $6,918 pay cut**, handed back as perks.
+
+I swept the exchange rate this time, 0.5× to 1.5×. The employee's *utility* gain
+is robust: it never crosses zero, even valuing a promotion at half what I said.
+The employee's *cash loss* is equally robust: negative at every rate tested.
+
+Both. At every rate. The engine reliably converts one into the other, and whether
+that's a good deal for you depends entirely on an exchange rate that neither you
+nor I can verify.
+
+PTO, for what it's worth, turned out to be the second most-granted term in the
+package — ahead of the promotion. The objection that my issue set was thin was
+correct.
+
+## The measurement I broke
+
+One kill recorded no verdict, because I broke the instrument.
+
+K17 was meant to ask the question that matters most given the above: if the
+*employer* configures this tool, and configures it to believe your perks are worth
+1.5× what they are, does it extract more cash from you? The biased arm came back
+**bit-identical** to the unbiased one — $0, $0, $0, on both seeds and in both
+regimes.
+
+That's not a null. I threaded the biased exchange rate into a single early-stop
+check and never into the logic the employer uses to decide what to *offer*. If
+that check doesn't bind, the arm is identical by construction, which is exactly
+what happened.
+
+No verdict. And it is now the sharpest open question in the study, sitting
+directly on top of a confirmed finding that this thing converts your salary into
+things it priced itself.
+
+
+## The third rebuild, and the one that hurt
+
+The last objection was the shortest: **a promotion is tied to salary and to
+reputation, inside and outside — and there are only so many slots, which is a
+budget separate from cash.**
+
+Three things wrong in my model, and I checked all three before conceding.
+`title_drift = 0.02`: a promotion came with a **2% raise**. A promotion never
+touched `omega`, so it had **zero effect on market value** — non-portable by
+construction. And `slot` was a per-season boolean: if true, *every* crab that
+season could be promoted. No quota, no rivalry. When I'd described that to him as
+"band slots, a constraint money cannot solve," I'd oversold it.
+
+So: a promotion becomes a **12% raise** drawing on the pay budget *and* a scarce
+slot drawing on a separate one; it lifts your market value by 5 points, so
+promoting you makes you more poachable; and only **one crew member in eight** can
+be promoted in a year.
+
+And before running it, the guard, because this is the dangerous direction — the
+objection makes the product's best currency bigger, right after a kill fired
+against the product. So: **K14's verdict is permanent for the world it tested.**
+Whatever this found would be a new test of a different world, reported beside it,
+never in place of it.
+
+Then it ran, and the equal-speed gain fell to **+$2,584**. On the held-out seed,
+**+$1,739** — below the bar entirely.
+
+**Making the product's best currency bigger and better made it worse.** The
+equal-speed money claim is now retired permanently, across two independently
+specified promotion models.
+
+## The table I did not want
+
+| | crab CASH | promoted | crab utility |
+|---|---|---|---|
+| six weeks of email, ordinary archetype | **$11,499** | **11.2%** | $17,451 |
+| one sitting, on the engine | **$8,104** | **2.3%** | $18,457 |
+
+**The human negotiator gets the promotion five times as often and $3,395 more
+cash.** And when I checked whether the engine at least wins on its own scoring —
+it doesn't. Conditional on the crab staying, the engine's package is worse for
+them on utility too, against all six archetypes: **−$2,652 to −$3,050**. Its
+population-level utility edge of +$1,006 is *entirely* retention. It scores
+better on average because more of its people still have a job, not because their
+packages are better.
+
+Once a promotion costs a real 12% raise and a scarce slot, the engine stops
+asking for it and buys retention with PTO and flexible hours, which are cheap.
+The human keeps asking for the title, sometimes gets it, and the title comes with
+a raise attached.
+
+The sweep makes the mechanism unmistakable:
+
+| promotion raise | engine's promotion rate | your cash |
+|---|---|---|
+| 6% | 3.5% | −$2,470 |
+| 12% | 1.9% | −$2,814 |
+| 20% | **0.4%** | **−$4,447** |
+
+**The better a promotion actually is, the less an optimiser will get you one.**
+
+Selection-free — same crabs, kept either way — the engine turns **$18,252 of cash
+into $10,717**, and the promotion rate falls from 16% to 3%.
+
+## Two more kills, one of them with a weak instrument
+
+**Scarce slots should be where an optimiser shines.** Allocating one-in-eight
+promotions to the crabs where retention value is highest is exactly the problem
+software should beat a person at. Measured: the engine's targeting correlation is
+**+0.049** against the archetype's **+0.337**.
+
+But I'll flag what that number can't carry: the engine promotes 2.3% of crabs
+against the archetype's 11.2%, and a correlation with a positive class that rare
+is mechanically attenuated. The honest reading is the weaker one — **the engine
+doesn't use the scarce resource, so it can't be said to allocate it well.**
+Whether it would aim better at equal grant rates is untested. I threw out a
+result in the last round for having a dead instrument; this one is merely weak,
+and it gets labelled rather than dressed up.
+
+**And promoted crabs didn't leave** — zero of 44, against 14.3% of everyone else,
+despite portability. That is selection, not causation, and I'm not reporting it as
+anything else: employers promote the people they most want to keep. The causal
+version needs a forced-promotion arm that doesn't exist.
+
+### Not a different game — a different point
+
+The obvious objection: maybe the engine and the human are just optimising
+different things. They aren't, and it's checkable — both score the crab with the
+identical `crab_value3`. So I enumerated the package space per crab and found the
+Pareto frontier.
+
+| | crab utility | crab cash | the Works | on the frontier |
+|---|---|---|---|---|
+| archetype | 22,024 | 16,714 | −25,159 | 86% |
+| engine | 20,082 | 10,576 | −20,385 | 82% |
+
+Both are Pareto-efficient roughly 85% of the time, and both in the same
+crab-season 70% of the time. **Nobody is playing badly.** The engine just picks a
+different point: joint **+$2,832**, of which **the employer takes 169%** — more
+than all of it, because the employee's share is negative.
+
+**The engine slides along the frontier toward the employer.** It isn't winning
+the employee a bigger share of the pie. It's finding a cheaper way to hand over a
+package, and the saving goes to the side that's paying.
+
+The cash cut, meanwhile, **survived and grew**: −$6,918 before, −$7,535 now,
+−$8,591 on the held-out seed. Making the promotion expensive pushed the engine
+further into the cheap currencies. That headline wasn't conditional on tiny
+promotions; it's more true when promotions are real.
+
+
 ---
 
 # Where to attack this
@@ -141,9 +329,13 @@ Still the part I want argued with. The list is shorter than it was, because four
 
 **3. The Works still knows what you want.** Amendment 1 removed the employer's knowledge of your outside offer. It did not remove its knowledge of your priorities — `crab_value` is still exact. Every number should be read as "the employer knows what you want, but not what you can get elsewhere." That's the next omniscience to kill, and it will probably cost me something.
 
-**4. I still swept the wrong parameters.** The cross-side price gap — a promotion worth 9% of salary in career value, costing the employer 3% in band compression — is set by numbers I chose and never swept. If a promotion is worth much less than I said, the remaining equal-speed gain shrinks toward a bar it is already close to.
+**4. The perk rates are swept now; the shadow prices are not.** I swept what perks are worth to the employee (0.5×–1.5×) and the result held. I did *not* sweep the five employer shadow prices — band 0.60, accrual 0.35, coverage 0.50, capacity 0.80 — and those are my estimates, and they are what produced 41% of the equal-speed gain. That sweep should exist before anyone leans on the number.
 
-**5. Nobody reopens a settled issue, in either version.** Twelve exchanges, five issues, no take-backs. A negotiator who learns something at exchange nine and reopens exchange two would recover part of the gap. Untested, and cheaper to build than the last rebuild was.
+**5. Nobody reopens a settled issue, in any version.** Twelve exchanges, six issues, no take-backs. A negotiator who learns something at exchange nine and reopens exchange two would recover part of the gap. Untested, and cheaper to build than either rebuild was.
+
+**5b. K17 never ran.** Whether an employer that configures the exchange rate extracts more cash is the question the cash finding demands, and my instrument for it was dead on arrival.
+
+**5c. Nothing here plans across people.** A promotion quota is a knapsack over a whole team, and my engine solves one crab at a time, first come first served. The version of this product that allocates scarce slots across a department is untested, and it's the obvious thing to build next.
 
 **6. No morale, no equilibrium response, no humans.** The employer values you only through the probability you quit. Seasons are independent, so a world where everyone has this tool — in which employers would simply move their opening offers — is invisible to this design. And every crab and manager is a payoff-maximiser, so nothing here says how people actually negotiate.
 
@@ -151,10 +343,10 @@ Still the part I want argued with. The list is shorter than it was, because four
 
 ---
 
-Version one of this article claimed something tautological, two things measured against a handicapped opponent, and one number five times too flattering to the employee. All four came out of four sentences from one reader.
+Version one of this article claimed something tautological, two things measured against a handicapped opponent, and one number five times too flattering to the employee. Version two survived a rebuilt opponent and then lost its central claim to a kill I'd agreed to in advance and expected to pass. Version three lost it permanently, and turned up an ordinary corporate negotiator beating my software on the thing employees actually care about. Across three rebuilds I made twelve on-record predictions and got five right.
 
-The pre-registration was committed before the first simulation existed and hasn't been edited. The amendment was committed before the rebuild existed and states in writing which of my own claims it was suspending and which prediction I expected to lose. The kills are evaluated in code rather than prose, so verdicts can't drift while the article is written. Three of them fired.
+The pre-registration was committed before the first simulation existed and hasn't been edited. Both amendments were committed before their rebuilds existed and state in writing which of my own claims they were suspending and which predictions I expected to lose. The kills are evaluated in code rather than prose, so verdicts can't drift while the article is written. Five of them fired, including the one that took the headline.
 
 The crabs are fake. The refutations are real, and that exchange was worth more than the study.
 
-*`research/molt/` — [PREREG](../research/molt/PREREG.md) · [AMENDMENT 1](../research/molt/PREREG-AMENDMENT-1.md) · [v1 RESULTS](../research/molt/RESULTS.md) · [v2 RESULTS](../research/molt/RESULTS-V2.md). Demo at `arena/web/molt/`.*
+*`research/molt/` — [PREREG](../research/molt/PREREG.md) · [AMENDMENT 1](../research/molt/PREREG-AMENDMENT-1.md) · [2](../research/molt/PREREG-AMENDMENT-2.md) · [3](../research/molt/PREREG-AMENDMENT-3.md) · results [v1](../research/molt/RESULTS.md) · [v2](../research/molt/RESULTS-V2.md) · [v3](../research/molt/RESULTS-V3.md) · [v4](../research/molt/RESULTS-V4.md). Demo at `arena/web/molt/`.*

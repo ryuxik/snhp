@@ -31,12 +31,17 @@ from vend.situations.schema import (
     Field, Outcome, Route, Rule, Situation,
 )
 
+# Same table the renewal side uses; a closed vocabulary beats asking a
+# model to recall which metro a borough belongs to.
+_METRO_KEYS = tuple(sorted(evidence._metros.METROS))
+
 FIELDS = (
     Field(
         key="metro",
         label="Where the place is",
         kind=METRO,
         required=True,
+        vocabulary=_METRO_KEYS,
         help="Decides how fast the unit re-rents, which decides your exposure.",
     ),
     Field(

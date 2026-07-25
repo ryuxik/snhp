@@ -58,6 +58,10 @@
     <a class="brand" href="/">SNHP</a>
     <a href="/certificate">Certificate</a>
     <a href="/research">Research</a>
+    <!-- The consumer surface. /rent stays live and unchanged — it is a
+         published URL in the write-ups — but /helper is the front door
+         now: same advisor, and it works out what to ask you. -->
+    <a href="/helper">For renters</a>
   </nav>
 
   <h1>Free negotiation math for agents.<br /><b>One call, no account.</b></h1>
@@ -79,10 +83,10 @@ pip install snhp             <span class="c"># or the library</span>
 
   <h2>WHAT IT DOES</h2>
   <div class="rows">
+    <div class="row"><span class="k">SIGNED</span><span class="v">Every quote and every certificate verifies offline <span class="sub">— Ed25519, our public key, an open verifier. Change one cent and the signature fails.</span></span></div>
+    <div class="row"><span class="k">NEVER ABOVE</span><span class="v">Discount-only by construction <span class="sub">— the worst case is the posted price, enforced in code</span></span></div>
     <div class="row"><span class="k">ONE PRICE</span><span class="v">Plain dollars in, the next move out <span class="sub">— walk-away, target, their offers so far</span></span></div>
     <div class="row"><span class="k">MANY ISSUES</span><span class="v">Logrolls a package <span class="sub">— concede what you value least to hold what you value most</span></span></div>
-    <div class="row"><span class="k">NEVER ABOVE</span><span class="v">Discount-only by construction <span class="sub">— the worst case is the posted price, enforced in code</span></span></div>
-    <div class="row"><span class="k">SIGNED</span><span class="v">Every quote and every certificate verifies offline <span class="sub">— Ed25519, no call back to us</span></span></div>
   </div>
 
 <pre>from gametheory.negotiation.plain_terms import negotiate_turn
@@ -101,7 +105,7 @@ negotiate_turn(side="sell", walk_away=4000, target=6000,
     <div class="row"><span class="k">THE LIMIT</span><span class="v">It cuts how often you hit the floor, not how bad the floor is <span class="sub">— the worst-decile outcome is unchanged in all four cells. We say so because you can check it.</span></span></div>
   </div>
 
-  <h2>THE THREE THINGS HERE</h2>
+  <h2>WHAT'S HERE</h2>
   <div class="doors">
     <a class="door" href="/certificate">
       <div class="nm">The test →</div>
@@ -117,6 +121,14 @@ negotiate_turn(side="sell", walk_away=4000, target=6000,
       <div class="nm">The source →</div>
       <p>Engine, notary, test harness, and every experiment above — the commands in the
         write-ups are the real ones.</p>
+    </a>
+    <a class="door" href="/llms.txt">
+      <div class="nm">The counter →</div>
+      <p>When free and generic isn't enough. <b>$2</b> buys a whole negotiation on the
+        record — every move, category-tuned, bit-identical on replay, Ed25519-signed.
+        Plus agent memory your agent encrypts before we ever see it, and a page-read slot
+        billed at cost, only when it delivers. Prepaid wallet, 50&cent; on the house,
+        no account. Reachable from the same MCP server.</p>
     </a>
   </div>
 
