@@ -100,6 +100,13 @@
   ul{padding-left:1.1rem;margin:.6rem 0}
   li{margin-bottom:.35rem}
   a{color:var(--blue)}
+  /* Pre-registered disclosure. K3/K8/K16 fired in our own simulation and
+     the pre-registration committed us to publishing them HERE, on the
+     page, not only in the writeup. Styled to be read, not buried. */
+  .selfaudit{margin-top:2.6rem;padding:1.3rem 1.4rem;border:1px solid rgba(255,224,138,.3);border-radius:.8rem;background:rgba(255,224,138,.05)}
+  .selfaudit h3{font-size:.82rem;text-transform:uppercase;letter-spacing:.14em;color:var(--gold);font-weight:400;margin:0 0 .8rem}
+  .selfaudit p{margin:.6rem 0;font-size:.9rem}
+  .selfaudit li{margin-bottom:.6rem;font-size:.9rem}
   .caveats{color:var(--dim);font-size:.82rem;margin-top:2.6rem;padding-top:1.2rem;border-top:1px solid var(--line)}
   .caveats li{margin-bottom:.45rem}
   .err{color:var(--gold);margin-top:1rem;font-size:.9rem}
@@ -261,6 +268,32 @@ function render(d){
     parts.push('</div>');
   }
 
+  // Pre-registered disclosure. We wrote down, before running the
+  // simulation, that if these fired we would publish them here.
+  parts.push(`<div class="selfaudit">
+    <h3>What our own simulation says about this tool</h3>
+    <p>We simulated rent renewals where either side uses our negotiation
+    engine, and pre-registered what results would count against us. Three
+    of those fired. You should know them before you use this.</p>
+    <ul>
+      <li><b>Whoever holds the engine captures most of the value.</b> A
+      landlord using it gained roughly <b>8.5&times; what a tenant using it
+      gained</b>. Once the landlord has one, a tenant having one added
+      almost nothing. The sophisticated side of this negotiation already
+      runs pricing software &mdash; which is much of why this page is free.</li>
+      <li><b>If enough people ask, landlords may raise the opening offer
+      for everyone.</b> In our runs the people who ask recover more than the
+      increase, and the people who don't ask absorb it. Publishing what
+      works has a cost, and it lands on the quiet.</li>
+      <li><b>The good news, and it is real:</b> negotiating over several
+      terms at once made <i>both</i> sides better off and made fewer
+      renewals fail. The value is genuine. Its division is lopsided.</li>
+    </ul>
+    <p>Our model also failed its own accuracy check &mdash; it could not
+    reproduce the observed rate at which landlords concede. Treat all of the
+    above as an argument about mechanism, not a measurement of your
+    landlord.</p>
+  </div>`);
   parts.push('<div class="caveats"><ul>');
   (d.caveats||[]).forEach(c => parts.push(`<li>${esc(c)}</li>`));
   parts.push(`<li>${esc(d.evidence_note)}</li>`);
