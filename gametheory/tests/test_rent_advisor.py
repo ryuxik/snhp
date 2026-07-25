@@ -230,7 +230,11 @@ def test_drafted_message_is_grammatical():
         assert not a["ask_phrase"][0].isupper(), a["key"]
 
 
-def test_next_step_points_the_right_direction():
-    """'Send the message below' rendered above the message on the page."""
-    d = advisor.assess("Denver", 2000, 2150, 30).to_dict()
-    assert "below" not in d["next_step"].lower()
+def test_next_step_uses_no_directional_language():
+    """This payload renders in different orders on the page and via MCP, so
+    'below'/'above' is a bug waiting to happen — it has bitten twice.
+    Describe the thing, never its position."""
+    for metro in ("Denver", "New York", "Buffalo"):
+        step = advisor.assess(metro, 2000, 2150, 30).to_dict()["next_step"]
+        for directional in ("below", "above"):
+            assert directional not in step.lower(), (metro, directional)

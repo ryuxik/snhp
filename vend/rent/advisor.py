@@ -407,12 +407,12 @@ def assess(
         # K25 leads both paths: delay costs more than any single ask below.
         urgency = (
             "Do this now rather than later — waiting costs more than any "
-            "single item below. "
+            "single thing you could ask for. "
         )
         lead = urgency + (
             "First, check whether your apartment is rent regulated — if it "
             "is, the legal cap matters more than any of this. Then send the "
-            "message above "
+            "message "
             if regulated
             else "Send the message above "
         )
