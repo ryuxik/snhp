@@ -42,10 +42,20 @@ the person's own words. Anything the model could not quote verbatim from
 their message is tagged `INFERRED`, which is not in `FIRM`, so the
 sensitivity engine keeps asking until a human confirms it.
 
-**Confidence comes from auditing inputs, not from trusting output.** The
-first thing on screen after you describe your situation is the helper's
-structured read of it, every field tagged `you said` / `market data` /
-`assumed` / `I worked this out — check it`, all editable.
+**Confidence comes from auditing inputs, not from trusting output** —
+but only the inputs worth auditing. The first cut showed every resolved
+prior as a row with a colour-coded provenance badge and a legend to
+decode it: seven rows of homework, most of them things the person typed
+thirty seconds earlier. Showing somebody their own answer back with a
+green badge is noise, not trust.
+
+Now the panel splits. `check` holds only what a model worked out rather
+than read, and is usually empty. Everything they stated collapses to one
+line — *"You said: Denver · $1,800 · $1,950 · 30 months — something
+wrong?"* — openable if it looks off. Defaults ride in that line with a
+count, because a default that survives is one the sensitivity engine
+already judged irrelevant; putting it up for review would contradict the
+thing that decided not to ask.
 
 ## Adding a situation
 

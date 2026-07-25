@@ -532,8 +532,11 @@ def test_answer_confirmed_values_beat_read_values(monkeypatch):
     assert r["answer"] is not None
     assert r["answer_is_provisional"] is False
     assert r["blocked"] is None
-    fields = {f["key"]: f for f in r["reflection"]["fields"]}
-    assert fields["monthly_rent"]["provenance"] == STATED
+    # Typed by hand, so it belongs in the quiet line, not the check list.
+    confirmed = {f["key"]: f for f in r["reflection"]["confirmed"]}
+    assert confirmed["monthly_rent"]["provenance"] == STATED
+    assert r["reflection"]["check"] == [], (
+        "nothing was guessed, so nothing should be put up for review")
 
 
 def test_answer_reports_a_blocked_situation_rather_than_serving_it(monkeypatch):
@@ -1418,3 +1421,76 @@ def test_the_public_intake_menu_omits_drafts():
     assert "rent_renewal" in menu
     assert "lease_break" not in menu
     assert "months_remaining" not in menu
+
+
+# ── The reflection panel, after the redesign ─────────────────────────
+
+
+def test_nothing_is_put_up_for_review_when_nothing_was_guessed():
+    """The panel used to show every resolved prior as a row with a
+    colour-coded provenance badge and a legend to decode it — seven rows
+    of homework, most of them things the person typed thirty seconds
+    earlier. Showing somebody their own answer back is noise, not trust.
+    """
+    s = registry.get("rent_renewal")
+    p = priors.resolve(s, stated={"metro": "denver", "current_rent": 1800,
+                                  "offered_rent": 1950, "months_at_address": 30})
+    rf = ux.build(s, p, s.assess(p.values))["reflection"]
+    assert rf["check"] == []
+    assert rf["check_intro"] == ""
+    assert rf["confirmed_summary"], "still shown, but as one line"
+    assert len(rf["confirmed"]) == 4
+
+
+def test_only_guesses_are_put_up_for_review():
+    """What earns the person's attention is the narrow set we worked out
+    rather than read."""
+    s = registry.get("rent_renewal")
+    p = priors.resolve(
+        s,
+        stated={"metro": "denver", "current_rent": 1800,
+                "offered_rent": 1950, "months_at_address": 30},
+        provenance={"months_at_address": INFERRED, "metro": INFERRED},
+    )
+    rf = ux.build(s, p, s.assess(p.values))["reflection"]
+    assert {f["key"] for f in rf["check"]} == {"months_at_address", "metro"}
+    assert {f["key"] for f in rf["confirmed"]} == {"current_rent", "offered_rent"}
+    assert rf["check_intro"]
+
+
+def test_defaults_are_disclosed_in_the_quiet_line_not_hidden():
+    """Assumed values are firm enough not to interrupt, and not so firm
+    that they go unmentioned.
+
+    Neither situation currently produces a surviving default — every
+    defaulted field clears the threshold and gets asked instead — so this
+    exercises the mechanism directly rather than contorting a scenario
+    into existence. If a future situation does default something the
+    engine judges irrelevant, this is the behaviour it gets.
+    """
+    from vend.situations.schema import ASSUMED
+
+    s = registry.get("lease_break")
+    p = priors.resolve(s, stated={
+        "metro": "denver", "monthly_rent": 2400, "months_remaining": 9.0,
+        "has_termination_clause": False, "replacement_tenant_ready": True,
+        "lease_allows_transfer": "yes", "move_out_reason": "job",
+        "security_deposit": 2000})
+    p.provenance["security_deposit"] = ASSUMED
+
+    rf = ux.build(s, p, s.assess(p.values))["reflection"]
+    assumed = [f for f in rf["confirmed"] if f["provenance"] == ASSUMED]
+    assert assumed, "a surviving default must still appear"
+    assert "default" in rf["confirmed_summary"].lower()
+    assert not [f for f in rf["check"] if f["provenance"] == ASSUMED], (
+        "a default the engine judged irrelevant must not be put up for review")
+
+
+def test_the_provenance_legend_is_gone_from_the_page():
+    """With only guesses shown prominently there is nothing to decode."""
+    page = os.path.join(_HERE, "gametheory", "server", "static", "helper.html")
+    with open(page, encoding="utf-8") as fh:
+        html = fh.read()
+    assert 'class="prov-key"' not in html
+    assert "prov-stated" not in html and "prov-market" not in html
+    assert 'id="said-toggle"' in html, "the quiet line must still be openable"

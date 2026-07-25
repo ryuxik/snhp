@@ -66,11 +66,10 @@
   .refl-row:last-child{border-bottom:0}
   .refl-label{color:var(--dim);font-size:.9rem;flex:1 1 auto}
   .refl-val{font-size:.95rem;text-align:right;white-space:nowrap}
-  .prov{display:block;font-size:.7rem;letter-spacing:.04em;margin-top:.1rem}
-  .prov-stated{color:var(--green)}
-  .prov-inferred{color:var(--gold)}
-  .prov-market,.prov-rules{color:var(--blue)}
-  .prov-assumed{color:var(--dim)}
+  /* One state left. Everything shown in this panel is something we
+     guessed at — there is nothing to colour-code against. */
+  .prov{display:block;font-size:.7rem;letter-spacing:.04em;margin-top:.1rem;
+    color:var(--gold)}
   .edit-open .refl-val{display:none}
 
   /* ---- questions ---- */
@@ -108,7 +107,11 @@
     border:1px solid var(--line);border-radius:10px;padding:1rem;margin:0}
   .fine{color:var(--dim);font-size:.78rem;line-height:1.55}
   .fine li{font-size:.78rem}
-  .prov-key{color:var(--dim);font-size:.75rem;margin-top:.9rem}
+  .said{color:var(--dim);font-size:.85rem;margin:0;line-height:1.6}
+  .linky{background:none;border:0;color:var(--violet);font:inherit;font-size:.85rem;
+    padding:0 0 0 .4rem;margin:0;cursor:pointer;text-decoration:underline;
+    text-underline-offset:3px}
+  .linky:hover{opacity:.8}
   .err{color:var(--red);font-size:.9rem}
   [hidden]{display:none !important}
   a{color:var(--gold)}
@@ -133,19 +136,19 @@
     <div id="catalog" hidden style="margin-top:1rem"></div>
   </section>
 
-  <!-- 2. the reflection: you audit inputs, you don't have to trust an output -->
+  <!-- 2. the reflection. Prominent ONLY for what we guessed at; what
+       they told us collapses to one line they can open. Showing somebody
+       their own answer back with a green badge is noise, not trust. -->
   <section id="reflection" hidden>
-    <h2>How I read it</h2>
-    <div class="card">
-      <p class="fine" id="refl-intro" style="margin:0 0 .8rem"></p>
-      <div id="refl-rows"></div>
-      <p class="prov-key">
-        <span class="prov-stated">you said</span> &middot;
-        <span class="prov-inferred">I worked this out &mdash; check it</span> &middot;
-        <span class="prov-market">market data</span> &middot;
-        <span class="prov-assumed">assumed</span>
-      </p>
+    <div id="check-wrap" hidden>
+      <h2 id="check-intro"></h2>
+      <div class="card" id="check-rows"></div>
     </div>
+    <p class="said" id="said" hidden>
+      <span id="said-text"></span>
+      <button class="linky" id="said-toggle" type="button">something wrong?</button>
+    </p>
+    <div class="card" id="said-rows" hidden></div>
   </section>
 
   <!-- 3. only the questions that earn their place -->
@@ -302,43 +305,61 @@
     return wrap;
   }
 
-  // ---- reflection: every field says where it came from, and is editable ----
-  function renderReflection(fields){
-    var box = $('refl-rows');
-    clear(box);
-    fields.forEach(function(f){
-      var row = el('div','refl-row');
-      row.appendChild(el('span','refl-label', f.label));
+  // ---- reflection ----
+  function row(f){
+    var r = el('div','refl-row');
+    r.appendChild(el('span','refl-label', f.label));
+    var right = el('span','refl-val');
+    right.appendChild(document.createTextNode(f.value));
+    if(f.provenance !== 'stated')
+      right.appendChild(el('span','prov', f.provenance_label));
+    r.appendChild(right);
+    if(!f.editable) return r;
 
-      var right = el('span','refl-val');
-      right.appendChild(document.createTextNode(f.value));
-      right.appendChild(el('span','prov prov-' + f.provenance, f.provenance_label));
-      row.appendChild(right);
-
-      if(f.editable){
-        row.style.cursor = 'pointer';
-        row.title = 'Click to correct';
-        row.onclick = function(){
-          if(row.classList.contains('edit-open')) return;
-          row.classList.add('edit-open');
-          var i = document.createElement('input');
-          i.value = '';
-          i.placeholder = f.value;
-          i.style.maxWidth = '11rem';
-          i.onkeydown = function(e){ if(e.key === 'Enter'){ commit(); } };
-          i.onblur = commit;
-          function commit(){
-            if(i.value.trim()) state.values[f.key] = i.value.trim();
-            row.classList.remove('edit-open');
-            if(i.parentNode) i.parentNode.removeChild(i);
-            submit();
-          }
-          row.appendChild(i);
-          i.focus();
-        };
+    r.style.cursor = 'pointer';
+    r.title = 'Click to correct';
+    r.onclick = function(){
+      if(r.classList.contains('edit-open')) return;
+      r.classList.add('edit-open');
+      var i = document.createElement('input');
+      i.placeholder = f.value;
+      i.style.maxWidth = '11rem';
+      i.onkeydown = function(e){ if(e.key === 'Enter') commit(); };
+      i.onblur = commit;
+      function commit(){
+        if(i.value.trim()) state.values[f.key] = i.value.trim();
+        r.classList.remove('edit-open');
+        if(i.parentNode) i.parentNode.removeChild(i);
+        submit();
       }
-      box.appendChild(row);
-    });
+      r.appendChild(i); i.focus();
+    };
+    return r;
+  }
+
+  function renderReflection(rf){
+    var check = rf.check || [], confirmed = rf.confirmed || [];
+
+    var cr = $('check-rows'); clear(cr);
+    check.forEach(function(f){ cr.appendChild(row(f)); });
+    $('check-intro').textContent = rf.check_intro || '';
+    show('check-wrap', check.length > 0);
+
+    // What they told us: one line, openable. Not a form read back.
+    $('said-text').textContent = confirmed.length
+      ? 'You said: ' + rf.confirmed_summary : '';
+    show('said', confirmed.length > 0);
+
+    var sr = $('said-rows'); clear(sr);
+    confirmed.forEach(function(f){ sr.appendChild(row(f)); });
+    show('said-rows', false);
+    $('said-toggle').onclick = function(){
+      var open = !$('said-rows').hidden;
+      show('said-rows', !open);
+      $('said-toggle').textContent = open ? 'something wrong?' : 'hide';
+    };
+
+    show('reflection', check.length + confirmed.length > 0);
   }
 
   function renderAnswer(a){
@@ -421,10 +442,7 @@
     $('sub').textContent = d.situation.one_liner;
     show('ask', false);
 
-    var rf = d.reflection || {};
-    $('refl-intro').textContent = rf.intro || '';
-    renderReflection(rf.fields || []);
-    show('reflection', (rf.fields || []).length > 0);
+    renderReflection(d.reflection || {});
 
     var qs = d.questions || [];
     $('q-note').textContent = d.questions_note || '';
