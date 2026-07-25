@@ -404,10 +404,15 @@ def assess(
             )
     else:
         asks = _build_asks(current_rent, offered_rent, market)
-        lead = (
+        # K25 leads both paths: delay costs more than any single ask below.
+        urgency = (
+            "Do this now rather than later — waiting costs more than any "
+            "single item below. "
+        )
+        lead = urgency + (
             "First, check whether your apartment is rent regulated — if it "
             "is, the legal cap matters more than any of this. Then send the "
-            "message below "
+            "message above "
             if regulated
             else "Send the message above "
         )
