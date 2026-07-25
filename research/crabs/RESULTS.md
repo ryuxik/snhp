@@ -1,5 +1,162 @@
 # RESULTS — Station Rents (research/crabs)
 
+**Status: complete. Building stopped under the pre-committed rule in PREREG
+AMENDMENT 6 §A6.3.** Three validation gates were attempted and all three failed.
+Six mechanisms were built. What survived is a real set of findings and a real
+failure; both are below, and the failure is the primary result.
+
+---
+
+# CONSOLIDATED SUMMARY
+
+## The primary finding — a failure
+
+**We could not build a model that reproduces the 2026 renewal/new-let inversion
+from primitives, across three gate attempts and six mechanisms.**
+
+| gate | what it asked | verdict |
+|---|---|---|
+| **GATE 1** (PREREG §3) | reproduce the observed 22% counter-success rate and its tenure effect | **FAIL** — 0.0% under the registered spec; 3.9–13.4% after one respecification; the engine arm overshoots to 71.6% |
+| **GATE 2** (A2.1) | landlord behaviour emerging from portfolio size alone | **FAIL on all four criteria** — K9 fired |
+| **GATE 3** (A3.3) | the MAA new-let-negative / renewal-positive pattern emerging with no imposed regime | **FAIL, three attempts** — final attempt passes V8 **and V9**, fails V10 by 0.3pp |
+
+The third attempt came closest: with elastic demand and asymmetric deadline
+clocks, **V9 passes** — the new-let-negative / renewal-positive pattern emerges
+with zero imposed drift and no private-information leak (new-let −24.45%, renewal
++2.85%). It fails V10, the bridge check, by **0.3pp**, and its magnitude is wrong
+by 3× because the market still deflates. The bar was not moved.
+
+**Consequence, stated plainly as A6.3 requires: the article's empirical claim rests
+on the REIT filings alone. We have a partial mechanism — a sign, not a magnitude,
+that fails its own bridge check — and it should be described that way or not at
+all.** The −7.0%/+5.4%
+spread is a documented fact from audited earnings releases; our simulation cannot
+generate it from primitives, and the honest article says so rather than implying a
+model stands behind it.
+
+## What survived, and is publishable
+
+1. **The engine beats both controls — K13 and K14 did not fire.** Routed through
+   the real `negotiate_bundle`, multi-issue bundling beats single-issue rent
+   bargaining by **+$944 ± 43 (loss) / +$977 ± 39 (gain)** per crab-year against a
+   $480 bar — roughly 2× — and beats our own hand-rolled ladder by **+$887 / +$860**.
+   It wins by **finding deals that exist** (success 0.166/0.716 vs the ladder's
+   0.051/0.199), not by extracting harder. Survived three fairness diagnostics:
+   protocol parity, term-issue ablation, and the ladder's stopping rule.
+2. **Whoever holds the engine captures ~90% of the gain — K16 FIRED.** Landlord
+   gain in N/L is **+$2,642 / +$1,981**; tenant gain in T/N is **+$298 / +$236** —
+   about **8.5–8.9×**. Joint surplus rises materially (**+$1,372 / +$1,001**, via
+   deadweight falling), so it is real value creation, of which the landlord takes
+   nine parts in ten. **Our likelier customer is the landlord.** Belongs on
+   snhp.dev/rent, per A4.3.
+3. **Non-askers absorb the cost — K3 and K8 FIRED.** At 75% adoption non-askers
+   lose ~**1.2% of annual rent** (positive in all eight estimates, straddling the
+   bar). Under broadcast plus an adaptive landlord, askers gain **+$138** while
+   non-askers lose **−$67 ± 15**. The landlord cannot see who reads our page, so it
+   raises the offer on everyone.
+4. **K1 fired against our ladder and does not fire against the engine.** Its Phase
+   1 verdict stands for what it tested — our own reimplementation — and is
+   superseded as a test of the product.
+5. **The renewal asymmetry runs against the tenant, but only slightly — K20 FIRED.**
+   Tenant walk-away **$3,062 ± 7** vs landlord **$2,845 ± 5**: ratio **1.08×**
+   (1.06–1.39× across specifications). See the correction below.
+6. **Answer early — K25 CONFIRMED, and it is the strongest piece of product advice
+   in the whole study.** A tenant who lets a three-month notice window lapse is
+   offered **13.3% more relative to market** and ends **$645/year worse off** than
+   an identical tenant who answers immediately. Causal: the delay is drawn
+   independently of type.
+7. **Shopping around does not help you negotiate — K26 does not confirm (+$17 vs a
+   $480 bar).** The landlord cannot verify your alternative, so it offers you the
+   same terms either way. Having one lets you *leave*; it does not get you a better
+   deal. Drop any copy implying otherwise.
+8. **A narrow group should move rather than negotiate — K21 did not fire, but the
+   structure is the product point.** Only **~1 in 6 of the cheapest-to-move
+   quartile** is better off moving; the share is 0.0% in the two dearest quartiles.
+   Real, actionable, and much narrower than the kill's framing.
+9. **The "just sign" verdict is right for the individual and worth nothing in
+   aggregate — K11 did not fire.** Per-asker it looks worth +$3,700/yr; on an
+   identical population it is **−$244 to −$4**. The gap is pure selection, and the
+   guard that caught it was pre-registered.
+
+## Corrections to the record
+
+- **K20's magnitude was overstated by the coordinator and I confirm the corrected
+  figure.** The claim of "more than twice as much to lose" compared a ~$7,200 move
+  to a ~$3,000 make-ready, dropping the landlord's expected vacancy and re-let rent
+  risk. Against the full landlord walk-away the ratio is **1.08×**. **Any copy
+  implying a large asymmetry is unsupported.**
+- **K19 fired only because of a bug of mine.** The renewal offer was built from each
+  tenant's *private* moving cost — price discrimination on unobservable
+  information. Corrected, renewal growth goes +1.13% → −0.64% and the result we
+  most wanted disappears.
+- **K16 was nearly missed by a bug of mine in the opposite direction.** My first
+  Arm K let the SNHP landlord only *reply*; N/L came out bit-identical to N/N and
+  K16 read "DID NOT FIRE, +$3". Letting the landlord *open* with a bundle moved its
+  gain to +$2,642.
+- **My own on-record prediction was refuted.** I predicted risk aversion was too
+  weak to carry the emergence chain and that the non-pecuniary primitives would
+  carry it. Risk aversion is indeed inert — but so is everything else. No primitive
+  carries it (institutional push is 10.60–10.61% in all six ablations).
+- **A Phase-2 claim was wrong.** Station size governs the grapevine's *precision*,
+  not its mean; the lifts are 0.3500 vs 0.3495, a tie.
+- **A6a's "shape not level" claim is refuted by its own test.** Mean-matching the
+  tenant's clock to a linear ramp keeps 87% of the effect. The inversion comes from
+  charging the tenant for delay at all, not from the cliff.
+- **Four of my five measurement artefacts ran in the direction of a sharper
+  story**: the K11 per-asker confound, the K21 survivorship inversion, and the K19
+  private-information leak. The bias is consistent and worth naming.
+
+## Every kill, in one table
+
+| kill | verdict | deciding number |
+|---|---|---|
+| K1 ranked-ask is decoration | **FIRED** (vs our ladder), superseded vs engine | C−B +$2 / +$58 vs $480 |
+| K2 value is transitional | did not fire | E/D ratio 6.0, not ≤0.25 |
+| K3 negative externality | **FIRED** | +$282 pooled, ~1.2% of annual rent |
+| K4 regime argument wrong | **FIRED** | difference $53 vs $240 |
+| K5 landlord type not actionable | did not fire (rests on invented MEDIUM) | spread $92 on grounded types |
+| K6 worth least where we aimed | did not fire | MEDIUM > INST > MOM |
+| K7 net-harmful at scale | did not fire | broadcast +$5 / +$55 |
+| K8 broadcast helps only the loud | **FIRED** | askers +$138, non-askers −$67 |
+| K9 primitives cannot generate behaviour | **FIRED** | GATE 2 fails 4/4 |
+| K10 mechanism is bureaucratic | did not fire | arm G *lowers* success to 0.020/0.037 |
+| K11 walk-away floor is the product | did not fire | total surplus −$244 / −$4 |
+| K12 landlord wants you to ask | did not fire (inst) | station cash −$137 / −$128 |
+| K13 logrolling does nothing | did not fire | +$944 / +$977 vs $480 |
+| K14 engine worse than ladder | did not fire | +$887 / +$860 |
+| K15 swarm changes nothing | did not fire | overturned K19; produced V8 |
+| K16 we arm the stronger side | **FIRED** | 8.5–8.9× |
+| K17 arms race not value creation | did not fire | joint +$1,372 / +$1,001 |
+| K18 mutual engines destroy value | did not fire | turnover falls |
+| K19 inversion is a BATNA artefact | did not fire (fired only under a bug) | renewal −0.64% |
+| K20 tenant weaker in renewals | **FIRED** | 1.08× |
+| K21 some should move not negotiate | did not fire | +$372 vs $480 |
+| K22 depth rises with days-on-market | **UNDECIDED** (bug signal) | non-monotone |
+| K23 engine exploits the deadline | **UNDECIDED** | not quantifiable in a deflating market |
+| K24 deadline shape generates the inversion | **FIRED**, explanation refuted | shape contributes only +0.37pp of +2.85pp |
+| K25 position decays with the clock | **CONFIRMED** | offer/market 1.065 → 1.198; −$645/yr |
+| K26 secure an alternative first | **does not confirm** | +$17 vs $480 |
+
+## Reproduce everything
+
+```
+python3 research/crabs/run.py        --phase 1 [--spec exploratory] [--seeds heldout] [--sens]
+python3 research/crabs/run2.py      --spec exploratory [--shocks]     # types, broadcast, shocks
+python3 research/crabs/run_engine.py                                  # real engine + arm K
+python3 research/crabs/run_market.py                                  # two channels + GATE 3
+python3 research/crabs/run3.py                                        # GATE 2 + arms G-J
+python3 research/crabs/analyze.py --file results_phase1_registered.json
+python3 research/crabs/analyze2.py [--shocks]
+python3 research/crabs/analyze_engine.py
+python3 research/crabs/analyze_market.py
+python3 -m pytest research/crabs/test_crabs.py -q                     # 80 tests, ~33s
+```
+
+Seeds fixed in code throughout: pilot 9000–9019, main 1000–1059 (1000–1499 for
+mom-and-pops), held-out 7000–7059.
+
+---
+
 Simulation of station-habitat rent renewal, pre-registered in `PREREG.md` and
 implemented per `SPEC.md`. Code version `crabs-1.0`.
 
@@ -12,7 +169,7 @@ python3 research/crabs/run.py     --phase 1 --spec exploratory
 python3 research/crabs/run.py     --phase 1 --spec exploratory --seeds heldout
 python3 research/crabs/run.py     --phase 1 --sens                          # + --spec exploratory
 python3 research/crabs/analyze.py --file results_phase1_registered.json     # any of the above
-python3 -m pytest research/crabs/test_crabs.py -q                           # 69 tests, ~33s
+python3 -m pytest research/crabs/test_crabs.py -q                           # 76 tests, ~33s
 ```
 
 Seeds, fixed in code before running: pilot `9000–9019`, main `1000–1059`,
@@ -768,7 +925,7 @@ Reproduce:
 ```
 python3 research/crabs/run_engine.py
 python3 research/crabs/analyze_engine.py
-python3 -m pytest research/crabs/test_crabs.py -q          # 69 tests, ~33s
+python3 -m pytest research/crabs/test_crabs.py -q          # 76 tests, ~33s
 ```
 
 Same seeds (`1000–1059`), 50 habitats, both regimes, all crabs counter. Phase 1's
@@ -1036,3 +1193,511 @@ I sequenced K1's re-run and Arm K first because they were named the highest-valu
 items. That was the right call, but it means two registered gates are open and
 four kills undecided, and no conclusion here should be read as though they had
 passed.
+
+---
+
+# PHASE 5 — two channels, the walk-away asymmetry, and the endogenous market
+### (AMENDMENT 5, as corrected by AMENDMENT 5a; and GATE 3 / AMENDMENT 3 §A3.3)
+
+```
+python3 research/crabs/run_market.py && python3 research/crabs/analyze_market.py
+python3 -m pytest research/crabs/test_crabs.py -q      # 76 tests, ~33s
+```
+
+`market.py` replaces the imposed `market_path` with an actual market: stations
+post asking rents against their own observed vacancy, leaving tenants enter a
+search pool instead of vanishing, searchers see `K_VISIBLE = 5` listings and take
+the best, and **market rent is an output** — the mean realised new-let rent. No
+drift is imposed in any cell. Both channels run every period and are never
+pooled. Days-on-market is carried as state and the new-let channel runs in
+monthly sub-periods, because A5a's whole point is that vacancy is a flow.
+
+## 1. GATE 3 — reported before any arm result
+
+| | baseline | +30% supply |
+|---|---|---|
+| vacancy rate | 0.000 | 0.062 |
+| mean asking rent | $524 | $479 |
+| new-let signed | $443 | $409 |
+| renewal signed | $611 | $586 |
+| **NEW-LET growth** | **−25.1%** | **−26.9%** |
+| **RENEWAL growth** | **−0.64%** | **−0.42%** |
+| retention | 0.645 | 0.645 |
+
+- **V8 PASS.** A supply shock raises vacancy (0.000 → 0.062) and pushes new-let
+  rents below sitting rents ($409 vs $586) with nothing imposed.
+- **V9 FAIL.** The sign pattern does **not** hold: new-let growth is negative but
+  renewal growth is **also** negative (−0.64%). MAA's actual pattern is
+  −7.0% / **+5.4%**.
+- **V10 FAIL.** Endogenous retention 0.645 against Phase 1's 0.593/0.575 — off by
+  5.2pp against a 5pp bar. Misses by 0.2pp.
+
+**GATE 3: FAIL.** We cannot generate the 2026 phenomenon from primitives. Per
+A3.3 the consequence stands as written: **the article's central empirical claim
+rests entirely on the REIT filings, with no mechanism of our own.**
+
+**K15 — the swarm changes nothing. DID NOT FIRE.** Endogenising the market
+changes plenty: it produces V8's supply response, and it overturned K19 (below).
+Bilateral models do not suffice for this question.
+
+## 2. The bug that was producing the result we wanted
+
+K19 **fired** in my first two market runs (renewal growth +3.23%, then +1.13%,
+against new-let −5.0%/−26.2%). It does not fire now. The reason is a defect I
+found while chasing an inverted K21 quartile table:
+
+**the renewal offer was built from each tenant's own private moving cost.** The
+landlord was price-discriminating on information it cannot observe, charging
+high-moving-cost tenants more. That manufactured the renewal ratchet — and the
+ratchet is exactly what made the MAA sign pattern appear. Restricting the
+landlord to its *expected* tenant walk-away (population mean plus observable
+tenure) takes renewal growth from +1.13% to **−0.64%**, and the sign pattern
+disappears.
+
+This is the same class of error as the reply-only landlord in Arm K, in the
+opposite direction: there a defect suppressed a kill we did not want, here a
+defect produced a result we did. **K19 is the best result available to us and it
+was an artefact.**
+
+## 3. Walk-away costs and bargaining zones, per channel (A5.2 / A5a.4)
+
+$/renewal or /match. Levels are deflated (see §5); ratios are the readable part.
+
+| cell | channel | tenant WA | landlord WA | ratio | zone width |
+|---|---|---|---|---|---|
+| baseline | RENEWAL | 3062 | 2845 | **1.08** | 4800 |
+| baseline | NEW LET | 46 | 6148 | **0.01** | 6195 |
+| +30% supply | RENEWAL | 2935 | 2757 | 1.06 | 4600 |
+| +30% supply | NEW LET | 44 | 6067 | 0.01 | 6168 |
+| precedent 0.01 | RENEWAL | 3239 | 3032 | 1.07 | 4923 |
+| split → landlord 0.75 | RENEWAL | 5814 | 6264 | 0.93 | 9113 |
+| split → tenant 0.25 | RENEWAL | 1600 | 1213 | 1.32 | 2507 |
+
+**A5a's inversion is confirmed at the walk-away level**, and it is stark: in a
+renewal the tenant is the weak party by ~1.1×; in a new let the **landlord** is
+the weak party by ~100×, because it faces an accumulating vacancy flow while the
+tenant merely views the next listing. Verified as unit properties by four tests:
+make-ready is charged once per turn and never appears in the new-let walk-away;
+vacancy is charged per vacant month; lower market tightness gives a station a
+worse new-let BATNA (E[wait] 0.57 → 4.60 months as tightness falls 2.0 → 0.25);
+and the landlord's reservation falls monotonically in days-on-market (E[wait]
+1.15 → 3.56 months from dom 0 → 6).
+
+## 4. Kills
+
+### K20 — the tenant is the weaker party in renewals. **FIRED**
+
+Tenant walk-away **$3,062 ± 7** vs landlord **$2,845 ± 5**; difference
+**+$218 ± 4**, ratio **1.08×**. It also fired at 1.39× in the pre-correction run,
+so the direction is robust to every specification I tried.
+
+**But the magnitude is much smaller than the framing that motivated it.** Against
+make-ready **alone** (~$3,000) the tenant's ~$7,200 move is ~2.4–3.6× larger. But
+the landlord's renewal walk-away is make-ready **plus** expected vacancy **plus**
+re-let rent risk, and against that total the ratio is **1.06–1.39×** — close to
+parity, not a rout. The honest statement is "the tenant is somewhat the weaker
+party in a renewal", not "the tenant has more than twice as much to lose."
+
+### K21 — for some tenants the right advice is "move". **DID NOT FIRE**
+
+Raw annual rent saving from moving to a new let: **+$372 ± 1**, against a $480
+bar. Net of the tenant's own moving cost amortised over its expected remaining
+stay: **−$706 ± 2**, and only **2.3%** of tenants are better off moving.
+
+The product-relevant structure is in the quartiles, and it only became legible
+after two bug fixes (survivorship — I was recording only tenants who *stayed* —
+and the private-information leak):
+
+| moving-cost quartile | net gain from moving | share for whom moving wins |
+|---|---|---|
+| q0 (cheapest to move) | **−$137** | **16.8%** |
+| q1 | −$342 | 2.7% |
+| q2 | −$663 | 0.0% |
+| q3 (dearest) | −$1,380 | 0.0% |
+
+Monotone in the right direction at last. **The advice "leaving beats negotiating"
+is correct for a real but narrow group — roughly the cheapest-to-move quartile,
+and about one in six of them.** That is a genuine product consequence and it is
+much narrower than K21's framing implies. It does not clear the pre-registered
+bar, so K21 does not fire.
+
+### K22 — concession depth rises with days-on-market. **UNDECIDED (bug signal)**
+
+Realised depth by dom bucket (0, 1–2, 3–5, 6+ months) is **non-monotone**:
+0.316 / 0.316 / 0.308 / 0.146. A5a says to treat that as a bug signal before
+treating it as a finding, so I did, and found two:
+
+1. dom was correlated with month-within-year, because all lease expiries landed in
+   month 0 and made market tightness lumpy. Fixed by spreading expiries.
+2. The landlord's ask did not fall with dom at all, and depth was measured off the
+   current ask rather than the original listing. Fixed both.
+
+Neither restored monotonicity, because of the third and unfixed problem in §5:
+`E[remaining vacancy]` saturates at its 12-month cap, which drives the landlord's
+reservation to zero and makes the identity unreadable. **K22 is undecided, and I
+am reporting it as an accounting problem in our model rather than as a finding
+about the world.**
+
+### K23 — the engine exploits the deadline asymmetry. **UNDECIDED**
+
+Implemented as `tenant_sees_dom`, which is exactly `their_batna_estimate` in the
+engine's interface: a tenant blind to timing prices the landlord's reservation as
+if the listing were fresh, an informed one uses the true days-on-market.
+Directionally the informed tenant does extract more (depth 0.451 vs 0.305 at dom
+1–2 months in the run before the deflation took hold), but I cannot quantify it
+against the 1%-of-annual-rent bar in a market whose price level is not stable.
+
+## 5. The defect that blocks the rest, stated plainly
+
+**Under A5a's corrected BATNA the market deflates to a floor.** Market rent falls
+from $2,000 to ~$524 and stays there; the supply shock becomes inert at the floor.
+The cause is a structural omission, not a parameter: **there is no price-elastic
+demand side.** Nothing brings searchers into the market as rents fall, so asks
+ratchet down with no anchor, `E[remaining vacancy]` pins at its cap, and every
+dollar figure in §3 is scaled down with it.
+
+I tried three calibrations (searcher inflow 0.035–0.25) and a much stronger
+ask-adjustment (0.6 → 3.0). Vacancy moved between 12.7% and 17.9% and the
+deflation persisted, so this is not a tuning problem. It is pinned by a test
+(`test_market_rent_is_an_output_and_the_deflation_defect_is_pinned`) which
+asserts the *defective* behaviour on purpose, with a note to replace the
+assertion once demand is price-elastic.
+
+Consequences, so nothing here is over-read:
+- GATE 3's V8 sign result is real; its **magnitudes are not** (new-let growth
+  −25% against MAA's −7%).
+- K20's **direction** is robust; its ratio is specification-dependent (1.06–1.39×).
+- **K22 and K23 are undecided.**
+- The pre-A5a numbers (renewal +3.23% / new-let −5.01%, walk-aways $10,557 vs
+  $7,569, zone $16,537 vs $421) came from A5.0's superseded one-vacancy-day
+  BATNA **and** from the private-information bug. They are not promoted anywhere.
+
+## 6. Still not done
+
+**GATE 2 and AMENDMENT 2's arms G–J remain unrun. K9–K12 undecided.** The
+substrate and `SPEC-A2.md`'s pre-declared primitives are in place; the runs are
+not. My SPEC-A2 §A2-2 prediction — that risk aversion is too weak to carry the
+"risk aversion + bad comps ⇒ small pushes" chain, which will instead rest on the
+non-pecuniary primitives — is still on record and unchecked.
+
+---
+
+# PHASE 6 — elastic demand, and the stopping rule (AMENDMENT 6)
+
+```
+python3 research/crabs/run_market.py && python3 research/crabs/analyze_market.py
+```
+
+## 1. The fix
+
+Market entry now responds to the price level (A6.1):
+
+```
+inflow(M) = base_inflow x (M_ref / M) ^ ETA_DEMAND
+```
+
+`ETA_DEMAND = 1.0` primary, pre-declared sweep {0.5, 1.0, 1.5, 2.0}, **not tuned
+to make a gate pass**. Range anchored to published headship-rate /
+household-formation elasticities with respect to rent (~0.5–1.5 in magnitude,
+larger than the ~0.3–0.7 usually quoted for quantity of housing demanded, because
+forming a household or doubling up is more responsive than consumption).
+LABEL: **ANCHORED range, INVENTED functional form.**
+
+**Test replaced, not deleted**, per A6.1. The old
+`test_market_rent_is_an_output_and_the_deflation_defect_is_pinned` is gone;
+`test_price_fall_raises_searcher_inflow` and
+`test_elastic_demand_reduces_but_does_not_cure_the_deflation` replace it.
+
+## 2. It works, and it is not enough
+
+| η | market rent, final | vacancy | new-let growth | renewal growth |
+|---|---|---|---|---|
+| 0.5 | $305 | 0.158 | −23.4% | −0.6% |
+| 1.0 | $354 | 0.127 | −21.7% | −0.4% |
+| 1.5 | $426 | 0.105 | −18.5% | +0.0% |
+| 2.0 | $507 | 0.084 | −15.8% | −0.3% |
+
+A6.1's **first** requirement is met: inflow responds to price, and more elastic
+demand raises the clearing price and cuts vacancy monotonically. A6.1's **second**
+requirement is **not** met: from a $2,000 start the market still settles near
+$350–500 at every elasticity in the declared range. Raising η to 2.0 means a
+15× demand increase at the floor and vacancy is still 8.4%.
+
+**Diagnosis, for the record.** The remaining defect is not the demand side. The
+landlord has **no absolute reservation tied to its own costs**: `r_L_min =
+(12 − E[wait]) × ask`, so once expected waits are long its reservation approaches
+zero and it will accept any positive rent. Signed rents are then a large discount
+off asks, and next period's asks are set from signed rents — a multiplicative
+ratchet with no anchor. Fixing it means giving the landlord an opex/debt-service
+floor, which is **a seventh mechanism, and A6.3 forbids it.** Recorded, not built.
+
+## 3. GATE 3 re-run — bars exactly as registered
+
+| | baseline | +30% supply |
+|---|---|---|
+| vacancy | 0.000 | 0.021 |
+| new-let signed | $503 | $486 |
+| renewal signed | $661 | $644 |
+| **NEW-LET growth** | **−21.4%** | **−20.7%** |
+| **RENEWAL growth** | **−0.47%** | **+0.15%** |
+| retention | 0.647 | 0.643 |
+
+- **V8 PASS** — supply raises vacancy and pushes new-let below sitting rents.
+- **V9 FAIL** — new-let negative, renewal **also** negative (−0.47%). MAA: −7.0% / **+5.4%**.
+- **V10 FAIL** — retention 0.647 vs 0.593/0.575; off by 5.4pp against a 5pp bar.
+
+**GATE 3: FAIL (second attempt).** The A6.3 stopping rule is now in force and
+**building stops here.**
+
+---
+
+# PHASE 7 — GATE 2: does landlord behaviour EMERGE? (AMENDMENT 2)
+
+```
+python3 research/crabs/run3.py     # 52 cells
+```
+
+Run per A6.4 regardless of Gate 3's outcome, since it is landlord-side. Every
+primitive value comes from `SPEC-A2.md`, written before any Phase-3 output
+existed. Landlord types differ **only** in `units`; risk aversion, comp
+precision, non-pecuniary value, cost-of-raising, turn-cost scale economy and
+face-rent capitalisation are all derived from portfolio size.
+
+## 1. GATE 2 — bars exactly as registered
+
+Regime mapping fixed in SPEC-A2 §A2-3 before running: V4/V5/V6 judged in gain
+(TurboTenant/RealPage vintage), V7 in loss (NAA 2022).
+
+| | measured | target | regime | verdict |
+|---|---|---|---|---|
+| **V4** mom-and-pop zero-increase share | **1.0000** | 0.10–0.30 | gain | **FAIL** |
+| **V5** mom-and-pop concession rate | **0.3223** | ≤ 0.20 | gain | **FAIL** |
+| **V6** institutional concession rate | **0.0975** | 0.15–0.35 | gain | **FAIL** |
+| **V7** institutional push / mom push | **1.14×** | ≥ 3.0× | loss | **FAIL** |
+
+Other regime, for completeness: V4 0.107, V5 0.487, V6 0.059. Pushes: institution
++10.6% (loss) / −1.7% (gain); mom-and-pop +9.3% (loss) / −4.1% (gain).
+
+**GATE 2: FAIL on all four. → K9 FIRED.**
+
+Per A2.3's stated consequence: **the landlord-type paradox is withdrawn.** Any
+claim that mom-and-pops behave distinctively becomes an observation we cannot
+explain rather than one we modelled. Phase 2's paradox was an input, and when the
+inputs are removed the paradox goes with them.
+
+## 2. The primitive ablation — and my own prediction refuted
+
+My on-record SPEC-A2 §A2-2 prediction: risk aversion is too weak to carry the
+"risk aversion + bad comps ⇒ small pushes ⇒ nothing to concede" chain, and it
+will rest on the non-pecuniary primitives instead.
+
+| ablated primitive | mom push (loss) | mom zero-increase | mom success | inst push |
+|---|---|---|---|---|
+| *none (full set)* | +9.29% | 1.0000 | 0.3223 | +10.60% |
+| risk_rho | +10.36% | 0.9998 | 0.2523 | +10.60% |
+| comp_sigma0 | +10.51% | 0.9991 | 0.1197 | +10.60% |
+| nonpec0 | +9.64% | 1.0000 | 0.3171 | +10.60% |
+| raise_cost0 | +9.95% | 0.9402 | 0.3268 | +10.61% |
+| turn_scale_beta | +10.26% | 0.9999 | 0.2799 | +10.61% |
+| size_scaled_face | +10.75% | 0.9986 | 0.4287 | +10.61% |
+
+**I was half right and half wrong, and the wrong half is the important one.** Risk
+aversion is indeed near-inert (removing it moves the mom-and-pop's push by 1.1
+points), exactly as predicted. But **the non-pecuniary primitives do not carry the
+chain either** — removing the keep-value moves the push 0.35 points, and removing
+the cost-of-raising moves it 0.66 points and the zero-increase share from 1.000 to
+0.940. **No primitive carries it.** The institution's push is 10.60–10.61% in
+every single ablation.
+
+The reason is structural: both landlords solve the same NPV dynamic program, and
+the size-derived primitives are second-order against it. **Portfolio size, in our
+derivation, does not generate distinct landlord behaviour.** That is the honest
+content of K9 firing, and it is a cleaner negative than a hardcoded paradox.
+
+## 3. Arms G–J, each alone (never stacked)
+
+Institutional, success rate on a counter:
+
+| arm | loss | gain | asker share (loss/gain) |
+|---|---|---|---|
+| baseline (primitives only) | 0.059 | 0.097 | 0.389 / 0.385 |
+| **G** menu costs / exception queue | **0.020** | **0.037** | 0.395 / 0.390 |
+| **H** tool-advised asking | 0.943 | 0.997 | **0.012 / 0.025** |
+| **H** everyone asks | 0.045 | 0.053 | 1.000 / 1.000 |
+| **H** self-selecting | 0.736 | 0.998 | 0.287 / 0.374 |
+| **I** control, no concession channel | — | — | 0 |
+| **J** principal–agent wedge | 0.098 | 0.178 | 0.389 / 0.385 |
+
+### K10 — the mechanism is bureaucratic, not strategic. **DID NOT FIRE**
+
+Arm G alone gives 0.020 / 0.037 — it **lowers** the success rate below baseline,
+because a blanket policy plus a finite exception queue means most counterers are
+never reviewed at all. It does not reach the 15–30% band, so the antecedent fails.
+The bureaucratic story is not the answer. Arm J is the only mechanism that moves
+the institution toward the observed band on its own (0.097 → 0.178 in the gain
+regime, +8.1 points), which points at the **leasing agent's incentive**, not at
+menu costs and not at signalling.
+
+### K11 — the walk-away floor is the product. **DID NOT FIRE**
+
+This is the result A5/A2 said we most wanted, so the guard I pre-declared in
+SPEC-A2 §A2-6 is what decides it — and **the guard fired.**
+
+| cell | tool asker share | TOTAL surplus, tool − everyone | asker-only (CONFOUNDED) |
+|---|---|---|---|
+| loss / inst | 0.012 | **−$244 ± 32** | tool −$1,756 vs everyone −$5,470 |
+| gain / inst | 0.025 | **−$4 ± 5** | tool −$1,104 vs everyone −$4,713 |
+| loss / mom | 0.000 | **−$2,077 ± 62** | — |
+| gain / mom | 0.000 | **−$386 ± 29** | — |
+
+The per-asker reading — the literal wording of K11 — says the tool is worth
+**+$3,600 to +$3,700 per asker**. The composition-free reading, total crab
+surplus over an identical population, says **−$244 to −$4**. The first number is
+pure selection: a tool-advised asker is *by construction* a high-leverage crab, so
+comparing asker surplus across populations compares different kinds of crab. **The
+pre-registered guard caught a confound that would otherwise have manufactured a
+flagship product finding.**
+
+Two further caveats. K11 required a comparison **at equal asker share**, and that
+is not available: the walk-away floor is so restrictive that only 1.2–2.5% of
+tenants clear it, against 100% in the everyone-asks arm. And against a
+mom-and-pop no tenant clears it at all. So the honest statement is that **the
+"weak — just sign" verdict is correct advice for the individual and does not
+produce a population-level gain.**
+
+### K12 — the landlord wants you to ask. **DID NOT FIRE** (institution)
+
+Station cash with a concession channel versus without:
+
+| cell | with | without | delta |
+|---|---|---|---|
+| loss / inst | $27,944 | $28,081 | **−$137 ± 12** |
+| gain / inst | $19,274 | $19,401 | **−$128 ± 11** |
+| loss / mom | $27,146 | $27,082 | **+$64 ± 20** |
+| gain / mom | $18,802 | $18,770 | **+$31 ± 9** |
+
+Negative for the institution, so K12 does not fire where the 22% figure comes
+from. Weakly positive for a five-unit landlord (+$31 to +$64), which is
+directionally consistent with screening at small scale but too small to build an
+argument on. The adversarial framing stays.
+
+---
+
+# PHASE 8 — deadline shape (AMENDMENT 6a), and the final Gate-3 attempt
+
+`market.py` now carries **two clocks of different shape**, folded into the *same*
+Gate-3 attempt as elastic demand per A6a.5 — not a seventh mechanism.
+
+| | landlord | renewing tenant |
+|---|---|---|
+| cost of delay | **linear**: each month of negotiation eats marketing lead time, `+15%` of expected vacancy per month, no special date | **flat, then convex, then a cliff** |
+| effective deadline | none | **lease end − lead time**, so it arrives first |
+| cliff | **none, per A6a.3** | holdover penalty 0.5 mo + emergency move 1.5 mo |
+
+Declared before running: `NOTICE_WINDOW = 3` months, lead time lognormal
+median **1.5 months** σ 0.5 (**INVENTED** distribution), `CLIFF_CONVEX = 0.5`,
+`LAND_LIN_RATE = 0.15`, exogenous tenant response delay 0–3 months drawn
+**independently of type** so K25 is causal rather than a survivorship comparison.
+
+**Symmetric information, asserted by test** (`test_renewal_offer_uses_no_private_
+tenant_draw`). The offer is built from `p.move_med` and a fixed quadrature over
+the *population* lead-time distribution, with `secured=False` always passed when
+forming the expectation. The test greps the offer-construction block and fails if
+`crab.c_persist`, `_c_total(`, the private uniforms, `lead`, or `secured` appear
+in it. This is the exact hole that manufactured K19.
+
+## 1. GATE 3 — final attempt
+
+| | baseline | +30% supply |
+|---|---|---|
+| vacancy | 0.000 | 0.021 |
+| new-let signed | $503 | $486 |
+| renewal signed | $717 | $698 |
+| **NEW-LET growth** | **−24.45% ± 0.05** | −23.43% |
+| **RENEWAL growth** | **+2.85% ± 0.05** | +3.62% |
+| retention | 0.646 | 0.643 |
+
+- **V8 PASS.**
+- **V9 PASS.** For the first time the sign pattern holds: new-let negative beside
+  renewal **positive**, in the same period, with **zero imposed drift and no
+  private-information leak.**
+- **V10 FAIL.** Retention 0.646 against Phase 1's 0.593/0.575 — off by **5.3pp**
+  against a 5pp bar.
+
+**GATE 3: FAIL (third and final attempt), on V10 alone.** The bar is not moved:
+A6.2 said no loosening, so a 0.3pp miss is a miss. **The A6.3/A6a.5 stopping rule
+is in force and building has stopped.**
+
+The magnitude also remains wrong even where the sign is right: −24.45% against
+MAA's −7.0%, because the deflation defect of Phase 6 §2 is unfixed.
+
+## 2. K24 — deadline shape generates the inversion. **FIRED, but its stated
+## mechanism is refuted**
+
+The inversion does emerge from the deadline clock under symmetric information:
+
+| tenant clock | renewal growth | new-let growth |
+|---|---|---|
+| none | **−0.47%** | −21.44% |
+| **LINEAR, mean-matched** | **+2.48%** | −24.33% |
+| convex + cliff (as registered) | **+2.85%** | −24.46% |
+
+**The bug hunt A6a.4 demanded found the claim, not a bug.** Adding a
+delay-dependent tenant cost flips renewal growth from −0.47% to positive. But
+replacing the convex-plus-cliff clock with a **linear ramp matched in mean**
+retains +2.48% of the +2.85%: the **shape contributes +0.369pp ± 0.047**, about
+**13%** of the effect. The other 87% is the **level** of the tenant's delay cost.
+
+So A6a.2's central claim — "the landlord's stronger renewal position does not come
+from a higher walk-away level, it comes from shape" — **is not supported.** It
+comes overwhelmingly from level: once you charge the tenant for delay at all, the
+ratchet appears, and whether that charge is convex with a wall or a straight line
+barely matters. K24 fires on its literal wording (the inversion emerges from
+deadline structure under symmetric information) and its explanation is wrong.
+
+This also revises K20's story. K20 measured a walk-away ratio of only 1.08× and
+A6a argued shape made up the difference. Shape does not. What makes up the
+difference is that the tenant's walk-away **rises while the negotiation runs**, and
+the landlord's rises more slowly.
+
+## 3. K25 — the tenant's position decays with the clock. **CONFIRMED**
+
+Response delay is drawn independently of tenant type, so this is causal:
+
+| months since offer | offer / market rent | tenant surplus |
+|---|---|---|
+| 0 | **1.0651** | −$319 |
+| 1 | 1.1167 | −$574 |
+| 2 | 1.1875 | −$919 |
+| 3 | **1.1980** | −$964 |
+
+Monotone in both columns. A tenant that lets three months of a three-month notice
+window elapse is offered **13.3% more** relative to market and ends **$645/year
+worse off** than one that answers immediately — the same tenant, same type, only
+the delay differs.
+
+**Per A6a.4 this is load-bearing product advice, not procedural:** negotiate early
+and never let the response window lapse. It also grounds the NYC 60-day RTP-8
+warning already in the tool on an economic mechanism rather than a legal deadline.
+
+## 4. K26 — securing an alternative first. **DOES NOT CONFIRM**
+
+| | offer / market | surplus |
+|---|---|---|
+| secured an alternative | 1.1418 | −$670 |
+| has not | 1.1416 | −$687 |
+| **difference** | **+0.0002** | **+$17** [bar $480] |
+
+**+$17 against a $480 bar.** The reason is not a modelling accident and it matters:
+**the landlord cannot verify your alternative, so it makes you the same offer
+either way.** Securing an alternative improves your *outside option* — you leave
+more readily — but it does not improve the *terms you are offered*, because
+nothing in the offer construction can respond to information the landlord does not
+have. (Making it respond would be reintroducing exactly the private-information
+leak that killed K19.)
+
+**Per A6a.4's own instruction: we say so, and drop any implication that shopping
+around improves your negotiation.** It buys you the ability to walk, which is
+worth something in itself — but it is not the tool's first advice, and the ranked
+ask ladder is not displaced by it. The advice that *is* worth promoting is K25's:
+answer early.

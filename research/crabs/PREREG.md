@@ -608,3 +608,357 @@ gets rewritten around joint gains.
 - If K16 fires, it goes in the article and on snhp.dev/rent. A tool that
   helps the counterparty more than the customer is a thing the customer is
   entitled to know before using it.
+
+---
+
+# AMENDMENT 5 — renewals vs new lets, and the walk-away asymmetry
+
+*Appended 2026-07-25, before any Gate-3 result exists.*
+
+## A5.0 The structural omission
+
+Every arm so far modelled ONE negotiation type (renewal) and treated
+walk-away as a symmetric threat. Both are wrong, and the error may be
+generating the gate failure.
+
+**Renewal.** Landlord's walk-away = full turn cost + vacancy + re-let risk
+(~$2–4k plus days vacant). Tenant's walk-away = moving cost, which our own
+calibration puts at a median **~$7,200**. **The tenant has more to lose
+than the landlord.** This inverts the leverage framing the article was
+built on, and it is arithmetic, not opinion.
+
+**New let.** Both collapse. The landlord's turn cost is **already sunk** —
+the habitat is empty and ready — so walking costs only one more vacancy
+day. The prospective tenant is not moving out of a home; they are
+comparing listings, so their BATNA is the **next-best listing**, which in a
+soft market is strong.
+
+**The prediction this generates:** a landlord price-discriminating on BATNA
+quality gives concessions to new tenants (strong outside option) and
+increases to renewing tenants (weak outside option) **in the same
+building, in the same period.** That is the MAA −7.0% / +5.4% pattern, and
+it would emerge from BATNA structure alone — no imposed regime required.
+
+## A5.1 Model both negotiation types
+
+Every station runs both channels each period:
+- **RENEWAL** — sitting tenant. Tenant BATNA = −(moving cost + search cost)
+  + expected rent at a matched alternative. Landlord BATNA = −(turn cost +
+  E[vacancy days] × daily rent + re-let rent risk).
+- **NEW LET** — searching tenant from the pool. Tenant BATNA = next-best
+  visible listing (so it strengthens as vacancy rises). Landlord BATNA =
+  −(one more vacancy day); **turn cost is sunk and must not be charged
+  again** — a test should assert this.
+
+Report both channels separately, always. Never pool them.
+
+## A5.2 Make walk-away costs first-class and reported
+
+In every cell, report both sides' walk-away cost and the resulting
+bargaining zone, per channel. The zone width — not either side's cost
+alone — is what predicts whether negotiation has room.
+
+## A5.3 The commitment asymmetry
+
+Separate from cost. A landlord applies a policy across many habitats;
+conceding to one sets a precedent that leaks (the Phase-2 grapevine is
+already the leak channel). A tenant is a one-off with no precedent to
+protect. So the landlord's *effective* cost of conceding scales with
+portfolio size even when the per-unit economics say concede. Model it;
+do not assume its magnitude.
+
+## A5.4 Kills
+
+**K19 — the inversion is a BATNA artefact (this would be the best result
+available).**
+*Fires if* the new-let-negative / renewal-positive sign pattern emerges
+from BATNA asymmetry alone, with no imposed regime.
+*Consequence:* Gate 3's V9 is satisfied by mechanism rather than
+imposition. The article can then stand on its own model instead of
+borrowing the REIT filings, and the explanation — landlords
+price-discriminate on outside-option quality — becomes the piece's
+central claim.
+
+**K20 — the tenant is the weaker party in renewals, and we said otherwise.**
+*Fires if* mean tenant walk-away cost exceeds mean landlord walk-away cost
+in the RENEWAL channel.
+*Consequence:* the "you have leverage" framing is **backwards** and comes
+out of the article and the product entirely, replaced by the narrow
+case where a tenant genuinely does have leverage. Given moving cost
+~$7,200 vs turn cost ~$3,000, I expect this to fire, and if it does the
+tool's copy needs rewriting, not softening.
+
+**K21 — for some tenants the right advice is "move", not "negotiate".**
+*Fires if* tenants in the NEW-LET channel systematically achieve better
+terms than comparable tenants in the RENEWAL channel by ≥2% of annual
+rent.
+*Consequence:* the tool must tell low-moving-cost tenants in soft markets
+that **leaving beats negotiating**, and say so as plainly as it currently
+says "just sign." A tool that only ever advises negotiating is selling its
+own mechanism rather than advising the user.
+
+## A5.5 Discipline
+
+- Channels reported separately, never pooled.
+- Walk-away costs and zone widths reported in every cell.
+- The sunk-turn-cost rule in the new-let channel is asserted by a test.
+- K20 is expected to fire. If it does not, check for a bug before
+  believing it — the raw parameters say it should.
+
+---
+
+# AMENDMENT 5a — CORRECTION to A5.0: vacancy is a flow, not a sunk cost
+
+*Appended 2026-07-25, before any Amendment-5 result exists. This corrects an
+error in A5.0 written hours earlier. The original text is left in place
+above; this supersedes it.*
+
+## A5a.1 The error
+
+A5.0 said the landlord's turn cost is "already sunk" in the new-let
+channel, so walking away costs "one more vacancy day." That conflates two
+costs with opposite time structure:
+
+1. **Make-ready** (clean, paint, repair, list, screen) — one-time. Once
+   paid, genuinely sunk.
+2. **Vacancy loss** — lost rent per period the habitat sits empty. **A
+   flow that accumulates.** The opposite of sunk.
+
+Only (1) is sunk. (2) is the larger component, and walking away from a
+prospective tenant costs the landlord **E[remaining vacancy] × rent** —
+roughly 1–1.5 months at commonly cited 30–41 day let times, not a day.
+
+## A5a.2 The asymmetry inverts between channels
+
+| Channel | Landlord walk-away | Tenant walk-away | Weaker party |
+|---|---|---|---|
+| **RENEWAL** | make-ready + E[vacancy] | moving cost (~$7,200 median) | **tenant** |
+| **NEW LET** | E[vacancy until next match] — substantial | cost of viewing the next listing — trivial | **landlord** |
+
+**This is a cleaner mechanism for the MAA spread than A5.0's.** Landlords
+concede to newcomers because they are the weak party in that channel;
+they raise on renewals because the sitting tenant is. Same building, same
+period, opposite sides of the table — from walk-away structure alone, with
+no imposed regime and no preference-based discrimination required.
+
+Replace A5.1's new-let landlord BATNA accordingly: **not** one vacancy day,
+but expected remaining vacancy given local search conditions. It must
+respond to vacancy — a test should assert that a station facing higher
+local vacancy has a *worse* new-let BATNA.
+
+## A5a.3 The deadline asymmetry (new, and the sharpest part)
+
+Vacancy accumulating per period means **the landlord's BATNA deteriorates
+as a negotiation drags, while the tenant's is flat.** That is an
+asymmetric-deadline bargaining structure. `negotiate_bundle` accepts
+`rounds_left`, so the engine can in principle exploit it — which makes this
+a test of the product, not just of the world.
+
+Model: carry days-on-market as state; the landlord's reservation must
+weaken monotonically in it.
+
+**K22 — concession depth rises with time-on-market.**
+*Fires (i.e. confirms) if* mean concession depth in the new-let channel
+increases monotonically with days-on-market at the time of agreement.
+*Consequence if it does NOT hold:* our vacancy accounting is wrong, since
+this is close to an accounting identity once vacancy is a flow. Treat
+failure as a bug signal before treating it as a finding.
+*Weak external consistency check:* published concession depth is greater in
+Class C (23.4%) than Class A (13.2%), and Class C sits in longer-vacancy
+segments. Directionally consistent; not proof.
+
+**K23 — the engine exploits the deadline asymmetry.**
+*Fires if* a tenant negotiator given true `rounds_left`/days-on-market
+state does NOT outperform one blind to it by ≥1% of annual rent in the
+new-let channel.
+*Consequence:* the timing information in the engine's interface is inert
+in this domain, and any product copy implying that timing your ask matters
+must be dropped.
+
+## A5a.4 Consequence for A5.2 and K20
+
+K20 (tenant weaker in renewals) is unchanged and still expected to fire.
+But the reported bargaining-zone width must now use the corrected
+new-let landlord BATNA, and the zone must be reported **per channel and as
+a function of days-on-market**, not as a single scalar.
+
+---
+
+# AMENDMENT 6 — elastic demand, and a stopping rule
+
+*Appended 2026-07-25. Gates 1 and 3 have failed; Gate 2 is unrun. This
+amendment fixes one identified structural defect and pre-commits to when
+we stop.*
+
+## A6.0 Corrections to the record
+
+**My K20 magnitude was wrong.** I claimed the renewal tenant has "more
+than twice as much to lose," comparing a ~$7,200 move to a ~$3,000
+make-ready. The landlord's renewal walk-away is make-ready **plus expected
+vacancy plus re-let rent risk**. Measured against that total the ratio is
+**1.08×** (robust at 1.06–1.39× across specifications). K20's direction
+holds; its magnitude does not. Honest statement: **the tenant is somewhat
+the weaker party in renewals, not dramatically so.** Any copy implying a
+large asymmetry is unsupported.
+
+**Pattern worth recording:** three errors in this domain, all in the
+direction of a sharper story — leverage exists (wrong sign), turn cost is
+sunk (wrong time structure), tenant is 2.4× weaker (wrong denominator).
+The bias is consistent and it is mine.
+
+**K19 fired only under a defect.** The renewal offer was built from each
+tenant's *private* moving cost — price discrimination on unobservable
+information. Corrected, renewal growth goes +1.13% → −0.64% and K19 does
+not fire. The result we most wanted was manufactured by our own bug, and
+it was caught internally.
+
+## A6.1 The identified defect: no demand curve
+
+The market deflates to a floor ($2,000 → ~$524) because **nothing brings
+searchers in as rents fall.** I specified a search pool and never
+specified elastic demand. Asks ratchet down with no anchor,
+`E[remaining vacancy]` pins at its cap, and the landlord's reservation
+collapses to zero — which also makes K22 unreadable.
+
+**Required:** searcher inflow must respond to the price level. As rents
+fall relative to a reference income/rent level, more crabs enter the
+market (from outside, from doubling-up, from delayed household
+formation); as rents rise, fewer. Elasticity is a declared parameter with
+a pre-declared range, not tuned to make a gate pass.
+
+- **Assert by test:** a price-level fall increases searcher inflow, and the
+  market clears at an interior price rather than at a floor.
+- The test currently pinning the *defective* deflation is replaced, not
+  deleted, and the replacement is noted in `RESULTS.md`.
+
+## A6.2 GATE 3 re-run (unchanged bars)
+
+V8/V9/V10 exactly as written in A3.3. No loosening. A gate whose bar moves
+after a failure is not a gate.
+
+## A6.3 STOPPING RULE — pre-committed
+
+**If GATE 3 fails again with elastic demand, we stop building.** No fourth
+mechanism, no fifth amendment in search of a pass.
+
+The write-up then reports, as the primary finding: *we could not build a
+model that reproduces the 2026 renewal/new-let inversion from primitives,
+across three gate attempts and six mechanisms.* The article's empirical
+claim rests on the REIT filings alone, stated plainly, with no mechanism of
+our own — and the simulation's contribution is limited to what did survive:
+
+- the engine result (K13/K14 did not fire — multi-issue bundling beats
+  single-issue by ~2× the bar, and beats our own hand-rolled ladder, by
+  finding deals rather than extracting harder)
+- the value-split result (**K16 fired** — whoever holds the engine captures
+  ~90%; the landlord is our likelier customer)
+- the externality result (**K3, K8 fired** — non-askers absorb the cost)
+- the direction of the renewal asymmetry (**K20 fired**, magnitude small)
+- the narrow "moving beats negotiating" group (~1 in 6 of the
+  cheapest-to-move quartile)
+
+That is a real, publishable set of findings and a real, publishable
+failure. Grinding for a pass would convert the second into a fabrication.
+
+## A6.4 Remaining unrun work, and its priority
+
+If Gate 3 passes: run GATE 2 (V4–V7, emergence of landlord behaviour) and
+arms G–J, then re-decide K22/K23 on a stable price level.
+If Gate 3 fails: run GATE 2 anyway — it is landlord-side and independent
+of the market's price level — then stop. K22/K23 remain undecided and are
+reported as such.
+
+---
+
+# AMENDMENT 6a — CORRECTION: the tenant's clock is a cliff, not a flat line
+
+*Appended 2026-07-25, before any Amendment-6 result. Corrects A5a.3.*
+
+## A6a.1 The error
+
+A5a.3 said "the landlord's BATNA deteriorates as a negotiation drags,
+while the tenant's is flat." **The tenant's is not flat.** A renewing
+tenant must secure housing *before* the lease ends. Missing that date does
+not cost "another month of searching" — it costs temporary housing,
+storage, emergency moving at whatever is available, or a holdover tenancy
+at a penalty rent.
+
+**Fourth error in this domain, same direction: I keep understating the
+tenant's disadvantage.** Recorded, not hidden.
+
+## A6a.2 The clocks have different SHAPES — this is the substantive point
+
+| | Landlord | Renewing tenant |
+|---|---|---|
+| Cost of delay | **linear**: one month's rent per vacant month | **flat, then a cliff** at lease expiry |
+| Effective deadline | none — accrual continues indefinitely | **earlier than lease end**, because search → apply → approve → move needs lead time |
+| Shape | smooth | convex / discontinuous |
+
+So the landlord's stronger renewal position does not come from a higher
+walk-away *level* (K20 measured only 1.08×). It comes from **shape**: a
+linear clock beats a clock that ends in a wall, and the tenant's wall
+arrives first.
+
+In the new-let channel this reverses cleanly: the searching tenant is
+already housed and under no deadline, while the landlord accrues vacancy
+every period.
+
+## A6a.3 Why this may be the mechanism V9 needs
+
+The renewal ratchet plus the new-let concession may fall out of **deadline
+shape alone, under fully symmetric information** — no private-information
+price discrimination, which is precisely what the K19-killing bug was
+counterfeiting.
+
+**Model requirements:**
+- Carry **periods-to-lease-end** as tenant state; the tenant's
+  continuation value must fall convexly in it, with a discrete penalty for
+  crossing expiry unhoused (holdover premium + emergency-move cost).
+- Tenant's effective deadline = lease end **minus** required lead time
+  (search + application + approval + move), drawn from a declared
+  distribution.
+- Landlord's clock stays linear in vacant periods. Do not give it a cliff.
+- Information stays symmetric. The landlord may use population
+  distributions and observables (tenure, lease-end date — it knows the
+  lease) but **never a tenant's realised private draw.** A test must
+  assert this, given how K19 was manufactured.
+
+## A6a.4 Kills
+
+**K24 — deadline shape generates the inversion.**
+*Fires (confirms) if* the new-let-negative / renewal-positive sign pattern
+emerges from deadline structure under **symmetric information**, no
+private draws.
+*Consequence:* V9 passes on the cleanest possible grounds, and the
+article's central claim gets a mechanism of our own. **This is now the
+most likely route to a Gate-3 pass, and therefore the one most in need of
+a bug hunt if it fires.** The last time a route to V9 fired it was a leak.
+
+**K25 — the tenant's position decays with the clock.**
+*Fires (confirms) if* tenant outcomes worsen monotonically in
+periods-elapsed-since-offer, holding all else equal.
+*Consequence if confirmed:* "negotiate early, and never let the response
+window lapse while negotiating" becomes economically load-bearing advice
+rather than procedural, and moves up the page. It also grounds the NYC
+60-day RTP-8 warning already in the tool.
+
+**K26 — securing an alternative first is the highest-value move.** *(The
+one with the biggest product consequence.)*
+*Fires (confirms) if* a tenant who has secured an alternative before
+countering — thereby flattening their cliff into a floor — achieves
+outcomes better by ≥2% of annual rent than an identical tenant who has
+not.
+*Consequence if confirmed:* this becomes the tool's **first** piece of
+advice, ahead of every ask in the ladder. "Go get one real alternative
+before you send anything" would then be worth more than the entire ranked
+ask list, which would be an uncomfortable and useful finding about our own
+product.
+*If it does NOT confirm:* say so, and drop any implication that shopping
+around helps.
+
+## A6a.5 Interaction with the stopping rule
+
+A6.3's stopping rule stands, with one amendment: deadline shape (this
+amendment) is folded into the **same** Gate-3 attempt as elastic demand,
+not treated as a seventh mechanism warranting a further attempt. If that
+combined attempt fails V9, we stop as committed.

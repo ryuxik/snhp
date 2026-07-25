@@ -790,3 +790,205 @@ def test_grid_covers_the_realised_state_space():
         rr = agg["rent_ratio_sum"] / agg["rent_ratio_n"]
         assert RS[0] < rr < RS[-1]
         assert QA[0] < rr < QA[-1]
+
+
+# ---------------- AMENDMENT 5 / 5a: two channels, walk-away asymmetry --------
+
+def test_make_ready_is_sunk_and_never_charged_twice():
+    """A5a.1: make-ready is one-time. It is charged exactly once per turn event
+    and NEVER again in the new-let channel."""
+    from crabs.market import MarketParams, newlet_walkaways, simulate_market
+    p = regime_params(BASE, "burn")
+    rec = simulate_market(p, MarketParams(n_stations=8, units=15,
+                                          meas_years=4), 1000)
+    # one make-ready charge per turn event, and none of it inside a new let
+    assert rec["turn_events"] > 0
+    assert rec["turn_cost_paid"] > 0
+    # charged once per turn event, at that period's rent (so the per-event figure
+    # tracks the market level rather than a fixed dollar band)
+    per_event = rec["turn_cost_paid"] / rec["turn_events"]
+    assert per_event > 0.0
+    # the new-let landlord walk-away must contain NO make-ready component
+    mp = MarketParams()
+    _, wa_land, _, _, wait = newlet_walkaways(p, mp, 2000.0, 2100.0, 25, 1.0, 0.0)
+    assert abs(wa_land - wait * 2000.0) < 1e-9
+    assert wa_land < p.turn_cost * 2000.0 * 3.0
+
+
+def test_vacancy_is_a_flow_not_a_sunk_cost():
+    """A5a.1: vacancy accumulates every month a habitat sits empty."""
+    from crabs.market import MarketParams, simulate_market
+    p = regime_params(BASE, "burn")
+    rec = simulate_market(p, MarketParams(n_stations=8, units=15,
+                                          meas_years=4), 1000)
+    assert rec["vacant_months"] > 0
+    assert rec["vacancy_lost"] > 0
+    # charged per vacant month, so the implied monthly rate is a sane rent
+    rate = rec["vacancy_lost"] / rec["vacant_months"]
+    assert 500.0 < rate < 6000.0
+
+
+def test_higher_local_vacancy_gives_a_worse_new_let_batna():
+    """A5a.2 REQUIRES this test. A station facing a slacker market must have a
+    WORSE new-let BATNA: more listings per searcher => longer expected wait =>
+    lower reservation."""
+    from crabs.market import expected_wait_months, newlet_walkaways, MarketParams
+    p = regime_params(BASE, "burn")
+    mp = MarketParams()
+    waits = [expected_wait_months(t, 0.0) for t in (2.0, 1.0, 0.5, 0.25)]
+    assert all(b > a for a, b in zip(waits, waits[1:])), waits
+    resv = []
+    for t in (2.0, 1.0, 0.5, 0.25):
+        _, wa_land, _, rl, _ = newlet_walkaways(p, mp, 2000.0, 2100.0, 25, t, 0.0)
+        resv.append(rl)
+    assert all(b < a for a, b in zip(resv, resv[1:])), resv
+
+
+def test_landlord_reservation_weakens_monotonically_in_days_on_market():
+    """A5a.3 REQUIRES this. Vacancy accumulating per period means the landlord's
+    reservation must fall as a listing ages."""
+    from crabs.market import expected_wait_months, newlet_walkaways, MarketParams
+    p = regime_params(BASE, "burn")
+    mp = MarketParams()
+    waits = [expected_wait_months(1.0, d) for d in (0, 1, 3, 6, 9)]
+    assert all(b > a for a, b in zip(waits, waits[1:])), waits
+    resv = []
+    for d in (0, 1, 3, 6, 9):
+        _, _, _, rl, _ = newlet_walkaways(p, mp, 2000.0, 2100.0, 25, 1.0, d)
+        resv.append(rl)
+    assert all(b < a for a, b in zip(resv, resv[1:])), resv
+
+
+def test_the_asymmetry_inverts_between_channels():
+    """A5a.2's central claim, checked at the walk-away level: the TENANT is the
+    weak party in a renewal, the LANDLORD is in a new let."""
+    from crabs.market import (MarketParams, newlet_walkaways,
+                              renewal_walkaways)
+    p = regime_params(BASE, "burn")
+    mp = MarketParams()
+    crab = W.Crab(strategy=0, rent=2100.0, tenure=4, c_persist=BASE.move_med)
+    u = np.full(32, 0.5)
+    wa_t_r, wa_l_r, _, _, _ = renewal_walkaways(p, mp, crab, u, 2000.0, 2000.0,
+                                                25)
+    wa_t_n, wa_l_n, _, _, _ = newlet_walkaways(p, mp, 2000.0, 2100.0, 25, 1.0,
+                                               0.0)
+    assert wa_t_r > wa_l_r, (wa_t_r, wa_l_r)      # tenant weaker in a renewal
+    assert wa_l_n > wa_t_n, (wa_l_n, wa_t_n)      # landlord weaker in a new let
+
+
+def test_price_fall_raises_searcher_inflow():
+    """AMENDMENT 6 §A6.1 REQUIRES this. Market entry must respond to the price
+    level, or asks ratchet down with no anchor."""
+    from crabs.market import ETA_DEMAND, M_REF, searcher_inflow_at
+    levels = [3000.0, 2000.0, 1000.0, 500.0]
+    inflows = [searcher_inflow_at(0.075, m) for m in levels]
+    assert all(b > a for a, b in zip(inflows, inflows[1:])), inflows
+    assert abs(searcher_inflow_at(0.075, M_REF) - 0.075) < 1e-12
+    for eta in (0.5, 1.0, 1.5, 2.0):
+        lo = searcher_inflow_at(0.075, 3000.0, eta)
+        hi = searcher_inflow_at(0.075, 1000.0, eta)
+        assert hi > lo
+
+
+def test_elastic_demand_reduces_but_does_not_cure_the_deflation():
+    """REPLACES `test_market_rent_is_an_output_and_the_deflation_defect_is_pinned`
+    (AMENDMENT 6 §A6.1 requires replacement, not deletion).
+
+    A6.1's first requirement is met: inflow now responds to the price level, and
+    raising the elasticity does raise the clearing price and cut vacancy.
+
+    A6.1's SECOND requirement is NOT met: the market still does not clear at an
+    interior price. It deflates toward a floor at every elasticity in the
+    pre-declared range {0.5, 1.0, 1.5, 2.0}. This test pins that, deliberately,
+    so the failure cannot be lost. Diagnosis in RESULTS.md Phase 6: the landlord
+    has no absolute reservation tied to its own costs, so once expected waits are
+    long its reservation approaches zero and it will accept any rent; signed rents
+    are then a large discount off asks, and next period's asks are set from signed
+    rents. Adding such a floor would be a seventh mechanism, which A6.3's stopping
+    rule forbids."""
+    from crabs.market import MarketParams, simulate_market
+    p = regime_params(BASE, "burn")
+    finals = {}
+    for eta in (0.5, 2.0):
+        r = simulate_market(p, MarketParams(n_stations=8, units=15,
+                                            meas_years=4, eta_demand=eta), 1000)
+        finals[eta] = r["_M_hist"][-1]
+    # requirement one, met: more elastic demand => higher clearing price
+    assert finals[2.0] > finals[0.5], finals
+    # requirement two, NOT met: still far below the level it started from
+    assert finals[2.0] < 0.75 * 2000.0, finals
+
+
+def test_market_is_deterministic():
+    from crabs.market import MarketParams, simulate_market
+    p = regime_params(BASE, "burn")
+    mp = MarketParams(n_stations=6, units=12, meas_years=3)
+    a = simulate_market(p, mp, 1234)
+    b = simulate_market(p, mp, 1234)
+    assert {k: v for k, v in a.items() if not k.startswith("_")} == \
+        {k: v for k, v in b.items() if not k.startswith("_")}
+
+
+# ------------- AMENDMENT 6a: deadline shape, symmetric information -----------
+
+def test_renewal_offer_uses_no_private_tenant_draw():
+    """AMENDMENT 6a §A6a.3 REQUIRES this test, because K19 was manufactured by
+    exactly this hole. The renewal offer must depend only on observables the
+    landlord really has -- market rent, tenure, the lease-end date it wrote, and
+    elapsed time since its own offer -- plus POPULATION distributions. Two
+    tenants who differ only in their private draws must receive the SAME offer.
+
+    Asserted structurally: the offer is built from `p.move_med` and
+    `lead_time_nodes()`, and `tenant_clock_multiplier` is called with
+    `secured=False` when forming the expectation, so a tenant's realised lead
+    time, realised moving cost and secured status cannot enter it."""
+    import inspect
+    from crabs import market
+    src = inspect.getsource(market.simulate_market)
+    off = src[src.index("wa_t_base ="):src.index("offer_annual =")]
+    # the population median and the population lead-time grid, never a draw
+    assert "p.move_med" in off
+    assert "lead_time_nodes()" in off
+    assert "NOTICE_WINDOW, False)" in off      # secured status never used
+    for forbidden in ("crab.c_persist", "_c_total(", "u[11]", "u[13]", "lead,",
+                      "secured)"):
+        assert forbidden not in off, forbidden
+
+
+def test_the_two_clocks_have_the_shapes_amendment_6a_specifies():
+    """Landlord linear, tenant flat-then-cliff, and the tenant's effective
+    deadline arrives EARLIER than lease end."""
+    from crabs.market import (CLIFF_CONVEX, LEAD_MEDIAN, NOTICE_WINDOW,
+                              tenant_clock_multiplier)
+    mults, cliffs = [], []
+    for e in (0.0, 1.0, 2.0, 3.0):
+        c, k = tenant_clock_multiplier(LEAD_MEDIAN, e, NOTICE_WINDOW)
+        mults.append(c)
+        cliffs.append(k)
+    assert mults[0] == 1.0                       # flat at first
+    assert all(b >= a for a, b in zip(mults, mults[1:]))
+    # convex INSIDE the usable window (which is only window - lead = 1.5 months;
+    # beyond it the multiplier saturates and the discrete cliff takes over)
+    inside = [tenant_clock_multiplier(LEAD_MEDIAN, e, NOTICE_WINDOW)[0]
+              for e in (0.0, 0.5, 1.0, 1.5)]
+    steps = [b - a for a, b in zip(inside, inside[1:])]
+    assert all(b > a for a, b in zip(steps, steps[1:])), steps
+    assert cliffs[0] == 0.0 and cliffs[-1] > 0.0  # a discrete cliff appears
+    # the wall arrives BEFORE lease end: the cliff bites at elapsed just past
+    # (window - lead), which is strictly less than the full notice window
+    usable = NOTICE_WINDOW - LEAD_MEDIAN
+    assert usable < NOTICE_WINDOW
+    assert tenant_clock_multiplier(LEAD_MEDIAN, usable, NOTICE_WINDOW)[1] == 0.0
+    assert tenant_clock_multiplier(LEAD_MEDIAN, usable + 0.01,
+                                   NOTICE_WINDOW)[1] > 0.0
+    # securing an alternative flattens the cliff into a floor
+    c, k = tenant_clock_multiplier(LEAD_MEDIAN, 3.0, NOTICE_WINDOW, secured=True)
+    assert c == 1.0 and k == 0.0
+
+
+def test_landlord_clock_is_linear_and_has_no_cliff():
+    """A6a.3: do NOT give the landlord a cliff."""
+    from crabs.market import LAND_LIN_RATE
+    steps = [LAND_LIN_RATE * e for e in (0.0, 1.0, 2.0, 3.0)]
+    diffs = [b - a for a, b in zip(steps, steps[1:])]
+    assert all(abs(x - diffs[0]) < 1e-12 for x in diffs)   # constant increments

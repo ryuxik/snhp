@@ -52,6 +52,30 @@ EVIDENCE_NOTE = (
 
 TENURE_2Y_MONTHS = 24
 
+# K25, confirmed in our own pre-registered simulation (research/crabs).
+# Response delay was drawn INDEPENDENTLY of tenant type, so this is causal
+# rather than the survivorship trap that broke an earlier arm. A tenant who
+# lets a three-month window lapse is offered 13.3% more relative to market
+# and ends ~$645/yr worse off than an identical tenant who answers at once.
+# This is the strongest product finding in the study, so it leads.
+DELAY_PENALTY_ANNUAL = 645
+DELAY_PENALTY_NOTE = (
+    "Answer quickly. In our own simulation, an identical tenant who let a "
+    "three-month window lapse was offered 13.3% more relative to market and "
+    "ended about $645 a year worse off. Negotiate inside the window — never "
+    "by letting it run down."
+)
+
+# K26 did NOT confirm. Securing an alternative before you counter changed the
+# terms offered by $17/yr against a $480 bar — because the landlord cannot
+# verify your alternative, so it offers the same either way. It buys you the
+# ability to walk, NOT a better offer. We do not claim otherwise.
+SHOPPING_AROUND_NOTE = (
+    "Lining up another place is worth doing so you can actually leave — but "
+    "in our simulation it did not improve the terms you were offered. Your "
+    "landlord cannot verify it."
+)
+
 
 @dataclass(frozen=True)
 class Ask:
@@ -111,6 +135,11 @@ class Assessment:
             "market": self.market,
             "legal": self.legal,
             "caveats": self.caveats,
+            "act_fast": {
+                "penalty_annual_usd": DELAY_PENALTY_ANNUAL,
+                "note": DELAY_PENALTY_NOTE,
+            },
+            "shopping_around": SHOPPING_AROUND_NOTE,
             "evidence_note": EVIDENCE_NOTE,
         }
 
