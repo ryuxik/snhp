@@ -394,7 +394,7 @@ def assess(
                 "regulated. If it is, the increase you were offered may be "
                 "capped by law regardless of the market — a bigger question "
                 "than anything you could negotiate. See 'how to verify' "
-                "below, then decide."
+                "in the verification steps we've listed, then decide."
             )
         else:
             next_step = (
@@ -414,7 +414,7 @@ def assess(
             "is, the legal cap matters more than any of this. Then send the "
             "message "
             if regulated
-            else "Send the message above "
+            else "Send the message "
         )
         next_step = (
             lead
