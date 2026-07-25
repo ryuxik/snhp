@@ -118,3 +118,43 @@ def test_settle_is_never_handed_an_unnegotiated_package():
         assert "works_npv3" in body or "works_signs3" in body or \
             "works_best_reply3" in body, (
                 f"{fn} settles without ever consulting the Works' payoff")
+
+
+# --------------------------------------------------------------------------
+# The sixth assertion. The defect it exists to catch cost this study its v4 and
+# v5 headlines: two arms were compared while facing DIFFERENT employers -- one
+# allowed to cut base pay to fund a promotion, one floored at its own opening,
+# and with different rules about when to bother countering.
+# --------------------------------------------------------------------------
+def test_compared_arms_face_the_same_counterparty(monkeypatch):
+    """Any two arms reported side by side must instantiate the same counterparty.
+
+    Enforced by watching the arguments every arm hands the shared employer: if
+    two arms in a comparison call it with different rules, the comparison is
+    between harnesses, not protocols."""
+    import molt.run7 as R
+
+    seen = {}
+    current = [None]
+    real = R.works_reply
+
+    def spy(p, c, sea, bel, op, floor, may_cut, strict, only=None):
+        seen.setdefault(current[0], set()).add((may_cut, strict))
+        return real(p, c, sea, bel, op, floor, may_cut, strict, only=only)
+
+    monkeypatch.setattr(R, "works_reply", spy)
+    p, sea, crabs = world(12)
+    rng = np.random.default_rng(3)
+    for may_cut in (False, True):
+        for strict in (False, True):
+            seen.clear()
+            for i, c in enumerate(crabs):
+                current[0] = "engine"
+                R.arm_engine(p, c, copy.deepcopy(sea), i, may_cut, strict)
+                current[0] = "human"
+                R.arm_human(p, c, copy.deepcopy(sea), rng, may_cut, strict,
+                            ratchet=False)
+            assert seen.get("engine") == seen.get("human"), (
+                f"at may_cut={may_cut}, strict={strict} the two arms faced "
+                f"different employers: engine saw {seen.get('engine')}, "
+                f"human saw {seen.get('human')}")

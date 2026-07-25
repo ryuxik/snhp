@@ -1,6 +1,6 @@
 # The Works offered her a 12% raise and she left anyway
 
-*I built a shipyard full of space crabs to find out what six weeks of salary meetings actually cost. Then I rebuilt it three times, because my design choices were doing the work. By the third rebuild, an ordinary human negotiator was beating my software.*
+*I built a shipyard full of space crabs to find out what six weeks of salary meetings actually cost. Then I rebuilt it five times, because my design choices kept turning out to be the finding. The last rebuild retracted the one before it.*
 
 ---
 
@@ -237,20 +237,32 @@ Then it ran, and the equal-speed gain fell to **+$2,584**. On the held-out seed,
 equal-speed money claim is now retired permanently, across two independently
 specified promotion models.
 
-## The table I did not want
+## The table I did not want — and then had to retract
 
-| | crab CASH | promoted | crab utility |
-|---|---|---|---|
-| six weeks of email, ordinary archetype | **$11,499** | **11.2%** | $17,451 |
-| one sitting, on the engine | **$8,104** | **2.3%** | $18,457 |
+For a while this section reported that an ordinary human archetype got the
+promotion five times as often as the engine and walked away with $3,395 more
+cash, and that the engine lost even on its own scoring.
 
-**The human negotiator gets the promotion five times as often and $3,395 more
-cash.** And when I checked whether the engine at least wins on its own scoring —
-it doesn't. Conditional on the crab staying, the engine's package is worse for
-them on utility too, against all six archetypes: **−$2,652 to −$3,050**. Its
-population-level utility edge of +$1,006 is *entirely* retention. It scores
-better on average because more of its people still have a job, not because their
-packages are better.
+**That was a bug in my harness, and it took a reader refusing to accept it to
+find.** The employer was not the same employer in the two arms. In the
+sequential arm it could cut base pay to fund a promotion; in the engine arm it
+was floored at the standing offer and structurally barred from that exact trade.
+And its reply rule differed: in one arm it would only counter if countering beat
+doing nothing, in the other it always countered.
+
+Fix both — one employer, used by both arms — and the result reverses at every
+setting:
+
+| employer's rules | engine joint | sequential joint |
+|---|---|---|
+| no base cut, strict reply | 2,713 | 1,144 |
+| no base cut, permissive | 6,656 | 1,754 |
+| may cut base, strict | 8,897 | 4,859 |
+| may cut base, permissive | 10,296 | 5,581 |
+
+The engine wins all four, on joint surplus and on the employee's own utility.
+Either asymmetry on its own was larger than the gap I had been reporting as a
+finding.
 
 Once a promotion costs a real 12% raise and a scarce slot, the engine stops
 asking for it and buys retention with PTO and flexible hours, which are cheap.
@@ -289,6 +301,39 @@ and it gets labelled rather than dressed up.
 despite portability. That is selection, not causation, and I'm not reporting it as
 anything else: employers promote the people they most want to keep. The causal
 version needs a forced-promotion arm that doesn't exist.
+
+## The two things that actually survived
+
+**A constant I never justified turned out to dominate.** The engine takes an
+estimate of what the other side's walk-away is worth. I set it to 0.45, carried
+over from a study about landlords, with no comment and no sweep. It is the
+highest-leverage input in the whole model:
+
+| what you assume their walk-away is worth | the employee ends up with |
+|---|---|
+| 0.20 | $20,914 |
+| 0.40 (the engine's own default) | $20,046 |
+| 0.45 (mine) | $19,531 |
+| 0.60 | $17,243 |
+| 0.80 | $12,627 |
+| the truth | $20,858 |
+
+The truth behaves like 0.20 — an employer staring at a replacement bill has an
+awful outside option — so guessing cautiously is what costs you. A user who
+assumes their employer can walk easily gives up **$8,287** against one who knows
+better. The most consequential number in a negotiation tool is a default nobody
+validated, and being careful with it is the expensive mistake.
+
+**And the mode I never ran until the fifth rebuild is the only unambiguously good
+result in the study.** Two engines pointed at each other adversarially *destroy*
+value — joint surplus of **−$581**. Two engines in the product's peer mode, where
+both sides prove their walk-away rather than guessing, produce **+$5,171** — and
+the employee takes **95% of the gain**, inverting the ~90%-to-the-employer split
+that every other arm here produced.
+
+Seventy percent of that is just the two sides knowing each other's true position.
+The cooperative-selection dial, on its own, does nothing measurable. It isn't
+being nice that works. It's being verified.
 
 ### Not a different game — a different point
 
@@ -341,6 +386,8 @@ Still the part I want argued with. The list is shorter than it was, because four
 
 **7. Both cross-market replications are mine.** The ~90% split and the verifiability result rhyme with things I found in a rent study. Same author, same engine, correlated instincts. One-and-a-half studies, not three.
 
+**8. Five harness defects, one study.** An inert bias parameter, an arm that never let the employer refuse, a probe loop that discarded every counter, an engine shown the same offer history every round, and two arms facing different employers. Every one produced a number in the direction I was leaning at the time. Every one was caught because a reader pushed on a figure that looked wrong rather than taking it. There are now standing assertions in the test suite for three of the five; the sixth — that two arms being compared instantiate the same counterparty — still isn't written, and until it is, treat every comparison here as provisional.
+
 ---
 
 Version one of this article claimed something tautological, two things measured against a handicapped opponent, and one number five times too flattering to the employee. Version two survived a rebuilt opponent and then lost its central claim to a kill I'd agreed to in advance and expected to pass. Version three lost it permanently, and turned up an ordinary corporate negotiator beating my software on the thing employees actually care about. Across three rebuilds I made twelve on-record predictions and got five right.
@@ -349,4 +396,4 @@ The pre-registration was committed before the first simulation existed and hasn'
 
 The crabs are fake. The refutations are real, and that exchange was worth more than the study.
 
-*`research/molt/` — [PREREG](../research/molt/PREREG.md) · [AMENDMENT 1](../research/molt/PREREG-AMENDMENT-1.md) · [2](../research/molt/PREREG-AMENDMENT-2.md) · [3](../research/molt/PREREG-AMENDMENT-3.md) · results [v1](../research/molt/RESULTS.md) · [v2](../research/molt/RESULTS-V2.md) · [v3](../research/molt/RESULTS-V3.md) · [v4](../research/molt/RESULTS-V4.md). Demo at `arena/web/molt/`.*
+*`research/molt/` — [PREREG](../research/molt/PREREG.md) · amendments [1](../research/molt/PREREG-AMENDMENT-1.md) · [2](../research/molt/PREREG-AMENDMENT-2.md) · [3](../research/molt/PREREG-AMENDMENT-3.md) · [4](../research/molt/PREREG-AMENDMENT-4.md) · [5](../research/molt/PREREG-AMENDMENT-5.md) · results [v1](../research/molt/RESULTS.md) · [v2](../research/molt/RESULTS-V2.md) · [v3](../research/molt/RESULTS-V3.md) · [v4](../research/molt/RESULTS-V4.md) · [v6](../research/molt/RESULTS-V6.md). Demo at `arena/web/molt/`.*

@@ -124,6 +124,13 @@ _LIMITS = {
     "math_keyed_per_ip": (3000, 3000 / 60), # 3000/minute per-IP backstop (keyed)
     # First-strike commit/reveal — moderately rate-limited per IP regardless.
     "first_strike_per_ip": (30, 30 / 60),
+    # /v1/helper/* is a free consumer surface with no accounts, so it has
+    # no reason to honour an API key — and honouring one is a hole:
+    # bearer_api_key is shape-only, so any fake `gt_` token buys the
+    # 600/min keyed lane (backstopped at 3000/min per IP). A person using
+    # the page makes a handful of requests; 30/min is generous for that
+    # and two orders of magnitude tighter than the keyed backstop.
+    "helper_per_ip": (30, 30 / 60),
 }
 
 _BUCKETS: dict[tuple[str, str], _TokenBucket] = {}
@@ -201,6 +208,13 @@ class RateLimit(BaseHTTPMiddleware):
                 _log_throttle("first_strike_per_ip", had_key=key is not None,
                               path=path, key=key)
                 return _ratelimit_response("first_strike_per_ip", b)
+
+        # Helper: per-IP only, keys deliberately ignored (see _LIMITS).
+        elif path.startswith("/v1/helper/"):
+            b = _bucket_for("helper_per_ip", ip)
+            if not b.take():
+                _log_throttle("helper_per_ip", had_key=False, path=path, key=None)
+                return _ratelimit_response("helper_per_ip", b)
 
         # All other /v1/* endpoints: TWO lanes, chosen by whether a key
         # credential is presented (header only — bodies are never parsed here).

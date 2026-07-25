@@ -565,5 +565,51 @@
     0.4
    ]
   ]
+ },
+ "v6": {
+  "engine_joint": {
+   "cut=N,strict=Y": 2713,
+   "cut=N,strict=N": 6656,
+   "cut=Y,strict=Y": 8897,
+   "cut=Y,strict=N": 10296
+  },
+  "human_joint": {
+   "cut=N,strict=Y": 1144,
+   "cut=N,strict=N": 1754,
+   "cut=Y,strict=Y": 4859,
+   "cut=Y,strict=N": 5581
+  },
+  "batna": [
+   [
+    "0.2",
+    20914
+   ],
+   [
+    "0.4",
+    20046
+   ],
+   [
+    "0.45",
+    19531
+   ],
+   [
+    "0.6",
+    17243
+   ],
+   [
+    "0.8",
+    12627
+   ],
+   [
+    "true",
+    20858
+   ]
+  ],
+  "duel_adv": -581,
+  "duel_true": 3475,
+  "duel_peer": 5171,
+  "peer_crab": 20728,
+  "adv_crab": 15273,
+  "ratchet_worth": 156
  }
 }

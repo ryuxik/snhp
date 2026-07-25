@@ -465,12 +465,10 @@ function renderV4(v) {
   const big = el('div');
   big.style.cssText = 'background:var(--shell);color:#14100e;border-radius:8px;padding:1rem 1.1rem;margin-bottom:1rem;font-family:var(--serif);font-size:1.2rem;line-height:1.45';
   big.innerHTML =
-    'The ordinary human negotiator gets the promotion <b>' +
-    (v.arch_promo / v.engine_promo).toFixed(1) + '\u00d7 as often</b> \u2014 ' +
-    v.arch_promo + '% against ' + v.engine_promo + '% \u2014 and walks away with <b style="color:var(--coral)">' +
-    money(Math.abs(v.cash_delta)) + ' more cash</b>. And for anyone who stays either way, ' +
-    'the engine\u2019s package is worse on our own scoring too. What it actually sells you ' +
-    'is that you still have a job.';
+    '<b style="color:var(--coral)">RETRACTED.</b> This panel used to say the human negotiator ' +
+    'got the promotion ' + (v.arch_promo / v.engine_promo).toFixed(1) + '\u00d7 as often and ' +
+    money(Math.abs(v.cash_delta)) + ' more cash. It was a bug in our harness \u2014 the employer ' +
+    'was not the same employer in the two arms. Corrected below.';
   c.append(big);
   const rows = [
     ['At equal speed', signed(v.equal_speed) + ' \u2014 vs the ' + money(v.threshold) + ' bar', false],
@@ -506,6 +504,56 @@ function renderV4(v) {
     'different point on it, and the employer takes more than 100% of the gain \u2014 ' +
     'more than all of it, because the employee\u2019s share is negative.';
   c.append(note);
+  host.append(c);
+}
+
+
+function renderV6(v) {
+  const host = $('#science');
+  const c = el('div', 'bcard');
+  c.style.gridColumn = '1 / -1';
+  c.style.borderColor = 'var(--kelp)';
+  c.append(el('h4', null, 'The correction \u2014 and the two things that survived it'));
+  const lead = el('p');
+  lead.style.cssText = 'font-size:1rem;color:var(--cream-70);margin:0 0 .9rem;line-height:1.5';
+  lead.innerHTML =
+    'In one arm the employer could cut base pay to fund a promotion; in the other it could not. ' +
+    'Same study, two different employers. With <b>one employer used by both arms</b>, the engine ' +
+    'wins every setting \u2014 on joint value and on the employee\u2019s own:';
+  c.append(lead);
+  Object.keys(v.engine_joint).forEach((k) => {
+    const r = el('div', 'brow');
+    const parts = k.split(',');
+    r.append(el('span', null,
+      (parts[0] === 'cut=Y' ? 'employer may cut base pay' : 'employer floored at its offer') +
+      (parts[1] === 'strict=Y' ? ', counters only when it pays' : ', always counters')));
+    const n = el('span', 'n', 'engine ' + money(v.engine_joint[k]) + '  vs  human ' + money(v.human_joint[k]));
+    n.classList.add(v.engine_joint[k] > v.human_joint[k] ? 'pos' : 'neg');
+    r.append(n); c.append(r);
+  });
+  const b = el('p');
+  b.style.cssText = 'margin:1.1rem 0 .5rem;font-size:.95rem;color:var(--shell)';
+  b.innerHTML = '<b>And a number nobody validated turned out to run the whole thing.</b> ' +
+    'The engine asks you to estimate what the other side\u2019s walk-away is worth. ' +
+    'What you assume, and what you end up with:';
+  c.append(b);
+  v.batna.forEach(([k, u]) => {
+    const r = el('div', 'brow');
+    r.append(el('span', null, k === 'true' ? 'the truth' : 'you assume ' + k));
+    const n = el('span', 'n', money(u));
+    n.classList.add(k === 'true' || parseFloat(k) <= 0.4 ? 'pos' : 'neg');
+    r.append(n); c.append(r);
+  });
+  const big = el('div');
+  big.style.cssText = 'background:var(--shell);color:#14100e;border-radius:8px;padding:1rem 1.1rem;margin-top:1.1rem;font-family:var(--serif);font-size:1.2rem;line-height:1.45';
+  big.innerHTML =
+    'Two of these engines pointed at each other adversarially <b style="color:var(--coral)">destroy</b> ' +
+    'value: ' + money(v.duel_adv) + ' joint. Two of them in the mode where both sides <b>prove</b> ' +
+    'their walk-away instead of guessing produce <b style="color:#3e6b4f">' + money(v.duel_peer) +
+    '</b> \u2014 and the employee takes 95% of the gain, inverting every other result on this page. ' +
+    'Seventy percent of that is just knowing each other\u2019s true position. It isn\u2019t being ' +
+    'nice that works. It\u2019s being verified.';
+  c.append(big);
   host.append(c);
 }
 
@@ -645,6 +693,7 @@ function renderScience(s) {
   if (s.v2) renderRebuild(s.v2);
   if (s.v3) renderV3(s.v3);
   if (s.v4) renderV4(s.v4);
+  if (s.v6) renderV6(s.v6);
 
   const cav = $('#caveats');
   cav.innerHTML =

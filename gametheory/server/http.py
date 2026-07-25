@@ -23,7 +23,7 @@ from fastapi.responses import (
     FileResponse, HTMLResponse, PlainTextResponse, RedirectResponse,
 )
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from gametheory.negotiation.sell import sell_next_offer as _sell_next_offer
 from gametheory.negotiation.buy import (
@@ -2581,15 +2581,47 @@ def rent_check(body: _RentCheckRequest):
 # failing — the whole surface works either way, which is why the LLM can
 # be treated as an accelerant rather than a dependency.
 
+# Bounds on a request that carries arbitrary text from the internet to a
+# model. The 1 MiB body limit and the per-IP rate lane sit above this;
+# these are the shape checks, so a well-formed-but-hostile body is
+# rejected before it reaches the sensitivity engine or the prompt.
+_MAX_VALUES = 40          # comfortably above any situation's field count
+_MAX_VALUE_CHARS = 200    # a confirmed field value, not an essay
+
+
 class _HelperAskRequest(BaseModel):
     text: Optional[str] = Field(
         None, max_length=4000,
         description="What's going on, in your own words. Optional.")
     situation_key: Optional[str] = Field(
-        None, description="Skip classification and name the situation.")
+        None, max_length=64,
+        description="Skip classification and name the situation.")
     values: Optional[dict] = Field(
         None, description="Fields the person has confirmed or corrected. "
-                          "These always beat anything read from their text.")
+                          "These always beat anything read from their text. "
+                          f"At most {_MAX_VALUES} entries.")
+
+    @field_validator("values")
+    @classmethod
+    def _bound_values(cls, v):
+        """Reject a hostile `values` rather than quietly truncating it.
+
+        Unbounded, this is the cheapest abuse in the API: a 1 MiB body of
+        50,000 keys is copied by the merge step before the resolver ever
+        gets to ignore the ones that are not declared fields.
+        """
+        if v is None:
+            return v
+        if len(v) > _MAX_VALUES:
+            raise ValueError(f"at most {_MAX_VALUES} values")
+        for key, val in v.items():
+            if not isinstance(key, str) or len(key) > 64:
+                raise ValueError("value keys must be short strings")
+            if val is not None and not isinstance(val, (str, int, float, bool)):
+                raise ValueError(f"{key}: values must be scalars")
+            if isinstance(val, str) and len(val) > _MAX_VALUE_CHARS:
+                raise ValueError(f"{key}: at most {_MAX_VALUE_CHARS} characters")
+        return v
     no_telemetry: bool = Field(
         False, description="Opt out of the anonymous record for this request. "
                            "Honoured before anything is built, not before it "
