@@ -32,7 +32,24 @@ def _d(a, b):
 
 def derive_market(r):
     d = {
+        # AMENDMENT 12 §J1 -- READ THE NOTE BEFORE QUOTING `vacancy`.
+        # `vacant_years` is incremented in the RENEWAL block, which runs once a
+        # year at the annual boundary, AFTER twelve months of matching and
+        # BEFORE that year's leavers empty their habitats. So this is not a
+        # vacancy rate: it is the share of habitats that failed to let for a
+        # FULL TWELVE-MONTH matching cycle, and it is 0.0000 in every baseline
+        # cell by construction. The two honest measures are beside it.
         "vacancy": _d(r["vacant_years"], r["habitat_years"]),
+        # stock vacancy as a flow: habitat-months empty / habitat-months
+        "vacancy_flow": _d(r["vacant_months"], 12.0 * r["habitat_years"]),
+        # months a habitat sits listed per completed let, counted inclusively
+        # (a habitat listed and let inside one month counts 1.0)
+        "let_months": _d(r["vacant_months"], r["n_newlet_signed"]),
+        # elapsed months on market at signature (the exclusive convention)
+        "dom_at_signing": _d(r["dom_sum"], r["n_newlet_signed"]),
+        # the endogenous market rent these dollars are denominated in
+        "market_rent_renew": _d(r["renew_M_sum"], r["n_renewal"]),
+        "market_rent_newlet": _d(r["newlet_M_sum"], r["n_newlet"]),
         "retention": 1.0 - _d(r["n_renewal_left"], r["n_renewal"]),
         # channels, never pooled
         "renew_growth": _d(r["renew_growth_sum"], r["renew_growth_n"]),
@@ -50,6 +67,14 @@ def derive_market(r):
         "zone_newlet": _d(r["zone_newlet_sum"], r["wa_n_newlet"]),
         "wa_ratio_renew": _d(_d(r["wa_tenant_renew"], r["wa_n_renew"]),
                              _d(r["wa_land_renew"], r["wa_n_renew"])),
+        # AMENDMENT 12 §J1: the SAME walk-aways in months of market rent. The
+        # ratio is unaffected (both sides share M_obs); the DOLLARS are not, and
+        # the dollar version may not be set beside any figure quoted at
+        # ANCHOR_RENT without rescaling by ANCHOR_RENT / market_rent_renew.
+        "wa_tenant_renew_months": _d(r["wa_tenant_renew"], r["renew_M_sum"]),
+        "wa_land_renew_months": _d(r["wa_land_renew"], r["renew_M_sum"]),
+        "wa_tenant_newlet_months": _d(r["wa_tenant_newlet"], r["newlet_M_sum"]),
+        "wa_land_newlet_months": _d(r["wa_land_newlet"], r["newlet_M_sum"]),
         # K21, measured without the definitional benchmark
         "rent_gap": _d(r["rent_gap_sum"], r["move_gain_n"]),
         "move_gain": _d(r["move_gain_sum"], r["move_gain_n"]),

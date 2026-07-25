@@ -151,6 +151,35 @@ MIN_VACANCY_MONTHS = 0.25
 # read their own clause instead of anchoring them on a number we made
 # up. Do not reintroduce it without a citation.
 
+# ── What leaving costs YOU ───────────────────────────────────────────
+# The other half of the arithmetic, and it is in worse shape than the
+# landlord's half. No government statistic exists: the Census publishes
+# how often people move, the BLS publishes a price index for moving
+# services, and nobody official publishes what a move costs.
+#
+# The figure everyone quotes (~$2,300) comes from a trade body absorbed
+# into another organisation in December 2020, circulates with three
+# mutually inconsistent values attached, and has no reachable primary
+# document. Same shape as the "1-3 months" turnover number: a citation
+# chain with no origin.
+#
+# These two are independent and reachable — one built from booked
+# transactions, one from a consumer survey. They are the honest range.
+# Both are local-move figures; a long-distance move is a different and
+# much larger number, which is why this is shown as a floor rather than
+# an estimate of anyone's actual move.
+MOVE_COST_LOW_USD = 984
+MOVE_COST_HIGH_USD = 1489
+MOVE_COST_NOTE = (
+    "Moving itself costs you something, and it is worth putting in the same "
+    "sentence as everything else here. Two independent estimates of a local "
+    "move land around $1,000 and $1,500 — one from booked transactions, one "
+    "from a consumer survey. The $2,300 figure repeated everywhere traces to "
+    "a trade body that no longer exists and has no primary document behind "
+    "it. Treat $1,000-1,500 as a floor for a local move and expect more if "
+    "you are going any distance."
+)
+
 # Below this many months left, the arithmetic stops being the story:
 # almost any route costs about the same and the honest answer is
 # usually "ride it out."

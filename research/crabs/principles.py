@@ -766,6 +766,10 @@ ARM_SELECTORS = frozenset({
     "secured_share",        # K26's treatment share
     "signal_enabled",       # K26 AUDIT; False in every reported cell
     "derive_switching",     # A8; separate rng, off in every reported cell
+    "stagger_expiry",       # A12 J1: the one-knob ablation of synchronised
+                            # lease expiry. Off in every previously reported
+                            # cell, and reuses the leaver's own u[9] draw, so it
+                            # introduces no parameter and no new randomness.
 })
 STRUCTURAL = frozenset({
     "n_stations", "units", "j_max", "comp_nodes", "blanket_grid",
@@ -1098,7 +1102,23 @@ POPULATION_OF.update({k: STAYERS for k in (
     "secured_surp", "unsecured_surp", "surplus_renew", "surplus_renew_n")})
 POPULATION_OF.update({k: NEWLET for k in (
     "newlet_growth_sum", "newlet_growth_n", "n_newlet_signed",
-    "newlet_rent_sum", "newlet_vs_ask_sum")})
+    "newlet_rent_sum", "newlet_vs_ask_sum",
+    # recorded at the signature, so it is a statistic of lets that SIGNED
+    "dom_sum")})
+# AMENDMENT 12 §J1. Three populations the market recorder always had and nobody
+# had ever named, which is why `vacancy` could be reported for a year as though
+# it were a rate over habitat-months when it is a count over habitat-YEARS.
+NEWLET_ATTEMPTS = "new-let bargaining attempts, matched or not"
+LISTING_MONTHS = "habitat-months a habitat spent on the market"
+POPULATION_OF.update({k: NEWLET_ATTEMPTS for k in (
+    "n_newlet", "wa_n_newlet", "wa_tenant_newlet", "wa_land_newlet",
+    "zone_newlet_sum", "zone_newlet_neg", "wait_sum", "newlet_M_sum")})
+POPULATION_OF.update({k: LISTING_MONTHS for k in ("vacant_months",)})
+# `vacancy_lost` keeps its ALL_HABITAT_YEARS classification deliberately: the
+# name exists in BOTH recorders, and in `world.py` it really is a habitat-year
+# sum. Reclassifying it here would silently reclassify `run.derive`'s
+# `joint_phy` / `joint_cash_phy`, which A12 has no business moving.
+POPULATION_OF["renew_M_sum"] = ALL_RENEWALS
 POPULATION_OF.update({k: ENGINE_ASKERS for k in (
     "engine_util_sum", "engine_util_n")})
 POPULATION_OF["grant_{}"] = STAYERS
@@ -1132,6 +1152,17 @@ RATE_OF_SUBSET = frozenset({
     # by construction (a vacant habitat has no crab), so dividing a crab-year
     # sum by habitat-years is the intended "per habitat we own" figure
     "tenant_phy", "tenant_cash_phy",
+    # AMENDMENT 12 §J1 -- DURATIONS. A spell-length statistic divides
+    # habitat-MONTHS by completed SPELLS on purpose: that is what a duration is.
+    # It is only interpretable when no spell is censored, i.e. when every
+    # habitat listed in a year lets inside that year. `vacant_years == 0` is
+    # exactly that condition, and it is asserted beside these statistics rather
+    # than assumed. `vacancy_flow` is the same numerator over the matching
+    # denominator, which is the vacancy RATE `vacancy` was mistaken for.
+    "let_months", "dom_at_signing", "vacancy_flow",
+    # walk-aways re-denominated from dollars into months of market rent: the
+    # numerator and the denominator run over the same events by construction
+    "market_rent_renew", "market_rent_newlet",
 })
 
 

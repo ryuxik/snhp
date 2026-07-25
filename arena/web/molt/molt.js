@@ -548,11 +548,15 @@ function renderV6(v) {
   big.style.cssText = 'background:var(--shell);color:#14100e;border-radius:8px;padding:1rem 1.1rem;margin-top:1.1rem;font-family:var(--serif);font-size:1.2rem;line-height:1.45';
   big.innerHTML =
     'Two of these engines pointed at each other adversarially <b style="color:var(--coral)">destroy</b> ' +
-    'value: ' + money(v.duel_adv) + ' joint. Two of them in the mode where both sides <b>prove</b> ' +
-    'their walk-away instead of guessing produce <b style="color:#3e6b4f">' + money(v.duel_peer) +
-    '</b> \u2014 and the employee takes 95% of the gain, inverting every other result on this page. ' +
-    'Seventy percent of that is just knowing each other\u2019s true position. It isn\u2019t being ' +
-    'nice that works. It\u2019s being verified.';
+    'value: ' + money(v.duel_adv) + ' joint. Give both sides each other\u2019s <b>true</b> walk-away ' +
+    'and it becomes ' + money(v.duel_true) + '. Switch on the cooperative protocol as well and it is ' +
+    money(v.duel_peer) + ' \u2014 so the protocol itself adds only <b>' +
+    money(v.peer_vs_honest_baseline) + '</b>, under our own bar. ' +
+    '<b>What works is telling each other the truth about your alternatives.</b> Not the software, ' +
+    'and not being nice.<span style="display:block;margin-top:.6rem;font-family:var(--sans);font-size:.8rem;color:#4c463d">' +
+    'We first reported that the employee captures 95% of this. That was wrong \u2014 it was whoever ' +
+    'proposes first. With the employer opening instead, the same protocol leaves the employee at ' +
+    money(v.peer_works_first_crab) + ' rather than ' + money(v.peer_crab_first_crab) + '. Withdrawn.</span>';
   c.append(big);
   host.append(c);
 }

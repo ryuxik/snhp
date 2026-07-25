@@ -744,8 +744,9 @@ def test_every_answer_carries_a_next_step():
 
     # The regulated path must route to the legal question, not the ask.
     assert "regulated" in outs["renewal_nyc"].next_step.lower()
-    # The unregulated path leads with urgency (K25).
-    assert "now rather than later" in outs["renewal_denver"].next_step
+    # The unregulated path still leads with urgency — but on the deadline,
+    # not on the priced delay the advisor has since withdrawn.
+    assert "response window" in outs["renewal_denver"].next_step
 
 
 def test_next_step_is_covered_by_the_guard():
@@ -1644,3 +1645,101 @@ def test_the_helper_has_its_own_rate_lane_that_ignores_keys():
     src = inspect.getsource(middleware.RateLimit.dispatch)
     assert src.index('/v1/helper/') < src.index('# All other /v1/*'), (
         "the helper lane must be chosen before the keyed lane")
+
+
+# ── Alignment with the rewritten crab-landlord article ───────────────
+
+
+def test_we_do_not_sell_asking_as_cheap():
+    """The study looked for a cost explaining why 61% never ask — time,
+    awkwardness, fear of being marked as trouble. None works: to
+    reproduce the observed 39% who try, one email would have to cost a
+    tenant 27-55 hours of wages. So the barrier is not a cost, and advice
+    built on lowering the effort is aimed at the wrong thing.
+    """
+    o = registry.get("rent_renewal").assess(
+        {"metro": "denver", "current_rent": 1800, "offered_rent": 1950,
+         "months_at_address": 30})
+    blob = " ".join(t for _, t in guard.strings(o)).lower()
+    for effort_pitch in ("five minutes", "costs you nothing", "only takes"):
+        assert effort_pitch not in blob, (
+            f"still selling the ask on effort: {effort_pitch!r}")
+    # ...and leads with the lever that does move: being checkable.
+    assert "check" in o.next_step.lower()
+
+
+def test_the_move_cost_is_sourced_and_the_folk_number_is_named():
+    """The other half of the arithmetic, and in worse shape than the
+    landlord's half — no government statistic exists at all."""
+    from vend.situations.lease_break import evidence
+
+    assert evidence.MOVE_COST_LOW_USD == 984
+    assert evidence.MOVE_COST_HIGH_USD == 1489
+    note = evidence.MOVE_COST_NOTE
+    assert "$2,300" in note, "name the unsourced figure rather than ignoring it"
+    assert "no longer exists" in note or "no primary document" in note
+
+    o = registry.get("lease_break").assess(
+        {"metro": "denver", "monthly_rent": 2400, "months_remaining": 9.0,
+         "has_termination_clause": False, "termination_fee_months": None,
+         "replacement_tenant_ready": False, "lease_allows_transfer": "no",
+         "move_out_reason": "job", "security_deposit": None,
+         "credit_score": None})
+    assert note in o.exposure, "what leaving costs YOU belongs in the exposure list"
+
+
+def test_the_anchor_is_not_presented_as_leverage():
+    """Built from scratch, both sides of this arithmetic come out the same
+    size — the "they risk five to gain two" gap the genre runs on is not
+    there. And equal dollars are not equal stakes."""
+    o = registry.get("lease_break").assess(
+        {"metro": "denver", "monthly_rent": 2400, "months_remaining": 9.0,
+         "has_termination_clause": False, "termination_fee_months": None,
+         "replacement_tenant_ready": False, "lease_allows_transfer": "no",
+         "move_out_reason": "job", "security_deposit": None,
+         "credit_score": None})
+    joined = " ".join(o.caveats).lower()
+    assert "equal dollars are not equal stakes" in joined
+    assert "afford to be wrong" in joined
+
+
+def test_the_rewritten_findings_are_still_not_quoted():
+    """The article's numbers moved — 43-50% rational concession, 0.80-0.90
+    information effect, adoption 0.97 -> 0.05. Still simulation output,
+    still not for a reader."""
+    import re as _re
+
+    for key, values in (
+        ("rent_renewal", {"metro": "denver", "current_rent": 1800,
+                          "offered_rent": 1950, "months_at_address": 30}),
+        ("lease_break", {"metro": "denver", "monthly_rent": 2400,
+                         "months_remaining": 9.0,
+                         "has_termination_clause": False,
+                         "termination_fee_months": None,
+                         "replacement_tenant_ready": False,
+                         "lease_allows_transfer": "no",
+                         "move_out_reason": "job", "security_deposit": None,
+                         "credit_score": None}),
+    ):
+        o = registry.get(key).assess(values)
+        for where, text in guard.strings(o):
+            for fig in (r"43[\s-]*(to|–|-)?\s*50\s?%", r"0\.8[05]\b",
+                        r"27[\s-]*(to|–|-)?\s*55 hours", r"\$2,960"):
+                assert not _re.search(fig, text), f"{key}:{where} quotes the sim"
+
+
+def test_urgency_rests_on_the_deadline_not_a_withdrawn_number():
+    """DELAY_PENALTY_NOTE withdrew the priced delay ("something we had
+    built in rather than something we found"), but the next_step urgency
+    line still asserted its magnitude — that waiting costs more than any
+    single ask. The deadline is a fact about the lease and needs no
+    simulation behind it."""
+    from vend.rent import advisor
+
+    o = registry.get("rent_renewal").assess(
+        {"metro": "denver", "current_rent": 1800, "offered_rent": 1950,
+         "months_at_address": 30})
+    assert "response window" in o.next_step
+    assert "costs more than any" not in o.next_step
+    assert "$645" not in " ".join(t for _, t in guard.strings(o))
+    assert "built in rather than something we found" in advisor.DELAY_PENALTY_NOTE

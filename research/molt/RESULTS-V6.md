@@ -41,7 +41,12 @@ treatments.
 | may cut base, strict | 8,897 | 4,859 | **+4,038** |
 | may cut base, permissive | 10,296 | 5,581 | **+4,715** |
 
-The engine also wins the crab's own utility in all four cells (+$597 to +$3,204).
+The engine also wins the crab's own utility in all four cells on the main seeds
+(+$597 to +$3,204) — **but that part does not replicate.** On held-out seed 101 at
+the `cut=Y,strict=N` setting the sequential arm is *higher* on crab utility
+(22,180 vs 21,588). The sign flips across seeds, so treat the crab-utility
+comparison as noise. **The joint-surplus claim does replicate**: +$4,715 main,
++$3,347 confirm, along with the departure gap (18.3% vs 36.7%).
 
 Decomposing the harness bug on the engine arm's joint surplus: relaxing the reply
 rule alone **+$3,943**, allowing the base cut alone **+$6,184**, both **+$7,583**.
@@ -97,7 +102,7 @@ guessing 0.8 loses **$8,287**.
 **Product consequence:** the highest-leverage input in the multi-issue engine is
 an unvalidated default, and the error is asymmetric — caution is expensive.
 
-## 5. Peer mode is the one clean positive result in the study
+## 5. Peer mode — SUPERSEDED BY THE v8 ADDENDUM BELOW
 
 | both sides on the engine | crab | Works | **joint** |
 |---|---|---|---|
@@ -105,15 +110,16 @@ an unvalidated default, and the error is asymmetric — caution is expensive.
 | adversarial, **true** BATNAs | 20,478 | −17,003 | **+3,475** |
 | **peer mode** | 20,728 | −15,557 | **+5,171** |
 
-Two adversarial engines **destroy value** — v1's arm F reproduced. Two peer-mode
-engines create **+$5,752** against that baseline, and **the crab takes 95% of the
-gain**, inverting the ~90%-to-the-employer split that every adversarial arm in
-this study produced.
+Two adversarial engines **destroy value** — v1's arm F reproduced. That stands.
 
-**But 70% of it is just knowing each other's true walk-away** (+$4,056 of the
-$5,752). The `cooperation` dial alone does nothing measurable (15,811 → 15,833 →
-15,856 across 0/0.5/1.0). It is not cooperative *selection* that works — it is the
-truthful BATNA exchange, which is exactly what the attestation gate buys.
+Everything else this section originally claimed does not. It read the +$5,752
+against the estimated-BATNA baseline as peer mode's value, and reported the crab
+taking **95% of the gain**. **AMENDMENT 6 killed both.** Against the honest
+baseline the protocol adds **+$1,697** (under the bar), and the 95% split is a
+first-mover artifact. See the addendum. The one surviving reading: it is the
+**truthful BATNA exchange** that works, not the mode — consistent with the
+`cooperation` dial doing nothing measurable (15,811 → 15,833 → 15,856 across
+0/0.5/1.0).
 
 ## 6. Scorecard
 
@@ -130,8 +136,107 @@ asymmetric employers. Every one produced a number in the direction I was leaning
 and every one was caught because a reader refused to accept a number that looked
 wrong.
 
-`tests/test_arms.py` now asserts, for every arm, that the counterparty can refuse
-and that engine calls carry a growing offer history. Three of the five would have
-failed it. **A sixth assertion is needed and is not yet written: that any two arms
-being compared instantiate the same counterparty.** Nothing in this file's
-comparisons is safe until that exists.
+`tests/test_arms.py` asserts, for every arm, that the counterparty can refuse and
+that engine calls carry a growing offer history. Three of the five would have
+failed it.
+
+The sixth assertion — `test_compared_arms_face_the_same_counterparty`, which
+watches the arguments each arm hands the shared employer — is now written and
+passing, and it is the one that would have caught the defect this file is about.
+**It is not yet complete:** it covers `arm_engine` vs `arm_human` and not the duel
+arms, which is exactly how K39 slipped through in the v8 addendum. Extending it to
+every pair of arms that appear in the same table is the outstanding work.
+
+---
+
+# ADDENDUM — v8: the attacks on peer mode (AMENDMENT 6)
+
+Peer mode was this study's headline and had never had a kill written against it.
+Four were registered; **three fired**, including against a claim published on the
+demo an hour earlier.
+
+| arm | crab utility | Works | joint |
+|---|---|---|---|
+| adversarial, estimated BATNAs | 15,273 | −15,854 | −581 |
+| adversarial, **true** BATNAs | 20,478 | −17,003 | **3,475** |
+| peer mode (honest) | 20,728 | −15,557 | **5,171** |
+| peer, crab lies +0.3 | 22,304 | −17,877 | 4,427 |
+| peer, **Works proposes first** | **13,773** | −10,196 | 3,577 |
+
+**K36 FIRES.** Against the honest baseline — adversarial with true BATNAs — peer
+mode adds **+$1,697**, below the $2,253 bar. Against the rigged baseline it looked
+like +$5,752. *Consequence, as registered:* peer mode as a distinct feature is not
+supported. **The value is truthful BATNA exchange**, which requires no cooperative
+selection and no peer protocol. The headline becomes "tell each other your
+alternatives," not "use peer mode."
+
+**K38 FIRES.** The 95%-to-the-employee split is a **first-mover artifact**. With
+the Works opening, the same protocol leaves the crab at 13,773 instead of 20,728.
+The figure is withdrawn from RESULTS-V6 §5, the article and the demo.
+
+**K37 does not fire — but "incentive-compatible" is not the right word.** A crab
+inflating its declared walk-away gains +$609 / +$1,010 / **+$1,576** at
+δ = 0.1/0.2/0.3, and the Works gains +$846 at δ = 0.2. All under the bar, but
+monotone increasing and tested only to 0.3. Correct statement: **lying pays a
+little at the lies we tested.** Honesty being stable is untested.
+
+**K39 is VOID.** It compared peer mode against a solo crab, but the duel's
+employer is a `negotiate_bundle` agent and the solo arm's is `works_reply` — two
+different counterparties, the exact defect the sixth assertion exists to catch.
+`test_compared_arms_face_the_same_counterparty` covers `arm_engine` vs
+`arm_human` and **not** the duel arms. The assertion is incomplete and no
+individual-rationality claim is made.
+
+**Scorecard:** one of four predictions. Across six amendments, **eight of
+twenty-one**.
+
+**What §5 above should now say:** two adversarial engines destroy value (−$581);
+giving both sides each other's true walk-away recovers it (+$3,475); the
+cooperative protocol on top adds $1,697, which does not clear the bar. The
+result belongs to information exchange, not to the mode. And nothing is known
+about how the surplus splits, because that turned out to be whoever speaks first.
+
+
+---
+
+# ADDENDUM 2 — v9: the held-out seed, and the gaps v8 left
+
+`python3 research/molt/run9.py`. Three things v6–v8 never did.
+
+**1. The confirmatory seed, finally.** v3 and v4 were read on held-out seed 101;
+v6/v7/v8 were not. They are now, and the headlines hold:
+
+| | main (7/11/23/31) | confirm (101) |
+|---|---|---|
+| K36 — peer mode over adversarial-with-true-BATNAs | +1,697 | **+1,254** |
+| engine − sequential, matched employer (joint) | +4,715 | **+3,347** |
+| adversarial duel with estimated BATNAs (joint) | −581 | +2,207 |
+
+K36 fires on both. The one thing that does **not** replicate is the crab-utility
+comparison in §2 — see the correction there.
+
+**2. K39, redone with the employer guard.** v8's version compared a duel arm
+against a solo arm. Restricted to the duel family, a crab in peer mode versus the
+same crab in an adversarial duel with true BATNAs gains **+$250** (main) and
+**+$64** (confirm) — no individual benefit either, consistent with K36. Against
+the *estimated*-BATNA duel it gains +$5,455, which is the same rigged baseline
+K36 already disposed of.
+
+`run9.compare()` now refuses any comparison across employer implementations, and
+`test_the_employer_guard_refuses_cross_family_comparisons` asserts it does.
+
+**3. Lying, past where K37 stopped — and it is self-limiting.** v8 tested
+inflations to 0.3, found a monotone rising gain, and I flagged that bigger lies
+might clear the bar. They do not. The effect **turns over**:
+
+| the crab inflates its declared walk-away by | main | confirm |
+|---|---|---|
+| +0.3 | +1,576 | +1,098 |
+| +0.5 | **−556** | +132 |
+| +0.7 | **−6,333** | **−4,371** |
+
+There is an interior optimum and large lies backfire hard, because an implausible
+walk-away makes the employer stop trying: departures rise from 15.6% to **25.6%**
+(main) and 17.5% to **30.8%** (confirm). **Peer mode punishes big lies without any
+enforcement** — the small ones still pay a little, and that remains the honest
+caveat, but "a liar can run away with it" is refuted on both seeds.

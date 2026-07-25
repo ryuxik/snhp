@@ -158,3 +158,16 @@ def test_compared_arms_face_the_same_counterparty(monkeypatch):
                 f"at may_cut={may_cut}, strict={strict} the two arms faced "
                 f"different employers: engine saw {seen.get('engine')}, "
                 f"human saw {seen.get('human')}")
+
+
+def test_the_employer_guard_refuses_cross_family_comparisons():
+    """v8's K39 compared a duel arm (employer = a negotiate_bundle agent) with a
+    solo arm (employer = works_reply) and reported the difference. run9.compare()
+    is the guard; this asserts it actually refuses."""
+    import pytest as _pt
+
+    import molt.run9 as R
+    assert R.compare("duel PEER", "duel adversarial TRUE")
+    assert R.compare("engine [cut=Y,strict=N]", "human  [cut=Y,strict=N]")
+    with _pt.raises(AssertionError):
+        R.compare("duel PEER", "engine [cut=Y,strict=N]")

@@ -260,9 +260,15 @@ setting:
 | may cut base, strict | 8,897 | 4,859 |
 | may cut base, permissive | 10,296 | 5,581 |
 
-The engine wins all four, on joint surplus and on the employee's own utility.
-Either asymmetry on its own was larger than the gap I had been reporting as a
-finding.
+The engine wins all four on joint surplus — **+$4,715 on the main seeds, +$3,347
+on a held-out one.** Either asymmetry on its own was larger than the gap I had
+been reporting as a finding.
+
+I said in an earlier draft that it also wins the employee's own utility in every
+cell. On the main seeds it does; **on the held-out seed it reverses**, and the
+sequential arm comes out $592 ahead. That comparison is noise and I'm not making
+it. What survives is the joint number and the departure gap — 18% of crabs leave
+under the engine against 37% under six weeks of email.
 
 Once a promotion costs a real 12% raise and a scarce slot, the engine stops
 asking for it and buys retention with PTO and flexible hours, which are cheap.
@@ -324,16 +330,39 @@ assumes their employer can walk easily gives up **$8,287** against one who knows
 better. The most consequential number in a negotiation tool is a default nobody
 validated, and being careful with it is the expensive mistake.
 
-**And the mode I never ran until the fifth rebuild is the only unambiguously good
-result in the study.** Two engines pointed at each other adversarially *destroy*
-value — joint surplus of **−$581**. Two engines in the product's peer mode, where
-both sides prove their walk-away rather than guessing, produce **+$5,171** — and
-the employee takes **95% of the gain**, inverting the ~90%-to-the-employer split
-that every other arm here produced.
+**And the mode I never ran until the fifth rebuild looked like the only
+unambiguously good result in the study — until I attacked it too.** Two engines
+pointed at each other adversarially *destroy* value: joint surplus of **−$581**.
+The product's peer mode, where both sides prove their walk-away rather than
+guessing, produces **+$5,171**.
 
-Seventy percent of that is just the two sides knowing each other's true position.
-The cooperative-selection dial, on its own, does nothing measurable. It isn't
-being nice that works. It's being verified.
+But that comparison is rigged, because the adversarial baseline was using my
+undefended 0.45 guess. Hand both adversarial engines each other's *true*
+walk-away and they reach **+$3,475** on their own. So the cooperative protocol
+itself adds **$1,697** — under my own bar. **What works is the two sides telling
+each other the truth about their alternatives. Not the mode, and not being nice.**
+
+I also reported, briefly and publicly, that the employee captures 95% of that
+gain. That was wrong. It was whoever proposes first: with the employer opening
+instead, the identical protocol leaves the employee at **$13,773** rather than
+$20,728. Withdrawn.
+
+I also worried out loud that honesty wasn't stable — a side that inflates its
+declared walk-away gained $609, $1,010, $1,576 as the lie grew, and I'd stopped
+measuring at 0.3 with the trend still climbing. So I kept going, and the trend
+**turns over**:
+
+| the employee overstates their outside offer by | gain |
+|---|---|
+| a little (+0.3) | +$1,576 |
+| more (+0.5) | −$556 |
+| a lot (+0.7) | **−$6,333** |
+
+Both seeds. **Big lies backfire without anyone policing them** — claim an
+implausible walk-away and the employer simply stops trying, with departures
+climbing from 16% to 26%. So small lies pay a little and large ones are
+self-punishing. That's a better property than I expected and a worse one than
+"incentive-compatible," and it's what the numbers support.
 
 ### Not a different game — a different point
 

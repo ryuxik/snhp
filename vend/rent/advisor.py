@@ -65,6 +65,16 @@ DELAY_PENALTY_NOTE = (
     "missing the deadline can cost you the right to renew at all."
 )
 
+# WHY THE COPY NO LONGER SAYS "it only takes five minutes".
+# The study went looking for a cost that would explain why 61% never ask —
+# time, awkwardness, fear of being marked as trouble. None works: to
+# reproduce the observed 39% who try, sending one email would have to cost
+# a tenant 27-55 hours of their own wages. It doesn't. So whatever stops
+# people is not a cost, and advice built on lowering the effort is aimed at
+# the wrong thing. The lever that does move is being INFORMATIVE — hence
+# the note below, and hence the copy leads with bringing something
+# checkable rather than with how little time it takes.
+#
 # K26 read backwards, and the comment that used to sit here said so with
 # confidence. The original arm gave the landlord no way to VERIFY the
 # alternative, so of course it offered the same either way — that was a
@@ -350,7 +360,7 @@ def _verdict(market: dict, increase_pct: float, months: int) -> tuple[str, str]:
     return (
         "moderate",
         "You have a real but modest position. A specific, friendly ask is "
-        "worth the five minutes; a confrontation is not.",
+        "worth making; a confrontation is not.",
     )
 
 
@@ -433,10 +443,15 @@ def assess(
             )
     else:
         asks = _build_asks(current_rent, offered_rent, market)
-        # K25 leads both paths: delay costs more than any single ask below.
+        # Urgency still leads, but on the ground that survived. The
+        # magnitude claim — that waiting costs more than any single ask —
+        # rested on the delay figure DELAY_PENALTY_NOTE has since
+        # withdrawn as something the model was built with rather than
+        # something it found. The deadline is a fact about the lease and
+        # needs no simulation behind it.
         urgency = (
-            "Do this now rather than later — waiting costs more than any "
-            "single thing you could ask for. "
+            "Do this inside your response window — missing it can cost you "
+            "the right to renew at all. "
         )
         lead = urgency + (
             "First, check whether your apartment is rent regulated — if it "
@@ -448,8 +463,8 @@ def assess(
         next_step = (
             lead
             + "to whoever signed your renewal letter. Ask for the easiest "
-            "item first. If they say no to everything, you can still sign — "
-            "asking costs you nothing but five minutes."
+            "item first, and put something specific in it they could check. "
+            "If they say no to everything you can still sign."
         )
 
     caveats = list(legal.get("caveats", []))

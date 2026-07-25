@@ -446,6 +446,7 @@ def assess(values: dict) -> Outcome:
             f"{state['burden_of_proof']} {state['cannot_be_waived']} "
             f"{state['still_not_a_conclusion']}"
         )
+    exposure.append(evidence.MOVE_COST_NOTE)
     exposure.append(
         "An unresolved balance can be sent to collections and show up when you "
         "apply for your next place. That is the real cost of the cheapest-looking "
@@ -464,6 +465,21 @@ def assess(values: dict) -> Outcome:
         "nothing would start to read as having nothing, and renters as a "
         "group would be worse off than when nobody could prove anything. "
         "The edge is real and it is temporary."
+    )
+    # The finding that reframes the whole page. Built from scratch, the
+    # two sides of this arithmetic come out the same size — the "they
+    # risk five to gain two" gap the advice genre runs on is not there.
+    # Which is not the same as saying you are evenly matched.
+    caveats.append(
+        "The number above is what leaving costs your landlord, and it is "
+        "worth knowing that your own cost of leaving is likely in the same "
+        "range rather than a fraction of it. The popular version of this — "
+        "they risk far more than you do — is built on two figures neither of "
+        "which has been measured. And equal dollars are not equal stakes: "
+        "the same few thousand is a line item against a portfolio for them "
+        "and a household shock for you. You can lose a negotiation where the "
+        "numbers are symmetric, because only one of you can afford to be "
+        "wrong."
     )
     caveats.append(evidence.BASIS)
     if not mkt.get("metro_known"):

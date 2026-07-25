@@ -249,6 +249,23 @@ class MarketParams:
     signal_cost: float = 0.10          # months of market rent to produce the
                                        # proof (forward the offer letter, pay a
                                        # holding deposit). DECLARED, swept.
+    stagger_expiry: bool = False       # AMENDMENT 12 §J1. Shipped, every lease
+                                       # in the world expires on the same day:
+                                       # the renewal block empties EVERY leaver's
+                                       # habitat at the annual boundary, while
+                                       # the leavers themselves enter the search
+                                       # pool at `int(u[9]*12)`, a uniform month.
+                                       # So supply arrives in one lump and demand
+                                       # trickles in over the following year, and
+                                       # the resulting QUEUE-DRAIN time is what
+                                       # AMENDMENT 10 read off as "time to let".
+                                       # With this ON the habitat empties in the
+                                       # same month its tenant starts searching --
+                                       # ONE knob, nothing else moves, and the
+                                       # tenant's own draw `u[9]` is reused, so no
+                                       # new randomness enters. Default OFF, so
+                                       # every previously reported cell is
+                                       # bit-identical.
     derive_switching: bool = False     # AMENDMENT 8: accumulate each searcher's
                                        # REALISED search cost, so that switching
                                        # cost can be an output instead of the
@@ -283,6 +300,15 @@ def _rec():
         surplus_newlet=z, surplus_newlet_n=z,
         crab_cash=z, station_cash=z,
         precedent_paid=z,
+        # AMENDMENT 12 §J1. Every walk-away above is a number of DOLLARS built
+        # as (months) x M_obs, and M_obs is the ENDOGENOUS market rent, which
+        # deflates to ~$626 in the shipped configuration. Reporting those
+        # dollars beside any figure denominated at ANCHOR_RENT ($2,000) is a
+        # 3.2x unit error, and AMENDMENT 10's landlord-vs-tenant comparison made
+        # it. Accumulating M_obs on the same events lets every walk-away be
+        # re-expressed in MONTHS OF MARKET RENT, which is the model's own
+        # scale-free unit and the only one that can be compared with anything.
+        renew_M_sum=z, newlet_M_sum=z,
     )
     for b in range(4):
         r[f"renew_elapsed{b}_n"] = z
@@ -314,6 +340,16 @@ class Hab:
     prior_rent: float = 0.0      # rent of record before this year's event
     dom: float = 0.0             # A5a.3: months on market, carried as state
     ask0: float = 0.0            # the ask when first listed, for depth
+    list_at: int = 0             # A12 §J1: first month of the year this habitat
+                                 # is on the market. Always 0 unless
+                                 # `stagger_expiry` is on.
+
+
+def _listed(h: "Hab", mo: int) -> bool:
+    """Is this habitat on the market this month? Identical to `h.crab is None`
+    unless `stagger_expiry` is on, in which case a habitat whose tenant has not
+    left yet is neither occupied-by-a-searcher nor available."""
+    return h.crab is None and mo >= h.list_at
 
 
 # --------------------------------------------------------------- walk-aways
@@ -433,6 +469,9 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                 if h.crab is None:
                     if R is not None:
                         rec["vacant_years"] += 1.0
+                    # a habitat that survived a whole matching year unlet is on
+                    # the market from month 0 of the next one
+                    h.list_at = 0
                     continue
                 if R is not None:
                     rec["occupied_years"] += 1.0
@@ -512,6 +551,7 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                 h.prior_rent = crab.rent
                 if R is not None:
                     rec["n_renewal"] += 1.0
+                    rec["renew_M_sum"] += M_obs
                     eb = min(int(elapsed), 3)
                     rec[f"renew_elapsed{eb}_n"] += 1.0
                     rec[f"renew_elapsed{eb}_offer"] += offer_annual / (12.0 * M_obs)
@@ -560,13 +600,17 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                         rec["turn_events"] += 1.0
                         rec["surplus_renew"] += -wa_t - _sigcost
                         rec["surplus_renew_n"] += 1.0
+                    leave_month = int(u[9] * MONTHS)
                     if u[7] >= mp.exit_share:
                         if mp.derive_switching:
                             _a8_enter(crab, rng_a8, secured)
-                        pool.append((int(u[9] * MONTHS), _to_searcher(crab, u)))
+                        pool.append((leave_month, _to_searcher(crab, u)))
                     h.crab = None
                     h.dom = 0.0
                     h.ask = h.ask0 = 0.0
+                    # A12 §J1: the SAME month the tenant starts searching, so
+                    # that listings and searchers arrive on one clock.
+                    h.list_at = leave_month if mp.stagger_expiry else 0
                 else:
                     crab.rent = offer
                     crab.tenure += 1
@@ -619,10 +663,10 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
             # habitats vacated by this year's renewals are listed now
             for si in range(len(stations)):
                 for h in stations[si]:
-                    if h.crab is None and h.ask <= 0.0:
+                    if _listed(h, mo) and h.ask <= 0.0:
                         h.ask = h.ask0 = M_obs
             listings = [(si, i) for si in range(len(stations))
-                        for i, h in enumerate(stations[si]) if h.crab is None]
+                        for i, h in enumerate(stations[si]) if _listed(h, mo)]
             # vacancy is a FLOW: charge every empty habitat this month
             if R is not None:
                 rec["vacancy_lost"] += len(listings) * M_obs
@@ -644,7 +688,7 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
             for crab in carry:
                 listings = [(si, i) for si in range(len(stations))
                             for i, h in enumerate(stations[si])
-                            if h.crab is None]
+                            if _listed(h, mo)]
                 if not listings:
                     still.append(crab)
                     continue
@@ -681,6 +725,7 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                 zone = rt - rl_believed
                 if R is not None:
                     rec["n_newlet"] += 1.0
+                    rec["newlet_M_sum"] += M_obs
                     rec["wa_tenant_newlet"] += wa_t
                     rec["wa_land_newlet"] += wa_l
                     rec["wa_n_newlet"] += 1.0
@@ -734,10 +779,11 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                 h.crab = crab
                 h.dom = 0.0
                 h.ask0 = 0.0
+                h.list_at = 0
             # unmatched habitats age; unmatched searchers mostly persist
             for si in range(len(stations)):
                 for h in stations[si]:
-                    if h.crab is None:
+                    if _listed(h, mo):
                         h.dom += 1.0
             if mp.derive_switching:
                 _survive = [c for c in still if rng.random() >= 0.25]

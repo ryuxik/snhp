@@ -610,6 +610,10 @@
   "duel_peer": 5171,
   "peer_crab": 20728,
   "adv_crab": 15273,
-  "ratchet_worth": 156
+  "ratchet_worth": 156,
+  "peer_vs_honest_baseline": 1697,
+  "peer_works_first_crab": 13773,
+  "peer_crab_first_crab": 20728,
+  "lie_gain": 1576
  }
 }
