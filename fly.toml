@@ -37,6 +37,16 @@ primary_region = "sjc"
   # event log, console log, and daily LLM-spend counter live here so they
   # survive deploys (otherwise they sit on the ephemeral container FS).
   SNHP_DATA_DIR = "/data"
+  # Helper intake reads free text with a model. A feature flag rather than
+  # a secret, so it lives here where it is version-controlled and visible.
+  # Off means the helper still works — keyword routing plus a plain form.
+  SNHP_ENABLE_HELPER_LLM = "1"
+  # Explicit rather than relying on the $5 default, because this cap is
+  # SHARED with the dispute co-pilot: whichever spends first wins. At the
+  # measured Haiku intake cost ($0.0022/call, see vend/situations/intake.py)
+  # $5 is ~2,270 intake calls a day, and the per-IP hourly cap (40) bounds
+  # a single abuser to about $0.09/hour.
+  SNHP_DAILY_LLM_USD = "5.0"
 
 # Persistent volume for runtime data (analytics events + logs). One machine
 # → one volume. The mountpoint is root-owned on first mount; a one-time
