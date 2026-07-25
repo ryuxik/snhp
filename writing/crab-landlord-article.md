@@ -78,13 +78,15 @@ Which puts a tool like the one I built in an awkward position. Work well enough 
 
 That result survived every attempt to break it. It's on the page now, in front of the tool, because a person is entitled to know that before they use the thing.
 
-## Two things I ran purely because they were fun
+## Then I gave the colony a plague
 
-**Crab flu.** Demand collapses; habitats empty out. I expected rents to fall. The station *held rent and ate the vacancy*, and rent relative to market actually **rose**. What tripled was concessions. Leverage in a downturn arrives as free months, never as a lower number on the lease, because the number on the lease is the one that follows the building forever.
+Demand collapses. Habitats empty out. Rents should fall, and mine did, and I expected the stations to follow them down.
 
-**The AI crab migration.** Rich crabs pour into a few stations, then a chunk leave abruptly. The boom is *good* for incumbents, because renewal caps mean their rent can't chase the market, so they fall behind and cling. Then the exodus inverts it in a single year, and the crabs who arrived at the peak are still eating it five years later.
+They didn't. The station *held its rent and ate the vacancy* — rent relative to market actually **rose** while a fifth of its habitats sat empty. What tripled instead was concessions: free months, waived fees, anything that wasn't the number on the lease.
 
-Neither is evidence. Both are labelled that way in the write-up.
+Which is the same lesson as the credible-signal one, arriving from the other direction. **The number on the lease is the one thing a station will not move**, because that number follows the building forever: it sets the comparable for every future tenant, and on a large portfolio it's marked into the asset's value. Everything else is negotiable precisely because it evaporates.
+
+So the advice that falls out isn't "ask for a rent reduction." It's: ask for the thing that doesn't leave a permanent mark, and prove you have somewhere else to be.
 
 ## Why a person building agent software spent a week on rent
 

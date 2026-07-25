@@ -962,3 +962,34 @@ A6.3's stopping rule stands, with one amendment: deadline shape (this
 amendment) is folded into the **same** Gate-3 attempt as elastic demand,
 not treated as a seventh mechanism warranting a further attempt. If that
 combined attempt fails V9, we stop as committed.
+
+---
+
+# AMENDMENT 7 — the renewal cap is circular (found by inspection, 2026-07-25)
+
+`world.py:77` sets `renewal_cap = 0.12`, an imposed ceiling on what a
+station will ask at renewal. SPEC.md justifies it: *"2022 renewals averaged
++10.7% while asking rents rose faster; caps are why loss-to-lease
+persists."*
+
+**That is an observed OUTCOME installed as a hard CONSTRAINT.** And it
+double-counts: the model already prices elasticity, so a station's
+restraint at renewal should EMERGE from the risk of the tenant leaving. We
+bolted restraint on top of a mechanism that was supposed to generate it.
+
+**Consequence, applied immediately:** the AI-migration result ("the boom
+helps incumbents because renewal caps stop their rent chasing the market")
+is withdrawn from the article. Its stated mechanism reduces to "the cap we
+imposed did what we imposed it to do." Not tested unbounded, and not
+worth testing in that form — the claim is unpublishable either way.
+
+The crab-flu result is unaffected: the cap binds *increases*, and that
+finding is about a station declining to *cut* into a falling market.
+
+Class: same as the six the audit found. Seventh. Found by reading the
+prose, not the code — which is worth noting as a detection method.
+
+**If the simulation is ever revived:** derive the renewal ceiling from
+elasticity plus any explicit regulation, and check whether the observed
+~10.7% average falls out. That is the honest version of this parameter,
+and it is a real experiment rather than an assumption.
