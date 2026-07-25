@@ -65,17 +65,47 @@ DELAY_PENALTY_NOTE = (
     "missing the deadline can cost you the right to renew at all."
 )
 
-# K26 did NOT confirm. Securing an alternative before you counter changed the
-# terms offered by $17/yr against a $480 bar — because the landlord cannot
-# verify your alternative, so it offers the same either way. It buys you the
-# ability to walk, NOT a better offer. We do not claim otherwise.
+# K26 read backwards, and the comment that used to sit here said so with
+# confidence. The original arm gave the landlord no way to VERIFY the
+# alternative, so of course it offered the same either way — that was a
+# property of our model, not of renting, so that finding is withdrawn.
+#
+# What replaced it overstated in the other direction. AMENDMENT 9 wired and
+# swept the verifiable-signal arm (it had been run once and never committed,
+# which is its own lesson). Two results:
+#
+#   K28 did NOT fire. The offer gap is real and reproducible: 10.212%,
+#   flat across every signal_cost in {0.05, 0.10, 0.20, 0.40}.
+#
+#   K29 FIRED, and it is the one that matters. Ablated against
+#   deadline_shape=False the gap collapses to 0.004% -- and the same 0.004%
+#   shows up in the signal-OFF control, so the direct channel is exactly
+#   zero. market.py:452-468 gives a proved tenant `wa_t_exp = wa_t_base`,
+#   the identical expression everyone gets with no cliff, built from the
+#   POPULATION move_med. Proving reveals nothing about this tenant.
+#
+# So proving works by deleting your deadline penalty, not by making you
+# expensive to replace. It is K25 measured a second time under another name
+# (cf. artefact #3: "the shape of the deadline" was 87% level).
+#
+# Net to the tenant: +$458/yr at the declared signal cost, against K26's
+# $480 materiality bar -- BELOW the bar at every signal cost, because the
+# proof costs about what it buys. K26 still does not confirm, but now for a
+# real reason rather than because the landlord could not respond.
+# PRINCIPLE D: `secured_surp` mixes a stayers-only numerator with an
+# all-renewals denominator, so treat $458 as indicative, not exact.
+# The gap also scales with the circular `move_med`: 7.368% on A8's derived
+# 1.48 months rather than the calibrated 3.60.
 SHOPPING_AROUND_NOTE = (
     "If you have a real alternative, say so and be specific enough that it "
-    "can be checked. We previously told people this doesn't help. That was "
-    "wrong — our own model had made it structurally impossible to help, and "
-    "once we allowed a landlord to respond to a claim it could verify, it "
-    "was one of the largest effects we measured. A vague 'I could move' is "
-    "not the same thing."
+    "can be checked. We have now measured what that is worth, and it is "
+    "less than we told you: roughly $460 a year, against the $480 we set "
+    "as our own bar for calling something material. It also does not work "
+    "the way we assumed. It works by removing the penalty for answering "
+    "close to your deadline, not by making you expensive to replace. The "
+    "clock is doing the work either way, which is why answering early is "
+    "the stronger advice. A vague 'I could move' is still not the same "
+    "thing as a specific one."
 )
 
 

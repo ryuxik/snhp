@@ -62,6 +62,10 @@ from gametheory.server.onboarding import (
     lookup_key as _lookup_key,
 )
 from gametheory.server import telemetry as _telemetry
+# Distinct from the API's opt-in telemetry above: this one is
+# anonymous-by-construction rather than consent-gated, because the
+# helper has no accounts to hang consent on.
+from vend.situations import telemetry as _helper_telemetry
 from gametheory.server import _llm_budget
 from gametheory.server import dispute_analytics as _analytics
 from gametheory.server.middleware import bearer_api_key as _bearer_api_key
@@ -2560,6 +2564,187 @@ def rent_check(body: _RentCheckRequest):
         ).to_dict()
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+# ─── The helper (situation framework) ────────────────────────────────
+# One text box over a registry of situations. The LLM fills a struct and
+# never a judgment; the judgment is the same deterministic core the
+# /rent endpoint uses. See vend/situations/__init__.py for the stack.
+#
+# Free and keyless. We keep an ANONYMOUS, bucketed record of what was
+# asked and what was said when the operator opts in — never the person's
+# own words, never an exact figure, no IP, no cookie, no account. See
+# vend/situations/telemetry.py for the choke point and PRIVACY.md for the
+# reidentification analysis. The LLM leg is opt-in and degrades to a
+# keyword match plus a plain form when it is off, over budget, or
+# failing — the whole surface works either way, which is why the LLM can
+# be treated as an accelerant rather than a dependency.
+
+class _HelperAskRequest(BaseModel):
+    text: Optional[str] = Field(
+        None, max_length=4000,
+        description="What's going on, in your own words. Optional.")
+    situation_key: Optional[str] = Field(
+        None, description="Skip classification and name the situation.")
+    values: Optional[dict] = Field(
+        None, description="Fields the person has confirmed or corrected. "
+                          "These always beat anything read from their text.")
+    no_telemetry: bool = Field(
+        False, description="Opt out of the anonymous record for this request. "
+                           "Honoured before anything is built, not before it "
+                           "is written.")
+
+
+@app.get("/helper", tags=["discovery"], include_in_schema=False,
+         summary="The helper (page)")
+def helper_page():
+    return _serve_static_page("helper.html")
+
+
+@app.get("/v1/helper/situations", tags=["helper"],
+         summary="Situations the helper can think about")
+def helper_situations():
+    from vend.situations import registry as _registry
+    from vend.situations import rent_renewal as _rr
+
+    return {
+        "situations": _registry.catalog(),
+        "metros": _rr.known_metros(),
+    }
+
+
+@app.post("/v1/helper/ask", tags=["helper"],
+          summary="Describe a situation, get the questions that matter and an answer")
+def helper_ask(body: _HelperAskRequest, request: Request):
+    """Free-text in, a structured read plus a deterministic answer out.
+
+    Three regions come back: `reflection` (how we read your situation,
+    every field tagged with where it came from), `questions` (at most
+    three, each one chosen because the answer would change the advice),
+    and `answer` (the fixed output contract, once there's enough to say
+    something).
+    """
+    from vend.situations import answer as _answer
+
+    # Worth reading even when the situation is already named: the text
+    # still carries the field values.
+    read_text = bool(body.text)
+    llm_note = None
+
+    if read_text:
+        enabled = os.environ.get("SNHP_ENABLE_HELPER_LLM", "").strip().lower() \
+            in ("1", "true", "yes", "on")
+        if not enabled:
+            read_text = False
+            llm_note = ("Reading free text is off on this deploy, so we've "
+                        "matched the situation and will ask you directly.")
+        else:
+            allowed, reason = _llm_budget.consume(_client_ip(request))
+            if not allowed:
+                # Degrade, don't 429. A consumer surface that refuses to
+                # work is worse than one that asks a few more questions.
+                read_text = False
+                llm_note = reason
+
+    if body.text and not read_text and not body.situation_key:
+        # Still classify — keywords are free and get the person to the
+        # right situation without an LLM.
+        from vend.situations import registry as _registry
+        guessed, _conf = _registry.classify(body.text)
+        body.situation_key = guessed
+
+    try:
+        out = _answer(
+            text=body.text,
+            situation_key=body.situation_key,
+            values=body.values or {},
+            read_text=read_text,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    if llm_note:
+        out["llm_note"] = llm_note
+
+    # Anonymous record, if the operator enabled it and this person didn't
+    # opt out. Deliberately AFTER the answer is built and deliberately
+    # never handed `body.text` — the free text is not a parameter of
+    # redact(), so it cannot be written even by mistake.
+    if not body.no_telemetry and _helper_telemetry.enabled() and out.get("resolved"):
+        answer_block = out.get("answer") or {}
+        rec = _helper_telemetry.redact(
+            situation_key=out["situation"]["key"],
+            values=(body.values or {}),
+            provenance={f["key"]: f["provenance"]
+                        for f in out.get("reflection", {}).get("fields", [])},
+            verdict=answer_block.get("verdict", ""),
+            asked=[q["key"] for q in out.get("questions", [])],
+            route_offered=next((r["key"] for r in answer_block.get("routes", [])
+                                if r.get("available")), None),
+            used_llm=bool((out.get("reading") or {}).get("used_llm")),
+        )
+        if _helper_telemetry.write(rec) and answer_block:
+            # Handed back so a person can report what actually happened.
+            out["receipt"] = rec["receipt"]
+
+    return out
+
+
+class _HelperOutcomeRequest(BaseModel):
+    receipt: str = Field(..., max_length=64,
+                         description="The token returned with an answer.")
+    outcome: str = Field(..., max_length=32,
+                         description="What the landlord actually did.")
+    amount: Optional[int] = Field(None, ge=0, le=1_000_000,
+                                  description="Roughly how much, if money "
+                                              "changed hands. Stored as a band.")
+
+
+@app.get("/v1/helper/privacy", tags=["helper"],
+         summary="Exactly what the helper keeps, and what it never keeps")
+def helper_privacy():
+    """Served from the same module that does the redaction, so the promise
+    and the code cannot quietly diverge."""
+    return {
+        "enabled": _helper_telemetry.enabled(),
+        "disclosure": _helper_telemetry.DISCLOSURE,
+        "commitment": _helper_telemetry.COMMITMENT,
+        "not_advice": _helper_telemetry.NOT_ADVICE,
+        "never_stored": [
+            "your description in your own words",
+            "any exact rent, date, or dollar figure",
+            "your address, name, email, or phone",
+            "your IP address, user agent, or referrer",
+            "cookies, accounts, or any cross-session identifier",
+            "any timestamp finer than the calendar month",
+        ],
+        "stored": sorted(_helper_telemetry.RECORD_KEYS),
+        "bucketed_fields": sorted(_helper_telemetry.FIELD_BUCKETS),
+        "outcomes": _helper_telemetry.OUTCOMES,
+        "opt_out": "Send no_telemetry: true with any request.",
+    }
+
+
+@app.post("/v1/helper/outcome", tags=["helper"],
+          summary="Tell us what actually happened (anonymous)")
+def helper_outcome(body: _HelperOutcomeRequest):
+    """The question nobody has measured.
+
+    `rent-no-source.md` looked for what landlords actually concede and
+    found a blank — the largest renter survey in the country never asks
+    whether you negotiated. This is the smallest honest way to start
+    filling it: a closed vocabulary, a band, and a token that joins to a
+    bucketed row and to nothing else.
+    """
+    rec = _helper_telemetry.redact_outcome(body.receipt, body.outcome, body.amount)
+    if rec is None:
+        raise HTTPException(
+            status_code=422,
+            detail="Needs a valid receipt and one of the listed outcomes. "
+                   "Free text is deliberately not accepted.")
+    stored = _helper_telemetry.write(rec, filename="helper_outcomes.jsonl")
+    return {"recorded": stored,
+            "note": "Thank you — that answer is genuinely unmeasured."}
 
 
 @app.get("/paid", tags=["discovery"], response_class=HTMLResponse,
