@@ -82,7 +82,7 @@ That result survived every attempt to break it. It's on the page now, in front o
 
 Demand collapses. Habitats empty out. Rents should fall, and mine did, and I expected the stations to follow them down.
 
-They didn't. The station *held its rent and ate the vacancy* — rent relative to market actually **rose** while a fifth of its habitats sat empty. What tripled instead was concessions: free months, waived fees, anything that wasn't the number on the lease.
+They didn't. The station *held its rent and ate the vacancy*. Rent relative to market actually **rose** while a fifth of its habitats sat empty. What tripled instead was concessions: free months, waived fees, anything that wasn't the number on the lease.
 
 Which is the same lesson as the credible-signal one, arriving from the other direction. **The number on the lease is the one thing a station will not move**, because that number follows the building forever: it sets the comparable for every future tenant, and on a large portfolio it's marked into the asset's value. Everything else is negotiable precisely because it evaporates.
 
