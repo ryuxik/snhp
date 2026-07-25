@@ -58,12 +58,11 @@ TENURE_2Y_MONTHS = 24
 # lets a three-month window lapse is offered 13.3% more relative to market
 # and ends ~$645/yr worse off than an identical tenant who answers at once.
 # This is the strongest product finding in the study, so it leads.
-DELAY_PENALTY_ANNUAL = 645
 DELAY_PENALTY_NOTE = (
-    "Answer quickly. In our own simulation, an identical tenant who let a "
-    "three-month window lapse was offered 13.3% more relative to market and "
-    "ended about $645 a year worse off. Negotiate inside the window — never "
-    "by letting it run down."
+    "Answer inside your response window. Not because we can price the delay "
+    "— we tried, and the number our simulation produced turned out to be "
+    "something we had built in rather than something we found — but because "
+    "missing the deadline can cost you the right to renew at all."
 )
 
 # K26 did NOT confirm. Securing an alternative before you counter changed the
@@ -71,9 +70,12 @@ DELAY_PENALTY_NOTE = (
 # verify your alternative, so it offers the same either way. It buys you the
 # ability to walk, NOT a better offer. We do not claim otherwise.
 SHOPPING_AROUND_NOTE = (
-    "Lining up another place is worth doing so you can actually leave — but "
-    "in our simulation it did not improve the terms you were offered. Your "
-    "landlord cannot verify it."
+    "If you have a real alternative, say so and be specific enough that it "
+    "can be checked. We previously told people this doesn't help. That was "
+    "wrong — our own model had made it structurally impossible to help, and "
+    "once we allowed a landlord to respond to a claim it could verify, it "
+    "was one of the largest effects we measured. A vague 'I could move' is "
+    "not the same thing."
 )
 
 
@@ -135,10 +137,7 @@ class Assessment:
             "market": self.market,
             "legal": self.legal,
             "caveats": self.caveats,
-            "act_fast": {
-                "penalty_annual_usd": DELAY_PENALTY_ANNUAL,
-                "note": DELAY_PENALTY_NOTE,
-            },
+            "act_fast": {"note": DELAY_PENALTY_NOTE},
             "shopping_around": SHOPPING_AROUND_NOTE,
             "evidence_note": EVIDENCE_NOTE,
         }

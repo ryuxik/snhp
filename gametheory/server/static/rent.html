@@ -271,28 +271,35 @@ function render(d){
   // Pre-registered disclosure. We wrote down, before running the
   // simulation, that if these fired we would publish them here.
   parts.push(`<div class="selfaudit">
-    <h3>What our own simulation says about this tool</h3>
-    <p>We simulated rent renewals where either side uses our negotiation
-    engine, and pre-registered what results would count against us. Three
-    of those fired. You should know them before you use this.</p>
+    <h3>What we tried to learn from a simulation, and why we don't quote it</h3>
+    <p>We built a pre-registered simulation of rent renewals to test the
+    advice on this page, writing down in advance what results would count
+    against us. Then we audited it adversarially.</p>
+    <p><b>Six of its findings turned out to be artefacts of how we built it
+    rather than facts about renting</b> &mdash; including two we had briefly
+    published here. All three of its accuracy checks failed: it could not
+    reproduce the rate at which real landlords concede.</p>
     <ul>
-      <li><b>Whoever holds the engine captures most of the value.</b> A
-      landlord using it gained roughly <b>8.5&times; what a tenant using it
-      gained</b>. Once the landlord has one, a tenant having one added
-      almost nothing. The sophisticated side of this negotiation already
-      runs pricing software &mdash; which is much of why this page is free.</li>
-      <li><b>If enough people ask, landlords may raise the opening offer
-      for everyone.</b> In our runs the people who ask recover more than the
-      increase, and the people who don't ask absorb it. Publishing what
-      works has a cost, and it lands on the quiet.</li>
-      <li><b>The good news, and it is real:</b> negotiating over several
-      terms at once made <i>both</i> sides better off and made fewer
-      renewals fail. The value is genuine. Its division is lopsided.</li>
+      <li><b>We got one piece of advice backwards.</b> We told people that
+      lining up another apartment wouldn't improve their offer. Our model
+      had made it structurally impossible for it to help, and we reported
+      that as a finding. When we allowed a landlord to respond to an
+      alternative it could actually verify, it became one of the largest
+      effects we measured. <b>If you have a real alternative, say so, and
+      be specific enough that it can be checked.</b></li>
+      <li><b>We quoted a dollar figure for answering quickly.</b> It was
+      something we had built into the model, not something we found. The
+      advice stands &mdash; missing your response deadline can cost you the
+      right to renew &mdash; but the number is gone.</li>
+      <li><b>What still stands:</b> if enough people negotiate, landlords
+      may raise the opening offer for everyone, and the cost lands on the
+      people who don't ask. That one survived the audit.</li>
     </ul>
-    <p>Our model also failed its own accuracy check &mdash; it could not
-    reproduce the observed rate at which landlords concede. Treat all of the
-    above as an argument about mechanism, not a measurement of your
-    landlord.</p>
+    <p>So nothing on this page is quoted from our simulation. The odds, the
+    market figures and the legal information come from published research,
+    earnings filings and government sources, each cited. The simulation
+    taught us mostly about our own mistakes, and the write-up publishes all
+    of them.</p>
   </div>`);
   parts.push('<div class="caveats"><ul>');
   (d.caveats||[]).forEach(c => parts.push(`<li>${esc(c)}</li>`));

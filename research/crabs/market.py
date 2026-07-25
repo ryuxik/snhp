@@ -136,6 +136,14 @@ def tenant_clock_multiplier(lead: float, elapsed: float, window: float,
     return 1.0 + CLIFF_CONVEX, HOLDOVER_MONTHS + EMERGENCY_MONTHS
 
 
+def _signal_proved(mp, secured: bool) -> bool:
+    """K26 AUDIT. Does this tenant produce a verifiable proof of its
+    alternative? Only a tenant that actually holds one can, so the landlord is
+    responding to a costly signal the tenant chose to send, not to a private
+    draw it should not be able to see."""
+    return bool(mp.signal_enabled and secured)
+
+
 def searcher_inflow_at(base_inflow: float, m_obs: float,
                        eta: float = ETA_DEMAND) -> float:
     """Per-habitat searcher inflow at price level `m_obs`. Strictly decreasing in
@@ -192,6 +200,16 @@ class MarketParams:
                                        # shape, and K24's claim is wrong.
     secured_share: float = 0.0         # K26: share of tenants holding a real
                                        # alternative before countering
+    signal_enabled: bool = False       # K26 AUDIT: may a tenant that holds an
+                                       # alternative PROVE it at a cost? Default
+                                       # OFF, so every previously reported cell
+                                       # is unchanged. With it off the landlord
+                                       # cannot respond to an alternative even in
+                                       # principle, which makes K26's null a
+                                       # property of the setup, not of the world.
+    signal_cost: float = 0.10          # months of market rent to produce the
+                                       # proof (forward the offer letter, pay a
+                                       # holding deposit). DECLARED, swept.
 
 
 def _rec():
@@ -395,6 +413,23 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                     wa_l = wa_l + p.vacancy * LAND_LIN_RATE * elapsed * M_obs
                     rl = rl - p.vacancy * LAND_LIN_RATE * elapsed * M_obs
                     rt = 12.0 * M_obs + wa_t
+                # K26 AUDIT (default OFF, so every previously reported cell is
+                # bit-identical). A COSTLY, VERIFIABLE SIGNAL -- not an
+                # information leak. A tenant that has actually secured an
+                # alternative may PROVE it (forward the offer letter, show the
+                # holding deposit) at `signal_cost` months of rent. The landlord
+                # responds to the PROOF, never to the private draw: only a tenant
+                # who really holds an alternative can produce one, so an
+                # unsecured tenant cannot mimic it, and a tenant who does not
+                # bother to prove is treated exactly as before. That is what
+                # separates this from the bug that manufactured K19.
+                #
+                # K26 as reported forbade this channel entirely, which made the
+                # landlord structurally incapable of responding to an
+                # alternative -- so its "+$17, shopping around does not help"
+                # was a property of the setup and not of the world.
+                proved = _signal_proved(mp, secured)
+                _sigcost = mp.signal_cost * M_obs if proved else 0.0
                 # SYMMETRIC INFORMATION. The offer is built from the population
                 # lead-time distribution and from observables the landlord really
                 # has (tenure, and the lease-end date it wrote). It uses no
@@ -402,7 +437,11 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                 # manufactured K19, and a test asserts it.
                 wa_t_base = (p.move_med + float(attach(p, j))
                              + SEARCH_COST) * M_obs
-                if mp.deadline_shape:
+                if proved:
+                    # a tenant holding a proven alternative has no cliff: its
+                    # walk-away is the flat floor, and the landlord knows it
+                    wa_t_exp = wa_t_base
+                elif mp.deadline_shape:
                     if mp.tenant_clock_linear:
                         wa_t_exp = wa_t_base * 1.3055 + 0.6667 * elapsed * M_obs
                     else:
@@ -468,7 +507,7 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                         rec["move_cost_paid"] += wa_t
                         rec["turn_cost_paid"] += p.turn_cost * M_obs
                         rec["turn_events"] += 1.0
-                        rec["surplus_renew"] += -wa_t
+                        rec["surplus_renew"] += -wa_t - _sigcost
                         rec["surplus_renew_n"] += 1.0
                     if u[7] >= mp.exit_share:
                         pool.append((int(u[9] * MONTHS), _to_searcher(crab, u)))
@@ -484,7 +523,7 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                         rec["renew_growth_n"] += 1.0
                         rec["renew_ratio_sum"] += offer / M_obs
                         rec["renew_rent_sum"] += offer
-                        sur = 12.0 * M_obs - 12.0 * offer
+                        sur = 12.0 * M_obs - 12.0 * offer - _sigcost
                         rec["surplus_renew"] += sur
                         rec["surplus_renew_n"] += 1.0
                         rec["crab_cash"] += 12.0 * offer
@@ -494,7 +533,7 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                         rec[f"surp_renew_q{q}_n"] += 1.0
                         rec["sitting_rent_sum"] += offer
                         rec["sitting_rent_n"] += 1.0
-                        _sur = 12.0 * M_obs - 12.0 * offer
+                        _sur = 12.0 * M_obs - 12.0 * offer - _sigcost
                         rec[f"renew_elapsed{min(int(elapsed),3)}_surp"] += _sur
                         if secured:
                             rec["secured_surp"] += _sur

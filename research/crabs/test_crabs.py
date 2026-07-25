@@ -992,3 +992,118 @@ def test_landlord_clock_is_linear_and_has_no_cliff():
     steps = [LAND_LIN_RATE * e for e in (0.0, 1.0, 2.0, 3.0)]
     diffs = [b - a for a, b in zip(steps, steps[1:])]
     assert all(abs(x - diffs[0]) < 1e-12 for x in diffs)   # constant increments
+
+
+# ---------------- K26 AUDIT: the credible-signal channel ---------------------
+# K26 as reported ("securing an alternative is worth +$17") was measured with the
+# landlord structurally unable to respond to an alternative: `secured` never
+# entered the offer, so the null was a property of the setup. These tests cover
+# the channel that lets a tenant PROVE an alternative at a cost. It is default
+# OFF, so nothing previously reported moves.
+
+def _market_cell(**mp_kw):
+    from crabs.market import MarketParams, simulate_market
+    p = regime_params(BASE, "burn")
+    return simulate_market(p, MarketParams(n_stations=8, units=15, meas_years=4,
+                                           **mp_kw), 1000)
+
+
+def test_signal_channel_is_off_by_default_and_changes_nothing():
+    """Default OFF. With it off, holding an alternative cannot move the offer --
+    which is exactly why K26's reported null says nothing about the world."""
+    from crabs.market import MarketParams
+    assert MarketParams().signal_enabled is False
+    r = _market_cell(secured_share=0.5)
+    sec = r["secured_offer"] / r["secured_n"]
+    uns = r["unsecured_offer"] / r["unsecured_n"]
+    assert abs(sec - uns) < 5e-3, (sec, uns)
+    # and the signal cost is inert while the channel is closed
+    r2 = _market_cell(secured_share=0.5, signal_cost=0.9)
+    assert {k: v for k, v in r.items() if not k.startswith("_")} == \
+        {k: v for k, v in r2.items() if not k.startswith("_")}
+
+
+def test_a_proven_alternative_lowers_the_offer_it_receives():
+    """With a costly, verifiable signal the landlord CAN respond, and does: a
+    tenant that proves an alternative is offered materially less relative to
+    market than one that does not."""
+    r = _market_cell(secured_share=0.5, signal_enabled=True)
+    sec = r["secured_offer"] / r["secured_n"]
+    uns = r["unsecured_offer"] / r["unsecured_n"]
+    assert sec < uns - 0.02, (sec, uns)
+
+
+def test_the_signal_is_not_an_information_leak():
+    """The distinguishing property versus the bug that manufactured K19.
+
+    STRUCTURAL: a tenant that produces no proof is priced by exactly the
+    pre-existing code path -- the population lead-time quadrature with
+    `secured=False` -- so its private draw still cannot enter the offer. Only a
+    tenant that chose to prove is treated differently, and only it.
+
+    AGGREGATE: opening the channel still moves a non-prover's offer a little,
+    because provers pay less, which moves realised rents and therefore the
+    market statistic everyone is priced against. That is a general-equilibrium
+    spillover, not a leak, and it is small -- but it is a (mildly adverse) one,
+    so it is asserted with a sign rather than waved away."""
+    import inspect
+    from crabs import market
+    src = inspect.getsource(market.simulate_market)
+    off_block = src[src.index("wa_t_base ="):src.index("offer_annual =")]
+    assert "NOTICE_WINDOW, False)" in off_block
+    for forbidden in ("crab.c_persist", "_c_total(", "u[11]", "u[13]", "lead,"):
+        assert forbidden not in off_block, forbidden
+    assert market._signal_proved(market.MarketParams(signal_enabled=True),
+                                 False) is False
+
+    off = _market_cell(secured_share=0.5)
+    on = _market_cell(secured_share=0.5, signal_enabled=True)
+    u_off = off["unsecured_offer"] / off["unsecured_n"]
+    u_on = on["unsecured_offer"] / on["unsecured_n"]
+    assert abs(u_on - u_off) < 0.01 * u_off, (u_off, u_on)
+    # and it is at the non-prover's very slight expense, not benefit
+    assert u_on >= u_off, (u_off, u_on)
+
+
+def test_the_signal_is_costly_and_the_cost_is_charged_to_the_tenant():
+    """A dearer proof leaves the prover with strictly less surplus, so the value
+    of signalling is a net figure and not a free lunch."""
+    cheap = _market_cell(secured_share=0.5, signal_enabled=True,
+                         signal_cost=0.10)
+    dear = _market_cell(secured_share=0.5, signal_enabled=True,
+                        signal_cost=0.50)
+    c = cheap["secured_surp"] / cheap["secured_n"]
+    d = dear["secured_surp"] / dear["secured_n"]
+    assert d < c, (c, d)
+    # the offers themselves are identical: only the tenant's net position moves
+    assert abs(cheap["secured_offer"] / cheap["secured_n"]
+               - dear["secured_offer"] / dear["secured_n"]) < 1e-12
+
+
+# ------------- ARM K AUDIT: the matrix is structurally asymmetric ------------
+
+def test_the_engine_matrix_arms_the_two_sides_with_different_weapons():
+    """K16's 8.5x compares two DIFFERENT tools, not two holders of one tool.
+
+    In N/L the landlord gets `landlord_opener` -- a brute-force NPV search over a
+    grid that includes rent factors ABOVE 1.0, which the tenant can never
+    propose -- and it moves first, resetting the status quo the negotiation
+    starts from. In T/N the tenant gets `negotiate_bundle` and only ever replies
+    to a standing offer. There is no tenant-side opener.
+
+    This test does not say the design is wrong; it pins the asymmetry so that
+    K16's number is never read as 'whoever holds the engine' when what varies is
+    also which optimiser and which move order each side was given."""
+    import inspect
+    from crabs import armk
+    from crabs.engine_bridge import N_TENANT_RENT, RENT_FACTORS
+    ups = [b.ri for b in armk.LANDLORD_OPENERS if b.ri >= N_TENANT_RENT]
+    assert ups, "the landlord opener no longer reaches the upward rent grid"
+    assert all(RENT_FACTORS[i] > 1.0 for i in ups)
+    src = inspect.getsource(armk.negotiate_matrix)
+    assert "landlord_opener(" in src
+    assert "tenant_opener" not in src        # no mirror exists
+    # and the opener is a direct NPV search, not an engine call
+    osrc = inspect.getsource(armk.landlord_opener)
+    assert "negotiate_bundle" not in osrc
+    assert "bundle_npv(" in osrc
