@@ -198,3 +198,13 @@ table.sci tr.hi td { background: var(--cream-07); }
   .pgap { grid-column: 2; text-align: left; }
   .bar span { position: static; transform: none; display: block; }
 }
+
+/* Folded research history. Open by choice, not by default. */
+.bmore { background: var(--ink-2); border: 1px solid var(--cream-15); border-radius: 10px; }
+.bmore > summary { cursor: pointer; padding: 0.9rem 1.1rem; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--cream-50); font-weight: 600; list-style: none; display: flex; align-items: center; gap: 0.6rem; }
+.bmore > summary::-webkit-details-marker { display: none; }
+.bmore > summary::before { content: '\25B8'; font-size: 0.8rem; transition: transform 0.15s ease; }
+.bmore[open] > summary::before { transform: rotate(90deg); }
+.bmore > summary:hover { color: var(--cream); }
+.bmore-note { margin: 0 1.1rem 1rem; font-size: 0.85rem; color: var(--cream-50); max-width: 62ch; }
+.bmore > .bcard { margin: 0 1.1rem 1.1rem; }

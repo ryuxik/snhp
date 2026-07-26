@@ -106,10 +106,15 @@ function renderPrices(c) {
     const bars = el('div', 'bars');
     const b1 = el('div', 'bar worth');
     b1.style.width = Math.max(2, (78 * worth) / max) + '%';
-    b1.append(el('span', null, money(worth) + ' to her'));
+    // Identity is on the legend and the hue. Repeating "to her" / "to the
+    // Works" on all twelve bars is the same label twice, and it leaves a
+    // ragged text edge trailing bars of different lengths.
+    b1.append(el('span', null, money(worth)));
+    b1.title = money(worth) + ' to her';
     const b2 = el('div', 'bar cost');
     b2.style.width = Math.max(2, (78 * cost) / max) + '%';
-    b2.append(el('span', null, money(cost) + ' to the Works'));
+    b2.append(el('span', null, money(cost)));
+    b2.title = money(cost) + ' to the Works';
     bars.append(b1, b2);
     const gap = worth - cost;
     const g = el('div', 'pgap ' + (gap > 1 ? 'good' : gap < -1 ? 'bad' : ''), Math.abs(gap) < 1 ? 'even' : signed(gap));
@@ -694,10 +699,27 @@ function renderScience(s) {
   mechCard.append(note);
   host.append(mechCard);
 
+  // The four rebuilds are the study's history, not its result. They are worth
+  // keeping — two kills fired in them and a claim was retracted — but stacked
+  // open they are 2,200px of research appended to a story, and they bury the
+  // limitations block underneath. Folded, not dropped.
+  const settled = host.children.length;
   if (s.v2) renderRebuild(s.v2);
   if (s.v3) renderV3(s.v3);
   if (s.v4) renderV4(s.v4);
   if (s.v6) renderV6(s.v6);
+  const rebuilds = [...host.children].slice(settled);
+  if (rebuilds.length) {
+    const d = el('details', 'bmore');
+    d.append(el('summary', null,
+                `Four objections, four rebuilds, and what each one cost`));
+    d.append(el('p', 'bmore-note',
+                'Each of these tore the world up and built it again. Two kills ' +
+                'fired, one claim was retracted, and the headline reversed once. ' +
+                'Open it for the receipts rather than the result.'));
+    rebuilds.forEach((c) => d.append(c));
+    host.append(d);
+  }
 
   const cav = $('#caveats');
   cav.innerHTML =
