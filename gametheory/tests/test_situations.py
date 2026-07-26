@@ -1743,3 +1743,58 @@ def test_urgency_rests_on_the_deadline_not_a_withdrawn_number():
     assert "costs more than any" not in o.next_step
     assert "$645" not in " ".join(t for _, t in guard.strings(o))
     assert "built in rather than something we found" in advisor.DELAY_PENALTY_NOTE
+
+
+def test_the_non_price_mover_finding_reaches_the_reader():
+    """The one thing the study says about YOUR position that runs against
+    intuition: somebody half-decided to move for reasons that aren't
+    about price is sitting near indifference, and near indifference is
+    where a discount lands. They are the most worth making an offer to,
+    not the least.
+    """
+    from vend.rent import advisor
+
+    o = registry.get("rent_renewal").assess(
+        {"metro": "denver", "current_rent": 1800, "offered_rent": 1950,
+         "months_at_address": 30})
+    assert advisor.NON_PRICE_MOVER_NOTE in o.exposure
+    note = advisor.NON_PRICE_MOVER_NOTE.lower()
+    assert "not make you a weaker person" in note
+    # Framed as reasoning, with its status stated — the magnitudes stay
+    # in the model.
+    assert "reasoning rather than as a measured result" in note
+    for fig in ("45%", "33%"):
+        assert fig not in advisor.NON_PRICE_MOVER_NOTE
+
+
+def test_the_two_leverage_notes_describe_different_channels():
+    """Amendment 9 landed while this was being written: proving an
+    alternative works by removing the DEADLINE penalty, not by making you
+    expensive to replace, and nets below the materiality bar. The
+    non-price-mover note is a different channel (indifference), so the
+    two must not read as the same claim twice."""
+    from vend.rent import advisor
+
+    a, b = advisor.SHOPPING_AROUND_NOTE.lower(), advisor.NON_PRICE_MOVER_NOTE.lower()
+    assert "deadline" in a and "deadline" not in b
+    assert "indifference" not in a
+    # And the urgency line agrees with "the clock is doing the work".
+    o = registry.get("rent_renewal").assess(
+        {"metro": "denver", "current_rent": 1800, "offered_rent": 1950,
+         "months_at_address": 30})
+    assert "response window" in o.next_step
+
+
+def test_both_sides_of_the_leverage_arithmetic_are_named():
+    """Built up rather than borrowed, both come out near a month and a
+    half of rent — a dead heat, not five-to-two."""
+    o = registry.get("lease_break").assess(
+        {"metro": "denver", "monthly_rent": 2400, "months_remaining": 9.0,
+         "has_termination_clause": False, "termination_fee_months": None,
+         "replacement_tenant_ready": False, "lease_allows_transfer": "no",
+         "move_out_reason": "job", "security_deposit": None,
+         "credit_score": None})
+    joined = " ".join(o.caveats).lower()
+    assert "month and a half of rent" in joined
+    assert "dead heat" in joined
+    assert "equal dollars are not equal stakes" in joined

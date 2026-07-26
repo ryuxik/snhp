@@ -471,11 +471,13 @@ def assess(values: dict) -> Outcome:
     # risk five to gain two" gap the advice genre runs on is not there.
     # Which is not the same as saying you are evenly matched.
     caveats.append(
-        "The number above is what leaving costs your landlord, and it is "
-        "worth knowing that your own cost of leaving is likely in the same "
-        "range rather than a fraction of it. The popular version of this — "
-        "they risk far more than you do — is built on two figures neither of "
-        "which has been measured. And equal dollars are not equal stakes: "
+        "The number above is what leaving costs your landlord. Built up from "
+        "scratch rather than borrowed, both sides of this come out at roughly "
+        "a month and a half of rent — close to a dead heat, not the "
+        "they-risk-far-more-than-you story the advice genre runs on. What "
+        "sits on top of each roughly cancels too: they add empty time and the "
+        "risk of a worse tenant, you add everything you have accumulated in "
+        "the place and a deadline. And equal dollars are not equal stakes — "
         "the same few thousand is a line item against a portfolio for them "
         "and a household shock for you. You can lose a negotiation where the "
         "numbers are symmetric, because only one of you can afford to be "

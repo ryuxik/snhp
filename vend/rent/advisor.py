@@ -119,6 +119,31 @@ SHOPPING_AROUND_NOTE = (
 )
 
 
+# The one finding about YOUR position that runs against intuition.
+# Crabs were given real preferences over habitats, so some wanted to move
+# for reasons that had nothing to do with price — more space, a better
+# neighbourhood. About one in five real renter moves is exactly that.
+# The expectation was that it would weaken the price conversation, since
+# somebody leaving for a bigger kitchen is not making a threat. It did
+# the opposite: a discount held onto those tenants BETTER.
+#
+# The reasoning is the transferable part, and it is not obviously wrong
+# outside the model: someone already half-decided is sitting near
+# indifference, and near indifference is exactly where a discount lands.
+# The magnitudes are model output and are not quoted, for the same reason
+# the delay figure is not.
+NON_PRICE_MOVER_NOTE = (
+    "If you're already half thinking about moving for reasons that aren't "
+    "about rent — more space, a shorter commute, a better street — that "
+    "does not make you a weaker person to negotiate with. It probably "
+    "makes you the one most worth making an offer to, because you are "
+    "closer to the line where a discount actually changes your mind. Say "
+    "you're weighing a move. Treat that as reasoning rather than as a "
+    "measured result: it comes from our own model, and we have not "
+    "measured it against real renewals."
+)
+
+
 @dataclass(frozen=True)
 class Ask:
     """One thing to ask for, with why it is ranked where it is."""
@@ -179,6 +204,7 @@ class Assessment:
             "caveats": self.caveats,
             "act_fast": {"note": DELAY_PENALTY_NOTE},
             "shopping_around": SHOPPING_AROUND_NOTE,
+            "non_price_mover": NON_PRICE_MOVER_NOTE,
             "evidence_note": EVIDENCE_NOTE,
         }
 

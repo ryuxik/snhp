@@ -159,6 +159,9 @@ def assess(values: dict) -> Outcome:
     # only how you deliver it, and a claim nobody can check is worth
     # about nothing.
     exposure.append(_advisor.SHOPPING_AROUND_NOTE)
+    # Same category as the note above — what actually moves a landlord —
+    # and the one that runs against intuition.
+    exposure.append(_advisor.NON_PRICE_MOVER_NOTE)
 
     # The 61% figure is what turns odds into a reason to act — it is the
     # difference between a calculator and advice, so it rides with the
