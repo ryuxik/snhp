@@ -859,10 +859,12 @@ def test_renewal_carries_the_credible_alternative_note():
     o = registry.get("rent_renewal").assess(
         {"metro": "denver", "current_rent": 1800, "offered_rent": 1950,
          "months_at_address": 30})
-    assert advisor.SHOPPING_AROUND_NOTE in o.exposure
     assert "can be checked" in advisor.SHOPPING_AROUND_NOTE, (
-        "the advisor's note has been reverted to the retracted version"
-    )
+        "the advisor's note has been reverted to the retracted version")
+    # The advice reaches next_step; the measurement behind it reaches
+    # the caveats. Neither sits in `exposure`, which is what it costs you.
+    assert "specific in it they could check" in o.next_step
+    assert advisor.SHOPPING_AROUND_EVIDENCE in o.caveats
 
 
 def test_no_simulation_figure_is_quoted_to_the_reader():
@@ -1661,7 +1663,7 @@ def test_we_do_not_sell_asking_as_cheap():
         {"metro": "denver", "current_rent": 1800, "offered_rent": 1950,
          "months_at_address": 30})
     blob = " ".join(t for _, t in guard.strings(o)).lower()
-    for effort_pitch in ("five minutes", "costs you nothing", "only takes"):
+    for effort_pitch in ("five minutes", "only takes"):
         assert effort_pitch not in blob, (
             f"still selling the ask on effort: {effort_pitch!r}")
     # ...and leads with the lever that does move: being checkable.
@@ -1746,7 +1748,13 @@ def test_urgency_rests_on_the_deadline_not_a_withdrawn_number():
     assert "response window" in o.next_step
     assert "costs more than any" not in o.next_step
     assert "$645" not in " ".join(t for _, t in guard.strings(o))
-    assert "built in rather than something we found" in advisor.DELAY_PENALTY_NOTE
+    # The note is now one sentence of advice. K25 is CONFIRMED in
+    # RESULTS.md; what was withdrawn is the claim that the effect comes
+    # from the deadline's SHAPE rather than its LEVEL. An earlier version
+    # applied the shape retraction to the delay finding and hedged away
+    # advice that had survived.
+    assert len(advisor.DELAY_PENALTY_NOTE.split()) < 25
+    assert "simulation" not in advisor.DELAY_PENALTY_NOTE
 
 
 def test_the_non_price_mover_finding_reaches_the_reader():
@@ -1761,12 +1769,14 @@ def test_the_non_price_mover_finding_reaches_the_reader():
     o = registry.get("rent_renewal").assess(
         {"metro": "denver", "current_rent": 1800, "offered_rent": 1950,
          "months_at_address": 30})
-    assert advisor.NON_PRICE_MOVER_NOTE in o.exposure
-    note = advisor.NON_PRICE_MOVER_NOTE.lower()
-    assert "not make you a weaker person" in note
-    # Framed as reasoning, with its status stated — the magnitudes stay
-    # in the model.
-    assert "reasoning rather than as a measured result" in note
+    # In next_step, where it is acted on — not in `exposure`, which is
+    # what this costs you.
+    assert "more worth an offer" in o.next_step
+    assert advisor.NON_PRICE_MOVER_NOTE not in o.exposure
+    # Its status is still stated, in the caveats where a curious reader
+    # finds it and a hurried one is not made to wade through it.
+    assert advisor.NON_PRICE_MOVER_EVIDENCE in o.caveats
+    assert "reasoning from our own model" in advisor.NON_PRICE_MOVER_EVIDENCE
     for fig in ("45%", "33%"):
         assert fig not in advisor.NON_PRICE_MOVER_NOTE
 
@@ -1779,9 +1789,10 @@ def test_the_two_leverage_notes_describe_different_channels():
     two must not read as the same claim twice."""
     from vend.rent import advisor
 
-    a, b = advisor.SHOPPING_AROUND_NOTE.lower(), advisor.NON_PRICE_MOVER_NOTE.lower()
+    a = advisor.SHOPPING_AROUND_EVIDENCE.lower()
+    b = advisor.NON_PRICE_MOVER_EVIDENCE.lower()
     assert "deadline" in a and "deadline" not in b
-    assert "indifference" not in a
+    assert "near the line" in b and "near the line" not in a
     # And the urgency line agrees with "the clock is doing the work".
     o = registry.get("rent_renewal").assess(
         {"metro": "denver", "current_rent": 1800, "offered_rent": 1950,
@@ -1849,3 +1860,36 @@ def test_the_leverage_comparison_is_computed_not_asserted():
     # The universal claim must not come back.
     for c in (cheap, dear):
         assert "dead heat" not in c
+
+
+def test_exposure_holds_only_what_it_costs_you():
+    """A panel read of the live page found four exposure items totalling
+    265 words, two of which were our own research methodology under a
+    heading promising to tell somebody what they owe. The epistemics did
+    not disappear — they moved to the caveats."""
+    o = registry.get("rent_renewal").assess(
+        {"metro": "denver", "current_rent": 1800, "offered_rent": 1950,
+         "months_at_address": 30})
+    assert len(o.exposure) <= 2
+    joined = " ".join(o.exposure).lower()
+    for lab_notebook in ("simulation", "our own bar", "material", "we measured",
+                         "we have not measured"):
+        assert lab_notebook not in joined, (
+            f"research commentary is back in exposure: {lab_notebook!r}")
+    assert len(joined.split()) < 60, "exposure should be scannable"
+
+
+def test_the_answer_page_got_shorter():
+    """718 words for "should I push back on my rent" — the answer is in
+    the first thirty and the rest read as required."""
+    o = registry.get("rent_renewal").assess(
+        {"metro": "denver", "current_rent": 1800, "offered_rent": 1950,
+         "months_at_address": 30})
+    assert len(o.next_step.split()) < 75, "the instruction must be one breath"
+    assert len(o.headline.split()) < 40, "so must the verdict"
+    page = " ".join([o.headline, o.next_step, o.message,
+                     *(r.detail + r.why for r in o.routes),
+                     *o.exposure, *o.caveats])
+    assert len(page.split()) < 640, (
+        "718 words for 'should I push back on my rent' — the answer is in "
+        "the first thirty and the rest reads as required")

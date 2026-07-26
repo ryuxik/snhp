@@ -151,17 +151,16 @@ def assess(values: dict) -> Outcome:
             f"Signing as offered costs you ${a.annual_cost:,} more over the "
             f"next year than you pay today."
         )
-    exposure.append(_advisor.DELAY_PENALTY_NOTE)
-    # The credible-signal lesson, and the single most important sentence
-    # the advisor produces. An earlier version of this adapter dropped it
-    # on the floor: it lives in the advisor's `shopping_around` key and
-    # had no slot in the contract. "Be credible" is the action; asking is
-    # only how you deliver it, and a claim nobody can check is worth
-    # about nothing.
-    exposure.append(_advisor.SHOPPING_AROUND_NOTE)
-    # Same category as the note above — what actually moves a landlord —
-    # and the one that runs against intuition.
-    exposure.append(_advisor.NON_PRICE_MOVER_NOTE)
+    # `exposure` is what this costs YOU, and nothing else. The deadline
+    # is advice and lives in next_step; repeating it here was a duplicate
+    # and a category error. The two notes about what moves a
+    # landlord — bring something checkable, say if you are half thinking
+    # of moving — are advice, not exposure, so they ride with the routes
+    # in `next_step`. And the measurement behind each one lives in the
+    # caveats, where a curious reader finds it and a hurried one doesn't
+    # have to wade through it. A panel read of the live page had four
+    # exposure items totalling 265 words, two of which were our own
+    # research methodology under a heading promising to say what they owe.
 
     # The 61% figure is what turns odds into a reason to act — it is the
     # difference between a calculator and advice, so it rides with the
@@ -177,6 +176,7 @@ def assess(values: dict) -> Outcome:
     # unravelling, which is textbook — so nothing here is quoted from
     # our own simulation, whose accuracy checks failed.
     caveats = list(a.caveats)
+    caveats.extend(a.to_dict().get("evidence", []))
     caveats.append(
         "A specific, checkable alternative is worth far more than a vague "
         "one — partly because so few people bring one. If showing proof ever "

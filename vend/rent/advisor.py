@@ -58,11 +58,18 @@ TENURE_2Y_MONTHS = 24
 # lets a three-month window lapse is offered 13.3% more relative to market
 # and ends ~$645/yr worse off than an identical tenant who answers at once.
 # This is the strongest product finding in the study, so it leads.
+# K25 is CONFIRMED (RESULTS.md: offer/market 1.065 -> 1.198, -$645/yr,
+# delay drawn independently of tenant type so it is causal). What was
+# withdrawn is a different claim — that the effect comes from the SHAPE of
+# the deadline rather than its LEVEL; the shape is 13% of it. An earlier
+# version of this note applied the shape retraction to the delay finding
+# and hedged away advice that had survived.
+#
+# The number still does not ship, because it scales with a delay cost we
+# chose. The advice does, in one sentence.
 DELAY_PENALTY_NOTE = (
-    "Answer inside your response window. Not because we can price the delay "
-    "— we tried, and the number our simulation produced turned out to be "
-    "something we had built in rather than something we found — but because "
-    "missing the deadline can cost you the right to renew at all."
+    "Answer inside your response window. Miss it and you can lose the right "
+    "to renew at all."
 )
 
 # WHY THE COPY NO LONGER SAYS "it only takes five minutes".
@@ -108,14 +115,20 @@ DELAY_PENALTY_NOTE = (
 # 1.48 months rather than the calibrated 3.60.
 SHOPPING_AROUND_NOTE = (
     "If you have a real alternative, say so and be specific enough that it "
-    "can be checked. We have now measured what that is worth, and it is "
-    "less than we told you: roughly $460 a year, against the $480 we set "
-    "as our own bar for calling something material. It also does not work "
-    "the way we assumed. It works by removing the penalty for answering "
-    "close to your deadline, not by making you expensive to replace. The "
-    "clock is doing the work either way, which is why answering early is "
-    "the stronger advice. A vague 'I could move' is still not the same "
-    "thing as a specific one."
+    "can be checked. A vague 'I could move' is not the same thing."
+)
+
+# The measurement behind it, for the self-audit rather than the advice.
+# Worth less than we first said (~$460/yr against our own $480 bar) and
+# it works by removing the deadline penalty rather than by making you
+# expensive to replace — which is why answering early is the stronger
+# advice of the two.
+SHOPPING_AROUND_EVIDENCE = (
+    "On the specific-alternative advice: we measured it at roughly $460 a "
+    "year, below the $480 we set as our own bar for calling something "
+    "material, and it turned out to work by removing the penalty for "
+    "answering close to your deadline rather than by making you costly to "
+    "replace. Answering early is the stronger of the two."
 )
 
 
@@ -134,13 +147,15 @@ SHOPPING_AROUND_NOTE = (
 # the delay figure is not.
 NON_PRICE_MOVER_NOTE = (
     "If you're already half thinking about moving for reasons that aren't "
-    "about rent — more space, a shorter commute, a better street — that "
-    "does not make you a weaker person to negotiate with. It probably "
-    "makes you the one most worth making an offer to, because you are "
-    "closer to the line where a discount actually changes your mind. Say "
-    "you're weighing a move. Treat that as reasoning rather than as a "
-    "measured result: it comes from our own model, and we have not "
-    "measured it against real renewals."
+    "about rent — more space, a shorter commute — say so. It makes you more "
+    "worth an offer, not less."
+)
+
+NON_PRICE_MOVER_EVIDENCE = (
+    "On the half-thinking-of-moving advice: someone already near the line "
+    "is where a discount lands, which is why it holds onto them better. "
+    "That is reasoning from our own model rather than something measured "
+    "against real renewals."
 )
 
 
@@ -205,6 +220,7 @@ class Assessment:
             "act_fast": {"note": DELAY_PENALTY_NOTE},
             "shopping_around": SHOPPING_AROUND_NOTE,
             "non_price_mover": NON_PRICE_MOVER_NOTE,
+            "evidence": [SHOPPING_AROUND_EVIDENCE, NON_PRICE_MOVER_EVIDENCE],
             "evidence_note": EVIDENCE_NOTE,
         }
 
@@ -490,7 +506,8 @@ def assess(
             lead
             + "to whoever signed your renewal letter. Ask for the easiest "
             "item first, and put something specific in it they could check. "
-            "If they say no to everything you can still sign."
+            "If you're half thinking of moving anyway, say so — it makes you "
+            "more worth an offer. They can say no and you can still sign."
         )
 
     caveats = list(legal.get("caveats", []))
