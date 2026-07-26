@@ -346,9 +346,11 @@ def assess(values: dict) -> Outcome:
         key="surrender",
         label="Offer a buy-out and get a signed release",
         detail=(
-            f"Offer around ${surrender_cost:,} — roughly {vacancy:g} months of "
-            f"rent plus the cost of filling the unit — in exchange for a signed "
-            f"agreement ending the tenancy on a fixed date with nothing further owed."
+            f"Offer around ${surrender_cost:,} — about "
+            f"{surrender_cost / rent:.1f} months of your rent, which is the "
+            f"empty time plus the cost of filling the unit — in exchange for a "
+            f"signed agreement ending the tenancy on a fixed date with nothing "
+            f"further owed."
         ),
         why=(
             f"That figure is not arbitrary: it is close to what an empty unit "
@@ -426,6 +428,13 @@ def assess(values: dict) -> Outcome:
     exposure = [
         f"Rent left on the lease if nothing changes: ${_money(remaining_balance):,} "
         f"over {months_left:g} months.",
+        # Months alongside every dollar: months is the unit both sides are
+        # actually measured in, and the only one that can be checked
+        # against the surveyed range.
+        f"What leaving costs your landlord, in the unit the research uses: "
+        f"about {landlord_loss / rent:.1f} months of your rent. The surveyed "
+        f"range for a turnover is one to two months, so that is where this "
+        f"sits.",
         f"If your state requires the landlord to re-let and they do it at the "
         f"pace this market suggests, the realistic number is nearer "
         f"${_money(landlord_loss):,}. If it doesn't, or they don't, it is the "
@@ -446,7 +455,7 @@ def assess(values: dict) -> Outcome:
             f"{state['burden_of_proof']} {state['cannot_be_waived']} "
             f"{state['still_not_a_conclusion']}"
         )
-    exposure.append(evidence.MOVE_COST_NOTE)
+    exposure.append(evidence.move_cost_note(rent))
     exposure.append(
         "An unresolved balance can be sent to collections and show up when you "
         "apply for your next place. That is the real cost of the cheapest-looking "
@@ -470,18 +479,38 @@ def assess(values: dict) -> Outcome:
     # two sides of this arithmetic come out the same size — the "they
     # risk five to gain two" gap the advice genre runs on is not there.
     # Which is not the same as saying you are evenly matched.
+    # The comparison, computed from THIS rent rather than asserted.
+    # "Both sides come out about the same" is true near a typical rent and
+    # false at both ends: the sourced move cost is a flat dollar figure, so
+    # it is well over a month for somebody paying $900 and a fifth of a
+    # month for somebody paying $5,000, while the landlord's side scales
+    # with rent. Stating the midpoint as a universal was wrong.
+    move_hi_months = evidence.MOVE_COST_HIGH_USD / rent
+    landlord_months = landlord_loss / rent
+    if move_hi_months >= landlord_months * 0.6:
+        comparison = (
+            "At your rent those two are close to level, which is already a "
+            "long way from the they-risk-far-more-than-you story the advice "
+            "genre runs on."
+        )
+    else:
+        comparison = (
+            "At your rent the physical move is the smaller of the two — but "
+            "it is only the part anyone has measured. What leaving actually "
+            "costs you also includes finding somewhere, deposits, time off, "
+            "and the disruption, none of which appears in any survey. The "
+            "gap is smaller than the they-risk-far-more-than-you story "
+            "suggests, and nobody can tell you by how much."
+        )
     caveats.append(
-        "The number above is what leaving costs your landlord. Built up from "
-        "scratch rather than borrowed, both sides of this come out at roughly "
-        "a month and a half of rent — close to a dead heat, not the "
-        "they-risk-far-more-than-you story the advice genre runs on. What "
-        "sits on top of each roughly cancels too: they add empty time and the "
-        "risk of a worse tenant, you add everything you have accumulated in "
-        "the place and a deadline. And equal dollars are not equal stakes — "
-        "the same few thousand is a line item against a portfolio for them "
-        "and a household shock for you. You can lose a negotiation where the "
-        "numbers are symmetric, because only one of you can afford to be "
-        "wrong."
+        f"Comparing the two sides: leaving costs your landlord about "
+        f"{landlord_months:.1f} months of your rent, and the sourced cost of "
+        f"a physical move is roughly {evidence.MOVE_COST_LOW_USD / rent:.1f} "
+        f"to {move_hi_months:.1f} months' worth to you. {comparison} And "
+        f"equal dollars are not equal stakes — the same few thousand is a "
+        f"line item against a portfolio for them and a household shock for "
+        f"you. You can lose a negotiation where the numbers are symmetric, "
+        f"because only one of you can afford to be wrong."
     )
     caveats.append(evidence.BASIS)
     if not mkt.get("metro_known"):

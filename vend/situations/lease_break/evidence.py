@@ -170,15 +170,29 @@ MIN_VACANCY_MONTHS = 0.25
 # an estimate of anyone's actual move.
 MOVE_COST_LOW_USD = 984
 MOVE_COST_HIGH_USD = 1489
-MOVE_COST_NOTE = (
-    "Moving itself costs you something, and it is worth putting in the same "
-    "sentence as everything else here. Two independent estimates of a local "
-    "move land around $1,000 and $1,500 — one from booked transactions, one "
-    "from a consumer survey. The $2,300 figure repeated everywhere traces to "
-    "a trade body that no longer exists and has no primary document behind "
-    "it. Treat $1,000-1,500 as a floor for a local move and expect more if "
-    "you are going any distance."
-)
+def move_cost_note(rent: float) -> str:
+    """The sourced move cost, stated against this person's rent.
+
+    The sources are in dollars, so dollars is what they stay in — but a
+    dollar figure is not comparable to the landlord's side, which is
+    measured in months of rent. The same $1,000-1,500 is well over a
+    month for somebody paying $900 and a fifth of a month for somebody
+    paying $5,000, and that difference is the whole question of who is
+    more exposed. So both units, always.
+    """
+    lo = MOVE_COST_LOW_USD / rent
+    hi = MOVE_COST_HIGH_USD / rent
+    return (
+        f"Moving itself costs you something, and it belongs in the same "
+        f"sentence as everything else here. Two independent estimates of a "
+        f"local move land around ${MOVE_COST_LOW_USD:,} and "
+        f"${MOVE_COST_HIGH_USD:,} — one from booked transactions, one from a "
+        f"consumer survey — which at your rent is roughly {lo:.1f} to "
+        f"{hi:.1f} months' worth. The $2,300 figure repeated everywhere "
+        f"traces to a trade body that no longer exists and has no primary "
+        f"document behind it. Treat this as a floor for a local move and "
+        f"expect more if you are going any distance."
+    )
 
 # Below this many months left, the arithmetic stops being the story:
 # almost any route costs about the same and the honest answer is

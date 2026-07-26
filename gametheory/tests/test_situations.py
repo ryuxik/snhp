@@ -1675,9 +1675,12 @@ def test_the_move_cost_is_sourced_and_the_folk_number_is_named():
 
     assert evidence.MOVE_COST_LOW_USD == 984
     assert evidence.MOVE_COST_HIGH_USD == 1489
-    note = evidence.MOVE_COST_NOTE
+    note = evidence.move_cost_note(2400)
     assert "$2,300" in note, "name the unsourced figure rather than ignoring it"
     assert "no longer exists" in note or "no primary document" in note
+    # Dollars, because the sources are dollars — and months, because that
+    # is the only unit comparable to the landlord's side.
+    assert "months' worth" in note
 
     o = registry.get("lease_break").assess(
         {"metro": "denver", "monthly_rent": 2400, "months_remaining": 9.0,
@@ -1685,7 +1688,8 @@ def test_the_move_cost_is_sourced_and_the_folk_number_is_named():
          "replacement_tenant_ready": False, "lease_allows_transfer": "no",
          "move_out_reason": "job", "security_deposit": None,
          "credit_score": None})
-    assert note in o.exposure, "what leaving costs YOU belongs in the exposure list"
+    assert evidence.move_cost_note(2400) in o.exposure, (
+        "what leaving costs YOU belongs in the exposure list")
 
 
 def test_the_anchor_is_not_presented_as_leverage():
@@ -1795,6 +1799,53 @@ def test_both_sides_of_the_leverage_arithmetic_are_named():
          "move_out_reason": "job", "security_deposit": None,
          "credit_score": None})
     joined = " ".join(o.caveats).lower()
-    assert "month and a half of rent" in joined
-    assert "dead heat" in joined
+    assert "months of your rent" in joined
     assert "equal dollars are not equal stakes" in joined
+
+
+def test_dollars_always_carry_their_months():
+    """Months is the unit both sides are measured in and the only one
+    that can be checked against the surveyed range. A dollar figure alone
+    is unfalsifiable to the person reading it."""
+    o = registry.get("lease_break").assess(
+        {"metro": "denver", "monthly_rent": 2400, "months_remaining": 9.0,
+         "has_termination_clause": False, "termination_fee_months": None,
+         "replacement_tenant_ready": False, "lease_allows_transfer": "no",
+         "move_out_reason": "job", "security_deposit": None,
+         "credit_score": None})
+    surrender = next(r for r in o.routes if r.key == "surrender")
+    assert "months of your rent" in surrender.detail
+    assert any("one to two months" in e for e in o.exposure), (
+        "the surveyed range belongs next to our figure so it can be checked")
+
+
+def test_the_leverage_comparison_is_computed_not_asserted():
+    """Regression, and the error was mine.
+
+    The caveat said both sides come out at about a month and a half —
+    the article's midpoint — as if it were universal. It is not: the
+    sourced move cost is a flat dollar figure, so it is well over a month
+    for somebody paying $900 and a fifth of a month for somebody paying
+    $5,000, while the landlord's side scales with rent.
+    """
+    s = registry.get("lease_break")
+    base = {"metro": "denver", "months_remaining": 9.0,
+            "has_termination_clause": False, "termination_fee_months": None,
+            "replacement_tenant_ready": False, "lease_allows_transfer": "no",
+            "move_out_reason": "job", "security_deposit": None,
+            "credit_score": None}
+
+    def comparison(rent):
+        o = s.assess({**base, "monthly_rent": rent})
+        return next(c for c in o.caveats if "Comparing the two sides" in c)
+
+    cheap, dear = comparison(900), comparison(5000)
+    assert "close to level" in cheap
+    assert "close to level" not in dear
+    # ...and where it is not level, we say what is missing rather than
+    # implying the landlord is simply more exposed.
+    assert "only the part anyone has measured" in dear
+    assert "nobody can tell you by how much" in dear
+    # The universal claim must not come back.
+    for c in (cheap, dear):
+        assert "dead heat" not in c
