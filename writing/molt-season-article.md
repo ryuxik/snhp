@@ -5,11 +5,14 @@ All three images live in ONE folder. Open it and drag them in:
 
     /Users/ryuxik/Desktop/snhp/writing/cards/
 
-    cover.png       <- also set this as the link preview / og:image
-    leverage.png
-    band.png
+    cover.png       1600x640, 5:2 — the article header image
+    leverage.png    1200x628
+    band.png        1200x628
 
-Each is 1200x628, the size X uses for a large summary card.
+The cover is 5:2 because that is the ratio X crops an article header to.
+The two inline figures stay at 1200x628. The link-preview og:image is a
+separate file already wired into arena/web/molt/, and is NOT this one.
+
 Where each one goes is marked inline below.
 The .svg next to each PNG re-renders it if you want a different size.
 ══════════════════════════════════════════════════════════════════
