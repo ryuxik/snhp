@@ -110,3 +110,9 @@ divorce/results-*.json
 arena/gauntlet/certs/*.json
 companysim/episodes/
 nextmove_telemetry.jsonl
+
+# Simulation outputs — regenerable from the seeded run scripts, and half a
+# million lines of JSON in a diff nobody can read. The numbers that matter
+# live in the RESULTS-*.md next to them. Demo data under arena/web/ is NOT
+# covered by this: the browser reads those at runtime.
+research/*/results_*.json
