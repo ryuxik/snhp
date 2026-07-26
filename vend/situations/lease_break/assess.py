@@ -577,7 +577,7 @@ def _verdict(*, months_left, rent, remaining_balance, best, best_cost,
     if has_clause is True and best is not None and best.key == "clause":
         return ("weak", (
             f"Your lease already sets the price of leaving, and at roughly "
-            f"${best_cost:,} it is at or below what you could realistically "
+            f"${best_cost:,} it is at or under what you could realistically "
             f"negotiate to. Use the clause. There is no leverage to find here, "
             f"and looking for it costs you time you don't have."
         ))
@@ -625,7 +625,7 @@ def _next_step(verdict: str, routes: list[Route], statutory: bool,
             "Before you offer anyone money or sign anything: take your "
             "documents to a legal-services organisation or your state's "
             "landlord-tenant office and ask what your circumstances carry. "
-            "That answer changes everything below it."
+            "That answer changes everything else here."
         )
 
     top = next((r for r in routes if r.available and r.key != "walk"), None)
@@ -664,7 +664,7 @@ def _next_step(verdict: str, routes: list[Route], statutory: bool,
         "person ready to take the unit. A landlord has no reason to move for "
         "'I might have to leave', because it is free to say and everyone "
         "says it; a date and a name is a different object. Then send the "
-        "message below and ask for a signed release rather than a verbal "
+        "drafted message and ask for a signed release rather than a verbal "
         "yes, keeping rent paid on time until you have one."
     )
 

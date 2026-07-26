@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tell me what's going on.</title>
-<meta name="description" content="Describe your situation in your own words. It works out what it needs to know, asks only the questions that would change the answer, and tells you what to do — including when to do nothing.">
+<title>Should you negotiate your rent renewal? — free, 30 seconds</title>
+<meta name="description" content="Your landlord raised the rent. Find out if it's worth pushing back, exactly what to ask for and in what order, and get a message you can send. Free, no account. It will also tell you to just sign when you have no leverage.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <style>
@@ -178,8 +178,13 @@
       <button class="ghost" id="copy" style="margin-top:.8rem">Copy</button>
     </div>
 
+    <p style="margin-top:2.4rem">
+      <button class="linky" id="why-toggle" type="button">Why should I believe this?</button>
+    </p>
+
+    <div id="why-block" hidden>
     <div id="exp-wrap" hidden>
-      <h2 style="margin-top:2.4rem">What you're on the hook for</h2>
+      <h2 style="margin-top:1.6rem">What you're on the hook for</h2>
       <ul class="exposure" id="exposure"></ul>
     </div>
 
@@ -193,7 +198,7 @@
       <ul class="fine" id="caveats"></ul>
     </div>
 
-    <h2 style="margin-top:2.4rem">Before you go</h2>
+    <h2 style="margin-top:2.4rem">Before you use it</h2>
     <p class="edge" id="edge">
     <b>Your unfair advantage, while it lasts.</b>
     Most people never push back &mdash; 61% of renters never negotiate at all
@@ -210,6 +215,7 @@
 
     <p class="fine" id="privacy" hidden style="margin-top:1.2rem"></p>
     <p class="fine" id="notadvice" style="margin-top:1rem"></p>
+    </div>
 
     <button class="ghost" id="restart" style="margin-top:1.4rem">Start again</button>
   </section>
@@ -450,6 +456,11 @@
     qs.forEach(function(q){ qb.appendChild(renderQuestion(q)); });
     show('questions', qs.length > 0);
 
+    // Collapsed by default on every new answer: the decision is the
+    // verdict, the asks and the message. Everything under here is the
+    // working, and a person who wants it will ask for it.
+    show('why-block', false);
+    $('why-toggle').textContent = 'Why should I believe this?';
     show('answer', !!d.answer);
     show('provisional', !!d.answer && d.answer_is_provisional);
     if(d.answer) renderAnswer(d.answer);
@@ -468,6 +479,13 @@
         $('err').textContent = "Couldn't reach the helper. Try again in a moment.";
       });
   }
+
+  $('why-toggle').onclick = function(){
+    var open = !$('why-block').hidden;
+    show('why-block', !open);
+    $('why-toggle').textContent = open
+      ? 'Why should I believe this?' : 'Hide the working';
+  };
 
   $('go').onclick = submit;
   $('q-go').onclick = submit;

@@ -123,12 +123,21 @@ SHOPPING_AROUND_NOTE = (
 # it works by removing the deadline penalty rather than by making you
 # expensive to replace — which is why answering early is the stronger
 # advice of the two.
+# The dollar figures came OUT of this string on 2026-07-25. Once `evidence`
+# was wired into rent.html they became reader-facing, and they are simulation
+# outputs on a page that promises not to quote one. They are also unsafe
+# twice over: the effect scales with `move_med`, still CALIBRATED to observed
+# elasticity (10.212% of market at 3.60 months, 7.368% at A8's derived 1.48),
+# and PRINCIPLE D flags `secured_surp` as a stayers-only numerator over an
+# all-renewals denominator. What survives is the ORDERING, which needs
+# neither number: it came in under our own bar, and the clock is the channel.
 SHOPPING_AROUND_EVIDENCE = (
-    "On the specific-alternative advice: we measured it at roughly $460 a "
-    "year, below the $480 we set as our own bar for calling something "
-    "material, and it turned out to work by removing the penalty for "
-    "answering close to your deadline rather than by making you costly to "
-    "replace. Answering early is the stronger of the two."
+    "On the specific-alternative advice: we did measure it, and it came in "
+    "under our own bar for calling something material. It also turned out "
+    "to work by removing the penalty for answering close to your deadline "
+    "rather than by making you costly to replace, which is why answering "
+    "early is the stronger of the two. The figure itself does not ship: it "
+    "scales with a switching cost we calibrated rather than derived."
 )
 
 
@@ -423,12 +432,21 @@ def _message(
     primary = asks[0]
     secondary = asks[2]  # the term trade — a give, not just an ask
 
+    # The two findings that matter are BUILT IN here rather than told to
+    # somebody in an instruction they have to remember: the specific
+    # checkable thing, and saying you are weighing a move. Square
+    # brackets because a blank they fill is more likely to get filled
+    # than a sentence above the box telling them to.
     return (
         f"Hi — thanks for sending the renewal.\n\n"
         f"I'd like to stay. {tenure_line}\n\n"
         f"Before I sign, would you consider {primary.ask_phrase}? "
         f"I've seen comparable units advertised with move-in incentives, and "
         f"I'd rather put that toward staying than moving.\n\n"
+        f"[If you have a specific alternative they could check — a listing, "
+        f"an address, a date — put it here. That is worth more than saying "
+        f"you might move. If you're weighing a move for reasons that aren't "
+        f"about rent, say that too.]\n\n"
         f"I'm also open to {secondary.ask_phrase}, if that's useful on "
         f"your end.\n\n"
         f"Happy to sign quickly either way. Thanks for considering it."
@@ -471,43 +489,32 @@ def assess(
         asks: list[Ask] = []
         if regulated:
             next_step = (
-                "Before you sign: find out whether your apartment is rent "
-                "regulated. If it is, the increase you were offered may be "
-                "capped by law regardless of the market — a bigger question "
-                "than anything you could negotiate. See 'how to verify' "
-                "in the verification steps we've listed, then decide."
+                "Before you sign, find out whether your apartment is rent "
+                "regulated. If it is, that matters more than anything you "
+                "could negotiate. We've listed how to check."
             )
         else:
             next_step = (
-                "Sign it, or send a short friendly note asking whether any "
-                "move-in style incentive is available — but don't expect "
-                "much, and don't spend goodwill you'll want later."
+                "Sign it. You can ask whether any move-in incentive is "
+                "available, but don't expect much."
             )
     else:
         asks = _build_asks(current_rent, offered_rent, market)
-        # Urgency still leads, but on the ground that survived. The
-        # magnitude claim — that waiting costs more than any single ask —
-        # rested on the delay figure DELAY_PENALTY_NOTE has since
-        # withdrawn as something the model was built with rather than
-        # something it found. The deadline is a fact about the lease and
-        # needs no simulation behind it.
+        # ONE instruction. This carried four at one point — send it, ask
+        # easiest-first, put something checkable in it, mention if you're
+        # half thinking of moving — which is a checklist wearing a
+        # sentence. The ranked asks are already on the page and the two
+        # pieces of advice are now lines inside the drafted message,
+        # where they get acted on rather than remembered.
         urgency = (
-            "Do this inside your response window — missing it can cost you "
-            "the right to renew at all. "
-        )
-        lead = urgency + (
-            "First, check whether your apartment is rent regulated — if it "
-            "is, the legal cap matters more than any of this. Then send the "
-            "message "
-            if regulated
-            else "Send the message "
+            "Send it this week — miss your response window and you can lose "
+            "the right to renew at all."
         )
         next_step = (
-            lead
-            + "to whoever signed your renewal letter. Ask for the easiest "
-            "item first, and put something specific in it they could check. "
-            "If you're half thinking of moving anyway, say so — it makes you "
-            "more worth an offer. They can say no and you can still sign."
+            "Check whether your apartment is rent regulated before you sign "
+            "— if it is, the cap matters more than anything you could ask "
+            "for. Then send the drafted message."
+            if regulated else urgency
         )
 
     caveats = list(legal.get("caveats", []))

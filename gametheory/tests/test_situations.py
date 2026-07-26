@@ -31,6 +31,26 @@ _FRAMEWORK_DIR = os.path.join(_HERE, "vend", "situations")
 FRAMEWORK_FILES = ("schema.py", "priors.py", "sensitivity.py", "ux.py", "guard.py")
 
 
+def any_values(situation):
+    """A valid input dict for ANY situation, derived from its own fields.
+
+    Several tests here hardcoded rent-shaped dicts keyed on the situation
+    name — which quietly assumed every situation is about rent, and broke
+    the moment a third one was registered. That is the exact leak the
+    framework exists to prevent, sitting in the test suite. lint.py
+    already builds inputs from declared sweeps; so does this.
+    """
+    from vend.situations import lint
+
+    for values in lint._sample_values(situation):
+        try:
+            situation.assess(values)
+            return values
+        except Exception:
+            continue
+    raise AssertionError(f"{situation.key}: no input produced an outcome")
+
+
 def _src(name: str) -> str:
     with open(os.path.join(_FRAMEWORK_DIR, name), encoding="utf-8") as fh:
         return fh.read()
@@ -72,7 +92,10 @@ def test_framework_does_not_import_the_registry():
 
 
 def test_adding_a_situation_is_one_registry_line():
-    assert set(registry.SITUATIONS) == {"rent_renewal", "lease_break"}
+    # Deliberately not an exact set. Pinning one meant every new
+    # situation broke this test for no reason, which trains people to
+    # edit the assertion rather than read it.
+    assert {"rent_renewal", "lease_break"} <= set(registry.SITUATIONS)
     for key, s in registry.SITUATIONS.items():
         assert s.key == key
         assert callable(s.assess)
@@ -861,9 +884,10 @@ def test_renewal_carries_the_credible_alternative_note():
          "months_at_address": 30})
     assert "can be checked" in advisor.SHOPPING_AROUND_NOTE, (
         "the advisor's note has been reverted to the retracted version")
-    # The advice reaches next_step; the measurement behind it reaches
-    # the caveats. Neither sits in `exposure`, which is what it costs you.
-    assert "specific in it they could check" in o.next_step
+    # The advice is built into the message rather than told to somebody
+    # above it; the measurement behind it reaches the caveats. Neither
+    # sits in `exposure`, which is what it costs you.
+    assert "specific alternative they could check" in o.message
     assert advisor.SHOPPING_AROUND_EVIDENCE in o.caveats
 
 
@@ -875,14 +899,7 @@ def test_no_simulation_figure_is_quoted_to_the_reader():
 
     for key in registry.SITUATIONS:
         s = registry.get(key)
-        values = ({"metro": "denver", "current_rent": 1800, "offered_rent": 1950,
-                   "months_at_address": 30} if key == "rent_renewal" else
-                  {"metro": "denver", "monthly_rent": 2400, "months_remaining": 9.0,
-                   "has_termination_clause": False, "termination_fee_months": None,
-                   "replacement_tenant_ready": True, "lease_allows_transfer": "yes",
-                   "move_out_reason": "job", "security_deposit": None,
-                   "credit_score": None})
-        o = s.assess(values)
+        o = s.assess(any_values(s))
         for where, text in guard.strings(o):
             low = text.lower()
             assert "crab" not in low, f"{key}:{where} quotes the sim"
@@ -1533,11 +1550,16 @@ def test_metro_is_a_closed_vocabulary_not_a_recall_task():
     which silently degrades an answer to national figures. Fixed by
     handing the model the table rather than by paying for a model that
     happens to know it."""
+    checked = 0
     for key in registry.SITUATIONS:
         f = registry.get(key).field("metro")
+        if f is None:
+            continue        # not every situation is about a place
+        checked += 1
         assert f.vocabulary, f"{key}: metro has no closed vocabulary"
         assert "new_york" in f.vocabulary and "denver" in f.vocabulary
         assert len(f.vocabulary) >= 50
+    assert checked >= 2
 
     menu = intake._field_menu(public=False)
     assert "MUST be exactly one of these" in menu
@@ -1666,8 +1688,9 @@ def test_we_do_not_sell_asking_as_cheap():
     for effort_pitch in ("five minutes", "only takes"):
         assert effort_pitch not in blob, (
             f"still selling the ask on effort: {effort_pitch!r}")
-    # ...and leads with the lever that does move: being checkable.
-    assert "check" in o.next_step.lower()
+    # ...and the lever that does move — something checkable — is built
+    # into the message rather than sold as effortless.
+    assert "could check" in o.message
 
 
 def test_the_move_cost_is_sourced_and_the_folk_number_is_named():
@@ -1769,10 +1792,14 @@ def test_the_non_price_mover_finding_reaches_the_reader():
     o = registry.get("rent_renewal").assess(
         {"metro": "denver", "current_rent": 1800, "offered_rent": 1950,
          "months_at_address": 30})
-    # In next_step, where it is acted on — not in `exposure`, which is
-    # what this costs you.
-    assert "more worth an offer" in o.next_step
+    # In the drafted MESSAGE, as a blank they fill in. A sentence above
+    # the box telling somebody to mention it is a thing to remember; a
+    # bracket inside the thing they are sending is a thing to do.
+    assert "weighing a move" in o.message
     assert advisor.NON_PRICE_MOVER_NOTE not in o.exposure
+    assert "more worth an offer" not in o.next_step, (
+        "next_step carried four instructions at one point — a checklist "
+        "wearing a sentence")
     # Its status is still stated, in the caveats where a curious reader
     # finds it and a hurried one is not made to wade through it.
     assert advisor.NON_PRICE_MOVER_EVIDENCE in o.caveats
@@ -1885,7 +1912,8 @@ def test_the_answer_page_got_shorter():
     o = registry.get("rent_renewal").assess(
         {"metro": "denver", "current_rent": 1800, "offered_rent": 1950,
          "months_at_address": 30})
-    assert len(o.next_step.split()) < 75, "the instruction must be one breath"
+    assert len(o.next_step.split()) < 30, (
+        "ONE instruction. It carried four at one point.")
     assert len(o.headline.split()) < 40, "so must the verdict"
     page = " ".join([o.headline, o.next_step, o.message,
                      *(r.detail + r.why for r in o.routes),
@@ -1893,3 +1921,86 @@ def test_the_answer_page_got_shorter():
     assert len(page.split()) < 640, (
         "718 words for 'should I push back on my rent' — the answer is in "
         "the first thirty and the rest reads as required")
+
+
+def test_next_step_is_one_instruction():
+    """It carried four — send it, ask easiest-first, put something
+    checkable in it, mention if you're half thinking of moving. That is a
+    checklist wearing a sentence. The asks are already ranked on the page
+    and the advice is built into the message."""
+    for metro in ("denver", "new_york", "nowhere_at_all"):
+        o = registry.get("rent_renewal").assess(
+            {"metro": metro, "current_rent": 1800, "offered_rent": 1950,
+             "months_at_address": 30})
+        assert len(o.next_step.split()) < 30, f"{metro}: {o.next_step}"
+        assert o.next_step.count(".") <= 3
+
+
+def test_the_working_is_behind_one_link():
+    """Verdict, asks, message on screen. Exposure, verification, caveats
+    and the adoption disclosure behind "Why should I believe this?" —
+    a person who wants the working will ask for it."""
+    page = os.path.join(_HERE, "gametheory", "server", "static", "helper.html")
+    with open(page, encoding="utf-8") as fh:
+        html = fh.read()
+
+    assert 'id="why-toggle"' in html and 'id="why-block"' in html
+    # Everything that is working rather than answer sits inside it.
+    block = html.index('id="why-block"')
+    for inside in ('id="exp-wrap"', 'id="ver-wrap"', 'id="cav-wrap"', 'id="edge"'):
+        assert html.index(inside) > block, f"{inside} should be behind the link"
+    # ...and the answer itself is not.
+    for outside in ('id="verdict"', 'id="headline"', 'id="routes"', 'id="msg-wrap"'):
+        assert html.index(outside) < block, f"{outside} must stay on screen"
+    # Collapsed on every new answer, not sticky from the last one.
+    assert "show('why-block', false);" in html
+
+
+def test_the_page_title_matches_what_a_renter_would_search():
+    page = os.path.join(_HERE, "gametheory", "server", "static", "helper.html")
+    with open(page, encoding="utf-8") as fh:
+        html = fh.read()
+    title = html.split("<title>")[1].split("</title>")[0].lower()
+    assert "rent" in title and "negotiate" in title
+    assert "snhp" not in title, "the product name is not the query"
+    desc = html.split('name="description" content="')[1].split('"')[0].lower()
+    assert "just sign" in desc, "the honest verdict is the differentiator"
+
+
+def test_no_situation_uses_directional_language():
+    """Widened from test_rent_advisor.py, where it had already bitten
+    twice and bit again while this page was being trimmed.
+
+    The payload renders in different orders on the page, in the API and
+    over MCP, so "below" and "above" are wrong somewhere by construction.
+    Describe the thing, never its position. lease_break had the same bug
+    and no test covering it.
+    """
+    import re as _re
+
+    # Scoped to the fields that INSTRUCT — which is what the rule is
+    # about. "a renewal above the guideline percentage" in a legal
+    # caveat compares two rents; it does not point at a place on a page,
+    # and rewriting sourced legal copy to satisfy a regex would be the
+    # tail wagging the dog.
+    directional = _re.compile(r"\b(below|above)\b", _re.IGNORECASE)
+    INSTRUCTIVE = ("next_step", "message", "headline", ":detail", ":label")
+    for key, values in (
+        ("rent_renewal", {"metro": "denver", "current_rent": 1800,
+                          "offered_rent": 1950, "months_at_address": 30}),
+        ("rent_renewal", {"metro": "new_york", "current_rent": 3000,
+                          "offered_rent": 3300, "months_at_address": 30}),
+        ("lease_break", {"metro": "denver", "monthly_rent": 2400,
+                         "months_remaining": 9.0,
+                         "has_termination_clause": False,
+                         "termination_fee_months": None,
+                         "replacement_tenant_ready": True,
+                         "lease_allows_transfer": "yes",
+                         "move_out_reason": "military",
+                         "security_deposit": None, "credit_score": None}),
+    ):
+        o = registry.get(key).assess(values)
+        for where, text in guard.strings(o):
+            if not any(w in where for w in INSTRUCTIVE):
+                continue
+            assert not directional.search(text), f"{key}:{where}: {text[:80]}"

@@ -13,13 +13,14 @@ Guessing is not.
 
 from __future__ import annotations
 
-from vend.situations import rent_renewal
+from vend.situations import rent_renewal, salary_negotiation
 from vend.situations.lease_break import SITUATION as _LEASE_BREAK
 from vend.situations.schema import Situation
 
 SITUATIONS: dict[str, Situation] = {
     rent_renewal.SITUATION.key: rent_renewal.SITUATION,
     _LEASE_BREAK.key: _LEASE_BREAK,
+    salary_negotiation.SITUATION.key: salary_negotiation.SITUATION,
 }
 
 

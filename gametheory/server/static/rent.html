@@ -255,6 +255,18 @@ function render(d){
 
   parts.push(`<h2>Next</h2><p>${esc(d.next_step)}</p>`);
 
+  // The three levers the study actually found, as advice. Their measured
+  // magnitudes live in d.evidence with the caveats, never up here.
+  const edge = [];
+  if (d.act_fast && d.act_fast.note) edge.push(d.act_fast.note);
+  if (d.shopping_around) edge.push(d.shopping_around);
+  if (d.non_price_mover) edge.push(d.non_price_mover);
+  if (edge.length) {
+    parts.push('<h2>What actually moves the number</h2><ul>');
+    edge.forEach(t => parts.push(`<li>${esc(t)}</li>`));
+    parts.push('</ul>');
+  }
+
   if (d.legal && d.legal.may_be_regulated) {
     parts.push('<h2>Worth checking first</h2><div class="legal">');
     parts.push(`<p>${esc(d.legal.note)}</p>`);
@@ -288,18 +300,32 @@ function render(d){
       lining up another apartment wouldn't improve their offer. Our model
       had given a landlord no way to check the claim, so that was a
       property of our setup rather than a fact about renting. We then
-      overcorrected. Having now measured it: proving an alternative is
-      worth roughly $460 a year, against the $480 we set as our own bar
-      for calling something material, and it works by removing the penalty
-      for answering close to your deadline rather than by making you
-      expensive to replace. <b>If you have a real alternative, say so, and
+      overcorrected. Having now measured it: proving an alternative came in
+      under the bar we had set for calling something material, and it works
+      by removing the penalty for answering close to your deadline rather
+      than by making you expensive to replace. We are not quoting the
+      figure, because it scales with a switching cost we had calibrated
+      instead of derived. <b>If you have a real alternative, say so, and
       be specific enough that it can be checked</b> &mdash; but the clock
       is what's doing the work, which is why answering early is the
       stronger advice.</li>
-      <li><b>We quoted a dollar figure for answering quickly.</b> It was
-      something we had built into the model, not something we found. The
-      advice stands &mdash; missing your response deadline can cost you the
-      right to renew &mdash; but the number is gone.</li>
+      <li><b>We pulled a dollar figure for answering quickly, but not the
+      finding.</b> That one held up: tenants who let their response window
+      lapse were offered materially more, and since the delay was drawn
+      independently of tenant type, it is cause rather than correlation.
+      What we withdrew was a different claim, that the effect came from the
+      <i>shape</i> of the deadline rather than its level. The shape turned
+      out to be about 13% of it. The number stays off this page because it
+      scales with a delay cost we picked ourselves, and the advice doesn't
+      need it: answer inside your window.</li>
+      <li><b>The barrier isn't the effort, so we stopped saying it was.</b>
+      Roughly 61% of renters never ask, and we went looking for a cost that
+      would explain it: the time, the awkwardness, the fear of being marked
+      as trouble. None of them work. To reproduce the share who actually
+      try, sending a single email has to cost a tenant 27 to 55 hours of
+      their own wages. It doesn't. So whatever stops people is not a cost,
+      and this page no longer tells you it only takes five minutes, because
+      that was never the thing in your way.</li>
       <li><b>What still stands, and what we have narrowed:</b> if enough
       people negotiate, landlords raise the opening offer for everyone.
       That direction survived every attempt to break it, in twenty runs out
@@ -321,7 +347,9 @@ function render(d){
       negotiation takes or whether anyone thinks the result was fair, and
       we have not measured either of those.</li>
     </ul>
-    <p>So nothing on this page is quoted from our simulation. The odds, the
+    <p>So none of the advice on this page rests on a number our simulation
+    produced, and the few figures inside this box describe the simulation
+    itself rather than your building. The odds, the
     market figures and the legal information come from published research,
     earnings filings and government sources, each cited. The simulation
     taught us mostly about our own mistakes, and the write-up publishes all
@@ -329,6 +357,9 @@ function render(d){
   </div>`);
   parts.push('<div class="caveats"><ul>');
   (d.caveats||[]).forEach(c => parts.push(`<li>${esc(c)}</li>`));
+  // What each lever above is actually worth, and how sure we are. Kept
+  // down here so the advice reads clean and the scoping is still on the page.
+  (d.evidence||[]).forEach(e => parts.push(`<li>${esc(e)}</li>`));
   parts.push(`<li>${esc(d.evidence_note)}</li>`);
   parts.push('</ul><button class="ghost" onclick="location.reload()">Start over</button></div>');
 
