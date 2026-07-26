@@ -38,17 +38,71 @@ SHARE_WHO_NEVER_ASK = Figure(
     "figure (about 45% negotiate) is used nowhere; only the majority-don't "
     "framing is load-bearing.")
 
-#: All-in cost of replacing someone, as a multiple of their salary. Gallup and
-#: SHRM both give a 0.5-2.0x range; the shape (frontline low, leadership high)
-#: is consistent across sources. THIS IS THE NUMBER THE ADVICE TURNS ON.
+#: All-in cost of replacing someone, as a multiple of salary. THIS IS THE NUMBER
+#: EVERY PIECE OF ADVICE HERE TURNS ON, and the two literatures disagree by an
+#: order of magnitude:
+#:
+#: SOURCE READ IN FULL (Boushey & Glynn, Center for American Progress, 2012):
+#: 11 research papers published 1992-2007, 31 case studies, 27 positions.
+#:   * median 21% of annual salary, EXPLICITLY EXCLUDING executives and
+#:     physicians ("jobs that require very specific skills")
+#:   * 16% for positions earning under $30,000
+#:   * senior roles run "up to 213 percent", which the authors say skews the
+#:     data upwards, hence their exclusion from the median
+#:   * only 2 of the 11 papers included INDIRECT costs at all
+#:
+#: That last line reconciles the disagreement. The 21% median is a largely
+#: DIRECT-cost figure: separation, cover, advertising, training. The vendor
+#: range of 50-200% is trying to price indirect cost too: lost productivity,
+#: morale, client loss, knowledge walking out of the door. They are not
+#: contradicting each other, they are measuring different things, and the truth
+#: for any given role sits between them.
+#:
+#: So: `REPLACEMENT_COST` is the sourced direct-cost floor and
+#: `REPLACEMENT_COST_TRADE` is the indirect-inclusive ceiling, and the tool
+#: shows the span. Two further caveats a reader should have: the underlying data
+#: is 1992-2007, and none of it is specific to any one employer.
 REPLACEMENT_COST = {
-    "frontline":     Figure(0.45, "x salary", "Gallup / SHRM turnover-cost range",
-                            "Includes vacancy and ramp; do not add those again."),
-    "professional":  Figure(0.80, "x salary", "Gallup / SHRM turnover-cost range"),
-    "scarce":        Figure(1.10, "x salary", "Gallup / SHRM turnover-cost range"),
-    "revenue":       Figure(0.90, "x salary", "Gallup / SHRM turnover-cost range"),
-    "leadership":    Figure(1.60, "x salary", "Gallup / SHRM turnover-cost range"),
+    "frontline":    Figure(0.16, "x salary", "Boushey & Glynn 2012 (CAP), read in full",
+                           "Their figure for positions under $30k. Direct costs; "
+                           "only 2 of 11 source papers priced indirect cost.",
+                           verified=True),
+    "professional": Figure(0.21, "x salary", "Boushey & Glynn 2012 (CAP), read in full",
+                           "The median across 27 positions, excluding executives "
+                           "and physicians. Direct costs.", verified=True),
+    "scarce":       Figure(0.30, "x salary", "CAP median, stepped up",
+                           "CAP excludes 'jobs requiring very specific skills' "
+                           "from its median, so the median understates this row. "
+                           "The step is ours and is not sourced.",
+                           verified=False),
+    "revenue":      Figure(0.25, "x salary", "CAP median, stepped up",
+                           "Client loss is an indirect cost that 9 of the 11 "
+                           "source papers did not price. The step is ours.",
+                           verified=False),
+    "leadership":   Figure(0.50, "x salary", "CAP senior-role band, floored",
+                           "CAP reports senior roles running 'up to 213 percent' "
+                           "and excludes them from the median for skewing it. "
+                           "We take a deliberately low point in that band rather "
+                           "than the top: a tool that tells a manager they are "
+                           "worth 2x their salary to replace should be the most "
+                           "conservative row, not the loudest.", verified=True),
 }
+
+#: The other side of the disagreement, carried so the tool can show a range
+#: rather than assert a point. Same keys.
+REPLACEMENT_COST_TRADE = {
+    "frontline": 0.40, "professional": 1.25, "scarce": 2.00,
+    "revenue": 1.25, "leadership": 2.13,
+}
+
+#: Why the gap exists, in one line the tool can show a person.
+REPLACEMENT_DISAGREEMENT = (
+    "Economic studies put the direct cost of replacing someone at about a fifth "
+    "of their salary. Firms that sell retention software say one to two times, "
+    "because they are also counting lost productivity and knowledge. Only 2 of "
+    "the 11 underlying studies priced those at all, so the true figure for your "
+    "role sits somewhere in that span. We show both ends."
+)
 
 #: Median days to fill an open role. Reported for context only — it is already
 #: inside REPLACEMENT_COST and must never be added to it.
@@ -118,9 +172,20 @@ def all_figures() -> list[tuple[str, Figure]]:
 
 
 VERIFY_BEFORE_LAUNCH = [
-    "Replace the Gallup/SHRM replacement-cost range with a source you have read "
-    "in full, per role family. This is the number every piece of advice here "
-    "turns on; everything else is presentation.",
+    "DONE: CAP source read in full. 11 papers 1992-2007, 31 case studies, 27 "
+    "positions, median 21% excluding executives and physicians, 16% under $30k, "
+    "senior roles up to 213%, only 2 of 11 papers priced indirect cost.",
+    "DONE: `leadership` set to 0.50 from CAP's own senior-role band, taking a "
+    "low point rather than the 213% top.",
+    "OPEN: `scarce` and `revenue` are still our own steps off the median, not "
+    "sourced. They are the two unverified rows left.",
+    "OPEN: the underlying data is 1992-2007. Nothing newer was found. Decide "
+    "whether a 20-year-old direct-cost median is fit to show a person in 2026.",
+    "NOTE FOR research/molt: the simulation used rho = 0.45-1.60, taken from the "
+    "trade side of this disagreement, and swept only down to 0.5x. If the "
+    "academic median is right, the replacement channel — which is 80% of that "
+    "study's headline — is inflated 2-4x, below the swept range. The study's "
+    "limitations section must say so.",
     "Confirm the 55% never-negotiate figure against a primary survey. The "
     "aggregator cites survey data it does not link.",
     "Decide whether simulation figures may be shown to a person at all. They "

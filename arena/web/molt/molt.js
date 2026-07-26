@@ -354,7 +354,7 @@ function renderRebuild(v) {
   const host = $('#science');
   const c = el('div', 'bcard');
   c.style.gridColumn = '1 / -1';
-  c.append(el('h4', null, 'The rebuild — what a reader\u2019s four objections cost'));
+  c.append(el('h4', null, 'The rebuild: what four objections cost'));
   const p1 = el('p');
   p1.style.cssText = 'font-size:.9rem;color:var(--cream-70);margin:0 0 .8rem';
   p1.innerHTML =

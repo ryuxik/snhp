@@ -115,6 +115,28 @@ class Field:
         if self.kind == CHOICE and not self.options:
             raise ValueError(f"{self.key}: CHOICE fields need options")
 
+    def check(self, value: Any) -> None:
+        """Reject a CHOICE value that is not one of ours.
+
+        Declaring `options` made the list closed for the INTAKE model, so it
+        selects rather than recalls. Nothing checked the value that came
+        back. `salary_negotiation` then read an unknown `role_family`,
+        silently fell through to `professional`, and returned a confident
+        verdict computed from the wrong replacement cost. That is the
+        failure this module's own docstring rules out: degrading to a form
+        is acceptable, guessing is not. So the closed list is now enforced
+        where the value ARRIVES, not only where it is offered.
+        """
+        if self.kind != CHOICE or value is None:
+            return
+        allowed = tuple(v for v, _ in self.options)
+        if value not in allowed:
+            raise ValueError(
+                f"{self.key}: {value!r} is not one of {allowed}. A choice "
+                f"field is a closed list; guessing a fallback would hand "
+                f"back an answer computed from the wrong branch."
+            )
+
     def candidates(self, current: Any) -> tuple:
         """Plausible values, for the sensitivity sweep."""
         if self.sweep:
@@ -323,6 +345,26 @@ class Situation:
     # so the whole surface still works without an LLM.
     triggers: tuple[str, ...] = ()
     intake_hint: str = ""
+
+    def __post_init__(self) -> None:
+        """Wrap `assess` so every caller validates, not the careful ones.
+
+        `assess` is called from the HTTP door, the MCP door, the intake
+        stack and the sensitivity engine, which calls it once per candidate
+        value. Putting the check in each situation's own `assess` is how
+        this was missed the first time: `salary_negotiation` read an
+        unknown `role_family` and fell through to `professional`. Wrapping
+        here means a new situation cannot forget it.
+        """
+        inner = self.assess
+
+        def checked(values: dict) -> Outcome:
+            for f in self.fields:
+                if f.key in values:
+                    f.check(values[f.key])
+            return inner(values)
+
+        object.__setattr__(self, "assess", checked)
 
     def field(self, key: str) -> Field | None:
         for f in self.fields:

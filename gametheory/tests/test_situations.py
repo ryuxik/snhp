@@ -14,6 +14,8 @@ import json
 import os
 import re
 
+import sys
+
 import pytest
 
 from vend.situations import answer, guard, intake, priors, registry, sensitivity, ux
@@ -1419,17 +1421,46 @@ def test_value_in_quote_is_punctuation_insensitive_but_not_generous():
 def test_only_sourced_situations_reach_the_public():
     """Without this the registry is all-or-nothing, and shipping the
     finished renewal advisor would mean shipping unfinished lease-break
-    alongside it."""
+    alongside it.
+
+    The rule was once "unsourced evidence may not go public". It is now
+    "unsourced evidence may not go public SILENTLY": a situation whose evidence
+    module is unverified may be live only if it says so, in the first thing a
+    person reads. `salary_negotiation` is the first situation to use that, and
+    the assertion below is what stops the exemption becoming a loophole."""
     from vend.situations.lease_break import evidence
 
     assert registry.get("rent_renewal").live is True
     assert registry.get("lease_break").live is False
     assert evidence.PUBLISHABLE is False, (
-        "a situation may only go live once its evidence is sourced")
+        "a situation with no sourced evidence may not go live at all")
 
-    assert [c["key"] for c in registry.catalog()] == ["rent_renewal"]
     assert registry.get("lease_break", public=True) is None
     assert registry.get("lease_break") is not None, "still reachable in dev"
+
+    # Every live situation whose evidence is unverified must label itself.
+    for entry in registry.catalog():
+        sit = registry.get(entry["key"], public=True)
+        module = sys.modules[sit.assess.__module__]
+        ev = getattr(module, "_ev", None)
+        if ev is None or getattr(ev, "VERIFIED", True):
+            continue
+        values = {f.key: (f.default if f.default is not None
+                          else _sample_for(f)) for f in sit.fields}
+        first = sit.assess(values).caveats[0].lower()
+        assert "demo" in first, (
+            f"{sit.key} is live with unverified evidence and does not say so "
+            f"in its first caveat")
+
+
+def _sample_for(field):
+    """A plausible value for any field kind, so the guard above can call
+    assess() on a situation it knows nothing about."""
+    from vend.situations import schema as _s
+    return {_s.MONEY: 100000, _s.MONTHS: 12, _s.COUNT: 12, _s.BOOL: True,
+            _s.TEXT: "x", _s.METRO: "national"}.get(
+                field.kind,
+                field.options[0][0] if field.options else "x")
 
 
 def test_a_draft_situation_cannot_be_reached_by_naming_it():

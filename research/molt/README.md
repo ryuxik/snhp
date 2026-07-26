@@ -2,7 +2,7 @@
 
 Salary negotiation, measured in two currencies: **money and calendar days**.
 
-A crew of space crabs works a shipyard. Once a year, after the bonus lands, every
+A crew of crabs works an orbital station. Once a year, after the bonus lands, every
 crab decides whether to grow into a bigger shell here or carry it somewhere else,
 and the Works decides what it will pay to keep each one. We run that season six
 ways — from "just sign the standing offer" through six weeks of meetings to one

@@ -10,11 +10,11 @@ allowed to do:
     to 16%.
   * An offer you can **show** is worth about $2,851. An offer you can only
     **claim** is worth nothing, because claiming is free and so everyone does it.
-  * The engine does NOT out-argue a competent negotiator — that never cleared
+  * The engine does NOT out-argue a competent negotiator. That never cleared
     2% of salary in any specification. So this module never says it will.
   * An employer will not hand you the menu, because revealing what it would
     equally sign costs it ~$8,738 over two seasons. So the menu is built from
-    the outside, from your replacement cost — and is offered as *what to ask
+    the outside, from your replacement cost, and is offered as *what to ask
     for*, never as *what they have agreed to*.
 
 The one thing this module must never do is tell you what your employer will
@@ -49,7 +49,7 @@ FIELDS = (
         kind=CHOICE,
         required=True,
         options=_ROLE_FAMILIES,
-        help="This sets what replacing you costs — the number your leverage "
+        help="This sets what replacing you costs, the number your leverage "
              "actually comes from.",
         # Straddles the range where replacement cost roughly triples, so the
         # sensitivity engine can see the flip rather than sampling around it.
@@ -71,7 +71,7 @@ FIELDS = (
         kind=BOOL,
         default=False,
         help="A written offer you're willing to show is worth roughly $2,851. "
-             "One you can only describe is worth nothing — everybody says they "
+             "One you can only describe is worth nothing. Everybody says they "
              "have one, so saying it carries no information.",
         sweep=(False, True),
     ),
@@ -108,7 +108,7 @@ MUST_NOT_ASSERT = (
     # two seasons to keep its band secret; a tool that claims to know it is
     # claiming the one thing nobody outside the company has.
     Rule(r"(?<!whether )(?<!\bif )\bthey (will|would) (accept|agree to|approve|say yes)\b",
-         "we cannot know what your employer will accept — they spend real money "
+         "we cannot know what your employer will accept. They spend real money "
          "keeping that private"),
     Rule(r"\byour employer'?s? (budget|band|range|ceiling) is\b",
          "the band is the thing they are protecting; we can only estimate what "
@@ -128,50 +128,62 @@ MUST_NOT_ASSERT = (
     Rule(r"\bthey (can'?t|cannot) (fire|let you go|retaliate)\b",
          "we cannot make employment-law assertions"),
     Rule(r"\byou (can|could|should) threaten\b",
-         "never advise a threat — an offer you cannot show is worth nothing, "
+         "never advise a threat. An offer you cannot show is worth nothing, "
          "and a bluff that is called costs you the relationship"),
 )
 
 
 # --------------------------------------------------------------------- helpers
-def _replacement_cost(values: dict) -> float:
+def _replacement_range(values: dict) -> tuple[float, float]:
+    """(low, high) cost of replacing this person. Two literatures disagree by an
+    order of magnitude, so we return the span rather than picking a winner."""
     fam = values.get("role_family", "professional")
-    mult = _ev.REPLACEMENT_COST.get(fam, _ev.REPLACEMENT_COST["professional"])
-    return float(values["salary"]) * mult.value
+    salary = float(values["salary"])
+    lo = _ev.REPLACEMENT_COST.get(fam, _ev.REPLACEMENT_COST["professional"]).value
+    hi = _ev.REPLACEMENT_COST_TRADE.get(fam, 1.25)
+    return salary * lo, salary * hi
 
 
-def _leverage(values: dict) -> tuple[float, str]:
-    """What asking is worth, and which measured cell it came from."""
+#: How much of the employer's exposure is plausibly in play, by what you can
+#: prove. The RATIO between these is taken from our simulation (a provable offer
+#: moved about 6x what no offer did); the SCALE is this person's own replacement
+#: cost. No simulation dollar figure is ever shown to anybody.
+_IN_PLAY = {"provable": 0.60, "unprovable": 0.10, "none": 0.10}
+
+
+def _stake(values: dict) -> tuple[float, str]:
+    """What is on the table, in this person's dollars. This is the scalar the
+    sensitivity engine differences, so it must move with every field that
+    matters — salary, role, and whether the offer can be shown."""
+    lo, _hi = _replacement_range(values)
     if values.get("has_outside_offer") and values.get("offer_is_provable"):
-        fam = values.get("role_family", "professional")
-        costly = _ev.REPLACEMENT_COST.get(fam, _ev.REPLACEMENT_COST["professional"]).value >= 0.80
-        k = "leverage_offer_and_costly_to_replace" if costly \
-            else "leverage_with_provable_offer"
+        cell = "provable"
     elif values.get("has_outside_offer"):
-        # Claimable but not showable. The measured value of an unprovable
-        # claim is zero, so this person is in the no-offer cell.
-        k = "leverage_no_offer"
+        # Claimable but not showable. Measured value of an unprovable claim was
+        # nothing — claiming is free, so everyone claims and it stops carrying
+        # information. Same cell as having no offer.
+        cell = "unprovable"
     else:
-        k = "leverage_no_offer"
-    return _ev.SIM[k].value, k
+        cell = "none"
+    return lo * _IN_PLAY[cell], cell
 
 
 def assess(values: dict) -> Outcome:
     """Resolved priors -> the fixed output contract. Pure, cheap, deterministic."""
     salary = float(values["salary"])
-    replacement = _replacement_cost(values)
-    leverage, cell = _leverage(values)
+    rep_lo, rep_hi = _replacement_range(values)
+    stake, cell = _stake(values)
     provable = bool(values.get("has_outside_offer")) and bool(values.get("offer_is_provable"))
     cycle_open = bool(values.get("cycle_open", True))
 
     # Verdict. Deliberately reachable at `weak` — a situation that can never
     # tell somebody their position is poor is a horoscope, and lint blocks it.
-    if provable and replacement >= 0.80 * salary:
+    if provable and rep_lo >= 0.25 * salary:
         verdict, label = "strong", "You have real leverage and can prove it"
-    elif provable or replacement >= 0.80 * salary:
+    elif provable or rep_lo >= 0.25 * salary:
         verdict, label = "moderate", "You have something to work with"
     else:
-        verdict, label = "weak", "Your position is thin — ask anyway, but expect little"
+        verdict, label = "weak", "Your position is thin. Ask anyway, but expect little"
     if not cycle_open:
         verdict = "weak" if verdict == "moderate" else verdict
 
@@ -179,18 +191,17 @@ def assess(values: dict) -> Outcome:
         Route(
             key="one_sitting",
             label="Put every term on the table in one conversation",
-            detail="Pay, title, time off, schedule, scope — all of it, once, "
+            detail="Pay, title, time off, schedule, scope, all of it, once, "
                    "rather than one item per email over six weeks.",
-            why="Settling in one sitting rather than six weeks of email was "
-                "worth about {:,.0f} days and cut the share of negotiations "
-                "that fall apart from {:.0%} to {:.0%} in our simulation."
-                .format(_ev.SIM["days_saved"].value,
-                        _ev.SIM["collapse_haggling"].value,
-                        _ev.SIM["collapse_one_sitting"].value),
+            why="The single biggest effect we measured. Six weeks of email and "
+                "one afternoon landed in the same place. The afternoon got "
+                "there weeks earlier, with roughly half as many negotiations "
+                "falling apart before anyone signed. You are not trading "
+                "outcome for speed; you are getting the same outcome sooner "
+                "and more often.",
             ease="easiest",
-            est_value_usd=int(_ev.SIM["menu_over_haggling"].value),
             ask_phrase="I'd rather cover everything in one conversation than "
-                       "go back and forth — can we book thirty minutes and "
+                       "go back and forth. Can we book thirty minutes and "
                        "settle the whole package?",
         ),
         Route(
@@ -199,7 +210,7 @@ def assess(values: dict) -> Outcome:
             detail="Ask them to come back with two or three packages that "
                    "cost them about the same, and pick between those.",
             why="What you value and what it costs them are different numbers. "
-                "Letting them choose the shape is how both sides gain — and "
+                "Letting them choose the shape is how both sides gain. "
                 "they will not volunteer it, because showing you the range is "
                 "the expensive part for them.",
             ease="moderate",
@@ -213,14 +224,12 @@ def assess(values: dict) -> Outcome:
             key="show_the_letter",
             label="Show the written offer",
             detail="Put the document in front of them rather than describing it.",
-            why="A verifiable offer was worth about ${:,.0f}. An offer you only "
-                "describe was worth nothing measurable — claiming is free, so "
-                "everyone claims, and the claim stops carrying information."
-                .format(_ev.SIM["value_of_provable_offer"].value),
+            why="A written offer moved the outcome. An offer you only describe "
+                "moved nothing measurable. Claiming is free, so everyone "
+                "claims, and the claim stops carrying information.",
             ease="easiest",
-            est_value_usd=int(_ev.SIM["value_of_provable_offer"].value),
             ask_phrase="I've got a written offer and I'd rather be straight "
-                       "with you about it than be coy — here it is.",
+                       "with you about it than be coy. Here it is.",
         ))
     if values.get("has_outside_offer") and not values.get("offer_is_provable"):
         routes.append(Route(
@@ -228,9 +237,9 @@ def assess(values: dict) -> Outcome:
             label="Get the other offer in writing first",
             detail="An offer you can show is a different object from one you "
                    "can describe.",
-            why="Unprovable claims moved nothing in our simulation. Written "
-                "ones moved about ${:,.0f}."
-                .format(_ev.SIM["value_of_provable_offer"].value),
+            why="Unprovable claims moved nothing in our simulation; written "
+                "ones moved the outcome. It is the paper that does the work, "
+                "not the fact of having somewhere to go.",
             ease="moderate",
         ))
     if not cycle_open:
@@ -245,15 +254,26 @@ def assess(values: dict) -> Outcome:
             available=True,
         ))
 
+    # Layer 6 of the output contract promises send-ready words, so produce
+    # them. Assembled from the routes' own phrases — nothing here asserts what
+    # the employer will do, which MUST_NOT_ASSERT enforces at registration.
+    opening = ("I'd like to sort out my package for this cycle, and I'd rather "
+               "do it in one conversation than over a fortnight of email.")
+    body = [r.ask_phrase for r in routes if r.ask_phrase]
+    closing = ("If some of that isn't possible, I'd still rather know which "
+               "parts are, so we can settle it in one go.")
+    message = "\n\n".join([opening] + body[:2] + [closing])
+
     return Outcome(
         verdict=verdict,
         verdict_label=label,
-        headline=("Replacing you plausibly costs them around ${:,.0f}. "
-                  "That, not your delivery, is where your leverage comes from."
-                  .format(replacement)),
+        headline=("Replacing you plausibly costs them somewhere between "
+                  "${:,.0f} and ${:,.0f}. That range, not your delivery, is "
+                  "where your leverage comes from."
+                  .format(rep_lo, rep_hi)),
         routes=routes,
         next_step="Book one conversation that covers every term at once.",
-        message=None or "",
+        message=message,
         exposure=[
             "Saying nothing is not neutral: the standing offer is roughly "
             "{:.1%} and that is what you keep by default."
@@ -272,6 +292,23 @@ def assess(values: dict) -> Outcome:
                      "spend the conversation on it."},
         ],
         caveats=[
+            "A demo, and labelled as one. The cost of replacing you is the "
+            "number everything here turns on: three of our five role figures "
+            "come from a review of 31 case studies, two are our own estimates "
+            "off that review's median, and the underlying data runs 1992 to "
+            "2007. We show a span rather than a single number for that reason. "
+            "Treat the range as a way to think, not as your price.",
+            "This is not legal advice and not employment counsel. Nothing here "
+            "is a view on your rights, your contract, or what your employer may "
+            "lawfully do. If any of that is in play, talk to a lawyer, not to "
+            "a piece of software.",
+            "We make negotiation software, so read this knowing who wrote it. "
+            "What we measured is that it lands where a well-played negotiation "
+            "lands, not further. But it gets there in one conversation "
+            "instead of six weeks, and with about half as many negotiations "
+            "falling apart on the way. The speed is the product; out-arguing "
+            "you is not something we found.",
+            _ev.REPLACEMENT_DISAGREEMENT,
             "Every number here comes from a simulation we built and "
             "pre-registered, not from watching real salary negotiations. It is "
             "a model of the mechanism, not evidence about you.",
@@ -282,12 +319,19 @@ def assess(values: dict) -> Outcome:
             "advantage over a competent negotiator never cleared 2% of salary. "
             "What it does is get everything on the table at once.",
         ],
-        metric_usd=float(leverage),
-        evidence_note=("Base rates: {}. Simulation: research/molt, "
-                       "pre-registered, 8 amendments."
-                       .format(_ev.REPLACEMENT_COST["professional"].source)),
+        metric_usd=float(stake),
+        evidence_note=("Replacement cost: {}. {} of {} role figures sourced; "
+                       "the rest are our estimates off that median. Behaviour: "
+                       "research/molt, pre-registered, 8 amendments, every "
+                       "retraction published."
+                       .format(_ev.REPLACEMENT_COST["professional"].source,
+                               sum(1 for f in _ev.REPLACEMENT_COST.values()
+                                   if f.verified),
+                               len(_ev.REPLACEMENT_COST))),
         context={
-            "replacement_cost_usd": replacement,
+            "replacement_cost_low_usd": rep_lo,
+            "replacement_cost_high_usd": rep_hi,
+            "replacement_disagreement": _ev.REPLACEMENT_DISAGREEMENT,
             "leverage_cell": cell,
             "share_who_never_ask": _ev.SHARE_WHO_NEVER_ASK.value,
             "evidence_verified": _ev.VERIFIED,
@@ -303,14 +347,22 @@ SITUATION = Situation(
     fields=FIELDS,
     assess=assess,
     must_not_assert=MUST_NOT_ASSERT,
-    # NOT LIVE. `salary_evidence.VERIFIED` is False: the replacement-cost
-    # anchors are consultancy benchmarks and the rest is our own simulation.
-    # See salary_evidence.VERIFY_BEFORE_LAUNCH.
-    live=False,
+    # LIVE, AS A LABELLED DEMO. Three of five replacement-cost rows are now
+    # sourced to Boushey & Glynn 2012, read in full. Two are our own steps off
+    # their median and say so. The underlying data is 1992-2007. Every one of
+    # those facts is surfaced to the person in the first caveat, which is why
+    # this can be live while `salary_evidence.VERIFIED` stays False: the gate
+    # is honesty about provenance, not the absence of doubt.
+    live=True,
+    # Substrings, matched with `in`. Keep them long enough to mean something:
+    # a bare "comp" matches "completely", which classified "something
+    # completely unrelated to housing" as a pay negotiation until the framework
+    # test caught it.
     triggers=(
-        "raise", "salary", "promotion", "comp", "compensation", "pay review",
-        "counter offer", "counteroffer", "asking for more", "performance review",
-        "they offered me", "job offer", "negotiate my",
+        "a raise", "for a raise", "my raise", "pay rise", "salary",
+        "promotion", "promoted", "compensation", "comp review", "comp cycle",
+        "counter offer", "counteroffer", "performance review", "job offer",
+        "negotiate my", "asking for more money", "pay review",
     ),
     intake_hint=(
         "The person is going into a pay or promotion conversation. Look for: "

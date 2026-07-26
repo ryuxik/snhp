@@ -1,0 +1,214 @@
+<style>
+.viz-root {
+  color-scheme: light;
+  --surface-1: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #78766f;
+  --grid: #e6e5e0;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --diverge-neg: #e34948;
+  --rule: #cfcec8;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --surface-1: #1a1a19; --text-primary: #ffffff; --text-secondary: #c3c2b7;
+    --text-muted: #97958c; --grid: #33322e; --series-1: #3987e5; --series-2: #d95926;
+    --diverge-neg: #e66767; --rule: #3f3e39;
+  }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --surface-1: #1a1a19; --text-primary: #ffffff; --text-secondary: #c3c2b7;
+  --text-muted: #97958c; --grid: #33322e; --series-1: #3987e5; --series-2: #d95926;
+  --diverge-neg: #e66767; --rule: #3f3e39;
+}
+.viz-root figure { margin: 0 0 3rem; }
+.viz-root figcaption { margin-top: .7rem; font-size: .8rem; color: var(--text-muted); line-height: 1.5; }
+.viz-root h2 { font-size: 1.05rem; font-weight: 620; margin: 0 0 .15rem; letter-spacing: -.01em; }
+.viz-root .sub { font-size: .82rem; color: var(--text-secondary); margin: 0 0 1.1rem; }
+.viz-root .hero { font-size: 3.4rem; font-weight: 680; letter-spacing: -.03em; line-height: 1; margin: .2rem 0 .1rem; }
+.viz-root .hero-lab { font-size: .82rem; color: var(--text-secondary); margin-bottom: 1.3rem; }
+.viz-root .legend { display: flex; gap: 1.1rem; font-size: .78rem; color: var(--text-secondary); margin-bottom: .9rem; }
+.viz-root .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: .35rem; vertical-align: -1px; }
+.viz-root .row { display: grid; grid-template-columns: 13.5rem 1fr; gap: .8rem; align-items: center; margin-bottom: .85rem; }
+.viz-root .rlab { font-size: .8rem; color: var(--text-secondary); line-height: 1.25; }
+.viz-root .rlab b { color: var(--text-primary); font-weight: 600; }
+.viz-root .bars { display: grid; gap: 2px; }
+.viz-root .bar { height: 15px; border-radius: 0 4px 4px 0; position: relative; min-width: 2px; }
+.viz-root .bval { position: absolute; left: calc(100% + 7px); top: 50%; transform: translateY(-50%); font-size: .72rem; color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.viz-root .delta { font-size: .78rem; font-variant-numeric: tabular-nums; color: var(--text-primary); font-weight: 600; }
+.viz-root table { width: 100%; border-collapse: collapse; font-size: .76rem; margin-top: .4rem; }
+.viz-root th, .viz-root td { text-align: right; padding: .3rem .45rem; border-bottom: 1px solid var(--grid); }
+.viz-root th:first-child, .viz-root td:first-child { text-align: left; }
+.viz-root th { color: var(--text-muted); font-weight: 600; }
+.viz-root td.n { font-variant-numeric: tabular-nums; }
+.viz-root details { margin-top: .9rem; }
+.viz-root summary { font-size: .74rem; color: var(--text-muted); cursor: pointer; }
+.viz-root [data-tip] { cursor: default; }
+.viz-root [data-tip]:hover::after {
+  content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 6px);
+  transform: translateX(-50%); background: var(--text-primary); color: var(--surface-1);
+  font-size: .72rem; padding: .3rem .5rem; border-radius: 4px; white-space: nowrap; z-index: 5;
+}
+</style>
+
+<div class="viz-root">
+
+<!-- ===================== FIGURE 1 — the hero ===================== -->
+<figure>
+  <h2>What negotiating is worth, against just signing</h2>
+  <p class="sub">Orbital works, 600 crab-seasons, five pre-registered seeds. Three-year value of the package agreed.</p>
+
+  <div class="hero" style="color:var(--series-2)">+$44,065</div>
+  <div class="hero-lab">what an employee with an offer in hand, who is expensive to replace, gains by negotiating rather than signing</div>
+
+  <div class="legend">
+    <span><span class="swatch" style="background:var(--series-1)"></span>just sign the standing offer</span>
+    <span><span class="swatch" style="background:var(--series-2)"></span>negotiate</span>
+  </div>
+
+  <div id="f1"></div>
+
+  <details>
+    <summary>table view</summary>
+    <table>
+      <thead><tr><th>subgroup</th><th>just sign</th><th>negotiate</th><th>leverage</th></tr></thead>
+      <tbody id="f1t"></tbody>
+    </table>
+  </details>
+
+  <figcaption>Leverage scales with the credibility of your alternative and with what replacing you costs — exactly as bargaining theory says it should. Even with no outside offer at all, opening your mouth is worth $5,729.</figcaption>
+</figure>
+
+<!-- ===================== FIGURE 2 — the constant ===================== -->
+<figure>
+  <h2>One unvalidated constant ran the whole model</h2>
+  <p class="sub">What the tool assumes the employer's walk-away is worth, against what the employee ends up with.</p>
+  <svg id="f2" viewBox="0 0 700 300" role="img" aria-label="Employee outcome falls steeply as the assumed employer walk-away rises, from $20,914 at 0.2 to $12,627 at 0.8; the true value behaves like 0.2."></svg>
+  <details>
+    <summary>table view</summary>
+    <table>
+      <thead><tr><th>assumed walk-away</th><th>employee ends up with</th></tr></thead>
+      <tbody id="f2t"></tbody>
+    </table>
+  </details>
+  <figcaption>The default shipped in our own study was <b>0.45</b>, carried over from an unrelated experiment with no justification and never swept. The truth behaves like 0.20 — an employer facing a replacement bill has an awful outside option. Guessing cautiously is the expensive mistake.</figcaption>
+</figure>
+
+<!-- ===================== FIGURE 3 — the protocol ===================== -->
+<figure>
+  <h2>Two negotiation engines pointed at each other destroy value</h2>
+  <p class="sub">Joint surplus per crab-season, both sides running the same engine.</p>
+  <div id="f3"></div>
+  <details>
+    <summary>table view</summary>
+    <table>
+      <thead><tr><th>condition</th><th>joint surplus</th></tr></thead>
+      <tbody id="f3t"></tbody>
+    </table>
+  </details>
+  <figcaption>Giving both sides each other's <b>true</b> walk-away recovers all of it and more. Adding the cooperative protocol on top contributes $1,696 — below our 2%-of-salary bar. What works is telling each other the truth about your alternatives, not the software and not being nice.</figcaption>
+</figure>
+
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const money = (x) => (x < 0 ? '−$' : '$') + Math.abs(Math.round(x)).toLocaleString('en-US');
+
+/* ---------- Figure 1: paired bars, magnitude by subgroup ---------- */
+const F1 = [
+  ['everyone', 6408, 19937],
+  ['holds an outside offer', 8367, 42111],
+  ['…and expensive to replace', 7446, 51511],
+  ['…but cheap to replace', 9288, 30481],
+  ['no outside offer at all', 6189, 11918],
+];
+const f1max = Math.max(...F1.flatMap(r => [r[1], r[2]]));
+$('#f1').innerHTML = F1.map(([lab, a, b]) => `
+  <div class="row">
+    <div class="rlab">${lab}<br><span class="delta">${money(b - a)}</span> <span style="font-weight:400;color:var(--text-muted)">by negotiating</span></div>
+    <div class="bars">
+      <div class="bar" style="background:var(--series-1);width:${Math.max(2, 74 * a / f1max)}%"
+           data-tip="just sign: ${money(a)}"><span class="bval">${money(a)}</span></div>
+      <div class="bar" style="background:var(--series-2);width:${Math.max(2, 74 * b / f1max)}%"
+           data-tip="negotiate: ${money(b)}"><span class="bval">${money(b)}</span></div>
+    </div>
+  </div>`).join('');
+$('#f1t').innerHTML = F1.map(([l, a, b]) =>
+  `<tr><td>${l}</td><td class="n">${money(a)}</td><td class="n">${money(b)}</td><td class="n">${money(b - a)}</td></tr>`).join('');
+
+/* ---------- Figure 2: single series over an ordered variable ---------- */
+const F2 = [[0.2, 20914], [0.4, 20046], [0.45, 19531], [0.6, 17243], [0.8, 12627]];
+const TRUTH = 20858;
+const W = 700, H = 300, L = 62, R = 128, T = 26, B = 44;
+const xs = (v) => L + (v - 0.2) / 0.6 * (W - L - R);
+const lo = 11000, hi = 22000;
+const ys = (v) => T + (hi - v) / (hi - lo) * (H - T - B);
+let g = '';
+for (let v = 12000; v <= 21000; v += 3000) {
+  g += `<line x1="${L}" y1="${ys(v)}" x2="${W - R}" y2="${ys(v)}" stroke="var(--grid)" stroke-width="1"/>
+        <text x="${L - 8}" y="${ys(v) + 4}" text-anchor="end" font-size="11" fill="var(--text-muted)">$${(v / 1000).toFixed(0)}k</text>`;
+}
+g += `<path d="${F2.map((d, i) => (i ? 'L' : 'M') + xs(d[0]) + ' ' + ys(d[1])).join(' ')}"
+      fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round"/>`;
+F2.forEach(([x, y]) => {
+  const mine = x === 0.45;
+  g += `<circle cx="${xs(x)}" cy="${ys(y)}" r="${mine ? 6 : 4.5}" fill="var(--series-1)"
+        stroke="var(--surface-1)" stroke-width="2"><title>assume ${x}: ${money(y)}</title></circle>`;
+  g += `<text x="${xs(x)}" y="${H - B + 18}" text-anchor="middle" font-size="11"
+        fill="${mine ? 'var(--text-primary)' : 'var(--text-muted)'}"
+        font-weight="${mine ? 600 : 400}">${x}</text>`;
+});
+// the value we shipped, direct-labelled
+g += `<text x="${xs(0.45)}" y="${ys(19531) + 24}" text-anchor="middle" font-size="11.5"
+      fill="var(--text-primary)" font-weight="600">our default</text>`;
+// the truth, as a reference marker
+g += `<line x1="${L}" y1="${ys(TRUTH)}" x2="${W - R + 6}" y2="${ys(TRUTH)}"
+      stroke="var(--series-2)" stroke-width="2" stroke-dasharray="5 4"/>
+      <text x="${W - R + 12}" y="${ys(TRUTH) - 4}" font-size="11.5" fill="var(--series-2)" font-weight="600">the truth</text>
+      <text x="${W - R + 12}" y="${ys(TRUTH) + 12}" font-size="11" fill="var(--text-muted)">${money(TRUTH)}</text>`;
+// keep the annotation clear of the curve (step 7: look at it)
+g += `<text x="${xs(0.72)}" y="${ys(15600)}" text-anchor="end" font-size="11.5"
+      fill="var(--text-secondary)">a cautious guess costs ${money(TRUTH - 12627)}</text>`;
+g += `<text x="${L}" y="${H - 6}" font-size="11" fill="var(--text-muted)">assumed value of the employer's walk-away →</text>`;
+$('#f2').innerHTML = g;
+$('#f2t').innerHTML = F2.map(([x, y]) =>
+  `<tr><td>${x}${x === 0.45 ? ' (our default)' : ''}</td><td class="n">${money(y)}</td></tr>`).join('')
+  + `<tr><td>the true value</td><td class="n">${money(TRUTH)}</td></tr>`;
+
+/* ---------- Figure 3: three states, deltas annotated ---------- */
+const F3 = [
+  ['both sides guess (the shipped default)', -581],
+  ['both sides know the truth', 3475],
+  ['…plus the cooperative protocol', 5171],
+];
+const f3max = 5171, f3min = -581, span = f3max - f3min;
+$('#f3').innerHTML = F3.map(([lab, v], i) => {
+  const neg = v < 0;
+  const zero = 74 * (0 - f3min) / span;
+  const w = 74 * Math.abs(v) / span;
+  return `<div class="row">
+    <div class="rlab">${lab}${i ? `<br><span class="delta">${money(v - F3[i - 1][1])} vs the row above</span>` : ''}</div>
+    <div style="position:relative;height:22px">
+      <div style="position:absolute;left:${zero}%;top:0;bottom:0;width:1px;background:var(--rule)"></div>
+      <div class="bar" data-tip="joint surplus: ${money(v)}" style="position:absolute;top:3px;
+        background:${neg ? 'var(--diverge-neg)' : 'var(--series-1)'};
+        left:${neg ? zero - w : zero}%;width:${w}%;
+        border-radius:${neg ? '4px 0 0 4px' : '0 4px 4px 0'}">
+        <span class="bval" style="${neg ? 'left:auto;right:calc(100% + 7px)' : ''}">${money(v)}</span>
+      </div>
+    </div>
+  </div>`;
+}).join('');
+$('#f3t').innerHTML = F3.map(([l, v]) => `<tr><td>${l}</td><td class="n">${money(v)}</td></tr>`).join('');
+</script>

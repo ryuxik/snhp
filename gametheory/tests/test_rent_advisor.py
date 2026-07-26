@@ -238,3 +238,30 @@ def test_next_step_uses_no_directional_language():
         step = advisor.assess(metro, 2000, 2150, 30).to_dict()["next_step"]
         for directional in ("below", "above"):
             assert directional not in step.lower(), (metro, directional)
+
+
+def test_our_own_measurements_are_described_never_quoted():
+    """`evidence` strings say how sure we are about our OWN findings.
+
+    A figure in one is a simulation output reaching a renter, on a page
+    that promises none. This is a SHAPE rule, not another denylist entry,
+    because the denylist is exactly what failed: $460 went reader-facing
+    the day `evidence` was wired into rent.html, and the enumerated-figure
+    guard in test_situations.py sailed past it. Every number this study
+    produced is downstream of at least one parameter whose justification
+    was the outcome it produces, so the ordering ships and the magnitude
+    does not.
+    """
+    import re
+
+    from vend.rent import advisor as A
+
+    out = A.assess(metro="denver", current_rent=1800, offered_rent=1950,
+                   months_at_address=30).to_dict()
+    for i, ev in enumerate(out.get("evidence", [])):
+        assert "$" not in ev, (
+            f"evidence[{i}] quotes a dollar figure from our own model: {ev!r}"
+        )
+        assert not re.search(r"\d+(?:\.\d+)?\s?%", ev), (
+            f"evidence[{i}] quotes a percentage from our own model: {ev!r}"
+        )
