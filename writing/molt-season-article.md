@@ -17,9 +17,9 @@ Where each one goes is marked inline below.
 The .svg next to each PNG re-renders it if you want a different size.
 ══════════════════════════════════════════════════════════════════
 
-# The Works offered her twelve percent and she left anyway
+# Your employer knows what it costs to replace you. You have a blog post about anchoring.
 
-*I built ten thousand crabs a labour market to find out what asking for a raise is worth. Then I got it wrong five times, which turned out to be the good part.*
+*I built ten thousand crabs a labour market to find out what asking for a raise is actually worth. Up to $44,065, and not one dollar of it comes from how well you ask.*
 
 ──────────────────────────────────────────────────────────────────
 IMAGE 1  ▸  UPLOAD:  cover.png
@@ -28,7 +28,7 @@ CAPTION:  Ten thousand simulated crabs, thirty-nine pre-registered kills, one nu
 
 ---
 
-By the end of this you'll know what asking is worth in dollars, what decides it (not skill, not nerve), and why the useful part of a careful study is where it falls over.
+By the end of this you'll know what asking is worth in dollars, what actually decides it (not skill, not nerve), and what an employer will spend to keep that number away from you. Also the five times I got this wrong, which is the part worth your time.
 
 First, the crabs.
 
@@ -49,6 +49,8 @@ Four days later she quits.
 She wanted the molt. The bigger shell. She puts 56% of her weight on it and nobody got that far down the agenda. The Works pays **$107,762** to replace her, having agreed to a raise it no longer owes. In the other version she signs something costing them **$29,052** and stays.
 
 **Ada didn't negotiate badly. She never found out what she was worth to them.**
+
+You can watch that negotiation happen, round by round, at **[arena.snhp.dev/molt](https://arena.snhp.dev/molt/)**. Every offer in it is recorded engine output, including the version where she stays.
 
 ## The number nobody tells you
 
@@ -190,6 +192,8 @@ Publishing it this way meant changing a test. The framework had a rule that unso
 
 **[api.snhp.dev/helper](https://api.snhp.dev/helper)** Free, keyless, no account. Describe the situation in a sentence and it works out which questions actually matter.
 
+And **[arena.snhp.dev/molt](https://arena.snhp.dev/molt/)** is the study itself, playable: Ada's negotiation round by round, the version where she stays, and every figure above with the run behind it.
+
 The crabs are fake. The refutations are real, and worth more than the study.
 
-*`research/molt/` for the [pre-registration](../research/molt/PREREG.md), eight amendments, and every result including the retracted ones. Figures: `writing/cards/`. (`writing/molt-figures.html` is the version-two figure set and is left in place only because two of its three charts are findings this article goes on to retract.)*
+*[`research/molt/`](https://github.com/ryuxik/snhp/tree/main/research/molt) for the [pre-registration](https://github.com/ryuxik/snhp/blob/main/research/molt/PREREG.md), eight amendments, and every result including the retracted ones. Figures: `writing/cards/`. (`writing/molt-figures.html` is the version-two figure set and is left in place only because two of its three charts are findings this article goes on to retract.)*
