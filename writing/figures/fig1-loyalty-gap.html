@@ -1,0 +1,39 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root{--bg:#0b0916;--ink:#f0eff5;--dim:#9a95b0;--gold:#ffe08a;--green:#7fc48f;--line:rgba(154,149,176,.3);
+--mono:ui-monospace,Menlo,Monaco,"Cascadia Mono",monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1600px;height:900px;background:var(--bg);color:var(--ink);font-family:var(--mono);
+padding:62px 88px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.kick{font-size:22px;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
+.chart{position:relative;height:368px}
+.zero{position:absolute;left:50%;top:6px;bottom:34px;width:2px;background:var(--line)}
+.zl{position:absolute;left:50%;bottom:0;transform:translateX(-50%);font-size:19px;color:var(--dim);letter-spacing:.1em}
+.row{position:absolute;height:118px;display:flex;align-items:center}
+.r1{top:22px;right:50%;flex-direction:row-reverse}
+.r2{top:180px;left:50%}
+.bar{height:118px;flex:none}
+.b1{width:440px;background:linear-gradient(270deg,rgba(127,196,143,.28),rgba(127,196,143,.92));border-radius:8px 0 0 8px}
+.b2{width:340px;background:linear-gradient(90deg,rgba(255,224,138,.28),rgba(255,224,138,.92));border-radius:0 8px 8px 0}
+.lab{padding:0 28px;white-space:nowrap}
+.r1 .lab{text-align:right}
+.lab .p{font-size:74px;line-height:.9;letter-spacing:-.04em;font-weight:600}
+.lab .w{font-size:21px;color:var(--dim);letter-spacing:.13em;text-transform:uppercase;margin-top:13px}
+.p1{color:var(--green)}.p2{color:var(--gold)}
+.gap{display:flex;align-items:baseline;gap:26px;margin-bottom:30px}
+.gap .n{font-size:108px;line-height:.86;letter-spacing:-.045em;font-weight:600;color:var(--ink)}
+.gap .t{font-size:26px;color:var(--dim);line-height:1.42}
+.cons{font-size:38px;line-height:1.3;letter-spacing:-.01em;max-width:1400px}
+.src{font-size:19px;color:var(--dim);margin-top:18px}
+</style></head><body>
+<div class="kick">One company, one quarter, two kinds of tenant</div>
+<div class="chart">
+  <div class="zero"></div><div class="zl">no change</div>
+  <div class="row r1"><div class="bar b1"></div><div class="lab"><div class="p p1">&minus;7.0%</div><div class="w">if you are new</div></div></div>
+  <div class="row r2"><div class="bar b2"></div><div class="lab"><div class="p p2">+5.4%</div><div class="w">if you stayed</div></div></div>
+</div>
+<div>
+  <div class="gap"><div class="n">12.4</div><div class="t">points of daylight between<br>signing and staying</div></div>
+  <div class="cons">Camden, Equity Residential, IRT and Essex posted the same direction, same quarter. Nobody had to talk to anybody.</div>
+  <div class="src">MAA Q1 rent change, new leases vs renewals. Percentages are MAA's own disclosure; the other four are named for direction only.</div>
+</div>
+</body></html>

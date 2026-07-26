@@ -749,6 +749,61 @@ PARAM_SOURCES = {
                        "cost's name. Everything above the time cost (fear of "
                        "retaliation, conflict aversion) has NO published dollar "
                        "value, so it is swept rather than fixed."),
+
+    # --- AMENDMENT 12 (world.py module scope + one Params field) -------------
+    "CPS_MATCH_SHARE": (UPSTREAM, "same package, Table 13, same row: (wanted "
+                        "newer/better/larger 2,207 + wanted better neighborhood "
+                        "/ less crime 967) / 16,337 = 0.194283. The share of "
+                        "renter moves that are about getting a DIFFERENT PLACE "
+                        "-- the channel this model had no representation of at "
+                        "all before A12."),
+    "CPS_RENT_SHARE": (UPSTREAM, "same table, same row: cheaper housing 1,793 / "
+                       "16,337 = 0.109752. The only Census category that is a "
+                       "price response."),
+    "CPS_EXO_SHARE_M3": (DERIVED, "1 - CPS_MATCH_SHARE - CPS_RENT_SHARE = "
+                         "0.695966. Mapping M3, declared PRIMARY in PREREG-A12 "
+                         "§A12.2.2 before any A12 run; M4, which moves 'other "
+                         "housing reason' into the match channel, is the "
+                         "registered robustness alternative."),
+    "P_EXO_CPS_M3": (DERIVED, "CPS_RENTER_MOVER_RATE x CPS_EXO_SHARE_M3 = "
+                     "0.112547/yr. A11's M1 (0.099046) is retained as the "
+                     "secondary so K33 reads against RESULTS-A11 §2 without a "
+                     "second change of variable."),
+    "CPS_MATCH_HAZARD": (DERIVED, "CPS_RENTER_MOVER_RATE x CPS_MATCH_SHARE = "
+                         "3.1418%/yr. sigma* is defined as the `match_sd` that "
+                         "reproduces THIS, so it is a fitted readout and the "
+                         "retention it produces is free."),
+    "CPS_RENT_HAZARD": (DERIVED, "CPS_RENTER_MOVER_RATE x CPS_RENT_SHARE = "
+                        "1.7748%/yr. Nothing is fitted to it; it is K34's free "
+                        "criterion."),
+    "MATCH_K": (UPSTREAM, "= market.K_VISIBLE = 5, 'listings a searcher can "
+                "see (local information only)', declared in market.py's "
+                "before-running parameter list long before A12 existed and "
+                "reused verbatim rather than re-invented. A test asserts the "
+                "two are equal, so match quality adds no second search-width "
+                "parameter."),
+    "MATCH_EMAX": (DERIVED, "E[max of MATCH_K standard normals] = 1.162964, by "
+                   "quadrature on the inverse CDF in `_emax_normal`, not typed "
+                   "in. It is the expected match value of a crab that moves, "
+                   "and it is what makes moving worth something in expectation: "
+                   "a mover views MATCH_K places and takes the best. A "
+                   "transient redraw would give 0 and could never generate 'I "
+                   "moved because that place is better' -- PREREG-A12 "
+                   "§A12.2.1/3."),
+    "match_sd": (INVENTED, "AMENDMENT 12. Dispersion of PERSISTENT habitat "
+                 "match quality, months of market rent per year. The "
+                 "DISTRIBUTION is Normal and INVENTED -- no published "
+                 "distribution of renter idiosyncratic match values exists, "
+                 "and nothing upstream of rent-setting pins its shape. The "
+                 "SCALE is swept over a grid fixed in PREREG-A12 §A12.2.5 "
+                 "before the first run, and its primary value sigma* is set "
+                 "from the CPS 2023 'wanted newer/larger' + 'wanted a better "
+                 "neighborhood' hazard, 3.1418%/yr -- an observable that is NOT "
+                 "retention, so retention stays FREE and K33 is a real test. "
+                 "Default 0.0: every previously reported cell has no match "
+                 "channel at all. CONSEQUENCE, registered in PREREG-A12 "
+                 "§A12.2.6: at sigma* the match-driven SHARE of moves is a "
+                 "readout and may not be claimed."),
 }
 
 
@@ -766,6 +821,13 @@ ARM_SELECTORS = frozenset({
     "secured_share",        # K26's treatment share
     "signal_enabled",       # K26 AUDIT; False in every reported cell
     "derive_switching",     # A8; separate rng, off in every reported cell
+    "match_option",         # A12: does the crab LOOK before it commits
+                            # (registered) or commit blind (the fair-gamble
+                            # control)? Inert at match_sd == 0.
+    "offer_cut",            # A12 K35: a DECLARED flat discount on the renewal
+                            # offer, applied after the DP so the policy is held
+                            # fixed. A treatment magnitude like `secured_share`,
+                            # not a constant; 0.0 in every previous cell.
     "stagger_expiry",       # A12 J1: the one-knob ablation of synchronised
                             # lease expiry. Off in every previously reported
                             # cell, and reuses the leaver's own u[9] draw, so it

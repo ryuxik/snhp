@@ -92,8 +92,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from crabs.world import (ANCHOR_RENT, Crab, Params, _c_total, _norm_ppf, attach,
-                         p_exo, sigmoid)
+from crabs.world import (ANCHOR_RENT, MATCH_K, Crab, Params, _c_total,
+                         _norm_ppf, attach, match_option_value, p_exo, sigmoid)
 
 LAMBDA_SPLIT = 0.5
 BASE_LET_MONTHS = 1.15    # 30-41 day commonly cited let times
@@ -309,6 +309,10 @@ def _rec():
         # re-expressed in MONTHS OF MARKET RENT, which is the model's own
         # scale-free unit and the only one that can be compared with anything.
         renew_M_sum=z, newlet_M_sum=z,
+        # AMENDMENT 12 §A12.2.4: the market channel's own reason-for-move
+        # composition. `n_renewal_left` = exo + rent + match, exactly.
+        n_left_exo=z, n_left_rent=z, n_left_match=z,
+        match_sum=z, match_n=z, newlet_match_sum=z,
     )
     for b in range(4):
         r[f"renew_elapsed{b}_n"] = z
@@ -409,6 +413,11 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
     # AMENDMENT 8: a SEPARATE stream, so that switching on the derivation cannot
     # perturb the main sequence and silently move every previously reported cell.
     rng_a8 = np.random.default_rng(np.random.SeedSequence([seed, 8080]))
+    # AMENDMENT 12: match draws, likewise on a stream of their own and never
+    # touched while `match_sd == 0`, so every previously reported cell is
+    # bit-identical with the mechanism compiled in.
+    rng_mq = np.random.default_rng(np.random.SeedSequence([seed, 1212]))
+    _has_match = p.match_sd > 0.0
     S, U = mp.n_stations, mp.units
     stations = [[Hab() for _ in range(U)] for _ in range(S)]
     rec = _rec()
@@ -423,6 +432,9 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                               + p.move_sigma * _norm_ppf(rng.random())))
             h.crab = Crab(strategy=0, rent=ANCHOR_RENT,
                           tenure=1 + int(rng.random() * p.j_max), c_persist=cp)
+            if _has_match:
+                h.crab.match = float(np.max(
+                    rng_mq.normal(0.0, p.match_sd, MATCH_K)))
             h.ask = ANCHOR_RENT
 
     M_obs = ANCHOR_RENT          # endogenous: last year's mean realised new let
@@ -544,6 +556,24 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                         wa_t_exp = tot / len(nodes)
                 else:
                     wa_t_exp = wa_t_base
+                # AMENDMENT 12 §A12.2.3. The sitting tenant's TRUE reservation
+                # gains what this particular habitat is worth to it over an
+                # average one. `rt_nomatch` is the same number with the channel
+                # off -- the pre-registered attribution counterfactual.
+                #
+                # PRINCIPLE B: `rt_pop`, which is what the OFFER is built from,
+                # is untouched. The landlord prices off the population
+                # distribution at entry, whose mean match differential is zero
+                # by construction, and never sees `crab.match`. It is the exact
+                # hole that manufactured artefact #2 and a test asserts it is
+                # shut.
+                rt_nomatch = rt
+                if _has_match:
+                    # what a search would turn up that this place does not
+                    # give it, per year -- so it will pay that much LESS to
+                    # stay. Weakly positive for everyone, largest for the
+                    # worst matched.
+                    rt = rt - match_option_value(p, crab.match) * M_obs
                 rt_pop = 12.0 * M_obs + wa_t_exp
                 zone = rt_pop - rl
                 offer_annual = rl + mp.lambda_split * max(zone, 0.0)
@@ -552,6 +582,8 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                 if R is not None:
                     rec["n_renewal"] += 1.0
                     rec["renew_M_sum"] += M_obs
+                    rec["match_sum"] += crab.match
+                    rec["match_n"] += 1.0
                     eb = min(int(elapsed), 3)
                     rec[f"renew_elapsed{eb}_n"] += 1.0
                     rec[f"renew_elapsed{eb}_offer"] += offer_annual / (12.0 * M_obs)
@@ -589,12 +621,21 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                     rec[f"move_gain_q{q}_n"] += 1.0
                     rec[f"move_gain_q{q}_pos"] += 1.0 if net > 0 else 0.0
                 # exogenous move, then the economic decision
-                leaves = u[3] < float(p_exo(p, j))
+                exo = u[3] < float(p_exo(p, j))
+                leaves = exo
                 if not leaves:
                     leaves = (12.0 * offer) > rt        # zone empty for THIS crab
                 if leaves:
                     if R is not None:
                         rec["n_renewal_left"] += 1.0
+                        # A12 §A12.2.4: exhaustive three-way, same order as
+                        # world.py's, so the two channels are comparable
+                        if exo:
+                            rec["n_left_exo"] += 1.0
+                        elif (12.0 * offer) > rt_nomatch:
+                            rec["n_left_rent"] += 1.0
+                        else:
+                            rec["n_left_match"] += 1.0
                         rec["move_cost_paid"] += wa_t
                         rec["turn_cost_paid"] += p.turn_cost * M_obs
                         rec["turn_events"] += 1.0
@@ -703,10 +744,27 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                         crab.a8_tight0 = float(tightness)
                 k = min(K_VISIBLE, len(listings))
                 idx = rng.choice(len(listings), size=k, replace=False)
-                seen = sorted((listings[i] for i in idx),
-                              key=lambda si: stations[si[0]][si[1]].ask)
+                # AMENDMENT 12 §A12.2.3. A searcher that views k listings draws
+                # an idiosyncratic match value for each and takes the one worth
+                # most to IT -- annual match value minus annual rent -- instead
+                # of the cheapest. That is the whole of "a crab choosing on
+                # match, not just on price", and it is what makes the redraw a
+                # preference: the mover ends up with the best of k, not with a
+                # fresh draw from the same distribution.
+                #
+                # With `match_sd == 0` every match is zero, the key collapses to
+                # `12 x ask`, and `sorted` is stable, so the ordering is exactly
+                # the old `key=ask` one -- bit-identical, asserted by a test.
+                cand = [listings[t] for t in idx]
+                mq = (rng_mq.normal(0.0, p.match_sd, k) if _has_match
+                      else np.zeros(k))
+                order = sorted(range(k), key=lambda t: (
+                    12.0 * stations[cand[t][0]][cand[t][1]].ask
+                    - mq[t] * M_obs))
+                seen = [cand[t] for t in order]
                 si, i = seen[0]
                 h = stations[si][i]
+                m_signed = float(mq[order[0]])
                 next_best = (stations[seen[1][0]][seen[1][1]].ask if k > 1
                              else h.ask * 1.05)
                 wa_t, wa_l, rt, rl, wait = newlet_walkaways(
@@ -752,6 +810,8 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                 depth = (h.ask0 - signed) / h.ask0
                 crab.rent = signed
                 crab.tenure = 1
+                crab.match = m_signed        # A12: persistent from now on
+                crab.match_mg = None
                 if R is not None:
                     rec["n_newlet_signed"] += 1.0
                     rec["newlet_growth_sum"] += signed / prior - 1.0
@@ -759,6 +819,7 @@ def simulate_market(p: Params, mp: MarketParams, seed: int,
                     rec["newlet_ratio_sum"] += signed / M_obs
                     rec["newlet_vs_ask_sum"] += signed / h.ask
                     rec["newlet_rent_sum"] += signed
+                    rec["newlet_match_sum"] += m_signed
                     rec["depth_sum"] += depth
                     rec["dom_sum"] += h.dom
                     db = _dom_bucket(h.dom)

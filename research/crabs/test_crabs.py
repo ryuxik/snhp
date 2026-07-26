@@ -1961,3 +1961,236 @@ def test_sweeping_p_exo_actually_resolves_the_station_policy():
     assert lo is not hi
     assert [lo.offer(r, 3) for r in (0.9, 1.0, 1.1)] \
         != [hi.offer(r, 3) for r in (0.9, 1.0, 1.1)]
+
+
+# ------------------------------------------------- AMENDMENT 12, JOB 1 -------
+def _a12_market(**mpkw):
+    """One small market, shipped parameters, for the Job 1 pins."""
+    from crabs import market
+    from crabs.run_market import derive_market
+    p = regime_params(BASE, "burn")
+    mp = market.MarketParams(n_stations=12, units=20, **mpkw)
+    agg = None
+    for s in (1000, 1001, 1002):
+        r = market.simulate_market(p, mp, s)
+        c = {k: v for k, v in r.items() if not k.startswith("_")}
+        agg = c if agg is None else {k: agg[k] + v for k, v in c.items()}
+    return agg, derive_market(agg)
+
+
+def test_the_two_vacancy_reports_are_a_stock_at_an_instant_and_a_flow():
+    """AMENDMENT 12 §J1. A10 derived `vacancy` = 4.376 months time-to-let; A11
+    reported the baseline vacancy rate as 0.0000. Both are right and neither is
+    a vacancy rate.
+
+    `vacant_years` is incremented in the RENEWAL block, which runs once a year
+    at the annual boundary -- AFTER twelve months of matching and BEFORE that
+    year's leavers empty their habitats. So it counts habitats that failed to
+    let for a full twelve-month cycle, of which there are none. There is no
+    censoring: every spell completes inside its own year, which is exactly why
+    the stock reads zero."""
+    agg, d = _a12_market()
+    assert agg["vacant_years"] == 0.0
+    assert d["vacancy"] == 0.0
+    assert agg["occupied_years"] == agg["habitat_years"]
+    # ... while the same habitats spent 12-14% of all habitat-months empty
+    assert 0.10 < d["vacancy_flow"] < 0.16, d["vacancy_flow"]
+    # ... and a completed let took ~4.4 months, A10's number
+    assert 3.8 < d["let_months"] < 5.0, d["let_months"]
+    # the two conventions differ by exactly the signing month
+    assert abs(d["let_months"] - d["dom_at_signing"] - 1.0) < 1e-9
+    # no spell is censored, so the duration is interpretable
+    assert agg["n_newlet_signed"] == agg["n_renewal_left"]
+
+
+def test_the_derived_time_to_let_is_queue_drain_from_synchronised_lease_expiry():
+    """The mechanism behind 4.376, ablated rather than asserted
+    (DESIGN-PRINCIPLES C rule 2).
+
+    Every lease in this world expires on the same day: the renewal block empties
+    EVERY leaver's habitat at the annual boundary, while the leavers enter the
+    search pool at `int(u[9]*12)`, a uniform month. Supply arrives in one lump
+    and demand trickles in behind it. `stagger_expiry` empties the habitat in
+    the month its tenant starts searching -- ONE knob, reusing the tenant's own
+    draw, so no parameter and no randomness is added.
+
+    It takes time-to-let to the floor. Whatever letting friction this model has,
+    it is not 4.4 months: it is none."""
+    _, base = _a12_market()
+    _, stag = _a12_market(stagger_expiry=True)
+    assert base["let_months"] > 3.8
+    # let in the month it was listed (1.000 exactly at the reported 40x25
+    # geometry; a hair above at this small one, where the pool occasionally
+    # runs dry in a single station)
+    assert stag["let_months"] < 1.05, stag["let_months"]
+    assert stag["dom_at_signing"] < 0.05, stag["dom_at_signing"]
+    assert stag["vacancy_flow"] < 0.5 * base["vacancy_flow"]
+    # and the same knob is most of the deflation defect of RESULTS Phase 5 §5
+    assert stag["market_rent_renew"] > 2.0 * base["market_rent_renew"]
+
+
+def test_stagger_expiry_is_off_by_default_and_inert_when_off():
+    """Every previously reported market cell must be bit-identical."""
+    from crabs import market
+    assert market.MarketParams().stagger_expiry is False
+    p = regime_params(BASE, "burn")
+    mp_kw = dict(n_stations=8, units=15, meas_years=4)
+    a = market.simulate_market(p, market.MarketParams(**mp_kw), 1000)
+    b = market.simulate_market(
+        p, market.MarketParams(stagger_expiry=False, **mp_kw), 1000)
+    assert {k: v for k, v in a.items() if not k.startswith("_")} \
+        == {k: v for k, v in b.items() if not k.startswith("_")}
+
+
+def test_the_landlord_walkaway_is_denominated_in_the_deflated_market_rent():
+    """AMENDMENT 12 §J1.3, the publication blocker.
+
+    `wa_land_renew` is (months) x M_obs and M_obs is the ENDOGENOUS market rent,
+    which deflates far below ANCHOR_RENT. RESULTS.md's A9/10 section set the
+    resulting dollars ($2,094-$3,440) beside A8's derived tenant switching cost
+    ($2,960 = 1.48 months x ANCHOR_RENT). The two are denominated in rents ~3x
+    apart. The RATIO is unaffected -- both sides share M_obs -- which is why
+    K20/K30 survive and the dollar figures do not."""
+    from crabs.world import ANCHOR_RENT
+    agg, d = _a12_market()
+    assert d["market_rent_renew"] < 0.5 * ANCHOR_RENT, d["market_rent_renew"]
+    # the months figure is the dollars divided by the rent they were built from
+    assert abs(d["wa_land_renew"]
+               - d["wa_land_renew_months"] * d["market_rent_renew"]) < 1e-6
+    assert abs(d["wa_tenant_renew"]
+               - d["wa_tenant_renew_months"] * d["market_rent_renew"]) < 1e-6
+    # the ratio is unit-free, so it is the only thing in that paragraph that
+    # transfers between denominators
+    assert abs(d["wa_ratio_renew"]
+               - d["wa_tenant_renew_months"] / d["wa_land_renew_months"]) < 1e-9
+    # and A8's $2,960 is at the anchor, not at this rent
+    assert abs(1.48 * ANCHOR_RENT - 2960.0) < 1e-9
+
+
+# ------------------------------------------------- AMENDMENT 12, JOB 2 -------
+def test_nu_is_a_transient_logit_temperature_and_not_a_taste_over_places():
+    """PREREG-A12 §A12.2.1, checked against the code rather than the field name.
+
+    `Params.nu` is labelled 'taste-shock scale'. Its only two uses are the leave
+    logit in `world._year` and the station's integral of the same expression in
+    `policies.StationDP._leave_table`, and the uniform it multiplies,
+    `u[U_LOGIT]`, is a FRESH draw every crab-year. So it is attached to the
+    DECISION, not to a PLACE, and it is gone next period: it cannot generate
+    'I moved because that place is better'. `move_transient` is the other
+    candidate and it is half of a COST, redrawn each year, mean-preserving."""
+    from crabs import policies as POL
+    src = inspect.getsource(W._year) \
+        + inspect.getsource(POL.StationDP._leave_table)
+    assert "p.nu" in src
+    # the ONLY place nu appears is inside a sigmoid over a per-period uniform
+    for mod in (W, POL):
+        for line in inspect.getsource(mod).splitlines():
+            if "p.nu" in line:
+                assert "sigmoid" in line, line
+    assert "u[U_LOGIT]" in inspect.getsource(W._year)
+    # and the transient half of the switching cost is a COST, drawn fresh
+    assert "p.move_transient" in inspect.getsource(W._c_total)
+    assert PR.PARAM_SOURCES["nu"][0] == PR.INVENTED
+    assert PR.PARAM_SOURCES["move_transient"][0] == PR.INVENTED
+
+
+def test_match_quality_is_persistent_and_only_a_move_redraws_it():
+    """The property that makes it a preference rather than a shock."""
+    p = W.Params(match_sd=1.0)
+    rng = np.random.default_rng(0)
+    c = W.Crab(strategy=0, rent=0.0, tenure=1, c_persist=1.0)
+    W.set_match(p, c, rng)
+    first = c.match
+    assert first != 0.0
+    # a year passes; nothing in the year loop may touch it
+    assert "crab.match =" not in inspect.getsource(W._year)
+    assert c.match == first
+    # only a move redraws it, and `_turn_over` is the only place that happens
+    assert "set_match" in inspect.getsource(W._turn_over)
+    W.set_match(p, c, rng)
+    assert c.match != first
+    assert c.match_mg is None          # the cached gain is invalidated
+
+
+def test_match_quality_is_inert_at_zero_dispersion():
+    """Every previously reported cell, Phase 1 and market, is bit-identical."""
+    assert W.Params().match_sd == 0.0
+    assert W.Params().offer_cut == 0.0
+    p = regime_params(BASE, "burn")
+    from crabs import market
+    mp = market.MarketParams(n_stations=8, units=15, meas_years=4)
+    a = market.simulate_market(p, mp, 1000)
+    b = market.simulate_market(regime_params(W.Params(match_sd=0.0), "burn"),
+                               mp, 1000)
+    assert {k: v for k, v in a.items() if not k.startswith("_")} \
+        == {k: v for k, v in b.items() if not k.startswith("_")}
+    # the searcher's choice rule collapses to "cheapest of the k you viewed"
+    assert "12.0 * stations[cand[t][0]][cand[t][1]].ask" \
+        in inspect.getsource(market.simulate_market)
+
+
+def test_the_station_never_sees_a_crab_s_match_draw():
+    """PRINCIPLE B, and the exact hole that manufactured artefact #2.
+
+    The offer path may use the POPULATION distribution of match quality and
+    nothing else. In `market.py` the offer is built from `rt_pop`, which is
+    `wa_t_exp` -- the population expectation -- and `crab.match` may appear only
+    in `rt`, the tenant's private reservation, which is read by the LEAVE test."""
+    from crabs import market
+    src = inspect.getsource(market.simulate_market)
+    body = "\n".join(l for l in
+                     src[src.index("rt_pop = "):
+                         src.index("# exogenous move")].splitlines()
+                     if "rec[" not in l)
+    assert "crab.match" not in body, body
+    # the private term is applied to `rt`, never to `rt_pop` or `offer`
+    for line in src.splitlines():
+        if "crab.match" in line and "=" in line:
+            assert ("rt = rt -" in line or "crab.match = m_signed" in line
+                    or "crab.match_mg" in line
+                    or "h.crab.match = float(np.max(" in line
+                    or 'rec["match_sum"]' in line), line
+    # Phase 1: the station's leave table integrates a POPULATION draw
+    assert "match_barrier_shift" in inspect.getsource(W.switching_cost_nodes)
+    assert "crab" not in inspect.signature(W.match_barrier_shift).parameters
+
+
+def test_the_move_attribution_partitions_the_leavers():
+    """§A12.2.4. exo + rent + match must equal every leaver, with no crab
+    counted twice and none dropped -- the pre-registered decomposition."""
+    from crabs import market
+    from crabs.world import P_EXO_CPS_M3
+    p = regime_params(W.Params(p_exo_floor=P_EXO_CPS_M3, p_exo_extra=0.0,
+                               match_sd=1.0), "burn")
+    agg = None
+    for s in (1000, 1001):
+        r = market.simulate_market(p, market.MarketParams(n_stations=10,
+                                                          units=20), s)
+        c = {k: v for k, v in r.items() if not k.startswith("_")}
+        agg = c if agg is None else {k: agg[k] + v for k, v in c.items()}
+    assert (agg["n_left_exo"] + agg["n_left_rent"] + agg["n_left_match"]
+            == agg["n_renewal_left"])
+    assert agg["n_left_match"] > 0.0
+
+
+def test_the_match_option_value_table_is_correct():
+    """`match_option_value` is E[(max of MATCH_K standard normals - x)^+],
+    scaled by `match_sd`. Checked against Monte Carlo, and against its two
+    asymptotes."""
+    rng = np.random.default_rng(11)
+    X = rng.standard_normal((400_000, W.MATCH_K)).max(1)
+    p = W.Params(match_sd=1.0)
+    for x in (-1.0, 0.0, 1.0, 2.0):
+        assert abs(W.match_option_value(p, x)
+                   - float(np.maximum(X - x, 0.0).mean())) < 0.01, x
+    # scale-free in match_sd
+    assert abs(W.match_option_value(W.Params(match_sd=2.0), 2.0)
+               - 2.0 * W.match_option_value(p, 1.0)) < 1e-9
+    # strictly positive everywhere, and decreasing in the current match
+    xs = [W.match_option_value(p, x) for x in (-2.0, 0.0, 2.0, 5.0)]
+    assert all(a > b >= 0.0 for a, b in zip(xs, xs[1:]))
+    # the DECLARED control commits before looking, so it is a fair gamble whose
+    # mean over the entry distribution is zero
+    ctl = W.Params(match_sd=1.0, match_option=False)
+    assert abs(np.mean([W.match_option_value(ctl, float(v))
+                        for v in X[:20000]])) < 0.01

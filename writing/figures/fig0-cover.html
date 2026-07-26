@@ -1,0 +1,41 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+:root{--bg:#0b0916;--ink:#f0eff5;--dim:#9a95b0;--gold:#ffe08a;--faint:rgba(154,149,176,.16);
+--mono:ui-monospace,Menlo,Monaco,"Cascadia Mono",monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1600px;height:640px;background:var(--bg);color:var(--ink);font-family:var(--mono);
+padding:40px 62px 34px;display:flex;flex-direction:column;overflow:hidden}
+h1{font-size:47px;line-height:1.13;letter-spacing:-.025em;font-weight:600}
+h1 .a{color:var(--gold)}
+h1 .b{color:var(--dim)}
+.cols{display:flex;margin-top:28px;align-items:flex-start}
+.col{flex:1}
+.col.r{border-left:1px solid var(--faint);padding-left:46px}
+.col.l{padding-right:46px}
+.hd{font-size:17px;letter-spacing:.19em;text-transform:uppercase;color:var(--dim);margin-bottom:17px}
+.item{font-size:26px;line-height:1.22;padding:16px 20px;border-radius:6px;margin-bottom:10px;
+  background:rgba(255,224,138,.11);border-left:3px solid var(--gold)}
+.item.q{background:rgba(154,149,176,.06);border-left:3px solid rgba(154,149,176,.32);color:var(--dim)}
+.tick{font-size:19px;color:var(--gold);letter-spacing:.14em;text-transform:uppercase;margin-top:14px}
+.src{font-size:21px;color:var(--dim);margin-top:16px;line-height:1.42}
+.src b{color:var(--ink);font-weight:400}
+.foot{font-size:19px;color:var(--dim);letter-spacing:.04em;margin-top:26px}
+</style></head><body>
+<h1><span class="a">Your landlord has an algorithm.</span><br><span class="b">You have a blog post from 2016.</span></h1>
+<div class="cols">
+  <div class="col l">
+    <div class="hd">What it knows about you</div>
+    <div class="item">How long you have lived there</div>
+    <div class="item">Whether you have ever paid late</div>
+    <div class="item">What your unit costs to turn over</div>
+    <div class="item">The date your lease ends</div>
+    <div class="tick">↻ updated daily</div>
+  </div>
+  <div class="col r">
+    <div class="hd">What you know about it</div>
+    <div class="item q">"Turnover costs them one to three months of rent"</div>
+    <div class="src">Source: a property-management blog that cites nothing.<br>
+    <b>No government agency measures either side of this.</b></div>
+  </div>
+</div>
+<div class="foot">3,000 space-crabs, 26 pre-registered ways to be wrong, and one number that was never there</div>
+</body></html>

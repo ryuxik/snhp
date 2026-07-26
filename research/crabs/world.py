@@ -75,6 +75,21 @@ CPS_NONPRICE_SHARE = 1.0 - 1793.0 / 16337.0                     # M2: 0.890249
 P_EXO_CPS_NONHOUSING = CPS_RENTER_MOVER_RATE * CPS_NONHOUSING_SHARE   # 0.099046
 P_EXO_CPS_NONPRICE = CPS_RENTER_MOVER_RATE * CPS_NONPRICE_SHARE       # 0.143966
 
+# AMENDMENT 12 mapping M3 (PREREG-A12 §A12.2.2). A11 had two channels and so
+# needed a two-way split; A12 adds a third -- moving to get a DIFFERENT PLACE --
+# and Table 13 names it directly: "wanted newer/better/larger house or
+# apartment" 2,207 + "wanted better neighborhood / less crime" 967 = 3,174.
+# EXO is then everything that is neither that nor "cheaper housing", which puts
+# "other housing reason" (1,065), "wanted to own" (149) and foreclosure (149) in
+# the exogenous bucket. M4, the robustness mapping, moves "other housing reason"
+# into MATCH; it is computed in run_a12.py rather than installed here.
+CPS_MATCH_SHARE = (2207.0 + 967.0) / 16337.0                    # 0.194283
+CPS_RENT_SHARE = 1793.0 / 16337.0                               # 0.109752
+CPS_EXO_SHARE_M3 = 1.0 - CPS_MATCH_SHARE - CPS_RENT_SHARE       # 0.695966
+P_EXO_CPS_M3 = CPS_RENTER_MOVER_RATE * CPS_EXO_SHARE_M3         # 0.112547
+CPS_MATCH_HAZARD = CPS_RENTER_MOVER_RATE * CPS_MATCH_SHARE      # 0.031418 /yr
+CPS_RENT_HAZARD = CPS_RENTER_MOVER_RATE * CPS_RENT_SHARE        # 0.017748 /yr
+
 # `courage_med = 0.18` months ($360) was set so the endogenous counter rate lands
 # near the observed 39%. The only part of the cost of sending the message with an
 # upstream anchor is the sender's TIME, and that anchor already exists in this
@@ -85,6 +100,37 @@ P_EXO_CPS_NONPRICE = CPS_RENTER_MOVER_RATE * CPS_NONPRICE_SHARE       # 0.143966
 # send one email. LABEL: ANCHORED wage, INVENTED hours, swept (PREREG-A11 §A11.3.2).
 COURAGE_WAGE_HOURLY = 75_000.0 / 2080.0           # $36.06/h
 COURAGE_MED_1H = COURAGE_WAGE_HOURLY / ANCHOR_RENT      # 0.018029 months
+
+# ---------------------------------------------- AMENDMENT 12: match quality
+# PREREG-A12 §A12.2.1. Until A12 this model had NO preferences over habitats:
+# every rented place was the same place, and a crab could only move because rent
+# changed or because an exogenous draw hit it. `nu` is not a counterexample --
+# it is the LOGIT TEMPERATURE of the leave decision, redrawn every period from
+# `u[U_LOGIT]`, so it is attached to the decision and not to a place, and its
+# expectation contributes nothing to the value of moving. `move_transient` is
+# half of a COST redrawn each year. Neither is a match value.
+#
+# `Crab.match` is: this crab's annual valuation of THIS habitat over an average
+# one, in months of market rent per year, PERSISTENT for the whole tenancy and
+# redrawn only on a move.
+#
+# MATCH_K is `market.K_VISIBLE`, declared in market.py's before-running list as
+# "listings a searcher can see (local information only)". Reused, not invented;
+# a test asserts the two are equal. A mover views MATCH_K places and takes the
+# one that suits it, which is why moving has a POSITIVE expected match gain --
+# a mean-zero redraw would be worth nothing in expectation and could never
+# generate "I moved because that place is better".
+MATCH_K = 5
+
+
+def _emax_normal(k: int, n: int = 200_001) -> float:
+    """E[max of k independent standard normals], by quadrature on the inverse
+    CDF. Deterministic, so the constant is computed and not typed in."""
+    qs = (np.arange(n) + 0.5) / n
+    return float(np.mean(_norm_ppf(qs ** (1.0 / k))))
+
+
+MATCH_EMAX = None          # filled at import, after `_norm_ppf` is defined
 
 
 @dataclass(frozen=True)
@@ -135,7 +181,37 @@ class Params:
     # --- crab side (SPEC §4) ---
     kappa_crab: float = 1.6         # years over which a crab values a rent change
     lambda_ref: float = 0.5         # reference dependence on the increase
-    nu: float = 0.60               # taste-shock scale, months
+    nu: float = 0.60               # TRANSIENT logit temperature of the leave
+                                    # decision, NOT a taste over places. The
+                                    # field name says "taste-shock scale"; see
+                                    # the MATCH block above and PREREG-A12
+                                    # §A12.2.1 for why it cannot be one.
+    match_sd: float = 0.0           # AMENDMENT 12. Dispersion of PERSISTENT
+                                    # habitat match quality, months of market
+                                    # rent per year. 0.0 = the shipped model, in
+                                    # which every rented place is the same
+                                    # place. LABEL: INVENTED distribution
+                                    # (Normal); the SCALE is swept and its
+                                    # primary value is set from the CPS
+                                    # "wanted a newer/larger place or a better
+                                    # neighborhood" hazard, which is NOT
+                                    # retention. PREREG-A12 §A12.2.3/6.
+    match_option: bool = True       # AMENDMENT 12. TRUE (registered): the crab
+                                    # LOOKS at MATCH_K places and moves only if
+                                    # the best beats what it has -- an option
+                                    # value. FALSE is the declared control: it
+                                    # commits before it looks, which makes
+                                    # moving a fair gamble. Inert at
+                                    # `match_sd == 0`. PREREG-A12 §A12.2.3.
+    offer_cut: float = 0.0          # AMENDMENT 12 K35. A flat discount applied
+                                    # to the station's renewal offer AFTER the
+                                    # DP has chosen it, so the policy is held
+                                    # fixed and the experiment is "what does a
+                                    # rent concession buy in retention". A
+                                    # DECLARED treatment magnitude (0.05 in the
+                                    # reported cell), not a fitted constant;
+                                    # default 0.0 leaves every previous cell
+                                    # untouched. PREREG-A12 §A12.2.9.
     move_med: float = 3.6           # median switching cost, months of market rent
     move_sigma: float = 0.70
     move_transient: float = 0.5     # share of switching cost redrawn each year
@@ -309,13 +385,23 @@ def switching_cost_nodes(p: Params, n_nodes: int = 64, seed: int = 424242):
     """Equally-weighted quantile midpoints of the TOTAL switching-cost
     distribution c = (1-a) c_persistent + a c_transient, both lognormal.
     Deterministic given the seed. The station knows this distribution; it never
-    sees an individual crab's draw."""
+    sees an individual crab's draw.
+
+    AMENDMENT 12: with `match_sd > 0` these become quantiles of the EFFECTIVE
+    BARRIER to moving, c - match_gain, because that is the object the leave
+    logit compares `gain_base` against. The station integrates over the same
+    population distribution it always did; `policies._leave_table` is untouched.
+    At `match_sd == 0` the barrier is c and every node is bit-identical."""
     rng = np.random.default_rng(np.random.SeedSequence([seed, n_nodes]))
     n = 400_000
     mu = np.log(p.move_med)
     cp = rng.lognormal(mu, p.move_sigma, n)
     ct = rng.lognormal(mu, p.move_sigma, n)
     c = (1.0 - p.move_transient) * cp + p.move_transient * ct
+    if p.match_sd > 0.0:
+        rng_m = np.random.default_rng(
+            np.random.SeedSequence([seed, n_nodes, 1212]))
+        c = c - match_barrier_shift(p, rng_m, n)
     qs = (np.arange(n_nodes) + 0.5) / n_nodes
     return np.quantile(c, qs), np.quantile(c, np.arange(1, n_nodes) / n_nodes)
 
@@ -391,6 +477,12 @@ class Crab:
     asked_last: bool = False
     won_last: bool = False
     ten: object = None    # demographic draw (AMENDMENT 3), None under Phase 1
+    # AMENDMENT 12: PERSISTENT match quality with THIS habitat, months of market
+    # rent per year. Drawn once on move-in as the best of MATCH_K draws (the
+    # crab viewed MATCH_K places), never redrawn while it stays. 0.0 whenever
+    # `match_sd == 0`, which is every previously reported cell.
+    match: float = 0.0
+    match_mg: object = None   # cached `match_gain`, invalidated by a new draw
     # shock state
     wealth: float = 0.0   # extra tolerance for paying above market, months
 
@@ -443,6 +535,112 @@ def _norm_ppf(u):
     return out if out.shape else float(out)
 
 
+MATCH_EMAX = _emax_normal(MATCH_K)     # 1.162965 for K = 5
+
+_MATCH_TAB = None
+
+
+def _match_option_table(k: int = MATCH_K, n: int = 40_001):
+    """Lookup for  g(x) = E[(Z_k - x)^+]  where Z_k is the max of k standard
+    normals -- the expected gain from LOOKING at k places and taking the best
+    only if it beats what you have.
+
+        E[(Z - x)^+] = integral over z from x to infinity of (1 - F(z)) dz,
+        and F(z) = Phi(z)^k.
+
+    Built on a QUANTILE grid, so `Phi(z)` is the grid coordinate itself and no
+    normal CDF is needed -- `_norm_ppf` alone is enough. Below the grid g is
+    exactly linear with slope -1, which is the correct asymptote."""
+    global _MATCH_TAB
+    if _MATCH_TAB is None:
+        q = np.linspace(1e-7, 1.0 - 1e-9, n)
+        z = _norm_ppf(q)
+        tail = 1.0 - q ** k
+        seg = 0.5 * (tail[:-1] + tail[1:]) * np.diff(z)
+        g = np.concatenate([np.cumsum(seg[::-1])[::-1], [0.0]])
+        _MATCH_TAB = (z, g)
+    return _MATCH_TAB
+
+
+def match_option_value(p: Params, m) -> float:
+    """The gain from MOVING that is about the place, in months of market rent
+    PER YEAR, for a crab whose current habitat is worth `m` to it.
+
+    `match_option = True` (registered, PREREG-A12 §A12.2.3 -- "search lets it
+    see some draws before committing"): the crab views MATCH_K places and moves
+    only if the best beats what it has, so the gain is
+    `match_sd x g(m / match_sd)`, strictly positive and largest for the worst
+    matched. This is an OPTION value.
+
+    `match_option = False` is the declared control: the crab commits before it
+    looks, so its gain is `E[best of K] - m`, which is a FAIR GAMBLE with mean
+    zero over the entry distribution and can be negative. Reported beside the
+    registered version because the difference between them is exactly the value
+    of being allowed to look first."""
+    if p.match_sd <= 0.0:
+        return 0.0
+    if not p.match_option:
+        return float(MATCH_EMAX * p.match_sd - m)
+    z, g = _match_option_table()
+    x = float(m) / p.match_sd
+    if x < z[0]:
+        return float(p.match_sd * (g[0] + (z[0] - x)))
+    return float(p.match_sd * np.interp(x, z, g))
+
+
+def draw_match(p: Params, rng) -> float:
+    """One crab's PERSISTENT match value with the habitat it is moving into, in
+    months of market rent per year: the best of MATCH_K independent
+    Normal(0, match_sd) draws, because a mover views MATCH_K places and takes
+    the one that suits it.
+
+    `rng` is a stream of its own (`SeedSequence([station_seed, 1212])`), so
+    switching the mechanism on cannot perturb the pre-drawn uniform block and
+    silently move every previously reported cell. At `match_sd == 0` no draw is
+    taken at all."""
+    if p.match_sd <= 0.0 or rng is None:
+        return 0.0
+    return float(np.max(rng.normal(0.0, p.match_sd, MATCH_K)))
+
+
+def set_match(p: Params, crab: Crab, rng) -> None:
+    """Draw the crab's persistent match with the habitat it moves into, and
+    clear the cached gain."""
+    crab.match = draw_match(p, rng)
+    crab.match_mg = None
+
+
+def match_gain(p: Params, crab: Crab) -> float:
+    """`match_option_value` over the crab's `kappa_crab` horizon -- the same
+    horizon and the same units `gain_base` returns, so it can be added to it.
+
+    Cached on the crab, because it is a function of `crab.match` and of two
+    parameters, none of which move while the crab stays."""
+    if p.match_sd <= 0.0:
+        return 0.0
+    if crab.match_mg is None:
+        crab.match_mg = p.kappa_crab * match_option_value(p, crab.match)
+    return crab.match_mg
+
+
+def match_barrier_shift(p: Params, rng, n: int) -> np.ndarray:
+    """`n` draws of the POPULATION distribution of `match_gain` at entry, for the
+    station's integral. PRINCIPLE B: this is the only thing about match quality
+    the station ever sees -- the distribution, never a crab's draw."""
+    if p.match_sd <= 0.0:
+        return np.zeros(n)
+    draws = np.max(rng.normal(0.0, p.match_sd, (n, MATCH_K)), axis=1)
+    if not p.match_option:
+        return p.kappa_crab * (MATCH_EMAX * p.match_sd - draws)
+    z, g = _match_option_table()
+    x = draws / p.match_sd
+    gv = np.interp(x, z, g)
+    lo = x < z[0]                       # exact asymptote, slope -1
+    if np.any(lo):
+        gv[lo] = g[0] + (z[0] - x[lo])
+    return p.kappa_crab * p.match_sd * gv
+
+
 # ------------------------------------------------------------------- recording
 
 def new_recorder() -> dict:
@@ -475,6 +673,14 @@ def new_recorder() -> dict:
         # sets leave without either draw firing, so in shock runs the two do not
         # sum to `left` -- that gap is the exodus and is reported as such.
         left_exo=z, left_endo=z, left_endo_only=z,
+        # AMENDMENT 12 §A12.2.4. `left_exo`, `left_rent` and `left_match`
+        # PARTITION the leavers (a shock exodus aside, as above): match-driven
+        # means the crab left and would not have left with its match value at
+        # the population mean, on the same uniform draw. Both are zero whenever
+        # `match_sd == 0`, except that `left_rent` then equals
+        # `left_endo_only` -- asserted by a test rather than claimed.
+        left_rent=z, left_match=z,
+        match_sum=z, match_n=z,          # the sitting population's match values
     )
     for k in KIND_NAMES:
         rec[f"grant_{k}"] = z
@@ -523,6 +729,12 @@ def simulate_station(p_burn: Params, p_meas: Params, station_seed: int,
         # Opt-in and underscore-prefixed, so no aggregate and no arm changes.
         rec["_pushes"] = []
 
+    # AMENDMENT 12: match draws come from a stream of their OWN, so switching
+    # the mechanism on cannot perturb the pre-drawn uniform block `uniforms()`
+    # and silently move every previously reported cell. Nothing is drawn from it
+    # while `match_sd == 0`.
+    rng_m = np.random.default_rng(np.random.SeedSequence([station_seed, 1212]))
+
     # initial population: tenure spread over the buckets, rent at market
     crabs: list[Crab] = []
     for i in range(p_burn.units):
@@ -530,6 +742,7 @@ def simulate_station(p_burn: Params, p_meas: Params, station_seed: int,
         c = new_crab(p_burn, u, 0, burn_share, burn_strategy)
         c.tenure = 1 + int(u[U_TEN0] * p_burn.j_max)
         c.rent = m[0]
+        set_match(p_burn, c, rng_m)
         crabs.append(c)
 
     if series:
@@ -563,7 +776,7 @@ def simulate_station(p_burn: Params, p_meas: Params, station_seed: int,
             _set_endogenous_askers(p, crabs, M, st, asker_strategy)
         gv = _year(p, st, crabs, uu, M, g_obs, sh, strat, t,
                    rec if measuring else None, vmul_y=vmul_y,
-                   wealth_y=wealth_y, exodus_y=exodus_y)
+                   wealth_y=wealth_y, exodus_y=exodus_y, rng_m=rng_m)
         if measuring and learn:
             _update_beliefs(p, crabs, gv, broadcast)
             live_share = gv["n_ask"] / max(1.0, gv["n_renew"])
@@ -623,7 +836,8 @@ def _year_snapshot(crabs, gv, M, yi) -> dict:
 
 
 def _year(p: Params, st, crabs, uu, M, g_obs, share, asker_strategy, t, rec,
-          vmul_y: float = 1.0, wealth_y: float = 0.0, exodus_y: float = 0.0):
+          vmul_y: float = 1.0, wealth_y: float = 0.0, exodus_y: float = 0.0,
+          rng_m=None):
     gv = dict(n_ask=0.0, n_succ=0.0, n_renew=0.0, n_left=0.0, cleared_scale=0.0,
               kinds=[0.0, 0.0, 0.0, 0.0], ratio_sum=0.0, ratio_n=0.0,
               surp_inc=0.0, n_inc=0.0, surp_rich=0.0, n_rich=0.0,
@@ -673,7 +887,8 @@ def _year(p: Params, st, crabs, uu, M, g_obs, share, asker_strategy, t, rec,
                     rec["move_cost_paid"] += move
                     _add_surplus(rec, crab, -fee_paid - move)
                 crabs[i] = _turn_over(p, crab, u, M, t, share, asker_strategy,
-                                      rec, tmul=tmul_l, vmul=vmul_l)
+                                      rec, tmul=tmul_l, vmul=vmul_l,
+                                      rng_m=rng_m)
             else:
                 crab.tenure += 1
                 if crab.fee_years > 0:
@@ -683,6 +898,8 @@ def _year(p: Params, st, crabs, uu, M, g_obs, share, asker_strategy, t, rec,
         j = min(crab.tenure, p.j_max)
         r = crab.rent / M
         q = r * (1.0 + x_blanket) if x_blanket is not None else st.offer(r, j)
+        if p.offer_cut > 0.0:
+            q = q * (1.0 - p.offer_cut)     # A12 K35, policy held fixed
         c_tot = _c_total(p, crab, u)
         tmul, vmul = turn_multipliers(p, u, j)
         vmul *= vmul_y
@@ -746,7 +963,16 @@ def _year(p: Params, st, crabs, uu, M, g_obs, share, asker_strategy, t, rec,
             if asked:
                 rec["_casker"].append((j, c_tot))
         exo = u[U_EXO] < p_exo(p, j)
-        endo = u[U_LOGIT] < sigmoid((gb - c_tot) / p.nu)
+        # AMENDMENT 12. `mg` is 0.0 in every previously reported cell, so `endo`
+        # is unchanged there. `endo_nomatch` is the SAME uniform evaluated with
+        # the match channel switched off -- the pre-registered attribution
+        # counterfactual (PREREG-A12 §A12.2.4), deterministic and drawing no
+        # extra randomness. It is not assumed to be a subset: a crab with a
+        # better-than-average match has `mg < 0` and the comparison runs the
+        # other way.
+        mg = match_gain(p, crab)
+        endo = u[U_LOGIT] < sigmoid((gb + mg - c_tot) / p.nu)
+        endo_nomatch = u[U_LOGIT] < sigmoid((gb - c_tot) / p.nu)
         leave = bool(exo or endo)
         if crab.wealth > 0.0 and exodus_y > 0.0 and u[U_EXODUS] < exodus_y:
             leave = True                      # the migration reverses
@@ -763,6 +989,8 @@ def _year(p: Params, st, crabs, uu, M, g_obs, share, asker_strategy, t, rec,
 
         if rec is not None:
             rec["renewals"] += 1.0
+            rec["match_sum"] += crab.match
+            rec["match_n"] += 1.0
             rec[f"ten{j}_renewals"] += 1.0
             rec["offer_ratio_sum"] += q
             rec["push_sum"] += q / r - 1.0
@@ -800,6 +1028,13 @@ def _year(p: Params, st, crabs, uu, M, g_obs, share, asker_strategy, t, rec,
                     rec["left_endo"] += 1.0
                     if not exo:
                         rec["left_endo_only"] += 1.0
+                # AMENDMENT 12 §A12.2.4: three exhaustive channels, in this
+                # order, so the shares sum to 1 over `left`.
+                if not exo and endo:
+                    if endo_nomatch:
+                        rec["left_rent"] += 1.0
+                    else:
+                        rec["left_match"] += 1.0
                 rec[f"ten{j}_left"] += 1.0
                 rec[f"left_{'asker' if crab.strategy != NEVER_ASK else 'nonasker'}"] += 1.0
                 _count_crab_year(rec, crab)
@@ -809,7 +1044,8 @@ def _year(p: Params, st, crabs, uu, M, g_obs, share, asker_strategy, t, rec,
             gv["n_left"] += 1.0
             gv["vac_months"] += min(p.vacancy * vmul, 11.0)
             crabs[i] = _turn_over(p, crab, u, M, t, share, asker_strategy, rec,
-                                  tmul=tmul, vmul=vmul, wealth=wealth_y)
+                                  tmul=tmul, vmul=vmul, wealth=wealth_y,
+                                  rng_m=rng_m)
             continue
 
         # ---- stays: realise the package exactly
@@ -965,7 +1201,7 @@ def _add_surplus(rec, crab, v):
 
 def _turn_over(p: Params, old: Crab, u, M, t, share, asker_strategy, rec,
                tmul: float = 1.0, vmul: float = 1.0,
-               wealth: float = 0.0) -> Crab:
+               wealth: float = 0.0, rng_m=None) -> Crab:
     """The habitat turns: T is paid, it sits vacant `vacancy` months, then a new
     crab signs at market. The arriving crab's partial year is surplus-neutral."""
     T = p.turn_cost * tmul
@@ -982,4 +1218,5 @@ def _turn_over(p: Params, old: Crab, u, M, t, share, asker_strategy, rec,
     c.rent = M
     c.tenure = 1
     c.wealth = wealth
+    set_match(p, c, rng_m)              # A12: a NEW place, so a new draw
     return c
