@@ -35,5 +35,5 @@ Web studio: [snhp.dev/studio](https://snhp.dev/studio) · API: [snhp.dev/develop
 
 ## This repository
 
-The `snhp` package on PyPI is built from [`packages/snhp-client`](packages/snhp-client). The rest of this repository is
-earlier research code; it is no longer offered or maintained.
+The `snhp` package on PyPI is built from [`packages/snhp-client`](packages/snhp-client). SNHP's earlier research code is
+preserved, unmaintained, on the [`legacy-toolkit`](https://github.com/ryuxik/snhp/tree/legacy-toolkit) branch.

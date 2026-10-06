@@ -1,9 +1,6 @@
 name: Tests
 
-# Runs the pytest suite on every push and PR. Until now CI only built the wheel
-# and the MCP registry entry on release — nothing ran the tests. This is the
-# safety net for the redesign: the golden-reproduction tests (boba/vend/fashion)
-# and the engine property tests plug in here as they land.
+# Builds and checks the published `snhp` package (packages/snhp-client) on every push and PR.
 
 on:
   push:
@@ -31,54 +28,3 @@ jobs:
       - name: Tools are listed
         run: |
           python -c "import asyncio; from snhp_client.server import mcp; names=[t.name for t in asyncio.run(mcp.list_tools())]; print(names); assert names == ['compile_offer_policy','draft_negotiation_reply','check_offer_policy','verify_deal_receipt']"
-
-  pytest:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-      - name: Install (runtime + test deps; no ANTHROPIC_API_KEY needed)
-        # negmas is the negotiation substrate used by gametheory.negotiation._sim
-        # (run_matchup -> b2b_round_robin.create_issues/create_ufuns) — a real
-        # runtime dep of the peer-mode tests, not just tuning. Installed explicitly
-        # (the heavy rest of the `snhp` extra — optuna/pandas/sklearn — is not needed).
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[test,arena,prod]" negmas
-      - name: Run non-slow suite
-        # `slow` = perf-budget tests (deselect with -m 'not slow'); run from the
-        # repo root so the vertical packages import via rootdir on sys.path.
-        run: python -m pytest -q -m "not slow" -p no:cacheprovider
-
-  js-fidelity:
-    # The general JS engine (core/js/) must stay byte-for-byte with the Python
-    # engine. Fixtures are regenerated from the Python source of record every run
-    # (not committed — a stale committed fixture would hide JS drift), then the
-    # node harness asserts JS == Python on all of them.
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Install python deps (for the fixture dumper)
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[test,arena,prod]"
-      - name: Regenerate F1 fixtures from the Python engine
-        run: python core/js/test/dump_fixtures.py
-      - name: JS engine matches Python (F1)
-        run: node --test core/js/test/*.test.mjs
-      - name: Consumer hook stays honest (never-above-menu sweep + cart==full-graph)
-        run: node --test arena/web/hook_verify.test.mjs
-      - name: boba-world.mjs matches boba/world.py (the world drift gate)
-        run: node --test arena/web/bobaworld_verify.test.mjs
-      - name: Your-menu close stays honest (compile/profile/quote on arbitrary menus)
-        run: node --test arena/web/yourmenu_verify.test.mjs
