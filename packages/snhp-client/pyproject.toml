@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "snhp"
+version = "0.5.0"
+description = "Negotiation rules your AI can't break: turn a seller's offer into rules and draft replies to buyers (and their AI agents) inside them. MCP server for snhp.dev."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+authors = [{name = "SNHP", email = "hello@snhp.dev"}]
+keywords = ["negotiation", "mcp", "sales", "pricing", "guardrails", "agents"]
+dependencies = [
+    "mcp>=1.27,<2",
+    "httpx>=0.27",
+]
+
+[project.urls]
+Homepage = "https://snhp.dev"
+Documentation = "https://snhp.dev/developers"
+
+[project.scripts]
+snhp = "snhp_client.server:main"
+
+[tool.setuptools.packages.find]
+include = ["snhp_client*"]

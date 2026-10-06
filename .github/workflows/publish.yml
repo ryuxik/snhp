@@ -1,6 +1,6 @@
 name: Publish to PyPI
 
-# Publishes the `snhp` package to PyPI via Trusted Publishing (OIDC) — no token.
+# Publishes the `snhp` package (packages/snhp-client: the SNHP MCP client) to PyPI via Trusted Publishing (OIDC) — no token.
 # Fires when you cut a GitHub Release (or run it manually from the Actions tab).
 on:
   release:
@@ -21,6 +21,8 @@ jobs:
         with:
           python-version: "3.11"
       - name: Build sdist + wheel
-        run: pipx run build
+        run: pipx run build packages/snhp-client
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: packages/snhp-client/dist/

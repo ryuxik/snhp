@@ -32,8 +32,3 @@ Templates, checks and receipt verification are free.
 provider only to read them and draft the reply.
 
 Web studio: [snhp.dev/studio](https://snhp.dev/studio) · API: [snhp.dev/developers](https://snhp.dev/developers)
-
-## This repository
-
-The `snhp` package on PyPI is built from [`packages/snhp-client`](packages/snhp-client). The rest of this repository is
-earlier research code; it is no longer offered or maintained.

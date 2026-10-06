@@ -1,9 +1,12 @@
-# Smithery config — lists the snhp stdio MCP server (PyPI package, Apache-2.0).
+# Smithery config — the snhp stdio MCP server (PyPI package `snhp`, packages/snhp-client).
 # https://smithery.ai/docs
 startCommand:
   type: stdio
   configSchema:
     type: object
-    properties: {}
+    properties:
+      accessKey:
+        type: string
+        description: "SNHP access key for drafting replies and compiling offers (pilot businesses: https://snhp.dev/#pilot). Templates, checks and receipt verification work without it."
   commandFunction: |-
-    (config) => ({ command: 'uvx', args: ['snhp'] })
+    (config) => ({ command: 'uvx', args: ['snhp'], env: config.accessKey ? { SNHP_ACCESS_KEY: config.accessKey } : {} })

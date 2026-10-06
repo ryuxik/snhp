@@ -15,6 +15,23 @@ permissions:
   contents: read
 
 jobs:
+  client:
+    # the published `snhp` package (packages/snhp-client): builds, installs, lists its four MCP tools
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build and install the client
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build packages/snhp-client
+          pip install packages/snhp-client/dist/*.whl
+      - name: Tools are listed
+        run: |
+          python -c "import asyncio; from snhp_client.server import mcp; names=[t.name for t in asyncio.run(mcp.list_tools())]; print(names); assert names == ['compile_offer_policy','draft_negotiation_reply','check_offer_policy','verify_deal_receipt']"
+
   pytest:
     runs-on: ubuntu-latest
     steps:

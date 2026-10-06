@@ -1,18 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.ryuxik/snhp",
-  "title": "SNHP — free negotiation math + agent memory",
-  "description": "Free game-theory negotiation advisor for agents, plus paid receipted sessions and agent memory.",
+  "title": "SNHP \u2014 negotiation rules your AI can't break",
+  "description": "Turn a seller's offer into negotiation rules and draft replies to buyers and their AI agents inside them; the engine decides offers, a small model writes, deals get signed receipts.",
   "repository": {
     "url": "https://github.com/ryuxik/snhp",
     "source": "github"
   },
-  "version": "0.4.0",
+  "version": "0.5.0",
   "websiteUrl": "https://snhp.dev",
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://api.snhp.dev/mcp/"
+      "url": "https://snhp.dev/mcp/"
     }
   ]
 }
